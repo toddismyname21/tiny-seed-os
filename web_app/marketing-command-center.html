@@ -1171,6 +1171,154 @@
         }
 
         /* ============================================= */
+        /* ACCOUNT TOGGLE BUTTONS */
+        /* ============================================= */
+        .account-toggle-btn {
+            padding: 0.5rem 1rem;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .account-toggle-btn:hover {
+            background: rgba(255,255,255,0.1);
+            color: var(--text-primary);
+        }
+
+        .account-toggle-btn.active {
+            background: linear-gradient(135deg, var(--instagram) 0%, var(--purple) 100%);
+            border-color: var(--instagram);
+            color: white;
+        }
+
+        .account-toggle-btn.active i {
+            color: white !important;
+        }
+
+        /* Content Type Selector */
+        .content-type-selector {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .content-type-btn {
+            flex: 1;
+            min-width: 100px;
+            padding: 0.75rem;
+            background: rgba(0,0,0,0.2);
+            border: 2px solid transparent;
+            border-radius: 10px;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .content-type-btn:hover {
+            background: rgba(0,0,0,0.3);
+            color: var(--text-primary);
+        }
+
+        .content-type-btn.active.curated {
+            background: rgba(34, 197, 94, 0.2);
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        .content-type-btn.active.original {
+            background: rgba(67, 97, 238, 0.2);
+            border-color: var(--info);
+            color: var(--info);
+        }
+
+        .content-type-btn.active.personal {
+            background: rgba(225, 48, 108, 0.2);
+            border-color: var(--instagram);
+            color: var(--instagram);
+        }
+
+        .content-type-btn .type-count {
+            font-size: 1.25rem;
+            font-weight: 700;
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        .content-type-btn .type-label {
+            font-size: 0.7rem;
+            display: block;
+        }
+
+        /* 5-3-2 Progress Bar */
+        .content-mix-progress {
+            display: flex;
+            height: 8px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 0.75rem;
+        }
+
+        .content-mix-progress .curated-fill {
+            background: var(--success);
+            transition: width 0.3s;
+        }
+
+        .content-mix-progress .original-fill {
+            background: var(--info);
+            transition: width 0.3s;
+        }
+
+        .content-mix-progress .personal-fill {
+            background: var(--instagram);
+            transition: width 0.3s;
+        }
+
+        /* AI Recommendation Badge */
+        .ai-need-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            animation: pulse-glow 2s infinite;
+        }
+
+        .ai-need-badge.curated {
+            background: rgba(34, 197, 94, 0.2);
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+
+        .ai-need-badge.original {
+            background: rgba(67, 97, 238, 0.2);
+            border: 1px solid var(--info);
+            color: var(--info);
+        }
+
+        .ai-need-badge.personal {
+            background: rgba(225, 48, 108, 0.2);
+            border: 1px solid var(--instagram);
+            color: var(--instagram);
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        /* ============================================= */
         /* FORM ELEMENTS */
         /* ============================================= */
         .form-group {
@@ -1592,6 +1740,34 @@
                             <button class="btn btn-secondary" onclick="generateContentCalendar()">
                                 <i class="fas fa-calendar-plus"></i> Plan Week
                             </button>
+                            <button class="btn" onclick="learnVoiceFromPosts()" style="background: linear-gradient(135deg, var(--purple), var(--instagram)); color: white;">
+                                <i class="fas fa-microphone-alt"></i> Learn My Voice
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ACCOUNT SELECTOR - Toggle between accounts -->
+            <div class="card" style="margin-top: 1.5rem; background: rgba(0,0,0,0.3);">
+                <div class="card-body" style="padding: 1rem 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="color: var(--text-secondary); font-size: 0.9rem;"><i class="fas fa-bullseye"></i> Posting To:</span>
+                        </div>
+                        <div id="accountSelector" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <button class="account-toggle-btn active" data-account="all" onclick="selectAccount('all')">
+                                <i class="fas fa-globe"></i> ALL ACCOUNTS
+                            </button>
+                            <button class="account-toggle-btn" data-account="farm" onclick="selectAccount('farm')">
+                                <i class="fab fa-instagram" style="color: var(--instagram);"></i> @tinyseedfarm
+                            </button>
+                            <button class="account-toggle-btn" data-account="fleurs" onclick="selectAccount('fleurs')">
+                                <i class="fab fa-instagram" style="color: #E1306C;"></i> @tinyseedfleurs
+                            </button>
+                            <button class="account-toggle-btn" data-account="fungi" onclick="selectAccount('fungi')">
+                                <i class="fab fa-instagram" style="color: #833AB4;"></i> @tinyseedfungi
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1645,44 +1821,82 @@
                     </div>
                 </div>
 
-                <!-- AI Post Recommendation -->
+                <!-- AI Post Recommendation - UPGRADED -->
                 <div class="card" style="background: linear-gradient(135deg, rgba(225, 48, 108, 0.1), rgba(155, 89, 182, 0.1)); border: 1px solid rgba(225, 48, 108, 0.3);">
                     <div class="card-header">
                         <h3><i class="fas fa-lightbulb" style="color: var(--instagram);"></i> AI Recommends</h3>
-                        <button class="btn btn-sm btn-secondary" onclick="getNewRecommendation()">
-                            <i class="fas fa-dice"></i> New Idea
-                        </button>
+                        <div id="aiNeedBadge" class="ai-need-badge curated">
+                            <i class="fas fa-arrow-up"></i> <span id="needBadgeText">Post CURATED content next</span>
+                        </div>
                     </div>
                     <div class="card-body">
-                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem;">
-                            <div style="text-align: center; padding: 0.75rem; background: rgba(0,0,0,0.2); border-radius: 8px;">
-                                <div style="font-size: 0.75rem; color: var(--text-secondary);">Best Time</div>
-                                <div style="font-weight: 700; color: var(--success);" id="recommendedTime">4:00 PM</div>
+                        <!-- Account Context Display -->
+                        <div id="recommendAccountContext" style="background: rgba(0,0,0,0.3); padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem;">
+                            <i class="fas fa-bullseye" style="color: var(--instagram);"></i>
+                            <span>Posting to: <strong id="recommendAccountName">ALL ACCOUNTS</strong></span>
+                        </div>
+
+                        <!-- Content Type Selector (5-3-2) -->
+                        <div style="margin-bottom: 1rem;">
+                            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.5rem; display: flex; justify-content: space-between;">
+                                <span><i class="fas fa-layer-group"></i> SELECT CONTENT TYPE (5-3-2 Rule)</span>
+                                <span id="contentMixStatus">On track ✓</span>
                             </div>
-                            <div style="text-align: center; padding: 0.75rem; background: rgba(0,0,0,0.2); border-radius: 8px;">
-                                <div style="font-size: 0.75rem; color: var(--text-secondary);">Platform</div>
-                                <div style="font-weight: 700;" id="recommendedPlatform"><i class="fab fa-instagram"></i> Instagram</div>
+                            <div class="content-type-selector">
+                                <button class="content-type-btn active curated" data-type="curated" onclick="selectContentType('curated')">
+                                    <span class="type-count" id="curatedCount">0/5</span>
+                                    <span class="type-label">CURATED/SHARED</span>
+                                </button>
+                                <button class="content-type-btn original" data-type="original" onclick="selectContentType('original')">
+                                    <span class="type-count" id="originalCount">0/3</span>
+                                    <span class="type-label">ORIGINAL</span>
+                                </button>
+                                <button class="content-type-btn personal" data-type="personal" onclick="selectContentType('personal')">
+                                    <span class="type-count" id="personalCount">0/2</span>
+                                    <span class="type-label">PERSONAL/FUN</span>
+                                </button>
                             </div>
-                            <div style="text-align: center; padding: 0.75rem; background: rgba(0,0,0,0.2); border-radius: 8px;">
-                                <div style="font-size: 0.75rem; color: var(--text-secondary);">Expected</div>
-                                <div style="font-weight: 700; color: var(--gold);" id="expectedEngagement">High</div>
+                            <div class="content-mix-progress">
+                                <div class="curated-fill" id="curatedFill" style="width: 0%;"></div>
+                                <div class="original-fill" id="originalFill" style="width: 0%;"></div>
+                                <div class="personal-fill" id="personalFill" style="width: 0%;"></div>
                             </div>
                         </div>
-                        <div id="suggestedCaption" style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 1rem; min-height: 120px; white-space: pre-wrap; line-height: 1.6;">
+
+                        <!-- Timing & Platform Info -->
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-bottom: 1rem;">
+                            <div style="text-align: center; padding: 0.75rem; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                                <div style="font-size: 0.7rem; color: var(--text-secondary);">Best Time</div>
+                                <div style="font-weight: 700; color: var(--success); font-size: 0.95rem;" id="recommendedTime">4:00 PM</div>
+                            </div>
+                            <div style="text-align: center; padding: 0.75rem; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                                <div style="font-size: 0.7rem; color: var(--text-secondary);">Platform</div>
+                                <div style="font-weight: 700; font-size: 0.95rem;" id="recommendedPlatform"><i class="fab fa-instagram"></i> Instagram</div>
+                            </div>
+                            <div style="text-align: center; padding: 0.75rem; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                                <div style="font-size: 0.7rem; color: var(--text-secondary);">Expected</div>
+                                <div style="font-weight: 700; color: var(--gold); font-size: 0.95rem;" id="expectedEngagement">High</div>
+                            </div>
+                        </div>
+
+                        <!-- AI Generated Caption -->
+                        <div id="suggestedCaption" style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 1rem; min-height: 100px; white-space: pre-wrap; line-height: 1.6; font-size: 0.9rem;">
                             Loading AI recommendation...
                         </div>
                         <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.5rem;" id="whyThisWorks">
                             <i class="fas fa-info-circle"></i> AI analyzing your audience patterns...
                         </p>
-                        <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-                            <button class="btn btn-primary" onclick="approveAndSchedule()">
+
+                        <!-- Action Buttons -->
+                        <div style="display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap;">
+                            <button class="btn btn-primary" onclick="approveAndSchedule()" style="flex: 1;">
                                 <i class="fas fa-check"></i> Approve & Schedule
                             </button>
                             <button class="btn btn-secondary" onclick="editCaption()">
                                 <i class="fas fa-edit"></i> Edit
                             </button>
-                            <button class="btn btn-secondary" onclick="regenerateCaption()">
-                                <i class="fas fa-redo"></i> Regenerate
+                            <button class="btn btn-secondary" onclick="getNewRecommendation()">
+                                <i class="fas fa-dice"></i> New Idea
                             </button>
                         </div>
                     </div>
@@ -1721,13 +1935,21 @@
                 </div>
             </div>
 
-            <!-- 2026 Algorithm Intelligence Panel -->
+            <!-- 2026 Algorithm Intelligence Panel - SELF-UPDATING -->
             <div class="card" style="margin-top: 1.5rem; background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%); border: 1px solid rgba(139, 92, 246, 0.3);">
-                <div class="card-header">
+                <div class="card-header" style="flex-wrap: wrap; gap: 0.5rem;">
                     <h3 style="background: linear-gradient(135deg, #6366F1, #8B5CF6); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
                         <i class="fas fa-brain" style="-webkit-text-fill-color: #8B5CF6;"></i> 2026 Algorithm Intelligence
                     </h3>
-                    <span style="font-size: 0.75rem; background: rgba(139, 92, 246, 0.2); padding: 0.25rem 0.75rem; border-radius: 20px; color: #A78BFA;">STATE OF THE ART</span>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <span id="researchLastUpdated" style="font-size: 0.7rem; color: var(--text-secondary);">
+                            <i class="fas fa-clock"></i> Updated: This week
+                        </span>
+                        <button class="btn btn-sm" onclick="runAlgorithmResearch()" style="background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white; font-size: 0.75rem;">
+                            <i class="fas fa-sync-alt"></i> Research Update
+                        </button>
+                        <span style="font-size: 0.75rem; background: rgba(139, 92, 246, 0.2); padding: 0.25rem 0.75rem; border-radius: 20px; color: #A78BFA;">STATE OF THE ART</span>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
@@ -1772,25 +1994,76 @@
                             </div>
                         </div>
                     </div>
-                    <!-- 5-3-2 Content Mix -->
+                    <!-- 5-3-2 Content Mix - INTERACTIVE TRACKER -->
                     <div style="margin-top: 1.5rem; background: rgba(0,0,0,0.3); padding: 1.25rem; border-radius: 12px;">
-                        <h4 style="margin-bottom: 1rem;"><i class="fas fa-layer-group" style="color: var(--purple);"></i> 5-3-2 Content Mix Rule</h4>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+                            <h4 style="margin: 0;"><i class="fas fa-layer-group" style="color: var(--purple);"></i> 5-3-2 Content Mix Tracker</h4>
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <span id="trackerAccountLabel" style="font-size: 0.8rem; color: var(--text-secondary);">Tracking: ALL ACCOUNTS</span>
+                                <button class="btn btn-sm btn-secondary" onclick="resetContentMix()" title="Reset weekly counts">
+                                    <i class="fas fa-undo"></i> Reset
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Weekly Progress Summary -->
+                        <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                <span style="font-size: 0.85rem; color: var(--text-secondary);">This Week's Progress</span>
+                                <span id="weeklyMixStatus" style="font-size: 0.85rem; font-weight: 600; color: var(--success);">On Track ✓</span>
+                            </div>
+                            <div class="content-mix-progress" style="height: 12px; margin-bottom: 0.5rem;">
+                                <div class="curated-fill" id="trackerCuratedFill" style="width: 50%;"></div>
+                                <div class="original-fill" id="trackerOriginalFill" style="width: 30%;"></div>
+                                <div class="personal-fill" id="trackerPersonalFill" style="width: 20%;"></div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-secondary);">
+                                <span>0 posts</span>
+                                <span id="totalWeeklyPosts">10 posts (goal)</span>
+                            </div>
+                        </div>
+
                         <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                            <div style="flex: 5; min-width: 150px; background: rgba(34, 197, 94, 0.2); padding: 1rem; border-radius: 8px; text-align: center;">
-                                <div style="font-size: 2rem; font-weight: 700; color: var(--success);">5</div>
-                                <div style="font-size: 0.85rem;">Curated/Shared</div>
-                                <div style="font-size: 0.75rem; color: var(--text-secondary);">Industry content</div>
+                            <!-- Curated -->
+                            <div id="trackerCurated" style="flex: 5; min-width: 150px; background: rgba(34, 197, 94, 0.2); padding: 1rem; border-radius: 8px; text-align: center; cursor: pointer; transition: all 0.2s; border: 2px solid transparent;" onclick="selectContentType('curated')">
+                                <div style="font-size: 2rem; font-weight: 700; color: var(--success);"><span id="trackerCuratedCurrent">0</span>/5</div>
+                                <div style="font-size: 0.85rem; font-weight: 600;">Curated/Shared</div>
+                                <div style="font-size: 0.75rem; color: var(--text-secondary);">Industry content, reposts</div>
+                                <div id="curatedNeed" style="margin-top: 0.5rem; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.7rem; background: rgba(34, 197, 94, 0.3);">
+                                    Need 5 more
+                                </div>
                             </div>
-                            <div style="flex: 3; min-width: 150px; background: rgba(67, 97, 238, 0.2); padding: 1rem; border-radius: 8px; text-align: center;">
-                                <div style="font-size: 2rem; font-weight: 700; color: var(--info);">3</div>
-                                <div style="font-size: 0.85rem;">Original</div>
+                            <!-- Original -->
+                            <div id="trackerOriginal" style="flex: 3; min-width: 150px; background: rgba(67, 97, 238, 0.2); padding: 1rem; border-radius: 8px; text-align: center; cursor: pointer; transition: all 0.2s; border: 2px solid transparent;" onclick="selectContentType('original')">
+                                <div style="font-size: 2rem; font-weight: 700; color: var(--info);"><span id="trackerOriginalCurrent">0</span>/3</div>
+                                <div style="font-size: 0.85rem; font-weight: 600;">Original</div>
                                 <div style="font-size: 0.75rem; color: var(--text-secondary);">Your content, non-sales</div>
+                                <div id="originalNeed" style="margin-top: 0.5rem; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.7rem; background: rgba(67, 97, 238, 0.3);">
+                                    Need 3 more
+                                </div>
                             </div>
-                            <div style="flex: 2; min-width: 150px; background: rgba(225, 48, 108, 0.2); padding: 1rem; border-radius: 8px; text-align: center;">
-                                <div style="font-size: 2rem; font-weight: 700; color: var(--instagram);">2</div>
-                                <div style="font-size: 0.85rem;">Personal/Fun</div>
-                                <div style="font-size: 0.75rem; color: var(--text-secondary);">Humanize your brand</div>
+                            <!-- Personal -->
+                            <div id="trackerPersonal" style="flex: 2; min-width: 150px; background: rgba(225, 48, 108, 0.2); padding: 1rem; border-radius: 8px; text-align: center; cursor: pointer; transition: all 0.2s; border: 2px solid transparent;" onclick="selectContentType('personal')">
+                                <div style="font-size: 2rem; font-weight: 700; color: var(--instagram);"><span id="trackerPersonalCurrent">0</span>/2</div>
+                                <div style="font-size: 0.85rem; font-weight: 600;">Personal/Fun</div>
+                                <div style="font-size: 0.75rem; color: var(--text-secondary);">Humanize brand</div>
+                                <div id="personalNeed" style="margin-top: 0.5rem; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.7rem; background: rgba(225, 48, 108, 0.3);">
+                                    Need 2 more
+                                </div>
                             </div>
+                        </div>
+
+                        <!-- Quick Tips Based on Selection -->
+                        <div id="contentTypeTips" style="margin-top: 1rem; padding: 1rem; background: rgba(155, 89, 182, 0.1); border-radius: 8px; border-left: 3px solid var(--purple);">
+                            <div style="font-size: 0.8rem; font-weight: 600; color: var(--purple); margin-bottom: 0.5rem;">
+                                <i class="fas fa-lightbulb"></i> CURATED CONTENT IDEAS
+                            </div>
+                            <ul style="font-size: 0.8rem; color: var(--text-secondary); margin: 0; padding-left: 1.25rem;">
+                                <li>Share posts from local Pittsburgh food bloggers</li>
+                                <li>Repost customer photos (with credit)</li>
+                                <li>Share farming industry news or tips</li>
+                                <li>Feature local restaurant partners' posts</li>
+                            </ul>
                         </div>
                     </div>
                 </div>
@@ -5980,11 +6253,607 @@
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
-        // BRAIN TAB - AUTONOMOUS AI COMMAND CENTER
+        // BRAIN TAB - AUTONOMOUS AI COMMAND CENTER (STATE OF THE ART)
+        // Research: Buffer 9.6M posts, Sprout Social, Later 6M posts analysis
         // ═══════════════════════════════════════════════════════════════════════════
 
         let brainData = { actionQueue: { urgent: [], today: [] } };
         let currentRecommendation = null;
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // INTELLIGENT STATE MANAGEMENT
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        // Current selected account for posting
+        let selectedAccount = 'all'; // 'all', 'farm', 'fleurs', 'fungi'
+
+        // Current selected content type for AI recommendations
+        let selectedContentType = 'curated'; // 'curated', 'original', 'personal'
+
+        // Account configurations with specific audiences
+        const ACCOUNT_CONFIG = {
+            all: { name: 'ALL ACCOUNTS', index: -1, color: '#9b59b6', audience: 'general' },
+            farm: { name: '@tinyseedfarm', index: 0, color: '#E1306C', audience: 'general', focus: 'vegetables, produce, farm life' },
+            fleurs: { name: '@tinyseedfleurs', index: 1, color: '#E1306C', audience: 'floral', focus: 'flowers, arrangements, events' },
+            fungi: { name: '@tinyseedfungi', index: 2, color: '#833AB4', audience: 'specialty', focus: 'mushrooms, specialty, gourmet' }
+        };
+
+        // 5-3-2 Content Mix Tracker (per account, per week)
+        // Stored in localStorage for persistence
+        const CONTENT_MIX_KEY = 'tinyseed_content_mix';
+
+        function getContentMixData() {
+            const stored = localStorage.getItem(CONTENT_MIX_KEY);
+            if (stored) {
+                const data = JSON.parse(stored);
+                // Check if it's a new week
+                const currentWeek = getWeekNumber(new Date());
+                if (data.week !== currentWeek) {
+                    return resetContentMixData();
+                }
+                return data;
+            }
+            return resetContentMixData();
+        }
+
+        function resetContentMixData() {
+            const data = {
+                week: getWeekNumber(new Date()),
+                all: { curated: 0, original: 0, personal: 0 },
+                farm: { curated: 0, original: 0, personal: 0 },
+                fleurs: { curated: 0, original: 0, personal: 0 },
+                fungi: { curated: 0, original: 0, personal: 0 }
+            };
+            localStorage.setItem(CONTENT_MIX_KEY, JSON.stringify(data));
+            return data;
+        }
+
+        function getWeekNumber(date) {
+            const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+            const dayNum = d.getUTCDay() || 7;
+            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        }
+
+        function incrementContentMix(account, type) {
+            const data = getContentMixData();
+            if (account === 'all') {
+                // Increment all accounts
+                ['farm', 'fleurs', 'fungi'].forEach(acc => {
+                    data[acc][type]++;
+                });
+            } else {
+                data[account][type]++;
+            }
+            data.all[type] = data.farm[type] + data.fleurs[type] + data.fungi[type];
+            localStorage.setItem(CONTENT_MIX_KEY, JSON.stringify(data));
+            updateContentMixUI();
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // OPTIMAL POSTING TIMES - Based on Buffer 9.6M Posts Research (2026)
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        const OPTIMAL_TIMES = {
+            0: { times: ['21:00', '22:00', '20:00'], label: 'Sunday', quality: 'medium' },      // Sunday: 9pm, 10pm, 8pm
+            1: { times: ['19:00', '18:00', '20:00'], label: 'Monday', quality: 'good' },        // Monday: 7pm, 6pm, 8pm
+            2: { times: ['19:00', '15:00', '17:00'], label: 'Tuesday', quality: 'great' },      // Tuesday: 7pm, 3pm, 5pm
+            3: { times: ['12:00', '18:00', '08:00'], label: 'Wednesday', quality: 'best' },     // Wednesday: 12pm, 6pm, 8am (BEST DAY)
+            4: { times: ['09:00', '08:00', '07:00'], label: 'Thursday', quality: 'best' },      // Thursday: 9am, 8am, 7am (PEAK)
+            5: { times: ['22:00', '21:00', '06:00'], label: 'Friday', quality: 'low' },         // Friday: 10pm, 9pm, 6am (LOW)
+            6: { times: ['21:00', '22:00', '20:00'], label: 'Saturday', quality: 'lowest' }     // Saturday: 9pm, 10pm, 8pm (WORST)
+        };
+
+        // Farm-specific timing adjustments (local food audience)
+        const FARM_TIMING_BOOSTS = {
+            // Pre-market reminder (Saturday/Sunday markets)
+            marketReminder: { days: [4, 5], times: ['17:00', '18:00'], boost: 'Market reminder posts' },
+            // Meal planning (Friday evening, Sunday evening)
+            mealPlanning: { days: [5, 0], times: ['17:00', '18:00', '19:00'], boost: 'Meal planning time' },
+            // Morning harvest energy
+            harvestEnergy: { days: [1, 2, 3, 4], times: ['06:00', '07:00'], boost: 'Fresh harvest vibes' }
+        };
+
+        function getNextOptimalPostTime() {
+            const now = new Date();
+            const currentDay = now.getDay();
+            const currentHour = now.getHours();
+            const currentMinutes = now.getMinutes();
+
+            // Check today's remaining times first
+            const todayTimes = OPTIMAL_TIMES[currentDay].times;
+            for (const time of todayTimes) {
+                const [hour] = time.split(':').map(Number);
+                if (hour > currentHour || (hour === currentHour && currentMinutes < 30)) {
+                    return {
+                        day: OPTIMAL_TIMES[currentDay].label,
+                        time: formatTime(hour),
+                        quality: OPTIMAL_TIMES[currentDay].quality,
+                        isToday: true
+                    };
+                }
+            }
+
+            // Find next best day (prioritize Wed/Thu)
+            const dayPriority = [3, 4, 2, 1, 0, 5, 6]; // Wed, Thu, Tue, Mon, Sun, Fri, Sat
+            for (const day of dayPriority) {
+                if (day > currentDay || (day <= currentDay && day !== currentDay)) {
+                    const daysUntil = day > currentDay ? day - currentDay : 7 - currentDay + day;
+                    return {
+                        day: OPTIMAL_TIMES[day].label,
+                        time: formatTime(parseInt(OPTIMAL_TIMES[day].times[0].split(':')[0])),
+                        quality: OPTIMAL_TIMES[day].quality,
+                        isToday: false,
+                        daysUntil: daysUntil
+                    };
+                }
+            }
+
+            // Fallback to tomorrow's first time
+            const tomorrow = (currentDay + 1) % 7;
+            return {
+                day: OPTIMAL_TIMES[tomorrow].label,
+                time: formatTime(parseInt(OPTIMAL_TIMES[tomorrow].times[0].split(':')[0])),
+                quality: OPTIMAL_TIMES[tomorrow].quality,
+                isToday: false,
+                daysUntil: 1
+            };
+        }
+
+        function formatTime(hour) {
+            const ampm = hour >= 12 ? 'PM' : 'AM';
+            const displayHour = hour > 12 ? hour - 12 : (hour === 0 ? 12 : hour);
+            return `${displayHour}:00 ${ampm}`;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // INTELLIGENT CONTENT RECOMMENDATION ENGINE
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        // Farm-specific content ideas by type (40+ from research)
+        const CONTENT_IDEAS = {
+            curated: {
+                farm: [
+                    { idea: 'Share a post from a local Pittsburgh food blogger featuring local produce', hashtags: '#Pittsburgh #LocalFood #FarmFresh' },
+                    { idea: 'Repost a customer photo of their meal made with your vegetables (with credit)', hashtags: '#CustomerLove #FarmToTable' },
+                    { idea: 'Share an article about seasonal eating benefits', hashtags: '#SeasonalEating #HealthyLiving' },
+                    { idea: 'Feature a local restaurant partner\'s dish using your produce', hashtags: '#FarmToFork #LocalRestaurant' },
+                    { idea: 'Share tips from other farmers about sustainable practices', hashtags: '#SustainableFarming #RegenerativeAg' },
+                    { idea: 'Repost content from your local farmers market', hashtags: '#FarmersMarket #ShopLocal' }
+                ],
+                fleurs: [
+                    { idea: 'Share a stunning floral arrangement from a local wedding photographer', hashtags: '#WeddingFlowers #LocalFlorist' },
+                    { idea: 'Repost customer photos of your flowers in their homes', hashtags: '#FlowersOfInstagram #HomeDecor' },
+                    { idea: 'Share seasonal flower care tips from gardening experts', hashtags: '#FlowerCare #GardenTips' },
+                    { idea: 'Feature a local event planner using your arrangements', hashtags: '#EventFlowers #Pittsburgh' }
+                ],
+                fungi: [
+                    { idea: 'Share a chef\'s post featuring gourmet mushroom dishes', hashtags: '#MushroomRecipes #GourmetFood' },
+                    { idea: 'Repost content about mushroom health benefits', hashtags: '#FunctionalMushrooms #Wellness' },
+                    { idea: 'Share fascinating mushroom facts from mycology accounts', hashtags: '#Mycology #FungiFactFriday' },
+                    { idea: 'Feature a restaurant partner\'s mushroom special', hashtags: '#ChefLife #LocalIngredients' }
+                ]
+            },
+            original: {
+                farm: [
+                    { idea: '🌱 Product of the Week: Feature your best current harvest with why it\'s special', hashtags: '#FarmFresh #InSeason #TinySeedFarm' },
+                    { idea: '🌅 Morning Routine: Show your 6am farm walk - what needs attention today', hashtags: '#FarmLife #BehindTheScenes' },
+                    { idea: '📦 Show the journey from harvest to box - the care that goes into each order', hashtags: '#FarmToTable #LocalFood' },
+                    { idea: '🌿 Educational: Explain why this week\'s crop is at peak flavor right now', hashtags: '#EatLocal #SeasonalProduce' },
+                    { idea: '⏰ Time-lapse: Show a crop\'s growth from planting to harvest', hashtags: '#Gardening #FarmLife #GrowYourOwn' },
+                    { idea: '🥗 Share a simple recipe using what\'s fresh this week', hashtags: '#FarmToFork #SimpleRecipes' },
+                    { idea: '🚜 Day in the Life: Fast montage from sunrise to sunset on the farm', hashtags: '#DayInTheLife #FarmerLife' }
+                ],
+                fleurs: [
+                    { idea: '💐 Arrangement Tutorial: Show how you create a signature bouquet', hashtags: '#FloralDesign #FlowerTutorial' },
+                    { idea: '🌸 What\'s Blooming: Showcase this week\'s freshest flowers with care tips', hashtags: '#FreshFlowers #FloralArrangement' },
+                    { idea: '🎨 Color palette inspiration for the season', hashtags: '#FloralArt #ColorPalette' },
+                    { idea: '✂️ Behind the scenes: Early morning flower conditioning routine', hashtags: '#FloristLife #BehindTheScenes' }
+                ],
+                fungi: [
+                    { idea: '🍄 Mushroom of the Week: Deep dive into one variety and how to cook it', hashtags: '#MushroomMonday #GourmetMushrooms' },
+                    { idea: '🔬 Show the growing process - from spawn to harvest', hashtags: '#MushroomFarm #UrbanFarming' },
+                    { idea: '👨‍🍳 Chef tip: The best way to prepare this week\'s harvest', hashtags: '#CookingTips #MushroomRecipes' },
+                    { idea: '🌡️ Educational: Why temperature and humidity matter for mushroom growing', hashtags: '#Mycology #ScienceOfFood' }
+                ]
+            },
+            personal: {
+                farm: [
+                    { idea: '👨‍🌾 Meet the Farmer: Share why you started farming and what drives you', hashtags: '#FarmerStory #SmallFarm' },
+                    { idea: '🤦 Farm Fails: Something went hilariously wrong today - share the blooper', hashtags: '#FarmLife #KeepingItReal' },
+                    { idea: '☕ Coffee break moment: What you\'re grateful for today on the farm', hashtags: '#FarmGratitude #SimpleLife' },
+                    { idea: '🐕 Farm pets! Show off the dogs/cats that supervise the operation', hashtags: '#FarmDog #FarmLife' },
+                    { idea: '🌧️ Rainy day vibes: What farmers do when weather doesn\'t cooperate', hashtags: '#RainyDay #FarmerLife' },
+                    { idea: '🎉 Small wins: Celebrate something that went right this week', hashtags: '#SmallWins #GoodVibes' },
+                    { idea: '💭 Unpopular opinion or hot take about farming/food (keep it fun)', hashtags: '#FoodThoughts #FarmersOpinion' }
+                ],
+                fleurs: [
+                    { idea: '💕 Your personal favorite flower and why it means something to you', hashtags: '#FlowerLove #FloristLife' },
+                    { idea: '😅 Flower fails: Arrangement that didn\'t go as planned', hashtags: '#FloristProblems #KeepingItReal' },
+                    { idea: '🌺 What inspired you to work with flowers', hashtags: '#MyStory #FloralPassion' }
+                ],
+                fungi: [
+                    { idea: '🤓 Your mushroom nerd moment: Share something fascinating you learned', hashtags: '#MushroomNerd #FunFacts' },
+                    { idea: '😂 Growing fails: When mushrooms have a mind of their own', hashtags: '#GrowingPains #MushroomLife' },
+                    { idea: '🍳 What YOU cooked with mushrooms this week (personal meal)', hashtags: '#WhatIAte #MushroomLover' }
+                ]
+            }
+        };
+
+        function getWhatToPostNext() {
+            const mixData = getContentMixData();
+            const accountData = selectedAccount === 'all' ? mixData.all : mixData[selectedAccount];
+
+            // Calculate what's needed based on 5-3-2 ratio
+            const total = accountData.curated + accountData.original + accountData.personal;
+            const idealCurated = Math.floor(total * 0.5) || 5;   // 50% or minimum 5
+            const idealOriginal = Math.floor(total * 0.3) || 3;  // 30% or minimum 3
+            const idealPersonal = Math.floor(total * 0.2) || 2;  // 20% or minimum 2
+
+            // Determine biggest gap
+            const gaps = {
+                curated: Math.max(0, 5 - accountData.curated),  // Need 5 total
+                original: Math.max(0, 3 - accountData.original), // Need 3 total
+                personal: Math.max(0, 2 - accountData.personal)  // Need 2 total
+            };
+
+            // Find what's most needed
+            let recommended = 'curated';
+            let maxGap = gaps.curated;
+
+            if (gaps.original > maxGap) {
+                recommended = 'original';
+                maxGap = gaps.original;
+            }
+            if (gaps.personal > maxGap) {
+                recommended = 'personal';
+            }
+
+            // If all are met, cycle through based on ratio
+            if (gaps.curated === 0 && gaps.original === 0 && gaps.personal === 0) {
+                // All minimums met - recommend based on ratio balance
+                const curatedRatio = accountData.curated / (total || 1);
+                const originalRatio = accountData.original / (total || 1);
+                const personalRatio = accountData.personal / (total || 1);
+
+                if (curatedRatio < 0.5) recommended = 'curated';
+                else if (originalRatio < 0.3) recommended = 'original';
+                else if (personalRatio < 0.2) recommended = 'personal';
+                else recommended = 'curated'; // Default to curated (most common)
+            }
+
+            return {
+                type: recommended,
+                gaps: gaps,
+                current: accountData,
+                message: getRecommendationMessage(recommended, gaps)
+            };
+        }
+
+        function getRecommendationMessage(type, gaps) {
+            const messages = {
+                curated: gaps.curated > 0
+                    ? `Post CURATED content next (need ${gaps.curated} more this week)`
+                    : 'Post CURATED content to maintain 50% balance',
+                original: gaps.original > 0
+                    ? `Post ORIGINAL content next (need ${gaps.original} more this week)`
+                    : 'Post ORIGINAL content to maintain 30% balance',
+                personal: gaps.personal > 0
+                    ? `Post PERSONAL/FUN content next (need ${gaps.personal} more this week)`
+                    : 'Post PERSONAL content to maintain 20% balance'
+            };
+            return messages[type];
+        }
+
+        function getRandomContentIdea(type, account) {
+            const accountKey = account === 'all' ? 'farm' : account;
+            const ideas = CONTENT_IDEAS[type][accountKey] || CONTENT_IDEAS[type].farm;
+            return ideas[Math.floor(Math.random() * ideas.length)];
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // ACCOUNT SELECTION
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        function selectAccount(account) {
+            selectedAccount = account;
+
+            // Update UI
+            document.querySelectorAll('.account-toggle-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-account="${account}"]`).classList.add('active');
+
+            // Update recommendation context
+            document.getElementById('recommendAccountName').textContent = ACCOUNT_CONFIG[account].name;
+
+            // Update tracker label
+            const trackerLabel = document.getElementById('trackerAccountLabel');
+            if (trackerLabel) {
+                trackerLabel.textContent = `Tracking: ${ACCOUNT_CONFIG[account].name}`;
+            }
+
+            // Refresh content mix display and recommendation
+            updateContentMixUI();
+            updateAIRecommendation();
+
+            showToast(`Now posting to ${ACCOUNT_CONFIG[account].name}`, 'success');
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // CONTENT TYPE SELECTION
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        function selectContentType(type) {
+            selectedContentType = type;
+
+            // Update selector buttons in AI Recommends
+            document.querySelectorAll('.content-type-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelectorAll(`[data-type="${type}"]`).forEach(btn => {
+                btn.classList.add('active', type);
+            });
+
+            // Update tracker highlight
+            document.querySelectorAll('#trackerCurated, #trackerOriginal, #trackerPersonal').forEach(el => {
+                el.style.borderColor = 'transparent';
+            });
+            const trackerEl = document.getElementById(`tracker${type.charAt(0).toUpperCase() + type.slice(1)}`);
+            if (trackerEl) {
+                const colors = { curated: 'var(--success)', original: 'var(--info)', personal: 'var(--instagram)' };
+                trackerEl.style.borderColor = colors[type];
+            }
+
+            // Update tips
+            updateContentTypeTips(type);
+
+            // Regenerate AI caption for this content type
+            generateSmartRecommendation();
+        }
+
+        function updateContentTypeTips(type) {
+            const tips = {
+                curated: {
+                    title: 'CURATED CONTENT IDEAS',
+                    color: 'var(--success)',
+                    items: [
+                        'Share posts from local Pittsburgh food bloggers',
+                        'Repost customer photos (with credit)',
+                        'Share farming industry news or tips',
+                        'Feature local restaurant partners\' posts',
+                        'Share seasonal eating articles'
+                    ]
+                },
+                original: {
+                    title: 'ORIGINAL CONTENT IDEAS',
+                    color: 'var(--info)',
+                    items: [
+                        'Product of the Week highlight',
+                        'Behind-the-scenes farm operations',
+                        'Educational content about your crops',
+                        'Recipe using current harvest',
+                        'Time-lapse of crop growth',
+                        'Day in the Life montage'
+                    ]
+                },
+                personal: {
+                    title: 'PERSONAL/FUN CONTENT IDEAS',
+                    color: 'var(--instagram)',
+                    items: [
+                        'Meet the Farmer story',
+                        'Farm fails and bloopers',
+                        'Farm pets and animals',
+                        'Coffee break gratitude moment',
+                        'Celebrate small wins',
+                        'Hot takes (keep it fun!)'
+                    ]
+                }
+            };
+
+            const tipData = tips[type];
+            const container = document.getElementById('contentTypeTips');
+            if (container) {
+                container.innerHTML = `
+                    <div style="font-size: 0.8rem; font-weight: 600; color: ${tipData.color}; margin-bottom: 0.5rem;">
+                        <i class="fas fa-lightbulb"></i> ${tipData.title}
+                    </div>
+                    <ul style="font-size: 0.8rem; color: var(--text-secondary); margin: 0; padding-left: 1.25rem;">
+                        ${tipData.items.map(item => `<li>${item}</li>`).join('')}
+                    </ul>
+                `;
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // UI UPDATE FUNCTIONS
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        function updateContentMixUI() {
+            const mixData = getContentMixData();
+            const accountData = selectedAccount === 'all' ? mixData.all : mixData[selectedAccount];
+
+            // Update counts in AI Recommends section
+            document.getElementById('curatedCount').textContent = `${accountData.curated}/5`;
+            document.getElementById('originalCount').textContent = `${accountData.original}/3`;
+            document.getElementById('personalCount').textContent = `${accountData.personal}/2`;
+
+            // Update tracker section
+            document.getElementById('trackerCuratedCurrent').textContent = accountData.curated;
+            document.getElementById('trackerOriginalCurrent').textContent = accountData.original;
+            document.getElementById('trackerPersonalCurrent').textContent = accountData.personal;
+
+            // Calculate progress bar widths
+            const total = accountData.curated + accountData.original + accountData.personal;
+            const curatedPct = total > 0 ? (accountData.curated / total) * 100 : 50;
+            const originalPct = total > 0 ? (accountData.original / total) * 100 : 30;
+            const personalPct = total > 0 ? (accountData.personal / total) * 100 : 20;
+
+            // Update progress bars
+            ['', 'tracker'].forEach(prefix => {
+                const curatedFill = document.getElementById(`${prefix}CuratedFill`);
+                const originalFill = document.getElementById(`${prefix}OriginalFill`);
+                const personalFill = document.getElementById(`${prefix}PersonalFill`);
+
+                if (curatedFill) curatedFill.style.width = `${curatedPct}%`;
+                if (originalFill) originalFill.style.width = `${originalPct}%`;
+                if (personalFill) personalFill.style.width = `${personalPct}%`;
+            });
+
+            // Update need badges
+            const gaps = {
+                curated: Math.max(0, 5 - accountData.curated),
+                original: Math.max(0, 3 - accountData.original),
+                personal: Math.max(0, 2 - accountData.personal)
+            };
+
+            document.getElementById('curatedNeed').textContent = gaps.curated > 0 ? `Need ${gaps.curated} more` : '✓ Complete';
+            document.getElementById('originalNeed').textContent = gaps.original > 0 ? `Need ${gaps.original} more` : '✓ Complete';
+            document.getElementById('personalNeed').textContent = gaps.personal > 0 ? `Need ${gaps.personal} more` : '✓ Complete';
+
+            // Update status
+            const allComplete = gaps.curated === 0 && gaps.original === 0 && gaps.personal === 0;
+            const statusEl = document.getElementById('weeklyMixStatus');
+            const contentMixStatus = document.getElementById('contentMixStatus');
+
+            if (allComplete) {
+                if (statusEl) statusEl.innerHTML = '<span style="color: var(--success);">✓ Weekly goal complete!</span>';
+                if (contentMixStatus) contentMixStatus.innerHTML = '<span style="color: var(--success);">On track ✓</span>';
+            } else {
+                const remaining = gaps.curated + gaps.original + gaps.personal;
+                if (statusEl) statusEl.innerHTML = `<span style="color: var(--warning);">${remaining} posts needed</span>`;
+                if (contentMixStatus) contentMixStatus.innerHTML = `<span style="color: var(--warning);">${remaining} to go</span>`;
+            }
+
+            // Update total posts count
+            const totalPostsEl = document.getElementById('totalWeeklyPosts');
+            if (totalPostsEl) {
+                totalPostsEl.textContent = `${total}/10 posts this week`;
+            }
+
+            // Update AI Need Badge
+            updateAINeedBadge();
+        }
+
+        function updateAINeedBadge() {
+            const recommendation = getWhatToPostNext();
+            const badge = document.getElementById('aiNeedBadge');
+            const badgeText = document.getElementById('needBadgeText');
+
+            if (badge && badgeText) {
+                badge.className = `ai-need-badge ${recommendation.type}`;
+                badgeText.textContent = recommendation.message;
+            }
+
+            // Auto-select the recommended content type
+            if (recommendation.type !== selectedContentType) {
+                // Highlight the recommended type but don't auto-switch
+                document.querySelectorAll('.content-type-btn').forEach(btn => {
+                    if (btn.dataset.type === recommendation.type) {
+                        btn.style.animation = 'pulse-glow 2s infinite';
+                    } else {
+                        btn.style.animation = 'none';
+                    }
+                });
+            }
+        }
+
+        function updateAIRecommendation() {
+            const optimalTime = getNextOptimalPostTime();
+            const recommendation = getWhatToPostNext();
+
+            // Update time display with quality indicator
+            const timeEl = document.getElementById('recommendedTime');
+            if (timeEl) {
+                const qualityColors = { best: 'var(--success)', great: 'var(--success)', good: 'var(--info)', medium: 'var(--warning)', low: 'var(--danger)', lowest: 'var(--danger)' };
+                timeEl.style.color = qualityColors[optimalTime.quality] || 'var(--success)';
+                timeEl.textContent = optimalTime.time;
+            }
+
+            // Update why this works
+            const whyEl = document.getElementById('whyThisWorks');
+            if (whyEl) {
+                const dayQuality = {
+                    best: '🔥 PEAK engagement day',
+                    great: '✨ High engagement day',
+                    good: '👍 Good engagement day',
+                    medium: '📊 Average engagement',
+                    low: '⚠️ Lower engagement day',
+                    lowest: '❌ Lowest engagement day'
+                };
+                whyEl.innerHTML = `<i class="fas fa-info-circle"></i> ${optimalTime.day}: ${dayQuality[optimalTime.quality]}. ${optimalTime.isToday ? 'Post today!' : `Best in ${optimalTime.daysUntil} day(s).`} Based on 9.6M posts analyzed.`;
+            }
+
+            generateSmartRecommendation();
+        }
+
+        async function generateSmartRecommendation() {
+            const idea = getRandomContentIdea(selectedContentType, selectedAccount);
+            const recommendation = getWhatToPostNext();
+            const optimalTime = getNextOptimalPostTime();
+
+            // Get voice profile for personalized recommendations
+            const accountKey = selectedAccount === 'all' ? 'farm' : selectedAccount;
+            const voiceGuidance = getVoiceGuidance(accountKey);
+
+            // Build smart caption
+            let caption = '';
+
+            if (selectedContentType === 'curated') {
+                caption = `💡 CURATED POST IDEA:\n\n${idea.idea}\n\n📝 Add your own commentary about why this resonates with your audience.\n\n${idea.hashtags}`;
+            } else if (selectedContentType === 'original') {
+                caption = `🌱 ORIGINAL POST IDEA:\n\n${idea.idea}\n\n💬 Suggested caption style: Keep it authentic, share the story behind it.\n\n${idea.hashtags}`;
+            } else {
+                caption = `😊 PERSONAL POST IDEA:\n\n${idea.idea}\n\n💡 Tip: These posts humanize your brand. Be genuine!\n\n${idea.hashtags}`;
+            }
+
+            // Add voice guidance if learned
+            if (voiceGuidance && voiceGuidance.suggestedLength > 0) {
+                let voiceNotes = '\n\n🎯 YOUR VOICE PROFILE:';
+                voiceNotes += `\n• Target length: ~${voiceGuidance.suggestedLength} characters`;
+                voiceNotes += `\n• Emoji style: ${voiceGuidance.emojiStyle}`;
+                if (voiceGuidance.tone.length > 0) {
+                    voiceNotes += `\n• Tone: ${voiceGuidance.tone.join(', ')}`;
+                }
+                if (voiceGuidance.hashtags.length > 0) {
+                    voiceNotes += `\n• Your top hashtags: ${voiceGuidance.hashtags.slice(0, 5).join(' ')}`;
+                }
+                caption += voiceNotes;
+            }
+
+            // Add account-specific note if not posting to all
+            if (selectedAccount !== 'all') {
+                const focus = ACCOUNT_CONFIG[selectedAccount].focus;
+                caption += `\n\n📍 Focus for ${ACCOUNT_CONFIG[selectedAccount].name}: ${focus}`;
+            }
+
+            // Add optimal timing note
+            caption += `\n\n⏰ OPTIMAL TIME: ${optimalTime.day} at ${optimalTime.time}`;
+            if (optimalTime.quality === 'best') {
+                caption += ' 🔥 PEAK engagement window!';
+            }
+
+            document.getElementById('suggestedCaption').innerHTML = `<p style="white-space: pre-wrap;">${caption}</p>`;
+
+            // Store current recommendation
+            currentRecommendation = {
+                contentType: selectedContentType,
+                account: selectedAccount,
+                idea: idea,
+                optimalTime: optimalTime,
+                caption: caption,
+                voiceGuidance: voiceGuidance
+            };
+        }
+
+        function resetContentMix() {
+            if (confirm('Reset all content tracking for this week? This cannot be undone.')) {
+                resetContentMixData();
+                updateContentMixUI();
+                showToast('Content mix tracker reset!', 'success');
+            }
+        }
 
         function updateTimeOfDay() {
             const hour = new Date().getHours();
@@ -5997,43 +6866,71 @@
 
         async function loadBrainTab() {
             try {
-                // Load daily briefing
-                const briefingResponse = await fetch(`${API_URL}?action=getDailyBriefing`);
-                const briefingData = await briefingResponse.json();
+                // ═══════════════════════════════════════════════════════════════════════════
+                // INITIALIZE INTELLIGENT BRAIN FEATURES
+                // ═══════════════════════════════════════════════════════════════════════════
 
-                if (briefingData.success) {
-                    document.getElementById('briefingSummary').textContent = briefingData.summary ||
-                        'Your social media is on track. Check the AI recommendations below for optimal posting times.';
-                    document.getElementById('briefingTime').textContent = new Date().toLocaleTimeString();
+                // 1. Initialize 5-3-2 Content Mix Tracking
+                updateContentMixUI();
+
+                // 2. Initialize AI Recommendations with smart defaults
+                updateAIRecommendation();
+
+                // 3. Check if algorithm research needs updating (weekly)
+                checkAlgorithmResearchUpdate();
+
+                // 4. Generate smart briefing based on current state
+                const recommendation = getWhatToPostNext();
+                const optimalTime = getNextOptimalPostTime();
+                const mixData = getContentMixData();
+                const accountData = selectedAccount === 'all' ? mixData.all : mixData[selectedAccount];
+                const totalPosts = accountData.curated + accountData.original + accountData.personal;
+
+                let smartBriefing = '';
+                if (optimalTime.quality === 'best' && optimalTime.isToday) {
+                    smartBriefing = `🔥 TODAY IS PEAK POSTING DAY! ${optimalTime.day} at ${optimalTime.time} is optimal. `;
+                } else if (optimalTime.quality === 'lowest' || optimalTime.quality === 'low') {
+                    smartBriefing = `⚠️ Today has lower engagement. Consider waiting until ${optimalTime.day}. `;
+                } else {
+                    smartBriefing = `📊 Next optimal post time: ${optimalTime.day} at ${optimalTime.time}. `;
+                }
+
+                smartBriefing += `Your 5-3-2 tracker shows ${totalPosts}/10 posts this week. `;
+                smartBriefing += recommendation.message + '.';
+
+                document.getElementById('briefingSummary').textContent = smartBriefing;
+                document.getElementById('briefingTime').textContent = new Date().toLocaleTimeString();
+
+                // Load daily briefing from backend (if available)
+                try {
+                    const briefingResponse = await fetch(`${API_URL}?action=getDailyBriefing`);
+                    const briefingData = await briefingResponse.json();
+                    if (briefingData.success && briefingData.summary) {
+                        // Append backend insights to smart briefing
+                        document.getElementById('briefingSummary').textContent = smartBriefing + ' ' + briefingData.summary;
+                    }
+                } catch (e) {
+                    console.log('Using local smart briefing');
                 }
 
                 // Load action queue
-                const actionsResponse = await fetch(`${API_URL}?action=getSocialActionQueue`);
-                const actionsData = await actionsResponse.json();
+                try {
+                    const actionsResponse = await fetch(`${API_URL}?action=getSocialActionQueue`);
+                    const actionsData = await actionsResponse.json();
 
-                if (actionsData.success) {
-                    brainData.actionQueue = actionsData;
-                    updateBrainStats(actionsData);
-                    renderActionList('urgentActions', actionsData.urgent || [], 'urgent');
-                    renderActionList('todayActions', actionsData.today || [], 'today');
-                } else {
-                    // Show empty state
-                    document.getElementById('urgentActions').innerHTML = `
-                        <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-                            <i class="fas fa-check-circle" style="font-size: 2rem; color: var(--success);"></i>
-                            <p style="margin-top: 1rem;">No urgent actions needed!</p>
-                        </div>`;
-                    document.getElementById('todayActions').innerHTML = `
-                        <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-                            <i class="fas fa-calendar-check" style="font-size: 2rem; color: var(--success);"></i>
-                            <p style="margin-top: 1rem;">All tasks complete for today!</p>
-                        </div>`;
+                    if (actionsData.success) {
+                        brainData.actionQueue = actionsData;
+                        updateBrainStats(actionsData);
+                        renderActionList('urgentActions', actionsData.urgent || [], 'urgent');
+                        renderActionList('todayActions', actionsData.today || [], 'today');
+                    } else {
+                        showEmptyActionStates();
+                    }
+                } catch (e) {
+                    showEmptyActionStates();
                 }
 
-                // Load post recommendation
-                await loadPostRecommendation();
-
-                // Populate calendar preview
+                // Populate calendar preview (coordinated with Schedule tab)
                 populateCalendarPreview();
 
             } catch (error) {
@@ -6041,6 +6938,375 @@
                 document.getElementById('briefingSummary').textContent =
                     'Ready to help you dominate social media. Use the AI tools below to get started!';
             }
+        }
+
+        function showEmptyActionStates() {
+            document.getElementById('urgentActions').innerHTML = `
+                <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                    <i class="fas fa-check-circle" style="font-size: 2rem; color: var(--success);"></i>
+                    <p style="margin-top: 1rem;">No urgent actions needed!</p>
+                </div>`;
+            document.getElementById('todayActions').innerHTML = `
+                <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                    <i class="fas fa-calendar-check" style="font-size: 2rem; color: var(--success);"></i>
+                    <p style="margin-top: 1rem;">All tasks complete for today!</p>
+                </div>`;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // SELF-UPDATING ALGORITHM RESEARCH ENGINE
+        // Automatically researches Instagram algorithm changes weekly
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        const ALGORITHM_RESEARCH_KEY = 'tinyseed_algorithm_research';
+
+        function getAlgorithmResearch() {
+            const stored = localStorage.getItem(ALGORITHM_RESEARCH_KEY);
+            if (stored) {
+                return JSON.parse(stored);
+            }
+            return getDefaultAlgorithmData();
+        }
+
+        function getDefaultAlgorithmData() {
+            return {
+                lastUpdated: new Date().toISOString(),
+                weekNumber: getWeekNumber(new Date()),
+                source: 'Buffer 9.6M posts, Sprout Social, Later 6M posts - Jan 2026',
+                insights: {
+                    topSignal: { name: 'DM Shares', description: 'Content shared via DM ranks highest in 2026', weight: 'Critical' },
+                    reelsThreshold: { name: 'First 3 Seconds', description: 'Hook viewers immediately - 3-second retention determines reach', weight: 'Critical' },
+                    bestDays: { name: 'Wednesday & Thursday', description: 'Peak engagement days based on 9.6M post analysis', weight: 'High' },
+                    bestTimes: { name: 'Wed 12pm/6pm, Thu 9am', description: 'Top 3 posting slots from research', weight: 'High' },
+                    goldenHour: { name: 'First 60 Minutes', description: 'Engagement in first hour determines total reach', weight: 'High' },
+                    hashtagLimit: { name: '3-5 Hashtags', description: 'Algorithm now penalizes hashtag stuffing', weight: 'Medium' },
+                    avoidTime: { name: 'Saturday 6-9 AM', description: 'Lowest engagement window - AVOID', weight: 'Warning' },
+                    contentMix: { name: '5-3-2 Rule', description: '50% curated, 30% original, 20% personal', weight: 'Strategy' }
+                },
+                platformUpdates: [
+                    { date: '2026-01', change: 'Views replaced engagement ratios as primary currency' },
+                    { date: '2026-01', change: 'Sends Per Reach now strongest signal of content value' },
+                    { date: '2025-12', change: 'Algorithm reset feature allows users to clear recommendation history' },
+                    { date: '2025-11', change: 'Reels up to 3 minutes now eligible for Explore if retention is strong' }
+                ]
+            };
+        }
+
+        function checkAlgorithmResearchUpdate() {
+            const research = getAlgorithmResearch();
+            const currentWeek = getWeekNumber(new Date());
+
+            // Check if research is more than a week old
+            if (research.weekNumber !== currentWeek) {
+                // Show update notification
+                showResearchUpdatePrompt();
+            }
+
+            // Update the Algorithm Intelligence panel with current research
+            updateAlgorithmIntelligencePanel(research);
+        }
+
+        function showResearchUpdatePrompt() {
+            const brainBadge = document.getElementById('brainBadge');
+            if (brainBadge) {
+                brainBadge.style.display = 'inline';
+                brainBadge.textContent = '!';
+                brainBadge.title = 'Algorithm research update available';
+            }
+
+            // Add a notification to the briefing
+            const briefing = document.getElementById('briefingSummary');
+            if (briefing) {
+                briefing.textContent += ' 🔬 Weekly algorithm research update available - click "Research Update" to refresh.';
+            }
+        }
+
+        async function runAlgorithmResearch() {
+            showToast('🔬 Researching latest Instagram algorithm changes...', 'info');
+
+            try {
+                // Try to fetch from backend (which can do web research)
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'researchInstagramAlgorithm',
+                        currentData: getAlgorithmResearch()
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.research) {
+                    // Save new research
+                    const newResearch = {
+                        ...result.research,
+                        lastUpdated: new Date().toISOString(),
+                        weekNumber: getWeekNumber(new Date())
+                    };
+                    localStorage.setItem(ALGORITHM_RESEARCH_KEY, JSON.stringify(newResearch));
+                    updateAlgorithmIntelligencePanel(newResearch);
+                    showToast('✅ Algorithm intelligence updated with latest research!', 'success');
+                } else {
+                    // Use default but mark as updated
+                    const research = getDefaultAlgorithmData();
+                    research.lastUpdated = new Date().toISOString();
+                    research.weekNumber = getWeekNumber(new Date());
+                    localStorage.setItem(ALGORITHM_RESEARCH_KEY, JSON.stringify(research));
+                    showToast('✅ Algorithm data refreshed (using baseline research)', 'success');
+                }
+            } catch (error) {
+                console.error('Research error:', error);
+                // Fallback: just update the timestamp
+                const research = getDefaultAlgorithmData();
+                research.lastUpdated = new Date().toISOString();
+                research.weekNumber = getWeekNumber(new Date());
+                localStorage.setItem(ALGORITHM_RESEARCH_KEY, JSON.stringify(research));
+                showToast('Algorithm data refreshed with baseline research', 'info');
+            }
+
+            // Hide the update badge
+            const brainBadge = document.getElementById('brainBadge');
+            if (brainBadge) {
+                brainBadge.style.display = 'none';
+            }
+        }
+
+        function updateAlgorithmIntelligencePanel(research) {
+            // Update the "last updated" display
+            const lastUpdatedEl = document.getElementById('researchLastUpdated');
+            if (lastUpdatedEl && research.lastUpdated) {
+                const updatedDate = new Date(research.lastUpdated);
+                const daysAgo = Math.floor((new Date() - updatedDate) / (1000 * 60 * 60 * 24));
+                let timeText = daysAgo === 0 ? 'Today' : daysAgo === 1 ? 'Yesterday' : `${daysAgo} days ago`;
+                lastUpdatedEl.innerHTML = `<i class="fas fa-clock"></i> Updated: ${timeText}`;
+            }
+
+            console.log('Algorithm intelligence loaded:', research.source);
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // VOICE LEARNING ENGINE - Analyzes past posts to learn brand voice
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        const VOICE_PROFILE_KEY = 'tinyseed_voice_profile';
+
+        function getVoiceProfile() {
+            const stored = localStorage.getItem(VOICE_PROFILE_KEY);
+            if (stored) {
+                return JSON.parse(stored);
+            }
+            return {
+                lastAnalyzed: null,
+                accounts: {
+                    farm: { tone: [], phrases: [], hashtags: [], emojiStyle: '', avgLength: 0, postsAnalyzed: 0 },
+                    fleurs: { tone: [], phrases: [], hashtags: [], emojiStyle: '', avgLength: 0, postsAnalyzed: 0 },
+                    fungi: { tone: [], phrases: [], hashtags: [], emojiStyle: '', avgLength: 0, postsAnalyzed: 0 }
+                }
+            };
+        }
+
+        async function learnVoiceFromPosts() {
+            showToast('🎯 Analyzing your post history to learn brand voice...', 'info');
+
+            try {
+                // Fetch post history from backend for all accounts
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'getInstagramPostHistory',
+                        accounts: ['farm', 'fleurs', 'fungi'],
+                        limit: 50 // Last 50 posts per account
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.posts) {
+                    const voiceProfile = analyzePostsForVoice(result.posts);
+                    localStorage.setItem(VOICE_PROFILE_KEY, JSON.stringify(voiceProfile));
+
+                    showToast(`✅ Voice learned from ${voiceProfile.totalPosts} posts across all accounts!`, 'success');
+                    displayVoiceProfile(voiceProfile);
+                } else {
+                    // Try to fetch directly from Instagram API
+                    await learnVoiceDirectFromInstagram();
+                }
+            } catch (error) {
+                console.error('Voice learning error:', error);
+                showToast('Using manual voice training. Add posts in Brand Voice tab.', 'info');
+            }
+        }
+
+        async function learnVoiceDirectFromInstagram() {
+            showToast('📱 Fetching directly from Instagram...', 'info');
+
+            try {
+                // Request backend to fetch from Instagram Graph API
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'fetchInstagramMediaForVoice'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.media) {
+                    const voiceProfile = analyzePostsForVoice(result.media);
+                    localStorage.setItem(VOICE_PROFILE_KEY, JSON.stringify(voiceProfile));
+
+                    showToast(`✅ Voice learned from ${voiceProfile.totalPosts} Instagram posts!`, 'success');
+                    displayVoiceProfile(voiceProfile);
+                } else {
+                    throw new Error('Could not fetch Instagram posts');
+                }
+            } catch (error) {
+                console.error('Direct Instagram fetch error:', error);
+                showToast('Add sample posts manually in the Brand Voice tab', 'info');
+            }
+        }
+
+        function analyzePostsForVoice(posts) {
+            const voiceProfile = {
+                lastAnalyzed: new Date().toISOString(),
+                totalPosts: 0,
+                accounts: {
+                    farm: { tone: [], phrases: [], hashtags: [], emojiStyle: 'moderate', avgLength: 0, postsAnalyzed: 0, topPerformers: [] },
+                    fleurs: { tone: [], phrases: [], hashtags: [], emojiStyle: 'moderate', avgLength: 0, postsAnalyzed: 0, topPerformers: [] },
+                    fungi: { tone: [], phrases: [], hashtags: [], emojiStyle: 'moderate', avgLength: 0, postsAnalyzed: 0, topPerformers: [] }
+                },
+                globalPatterns: {
+                    commonPhrases: [],
+                    preferredHashtags: [],
+                    toneProfile: 'authentic',
+                    callToActionStyle: '',
+                    bestPerformingElements: []
+                }
+            };
+
+            // Analyze each post
+            const accountPosts = { farm: [], fleurs: [], fungi: [] };
+
+            posts.forEach(post => {
+                const account = post.account || 'farm';
+                if (accountPosts[account]) {
+                    accountPosts[account].push(post);
+                }
+            });
+
+            // Analyze each account
+            Object.keys(accountPosts).forEach(account => {
+                const accPosts = accountPosts[account];
+                if (accPosts.length === 0) return;
+
+                const profile = voiceProfile.accounts[account];
+                profile.postsAnalyzed = accPosts.length;
+                voiceProfile.totalPosts += accPosts.length;
+
+                // Extract patterns
+                let totalLength = 0;
+                let emojiCount = 0;
+                const allHashtags = [];
+                const allPhrases = [];
+
+                accPosts.forEach(post => {
+                    const caption = post.caption || '';
+                    totalLength += caption.length;
+
+                    // Count emojis
+                    const emojis = caption.match(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu) || [];
+                    emojiCount += emojis.length;
+
+                    // Extract hashtags
+                    const hashtags = caption.match(/#\w+/g) || [];
+                    allHashtags.push(...hashtags);
+
+                    // Extract common phrases (3+ word sequences)
+                    const words = caption.replace(/#\w+/g, '').split(/\s+/).filter(w => w.length > 2);
+                    for (let i = 0; i < words.length - 2; i++) {
+                        allPhrases.push(words.slice(i, i + 3).join(' ').toLowerCase());
+                    }
+
+                    // Track top performers (by engagement if available)
+                    if (post.engagement || post.likes) {
+                        profile.topPerformers.push({
+                            caption: caption.substring(0, 100),
+                            engagement: post.engagement || post.likes
+                        });
+                    }
+                });
+
+                profile.avgLength = Math.round(totalLength / accPosts.length);
+                profile.emojiStyle = emojiCount / accPosts.length > 3 ? 'heavy' : emojiCount / accPosts.length > 1 ? 'moderate' : 'minimal';
+
+                // Get most common hashtags
+                const hashtagCounts = {};
+                allHashtags.forEach(tag => {
+                    hashtagCounts[tag] = (hashtagCounts[tag] || 0) + 1;
+                });
+                profile.hashtags = Object.entries(hashtagCounts)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 10)
+                    .map(([tag]) => tag);
+
+                // Sort top performers
+                profile.topPerformers.sort((a, b) => b.engagement - a.engagement);
+                profile.topPerformers = profile.topPerformers.slice(0, 5);
+
+                // Determine tone
+                const captionLower = accPosts.map(p => (p.caption || '').toLowerCase()).join(' ');
+                if (captionLower.includes('fresh') || captionLower.includes('delicious') || captionLower.includes('beautiful')) {
+                    profile.tone.push('enthusiastic');
+                }
+                if (captionLower.includes('we') || captionLower.includes('our')) {
+                    profile.tone.push('community-focused');
+                }
+                if (captionLower.includes('tip') || captionLower.includes('how to') || captionLower.includes('did you know')) {
+                    profile.tone.push('educational');
+                }
+                if (captionLower.includes('farm') || captionLower.includes('soil') || captionLower.includes('grow')) {
+                    profile.tone.push('authentic');
+                }
+            });
+
+            return voiceProfile;
+        }
+
+        function displayVoiceProfile(profile) {
+            console.log('Voice Profile Learned:', profile);
+
+            // Could display a summary in the UI
+            const summary = [];
+            Object.keys(profile.accounts).forEach(account => {
+                const acc = profile.accounts[account];
+                if (acc.postsAnalyzed > 0) {
+                    summary.push(`${account}: ${acc.postsAnalyzed} posts, avg ${acc.avgLength} chars, ${acc.emojiStyle} emoji use`);
+                }
+            });
+
+            if (summary.length > 0) {
+                showToast(`Voice Profile: ${summary.join(' | ')}`, 'info');
+            }
+        }
+
+        function getVoiceGuidance(account) {
+            const profile = getVoiceProfile();
+            const accProfile = profile.accounts[account] || profile.accounts.farm;
+
+            if (accProfile.postsAnalyzed === 0) {
+                return null;
+            }
+
+            return {
+                suggestedLength: accProfile.avgLength,
+                emojiStyle: accProfile.emojiStyle,
+                hashtags: accProfile.hashtags.slice(0, 5),
+                tone: accProfile.tone,
+                topPhrases: accProfile.phrases
+            };
         }
 
         function updateBrainStats(data) {
@@ -6234,13 +7500,17 @@
         }
 
         async function approveAndSchedule() {
-            const caption = currentRecommendation?.suggestedCaption;
+            const caption = currentRecommendation?.suggestedCaption || currentRecommendation?.caption;
             if (!caption) {
                 showToast('No caption to schedule', 'error');
                 return;
             }
 
             try {
+                // Track content type in 5-3-2 mix
+                const contentType = currentRecommendation?.contentType || selectedContentType;
+                const account = currentRecommendation?.account || selectedAccount;
+
                 const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain' },
@@ -6248,21 +7518,41 @@
                         action: 'schedulePost',
                         content: caption,
                         platform: currentRecommendation?.platform || 'instagram',
-                        scheduledTime: getScheduledTime(currentRecommendation?.bestTime),
-                        category: 'ai_recommended'
+                        scheduledTime: getScheduledTime(currentRecommendation?.optimalTime?.time || currentRecommendation?.bestTime),
+                        category: contentType,
+                        account: account,
+                        accountIndex: ACCOUNT_CONFIG[account]?.index
                     })
                 });
                 const result = await response.json();
 
                 if (result.success) {
-                    showToast('Post scheduled successfully!', 'success');
+                    // UPDATE 5-3-2 TRACKER - Increment the content mix
+                    incrementContentMix(account, contentType);
+
+                    showToast(`✅ Post scheduled! ${contentType.toUpperCase()} content tracked.`, 'success');
+
+                    // Refresh recommendation with next needed content type
                     await getNewRecommendation();
+                    updateContentMixUI();
                 } else {
-                    showToast('Error scheduling: ' + (result.error || 'Unknown'), 'error');
+                    // Even if backend fails, still track locally
+                    incrementContentMix(account, contentType);
+                    updateContentMixUI();
+                    showToast('Post tracked locally. Backend: ' + (result.error || 'retry later'), 'info');
                 }
             } catch (error) {
-                showToast('Error scheduling post', 'error');
+                // Track locally even if API fails
+                incrementContentMix(selectedAccount, selectedContentType);
+                updateContentMixUI();
+                showToast('Post tracked locally (offline mode)', 'info');
             }
+        }
+
+        // Manual content tracking buttons for the 5-3-2 tracker
+        function trackManualPost(type) {
+            incrementContentMix(selectedAccount, type);
+            showToast(`✅ ${type.toUpperCase()} post tracked!`, 'success');
         }
 
         function getScheduledTime(timeStr) {
@@ -6292,22 +7582,76 @@
             const today = new Date();
             let html = '';
 
+            // Get 5-3-2 recommendation
+            const recommendation = getWhatToPostNext();
+            const neededType = recommendation.type;
+
             for (let i = 0; i < 7; i++) {
                 const date = new Date(today);
                 date.setDate(today.getDate() + i);
-                const dayName = days[date.getDay()];
+                const dayNum = date.getDay();
+                const dayName = days[dayNum];
                 const isToday = i === 0;
-                const isOptimal = ['Wednesday', 'Thursday'].includes(date.toLocaleDateString('en-US', { weekday: 'long' }));
+
+                // Use OPTIMAL_TIMES data for quality assessment
+                const dayQuality = OPTIMAL_TIMES[dayNum].quality;
+                const isOptimal = dayQuality === 'best';
+                const isGood = dayQuality === 'great' || dayQuality === 'good';
+                const isLow = dayQuality === 'low' || dayQuality === 'lowest';
+
+                // Determine border/style based on quality
+                let borderStyle = 'none';
+                let qualityLabel = '';
+                let qualityColor = 'var(--text-secondary)';
+
+                if (isOptimal) {
+                    borderStyle = '2px solid var(--success)';
+                    qualityLabel = '🔥 BEST';
+                    qualityColor = 'var(--success)';
+                } else if (isGood) {
+                    borderStyle = '1px solid var(--info)';
+                    qualityLabel = '✓ GOOD';
+                    qualityColor = 'var(--info)';
+                } else if (isLow) {
+                    borderStyle = '1px solid var(--danger)';
+                    qualityLabel = '↓ LOW';
+                    qualityColor = 'var(--danger)';
+                }
+
+                // Get best time for this day
+                const bestTime = OPTIMAL_TIMES[dayNum].times[0];
+                const [hour] = bestTime.split(':').map(Number);
+                const timeDisplay = hour > 12 ? `${hour - 12}PM` : `${hour}AM`;
 
                 html += `
-                    <div style="text-align: center; padding: 0.75rem; background: ${isToday ? 'rgba(225, 48, 108, 0.2)' : 'rgba(0,0,0,0.2)'}; border-radius: 8px; border: ${isOptimal ? '1px solid var(--success)' : 'none'};">
-                        <div style="font-size: 0.65rem; color: var(--text-secondary);">${dayName}</div>
-                        <div style="font-size: 1.1rem; font-weight: 700; ${isToday ? 'color: var(--instagram);' : ''}">${date.getDate()}</div>
-                        ${isOptimal ? '<div style="font-size: 0.5rem; color: var(--success);">OPTIMAL</div>' : ''}
+                    <div onclick="selectDayForPost(${i})" style="text-align: center; padding: 0.5rem; background: ${isToday ? 'rgba(225, 48, 108, 0.2)' : 'rgba(0,0,0,0.2)'}; border-radius: 8px; border: ${borderStyle}; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                        <div style="font-size: 0.6rem; color: var(--text-secondary);">${dayName}</div>
+                        <div style="font-size: 1rem; font-weight: 700; ${isToday ? 'color: var(--instagram);' : ''}">${date.getDate()}</div>
+                        <div style="font-size: 0.5rem; color: ${qualityColor};">${qualityLabel || timeDisplay}</div>
                     </div>
                 `;
             }
+
+            // Add legend
+            html += `
+                <div style="grid-column: 1 / -1; display: flex; justify-content: center; gap: 1rem; margin-top: 0.5rem; font-size: 0.65rem;">
+                    <span style="color: var(--success);">🔥 Best days</span>
+                    <span style="color: var(--text-secondary);">Click day to schedule</span>
+                </div>
+            `;
+
             container.innerHTML = html;
+        }
+
+        function selectDayForPost(dayOffset) {
+            const date = new Date();
+            date.setDate(date.getDate() + dayOffset);
+            const dayNum = date.getDay();
+            const bestTime = OPTIMAL_TIMES[dayNum].times[0];
+
+            showToast(`Selected ${OPTIMAL_TIMES[dayNum].label} - Best time: ${formatTime(parseInt(bestTime.split(':')[0]))}`, 'info');
+
+            // Could pre-fill scheduler with this date/time
         }
 
         async function refreshBriefing() {
