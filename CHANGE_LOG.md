@@ -40,6 +40,35 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-01-30 - Social_Media_Claude (Token Status & Testing)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js`:
+  - Added `testInstagramPost` GET endpoint for testing (avoiding POST redirect issues)
+
+- `claude_sessions/social_media/OUTBOX.md`:
+  - Added URGENT token expiration warning
+  - Documented missing `instagram_basic` permission
+  - Added step-by-step token regeneration instructions
+
+### Testing Results
+- **Facebook posting**: ✅ CONFIRMED WORKING (`can_post: true`)
+- **Instagram posting**: ❌ BLOCKED - Missing `instagram_basic` permission
+- **Token status**: ⚠️ EXPIRES 2026-01-30 01:00:00
+
+### Action Required
+Owner must regenerate tokens with `instagram_basic` AND `instagram_content_publish` permissions
+
+### Deployment
+- v465 deployed with test endpoint
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-01-29 - Social_Media_Claude (Marketing Command Center v2.0 - AI Intelligence)
 
 ### Files Modified

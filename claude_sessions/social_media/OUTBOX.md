@@ -152,4 +152,57 @@ These files contain valuable content for generating authentic social media posts
 
 ---
 
-*Report updated: 2026-01-29*
+## ⚠️ URGENT: TOKEN EXPIRATION - 2026-01-30
+
+### TOKENS EXPIRE TODAY AT 1:00 AM
+
+The current Page Access Tokens expire at **2026-01-30 01:00:00**.
+
+### Issues Found During Testing
+
+1. **Tokens expire today** - Must regenerate immediately
+2. **Missing `instagram_basic` permission** - Tokens have `instagram_content_publish` but NOT `instagram_basic`
+3. **Can't verify Instagram Business Account IDs** - Without `instagram_basic`, we cannot confirm the correct IDs
+
+### ACTION REQUIRED - Owner Must Complete
+
+1. **Go to Meta Developer Console**: https://developers.facebook.com/apps/1453282209770271/
+2. **Generate New Tokens** via Graph API Explorer:
+   - Go to Tools → Graph API Explorer
+   - Select App: "Tiny Seed Farm OS FINAL"
+   - Click "Generate Access Token"
+   - **CRITICAL**: Select BOTH permissions:
+     - `instagram_basic` (needed to query Instagram accounts)
+     - `instagram_content_publish` (needed to post)
+   - Select all 3 Pages (Farm, Fleurs, Fungi)
+3. **Get Page Access Tokens** for each page
+4. **Exchange for Long-Lived Tokens**:
+   ```
+   GET https://graph.facebook.com/v24.0/oauth/access_token
+   ?grant_type=fb_exchange_token
+   &client_id=1453282209770271
+   &client_secret=923bd5e066093def628e01836769e4a5
+   &fb_exchange_token={YOUR_SHORT_LIVED_USER_TOKEN}
+   ```
+5. **Get Never-Expiring Page Tokens** using the long-lived user token:
+   ```
+   GET https://graph.facebook.com/v24.0/me/accounts
+   ?access_token={LONG_LIVED_USER_TOKEN}
+   ```
+6. **Update Script Properties** with new tokens via:
+   ```
+   ?action=setupInstagramCredentials
+   ```
+
+### After Getting New Tokens - Verify Instagram IDs
+
+With `instagram_basic` permission, run this to get correct Instagram Business Account IDs:
+```
+GET https://graph.facebook.com/v24.0/{page_id}
+?fields=instagram_business_account
+&access_token={new_page_token}
+```
+
+---
+
+*Report updated: 2026-01-30 00:25*

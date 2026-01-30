@@ -13651,6 +13651,18 @@ function doGet(e) {
         return jsonResponse(getSocialConnections(e.parameter));
       case 'resetSocialConnections':
         return jsonResponse(resetSocialConnections());
+      case 'setupInstagramCredentials':
+        return jsonResponse(setupInstagramCredentials_ONETIME());
+      case 'getInstagramConfigStatus':
+        return jsonResponse(getInstagramConfigStatus());
+      case 'testInstagramPost':
+        // Test endpoint for Instagram posting - uses GET to avoid POST redirect issues
+        return jsonResponse(postToInstagram({
+          accountIndex: parseInt(e.parameter.accountIndex) || 0,
+          mediaType: e.parameter.mediaType || 'IMAGE',
+          imageUrl: e.parameter.imageUrl || 'https://toddismyname21.github.io/tiny-seed-os/assets/images/farm-logo.png',
+          caption: e.parameter.caption || '🌱 Testing Tiny Seed Farm OS direct Meta API! #TinySeedFarm'
+        }));
       case 'updateFollowerCounts':
         // Handle GET request with query params for CORS compatibility
         return jsonResponse(updateFollowerCounts({
@@ -14931,6 +14943,10 @@ function doPost(e) {
         return jsonResponse(configureInstagramAccount(data));
       case 'logSocialPost':
         return jsonResponse(logSocialPost(data));
+      case 'setupInstagramCredentials':
+        return jsonResponse(setupInstagramCredentials_ONETIME());
+      case 'getInstagramConfigStatus':
+        return jsonResponse(getInstagramConfigStatus());
       case 'addNeighborSignup':
         return jsonResponse(addNeighborSignup(data));
 
