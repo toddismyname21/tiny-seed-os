@@ -62,7 +62,8 @@
       background: var(--bg-primary);
       color: var(--text-primary);
       min-height: 100vh;
-      overflow: hidden;
+      overflow-x: auto; /* Allow horizontal scroll if needed */
+      overflow-y: hidden; /* Prevent double scrollbars */
       font-size: 16px;
       line-height: 1.5;
       -webkit-font-smoothing: antialiased;
@@ -74,6 +75,7 @@
       grid-template-columns: 1fr 440px;
       grid-template-rows: auto 1fr;
       height: 100vh;
+      min-width: 900px; /* Prevent layout from being crushed */
       gap: 0;
     }
 
@@ -1956,10 +1958,11 @@
       if (msg.sentiment === 'NEGATIVE') tags += `<span class="message-tag sentiment-negative">Negative</span>`;
       if (msg.hasCommitment) tags += `<span class="message-tag commitment">Commitment</span>`;
 
+      const safeId = escapeAttr(msg.id);
       return `
         <div class="message-card ${selectedMessageId === msg.id ? 'selected' : ''}"
-             onclick="selectMessage('${msg.id}')"
-             oncontextmenu="showReclassifyMenu(event, '${msg.id}')">
+             onclick="selectMessage('${safeId}')"
+             oncontextmenu="showReclassifyMenu(event, '${safeId}')">
           <div class="message-header">
             <span class="message-type">${icon}</span>
             <div class="message-meta">
@@ -2393,6 +2396,12 @@
       const div = document.createElement('div');
       div.textContent = text;
       return div.innerHTML;
+    }
+
+    // Escape IDs for use in onclick handlers (handles quotes and special chars)
+    function escapeAttr(str) {
+      if (!str) return '';
+      return String(str).replace(/'/g, "\\'").replace(/"/g, '\\"');
     }
 
     function showToast(message, type = 'success') {
