@@ -51865,6 +51865,84 @@ function configureInstagramAccount(params) {
     } catch (error) { Logger.log('Error configuring Instagram: ' + error.toString()); return { success: false, error: error.toString() }; }
 }
 
+/**
+ * ONE-TIME SETUP: Configure all 3 Instagram accounts
+ * Run this function ONCE in the Apps Script editor to store credentials
+ *
+ * Last Updated: 2026-01-29
+ */
+function setupInstagramCredentials_ONETIME() {
+    const props = PropertiesService.getScriptProperties();
+
+    // Store Meta App credentials
+    props.setProperty('META_APP_ID', '1453282209770271');
+    props.setProperty('META_APP_SECRET', '923bd5e066093def628e01836769e4a5');
+
+    // Account 0: Tiny Seed Farm
+    configureInstagramAccount({
+        accountIndex: 0,
+        name: 'Tiny Seed Farm',
+        igUserId: '17841403850522',
+        fbPageId: '1760385317513019',
+        accessToken: 'EAAUpwKHfKx8BQi92G2mojrsPm5iokMIYYcWCYl0oaqY8FX1iCvjjtDgWC0SZB1Td1W5ZC8tmx0eRH7DnXsHo6tkZBE2UgiRC53ZAZCJZATOLiJQZBsq0dKSKLAKD0zZAJYJzRP73iHJvEjoGxf3ZAniNpwynrhv4nIkQUsNjy978K8mzCd29AhXEzJkamfzepmunPFIJziEPEFPhYGXoJDJsreuMqQXtE7OG9l6KM0Wl7CbDn7XVuZAISHCmEZD'
+    });
+
+    // Account 1: Tiny Seed Fleurs
+    configureInstagramAccount({
+        accountIndex: 1,
+        name: 'Tiny Seed Fleurs',
+        igUserId: '17841435193515793',
+        fbPageId: '975076245687644',
+        accessToken: 'EAAUpwKHfKx8BQtcLLKvR2VsctslWZBz9DvGmBCWvyiE9nfpSvi2qyvyrBNO7PZAAF2Xr7OhlCxaKc45KKHf3opskTwLZBG9rb0ybUuJWGYbbTRrrMBe8T7YmB0gyTQBwu7W4xrWpj2o2ZCs9yFhCV7vzcL9az8ba9sa5sPZC8snQOCtGSQAkB8kRlrLc5prfZCoNgo8ZCQtkj4VxT2EDKm8ZCbcIyG0TfidrpAaKz8j8fdAdciGMxR1YE4QZD'
+    });
+
+    // Account 2: Tiny Seed Fungi
+    configureInstagramAccount({
+        accountIndex: 2,
+        name: 'Tiny Seed Fungi',
+        igUserId: '17841464175325954',
+        fbPageId: '1025602933961290',
+        accessToken: 'EAAUpwKHfKx8BQkhyBRRjrnPDcKsNwKKvwwhttIawkvNycUWsZBUpIw6Fp7psdMfjPPoJ0g0d2a3ZA0ZAq964PpEsw4wAFI8QbtGoX6ReDZAG10c3cUhblzWGIL5YFWuCgXsMpm6aN5mpcpr32OVk3zjJeFkCdvQkZBKQzqy23LjsBwULUIuXkZALxSxowMAyYPOGg5sGLYzux1cIgVZCuJEHqej4IKfZCyvP3RNfH3cycG9wH6zabX5iookZD'
+    });
+
+    Logger.log('✅ All 3 Instagram accounts configured successfully!');
+    Logger.log('Accounts: Tiny Seed Farm, Tiny Seed Fleurs, Tiny Seed Fungi');
+    return { success: true, message: 'All 3 Instagram accounts configured' };
+}
+
+/**
+ * TEST: Post a test image to Instagram
+ * Run this in Apps Script editor to verify the integration works
+ */
+function testInstagramPost() {
+    const result = postToInstagram({
+        accountIndex: 0, // Tiny Seed Farm
+        mediaType: 'IMAGE',
+        imageUrl: 'https://toddismyname21.github.io/tiny-seed-os/assets/images/farm-logo.png',
+        caption: '🌱 Test post from Tiny Seed Farm OS! Direct API integration working. #TinySeedFarm #FarmTech'
+    });
+    Logger.log(JSON.stringify(result, null, 2));
+    return result;
+}
+
+/**
+ * Get current Instagram configuration status
+ */
+function getInstagramConfigStatus() {
+    const props = PropertiesService.getScriptProperties();
+    const accounts = JSON.parse(props.getProperty('instagram_accounts') || '[]');
+    const status = accounts.map((acc, i) => ({
+        index: i,
+        name: acc.name,
+        igUserId: acc.igUserId,
+        fbPageId: acc.fbPageId,
+        hasToken: !!props.getProperty(`ig_token_${i}`)
+    }));
+    Logger.log('Instagram Config Status:');
+    Logger.log(JSON.stringify(status, null, 2));
+    return { success: true, accounts: status };
+}
+
 function logSocialPost(params) {
     try {
         const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
