@@ -57,45 +57,66 @@
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       background: var(--bg-primary);
       color: var(--text-primary);
-      min-height: 100vh;
-      overflow: auto; /* Allow scrolling when content overflows */
       font-size: 16px;
       line-height: 1.5;
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Layout */
+    /* Layout - Flexbox instead of Grid for better control */
     .app-container {
-      display: grid;
-      grid-template-columns: 1fr 400px;
-      grid-template-rows: auto 1fr;
-      min-height: 100vh;
-      gap: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+    }
+
+    .app-body {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .main-panel {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 28px;
+      background: var(--bg-primary);
+    }
+
+    .chat-panel {
+      width: 400px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-secondary);
+      border-left: 1px solid var(--border-color);
     }
 
     @media (max-width: 1400px) {
-      .app-container {
-        grid-template-columns: 1fr 380px;
+      .chat-panel {
+        width: 360px;
       }
     }
 
     @media (max-width: 1200px) {
-      .app-container {
-        grid-template-columns: 1fr;
-        height: auto;
-        min-height: 100vh;
-      }
       .chat-panel {
         position: fixed;
         right: 0;
         top: 0;
         bottom: 0;
         width: 100%;
-        max-width: 440px;
+        max-width: 400px;
         transform: translateX(100%);
         transition: transform 0.3s ease;
         z-index: 100;
@@ -110,51 +131,55 @@
 
     /* Header */
     .header {
-      grid-column: 1 / -1;
       background: var(--bg-secondary);
       border-bottom: 1px solid var(--border-color);
-      padding: 16px 28px;
+      padding: 12px 20px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      flex-shrink: 0;
     }
 
     .header-left {
       display: flex;
       align-items: center;
-      gap: 24px;
+      gap: 16px;
+      flex-wrap: wrap;
     }
 
     .header h1 {
-      font-size: 22px;
+      font-size: 20px;
       font-weight: 700;
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       letter-spacing: -0.02em;
     }
 
     .header h1 span {
-      font-size: 28px;
+      font-size: 24px;
     }
 
     .header-stats {
       display: flex;
-      gap: 24px;
+      gap: 16px;
+      flex-wrap: wrap;
     }
 
     .header-stat {
       display: flex;
       align-items: center;
-      gap: 10px;
-      font-size: 14px;
+      gap: 8px;
+      font-size: 13px;
       font-weight: 500;
       color: var(--text-secondary);
     }
 
     .header-stat .count {
       background: var(--bg-card);
-      padding: 5px 12px;
+      padding: 4px 10px;
       border-radius: 20px;
       font-weight: 700;
       font-size: 13px;
@@ -232,13 +257,6 @@
       align-items: center;
       justify-content: center;
       font-size: 24px;
-    }
-
-    /* Main Panel */
-    .main-panel {
-      overflow-y: auto;
-      padding: 28px;
-      background: var(--bg-primary);
     }
 
     /* Tabs - More prominent */
@@ -496,14 +514,6 @@
     }
 
     .reclassify-option:hover { background: var(--bg-card-hover); }
-
-    /* Chat Panel - Featured prominently */
-    .chat-panel {
-      background: var(--bg-secondary);
-      border-left: 1px solid var(--border-color);
-      display: flex;
-      flex-direction: column;
-    }
 
     .chat-header {
       padding: 20px 24px;
@@ -1427,6 +1437,8 @@
       </div>
     </header>
 
+    <!-- App Body: Main + Chat -->
+    <div class="app-body">
     <!-- Main Panel -->
     <main class="main-panel">
       <!-- Tabs -->
@@ -1743,6 +1755,7 @@
         </div>
       </div>
     </aside>
+    </div><!-- /app-body -->
   </div>
 
   <!-- Mobile Chat Toggle -->
@@ -2113,10 +2126,23 @@
 
     async function showEmailDetail(threadId) {
       const modal = document.getElementById('email-detail-modal');
-      document.getElementById('email-detail-subject').textContent = 'Loading...';
-      document.getElementById('email-detail-from').textContent = '';
-      document.getElementById('email-detail-date').textContent = '';
-      document.getElementById('email-detail-body').textContent = 'Loading email content...';
+
+      // INSTANT: Show what we already have from the list
+      const cachedMsg = communications.find(c => c.id === threadId);
+      if (cachedMsg) {
+        document.getElementById('email-detail-subject').textContent = cachedMsg.subject || 'No Subject';
+        document.getElementById('email-detail-from').textContent = `From: ${cachedMsg.from || 'Unknown'}`;
+        document.getElementById('email-detail-date').textContent = cachedMsg.receivedAt ? new Date(cachedMsg.receivedAt).toLocaleString() : '';
+        document.getElementById('email-detail-body').innerHTML = `
+          <div style="color:var(--text-muted);margin-bottom:12px;">${escapeHtml(cachedMsg.summary || '')}</div>
+          <div style="color:var(--accent-amber);font-size:14px;">⏳ Loading full email...</div>
+        `;
+      } else {
+        document.getElementById('email-detail-subject').textContent = 'Loading...';
+        document.getElementById('email-detail-from').textContent = '';
+        document.getElementById('email-detail-date').textContent = '';
+        document.getElementById('email-detail-body').textContent = 'Loading email content...';
+      }
       modal.style.display = 'flex';
 
       try {
