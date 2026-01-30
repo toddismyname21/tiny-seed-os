@@ -713,6 +713,77 @@
       color: #0a1628;
     }
 
+    .chat-mic {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: var(--bg-card);
+      border: 2px solid var(--border-color);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.2s ease;
+      font-size: 22px;
+    }
+
+    .chat-mic:hover {
+      border-color: var(--accent-blue);
+      background: var(--bg-card-hover);
+    }
+
+    .chat-mic.listening {
+      background: linear-gradient(135deg, var(--accent-red) 0%, var(--high) 100%);
+      border-color: var(--accent-red);
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    .chat-speaker {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      margin-left: auto;
+      transition: all 0.2s ease;
+    }
+
+    .chat-speaker:hover {
+      background: var(--bg-card-hover);
+    }
+
+    .chat-speaker.active {
+      background: var(--accent-blue);
+      border-color: var(--accent-blue);
+    }
+
+    .voice-indicator {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      background: rgba(248, 113, 113, 0.15);
+      border-radius: 8px;
+      margin-bottom: 12px;
+      font-size: 14px;
+      color: var(--accent-red);
+    }
+
+    .voice-indicator.show {
+      display: flex;
+    }
+
     /* Action Queue Cards */
     .action-card {
       background: var(--bg-card);
@@ -1645,13 +1716,24 @@
       </div>
 
       <div class="chat-input-area">
+        <div class="voice-indicator" id="voice-indicator">
+          <span>🎤</span>
+          <span id="voice-indicator-text">Listening...</span>
+        </div>
         <div class="chat-input-wrapper">
-          <textarea class="chat-input" id="chat-input" placeholder="Ask me anything..." rows="1" onkeydown="handleChatKeydown(event)"></textarea>
+          <button class="chat-mic" id="chat-mic" onclick="toggleChatVoice()" title="Talk to Chief of Staff">🎤</button>
+          <textarea class="chat-input" id="chat-input" placeholder="Ask me anything... or click 🎤 to talk" rows="1" onkeydown="handleChatKeydown(event)"></textarea>
           <button class="chat-send" id="chat-send" onclick="sendMessage()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
             </svg>
           </button>
+        </div>
+        <div style="display:flex;align-items:center;margin-top:10px;gap:8px;">
+          <label style="font-size:13px;color:var(--text-muted);display:flex;align-items:center;gap:6px;cursor:pointer;">
+            <input type="checkbox" id="auto-speak" style="accent-color:var(--accent-green);">
+            <span>🔊 Read responses aloud</span>
+          </label>
         </div>
       </div>
     </aside>
@@ -2312,6 +2394,11 @@
         if (data.success) {
           addChatMessage(data.message, 'assistant');
 
+          // Speak response if auto-speak is enabled
+          if (document.getElementById('auto-speak').checked) {
+            speakResponse(data.message);
+          }
+
           // Update conversation history
           conversationHistory.push({ role: 'user', content: message });
           conversationHistory.push({ role: 'assistant', content: data.message });
@@ -2389,6 +2476,127 @@
         this.style.height = 'auto';
         this.style.height = Math.min(this.scrollHeight, 140) + 'px';
       });
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // VOICE CHAT - Talk to Chief of Staff
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    let chatVoiceRecognition = null;
+    let isListeningChat = false;
+
+    function toggleChatVoice() {
+      if (isListeningChat) {
+        stopChatVoice();
+      } else {
+        startChatVoice();
+      }
+    }
+
+    function startChatVoice() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        showToast('Voice not supported in this browser. Try Chrome.', 'error');
+        return;
+      }
+
+      // Stop any ongoing speech
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+
+      chatVoiceRecognition = new SpeechRecognition();
+      chatVoiceRecognition.continuous = false;
+      chatVoiceRecognition.interimResults = true;
+      chatVoiceRecognition.lang = 'en-US';
+
+      chatVoiceRecognition.onstart = () => {
+        isListeningChat = true;
+        document.getElementById('chat-mic').classList.add('listening');
+        document.getElementById('voice-indicator').classList.add('show');
+        document.getElementById('voice-indicator-text').textContent = 'Listening... speak now';
+        document.getElementById('chat-input').placeholder = 'Listening...';
+      };
+
+      chatVoiceRecognition.onresult = (event) => {
+        let transcript = '';
+        let isFinal = false;
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+          if (event.results[i].isFinal) isFinal = true;
+        }
+
+        document.getElementById('chat-input').value = transcript;
+        document.getElementById('voice-indicator-text').textContent = transcript || 'Listening...';
+
+        if (isFinal && transcript.trim()) {
+          stopChatVoice();
+          // Auto-enable speak responses when using voice
+          document.getElementById('auto-speak').checked = true;
+          sendMessage();
+        }
+      };
+
+      chatVoiceRecognition.onerror = (event) => {
+        console.error('Voice error:', event.error);
+        stopChatVoice();
+        if (event.error !== 'no-speech' && event.error !== 'aborted') {
+          showToast('Voice error: ' + event.error, 'error');
+        }
+      };
+
+      chatVoiceRecognition.onend = () => {
+        if (isListeningChat) {
+          stopChatVoice();
+        }
+      };
+
+      chatVoiceRecognition.start();
+    }
+
+    function stopChatVoice() {
+      isListeningChat = false;
+      if (chatVoiceRecognition) {
+        try { chatVoiceRecognition.stop(); } catch (e) {}
+      }
+      document.getElementById('chat-mic').classList.remove('listening');
+      document.getElementById('voice-indicator').classList.remove('show');
+      document.getElementById('chat-input').placeholder = 'Ask me anything... or click 🎤 to talk';
+    }
+
+    function speakResponse(text) {
+      if (!('speechSynthesis' in window)) return;
+
+      // Clean up text for speech (remove markdown, emojis)
+      const cleanText = text
+        .replace(/\*\*(.*?)\*\*/g, '$1')
+        .replace(/\*(.*?)\*/g, '$1')
+        .replace(/[📧💬✅❌🎁💰👤⏰⚠️📱📥✉️🔊🎤📋]/g, '')
+        .replace(/•/g, ',')
+        .substring(0, 500); // Limit length for speech
+
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+
+      // Try to use a natural voice
+      const voices = window.speechSynthesis.getVoices();
+      const preferredVoice = voices.find(v =>
+        v.name.includes('Samantha') ||
+        v.name.includes('Google') ||
+        v.name.includes('Natural')
+      ) || voices.find(v => v.lang.startsWith('en'));
+
+      if (preferredVoice) utterance.voice = preferredVoice;
+
+      window.speechSynthesis.speak(utterance);
+    }
+
+    // Load voices when available
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.getVoices();
+      };
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
