@@ -1,0 +1,47 @@
+{
+  "agents": {
+    "pm": {
+      "id": "pm",
+      "name": "PM (Project Manager)",
+      "type": "coordinator",
+      "status": "online",
+      "chat_file": ".pm_chat.json",
+      "description": "Coordinates tasks, delegates to other agents, manages priorities",
+      "spawn_time": "2026-01-28T20:00:00.000000",
+      "last_heartbeat": null,
+      "can_spawn": true,
+      "introduced": true
+    },
+    "builder": {
+      "id": "builder",
+      "name": "Builder",
+      "type": "executor",
+      "status": "online",
+      "chat_file": ".builder_chat.json",
+      "description": "Executes coding tasks, builds features, fixes bugs",
+      "spawn_time": "2026-01-28T20:00:00.000000",
+      "last_heartbeat": null,
+      "can_spawn": false,
+      "introduced": true
+    },
+    "overseer": {
+      "id": "overseer",
+      "name": "The Great Overseer",
+      "type": "oracle",
+      "status": "online",
+      "chat_file": null,
+      "description": "Full project context, file access, answers any question",
+      "spawn_time": "2026-01-28T20:00:00.000000",
+      "last_heartbeat": null,
+      "can_spawn": false,
+      "introduced": true
+    }
+  },
+  "spawn_rules": {
+    "require_introduction": true,
+    "introduction_template": "Hello! I am {agent_name}, a new agent spawned by {spawner}. My role is: {description}. I'm ready to help with {capabilities}. Feel free to message me directly!",
+    "notify_user_on_spawn": true,
+    "max_agents": 10
+  },
+  "next_agent_id": 1
+}

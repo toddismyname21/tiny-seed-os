@@ -25,6 +25,8 @@
             --warning: #f59e0b;
             --danger: #ef4444;
             --info: #3b82f6;
+            --purple: #8b5cf6;
+            --pink: #ec4899;
         }
 
         body {
@@ -501,6 +503,675 @@
             gap: 12px;
             font-size: 13px;
         }
+
+        /* View Mode Tabs */
+        .view-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 20px;
+            background: var(--bg-dark);
+            padding: 4px;
+            border-radius: 12px;
+            width: fit-content;
+        }
+
+        .view-tab {
+            padding: 10px 20px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .view-tab:hover {
+            background: var(--bg-card-hover);
+            color: var(--text-primary);
+        }
+
+        .view-tab.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .view-tab .badge {
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.2);
+        }
+
+        /* View Panels */
+        .view-panel {
+            display: none;
+        }
+
+        .view-panel.active {
+            display: block;
+        }
+
+        /* Timeline View Styles */
+        .timeline-container {
+            overflow-x: auto;
+            padding-bottom: 16px;
+        }
+
+        .timeline-header {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            align-items: center;
+        }
+
+        .timeline-controls {
+            display: flex;
+            gap: 8px;
+            margin-left: auto;
+        }
+
+        .timeline-zoom {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-dark);
+            padding: 4px 12px;
+            border-radius: 8px;
+        }
+
+        .timeline-zoom label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .timeline-zoom input {
+            width: 80px;
+        }
+
+        .timeline-grid {
+            display: flex;
+            flex-direction: column;
+            min-width: 100%;
+        }
+
+        .timeline-months {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 8px;
+            padding-left: 150px;
+        }
+
+        .timeline-month {
+            flex: 1;
+            min-width: 60px;
+            text-align: center;
+            padding: 8px 0;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-right: 1px solid var(--border);
+        }
+
+        .timeline-month.current {
+            background: rgba(34, 197, 94, 0.1);
+            color: var(--primary);
+        }
+
+        .timeline-field-row {
+            display: flex;
+            margin-bottom: 8px;
+            align-items: stretch;
+            min-height: 50px;
+        }
+
+        .timeline-field-label {
+            width: 150px;
+            min-width: 150px;
+            padding: 8px 12px;
+            background: var(--bg-card);
+            border-radius: 8px 0 0 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .timeline-field-name {
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .timeline-field-stats {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .timeline-field-beds {
+            flex: 1;
+            display: flex;
+            background: var(--bg-card);
+            border-radius: 0 8px 8px 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .timeline-bed-segment {
+            position: absolute;
+            top: 4px;
+            bottom: 4px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 500;
+            color: white;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            padding: 0 4px;
+        }
+
+        .timeline-bed-segment:hover {
+            transform: scaleY(1.1);
+            z-index: 10;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .timeline-bed-segment.open {
+            background: rgba(100, 100, 100, 0.3);
+            border: 1px dashed var(--border);
+            color: var(--text-secondary);
+        }
+
+        .timeline-today-line {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--danger);
+            z-index: 20;
+        }
+
+        .timeline-today-label {
+            position: absolute;
+            top: -20px;
+            transform: translateX(-50%);
+            background: var(--danger);
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        /* AI Panel Styles */
+        .ai-panel {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(34, 197, 94, 0.1));
+            border: 1px solid var(--purple);
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .ai-panel-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(139, 92, 246, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .ai-panel-header h3 {
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ai-icon {
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, var(--purple), var(--primary));
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .ai-status {
+            margin-left: auto;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ai-status.learning {
+            color: var(--purple);
+        }
+
+        .ai-status .pulse {
+            width: 8px;
+            height: 8px;
+            background: var(--purple);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+
+        .ai-panel-body {
+            padding: 20px;
+        }
+
+        .ai-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .ai-stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .ai-stat {
+            background: var(--bg-card);
+            padding: 16px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .ai-stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .ai-stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .ai-suggestions-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .ai-suggestion {
+            background: var(--bg-card);
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .ai-suggestion:hover {
+            border-color: var(--primary);
+        }
+
+        .ai-suggestion.high-confidence {
+            border-left: 3px solid var(--success);
+        }
+
+        .ai-suggestion.medium-confidence {
+            border-left: 3px solid var(--warning);
+        }
+
+        .ai-suggestion.low-confidence {
+            border-left: 3px solid var(--text-secondary);
+        }
+
+        .suggestion-score {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        .suggestion-score.high {
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--success);
+        }
+
+        .suggestion-score.medium {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+        }
+
+        .suggestion-score.low {
+            background: rgba(148, 163, 184, 0.2);
+            color: var(--text-secondary);
+        }
+
+        .suggestion-details {
+            flex: 1;
+        }
+
+        .suggestion-crop {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .suggestion-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .suggestion-reason {
+            font-size: 11px;
+            color: var(--info);
+            margin-top: 4px;
+            font-style: italic;
+        }
+
+        .suggestion-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+
+        .btn-icon.approve {
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--success);
+        }
+
+        .btn-icon.approve:hover {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-icon.reject {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+        }
+
+        .btn-icon.reject:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        /* Algorithm Learning Panel */
+        .learning-panel {
+            background: var(--bg-card);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .learning-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .learning-header h4 {
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .learning-metrics {
+            display: flex;
+            gap: 16px;
+        }
+
+        .learning-metric {
+            text-align: center;
+        }
+
+        .learning-metric-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--purple);
+        }
+
+        .learning-metric-label {
+            font-size: 10px;
+            color: var(--text-secondary);
+        }
+
+        .learning-bar {
+            height: 8px;
+            background: var(--bg-dark);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .learning-progress {
+            height: 100%;
+            background: linear-gradient(90deg, var(--purple), var(--primary));
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .learning-info {
+            margin-top: 12px;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        /* Optimization Settings */
+        .optimization-settings {
+            background: var(--bg-dark);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            cursor: pointer;
+        }
+
+        .settings-header h4 {
+            font-size: 13px;
+        }
+
+        .settings-content {
+            display: none;
+        }
+
+        .settings-content.expanded {
+            display: block;
+        }
+
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .setting-row:last-child {
+            border-bottom: none;
+        }
+
+        .setting-label {
+            font-size: 12px;
+        }
+
+        .setting-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .setting-control input[type="range"] {
+            width: 100px;
+        }
+
+        .setting-control .value {
+            font-size: 12px;
+            color: var(--primary);
+            min-width: 30px;
+        }
+
+        /* Filter Pills */
+        .filter-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .filter-pill {
+            padding: 6px 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-pill:hover {
+            border-color: var(--primary);
+        }
+
+        .filter-pill.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        /* Batch Actions */
+        .batch-actions {
+            display: flex;
+            gap: 8px;
+            padding: 12px 16px;
+            background: var(--bg-dark);
+            border-radius: 8px;
+            margin-bottom: 16px;
+            align-items: center;
+        }
+
+        .batch-count {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .batch-count strong {
+            color: var(--primary);
+        }
+
+        /* Legend */
+        .timeline-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            padding: 12px;
+            background: var(--bg-dark);
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+
+        /* AI Auto-Assign Button */
+        .btn-ai {
+            background: linear-gradient(135deg, var(--purple), var(--primary));
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-ai::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            100% { left: 100%; }
+        }
+
+        .btn-ai:hover {
+            filter: brightness(1.1);
+        }
+
+        /* Progress Animation */
+        .ai-processing {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 12px;
+            background: rgba(139, 92, 246, 0.1);
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+
+        .ai-processing.show {
+            display: flex;
+        }
+
+        .processing-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-top-color: var(--purple);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .processing-text {
+            font-size: 13px;
+            color: var(--purple);
+        }
     </style>
 </head>
 <body>
@@ -508,30 +1179,171 @@
         <header>
             <div class="header-left">
                 <a href="index.html" class="back-link">&larr;</a>
-                <h1>Field Planner</h1>
+                <h1>Field Planner AI</h1>
             </div>
             <span class="status-badge loading" id="statusBadge">Loading...</span>
         </header>
 
-        <div class="main-grid">
-            <!-- Main Content - Unassigned Plantings -->
-            <div class="card">
-                <div class="card-header">
-                    <h2>Unassigned Plantings</h2>
-                    <div>
-                        <button class="btn btn-secondary" onclick="selectAllVisible()">Select All</button>
-                        <button class="btn btn-secondary" onclick="deselectAll()">Deselect All</button>
+        <!-- View Mode Tabs -->
+        <div class="view-tabs">
+            <button class="view-tab active" onclick="switchView('assignments')" data-view="assignments">
+                <span>&#x1F4CB;</span> Assignments
+                <span class="badge" id="unassignedBadge">0</span>
+            </button>
+            <button class="view-tab" onclick="switchView('timeline')" data-view="timeline">
+                <span>&#x1F4C5;</span> Timeline View
+            </button>
+            <button class="view-tab" onclick="switchView('ai')" data-view="ai">
+                <span>&#x1F916;</span> AI Planner
+            </button>
+        </div>
+
+        <!-- AI Panel - Always visible at top -->
+        <div class="ai-panel" id="aiPanel">
+            <div class="ai-panel-header">
+                <h3>
+                    <span class="ai-icon">&#x1F9E0;</span>
+                    Field Planning AI
+                </h3>
+                <div class="ai-status learning" id="aiStatus">
+                    <span class="pulse"></span>
+                    <span id="aiStatusText">Learning from decisions...</span>
+                </div>
+            </div>
+            <div class="ai-panel-body">
+                <div class="ai-stats-grid">
+                    <div class="ai-stat">
+                        <div class="ai-stat-value" id="aiUnassigned">0</div>
+                        <div class="ai-stat-label">Unassigned Plantings</div>
+                    </div>
+                    <div class="ai-stat">
+                        <div class="ai-stat-value" id="aiOpenBeds">0</div>
+                        <div class="ai-stat-label">Open Bed Slots</div>
+                    </div>
+                    <div class="ai-stat">
+                        <div class="ai-stat-value" id="aiConfidence">--</div>
+                        <div class="ai-stat-label">AI Confidence</div>
+                    </div>
+                    <div class="ai-stat">
+                        <div class="ai-stat-value" id="aiLearningScore">0</div>
+                        <div class="ai-stat-label">Learning Score</div>
                     </div>
                 </div>
-                <div class="card-body">
-                    <div class="field-time-groups" id="fieldTimeGroups">
-                        <div class="empty-state">
-                            <div class="empty-state-icon">&#x23F3;</div>
-                            <p>Loading plantings...</p>
+
+                <div class="ai-processing" id="aiProcessing">
+                    <div class="processing-spinner"></div>
+                    <span class="processing-text">AI is analyzing optimal placements...</span>
+                </div>
+
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                    <button class="btn btn-ai" onclick="runAIOptimization()">
+                        <span>&#x1F916;</span> AI Auto-Assign All
+                    </button>
+                    <button class="btn btn-secondary" onclick="getAISuggestions()">
+                        <span>&#x1F4A1;</span> Get Suggestions
+                    </button>
+                    <button class="btn btn-secondary" onclick="resetLearning()">
+                        <span>&#x1F504;</span> Reset Learning
+                    </button>
+                </div>
+
+                <!-- Learning Panel -->
+                <div class="learning-panel">
+                    <div class="learning-header">
+                        <h4><span>&#x1F4C8;</span> Algorithm Learning Progress</h4>
+                        <div class="learning-metrics">
+                            <div class="learning-metric">
+                                <div class="learning-metric-value" id="learnDecisions">0</div>
+                                <div class="learning-metric-label">Decisions</div>
+                            </div>
+                            <div class="learning-metric">
+                                <div class="learning-metric-value" id="learnAccuracy">0%</div>
+                                <div class="learning-metric-label">Accuracy</div>
+                            </div>
+                            <div class="learning-metric">
+                                <div class="learning-metric-value" id="learnPatterns">0</div>
+                                <div class="learning-metric-label">Patterns</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="learning-bar">
+                        <div class="learning-progress" id="learningProgress" style="width: 0%"></div>
+                    </div>
+                    <div class="learning-info" id="learningInfo">
+                        The AI learns from your decisions to improve placement suggestions over time.
+                        Approve or reject suggestions to train the algorithm.
+                    </div>
+                </div>
+
+                <!-- Optimization Settings -->
+                <div class="optimization-settings">
+                    <div class="settings-header" onclick="toggleSettings()">
+                        <h4>&#x2699; Optimization Settings</h4>
+                        <span id="settingsToggle">&#x25BC;</span>
+                    </div>
+                    <div class="settings-content" id="settingsContent">
+                        <div class="setting-row">
+                            <span class="setting-label">Rotation Priority</span>
+                            <div class="setting-control">
+                                <input type="range" id="rotationWeight" min="0" max="100" value="70" onchange="updateSetting('rotation', this.value)">
+                                <span class="value" id="rotationValue">70%</span>
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <span class="setting-label">Field Time Match</span>
+                            <div class="setting-control">
+                                <input type="range" id="fieldTimeWeight" min="0" max="100" value="80" onchange="updateSetting('fieldTime', this.value)">
+                                <span class="value" id="fieldTimeValue">80%</span>
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <span class="setting-label">Proximity Grouping</span>
+                            <div class="setting-control">
+                                <input type="range" id="proximityWeight" min="0" max="100" value="50" onchange="updateSetting('proximity', this.value)">
+                                <span class="value" id="proximityValue">50%</span>
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <span class="setting-label">Bed Size Match</span>
+                            <div class="setting-control">
+                                <input type="range" id="sizeWeight" min="0" max="100" value="60" onchange="updateSetting('size', this.value)">
+                                <span class="value" id="sizeValue">60%</span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
+
+        <!-- View Panel: Assignments (Original) -->
+        <div class="view-panel active" id="assignmentsView">
+            <div class="main-grid">
+                <!-- Main Content - Unassigned Plantings -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Unassigned Plantings</h2>
+                        <div>
+                            <button class="btn btn-secondary" onclick="selectAllVisible()">Select All</button>
+                            <button class="btn btn-secondary" onclick="deselectAll()">Deselect All</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="filter-pills" id="filterPills">
+                            <span class="filter-pill active" data-filter="all" onclick="filterPlantings('all')">All</span>
+                            <span class="filter-pill" data-filter="Quick" onclick="filterPlantings('Quick')">Quick</span>
+                            <span class="filter-pill" data-filter="Short" onclick="filterPlantings('Short')">Short</span>
+                            <span class="filter-pill" data-filter="Medium" onclick="filterPlantings('Medium')">Medium</span>
+                            <span class="filter-pill" data-filter="Long" onclick="filterPlantings('Long')">Long</span>
+                            <span class="filter-pill" data-filter="VeryLong" onclick="filterPlantings('VeryLong')">Very Long</span>
+                        </div>
+                        <div class="field-time-groups" id="fieldTimeGroups">
+                            <div class="empty-state">
+                                <div class="empty-state-icon">&#x23F3;</div>
+                                <p>Loading plantings...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
             <!-- Sidebar -->
             <div class="sidebar">
@@ -582,6 +1394,83 @@
                     </div>
                 </div>
             </div>
+            </div><!-- End main-grid -->
+        </div><!-- End assignmentsView -->
+
+        <!-- View Panel: Timeline -->
+        <div class="view-panel" id="timelineView">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Field Timeline View</h2>
+                    <div class="timeline-controls">
+                        <div class="timeline-zoom">
+                            <label>Zoom:</label>
+                            <input type="range" id="timelineZoom" min="50" max="200" value="100" onchange="updateTimelineZoom(this.value)">
+                        </div>
+                        <button class="btn btn-secondary" onclick="scrollToToday()">Today</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="timeline-legend">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #4ade80"></div>
+                            <span>Quick (&lt;45 days)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #60a5fa"></div>
+                            <span>Short (45-75 days)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #f59e0b"></div>
+                            <span>Medium (75-100 days)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #ef4444"></div>
+                            <span>Long (100-130 days)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #8b5cf6"></div>
+                            <span>Very Long (130+ days)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color open" style="background: rgba(100,100,100,0.3); border: 1px dashed var(--border);"></div>
+                            <span>Open/Available</span>
+                        </div>
+                    </div>
+                    <div class="timeline-container" id="timelineContainer">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">&#x1F4C5;</div>
+                            <p>Loading timeline...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- View Panel: AI Suggestions -->
+        <div class="view-panel" id="aiView">
+            <div class="card">
+                <div class="card-header">
+                    <h2>AI Placement Suggestions</h2>
+                    <div>
+                        <button class="btn btn-secondary" onclick="approveAllSuggestions()">Approve All High-Confidence</button>
+                        <button class="btn btn-secondary" onclick="refreshSuggestions()">Refresh</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="batch-actions" id="suggestionBatchActions" style="display: none;">
+                        <span class="batch-count"><strong id="selectedSuggestions">0</strong> suggestions selected</span>
+                        <button class="btn btn-primary" onclick="applySelectedSuggestions()">Apply Selected</button>
+                        <button class="btn btn-secondary" onclick="clearSuggestionSelection()">Clear</button>
+                    </div>
+                    <div class="ai-suggestions-list" id="aiSuggestionsList">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">&#x1F4A1;</div>
+                            <p>Click "Get Suggestions" to generate AI recommendations</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -617,6 +1506,25 @@
         let fieldsData = null;
         let selectedField = null;
         let previewData = null;
+        let timelineData = null;
+        let aiSuggestions = [];
+        let currentFilter = 'all';
+        let currentView = 'assignments';
+
+        // AI Learning State (persisted to localStorage)
+        let aiLearningState = {
+            decisions: 0,
+            approvals: 0,
+            rejections: 0,
+            patterns: [],
+            weights: {
+                rotation: 70,
+                fieldTime: 80,
+                proximity: 50,
+                size: 60
+            },
+            lastUpdated: null
+        };
 
         const FIELD_TIME_COLORS = {
             'Quick': '#4ade80',
@@ -634,15 +1542,724 @@
             'VeryLong': 'Very Long Season (130+ days)'
         };
 
+        const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
         // Initialize
         window.addEventListener('DOMContentLoaded', async () => {
+            loadLearningState();
+            updateLearningUI();
+
             await Promise.all([
                 loadUnassignedPlantings(),
-                loadAvailableFields()
+                loadAvailableFields(),
+                loadTimelineData()
             ]);
+
+            updateAIStats();
             updateStatus('Ready', false);
         });
 
+        // ============ VIEW SWITCHING ============
+        function switchView(view) {
+            currentView = view;
+
+            // Update tab buttons
+            document.querySelectorAll('.view-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.view === view);
+            });
+
+            // Update view panels
+            document.querySelectorAll('.view-panel').forEach(panel => {
+                panel.classList.toggle('active', panel.id === view + 'View');
+            });
+
+            // Load view-specific data if needed
+            if (view === 'timeline' && !timelineData) {
+                loadTimelineData();
+            }
+            if (view === 'ai' && aiSuggestions.length === 0) {
+                getAISuggestions();
+            }
+        }
+
+        // ============ AI LEARNING SYSTEM ============
+        function loadLearningState() {
+            const saved = localStorage.getItem('fieldPlannerAI');
+            if (saved) {
+                aiLearningState = JSON.parse(saved);
+                // Apply saved weights to UI
+                Object.entries(aiLearningState.weights).forEach(([key, value]) => {
+                    const slider = document.getElementById(key + 'Weight');
+                    const display = document.getElementById(key + 'Value');
+                    if (slider) slider.value = value;
+                    if (display) display.textContent = value + '%';
+                });
+            }
+        }
+
+        function saveLearningState() {
+            aiLearningState.lastUpdated = new Date().toISOString();
+            localStorage.setItem('fieldPlannerAI', JSON.stringify(aiLearningState));
+        }
+
+        function updateLearningUI() {
+            const { decisions, approvals, rejections, patterns } = aiLearningState;
+
+            document.getElementById('learnDecisions').textContent = decisions;
+            document.getElementById('learnPatterns').textContent = patterns.length;
+
+            const accuracy = decisions > 0 ? Math.round((approvals / decisions) * 100) : 0;
+            document.getElementById('learnAccuracy').textContent = accuracy + '%';
+
+            // Progress bar based on decisions made (100 decisions = 100%)
+            const progress = Math.min(decisions, 100);
+            document.getElementById('learningProgress').style.width = progress + '%';
+
+            // Update AI confidence display
+            const confidence = calculateAIConfidence();
+            document.getElementById('aiConfidence').textContent = confidence + '%';
+            document.getElementById('aiLearningScore').textContent = calculateLearningScore();
+
+            // Update learning info
+            let infoText = '';
+            if (decisions < 10) {
+                infoText = `Make ${10 - decisions} more decisions to start seeing improved suggestions.`;
+            } else if (decisions < 50) {
+                infoText = `Good progress! ${50 - decisions} more decisions to unlock advanced patterns.`;
+            } else {
+                infoText = `AI is learning effectively from ${decisions} decisions. Patterns detected: ${patterns.length}`;
+            }
+            document.getElementById('learningInfo').textContent = infoText;
+        }
+
+        function calculateAIConfidence() {
+            const { decisions, approvals } = aiLearningState;
+            if (decisions === 0) return 50;
+            const baseConfidence = 50;
+            const learnedConfidence = (approvals / decisions) * 30;
+            const experienceBonus = Math.min(decisions / 100, 1) * 20;
+            return Math.round(baseConfidence + learnedConfidence + experienceBonus);
+        }
+
+        function calculateLearningScore() {
+            const { decisions, patterns } = aiLearningState;
+            return Math.round((decisions * 0.5) + (patterns.length * 10));
+        }
+
+        function recordDecision(suggestionId, action, suggestion) {
+            aiLearningState.decisions++;
+            if (action === 'approve') {
+                aiLearningState.approvals++;
+                // Learn from approved placements
+                learnPattern(suggestion);
+            } else {
+                aiLearningState.rejections++;
+            }
+            saveLearningState();
+            updateLearningUI();
+        }
+
+        function learnPattern(suggestion) {
+            const pattern = {
+                crop: suggestion.crop,
+                fieldTimeGroup: suggestion.fieldTimeGroup,
+                targetField: suggestion.targetField,
+                bedSize: suggestion.bedFeet,
+                timestamp: new Date().toISOString()
+            };
+
+            // Check if similar pattern exists
+            const existing = aiLearningState.patterns.findIndex(p =>
+                p.crop === pattern.crop && p.targetField === pattern.targetField
+            );
+
+            if (existing >= 0) {
+                // Reinforce existing pattern
+                aiLearningState.patterns[existing].count =
+                    (aiLearningState.patterns[existing].count || 1) + 1;
+            } else {
+                pattern.count = 1;
+                aiLearningState.patterns.push(pattern);
+            }
+        }
+
+        function resetLearning() {
+            if (confirm('Reset AI learning? This will clear all learned patterns and start fresh.')) {
+                aiLearningState = {
+                    decisions: 0,
+                    approvals: 0,
+                    rejections: 0,
+                    patterns: [],
+                    weights: { rotation: 70, fieldTime: 80, proximity: 50, size: 60 },
+                    lastUpdated: null
+                };
+                saveLearningState();
+                updateLearningUI();
+                showToast('AI learning reset', 'success');
+            }
+        }
+
+        // ============ OPTIMIZATION SETTINGS ============
+        function toggleSettings() {
+            const content = document.getElementById('settingsContent');
+            const toggle = document.getElementById('settingsToggle');
+            content.classList.toggle('expanded');
+            toggle.textContent = content.classList.contains('expanded') ? '▲' : '▼';
+        }
+
+        function updateSetting(key, value) {
+            document.getElementById(key + 'Value').textContent = value + '%';
+            aiLearningState.weights[key] = parseInt(value);
+            saveLearningState();
+        }
+
+        // ============ FILTER PLANTINGS ============
+        function filterPlantings(filter) {
+            currentFilter = filter;
+
+            // Update filter pills
+            document.querySelectorAll('.filter-pill').forEach(pill => {
+                pill.classList.toggle('active', pill.dataset.filter === filter);
+            });
+
+            // Show/hide groups
+            document.querySelectorAll('.field-time-group').forEach(group => {
+                if (filter === 'all' || group.dataset.group === filter) {
+                    group.style.display = 'block';
+                } else {
+                    group.style.display = 'none';
+                }
+            });
+        }
+
+        // ============ TIMELINE VIEW ============
+        async function loadTimelineData() {
+            try {
+                const response = await fetch(`${API_URL}?action=getPlanning&year=2026`);
+                const data = await response.json();
+
+                if (data.success || data.rows) {
+                    timelineData = data.rows || data.plantings || [];
+                    renderTimeline();
+                }
+            } catch (error) {
+                console.error('Error loading timeline:', error);
+            }
+        }
+
+        function renderTimeline() {
+            const container = document.getElementById('timelineContainer');
+            if (!fieldsData || fieldsData.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>No fields available</p></div>';
+                return;
+            }
+
+            // Build timeline structure
+            const year = new Date().getFullYear();
+            const startDate = new Date(year, 0, 1); // Jan 1
+            const endDate = new Date(year, 11, 31); // Dec 31
+            const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+
+            // Create months header
+            let html = '<div class="timeline-grid">';
+            html += '<div class="timeline-months">';
+            for (let m = 0; m < 12; m++) {
+                const isCurrentMonth = new Date().getMonth() === m;
+                html += `<div class="timeline-month ${isCurrentMonth ? 'current' : ''}">${MONTH_NAMES[m]}</div>`;
+            }
+            html += '</div>';
+
+            // Group plantings by field
+            const plantingsByField = {};
+            if (timelineData && Array.isArray(timelineData)) {
+                timelineData.forEach(p => {
+                    const field = p.field || p.Field || 'Unassigned';
+                    if (!plantingsByField[field]) plantingsByField[field] = [];
+                    plantingsByField[field].push(p);
+                });
+            }
+
+            // Render each field row
+            fieldsData.forEach(field => {
+                const fieldPlantings = plantingsByField[field.name] || [];
+                html += `
+                    <div class="timeline-field-row">
+                        <div class="timeline-field-label">
+                            <div class="timeline-field-name">${field.name}</div>
+                            <div class="timeline-field-stats">${field.activeBeds || 0} beds</div>
+                        </div>
+                        <div class="timeline-field-beds" id="timeline-${field.name.replace(/\s/g, '-')}">
+                            ${renderFieldPlantings(fieldPlantings, startDate, totalDays)}
+                            ${renderOpenSlots(field, fieldPlantings, startDate, totalDays)}
+                        </div>
+                    </div>
+                `;
+            });
+
+            // Add today line position
+            const today = new Date();
+            const todayOffset = Math.ceil((today - startDate) / (1000 * 60 * 60 * 24));
+            const todayPercent = (todayOffset / totalDays) * 100;
+
+            html += '</div>';
+            container.innerHTML = html;
+
+            // Add today line to each field
+            document.querySelectorAll('.timeline-field-beds').forEach(el => {
+                const todayLine = document.createElement('div');
+                todayLine.className = 'timeline-today-line';
+                todayLine.style.left = todayPercent + '%';
+                todayLine.innerHTML = '<span class="timeline-today-label">Today</span>';
+                el.appendChild(todayLine);
+            });
+        }
+
+        function renderFieldPlantings(plantings, startDate, totalDays) {
+            let html = '';
+            plantings.forEach(p => {
+                const fieldStart = p.fieldStart || p['Field Start'] || p.transplantDate;
+                const fieldEnd = p.fieldEnd || p['Field End'] || p.harvestEnd;
+
+                if (!fieldStart) return;
+
+                const start = new Date(fieldStart);
+                const end = fieldEnd ? new Date(fieldEnd) : new Date(start.getTime() + 60 * 24 * 60 * 60 * 1000);
+
+                const startOffset = Math.max(0, (start - startDate) / (1000 * 60 * 60 * 24));
+                const duration = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+
+                const leftPercent = (startOffset / totalDays) * 100;
+                const widthPercent = (duration / totalDays) * 100;
+
+                const fieldTimeGroup = p.fieldTimeGroup || p.FieldTimeGroup || 'Medium';
+                const color = FIELD_TIME_COLORS[fieldTimeGroup] || '#888';
+                const crop = p.crop || p.Crop || 'Unknown';
+
+                html += `
+                    <div class="timeline-bed-segment"
+                         style="left: ${leftPercent}%; width: ${widthPercent}%; background: ${color};"
+                         title="${crop} - ${fieldTimeGroup}\n${formatDate(start)} to ${formatDate(end)}"
+                         onclick="showPlantingDetails('${p.batchId || p.BatchID || ''}')">
+                        ${widthPercent > 5 ? crop : ''}
+                    </div>
+                `;
+            });
+            return html;
+        }
+
+        function renderOpenSlots(field, plantings, startDate, totalDays) {
+            // Calculate open slots (simplified - could be enhanced with actual bed availability)
+            let html = '';
+            // This would need more sophisticated logic based on actual bed occupancy
+            return html;
+        }
+
+        function formatDate(date) {
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        function updateTimelineZoom(value) {
+            const container = document.getElementById('timelineContainer');
+            const grid = container.querySelector('.timeline-grid');
+            if (grid) {
+                grid.style.minWidth = value + '%';
+            }
+        }
+
+        function scrollToToday() {
+            const container = document.getElementById('timelineContainer');
+            const todayLine = container.querySelector('.timeline-today-line');
+            if (todayLine) {
+                todayLine.scrollIntoView({ behavior: 'smooth', inline: 'center' });
+            }
+        }
+
+        function showPlantingDetails(batchId) {
+            if (!batchId) return;
+            // Could open a modal with planting details
+            showToast('Planting: ' + batchId, 'success');
+        }
+
+        // ============ AI OPTIMIZATION ============
+        async function runAIOptimization() {
+            const processing = document.getElementById('aiProcessing');
+            processing.classList.add('show');
+            updateStatus('AI Optimizing...', true);
+
+            try {
+                // Get optimal assignments from backend
+                const weights = aiLearningState.weights;
+                const response = await fetch(`${API_URL}?action=getOptimalBedAssignments&rotationWeight=${weights.rotation}&fieldTimeWeight=${weights.fieldTime}&proximityWeight=${weights.proximity}&sizeWeight=${weights.size}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    if (data.assignments && data.assignments.length > 0) {
+                        // Show preview of AI assignments
+                        showAIAssignmentPreview(data);
+                    } else {
+                        showToast('No optimal assignments found', 'warning');
+                    }
+                } else {
+                    showToast('AI optimization error: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showToast('Error: ' + error.message, 'error');
+            }
+
+            processing.classList.remove('show');
+            updateStatus('Ready', false);
+        }
+
+        function showAIAssignmentPreview(data) {
+            let html = `
+                <div style="margin-bottom: 20px;">
+                    <strong>AI Optimization Complete!</strong><br>
+                    Found <strong>${data.assignments.length}</strong> optimal placements with average score <strong>${data.averageScore || '--'}</strong>
+                </div>
+            `;
+
+            html += `
+                <table class="preview-table">
+                    <thead>
+                        <tr>
+                            <th>Crop</th>
+                            <th>Current</th>
+                            <th>Optimal Placement</th>
+                            <th>Score</th>
+                            <th>Reason</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            data.assignments.forEach(a => {
+                const scoreClass = a.score >= 80 ? 'high' : (a.score >= 60 ? 'medium' : 'low');
+                html += `
+                    <tr>
+                        <td><strong>${a.crop}</strong><br><small>${a.variety || ''}</small></td>
+                        <td>${a.fromBed || 'Unassigned'}</td>
+                        <td>
+                            <div class="bed-change">
+                                <span style="color: var(--text-secondary)">${a.fromBed || '?'}</span>
+                                <span class="arrow">→</span>
+                                <strong>${a.toBed}</strong>
+                            </div>
+                        </td>
+                        <td><span class="suggestion-score ${scoreClass}" style="width:40px;height:40px;font-size:14px;">${a.score}</span></td>
+                        <td><small>${a.reason || 'Optimal match'}</small></td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+
+            previewData = data;
+            document.getElementById('previewContent').innerHTML = html;
+            document.getElementById('applyBtn').style.display = 'inline-flex';
+            document.getElementById('applyBtn').onclick = applyAIAssignments;
+            document.getElementById('previewModal').classList.add('active');
+        }
+
+        async function applyAIAssignments() {
+            if (!previewData || !previewData.assignments) return;
+
+            updateStatus('Applying AI assignments...', true);
+
+            try {
+                const response = await fetch(`${API_URL}?action=applyOptimalAssignments&assignments=${encodeURIComponent(JSON.stringify(previewData.assignments))}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast(`Applied ${data.applied || previewData.assignments.length} AI assignments!`, 'success');
+
+                    // Record all as approvals for learning
+                    previewData.assignments.forEach(a => {
+                        recordDecision(a.batchId, 'approve', a);
+                    });
+
+                    closeModal();
+                    await loadUnassignedPlantings();
+                    await loadTimelineData();
+                } else {
+                    showToast('Error: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showToast('Error: ' + error.message, 'error');
+            }
+
+            updateStatus('Ready', false);
+        }
+
+        // ============ AI SUGGESTIONS ============
+        async function getAISuggestions() {
+            updateStatus('Getting AI suggestions...', true);
+
+            try {
+                const weights = aiLearningState.weights;
+                const response = await fetch(`${API_URL}?action=getFieldPlanSuggestions&rotationWeight=${weights.rotation}&fieldTimeWeight=${weights.fieldTime}`);
+                const data = await response.json();
+
+                if (data.success && data.suggestions) {
+                    aiSuggestions = data.suggestions;
+                    renderAISuggestions(data.suggestions);
+                } else {
+                    // Generate client-side suggestions if backend doesn't have them
+                    generateClientSideSuggestions();
+                }
+            } catch (error) {
+                generateClientSideSuggestions();
+            }
+
+            updateStatus('Ready', false);
+        }
+
+        function generateClientSideSuggestions() {
+            if (!unassignedData || !fieldsData) {
+                showToast('Load data first', 'error');
+                return;
+            }
+
+            const suggestions = [];
+            const { weights, patterns } = aiLearningState;
+
+            // Get all unassigned plantings
+            const allUnassigned = [];
+            if (unassignedData.groupedByFieldTime) {
+                Object.values(unassignedData.groupedByFieldTime).forEach(group => {
+                    if (group.plantings) {
+                        allUnassigned.push(...group.plantings);
+                    }
+                });
+            }
+
+            // Generate suggestions for each unassigned planting
+            allUnassigned.forEach(planting => {
+                fieldsData.forEach(field => {
+                    const score = calculatePlacementScore(planting, field, weights, patterns);
+                    if (score >= 50) {
+                        suggestions.push({
+                            id: `${planting.batchId}-${field.name}`,
+                            batchId: planting.batchId,
+                            crop: planting.crop,
+                            variety: planting.variety,
+                            fieldTimeGroup: planting.fieldTimeGroup,
+                            bedFeet: planting.bedFeet,
+                            fieldStart: planting.fieldStart,
+                            targetField: field.name,
+                            targetBed: `${field.name}-Auto`,
+                            score: score,
+                            confidence: score >= 80 ? 'high' : (score >= 65 ? 'medium' : 'low'),
+                            reason: generateReason(planting, field, score)
+                        });
+                    }
+                });
+            });
+
+            // Sort by score and take top suggestions
+            suggestions.sort((a, b) => b.score - a.score);
+            aiSuggestions = suggestions.slice(0, 20);
+            renderAISuggestions(aiSuggestions);
+        }
+
+        function calculatePlacementScore(planting, field, weights, patterns) {
+            let score = 50; // Base score
+
+            // Field time match
+            if (planting.fieldTimeGroup) {
+                // Assume field has capacity for the planting duration
+                score += (weights.fieldTime / 100) * 20;
+            }
+
+            // Check learned patterns
+            const matchingPattern = patterns.find(p =>
+                p.crop === planting.crop && p.targetField === field.name
+            );
+            if (matchingPattern) {
+                score += Math.min(matchingPattern.count * 5, 20); // Bonus for learned patterns
+            }
+
+            // Bed availability
+            if (field.activeFeet >= planting.bedFeet) {
+                score += (weights.size / 100) * 15;
+            }
+
+            // Add some randomness for variety
+            score += Math.random() * 5;
+
+            return Math.min(Math.round(score), 99);
+        }
+
+        function generateReason(planting, field, score) {
+            const reasons = [];
+
+            if (score >= 80) {
+                reasons.push('Excellent match based on learning');
+            } else if (score >= 65) {
+                reasons.push('Good field time compatibility');
+            }
+
+            const pattern = aiLearningState.patterns.find(p =>
+                p.crop === planting.crop && p.targetField === field.name
+            );
+            if (pattern) {
+                reasons.push(`Previously approved ${pattern.count}x`);
+            }
+
+            return reasons.length > 0 ? reasons.join('. ') : 'Suggested based on available space';
+        }
+
+        function renderAISuggestions(suggestions) {
+            const container = document.getElementById('aiSuggestionsList');
+
+            if (!suggestions || suggestions.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">✅</div>
+                        <p>No suggestions needed - all plantings are well-placed!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            suggestions.forEach((s, idx) => {
+                const scoreClass = s.confidence || (s.score >= 80 ? 'high' : (s.score >= 65 ? 'medium' : 'low'));
+                html += `
+                    <div class="ai-suggestion ${scoreClass}-confidence" data-suggestion-id="${s.id || idx}">
+                        <input type="checkbox" class="suggestion-checkbox" data-idx="${idx}">
+                        <div class="suggestion-score ${scoreClass}">${s.score}</div>
+                        <div class="suggestion-details">
+                            <div class="suggestion-crop">${s.crop}</div>
+                            <div class="suggestion-meta">
+                                ${s.variety || ''} | ${s.bedFeet || '?'} ft | ${s.fieldTimeGroup || 'N/A'}
+                                → <strong>${s.targetField}</strong> ${s.targetBed ? `(${s.targetBed})` : ''}
+                            </div>
+                            <div class="suggestion-reason">${s.reason || ''}</div>
+                        </div>
+                        <div class="suggestion-actions">
+                            <button class="btn-icon approve" onclick="approveSuggestion(${idx})" title="Approve">✓</button>
+                            <button class="btn-icon reject" onclick="rejectSuggestion(${idx})" title="Reject">✕</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+
+            // Add checkbox change listeners
+            container.querySelectorAll('.suggestion-checkbox').forEach(cb => {
+                cb.addEventListener('change', updateSuggestionSelection);
+            });
+        }
+
+        function updateSuggestionSelection() {
+            const checked = document.querySelectorAll('.suggestion-checkbox:checked');
+            const batchActions = document.getElementById('suggestionBatchActions');
+            document.getElementById('selectedSuggestions').textContent = checked.length;
+            batchActions.style.display = checked.length > 0 ? 'flex' : 'none';
+        }
+
+        async function approveSuggestion(idx) {
+            const suggestion = aiSuggestions[idx];
+            if (!suggestion) return;
+
+            try {
+                const response = await fetch(`${API_URL}?action=assignPlantingsToField&targetField=${encodeURIComponent(suggestion.targetField)}&batchIds=${encodeURIComponent(JSON.stringify([suggestion.batchId]))}&apply=true`);
+                const data = await response.json();
+
+                if (data.success) {
+                    recordDecision(suggestion.id, 'approve', suggestion);
+                    showToast(`Approved: ${suggestion.crop} → ${suggestion.targetField}`, 'success');
+
+                    // Remove from suggestions list
+                    aiSuggestions.splice(idx, 1);
+                    renderAISuggestions(aiSuggestions);
+
+                    // Reload data
+                    await loadUnassignedPlantings();
+                } else {
+                    showToast('Error: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showToast('Error: ' + error.message, 'error');
+            }
+        }
+
+        function rejectSuggestion(idx) {
+            const suggestion = aiSuggestions[idx];
+            if (!suggestion) return;
+
+            recordDecision(suggestion.id, 'reject', suggestion);
+            showToast(`Rejected: ${suggestion.crop}`, 'success');
+
+            // Remove from suggestions list
+            aiSuggestions.splice(idx, 1);
+            renderAISuggestions(aiSuggestions);
+        }
+
+        async function approveAllSuggestions() {
+            const highConfidence = aiSuggestions.filter(s => s.score >= 80);
+            if (highConfidence.length === 0) {
+                showToast('No high-confidence suggestions to approve', 'warning');
+                return;
+            }
+
+            if (!confirm(`Approve all ${highConfidence.length} high-confidence suggestions?`)) return;
+
+            updateStatus('Applying suggestions...', true);
+
+            for (const suggestion of highConfidence) {
+                try {
+                    await fetch(`${API_URL}?action=assignPlantingsToField&targetField=${encodeURIComponent(suggestion.targetField)}&batchIds=${encodeURIComponent(JSON.stringify([suggestion.batchId]))}&apply=true`);
+                    recordDecision(suggestion.id, 'approve', suggestion);
+                } catch (e) {
+                    console.error('Error approving', suggestion, e);
+                }
+            }
+
+            showToast(`Approved ${highConfidence.length} suggestions!`, 'success');
+            await loadUnassignedPlantings();
+            getAISuggestions();
+            updateStatus('Ready', false);
+        }
+
+        function applySelectedSuggestions() {
+            const checked = document.querySelectorAll('.suggestion-checkbox:checked');
+            const indices = Array.from(checked).map(cb => parseInt(cb.dataset.idx));
+
+            indices.forEach(idx => approveSuggestion(idx));
+        }
+
+        function clearSuggestionSelection() {
+            document.querySelectorAll('.suggestion-checkbox').forEach(cb => cb.checked = false);
+            updateSuggestionSelection();
+        }
+
+        function refreshSuggestions() {
+            getAISuggestions();
+        }
+
+        // ============ UPDATE AI STATS ============
+        function updateAIStats() {
+            if (unassignedData) {
+                let totalUnassigned = 0;
+                if (unassignedData.groupedByFieldTime) {
+                    Object.values(unassignedData.groupedByFieldTime).forEach(g => {
+                        totalUnassigned += g.plantings?.length || 0;
+                    });
+                }
+                document.getElementById('aiUnassigned').textContent = totalUnassigned;
+                document.getElementById('unassignedBadge').textContent = totalUnassigned;
+            }
+
+            if (fieldsData) {
+                let totalBeds = 0;
+                fieldsData.forEach(f => totalBeds += f.activeBeds || 0);
+                document.getElementById('aiOpenBeds').textContent = totalBeds;
+            }
+        }
+
+        // ============ ORIGINAL FUNCTIONS (updated) ============
         async function loadUnassignedPlantings() {
             try {
                 const response = await fetch(`${API_URL}?action=analyzeUnassignedPlantings`);
@@ -651,6 +2268,7 @@
                 if (data.success) {
                     unassignedData = data;
                     renderFieldTimeGroups(data.groupedByFieldTime);
+                    updateAIStats();
                 } else {
                     showToast('Error loading plantings: ' + data.error, 'error');
                 }

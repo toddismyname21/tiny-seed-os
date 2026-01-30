@@ -1,3 +1,137 @@
+## REGISTRATION INSTRUCTIONS
+
+**Do these steps NOW, in order:**
+
+1. Use the Read tool to read: `/Users/samanthapollack/Documents/TIny_Seed_OS/CLAUDE.md`
+2. Use the Read tool to read: `/Users/samanthapollack/Documents/TIny_Seed_OS/claude_sessions/pm_architect/SYSTEM_MANIFEST.md`
+3. Use the Read tool to read your instructions: `/Users/samanthapollack/Documents/TIny_Seed_OS/claude_sessions/financial/INSTRUCTIONS.md`
+4. Use the Edit tool to append to your OUTBOX confirming registration
+
+---
+
+# INBOX: Financial Claude
+## From: PM_Architect
+
+**Updated:** 2026-01-24
+
+---
+
+## 🔴 NEW TASK: LOAN READINESS DASHBOARD
+**Date:** 2026-01-24
+**From:** PM_Architect (Desktop Session)
+**Priority:** HIGH - OWNER REQUEST
+**Status:** DELEGATED TO YOU
+
+---
+
+### MISSION: Build/Enhance Loan Readiness Dashboard
+
+Owner wants a dedicated **Loan Readiness Dashboard** that makes it easy to prepare for loan applications.
+
+### EXISTING ASSETS (DO NOT DUPLICATE):
+
+| Asset | Location | Status |
+|-------|----------|--------|
+| Loan Readiness Documentation | `claude_sessions/financial/LOAN_READINESS.md` | ✅ Complete |
+| Financial Dashboard | `web_app/financial-dashboard.html` | ✅ Has loan features |
+| generateLoanPackage() | financial-dashboard.html:7251 | ✅ Built |
+| Balance Sheet Generator | financial-dashboard.html:7280 | ✅ Built |
+| Asset Tracking | financial-dashboard.html:5217 | ✅ Built |
+
+### YOUR TASK:
+
+1. **Audit existing loan features** in financial-dashboard.html
+2. **Decide:** Enhance existing OR create dedicated loan-readiness.html
+3. **Build a dashboard that shows:**
+   - Loan readiness score/checklist (from LOAN_READINESS.md)
+   - Document status (what's ready, what's missing)
+   - Quick generation of loan package documents
+   - Farm Credit contact info
+   - Debt consolidation calculator
+4. **Connect to real data** - no demo/sample data
+5. **Document in OUTBOX** when complete
+
+### REQUIREMENTS:
+
+- State of the art, production ready
+- Real data only (no fallbacks)
+- Follow CLAUDE.md rules
+- Update CHANGE_LOG.md when done
+
+### REPORT TO:
+
+Write completion status to your OUTBOX. PM will check.
+
+---
+**PRIORITY:** CRITICAL - BIG FINANCIAL DAY TOMORROW
+
+---
+
+## 🛠️ TOOLS & DEPLOYMENT - YOU HAVE ACCESS
+
+| Tool | What It Does | Command |
+|------|--------------|---------|
+| **clasp** | Push code to Google Apps Script | `clasp push` |
+| **brew** | Install packages if needed | `brew install <pkg>` |
+| **git** | Version control | `git add . && git commit && git push` |
+| **MCP Server** | 40+ specialized tools | Use when it's the best choice |
+
+### DEPLOYMENT REQUIREMENTS
+
+When you complete work:
+1. **Push to Apps Script (if backend changes):** `clasp push`
+2. **Commit to GitHub:** `git add . && git commit -m "message" && git push`
+3. **Verify live site:** Check https://toddismyname21.github.io/tiny-seed-os/
+
+**Changes must be LIVE, not just local.**
+
+---
+
+## 🚨 TOMORROW'S PRIORITIES - OWNER DIRECTIVE
+
+### 1. CONNECT INVESTMENT ACCOUNTS (Plaid)
+
+Owner wants investment accounts connected tomorrow. Research and prepare:
+
+- What's needed for Plaid investment account linking?
+- What data can we pull? (Holdings, transactions, performance)
+- Any existing Plaid integration in the codebase?
+- Security considerations
+
+**Check the OS folder** - there may be Plaid research or partial implementation already.
+
+### 2. PEAK LOAN READINESS
+
+Owner wants to be at **PEAK loan readiness** tomorrow. This means:
+
+| Requirement | Status | Action |
+|-------------|--------|--------|
+| Financial statements current | ? | Verify/update |
+| Cash flow projections | ? | Generate if missing |
+| Debt-to-income ratio | ? | Calculate |
+| Collateral documentation | ? | List assets |
+| Business plan financials | ? | Verify current |
+| Tax returns accessible | ? | Confirm location |
+| Credit score known | ? | Document |
+
+#### Research Tonight:
+1. What do lenders look for in farm loans?
+2. USDA FSA loan requirements
+3. Best practices for loan applications
+4. What financial documents should be ready?
+
+#### Prep for Tomorrow:
+1. Audit current financial data completeness
+2. Identify any gaps in documentation
+3. Calculate key ratios lenders want to see
+4. Prepare a "Loan Readiness Checklist" for owner
+
+**Document everything in your OUTBOX.**
+
+---
+
+## PREVIOUS MISSION (Still Important):
+
 # MEGA MISSION: Complete Financial Dashboard - THE FULL BUILD
 
 **Date:** 2026-01-22

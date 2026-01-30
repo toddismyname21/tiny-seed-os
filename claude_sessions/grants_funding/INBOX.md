@@ -1,3 +1,94 @@
+## REGISTRATION INSTRUCTIONS
+
+**Do these steps NOW, in order:**
+
+1. Use the Read tool to read: `/Users/samanthapollack/Documents/TIny_Seed_OS/CLAUDE.md`
+2. Use the Read tool to read: `/Users/samanthapollack/Documents/TIny_Seed_OS/claude_sessions/grants_funding/INSTRUCTIONS.md`
+3. Use the Read tool to read: `/Users/samanthapollack/Documents/TIny_Seed_OS/claude_sessions/pm_architect/SYSTEM_MANIFEST.md`
+4. Use the Edit tool to append to your OUTBOX confirming registration
+
+---
+
+# INBOX: Grants_Funding Claude
+## From: PM_Architect
+
+**Updated:** 2026-01-24
+**PRIORITY:** CRITICAL - RESEARCH ASSIGNMENT
+
+---
+
+## 🛠️ TOOLS & DEPLOYMENT - YOU HAVE ACCESS
+
+| Tool | What It Does | Command |
+|------|--------------|---------|
+| **clasp** | Push code to Google Apps Script | `clasp push` |
+| **brew** | Install packages if needed | `brew install <pkg>` |
+| **git** | Version control | `git add . && git commit && git push` |
+| **MCP Server** | 40+ specialized tools | Use when it's the best choice |
+
+### DEPLOYMENT REQUIREMENTS
+
+When you complete work:
+1. **Commit to GitHub:** `git add . && git commit -m "message" && git push`
+2. **Verify live site:** Check https://toddismyname21.github.io/tiny-seed-os/
+
+**Changes must be LIVE, not just local.**
+
+---
+
+## 🔬 DEEP RESEARCH: INTELLIGENT PLANTING ALGORITHMS
+
+**You are doing this research IN PARALLEL with Field_Operations Claude.**
+
+Owner is building an intelligent Field Planner that automatically assigns plantings to optimal locations. This requires deep research tonight.
+
+### Your Research Assignment:
+
+#### 1. Academic Research on Crop Rotation
+- Search Google Scholar, JSTOR, university extension services
+- Find papers on optimal rotation patterns
+- Mathematical models for rotation
+- Cover crop integration
+
+#### 2. Constraint Satisfaction & Optimization
+- How do you optimize with multiple competing factors?
+- Weighted scoring systems
+- Genetic algorithms for farm planning
+- Linear programming for crop allocation
+
+#### 3. Companion Planting Science
+- Allelopathy research (plant chemical interactions)
+- Beneficial insect attraction
+- Root depth compatibility
+- Nutrient competition/sharing
+
+#### 4. Commercial Solutions Analysis
+- How does FarmOS handle planning?
+- Tend.com algorithms
+- Farmbrite field planning
+- What can we learn from them?
+
+#### 5. AI/ML for Agriculture
+- Machine learning for crop planning
+- Predictive models for yield
+- Computer vision for field monitoring
+- Any open-source farm AI projects?
+
+### DELIVERABLES
+
+Write to your OUTBOX.md:
+1. Summary of best algorithms found
+2. Key factors with recommended weights
+3. Data structures needed
+4. Recommended approach for Tiny Seed Farm
+5. Links to papers/sources
+
+**This research feeds tomorrow's build. Be thorough.**
+
+---
+
+## PREVIOUS (Lower Priority Now):
+
 # URGENT: PA Ag Innovation Grant - Can We Apply Again?
 
 **Date:** 2026-01-22

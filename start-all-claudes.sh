@@ -1,0 +1,17 @@
+#!/bin/bash
+PROJECT_DIR="/Users/samanthapollack/Documents/TIny_Seed_OS"
+SESSIONS=(pm backend ux-design field-ops financial sales-crm inventory grants security social-media mobile accounting business don-kb)
+
+echo "TINY SEED FARM - CLAUDE ARMY STARTUP"
+
+for session in ${SESSIONS[@]}; do
+  if tmux has-session -t $session 2>/dev/null; then
+    echo "Already running: $session"
+  else
+    tmux new-session -d -s $session -c $PROJECT_DIR
+    echo "Started: $session"
+  fi
+done
+
+echo "All sessions created."
+tmux list-sessions

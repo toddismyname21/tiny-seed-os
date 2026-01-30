@@ -1,0 +1,194 @@
+[
+  {
+    "id": 1,
+    "message": "Tell me you got this?",
+    "timestamp": "2026-01-28T15:57:53.787186",
+    "read": false
+  },
+  {
+    "id": 3,
+    "message": "Great",
+    "timestamp": "2026-01-28T16:02:14.426726",
+    "read": false
+  },
+  {
+    "id": 6,
+    "message": "Can you give me an update on horizon farm credit?  It seems to me that should be asking me for REAL DATA to put in the system",
+    "timestamp": "2026-01-28T16:05:05.756794",
+    "read": false
+  },
+  {
+    "id": 7,
+    "message": "Hello",
+    "timestamp": "2026-01-28T16:06:04.226603",
+    "read": false
+  },
+  {
+    "id": 10,
+    "message": "This is important not just for that agent but all. and the overseer needs to keep the context up to date",
+    "timestamp": "2026-01-28T16:07:27.829309",
+    "read": false
+  },
+  {
+    "id": 12,
+    "message": "can you summarize WHat TinyPM does?",
+    "timestamp": "2026-01-28T16:24:47.653854",
+    "read": false
+  },
+  {
+    "id": 15,
+    "message": "test from curl",
+    "timestamp": "2026-01-28T16:26:15.041917",
+    "read": false
+  },
+  {
+    "id": 16,
+    "message": "Ok, can you watch the video one more time, look how the smoke billows.  Look how not transparent it is.  I want the text box to appear from behind the smoke at first you cant even see it and then it gradually starts getting transparent until it is totally gone, and I want the text box to match on action with the smoke so it looks more seamless",
+    "timestamp": "2026-01-28T16:39:48.404640",
+    "read": false
+  },
+  {
+    "id": 20,
+    "message": "Just one more update to the smoke, make sure it is big enough that it covers the entirety of the text box.  It should feel like MAGIC when it happens.",
+    "timestamp": "2026-01-28T16:52:07.468929",
+    "read": false
+  },
+  {
+    "id": 21,
+    "message": "I also need to be able to give answers and context to my agents.  Especially the Horizon Farm Credit.  All they need is my info",
+    "timestamp": "2026-01-28T16:53:03.855910",
+    "read": false
+  },
+  {
+    "id": 26,
+    "message": "there is going to be a frenzy of app development with the tools we have at our fingertips, OUR goal is to beat everybody else to the market.  We need to be #1.  We need to be unique and desired.  Make sure you have a bot that knows all of the hoops we need to jump through from idea to sell.  NO SURPRISES",
+    "timestamp": "2026-01-28T17:21:22.724187",
+    "read": false
+  },
+  {
+    "id": 28,
+    "message": "Great",
+    "timestamp": "2026-01-28T17:36:29.470293",
+    "read": false
+  },
+  {
+    "id": 29,
+    "message": "Thanks\ud83d\ude18\ud83d\ude18",
+    "timestamp": "2026-01-28T17:36:36.897873",
+    "read": false
+  },
+  {
+    "id": 34,
+    "message": "for the launch readiness, the tasks, when you click on them should instruct you on haw to get that shit done.",
+    "timestamp": "2026-01-28T22:10:45.828493",
+    "read": false
+  },
+  {
+    "id": 40,
+    "message": "Can we have a way to upload documents into the TIny PM.",
+    "timestamp": "2026-01-28T22:28:27.630485",
+    "read": false
+  },
+  {
+    "id": 41,
+    "message": "HELLO",
+    "timestamp": "2026-01-28T22:30:45.761911",
+    "read": false
+  },
+  {
+    "id": 50,
+    "message": "DID YOU GET THIS?  TESTING...",
+    "timestamp": "2026-01-28T22:47:57.791009",
+    "read": false
+  },
+  {
+    "id": 53,
+    "message": "LET'S GO WITH OPTION 2 AND GET THIS APP TO PRODUCTION!  GO TEAM!",
+    "timestamp": "2026-01-28T23:02:58.259727",
+    "read": false
+  },
+  {
+    "id": 71,
+    "message": "TELL THE PM TO GET THE BUILDER TO DO A BETTER JOB WITH THE SMOKE.  I WANT IT TO BE EXACTLY AS THE VIDEO I SENT.  I AM GOING TO GIVE IT TO PM.  I WANT HIM TO DELEGATE THE UPGRADE TO BUILDER AND THEN ACKNOWLEDGE HE GOT THE",
+    "timestamp": "2026-01-28T23:09:31.151094",
+    "read": false
+  },
+  {
+    "id": 73,
+    "message": "I WANT IT TO BE HYPER REALISTIC.  HAVE THE PM CONFIRM HE IS WORKING",
+    "timestamp": "2026-01-28T23:10:28.953590",
+    "read": false
+  },
+  {
+    "id": 75,
+    "message": "I AM IN THE TERMINAL AND THEY ARE NOT DOING ANYTHING",
+    "timestamp": "2026-01-28T23:11:09.886039",
+    "read": false
+  },
+  {
+    "id": 79,
+    "message": "MY UNDERSTANDING IS YOU ARE ALL PRETTY MUCH USELESS AND CANT COMMUNICATE WITH EACHOTHER, AND YOU HAVE WASTED A DAYS WORK GETTING TO THE BEGINNING AGAIN",
+    "timestamp": "2026-01-28T23:18:02.432012",
+    "read": false
+  },
+  {
+    "id": 82,
+    "message": "WELL, THE WHOLE POINT OF ALL OF THIS IS TO MAKE A \"AI AGENTIC PLATFORM THAT IS PLUG AND PLAY\". SO WE HAVE TO FIGURE IT OUT",
+    "timestamp": "2026-01-28T23:19:42.066789",
+    "read": false
+  },
+  {
+    "id": 91,
+    "message": "IT seems like both make sense, but vheck in with pm",
+    "timestamp": "2026-01-28T23:28:04.000044",
+    "read": false
+  },
+  {
+    "id": 95,
+    "message": "The scrolling bar in the chat does not work well, it is hard to scroll",
+    "timestamp": "2026-01-28T23:30:20.538546",
+    "read": false
+  },
+  {
+    "id": 97,
+    "message": "Builder should be polling, can you confirm they are looking to read the correct files?  The are polling every 60 seconds, I saw before but it has been well over two minutes. and nothing",
+    "timestamp": "2026-01-28T23:32:39.387039",
+    "read": false
+  },
+  {
+    "id": 99,
+    "message": "SO you assigned fixing the scrolling bar correct?",
+    "timestamp": "2026-01-28T23:33:32.030551",
+    "read": false
+  },
+  {
+    "id": 101,
+    "message": "CAn you reuse the logic you used to be able to communicate with me here to communicate with the builder?  OR alternatively you can connect me to each bot you spawn and I can communicate with all of them just as freely, but I will coordinate their actions through you",
+    "timestamp": "2026-01-28T23:35:40.665151",
+    "read": false
+  },
+  {
+    "id": 103,
+    "message": "DO both.  If a specific bot needs context or updates they can message me.  It is a rule to set up that conact amd context every time we spawn a new agent",
+    "timestamp": "2026-01-28T23:36:55.742681",
+    "read": false
+  },
+  {
+    "id": 105,
+    "message": "AND ALSO I CAN TELL THE PM TO DELEGATE AND HE CAN DO IT AUTONOMOUSLY",
+    "timestamp": "2026-01-28T23:37:38.852419",
+    "read": false
+  },
+  {
+    "id": 103,
+    "message": "BE  SMART AND DO IT, AGGRESSIVE? I AM NOT SO SURE",
+    "timestamp": "2026-01-28T23:38:54.470604",
+    "read": false
+  },
+  {
+    "id": 105,
+    "message": "Hello?  Anybody tthere?",
+    "timestamp": "2026-01-28T23:40:19.316594",
+    "read": false
+  }
+]

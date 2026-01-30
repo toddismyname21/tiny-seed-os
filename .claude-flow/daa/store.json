@@ -1,0 +1,79 @@
+{
+  "agents": {
+    "pm_bot": {
+      "id": "pm_bot",
+      "name": "Project Manager",
+      "type": "coordinator",
+      "status": "active",
+      "cognitivePattern": "systems",
+      "learningRate": 0.8,
+      "memory": true,
+      "capabilities": [
+        "delegate_research",
+        "delegate_build",
+        "approve_architecture",
+        "manage_ideas_box",
+        "notify_human",
+        "consult_mantra"
+      ],
+      "metrics": {
+        "tasksCompleted": 0,
+        "successRate": 1,
+        "adaptations": 0
+      },
+      "createdAt": "2026-01-28T04:42:12.540Z",
+      "lastActivity": "2026-01-28T04:42:12.540Z"
+    },
+    "research_lead": {
+      "id": "research_lead",
+      "name": "Research Lead",
+      "type": "researcher",
+      "status": "active",
+      "cognitivePattern": "divergent",
+      "learningRate": 0.9,
+      "memory": true,
+      "capabilities": [
+        "web_search",
+        "scholarly_search",
+        "transcript_analysis",
+        "knowledge_synthesis",
+        "expertise_assessment"
+      ],
+      "metrics": {
+        "tasksCompleted": 0,
+        "successRate": 1,
+        "adaptations": 0
+      },
+      "createdAt": "2026-01-28T04:42:13.282Z",
+      "lastActivity": "2026-01-28T04:42:13.282Z"
+    },
+    "chief_of_staff": {
+      "id": "chief_of_staff",
+      "name": "Chief of Staff",
+      "type": "operations",
+      "status": "active",
+      "cognitivePattern": "adaptive",
+      "learningRate": 0.95,
+      "memory": true,
+      "capabilities": [
+        "scheduling",
+        "organizing",
+        "communicating",
+        "remembering",
+        "predicting",
+        "draft_execute",
+        "learn_preferences"
+      ],
+      "metrics": {
+        "tasksCompleted": 0,
+        "successRate": 1,
+        "adaptations": 0
+      },
+      "createdAt": "2026-01-28T04:42:13.838Z",
+      "lastActivity": "2026-01-28T04:42:13.838Z"
+    }
+  },
+  "workflows": {},
+  "knowledge": {},
+  "version": "3.0.0"
+}

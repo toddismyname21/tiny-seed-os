@@ -1,0 +1,25 @@
+{
+  "tasks": {
+    "task-1769283731660-kjgt9v": {
+      "taskId": "task-1769283731660-kjgt9v",
+      "type": "feature",
+      "description": "Build Loan Readiness Dashboard - Read full instructions from claude_sessions/financial/INBOX.md. Audit existing loan features in web_app/financial-dashboard.html (lines 1814-7312 have loan features). Either enhance existing or create dedicated loan-readiness.html. Must include: loan readiness score/checklist, document status tracker, one-click loan package generation, Farm Credit contact info, debt consolidation calculator. Real data only - no demo/sample fallbacks. Update CHANGE_LOG.md and write completion to OUTBOX when done.",
+      "priority": "high",
+      "status": "completed",
+      "progress": 100,
+      "assignedTo": [
+        "financial-claude"
+      ],
+      "tags": [
+        "loan",
+        "dashboard",
+        "financial",
+        "owner-request"
+      ],
+      "createdAt": "2026-01-24T19:42:11.660Z",
+      "startedAt": null,
+      "completedAt": null
+    }
+  },
+  "version": "3.0.0"
+}

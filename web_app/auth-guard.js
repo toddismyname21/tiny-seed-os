@@ -120,6 +120,8 @@
             // Manager+
             'sales.html': 'Manager',
             'marketing-command-center.html': 'Manager',
+            'social-intelligence.html': 'Manager',
+            'seo_dashboard.html': 'Admin',
             'field-planner.html': 'Manager',
 
             // Field Lead+

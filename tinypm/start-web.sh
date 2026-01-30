@@ -30,5 +30,9 @@ echo "Press Ctrl+C to stop"
 echo "═══════════════════════════════════════════════════"
 echo ""
 
-# Start the web server
-python3 -m textual_serve app:TinyPM --port 8000 --host 0.0.0.0
+# Start the web server using the Python API
+python3 -c "
+from textual_serve.server import Server
+server = Server('python3 $(pwd)/app.py', host='0.0.0.0', port=8000, title='TinyPM - Tiny Seed Farm OS')
+server.serve()
+"

@@ -1,10 +1,218 @@
-# INBOX: Field Operations Claude
-## From: PM_Architect
+## REGISTRATION INSTRUCTIONS
 
-**Updated:** 2026-01-15 @ 9:00 PM
-**URGENT UPDATE:** 2026-01-16 - OVERNIGHT DIRECTIVE
+**Do these steps NOW, in order:**
+
+1. Use the Read tool to read: `/Users/samanthapollack/Documents/TIny_Seed_OS/CLAUDE.md`
+2. Use the Read tool to read: `/Users/samanthapollack/Documents/TIny_Seed_OS/claude_sessions/pm_architect/SYSTEM_MANIFEST.md`
+3. Use the Read tool to read your instructions: `/Users/samanthapollack/Documents/TIny_Seed_OS/claude_sessions/field_operations/INSTRUCTIONS.md`
+4. Use the Edit tool to append to your OUTBOX confirming registration
 
 ---
+
+# INBOX: Field_Operations Claude
+## From: PM_Architect
+
+**Updated:** 2026-01-24
+**PRIORITY:** CRITICAL - OWNER DIRECTIVE
+
+---
+
+## 🛠️ TOOLS & DEPLOYMENT - YOU HAVE ACCESS
+
+| Tool | What It Does | Command |
+|------|--------------|---------|
+| **clasp** | Push code to Google Apps Script | `clasp push` |
+| **brew** | Install packages if needed | `brew install <pkg>` |
+| **git** | Version control | `git add . && git commit && git push` |
+| **MCP Server** | 40+ specialized tools | Use when it's the best choice |
+
+### DEPLOYMENT REQUIREMENTS
+
+When you complete work:
+1. **Push to Apps Script (if backend changes):** `clasp push`
+2. **Commit to GitHub:** `git add . && git commit -m "message" && git push`
+3. **Verify live site:** Check https://toddismyname21.github.io/tiny-seed-os/
+
+**Changes must be LIVE, not just local.**
+
+---
+
+## 🚨 FIELD PLANNER - COMPLETE OVERHAUL TOMORROW
+
+**Owner confirmed:** Field Planner is NOT WORKING. Complete overhaul planned for tomorrow.
+
+---
+
+### 🧠 THE VISION: INTELLIGENT PLANTING ALGORITHM
+
+Owner wants a **SMART** field planner that can:
+
+1. **Select all or a group of plantings** that are planned but not assigned
+2. **Automatically assign them** in the BEST possible way
+3. **Provide reasoning** for WHY it chose to plant what, where
+
+#### Factors the Algorithm MUST Consider:
+
+| Factor | Why It Matters |
+|--------|----------------|
+| **Crops currently in ground** | Can't plant where something already is |
+| **Companion planting** | Some crops help each other, some hurt |
+| **Crop rotation over time** | Don't plant same family in same spot |
+| **Planting dates** | Frost dates, succession timing |
+| **Harvest dates** | Bed availability, labor planning |
+| **Efficiency** | Minimize walking, group similar tasks |
+| **Soil health** | Cover crops, nitrogen fixers |
+| **Pest/disease pressure** | Break pest cycles with rotation |
+| **Market demand** | Plant what sells |
+
+#### What Owner Wants to See:
+
+```
+PLANTING RECOMMENDATION:
+━━━━━━━━━━━━━━━━━━━━━━━
+Tomatoes (Cherokee Purple) → Field 2, Bed 4
+
+REASONING:
+• Bed 4 had beans last year (nitrogen boost) ✓
+• 30ft from basil planting (companion) ✓
+• No nightshades in this section for 3 years ✓
+• Harvest timing aligns with farmers market peak ✓
+• Drip irrigation already installed ✓
+
+CONFIDENCE: 94%
+```
+
+---
+
+### 🔬 DEEP RESEARCH REQUIRED TONIGHT
+
+**You are doing this research IN PARALLEL with Grants_Funding Claude.**
+
+Research these topics and document findings:
+
+#### 1. Crop Rotation Algorithms
+- Academic papers on optimal rotation
+- USDA rotation guidelines
+- Software that does this (FarmOS, Tend, Farmbrite)
+- How do they calculate rotation?
+
+#### 2. Companion Planting Logic
+- Which crops help each other?
+- Which crops hurt each other?
+- Distance requirements
+- Data sources for companion planting charts
+
+#### 3. Optimization Algorithms
+- Constraint satisfaction problems
+- Scheduling algorithms (similar to employee scheduling)
+- How to score multiple factors
+- Machine learning approaches vs rule-based
+
+#### 4. Farm Planning Software Analysis
+- What do the best tools do?
+- What's missing from existing tools?
+- How can we be BETTER?
+
+**DOCUMENT ALL FINDINGS in your OUTBOX. We build tomorrow.**
+
+---
+
+### What Owner Also Wants:
+1. **Add Task function** - Use a form like the "Add Flower Task" form as the pattern
+2. **Task Database** - Build comprehensive database of farm tasks
+3. **Working Field Planner** - Connected to real data
+
+### Your Prep Work Tonight:
+1. Audit the current Field Planner - document what's broken
+2. Find the "Add Flower Task" form - understand the pattern
+3. **DO THE DEEP RESEARCH ABOVE**
+4. Document what needs to be built tomorrow
+
+**DO NOT rebuild tonight** - research and prepare. Owner wants to be involved in the overhaul.
+
+---
+
+## 🔴 NEW MISSION: EMPLOYEE SCHEDULING CALENDAR - 2026-01-24
+**FROM:** PM_Architect (Phone Session)
+**PRIORITY:** HIGH - OPERATIONAL NEED
+**DEADLINE:** Tomorrow morning - working calendar for employee hours
+
+---
+
+### OWNER MANDATE (VERBATIM)
+
+> "I also want to get a calendar built for scheduling employee hours."
+> "NO SHORTCUTS. STATE OF THE ART. PRODUCTION READY."
+> "I WANT IT TO BE SO SMART THAT IT KNOWS WHAT I SHOULD DO BEFORE ME."
+
+---
+
+### YOUR MISSION: Employee Scheduling Calendar
+
+**Goal:** Owner can schedule employee shifts and employees can see their hours.
+
+#### Phase 1: RESEARCH FIRST (30 min)
+
+Before building ANYTHING, research:
+1. Best employee scheduling software (When I Work, Deputy, Homebase, 7shifts)
+2. Farm-specific scheduling needs (weather-dependent, seasonal)
+3. Best calendar UI patterns for shift scheduling
+4. Mobile-first scheduling (employees on phones)
+
+**DOCUMENT YOUR FINDINGS.**
+
+#### Phase 2: AUDIT EXISTING
+
+Check what already exists:
+1. Is there scheduling code in Apps Script?
+2. Is there a SCHEDULES or SHIFTS sheet?
+3. Does SmartLaborIntelligence.js have scheduling?
+4. What can we USE vs what must we BUILD?
+
+#### Phase 3: BUILD (Based on Research)
+
+Create a scheduling system that:
+1. Shows weekly/daily calendar view
+2. Owner can add/edit shifts
+3. Employees see their assigned shifts
+4. Weather-aware (knows when outdoor work is impacted)
+5. Integrates with existing employee app
+
+#### RULES
+
+- ❌ DO NOT duplicate existing functionality
+- ✅ Check SYSTEM_MANIFEST.md first
+- ✅ Research before building
+- ✅ Make it mobile-friendly
+- ✅ Connect to real employee data
+
+#### IMPORTANT: CHECK THE OS FOLDER FIRST
+
+**BEFORE YOU BUILD ANYTHING** - Check the root project folder and subfolders for existing work:
+- Labor/scheduling specs
+- SmartLaborIntelligence.js
+- Partial implementations
+- Employee management code
+
+**DO NOT DUPLICATE WORK THAT ALREADY EXISTS.**
+
+#### DELIVERABLES
+
+Write to your OUTBOX.md:
+1. Research summary
+2. Audit of existing scheduling code
+3. What was built
+4. How to use it
+5. Any blockers
+6. **FLAG anything not working or half-built** - these get repaired tomorrow
+
+#### MORNING REPORT REQUIRED
+
+Your findings will be compiled into an email report to the owner tomorrow morning. Be thorough.
+
+---
+
+## PREVIOUS TASK (Lower Priority)
 
 ## OVERNIGHT MISSION (Owner is sleeping - WORK AUTONOMOUSLY)
 

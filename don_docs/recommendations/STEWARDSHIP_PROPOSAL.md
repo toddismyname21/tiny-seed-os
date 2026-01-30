@@ -62,8 +62,6 @@ This proposal seeks to **formalize what is already working well** while providin
 | Electric (cooler) | 10% of utility cost |
 | Equipment Use | Percentage based on usage |
 | Fuel (gas/diesel) | Actual gallons used at current price |
-| Greenhouse Space | [To be defined] |
-| Water/Irrigation | [To be defined] |
 | Migrant Housing | $12,000/year if utilized |
 
 **Request:** Annual review meeting each January to confirm rates and settle any year-end adjustments.
@@ -197,7 +195,7 @@ This proposal seeks to **formalize what is already working well** while providin
 **Ongoing:**
 - Continue current email/phone communication
 - Major decisions documented in writing
-- Quarterly check-ins if helpful
+-Monthly Check-in
 
 ---
 

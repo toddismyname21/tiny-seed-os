@@ -1,3 +1,14 @@
+## REGISTRATION INSTRUCTIONS
+
+**Do these steps NOW, in order:**
+
+1. Use the Read tool to read: `/Users/samanthapollack/Documents/TIny_Seed_OS/CLAUDE.md`
+2. Use the Read tool to read: `/Users/samanthapollack/Documents/TIny_Seed_OS/claude_sessions/pm_architect/SYSTEM_MANIFEST.md`
+3. Use the Read tool to read your instructions: `/Users/samanthapollack/Documents/TIny_Seed_OS/claude_sessions/accounting_compliance/INSTRUCTIONS.md`
+4. Use the Edit tool to append to your OUTBOX confirming registration
+
+---
+
 # INBOX: Accounting_Compliance Claude
 ## From: PM_Architect
 

@@ -417,6 +417,65 @@ function getMetaWebhookLogs(limit = 50) {
   return { success: true, logs: logs, total: data.length - 1 };
 }
 
+/**
+ * Handle Meta Data Deletion Callback
+ * Meta requires apps to handle user data deletion requests
+ * https://developers.facebook.com/docs/development/create-an-app/app-dashboard/data-deletion-callback
+ */
+function handleMetaDataDeletion(data) {
+  try {
+    Logger.log('Meta data deletion request: ' + JSON.stringify(data));
+
+    // Parse the signed_request from Meta
+    const signedRequest = data.signed_request;
+
+    if (!signedRequest) {
+      // If no signed_request, this might be a direct test
+      Logger.log('No signed_request - processing as test/direct deletion');
+    }
+
+    // Generate a unique confirmation code
+    const confirmationCode = 'TSFDEL_' + Date.now() + '_' + Math.random().toString(36).substring(7);
+
+    // Log the deletion request to spreadsheet
+    const ss = SpreadsheetApp.openById('128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc');
+    let logSheet = ss.getSheetByName('META_DataDeletionLog');
+
+    // Create log sheet if it doesn't exist
+    if (!logSheet) {
+      logSheet = ss.insertSheet('META_DataDeletionLog');
+      logSheet.getRange(1, 1, 1, 5).setValues([['Timestamp', 'Confirmation Code', 'User ID', 'Status', 'Raw Data']]);
+      logSheet.setFrozenRows(1);
+    }
+
+    // Extract user_id if available (from decoded signed_request)
+    const userId = data.user_id || 'unknown';
+
+    logSheet.appendRow([
+      new Date().toISOString(),
+      confirmationCode,
+      userId,
+      'PENDING',
+      JSON.stringify(data).substring(0, 500)
+    ]);
+
+    // Notify owner via Telegram
+    notifyOwnerViaTelegram('📋 Meta Data Deletion Request\nConfirmation: ' + confirmationCode + '\nUser ID: ' + userId);
+
+    // Meta expects a specific JSON response format
+    // url: A URL where users can check deletion status
+    // confirmation_code: A unique code for this deletion request
+    return {
+      success: true,
+      url: 'https://app.tinyseedfarm.com/web_app/privacy-policy.html',
+      confirmation_code: confirmationCode
+    };
+  } catch (error) {
+    Logger.log('handleMetaDataDeletion error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // CHIEF OF STAFF - INTELLIGENT CONVERSATIONAL AI
 // State-of-the-art proactive assistant with full system context
@@ -14545,6 +14604,8 @@ function doPost(e) {
         return jsonResponse(deleteAyrsharePost(data.postId));
       case 'updateFollowerCounts':
         return jsonResponse(updateFollowerCounts(data.counts));
+      case 'metaDataDeletion':
+        return jsonResponse(handleMetaDataDeletion(data));
 
       // ============ ACCOUNTANT TASK MANAGEMENT ============
       case 'updateAccountantTask':
@@ -41147,37 +41208,17 @@ function getAllActiveEmployees() {
       const data = usersSheet.getDataRange().getValues();
       const headers = data[0];
 
-      // Trim whitespace from headers and normalize
-      const cleanHeaders = headers.map(h => String(h).trim());
-
       for (let i = 1; i < data.length; i++) {
         const row = {};
-        cleanHeaders.forEach((h, j) => row[h] = data[i][j]);
-
-        // Check for active employees with a User_ID
-        const isActive = row.Is_Active === true || row.Is_Active === 'TRUE' || row.Is_Active === 'true';
-        const hasUserId = row.User_ID && String(row.User_ID).trim() !== '';
-
-        if (isActive && hasUserId) {
-          // Get name - try multiple possible column names
-          let employeeName = 'Unknown';
-          if (row.Full_Name && String(row.Full_Name).trim()) {
-            employeeName = String(row.Full_Name).trim();
-          } else if (row['Full Name'] && String(row['Full Name']).trim()) {
-            employeeName = String(row['Full Name']).trim();
-          } else if (row.Name && String(row.Name).trim()) {
-            employeeName = String(row.Name).trim();
-          } else if (row.Username && String(row.Username).trim()) {
-            employeeName = String(row.Username).trim();
-          }
-
+        headers.forEach((h, j) => row[h] = data[i][j]);
+        if (row.Is_Active !== false && row.Is_Active !== 'FALSE' && row.User_ID) {
           employees.push({
             id: row.User_ID || row.Employee_ID,
-            name: employeeName,
+            name: row.Full_Name || row.Name || (row.First_Name ? row.First_Name + ' ' + (row.Last_Name || '') : '') || 'Unknown',
             role: row.Role || 'Employee',
             phone: row.Phone,
             email: row.Email,
-            status: row.Status || 'Active'
+            status: row.Status
           });
         }
       }

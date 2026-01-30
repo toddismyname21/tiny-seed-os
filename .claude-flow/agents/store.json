@@ -1,0 +1,22 @@
+{
+  "agents": {
+    "financial-claude": {
+      "agentId": "financial-claude",
+      "agentType": "specialist",
+      "status": "idle",
+      "health": 1,
+      "taskCount": 0,
+      "config": {
+        "workingDirectory": "/Users/samanthapollack/Documents/TIny_Seed_OS",
+        "inboxPath": "claude_sessions/financial/INBOX.md",
+        "outboxPath": "claude_sessions/financial/OUTBOX.md",
+        "model": "sonnet"
+      },
+      "createdAt": "2026-01-24T19:41:20.078Z",
+      "domain": "financial",
+      "model": "sonnet",
+      "modelRoutedBy": "explicit"
+    }
+  },
+  "version": "3.0.0"
+}

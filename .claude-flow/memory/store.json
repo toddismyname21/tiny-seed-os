@@ -1,0 +1,126 @@
+{
+  "entries": {
+    "MANTRA": {
+      "key": "MANTRA",
+      "value": {
+        "core": "NO SHORTCUTS. ONLY THE BEST POSSIBLE. SO SMART IT KNOWS WHAT I NEED BEFORE I DO.",
+        "principles": [
+          "STATE OF THE ART - Only production-ready, top-of-the-line tools",
+          "RESEARCH FIRST - Become expert before building",
+          "PREDICTIVE - Know what Todd needs before he does",
+          "DAILY EVOLUTION - Research and integrate latest developments",
+          "HUMAN APPROVAL - Notify before major builds",
+          "SELF-LEARNING - Update knowledge continuously"
+        ],
+        "enforcement": "Every agent must consult this before ANY decision. If a shortcut is detected, STOP and find the best way."
+      },
+      "metadata": {
+        "type": "core_directive",
+        "priority": "absolute",
+        "created": "2026-01-27"
+      },
+      "storedAt": "2026-01-28T04:41:24.266Z",
+      "accessCount": 0,
+      "lastAccessed": "2026-01-28T04:41:24.266Z"
+    },
+    "PROJECT_ARCHITECTURE": {
+      "key": "PROJECT_ARCHITECTURE",
+      "value": {
+        "two_pillars": {
+          "operations": {
+            "manager": "Chief of Staff",
+            "focus": "Physical Farm - Crops, Crew, Money, Schedule",
+            "capabilities": [
+              "Organizing",
+              "Scheduling",
+              "Communicating",
+              "Remembering",
+              "Predicting"
+            ]
+          },
+          "development": {
+            "manager": "PM Bot",
+            "focus": "Digital World - Code, Web App, OS",
+            "capabilities": [
+              "Research",
+              "Architecture",
+              "Build",
+              "Deploy",
+              "Quality"
+            ]
+          }
+        },
+        "dashboard_components": {
+          "conversational_interface": "Chat with PM, natural language commands",
+          "live_session_window": "Real-time view of all agent activity",
+          "ideas_box": "Accumulate ideas → Research pipeline → Knowledge base",
+          "knowledge_base": "Accumulated expertise from research",
+          "build_queue": "Approved builds pending execution",
+          "approval_notifications": "Human-in-the-loop gates",
+          "permissions_panel": "Dynamically grant/revoke agent capabilities"
+        },
+        "pipeline": "IDEAS → RESEARCH → EXPERTISE → NOTIFY → APPROVE → BUILD → DEPLOY",
+        "products": {
+          "os_dashboard": "Specific to Tiny Seed OS development",
+          "template_dashboard": "Portable, App Store ready, any project",
+          "farm_cos": "Self-learning Chief of Staff for operations"
+        }
+      },
+      "metadata": {
+        "type": "architecture",
+        "version": "1.0",
+        "created": "2026-01-27"
+      },
+      "storedAt": "2026-01-28T04:41:25.050Z",
+      "accessCount": 0,
+      "lastAccessed": "2026-01-28T04:41:25.050Z"
+    },
+    "TODD_OPERATING_MANUAL": {
+      "key": "TODD_OPERATING_MANUAL",
+      "value": {
+        "version": "1.0",
+        "last_updated": "2026-01-27",
+        "preferences": {
+          "communication": {
+            "style": "Brief, decisive, high-agency",
+            "no_questions": "Don't ask 'What should we do?' - Recommend and request approval",
+            "drafts_first": "Always draft communications before asking"
+          },
+          "scheduling": {
+            "blocked_times": [],
+            "preferred_times": [],
+            "advance_notice_days": 5
+          },
+          "decision_making": {
+            "risk_tolerance": "calculated",
+            "approval_threshold_dollars": 200,
+            "always_notify": [
+              "payroll",
+              "large_purchases",
+              "external_communications"
+            ]
+          },
+          "farm_knowledge": {
+            "properties": [],
+            "equipment": [],
+            "crops": [],
+            "employees": [],
+            "suppliers": [],
+            "seasonal_patterns": []
+          }
+        },
+        "learned_corrections": [],
+        "predictive_triggers": []
+      },
+      "metadata": {
+        "type": "operating_manual",
+        "owner": "chief_of_staff",
+        "self_updating": true
+      },
+      "storedAt": "2026-01-28T04:42:38.298Z",
+      "accessCount": 0,
+      "lastAccessed": "2026-01-28T04:42:38.298Z"
+    }
+  },
+  "version": "3.0.0"
+}

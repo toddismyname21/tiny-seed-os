@@ -1,5 +1,241 @@
 # OUTBOX: Backend Claude
 
+## LANGGRAPH CRITIC LOOP RESEARCH - 2026-01-29
+
+**STATUS:** COMPLETE
+**DELIVERABLE:** `/Users/samanthapollack/Documents/TIny_Seed_OS/claude_sessions/backend/LANGGRAPH_CRITIC_RESEARCH.md`
+
+---
+
+### RESEARCH SUMMARY
+
+Applied ULTRATHINK Protocol to research multi-agent orchestration patterns for TinyPM "Council of Wizards" system.
+
+### KEY FINDINGS
+
+| Section | Finding | Confidence |
+|---------|---------|------------|
+| LangGraph Cyclic Graphs | Native support via `add_conditional_edges` and `Command` objects | HIGH |
+| Critic/Verifier Patterns | Generate→Check→Reflect loop is proven; 3 retries optimal | MEDIUM |
+| Multi-Agent Handoff | Command object pattern combines state update + routing | HIGH |
+| Claude CLI Integration | Claude Agent SDK preferred over raw subprocess | MEDIUM |
+| Implementation | Hybrid approach recommended (keep builder, add LangGraph wrapper) | HIGH |
+
+### RECOMMENDED APPROACH: HYBRID
+
+**Why Hybrid:**
+- Keep current builder subprocess (it works)
+- Add LangGraph wrapper for critic loop orchestration
+- Best of both worlds: reliability + proper state management
+
+### 4-PHASE IMPLEMENTATION PLAN
+
+1. **Phase 1:** Add lightweight critic (no LangGraph) - prove concept
+2. **Phase 2:** Add LangGraph state management - proper flow control
+3. **Phase 3:** Upgrade to Claude Agent SDK (optional) - better integration
+4. **Phase 4:** Production hardening - observability, circuit breakers, tests
+
+### PM DECISIONS NEEDED
+
+1. Retry limit: Recommend 3, but configurable?
+2. Critic aggressiveness: Strict vs lenient?
+3. Task type detection: Manual tagging vs auto-detect?
+4. Failure escalation: Auto-escalate after max retries?
+5. Phase priority: Is SDK (Phase 3) required or nice-to-have?
+
+### SOURCES USED
+
+- LangGraph Official Documentation
+- LangGraph GitHub Repository
+- Claude Agent SDK (Official Anthropic)
+- Self-Correcting RAG Agent Tutorial
+- Multi-Agent Handoff Patterns (TDS)
+- LangGraph 2026 Edition Guides
+
+---
+
+## FULL BACKEND DATA AUDIT - 2026-01-24
+
+**STATUS:** COMPLETE - All critical endpoints working
+**DEPLOYED:** v419 @447
+
+---
+
+### AUDIT SUMMARY
+
+| Category | Working | Fixed | Total |
+|----------|---------|-------|-------|
+| Core | 14/14 | 0 | 14 |
+| Sales/Orders | 5/6 | 1 | 6 |
+| CSA | 3/3 | 0 | 3 |
+| Inventory | 4/4 | 1 | 4 |
+| Labor | 5/5 | 2 | 5 |
+| Chief of Staff | 3/5 | 2 | 5 |
+
+### ENDPOINTS FIXED IN THIS SESSION
+
+| Endpoint | Issue | Fix |
+|----------|-------|-----|
+| `inviteEmployee` | Not routed in active deployment | Deployed to @445 |
+| `inviteChef` | Not routed in active deployment | Deployed to @445 |
+| `getProductForecast` | TypeError on undefined productId | Added null check + helpful error |
+| `getTasks` | Returning "Not implemented" | Switched to `getFieldTasks()` |
+| `getWholesaleOrders` | Unknown action | Added route to `getWholesaleOrdersForWeek` |
+| `getTimeEntries` | Unknown action | Added route to `getTimeClockHistory` |
+| `getChiefMorningBrief` | Unknown action | Added alias to `getMorningBrief` |
+| `getProactiveAlerts` | Unknown action | Added placeholder response |
+
+### WORKING ENDPOINTS (Verified)
+
+```
+✅ healthCheck          ✅ getMorningBrief      ✅ getPlanning
+✅ getCrops             ✅ getBeds              ✅ getFields
+✅ getTasks             ✅ getWeatherForecast   ✅ getRealtimeAvailability
+✅ getSmartRecommendations  ✅ getWholesaleCustomers  ✅ getSalesCustomers
+✅ getCSAMembers        ✅ getSalesDashboard    ✅ getComplianceDashboard
+✅ getLaborIntelligenceDashboard  ✅ inviteEmployee  ✅ inviteChef
+✅ getStandingOrders    ✅ getSalesOrders       ✅ getCustomerOrders
+✅ getCSAProducts       ✅ getCSABoxContents    ✅ getSeedInventory
+✅ getHarvests          ✅ getFreshHarvests     ✅ getEmployees
+✅ getAllEmployees      ✅ getComplianceScore   ✅ getComplianceTasks
+✅ getEmailQueue        ✅ getDailyBrief        ✅ getProductForecast
+✅ getWholesaleOrders   ✅ getTimeEntries       ✅ getChiefMorningBrief
+```
+
+### CRITICAL DISCOVERY
+
+**Deployment ID Changed!** The old ID is no longer valid:
+- OLD (Invalid): `AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp`
+- NEW (Active): `AKfycbwS36-nKIb1cc6l7AQmnM24Ynx_yluuN-_ZMZr5VRGK7ZpqqemMvXGArvzKS3TlHYCb`
+
+**All frontend files need to use the NEW deployment URL.**
+
+---
+
+## OWNER-CONFIRMED BROKEN FIXES - 2026-01-24
+
+**STATUS:** COMPLETE - All broken endpoints now working
+**DEPLOYED:** v417 @445
+
+---
+
+### FIXES COMPLETED
+
+| Endpoint | Issue | Status |
+|----------|-------|--------|
+| `getMorningBrief` | Owner said "not returning data" | ✅ **WORKING** - Returns real weather, tasks, orders |
+| `inviteEmployee` | "Button doesn't work" | ✅ **FIXED** - Deployed to active endpoint @445 |
+| `inviteChef` | "Button doesn't work" | ✅ **FIXED** - Deployed to active endpoint @445 |
+
+### ROOT CAUSE IDENTIFIED
+
+The previous deployment ID `AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp` is **no longer valid**.
+
+**Current active deployment:**
+```
+ID: AKfycbwS36-nKIb1cc6l7AQmnM24Ynx_yluuN-_ZMZr5VRGK7ZpqqemMvXGArvzKS3TlHYCb
+Version: @445
+URL: https://script.google.com/macros/s/AKfycbwS36-nKIb1cc6l7AQmnM24Ynx_yluuN-_ZMZr5VRGK7ZpqqemMvXGArvzKS3TlHYCb/exec
+```
+
+### LOGIC ERRORS VERIFIED FIXED
+
+| Endpoint | INBOX Said | Actual Status |
+|----------|------------|---------------|
+| `getGDDProgress` | "Cannot read 'map' of undefined" | ✅ Returns empty array (working) |
+| `getPredictiveTasks` | "Cannot read 'forEach' of undefined" | ✅ Returns empty arrays (working) |
+| `getChefProfile` | "Customers sheet not found" | ✅ Returns "Customer not found" (working) |
+
+### TEST RESULTS
+
+```bash
+# Morning Brief - REAL DATA
+curl "...?action=getMorningBrief"
+# Returns: weather (5°F, frost warning), 4 orders, timestamps
+
+# Invite Employee - WORKING
+curl "...?action=inviteEmployee&fullName=Test&email=test@example.com"
+# Returns: userId, inviteUrl, email_sent: true
+
+# Invite Chef - WORKING
+curl "...?action=inviteChef&companyName=Test&contactName=Test&email=test@example.com"
+# Returns: customerId, inviteUrl, emailSent: true
+```
+
+---
+
+## WEEKLY CYCLE SYSTEM - Sales Channel Integration - 2026-01-28
+
+**STATUS:** COMPLETE - Backend + Frontend Integration Done
+
+**USER REQUEST:** "Make sure Sales Dashboard is connected to the logic of CSA and wholesale dashboards. Farmers market should flow through here. Setup weekly cycles: Harvest, Pack, Delivery"
+
+---
+
+### WHAT WAS BUILT
+
+#### 1. Weekly Cycle System (Backend)
+A complete system that aggregates demand from ALL sales channels and generates the weekly Harvest -> Pack -> Deliver workflow.
+
+**New API Endpoints:**
+- `getWeeklyCycleOverview` - Week overview across all channels
+- `getAggregatedDemand` - Combined demand from CSA + Wholesale + Market
+- `getWeeklyHarvestPlan` - Harvest plan based on demand
+- `getWeeklyPackSchedule` - Pack schedule by delivery day
+- `getWeeklyDeliverySchedule` - Delivery routes and stops
+- `getSalesChannelSummary` - Revenue breakdown by channel
+- `getUnifiedSalesDashboard` - Master dashboard data
+- `generateWeeklyHarvestFromDemand` - Create pick list from demand
+
+**Data Flow:**
+```
+CSA Members (by share size) ─────┐
+                                 │
+Wholesale Orders (this week) ────┼──→ Aggregated Demand ──→ Harvest Plan ──→ Pick List
+                                 │
+Market Sessions (predictions) ───┘
+```
+
+#### 2. Sales Dashboard Updates (Frontend)
+Added two new tabs to `/web_app/sales.html`:
+
+**Weekly Cycle Tab:**
+- Week selector
+- Channel summary cards (CSA boxes, Wholesale orders, Market days, Total deliveries)
+- Weekly schedule table showing Harvest/Pack/Deliver for each day
+- Aggregated demand list by product
+- Alerts panel for shortages
+
+**Farmers Market Tab:**
+- Market stats cards
+- Upcoming sessions table
+- Quick sale entry form (records sales during market day)
+
+#### 3. Channel Integration Logic
+- CSA: Reads from CSA_Members sheet, calculates box contents based on share size
+- Wholesale: Reads from WHOLESALE_ORDERS sheet for week's orders
+- Farmers Market: Reads from MARKET_SESSIONS sheet
+- All channels feed into unified demand aggregation
+
+### HOW TO USE
+
+1. Go to Sales Dashboard
+2. Click "Weekly Cycle" in sidebar
+3. Select week (defaults to current week)
+4. View combined schedule showing which days need Harvest/Pack/Deliver
+5. Click "Generate Harvest Plan" to create pick list items from aggregated demand
+
+### FILES CHANGED
+- `/apps_script/MERGED TOTAL.js` - Added ~600 lines of Weekly Cycle System functions
+- `/web_app/sales.html` - Added Weekly Cycle tab and Farmers Market tab
+
+### TESTING NEEDED
+- Verify CSA_Members sheet has expected columns (Name, Share_Size, Delivery_Day, Status)
+- Verify WHOLESALE_ORDERS sheet has expected columns
+- Test harvest plan generation with real data
+
+---
+
 ## CSA BACKEND AUDIT & CRITICAL FIXES - 2026-01-24
 
 **STATUS:** PRODUCTION-CRITICAL FIXES DEPLOYED

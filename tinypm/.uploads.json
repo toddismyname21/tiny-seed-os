@@ -1,0 +1,60 @@
+{
+  "files": [
+    {
+      "id": 6,
+      "filename": "invoicesetc.zip",
+      "original_name": "invoicesetc.zip",
+      "type": "document",
+      "size": 350878,
+      "task_id": null,
+      "description": "",
+      "uploaded_at": "2026-01-29T10:33:47.459524",
+      "url": "/uploads/invoicesetc.zip"
+    },
+    {
+      "id": 5,
+      "filename": "788TinySeed.doc",
+      "original_name": "788TinySeed.doc",
+      "type": "word",
+      "size": 35328,
+      "task_id": null,
+      "description": "",
+      "uploaded_at": "2026-01-29T10:31:17.284396",
+      "url": "/uploads/788TinySeed.doc"
+    },
+    {
+      "id": 4,
+      "filename": "745TinySeed_1.doc",
+      "original_name": "745TinySeed.doc",
+      "type": "word",
+      "size": 36864,
+      "task_id": null,
+      "description": "",
+      "uploaded_at": "2026-01-29T10:31:17.282055",
+      "url": "/uploads/745TinySeed_1.doc"
+    },
+    {
+      "id": 3,
+      "filename": "745TinySeed.doc",
+      "original_name": "745TinySeed.doc",
+      "type": "word",
+      "size": 36864,
+      "task_id": null,
+      "description": "",
+      "uploaded_at": "2026-01-29T10:31:17.277991",
+      "url": "/uploads/745TinySeed.doc"
+    },
+    {
+      "id": 2,
+      "filename": "Tiny_Seed_Farm__LLC_SS4__1_.pdf",
+      "original_name": "Tiny_Seed_Farm__LLC_SS4__1_.pdf",
+      "type": "pdf",
+      "size": 13577,
+      "task_id": null,
+      "description": "",
+      "uploaded_at": "2026-01-29T10:08:52.274201",
+      "url": "/uploads/Tiny_Seed_Farm__LLC_SS4__1_.pdf"
+    }
+  ],
+  "next_id": 7
+}

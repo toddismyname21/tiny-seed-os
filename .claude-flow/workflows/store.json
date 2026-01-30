@@ -1,0 +1,84 @@
+{
+  "workflows": {
+    "workflow-1769575302911-g68w4x": {
+      "workflowId": "workflow-1769575302911-g68w4x",
+      "name": "IDEAS_TO_BUILD_PIPELINE",
+      "description": "The master pipeline: IDEAS → RESEARCH → EXPERTISE → NOTIFY → APPROVE → BUILD → DEPLOY. Enforces MANTRA at every step.",
+      "steps": [
+        {
+          "stepId": "step-1",
+          "name": "idea_intake",
+          "type": "task",
+          "config": {
+            "description": "Capture idea in Ideas Box"
+          },
+          "status": "pending"
+        },
+        {
+          "stepId": "step-2",
+          "name": "research_assignment",
+          "type": "task",
+          "config": {
+            "description": "Assign research team to investigate"
+          },
+          "status": "pending"
+        },
+        {
+          "stepId": "step-3",
+          "name": "expertise_gate",
+          "type": "condition",
+          "config": {
+            "description": "Check: Are we experts yet? If not, research more."
+          },
+          "status": "pending"
+        },
+        {
+          "stepId": "step-4",
+          "name": "notify_human",
+          "type": "task",
+          "config": {
+            "description": "Notify Todd: Ready to build. Await approval."
+          },
+          "status": "pending"
+        },
+        {
+          "stepId": "step-5",
+          "name": "approval_wait",
+          "type": "wait",
+          "config": {
+            "description": "Human approval required before proceeding"
+          },
+          "status": "pending"
+        },
+        {
+          "stepId": "step-6",
+          "name": "build_execution",
+          "type": "parallel",
+          "config": {
+            "description": "Execute build with appropriate agents"
+          },
+          "status": "pending"
+        },
+        {
+          "stepId": "step-7",
+          "name": "deploy_and_learn",
+          "type": "task",
+          "config": {
+            "description": "Deploy, then update knowledge base with learnings"
+          },
+          "status": "pending"
+        }
+      ],
+      "status": "ready",
+      "currentStep": 0,
+      "variables": {
+        "mantra_enforced": true,
+        "requires_approval": true,
+        "research_depth": "exhaustive"
+      },
+      "createdAt": "2026-01-28T04:41:42.912Z"
+    }
+  },
+  "templates": {},
+  "version": "3.0.0"
+}

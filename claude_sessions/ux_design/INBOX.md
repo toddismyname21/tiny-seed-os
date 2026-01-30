@@ -1,8 +1,131 @@
+## REGISTRATION INSTRUCTIONS
+
+**Do these steps NOW, in order:**
+
+1. Use the Read tool to read: `/Users/samanthapollack/Documents/TIny_Seed_OS/CLAUDE.md`
+2. Use the Read tool to read: `/Users/samanthapollack/Documents/TIny_Seed_OS/claude_sessions/pm_architect/SYSTEM_MANIFEST.md`
+3. Use the Read tool to read your instructions: `/Users/samanthapollack/Documents/TIny_Seed_OS/claude_sessions/ux_design/INSTRUCTIONS.md`
+4. Use the Edit tool to append to your OUTBOX confirming registration
+
+---
+
 # INBOX: UX_Design Claude
 ## From: PM_Architect
 
-**Updated:** 2026-01-22
-**PRIORITY:** HIGH - DASHBOARD INVITE BUTTONS
+**Updated:** 2026-01-24
+**PRIORITY:** CRITICAL - OWNER DIRECTIVE
+
+---
+
+## 🛠️ TOOLS & DEPLOYMENT - YOU HAVE ACCESS
+
+| Tool | What It Does | Command |
+|------|--------------|---------|
+| **clasp** | Push code to Google Apps Script | `clasp push` |
+| **brew** | Install packages if needed | `brew install <pkg>` |
+| **git** | Version control | `git add . && git commit && git push` |
+| **MCP Server** | 40+ specialized tools | Use when it's the best choice |
+
+### DEPLOYMENT REQUIREMENTS
+
+When you complete work:
+1. **Commit to GitHub:** `git add . && git commit -m "message" && git push`
+2. **Verify live site:** Check https://toddismyname21.github.io/tiny-seed-os/
+
+**Changes must be LIVE, not just local.**
+
+---
+
+## 🔴 PRIORITY OVERRIDE: DESKTOP UI DEEP DIVE - 2026-01-24
+**FROM:** PM_Architect (Phone Session)
+**PRIORITY:** CRITICAL - CHEFS AND CSA CUSTOMERS COMING
+**DEADLINE:** Tomorrow morning - seamless, consistent, FAST
+
+---
+
+### OWNER MANDATE (VERBATIM)
+
+> "I want to start inviting chefs to our wholesale platform and CSA customers to our CSA member dashboard."
+> "Both of those systems need a full audit. They need to be FLAWLESS for our reputation."
+> "They need to be INTUITIVE and USER FRIENDLY."
+> "NO SHORTCUTS. STATE OF THE ART TOP OF THE LINE PRODUCTION READY."
+
+---
+
+### YOUR MISSION: Desktop Web App UI Consistency Audit
+
+**Goal:** Every page looks professional, consistent, and loads FAST. Our reputation depends on this.
+
+#### Phase 1: RESEARCH FIRST (30 min)
+
+Before touching ANY code, research:
+1. Top farm management software UI patterns (FarmLogs, Tend, Farmbrite)
+2. Best practices for dashboard loading states
+3. Modern B2B SaaS UI patterns (clean, fast, professional)
+4. Accessibility standards (WCAG 2.1 AA)
+
+**Document your findings before proceeding.**
+
+#### Phase 2: AUDIT (Every Desktop Page)
+
+For EACH HTML file in `/web_app/` and root:
+
+| Check | Pass/Fail |
+|-------|-----------|
+| Uses api-config.js (not hardcoded URLs) | |
+| Consistent header/nav | |
+| Consistent color scheme | |
+| Consistent button styles | |
+| Loading states (not frozen UI) | |
+| Error states (helpful messages) | |
+| Mobile responsive | |
+| No console errors | |
+| Fast load (<2 seconds) | |
+
+#### Phase 3: PRIORITY FIXES
+
+Focus on these pages FIRST (customer-facing):
+1. **Wholesale Chef Portal** - Chefs will see this
+2. **CSA Member Dashboard** - CSA customers will see this
+3. **Main Admin Dashboard** - Owner uses daily
+4. **Chief of Staff** - Owner's command center
+
+#### RULES
+
+- ❌ DO NOT rebuild pages that work
+- ❌ DO NOT change functionality
+- ❌ DO NOT add new features
+- ✅ Fix inconsistencies
+- ✅ Add loading states where missing
+- ✅ Fix broken layouts
+- ✅ Ensure all pages use api-config.js
+
+#### IMPORTANT: CHECK THE OS FOLDER FIRST
+
+**BEFORE YOU BUILD ANYTHING** - Check the root project folder and subfolders for existing work:
+- Design specs
+- UI mockups
+- Partial implementations
+- Style guides
+
+**DO NOT DUPLICATE WORK THAT ALREADY EXISTS.**
+
+#### DELIVERABLES
+
+Write to your OUTBOX.md:
+1. Complete page audit table
+2. List of UI fixes made
+3. Screenshots if helpful
+4. Any pages that need Backend fixes (report to PM)
+5. **FLAG anything not working or half-built** - these get repaired tomorrow
+
+#### MORNING REPORT REQUIRED
+
+Your findings will be compiled into an email report to the owner tomorrow morning. Be thorough.
+
+---
+
+## PREVIOUS: HIGH - DASHBOARD INVITE BUTTONS
 
 ---
 

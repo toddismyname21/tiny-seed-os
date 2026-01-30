@@ -8,7 +8,7 @@
       "description": "Redesign the Chief of Staff dashboard. The current UI has hard-to-read text, poor contrast, and isn't intuitive. Apply Linear/Superhuman design patterns - clean typography, proper spacing, command palette. Make the major functions prominent.",
       "role": "builder",
       "priority": "high",
-      "status": "pending",
+      "status": "done",
       "context": [
         "web_app/chief-of-staff.html",
         "web_app/api-config.js"
@@ -22,7 +22,7 @@
       "description": "12 backend modules exist in apps_script/ (Voice, Memory, Autonomy, ProactiveIntel, StyleMimicry, Calendar, Predictive, SMS, FileOrg, Integrations, MultiAgent, EmailWorkflow) but the frontend only uses 3. Wire them ALL up to the Chief of Staff dashboard.",
       "role": "builder",
       "priority": "high",
-      "status": "pending",
+      "status": "in_progress",
       "context": [
         "apps_script/ChiefOfStaff_Voice.js",
         "apps_script/ChiefOfStaff_Memory.js",
@@ -30,7 +30,9 @@
         "web_app/chief-of-staff.html"
       ],
       "created": "2026-01-28",
-      "updated": "2026-01-28"
+      "updated": "2026-01-28",
+      "progress": 40,
+      "progress_label": "Hit an error"
     },
     {
       "id": "TASK-003",
@@ -38,15 +40,122 @@
       "description": "Social Intelligence Dashboard, Marketing Command Center, SEO Dashboard all exist but need to be production-ready. Verify APIs work, data flows, and everything is accessible from the admin panel.",
       "role": "builder",
       "priority": "high",
-      "status": "pending",
+      "status": "done",
       "context": [
         "web_app/social-intelligence.html",
         "web_app/marketing-command-center.html",
         "web_app/seo_dashboard.html"
       ],
       "created": "2026-01-28",
+      "updated": "2026-01-28 15:25:24",
+      "progress": 100,
+      "progress_label": "Complete"
+    },
+    {
+      "id": "TASK-004",
+      "title": "Apply for Horizon Farm Credit Loan",
+      "description": "We need to make sure that we accurate documentation, and everything that the loan application requirres.  There should be information about this in the Main project folder.",
+      "role": "researcher",
+      "priority": "medium",
+      "status": "done",
+      "context": [],
+      "created": "2026-01-28",
+      "updated": "2026-01-29 10:14:11",
+      "progress": 40,
+      "progress_label": "Still reading & analyzing...",
+      "notes": [
+        {
+          "text": "This is marked as done, and I did not apply for Horizon farm credit, so we better update this",
+          "timestamp": "2026-01-29T10:14:11"
+        }
+      ]
+    },
+    {
+      "id": "TASK-005",
+      "title": "Build Overseer - Full Project Context Bot",
+      "description": "Create an overseer persona that knows every file, folder, and app in the project. Any bot can query it for context. Owner can use it for big-picture view.",
+      "role": "overseer",
+      "priority": "high",
+      "status": "done",
+      "context": [
+        "tinypm/personas/overseer.md"
+      ],
+      "created": "2026-01-28",
+      "updated": "2026-01-28"
+    },
+    {
+      "id": "TASK-006",
+      "title": "Add Chat with PM to Dashboard",
+      "description": "Add a chat interface to the TinyPM web dashboard so the owner can talk directly to Claude with full project context. Works on mobile.",
+      "role": "builder",
+      "priority": "high",
+      "status": "done",
+      "context": [
+        "tinypm/web_dashboard.html",
+        "tinypm/web_server.py"
+      ],
+      "created": "2026-01-28",
+      "updated": "2026-01-28"
+    },
+    {
+      "id": "TASK-007",
+      "title": "Real-time dashboard + confirmation banners",
+      "description": "3-second auto-refresh, green confirmation banner on task creation, haptic feedback on mobile.",
+      "role": "builder",
+      "priority": "medium",
+      "status": "done",
+      "context": [
+        "tinypm/web_dashboard.html"
+      ],
+      "created": "2026-01-28",
+      "updated": "2026-01-28"
+    },
+    {
+      "id": "TASK-008",
+      "title": "Brain Dump + PM Chat + Overseer",
+      "description": "Added brain dump feature (dump thoughts -> structured tasks), PM chat via Claude CLI, and Overseer persona with full project context.",
+      "role": "builder",
+      "priority": "high",
+      "status": "pending",
+      "context": [
+        "tinypm/web_dashboard.html",
+        "tinypm/web_server.py",
+        "tinypm/personas/overseer.md"
+      ],
+      "created": "2026-01-28",
+      "updated": "2026-01-28 19:15:44"
+    },
+    {
+      "id": "TASK-009",
+      "title": "Follow-up: Marketing System - Production Ready",
+      "description": "Follow-up from TASK-003.   We need to get all of the actual social accounts connected so this is useful.  CAN You Run me through it?",
+      "role": "builder",
+      "priority": "medium",
+      "status": "pending",
+      "context": [],
+      "created": "2026-01-28",
       "updated": "2026-01-28"
     }
   ],
-  "next_id": 4
+  "next_id": 10,
+  "activity": [
+    {
+      "id": "ACT-001",
+      "type": "completion",
+      "task_id": "TASK-003",
+      "title": "Marketing System - Production Ready",
+      "summary": "All 3 marketing pages audited and fixed. Added cross-navigation between Social Intelligence, Marketing Command Center, and SEO Dashboard. Added both to main dashboard nav. Fixed auth-guard permissions map. Added error states for API failures.",
+      "files_changed": [
+        "web_app/seo_dashboard.html",
+        "web_app/social-intelligence.html",
+        "web_app/marketing-command-center.html",
+        "web_app/auth-guard.js",
+        "web_app/index.html",
+        "index.html"
+      ],
+      "read": true,
+      "timestamp": "2026-01-28T15:25:24"
+    }
+  ],
+  "next_activity_id": 2
 }

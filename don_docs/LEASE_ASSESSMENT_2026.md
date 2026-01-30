@@ -84,9 +84,8 @@ Based on Don's spreadsheet tracking:
 - Clarity for both parties
 
 **Industry Comparison:**
-- PA vegetable land typically $200-500/acre/year
-- Current arrangement appears significantly below market (favorable to tenant)
-- Cost-share model is unusual but works well for startup operations
+- PA vegetable land typically $200-300/acre/year
+- From my research the Cost-share model is unusual but works well for startup operations
 
 ---
 

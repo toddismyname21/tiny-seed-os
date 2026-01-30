@@ -1,0 +1,4028 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>TinyPM - Project Manager</title>
+<style>
+  :root {
+    --bg-primary: #0f1117;
+    --bg-secondary: #1a1d27;
+    --bg-card: #1e2130;
+    --bg-hover: #252839;
+    --border: #2a2d3e;
+    --text-primary: #f0f0f5;
+    --text-secondary: #a0a4b8;
+    --text-muted: #6b6f82;
+    --accent: #6366f1;
+    --accent-hover: #818cf8;
+    --green: #22c55e;
+    --yellow: #eab308;
+    --red: #ef4444;
+    --orange: #f97316;
+    --blue: #3b82f6;
+    --purple: #a855f7;
+    --radius: 10px;
+    --shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.5;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ═══ HEADER ═══ */
+  .header {
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .logo span { color: var(--accent); }
+
+  .stats-bar {
+    display: flex;
+    gap: 16px;
+    font-size: 13px;
+  }
+
+  .stat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
+  }
+
+  .stat-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  .stat-dot.pending { background: var(--yellow); }
+  .stat-dot.progress { background: var(--blue); }
+  .stat-dot.done { background: var(--green); }
+
+  .header-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  /* ═══ BUTTONS ═══ */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+  }
+  .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+  .btn-danger {
+    background: transparent;
+    color: var(--red);
+    border: 1px solid rgba(239,68,68,0.3);
+  }
+  .btn-danger:hover { background: rgba(239,68,68,0.1); }
+
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+  /* ═══ MAIN LAYOUT ═══ */
+  .main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  /* ═══ FILTERS ═══ */
+  .filters {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  .filter-btn {
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .filter-btn:hover { border-color: var(--accent); color: var(--text-primary); }
+
+  .filter-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+
+  /* ═══ TASK LIST ═══ */
+  .task-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .task-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .task-card:hover {
+    border-color: var(--accent);
+    background: var(--bg-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow);
+  }
+
+  .task-card.selected {
+    border-color: var(--accent);
+    background: rgba(99,102,241,0.08);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+
+  .task-status-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-top: 6px;
+    flex-shrink: 0;
+  }
+
+  .task-status-indicator.pending { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+  .task-status-indicator.in_progress { background: var(--blue); box-shadow: 0 0 6px var(--blue); }
+  .task-status-indicator.done { background: var(--green); box-shadow: 0 0 6px var(--green); }
+
+  .task-content { flex: 1; min-width: 0; }
+
+  .task-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+
+  .task-id {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+
+  .task-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .task-meta {
+    display: flex;
+    gap: 10px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+  }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .tag-role { background: rgba(99,102,241,0.15); color: var(--accent-hover); }
+  .tag-priority-high { background: rgba(239,68,68,0.15); color: var(--red); }
+  .tag-priority-medium { background: rgba(249,115,22,0.15); color: var(--orange); }
+  .tag-priority-low { background: rgba(34,197,94,0.15); color: var(--green); }
+  .tag-status-pending { background: rgba(234,179,8,0.15); color: var(--yellow); }
+  .tag-status-in_progress { background: rgba(59,130,246,0.15); color: var(--blue); }
+  .tag-status-done { background: rgba(34,197,94,0.15); color: var(--green); }
+
+  .task-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  .task-card:hover .task-actions { opacity: 1; }
+
+  /* ═══ DETAIL PANEL ═══ */
+  .detail-panel {
+    display: none;
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 480px;
+    max-width: 100vw;
+    height: 100vh;
+    background: var(--bg-secondary);
+    border-left: 1px solid var(--border);
+    z-index: 200;
+    overflow-y: auto;
+    box-shadow: -4px 0 20px rgba(0,0,0,0.4);
+  }
+
+  .detail-panel.open { display: block; }
+
+  .detail-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: var(--bg-secondary);
+    z-index: 1;
+  }
+
+  .detail-body { padding: 20px; }
+
+  .detail-field {
+    margin-bottom: 20px;
+  }
+
+  .detail-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  .detail-value {
+    font-size: 14px;
+    color: var(--text-primary);
+    line-height: 1.6;
+  }
+
+  .detail-description {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    font-size: 14px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+  }
+
+  .detail-actions {
+    display: flex;
+    gap: 8px;
+    padding: 20px;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  /* ═══ MODAL ═══ */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    z-index: 300;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    width: 480px;
+    max-width: 90vw;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+
+  .modal-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .modal-title { font-size: 18px; font-weight: 700; }
+
+  .modal-body { padding: 20px; }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  .form-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+  }
+
+  .form-input, .form-textarea, .form-select {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-family: inherit;
+    transition: border-color 0.15s;
+  }
+
+  .form-input:focus, .form-textarea:focus, .form-select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+  }
+
+  .form-textarea { min-height: 120px; resize: vertical; line-height: 1.6; }
+
+  .form-select { cursor: pointer; }
+
+  .modal-footer {
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  /* ═══ TOAST ═══ */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    padding: 12px 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    z-index: 500;
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.3s;
+  }
+
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { border-left: 3px solid var(--green); }
+  .toast.error { border-left: 3px solid var(--red); }
+
+  /* ═══ CONFIRMATION BANNER ═══ */
+  .confirm-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #065f46, #047857);
+    color: white;
+    font-size: 15px;
+    font-weight: 600;
+    text-align: center;
+    z-index: 600;
+    transform: translateY(-100%);
+    transition: transform 0.3s ease;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .confirm-banner.show { transform: translateY(0); }
+
+  .confirm-banner .checkmark {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+  }
+
+  .confirm-banner .task-ref {
+    background: rgba(255,255,255,0.15);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: 'SF Mono', monospace;
+    font-size: 13px;
+  }
+
+  /* ═══ PROGRESS BAR ═══ */
+  .task-progress {
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .progress-bar-track {
+    flex: 1;
+    height: 6px;
+    background: var(--bg-primary);
+    border-radius: 3px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.6s ease;
+    background: linear-gradient(90deg, var(--accent), #818cf8);
+    position: relative;
+  }
+
+  .progress-bar-fill.complete {
+    background: linear-gradient(90deg, var(--green), #4ade80);
+  }
+
+  .progress-bar-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+    animation: progress-shimmer 2s infinite;
+  }
+
+  .progress-bar-fill.complete::after { animation: none; }
+
+  @keyframes progress-shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  .progress-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .progress-pct {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent);
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    min-width: 32px;
+    text-align: right;
+  }
+
+  .progress-pct.complete { color: var(--green); }
+
+  .progress-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .progress-spinner {
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* ═══ ACTIVITY FEED ═══ */
+  .activity-feed { display: none; flex-direction: column; gap: 10px; }
+  .activity-feed.visible { display: flex; }
+
+  .activity-item {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    transition: all 0.15s;
+    position: relative;
+  }
+
+  .activity-item.unread {
+    border-left: 3px solid var(--accent);
+    background: rgba(99,102,241,0.05);
+  }
+
+  .activity-item .act-header {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+  }
+
+  .activity-item .act-type {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; padding: 2px 7px; border-radius: 4px;
+  }
+  .act-type.completion { background: rgba(34,197,94,0.15); color: var(--green); }
+  .act-type.question { background: rgba(234,179,8,0.15); color: var(--yellow); }
+  .act-type.update { background: rgba(59,130,246,0.15); color: var(--blue); }
+  .act-type.context { background: rgba(168,85,247,0.15); color: var(--purple); }
+
+  .activity-item .act-task-ref {
+    font-size: 11px; color: var(--text-muted);
+    font-family: 'SF Mono', monospace;
+  }
+  .activity-item .act-time {
+    font-size: 11px; color: var(--text-muted); margin-left: auto;
+  }
+  .activity-item .act-title {
+    font-size: 14px; font-weight: 600; margin-bottom: 4px;
+  }
+  .activity-item .act-summary {
+    font-size: 13px; color: var(--text-secondary); line-height: 1.6;
+  }
+  .activity-item .act-files {
+    display: flex; gap: 4px; flex-wrap: wrap; margin-top: 8px;
+  }
+  .activity-item .act-file {
+    font-size: 11px; font-family: monospace; padding: 1px 6px;
+    border-radius: 3px; background: var(--bg-primary);
+    border: 1px solid var(--border); color: var(--text-muted);
+  }
+  .activity-item .act-actions {
+    display: flex; gap: 6px; margin-top: 10px;
+  }
+
+  /* ═══ CONTEXT INPUT (in detail panel) ═══ */
+  .context-input-area {
+    display: flex; gap: 6px; margin-top: 10px;
+  }
+  .context-note-input {
+    flex: 1; padding: 8px 12px;
+    background: var(--bg-primary); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text-primary);
+    font-size: 13px; font-family: inherit;
+  }
+  .context-note-input:focus { outline: none; border-color: var(--accent); }
+  .context-notes-list { margin-top: 8px; }
+  .context-note-item {
+    font-size: 12px; color: var(--text-secondary);
+    padding: 6px 0; border-bottom: 1px solid var(--border);
+    line-height: 1.5;
+  }
+  .context-note-time { font-size: 10px; color: var(--text-muted); }
+
+  /* ═══ TABS ═══ */
+  .view-tabs {
+    display: flex; gap: 0; margin-bottom: 16px;
+    border-bottom: 2px solid var(--border);
+  }
+  .view-tab {
+    padding: 10px 20px; font-size: 14px; font-weight: 600;
+    color: var(--text-muted); cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px; transition: all 0.15s; background: none; border-top: none; border-left: none; border-right: none;
+  }
+  .view-tab:hover { color: var(--text-primary); }
+  .view-tab.active {
+    color: var(--accent); border-bottom-color: var(--accent);
+  }
+  .view-tab .tab-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 18px; height: 18px; border-radius: 9px;
+    background: var(--red); color: white; font-size: 11px; font-weight: 700;
+    margin-left: 6px; padding: 0 5px;
+  }
+
+  /* ═══ EMPTY STATE ═══ */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+  }
+
+  .empty-state h3 { font-size: 18px; margin-bottom: 8px; color: var(--text-secondary); }
+  .empty-state p { font-size: 14px; margin-bottom: 20px; }
+
+  /* ═══ PERSONA BADGE ═══ */
+  .persona-list {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+
+  .persona-badge {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+  }
+
+  /* ═══ MANTRA BAR ═══ */
+  .mantra-bar {
+    text-align: center;
+    padding: 10px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border);
+    background: var(--bg-secondary);
+  }
+
+  /* ═══ CHAT PANEL ═══ */
+  .chat-panel {
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    width: 400px;
+    max-width: calc(100vw - 40px);
+    height: 500px;
+    max-height: 70vh;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+    z-index: 400;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .chat-panel.open { display: flex; }
+
+  .chat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, var(--accent), #7c3aed);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .chat-header-left { display: flex; align-items: center; gap: 10px; }
+
+  .chat-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 800;
+    color: white;
+    overflow: hidden;
+  }
+
+  .wizard-icon {
+    display: inline-block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .chat-name { font-size: 14px; font-weight: 700; color: white; }
+  .chat-status { font-size: 11px; color: rgba(255,255,255,0.7); }
+
+  /* Chat mode toggle (Overseer vs PM Direct) */
+  .chat-mode-toggle {
+    display: flex;
+    gap: 2px;
+    background: rgba(0,0,0,0.25);
+    border-radius: 8px;
+    padding: 2px;
+    margin-top: 6px;
+  }
+  .chat-mode-btn {
+    padding: 3px 10px;
+    border: none;
+    background: transparent;
+    color: rgba(255,255,255,0.6);
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .chat-mode-btn.active {
+    background: rgba(255,255,255,0.2);
+    color: white;
+  }
+  .chat-mode-btn:hover:not(.active) {
+    color: rgba(255,255,255,0.85);
+  }
+
+  /* PM Direct badge */
+  .pm-direct-badge {
+    display: inline-block;
+    background: #22c55e;
+    color: white;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 4px;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+  .pm-direct-notice {
+    background: rgba(34,197,94,0.1);
+    border: 1px solid rgba(34,197,94,0.3);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-bottom: 8px;
+  }
+  .pm-direct-notice strong { color: var(--green); }
+
+  /* Multi-Agent Selector */
+  .agent-selector {
+    display: flex;
+    gap: 6px;
+    padding: 8px 16px;
+    background: rgba(0,0,0,0.2);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .agent-selector::-webkit-scrollbar { display: none; }
+
+  .agent-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px;
+    color: rgba(255,255,255,0.6);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .agent-btn:hover {
+    background: rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.9);
+  }
+  .agent-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+  .agent-btn .agent-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #6b7280;
+  }
+  .agent-btn.active .agent-dot,
+  .agent-btn .agent-dot.online {
+    background: #22c55e;
+    box-shadow: 0 0 6px #22c55e;
+  }
+  .agent-btn .agent-dot.busy {
+    background: #eab308;
+    box-shadow: 0 0 6px #eab308;
+  }
+  .agent-btn .unread-badge {
+    background: #ef4444;
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 10px;
+    margin-left: 4px;
+  }
+  .agent-btn.broadcast-btn {
+    background: linear-gradient(135deg, #f97316, #ea580c);
+    border-color: #f97316;
+    color: white;
+  }
+  .agent-btn.broadcast-btn:hover {
+    background: linear-gradient(135deg, #fb923c, #f97316);
+    transform: scale(1.05);
+  }
+  .agent-btn.spawned {
+    border-color: #a855f7;
+    background: rgba(168, 85, 247, 0.15);
+  }
+  .agent-btn.spawned:hover {
+    background: rgba(168, 85, 247, 0.25);
+  }
+  .agent-btn.spawned.active {
+    background: #a855f7;
+    border-color: #a855f7;
+  }
+
+  .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 16px;
+    padding-right: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    scroll-behavior: smooth;
+  }
+
+  /* Custom scrollbar for chat - MUCH easier to grab */
+  .chat-messages::-webkit-scrollbar {
+    width: 14px;
+  }
+  .chat-messages::-webkit-scrollbar-track {
+    background: rgba(139, 92, 246, 0.15);
+    border-radius: 7px;
+    margin: 4px 0;
+    border: 1px solid rgba(139, 92, 246, 0.3);
+  }
+  .chat-messages::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #8b5cf6, #7c3aed, #6d28d9);
+    border-radius: 7px;
+    border: 2px solid var(--bg-secondary);
+    min-height: 60px;
+    box-shadow: inset 0 0 6px rgba(255,255,255,0.2);
+  }
+  .chat-messages::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #a78bfa, #8b5cf6, #7c3aed);
+    cursor: grab;
+    box-shadow: inset 0 0 8px rgba(255,255,255,0.3), 0 0 8px rgba(139, 92, 246, 0.5);
+  }
+  .chat-messages::-webkit-scrollbar-thumb:active {
+    background: #a78bfa;
+    cursor: grabbing;
+  }
+  /* Firefox scrollbar */
+  .chat-messages {
+    scrollbar-width: auto;
+    scrollbar-color: #8b5cf6 rgba(139, 92, 246, 0.15);
+  }
+
+  .chat-msg { max-width: 85%; }
+  .chat-msg.user { align-self: flex-end; }
+  .chat-msg.assistant { align-self: flex-start; }
+
+  .chat-msg-content {
+    padding: 10px 14px;
+    border-radius: 14px;
+    font-size: 14px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+
+  .chat-msg.user .chat-msg-content {
+    background: var(--accent);
+    color: white;
+    border-bottom-right-radius: 4px;
+  }
+
+  .chat-msg.assistant .chat-msg-content {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    border-bottom-left-radius: 4px;
+  }
+
+  .chat-msg.thinking .chat-msg-content {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  .chat-msg.system { align-self: center; max-width: 90%; }
+  .chat-msg.system .chat-msg-content {
+    background: rgba(34,197,94,0.1);
+    border: 1px solid rgba(34,197,94,0.25);
+    color: var(--green);
+    font-size: 12px;
+    text-align: center;
+    border-radius: 8px;
+  }
+
+  .chat-msg.pm { align-self: flex-start; }
+  .chat-msg.pm .chat-msg-content {
+    background: linear-gradient(135deg, rgba(34,197,94,0.15), rgba(16,185,129,0.1));
+    border: 1px solid rgba(34,197,94,0.3);
+    color: var(--text-primary);
+    border-bottom-left-radius: 4px;
+  }
+  .chat-msg.pm .chat-msg-content::before {
+    content: 'PM > ';
+    color: var(--green);
+    font-weight: 700;
+    font-size: 11px;
+  }
+
+  .chat-input-area {
+    display: flex;
+    gap: 8px;
+    padding: 12px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-primary);
+  }
+
+  .chat-input {
+    flex: 1;
+    padding: 10px 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-family: inherit;
+    resize: none;
+    max-height: 100px;
+    line-height: 1.4;
+  }
+
+  .chat-input:focus { outline: none; border-color: var(--accent); }
+
+  .chat-fab {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1e1b4b, #4c1d95, #7c3aed);
+    color: white;
+    border: 2px solid rgba(167,139,250,0.4);
+    cursor: pointer;
+    z-index: 399;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 20px rgba(124,58,237,0.5), 0 0 40px rgba(124,58,237,0.15);
+    transition: all 0.3s;
+    overflow: visible;
+    animation: wizard-float 3s ease-in-out infinite;
+  }
+
+  @keyframes wizard-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+  }
+
+  .chat-fab:hover {
+    transform: scale(1.12);
+    box-shadow: 0 6px 30px rgba(124,58,237,0.6), 0 0 60px rgba(124,58,237,0.25);
+    border-color: rgba(167,139,250,0.7);
+  }
+
+  .chat-fab svg { width: 52px; height: 52px; }
+
+  .chat-fab-icon { font-size: 14px; font-weight: 800; }
+
+  .chat-fab-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--red);
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ═══ MAGIC PARTICLES ═══ */
+  .magic-particle {
+    position: fixed;
+    pointer-events: none;
+    z-index: 450;
+    border-radius: 50%;
+    animation: magic-burst 0.8s ease-out forwards;
+  }
+
+  .magic-star {
+    position: fixed;
+    pointer-events: none;
+    z-index: 450;
+    animation: star-shoot 1.1s ease-out forwards;
+  }
+
+  @keyframes magic-burst {
+    0% { transform: scale(0) translate(0,0); opacity: 1; }
+    60% { opacity: 1; }
+    100% { transform: scale(1) translate(var(--tx), var(--ty)); opacity: 0; }
+  }
+
+  @keyframes star-shoot {
+    0% { transform: scale(0) translate(0,0) rotate(0deg); opacity: 1; }
+    50% { opacity: 1; }
+    100% { transform: scale(1.2) translate(var(--tx), var(--ty)) rotate(180deg); opacity: 0; }
+  }
+
+  /* ═══ HYPERREALISTIC SMOKE ═══ */
+  /* Uses SVG feTurbulence for fractal noise + displacement for organic edges */
+
+  .smoke-stage {
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  .smoke-blob {
+    position: absolute;
+    pointer-events: none;
+    opacity: 0;
+    transform: scale(0);
+    border-radius: 45% 55% 50% 48% / 52% 46% 54% 50%;
+  }
+
+  /* SVG turbulence filter for realistic fractal edges */
+  .smoke-blob.turb  { filter: url(#smoke-turb) blur(8px); }
+  .smoke-blob.turb2 { filter: url(#smoke-turb2) blur(10px); }
+  .smoke-blob.turb3 { filter: url(#smoke-turb3) blur(6px); }
+
+  /* Dense core — nearly opaque charcoal, very little transparency */
+  .smoke-blob.dark {
+    background: radial-gradient(ellipse at 40% 45%,
+      rgba(40,38,44,1.0) 0%, rgba(48,46,52,0.98) 20%,
+      rgba(58,55,62,0.92) 42%, rgba(50,48,55,0.75) 65%, rgba(45,43,50,0.4) 82%, transparent 94%);
+    animation: smoke-rise var(--dur) ease-out forwards;
+    animation-delay: var(--delay);
+  }
+
+  /* Mid-tone — thick warm gray */
+  .smoke-blob.mid {
+    background: radial-gradient(ellipse at 55% 50%,
+      rgba(95,90,100,1.0) 0%, rgba(88,84,95,0.95) 18%,
+      rgba(78,74,88,0.8) 40%, rgba(68,65,78,0.5) 62%, rgba(60,58,70,0.2) 80%, transparent 92%);
+    animation: smoke-rise var(--dur) ease-out forwards;
+    animation-delay: var(--delay);
+  }
+
+  /* Light — dense silver, not thin */
+  .smoke-blob.light {
+    background: radial-gradient(ellipse at 45% 55%,
+      rgba(155,150,165,0.97) 0%, rgba(142,138,152,0.85) 20%,
+      rgba(130,126,142,0.6) 45%, rgba(120,116,132,0.3) 68%, transparent 86%);
+    animation: smoke-rise var(--dur) ease-out forwards;
+    animation-delay: var(--delay);
+  }
+
+  /* Ash — thicker than before */
+  .smoke-blob.ash {
+    background: radial-gradient(ellipse at 50% 40%,
+      rgba(180,175,188,0.9) 0%, rgba(168,164,178,0.7) 22%,
+      rgba(155,152,165,0.4) 48%, rgba(145,142,155,0.15) 70%, transparent 85%);
+    animation: smoke-rise var(--dur) ease-out forwards;
+    animation-delay: var(--delay);
+  }
+
+  /* Wisp — still visible, not ghost-thin */
+  .smoke-blob.wisp {
+    background: radial-gradient(ellipse at 60% 50%,
+      rgba(200,196,210,0.75) 0%, rgba(188,184,198,0.45) 28%,
+      rgba(175,172,185,0.15) 55%, transparent 72%);
+    animation: smoke-rise var(--dur) ease-out forwards;
+    animation-delay: var(--delay);
+  }
+
+  /* Hot core — warm amber glow, thicker */
+  .smoke-blob.ember {
+    background: radial-gradient(ellipse at 50% 55%,
+      rgba(180,120,60,0.7) 0%, rgba(150,95,45,0.5) 22%,
+      rgba(120,75,35,0.25) 48%, rgba(100,65,30,0.08) 68%, transparent 82%);
+    animation: smoke-rise var(--dur) ease-out forwards;
+    animation-delay: var(--delay);
+  }
+
+  /* ═══ SMOKE RISE — streams upward, stays DENSE for first 55%, then fades ═══ */
+  /* --rise: vertical distance (negative=up)
+     --drift: horizontal wander
+     --wave: sinusoidal billow amplitude
+     --rot: rotation for swirl */
+  @keyframes smoke-rise {
+    0% {
+      transform: translate(0, 0) scale(0.15) rotate(0deg);
+      opacity: 0;
+    }
+    3% {
+      transform: translate(calc(var(--drift) * 0.01), calc(var(--rise) * 0.01))
+                 scale(0.4) rotate(calc(var(--rot) * 0.03));
+      opacity: 1;
+    }
+    10% {
+      transform: translate(calc(var(--drift) * 0.06 + var(--wave)), calc(var(--rise) * 0.06))
+                 scale(0.6) rotate(calc(var(--rot) * 0.1));
+      opacity: 1;
+    }
+    22% {
+      transform: translate(calc(var(--drift) * 0.15 - var(--wave) * 0.8), calc(var(--rise) * 0.15))
+                 scale(0.78) rotate(calc(var(--rot) * 0.22));
+      opacity: 1;
+    }
+    35% {
+      transform: translate(calc(var(--drift) * 0.28 + var(--wave) * 0.5), calc(var(--rise) * 0.28))
+                 scale(0.88) rotate(calc(var(--rot) * 0.35));
+      opacity: 1;
+    }
+    48% {
+      transform: translate(calc(var(--drift) * 0.4 - var(--wave) * 0.3), calc(var(--rise) * 0.4))
+                 scale(0.95) rotate(calc(var(--rot) * 0.48));
+      opacity: 0.97;
+    }
+    58% {
+      transform: translate(calc(var(--drift) * 0.52 + var(--wave) * 0.2), calc(var(--rise) * 0.52))
+                 scale(1.0) rotate(calc(var(--rot) * 0.58));
+      opacity: 0.82;
+    }
+    70% {
+      transform: translate(calc(var(--drift) * 0.65 - var(--wave) * 0.1), calc(var(--rise) * 0.65))
+                 scale(1.03) rotate(calc(var(--rot) * 0.7));
+      opacity: 0.5;
+    }
+    82% {
+      transform: translate(calc(var(--drift) * 0.8), calc(var(--rise) * 0.8))
+                 scale(1.06) rotate(calc(var(--rot) * 0.82));
+      opacity: 0.2;
+    }
+    93% {
+      transform: translate(calc(var(--drift) * 0.93), calc(var(--rise) * 0.93))
+                 scale(1.08) rotate(calc(var(--rot) * 0.93));
+      opacity: 0.04;
+    }
+    100% {
+      transform: translate(var(--drift), var(--rise)) scale(1.1) rotate(var(--rot));
+      opacity: 0;
+    }
+  }
+
+  /* ═══ CHAT PANEL ENTRANCE (revealed under the smoke) ═══ */
+  .chat-panel {
+    transform-origin: bottom right;
+  }
+
+  .chat-panel.smoke-reveal {
+    animation: smoke-chat-reveal 3.0s ease-out forwards;
+  }
+
+  /* Chat reveals in sync with smoke fade (3 second total)
+     Hidden for first 60% (1.8s) while smoke is dense
+     Fades in during last 40% (1.2s) as smoke clears */
+  @keyframes smoke-chat-reveal {
+    0%   { opacity: 0; transform: scale(0.92); }
+    55%  { opacity: 0; transform: scale(0.94); }
+    60%  { opacity: 0.1; transform: scale(0.95); }
+    70%  { opacity: 0.35; transform: scale(0.97); }
+    80%  { opacity: 0.6; transform: scale(0.98); }
+    90%  { opacity: 0.85; transform: scale(0.99); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  .chat-panel.simple-open {
+    animation: simple-slide 0.25s ease-out forwards;
+  }
+
+  @keyframes simple-slide {
+    0% { opacity: 0; transform: translateY(20px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ═══ RESPONSIVE ═══ */
+  @media (max-width: 640px) {
+    .header { flex-direction: column; gap: 10px; }
+    .stats-bar { width: 100%; justify-content: center; }
+    .main { padding: 12px; }
+    .task-card { padding: 12px 14px; }
+    .detail-panel { width: 100vw; }
+    .task-actions { opacity: 1; }
+    .filters { justify-content: center; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SVG FILTERS for hyperrealistic smoke turbulence -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <!-- Coarse turbulence — big billowy distortions -->
+    <filter id="smoke-turb" x="-30%" y="-30%" width="160%" height="160%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="4" seed="1" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="45" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <!-- Medium turbulence — smaller wispy detail -->
+    <filter id="smoke-turb2" x="-30%" y="-30%" width="160%" height="160%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.025" numOctaves="5" seed="42" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="35" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <!-- Fine turbulence — thin wispy edges -->
+    <filter id="smoke-turb3" x="-30%" y="-30%" width="160%" height="160%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="6" seed="99" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="25" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+</svg>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════════════════ -->
+<!-- ✨ MAGICAL SMOKE EXPLOSION v4.0 - The Great Overseer's Grand Entrance ✨               -->
+<!-- Hyper-realistic explosion from bottom-right, billowing wave, theatrical reveal        -->
+<!-- ═══════════════════════════════════════════════════════════════════════════════════════ -->
+<canvas id="smoke-canvas" style="position:fixed;inset:0;z-index:500;pointer-events:none;display:none;"></canvas>
+<script>
+(function() {
+  // ═══ ADVANCED PERLIN NOISE with 3D support ═══
+  const PerlinNoise = (function() {
+    const grad3 = [[1,1,0],[-1,1,0],[1,-1,0],[-1,-1,0],[1,0,1],[-1,0,1],[1,0,-1],[-1,0,-1],[0,1,1],[0,-1,1],[0,1,-1],[0,-1,-1]];
+
+    function PerlinNoise(seed) {
+      this.p = new Uint8Array(512);
+      const random = seed ? (function() {
+        let s = seed;
+        return function() { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+      })() : Math.random;
+
+      const perm = new Uint8Array(256);
+      for (let i = 0; i < 256; i++) perm[i] = i;
+      for (let i = 255; i > 0; i--) {
+        const j = Math.floor(random() * (i + 1));
+        [perm[i], perm[j]] = [perm[j], perm[i]];
+      }
+      for (let i = 0; i < 512; i++) this.p[i] = perm[i & 255];
+    }
+
+    PerlinNoise.prototype.fade = function(t) { return t * t * t * (t * (t * 6 - 15) + 10); };
+    PerlinNoise.prototype.lerp = function(a, b, t) { return a + t * (b - a); };
+
+    PerlinNoise.prototype.noise2D = function(x, y) {
+      const X = Math.floor(x) & 255, Y = Math.floor(y) & 255;
+      x -= Math.floor(x); y -= Math.floor(y);
+      const u = this.fade(x), v = this.fade(y);
+      const A = this.p[X] + Y, B = this.p[X + 1] + Y;
+      const g = (h, dx, dy) => { const g = grad3[this.p[h] % 12]; return g[0]*dx + g[1]*dy; };
+      return this.lerp(
+        this.lerp(g(A, x, y), g(B, x-1, y), u),
+        this.lerp(g(A+1, x, y-1), g(B+1, x-1, y-1), u), v
+      );
+    };
+
+    PerlinNoise.prototype.noise3D = function(x, y, z) {
+      const X = Math.floor(x) & 255, Y = Math.floor(y) & 255, Z = Math.floor(z) & 255;
+      x -= Math.floor(x); y -= Math.floor(y); z -= Math.floor(z);
+      const u = this.fade(x), v = this.fade(y), w = this.fade(z);
+      const A = this.p[X] + Y, AA = this.p[A] + Z, AB = this.p[A + 1] + Z;
+      const B = this.p[X + 1] + Y, BA = this.p[B] + Z, BB = this.p[B + 1] + Z;
+      const g = (h, dx, dy, dz) => { const g = grad3[this.p[h] % 12]; return g[0]*dx + g[1]*dy + g[2]*dz; };
+      return this.lerp(
+        this.lerp(this.lerp(g(AA, x, y, z), g(BA, x-1, y, z), u),
+                  this.lerp(g(AB, x, y-1, z), g(BB, x-1, y-1, z), u), v),
+        this.lerp(this.lerp(g(AA+1, x, y, z-1), g(BA+1, x-1, y, z-1), u),
+                  this.lerp(g(AB+1, x, y-1, z-1), g(BB+1, x-1, y-1, z-1), u), v), w
+      );
+    };
+
+    // Turbulent FBM - creates billowing, cloud-like motion
+    PerlinNoise.prototype.turbulence = function(x, y, z, octaves) {
+      let value = 0, amplitude = 1, frequency = 1, maxValue = 0;
+      for (let i = 0; i < octaves; i++) {
+        value += amplitude * Math.abs(this.noise3D(x * frequency, y * frequency, z * frequency));
+        maxValue += amplitude;
+        amplitude *= 0.5;
+        frequency *= 2;
+      }
+      return value / maxValue;
+    };
+
+    // ═══ CURL-NOISE for realistic vortex swirling (based on Jos Stam's method) ═══
+    // Creates divergence-free velocity field - smoke curls around itself
+    PerlinNoise.prototype.curlNoise2D = function(x, y, z, epsilon) {
+      epsilon = epsilon || 0.0001;
+      // Partial derivatives via finite differences
+      const dx = (this.noise3D(x + epsilon, y, z) - this.noise3D(x - epsilon, y, z)) / (2 * epsilon);
+      const dy = (this.noise3D(x, y + epsilon, z) - this.noise3D(x, y - epsilon, z)) / (2 * epsilon);
+      // Curl in 2D: rotate gradient 90 degrees
+      return { x: dy, y: -dx };
+    };
+
+    return PerlinNoise;
+  })();
+
+  // ═══ HYPER-REALISTIC SMOKE PARTICLE with Physics-Based Motion ═══
+  // Based on Navier-Stokes equations: buoyancy, vorticity confinement, curl-noise turbulence
+  class ExplosionParticle {
+    constructor(originX, originY, config, index, total, layer) {
+      this.layer = layer;
+      this.index = index;
+
+      // ═══ EXPLOSION PHYSICS - radial burst from corner ═══
+      const burstAngle = -Math.PI * 0.35 + (Math.random() - 0.5) * Math.PI * 0.9;
+      const burstPower = 10 + Math.random() * 15;
+
+      // Stagger spawn for wave effect
+      this.delay = (index / total) * 120 + layer * 25;
+      this.age = -this.delay;
+
+      // Start position - tight cluster at corner
+      this.x = originX + (Math.random() - 0.5) * 50;
+      this.y = originY + (Math.random() - 0.5) * 50;
+
+      // Layer-based depth properties (back = far, front = close)
+      const layerProps = [
+        { sizeMult: 2.5, speedMult: 0.55, alpha: 0.75, life: 1.2, temp: 0.7 },   // Back - massive, slow
+        { sizeMult: 1.5, speedMult: 1.0, alpha: 0.9, life: 1.0, temp: 1.0 },     // Mid - normal
+        { sizeMult: 0.7, speedMult: 1.6, alpha: 0.45, life: 0.8, temp: 1.4 }     // Front - fast wisps
+      ][layer];
+
+      // Initial velocity - explosive outward burst
+      this.vx = Math.cos(burstAngle) * burstPower * layerProps.speedMult;
+      this.vy = Math.sin(burstAngle) * burstPower * layerProps.speedMult;
+
+      // ═══ THERMAL PHYSICS ═══
+      // Temperature affects buoyancy (hot rises, cool sinks)
+      this.temperature = (0.8 + Math.random() * 0.4) * layerProps.temp;
+      this.tempDecay = 0.985 + Math.random() * 0.01; // Cooling rate
+
+      // Density affects drag and sinking
+      this.density = 0.6 + Math.random() * 0.4;
+
+      // Size evolution
+      this.baseSize = (50 + Math.random() * 80) * layerProps.sizeMult;
+      this.size = this.baseSize * 0.15;
+      this.maxSize = this.baseSize * 5;
+
+      // Life and alpha
+      this.maxLife = (2000 + Math.random() * 1000) * layerProps.life;
+      this.baseAlpha = layerProps.alpha;
+      this.alpha = 0;
+
+      // ═══ VORTICITY & TURBULENCE PARAMETERS ═══
+      this.noiseOffsetX = Math.random() * 1000;
+      this.noiseOffsetY = Math.random() * 1000;
+      this.noiseOffsetZ = Math.random() * 1000;
+
+      // Vorticity confinement strength (ε in physics equations)
+      this.vorticityStrength = 3 + Math.random() * 4;
+
+      // Individual curl phase for variety
+      this.curlPhase = Math.random() * Math.PI * 2;
+      this.curlScale = 0.8 + Math.random() * 0.4;
+
+      // Rotation (visual twist)
+      this.rotation = Math.random() * Math.PI * 2;
+      this.angularVelocity = (Math.random() - 0.5) * 0.06;
+
+      // Organic shape deformation
+      this.squishX = 0.65 + Math.random() * 0.7;
+      this.squishY = 0.65 + Math.random() * 0.7;
+      this.squishPhase = Math.random() * Math.PI * 2;
+
+      // Color
+      this.color = config.colors[Math.floor(Math.random() * config.colors.length)];
+    }
+
+    update(dt, noise, time, globalFade) {
+      this.age += dt * 1000;
+      if (this.age < 0) return true;
+
+      const lifeProgress = Math.min(this.age / this.maxLife, 1);
+      const t = time + this.noiseOffsetZ;
+
+      // ═══ BUOYANCY - smoke rises ═══
+      this.vy -= this.temperature * 0.25 * dt * 60;
+      this.temperature *= 0.995; // Cool down
+
+      // ═══ CURL-NOISE for swirling ═══
+      const curl = noise.curlNoise2D(
+        this.x * 0.003 + this.noiseOffsetX,
+        this.y * 0.003 + this.noiseOffsetY,
+        t * 0.3
+      );
+      this.vx += curl.x * this.vorticityStrength * 0.3;
+      this.vy += curl.y * this.vorticityStrength * 0.3;
+
+      // ═══ TURBULENCE ═══
+      const turbX = noise.noise3D(this.x * 0.002, this.y * 0.002, t * 0.3) * 2;
+      const turbY = noise.noise3D(this.x * 0.002 + 100, this.y * 0.002 + 100, t * 0.3) * 1.5;
+      this.vx += turbX * 0.1;
+      this.vy += turbY * 0.1;
+
+      // ═══ DRAG ═══
+      this.vx *= 0.98;
+      this.vy *= 0.98;
+
+      // Apply velocity
+      this.x += this.vx * dt * 60;
+      this.y += this.vy * dt * 60;
+
+      // ═══ SIZE - expand over time ═══
+      const sizeProgress = Math.pow(lifeProgress, 0.4);
+      this.size = this.baseSize * 0.2 + (this.maxSize - this.baseSize * 0.2) * sizeProgress;
+
+      // ═══ ALPHA - fade in, hold, fade out ═══
+      if (lifeProgress < 0.1) {
+        this.alpha = this.baseAlpha * (lifeProgress / 0.1);
+      } else if (lifeProgress < 0.4) {
+        this.alpha = this.baseAlpha;
+      } else {
+        this.alpha = this.baseAlpha * (1 - (lifeProgress - 0.4) / 0.6);
+      }
+      this.alpha = Math.max(0, this.alpha * globalFade);
+
+      // Rotation
+      this.rotation += this.angularVelocity;
+      this.angularVelocity *= 0.99;
+
+      // Shape morphing
+      this.squishX += noise.noise2D(this.x * 0.01, t) * 0.01;
+      this.squishY += noise.noise2D(this.y * 0.01, t + 50) * 0.01;
+      this.squishX = Math.max(0.5, Math.min(1.5, this.squishX));
+      this.squishY = Math.max(0.5, Math.min(1.5, this.squishY));
+
+      return lifeProgress < 1;
+    }
+
+    draw(ctx) {
+      if (this.alpha <= 0.003 || this.age < 0) return;
+
+      ctx.save();
+      ctx.translate(this.x, this.y);
+      ctx.rotate(this.rotation);
+
+      // ═══ VOLUMETRIC RADIAL GRADIENT with 10-stop smooth falloff ═══
+      const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, this.size);
+      const c = this.color;
+      const a = this.alpha;
+
+      // Ultra-smooth density falloff (no visible edges)
+      gradient.addColorStop(0, `rgba(${c.r}, ${c.g}, ${c.b}, ${a})`);
+      gradient.addColorStop(0.05, `rgba(${c.r}, ${c.g}, ${c.b}, ${a * 0.97})`);
+      gradient.addColorStop(0.12, `rgba(${c.r}, ${c.g}, ${c.b}, ${a * 0.9})`);
+      gradient.addColorStop(0.22, `rgba(${c.r}, ${c.g}, ${c.b}, ${a * 0.78})`);
+      gradient.addColorStop(0.35, `rgba(${c.r}, ${c.g}, ${c.b}, ${a * 0.6})`);
+      gradient.addColorStop(0.48, `rgba(${c.r}, ${c.g}, ${c.b}, ${a * 0.42})`);
+      gradient.addColorStop(0.62, `rgba(${c.r}, ${c.g}, ${c.b}, ${a * 0.25})`);
+      gradient.addColorStop(0.76, `rgba(${c.r}, ${c.g}, ${c.b}, ${a * 0.12})`);
+      gradient.addColorStop(0.88, `rgba(${c.r}, ${c.g}, ${c.b}, ${a * 0.04})`);
+      gradient.addColorStop(1, `rgba(${c.r}, ${c.g}, ${c.b}, 0)`);
+
+      ctx.fillStyle = gradient;
+
+      // Organic ellipse
+      ctx.beginPath();
+      ctx.ellipse(0, 0, this.size * this.squishX, this.size * this.squishY, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+  }
+
+  // ═══ ✨ THE GREAT OVERSEER'S MAGICAL SMOKE ENGINE v4.0 ✨ ═══
+  window.HyperSmokeEngine = {
+    canvas: null,
+    ctx: null,
+    particles: [],
+    noise: null,
+    running: false,
+    startTime: 0,
+    globalFade: 1.0,
+    targetRect: null,
+    onComplete: null,
+
+    config: {
+      particleCount: 100,         // Reasonable count
+      totalDuration: 3000,        // 3 seconds total
+      fadeStartTime: 1800,        // Start fading at 1.8s
+      // Light smoke colors
+      colors: [
+        { r: 220, g: 220, b: 225 },
+        { r: 235, g: 235, b: 240 },
+        { r: 210, g: 215, b: 220 },
+        { r: 230, g: 228, b: 225 },
+        { r: 225, g: 225, b: 230 },
+        { r: 240, g: 238, b: 235 },
+      ],
+      layerDistribution: [0.4, 0.35, 0.25]
+    },
+
+    init() {
+      this.canvas = document.getElementById('smoke-canvas');
+      if (!this.canvas) return false;
+      this.ctx = this.canvas.getContext('2d');
+      this.noise = new PerlinNoise(Date.now());
+      this.resize();
+      window.addEventListener('resize', () => this.resize());
+      return true;
+    },
+
+    resize() {
+      if (!this.canvas) return;
+      this.canvas.width = window.innerWidth;
+      this.canvas.height = window.innerHeight;
+    },
+
+    start(targetRect, onComplete) {
+      if (!this.init()) return;
+
+      this.canvas.style.display = 'block';
+      this.particles = [];
+      this.running = true;
+      this.startTime = performance.now();
+      this.globalFade = 1.0;
+      this.targetRect = targetRect;
+      this.onComplete = onComplete;
+
+      // ═══ EXPLOSION ORIGIN: Bottom-right corner ═══
+      const originX = this.canvas.width;
+      const originY = this.canvas.height;
+
+      // Create particles in 3 depth layers for volumetric effect
+      const counts = this.config.layerDistribution.map(r =>
+        Math.floor(this.config.particleCount * r)
+      );
+      let particleIndex = 0;
+
+      for (let layer = 0; layer < 3; layer++) {
+        for (let i = 0; i < counts[layer]; i++) {
+          this.particles.push(new ExplosionParticle(
+            originX, originY, this.config, particleIndex++, this.config.particleCount, layer
+          ));
+        }
+      }
+
+      // Sort by layer for proper depth rendering (back to front)
+      this.particles.sort((a, b) => a.layer - b.layer);
+
+      // ═══ MAGICAL ANIMATION LOOP ═══
+      const animate = (timestamp) => {
+        if (!this.running) {
+          this.canvas.style.display = 'none';
+          if (this.onComplete) this.onComplete();
+          return;
+        }
+
+        const dt = 1/60;
+        const time = (timestamp - this.startTime) / 1000;
+        const elapsed = timestamp - this.startTime;
+
+        // ═══ GLOBAL FADE for synchronized reveal ═══
+        if (elapsed > this.config.fadeStartTime) {
+          const fadeProgress = (elapsed - this.config.fadeStartTime) /
+                               (this.config.totalDuration - this.config.fadeStartTime);
+          this.globalFade = Math.max(0, 1 - fadeProgress);
+        }
+
+        // ═══ CLEAR CANVAS (transparent when fading) ═══
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // Only draw background/effects while smoke is visible
+        if (this.globalFade > 0.01) {
+          // Dark backdrop that fades with the smoke
+          const bgAlpha = this.globalFade * 0.92;
+          this.ctx.fillStyle = `rgba(10, 10, 15, ${bgAlpha})`;
+          this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+          // ═══ EXPLOSION FLASH (first 200ms) ═══
+          if (elapsed < 200) {
+            const flashIntensity = Math.pow(1 - elapsed / 200, 2) * 0.5;
+            const flash = this.ctx.createRadialGradient(
+              this.canvas.width, this.canvas.height, 0,
+              this.canvas.width, this.canvas.height, 500
+            );
+            flash.addColorStop(0, `rgba(255, 250, 240, ${flashIntensity})`);
+            flash.addColorStop(0.3, `rgba(255, 235, 215, ${flashIntensity * 0.5})`);
+            flash.addColorStop(1, 'rgba(255, 230, 210, 0)');
+            this.ctx.fillStyle = flash;
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+          }
+        }
+
+        // Update and draw all particles
+        this.particles = this.particles.filter(particle => {
+          const alive = particle.update(dt, this.noise, time, this.globalFade);
+          if (particle.age >= 0 && this.globalFade > 0.01) particle.draw(this.ctx);
+          return alive;
+        });
+
+        // ═══ COMPLETION CHECK - simple timeout ═══
+        if (elapsed > this.config.totalDuration) {
+          this.running = false;
+        }
+
+        requestAnimationFrame(animate);
+      };
+
+      // Start the magic!
+      requestAnimationFrame(animate);
+    },
+
+    stop() {
+      this.running = false;
+      this.globalFade = 0;
+    }
+  };
+})();
+</script>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <div class="logo">Tiny<span>PM</span></div>
+    <div class="stats-bar" id="stats-bar">
+      <div class="stat"><div class="stat-dot pending"></div> <span id="stat-pending">0</span> pending</div>
+      <div class="stat"><div class="stat-dot progress"></div> <span id="stat-progress">0</span> active</div>
+      <div class="stat"><div class="stat-dot done"></div> <span id="stat-done">0</span> done</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-ghost btn-sm" onclick="loadTasks()">Refresh</button>
+    <button class="btn btn-ghost" onclick="openBrainDump()">Brain Dump</button>
+    <button class="btn btn-primary" onclick="openNewTaskModal()">+ New Task</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <!-- VIEW TABS -->
+  <div class="view-tabs">
+    <button class="view-tab active" onclick="switchTab('tasks', this)">Tasks</button>
+    <button class="view-tab" id="questions-tab-btn" onclick="switchTab('questions', this)">
+      Agent Questions <span class="tab-badge" id="questions-badge" style="display:none;background:var(--red)">0</span>
+    </button>
+    <button class="view-tab" id="activity-tab-btn" onclick="switchTab('activity', this)">
+      Activity <span class="tab-badge" id="activity-badge" style="display:none">0</span>
+    </button>
+    <button class="view-tab" id="launch-tab-btn" onclick="switchTab('launch', this)">
+      Launch Readiness <span class="tab-badge" id="launch-badge" style="display:none;background:var(--accent)">0%</span>
+    </button>
+    <button class="view-tab" id="uploads-tab-btn" onclick="switchTab('uploads', this)">
+      Uploads <span class="tab-badge" id="uploads-badge" style="display:none">0</span>
+    </button>
+  </div>
+
+  <!-- TASKS VIEW -->
+  <div id="tasks-view">
+    <!-- FILTERS -->
+    <div class="filters">
+      <button class="filter-btn active" data-filter="all" onclick="setFilter('all', this)">All</button>
+      <button class="filter-btn" data-filter="pending" onclick="setFilter('pending', this)">Pending</button>
+      <button class="filter-btn" data-filter="in_progress" onclick="setFilter('in_progress', this)">In Progress</button>
+      <button class="filter-btn" data-filter="done" onclick="setFilter('done', this)">Done</button>
+      <button class="filter-btn" data-filter="high" onclick="setFilter('high', this)">High Priority</button>
+    </div>
+
+    <!-- TASK LIST -->
+    <div class="task-list" id="task-list">
+      <div class="empty-state">
+        <h3>Loading tasks...</h3>
+      </div>
+    </div>
+  </div>
+
+  <!-- AGENT QUESTIONS VIEW -->
+  <div id="questions-view" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-size:13px;color:var(--text-muted)" id="questions-count">0 pending questions</div>
+    </div>
+    <div id="questions-list">
+      <div class="empty-state"><h3>No agent questions</h3><p>When agents need your input (financials, decisions, context), their questions will appear here.</p></div>
+    </div>
+    <div id="answered-section" style="margin-top:24px;display:none">
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;font-weight:600">Recently Answered</div>
+      <div id="answered-list"></div>
+    </div>
+  </div>
+
+  <!-- ACTIVITY VIEW -->
+  <div id="activity-view" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-size:13px;color:var(--text-muted)" id="activity-count">0 updates</div>
+      <button class="btn btn-ghost btn-sm" onclick="markAllRead()">Mark All Read</button>
+    </div>
+    <div class="activity-feed visible" id="activity-feed">
+      <div class="empty-state"><h3>No activity yet</h3><p>Agent completions, questions, and updates will appear here.</p></div>
+    </div>
+  </div>
+
+  <!-- LAUNCH READINESS VIEW -->
+  <div id="launch-view" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div>
+        <div style="font-size:16px;font-weight:700;color:var(--text-primary)">Idea-to-Market Checklist</div>
+        <div style="font-size:12px;color:var(--text-muted)" id="launch-subtitle">Every hoop from concept to App Store. NO SURPRISES.</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div id="launch-progress-bar" style="width:160px;height:8px;background:var(--bg-primary);border-radius:4px;overflow:hidden">
+          <div id="launch-progress-fill" style="height:100%;background:var(--green);border-radius:4px;transition:width 0.3s;width:0%"></div>
+        </div>
+        <span id="launch-pct" style="font-size:14px;font-weight:700;color:var(--green)">0%</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px" id="launch-cat-filters">
+      <button class="filter-btn active" onclick="filterLaunchCat('all', this)">All</button>
+    </div>
+    <div id="launch-list"></div>
+  </div>
+</div>
+
+<!-- UPLOADS VIEW -->
+<div class="main-content" id="uploads-view" style="display:none">
+  <div style="padding:20px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div>
+        <div style="font-size:16px;font-weight:700;color:var(--text-primary)">Document Uploads</div>
+        <div style="font-size:12px;color:var(--text-muted)" id="uploads-subtitle">Upload files to attach to tasks or the project</div>
+      </div>
+      <label class="btn btn-primary" style="cursor:pointer">
+        <input type="file" id="file-upload-input" style="display:none" multiple onchange="handleFileUpload(this)">
+        📎 Upload Files
+      </label>
+    </div>
+
+    <!-- Upload dropzone -->
+    <div id="upload-dropzone" style="border:2px dashed var(--border);border-radius:12px;padding:32px;text-align:center;margin-bottom:20px;transition:all 0.2s;background:var(--bg-secondary)">
+      <div style="font-size:32px;margin-bottom:8px">📁</div>
+      <div style="font-size:14px;color:var(--text-secondary);margin-bottom:4px">Drag & drop files here</div>
+      <div style="font-size:12px;color:var(--text-muted)">or click the Upload button above</div>
+    </div>
+
+    <!-- Stats bar -->
+    <div style="display:flex;gap:16px;margin-bottom:20px;padding:12px 16px;background:var(--bg-secondary);border-radius:8px">
+      <div>
+        <span style="font-size:12px;color:var(--text-muted)">Files:</span>
+        <span style="font-size:14px;font-weight:600;color:var(--text-primary)" id="uploads-count">0</span>
+      </div>
+      <div>
+        <span style="font-size:12px;color:var(--text-muted)">Total Size:</span>
+        <span style="font-size:14px;font-weight:600;color:var(--text-primary)" id="uploads-size">0 MB</span>
+      </div>
+    </div>
+
+    <!-- File list -->
+    <div id="uploads-list"></div>
+
+    <!-- Empty state -->
+    <div id="uploads-empty" style="display:none;text-align:center;padding:40px;color:var(--text-muted)">
+      <div style="font-size:48px;margin-bottom:12px">📄</div>
+      <div style="font-size:14px">No files uploaded yet</div>
+      <div style="font-size:12px;margin-top:4px">Upload PDFs, images, documents, and more</div>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL PANEL -->
+<div class="detail-panel" id="detail-panel">
+  <div class="detail-header">
+    <span class="task-id" id="detail-id"></span>
+    <button class="btn btn-ghost btn-sm" onclick="closeDetail()">Close</button>
+  </div>
+  <div class="detail-body">
+    <div class="detail-field">
+      <div class="detail-label">Title</div>
+      <div class="detail-value" id="detail-title" style="font-size:18px;font-weight:700"></div>
+    </div>
+    <div class="detail-field">
+      <div class="detail-label">Status / Priority / Role</div>
+      <div id="detail-tags" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+    </div>
+    <div class="detail-field">
+      <div class="detail-label">Description</div>
+      <div class="detail-description" id="detail-description"></div>
+    </div>
+    <div class="detail-field">
+      <div class="detail-label">Context Files</div>
+      <div class="detail-value" id="detail-context" style="font-family:monospace;font-size:13px"></div>
+    </div>
+    <div class="detail-field">
+      <div class="detail-label">Created</div>
+      <div class="detail-value" id="detail-created"></div>
+    </div>
+    <div class="detail-field">
+      <div class="detail-label">Send Context to Agent</div>
+      <div class="context-input-area">
+        <input type="text" class="context-note-input" id="context-note-input"
+          placeholder="Add instructions, clarification, files to look at..."
+          onkeydown="if(event.key==='Enter')addContextNote()">
+        <button class="btn btn-primary btn-sm" onclick="addContextNote()">Send</button>
+      </div>
+      <div class="context-notes-list" id="context-notes-list"></div>
+    </div>
+  </div>
+  <div class="detail-actions">
+    <button class="btn btn-primary" id="detail-launch-btn" onclick="launchAgent()">Launch Claude Agent</button>
+    <button class="btn btn-ghost" id="detail-cycle-btn" onclick="cycleStatus()">Cycle Status</button>
+    <button class="btn btn-danger btn-sm" onclick="deleteCurrentTask()">Delete</button>
+  </div>
+</div>
+
+<!-- NEW TASK MODAL -->
+<div class="modal-overlay" id="new-task-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">New Task</div>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancel</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Title</label>
+        <input type="text" class="form-input" id="new-title" placeholder="What needs to be done?">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea class="form-textarea" id="new-description" placeholder="Detailed requirements..."></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Persona / Role</label>
+        <select class="form-select" id="new-role">
+          <option value="builder">Builder</option>
+          <option value="architect">Architect</option>
+          <option value="qa">QA</option>
+          <option value="chief-of-staff">Chief of Staff</option>
+          <option value="researcher">Researcher</option>
+          <option value="evolver">Evolver</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Priority</label>
+        <select class="form-select" id="new-priority">
+          <option value="high">High</option>
+          <option value="medium" selected>Medium</option>
+          <option value="low">Low</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Context Files (one per line)</label>
+        <textarea class="form-textarea" id="new-context" placeholder="web_app/file.html&#10;apps_script/file.js" style="min-height:60px;font-family:monospace;font-size:13px"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="createTask()">Create Task</button>
+    </div>
+  </div>
+</div>
+
+<!-- BRAIN DUMP MODAL -->
+<div class="modal-overlay" id="braindump-modal">
+  <div class="modal" style="width:560px">
+    <div class="modal-header">
+      <div class="modal-title">Brain Dump</div>
+      <button class="btn btn-ghost btn-sm" onclick="closeBrainDump()">Cancel</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--text-secondary);font-size:13px;margin-bottom:12px">
+        Dump all your thoughts, ideas, and to-dos. The PM will parse them into structured tasks.
+      </p>
+      <textarea class="form-textarea" id="braindump-text"
+        placeholder="Just type everything on your mind...&#10;&#10;e.g. Need to fix the CSA portal, also look into that loan application, and don't forget to update the field planner with the new beds..."
+        style="min-height:180px"></textarea>
+
+      <div id="braindump-result" style="display:none;margin-top:16px">
+        <div class="detail-label">Extracted Tasks</div>
+        <div id="braindump-tasks"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeBrainDump()">Cancel</button>
+      <button class="btn btn-primary" id="braindump-process-btn" onclick="processBrainDump()">Process Thoughts</button>
+      <button class="btn btn-primary" id="braindump-save-btn" onclick="saveBrainDumpTasks()" style="display:none">Save All Tasks</button>
+    </div>
+  </div>
+</div>
+
+<!-- LAUNCH CHECKLIST ITEM DETAIL MODAL -->
+<div class="modal-overlay" id="launch-detail-modal">
+  <div class="modal" style="width:560px;max-height:85vh;overflow:hidden;display:flex;flex-direction:column">
+    <div class="modal-header" style="flex-shrink:0">
+      <div>
+        <div class="modal-title" id="launch-detail-title">Item Title</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px" id="launch-detail-category">Category</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="closeLaunchDetail()">×</button>
+    </div>
+    <div class="modal-body" style="flex:1;overflow-y:auto">
+      <!-- Priority & Status -->
+      <div style="display:flex;gap:12px;margin-bottom:16px">
+        <div style="padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600" id="launch-detail-priority">CRITICAL</div>
+        <div style="padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600;background:var(--bg-tertiary)" id="launch-detail-status">Not Started</div>
+      </div>
+
+      <!-- Instructions -->
+      <div style="margin-bottom:20px">
+        <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:8px">📋 Instructions</div>
+        <div id="launch-detail-instructions" style="font-size:13px;color:var(--text-secondary);line-height:1.6;background:var(--bg-tertiary);padding:14px;border-radius:8px"></div>
+      </div>
+
+      <!-- Quick Info -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+        <div style="background:var(--bg-tertiary);padding:12px;border-radius:8px">
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">💰 Estimated Cost</div>
+          <div style="font-size:14px;font-weight:600;color:var(--text-primary)" id="launch-detail-cost">$0</div>
+        </div>
+        <div style="background:var(--bg-tertiary);padding:12px;border-radius:8px">
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">⏱️ Timeline</div>
+          <div style="font-size:14px;font-weight:600;color:var(--text-primary)" id="launch-detail-timeline">1 day</div>
+        </div>
+      </div>
+
+      <!-- Dependencies -->
+      <div id="launch-detail-depends-section" style="margin-bottom:20px;display:none">
+        <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:8px">🔗 Depends On</div>
+        <div id="launch-detail-depends" style="font-size:13px;color:var(--accent);background:var(--bg-tertiary);padding:10px;border-radius:8px"></div>
+      </div>
+
+      <!-- Helpful Links -->
+      <div id="launch-detail-links-section">
+        <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:8px">🔗 Helpful Links</div>
+        <div id="launch-detail-links" style="display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+    </div>
+    <div class="modal-footer" style="flex-shrink:0">
+      <button class="btn btn-ghost" onclick="closeLaunchDetail()">Close</button>
+      <button class="btn btn-primary" onclick="cycleLaunchStatusFromModal()">
+        <span id="launch-detail-action-text">Mark In Progress</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- CHAT WITH PM -->
+<div class="chat-panel" id="chat-panel">
+  <div class="chat-header">
+    <div class="chat-header-left">
+      <div class="chat-avatar">
+        <svg class="wizard-icon" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+          <!-- Hat -->
+          <polygon points="32,2 18,28 46,28" fill="#7c3aed" stroke="#a78bfa" stroke-width="1"/>
+          <rect x="14" y="27" width="36" height="5" rx="2" fill="#6d28d9"/>
+          <!-- Stars on hat -->
+          <circle cx="28" cy="14" r="1.5" fill="#fbbf24"/>
+          <circle cx="35" cy="20" r="1" fill="#fbbf24"/>
+          <circle cx="30" cy="22" r="0.8" fill="#fbbf24"/>
+          <!-- Face -->
+          <circle cx="32" cy="40" r="13" fill="#fde68a"/>
+          <!-- Eyes -->
+          <circle cx="27" cy="38" r="2.5" fill="white"/>
+          <circle cx="37" cy="38" r="2.5" fill="white"/>
+          <circle cx="27.5" cy="38" r="1.3" fill="#1e1b4b"/>
+          <circle cx="37.5" cy="38" r="1.3" fill="#1e1b4b"/>
+          <!-- Eye sparkle -->
+          <circle cx="28.2" cy="37.3" r="0.5" fill="white"/>
+          <circle cx="38.2" cy="37.3" r="0.5" fill="white"/>
+          <!-- Glasses -->
+          <circle cx="27" cy="38" r="4" fill="none" stroke="#6b7280" stroke-width="0.8"/>
+          <circle cx="37" cy="38" r="4" fill="none" stroke="#6b7280" stroke-width="0.8"/>
+          <line x1="31" y1="38" x2="33" y2="38" stroke="#6b7280" stroke-width="0.8"/>
+          <!-- Nose -->
+          <ellipse cx="32" cy="42" rx="1.5" ry="1" fill="#f59e0b"/>
+          <!-- Smile -->
+          <path d="M27,45 Q32,50 37,45" fill="none" stroke="#92400e" stroke-width="1" stroke-linecap="round"/>
+          <!-- Beard -->
+          <path d="M22,46 Q24,56 32,60 Q40,56 42,46" fill="#e5e7eb" stroke="#d1d5db" stroke-width="0.5"/>
+          <path d="M25,48 Q28,52 32,54" fill="none" stroke="#d1d5db" stroke-width="0.5"/>
+          <path d="M39,48 Q36,52 32,54" fill="none" stroke="#d1d5db" stroke-width="0.5"/>
+        </svg>
+      </div>
+      <div>
+        <div class="chat-name" id="chat-name">The Great Overseer</div>
+        <div class="chat-status" id="chat-status">Full project context + file access</div>
+        <div class="chat-mode-toggle">
+          <button class="chat-mode-btn active" id="mode-overseer" onclick="setChatMode('overseer')">Overseer</button>
+          <button class="chat-mode-btn" id="mode-pm" onclick="setChatMode('pm')">PM Direct <span class="pm-direct-badge">QUEUE</span></button>
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="toggleChat()">Close</button>
+  </div>
+  <!-- AGENT SELECTOR - Talk to different bots (dynamically populated) -->
+  <div class="agent-selector" id="agent-selector">
+    <button class="agent-btn active" data-agent="pm" onclick="selectAgent('pm')">
+      <span class="agent-dot online"></span>
+      PM
+    </button>
+    <button class="agent-btn" data-agent="builder" onclick="selectAgent('builder')">
+      <span class="agent-dot" id="builder-status-dot"></span>
+      Builder
+      <span class="unread-badge" id="builder-unread" style="display:none">0</span>
+    </button>
+    <button class="agent-btn" data-agent="overseer" onclick="selectAgent('overseer')">
+      <span class="agent-dot online"></span>
+      Overseer
+    </button>
+    <!-- Dynamic agents will be appended here -->
+    <button class="agent-btn broadcast-btn" onclick="openBroadcastModal()" title="Message ALL agents">
+      <span style="font-size:14px;">📢</span>
+      ALL
+    </button>
+  </div>
+  <div class="chat-messages" id="chat-messages">
+    <div class="chat-msg assistant">
+      <div class="chat-msg-content">I am The Great Overseer. I have REAL access to every file in this project — I can read code, list directories, and search across the codebase. Ask me anything.</div>
+    </div>
+  </div>
+  <div class="chat-input-area">
+    <textarea class="chat-input" id="chat-input" placeholder="Message PM..." rows="1"></textarea>
+    <button class="btn btn-primary btn-sm" id="chat-send-btn" onclick="sendChat()">Send</button>
+  </div>
+</div>
+
+<!-- CHAT FAB -->
+<button class="chat-fab" id="chat-fab" onclick="toggleChat()">
+  <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+    <!-- Hat -->
+    <polygon points="32,0 14,30 50,30" fill="#7c3aed" stroke="#a78bfa" stroke-width="1.2"/>
+    <rect x="10" y="29" width="44" height="6" rx="3" fill="#6d28d9"/>
+    <!-- Stars on hat -->
+    <polygon points="26,10 27,13 30,13 27.5,15 28.5,18 26,16 23.5,18 24.5,15 22,13 25,13" fill="#fbbf24"/>
+    <polygon points="37,17 37.7,19 40,19 38.2,20.3 38.8,22.5 37,21.2 35.2,22.5 35.8,20.3 34,19 36.3,19" fill="#fbbf24" opacity="0.8"/>
+    <circle cx="32" cy="20" r="1.2" fill="#fbbf24" opacity="0.6"/>
+    <!-- Face -->
+    <circle cx="32" cy="43" r="15" fill="#fde68a"/>
+    <!-- Eyes -->
+    <circle cx="26" cy="41" r="3" fill="white"/>
+    <circle cx="38" cy="41" r="3" fill="white"/>
+    <circle cx="26.5" cy="41" r="1.6" fill="#1e1b4b"/>
+    <circle cx="38.5" cy="41" r="1.6" fill="#1e1b4b"/>
+    <!-- Eye sparkle -->
+    <circle cx="27.3" cy="40.2" r="0.7" fill="white"/>
+    <circle cx="39.3" cy="40.2" r="0.7" fill="white"/>
+    <!-- Glasses -->
+    <circle cx="26" cy="41" r="4.5" fill="none" stroke="#a78bfa" stroke-width="1"/>
+    <circle cx="38" cy="41" r="4.5" fill="none" stroke="#a78bfa" stroke-width="1"/>
+    <line x1="30.5" y1="41" x2="33.5" y2="41" stroke="#a78bfa" stroke-width="1"/>
+    <!-- Nose -->
+    <ellipse cx="32" cy="46" rx="1.8" ry="1.2" fill="#f59e0b"/>
+    <!-- Smile -->
+    <path d="M26,49 Q32,55 38,49" fill="none" stroke="#92400e" stroke-width="1.2" stroke-linecap="round"/>
+    <!-- Beard -->
+    <path d="M20,51 Q22,62 32,64 Q42,62 44,51" fill="#e5e7eb" stroke="#d1d5db" stroke-width="0.5"/>
+    <path d="M24,53 Q28,58 32,60" fill="none" stroke="#d1d5db" stroke-width="0.6"/>
+    <path d="M40,53 Q36,58 32,60" fill="none" stroke="#d1d5db" stroke-width="0.6"/>
+  </svg>
+  <span class="chat-fab-badge" id="chat-fab-badge" style="display:none">1</span>
+</button>
+
+<!-- CONFIRMATION BANNER -->
+<div class="confirm-banner" id="confirm-banner">
+  <span class="checkmark">&#10003;</span>
+  <span id="confirm-message">Task created</span>
+  <span class="task-ref" id="confirm-ref"></span>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- BROADCAST MODAL - Message ALL agents -->
+<div class="modal-overlay" id="broadcast-modal">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-header">
+      <h3 class="modal-title">📢 Broadcast to ALL Agents</h3>
+      <button class="btn btn-ghost btn-sm" onclick="closeBroadcastModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--text-secondary);margin-bottom:16px;">
+        This message will be sent to <strong>PM</strong>, <strong>Builder</strong>, and all other spawned agents simultaneously.
+      </p>
+      <div class="form-group">
+        <label class="form-label">Message</label>
+        <textarea id="broadcast-message" class="form-textarea" rows="4" placeholder="Enter your broadcast message..."></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Priority</label>
+        <select id="broadcast-priority" class="form-select">
+          <option value="high">High (recommended)</option>
+          <option value="urgent">Urgent</option>
+          <option value="normal">Normal</option>
+        </select>
+      </div>
+      <div id="active-agents-list" style="margin-top:12px;padding:12px;background:var(--bg-primary);border-radius:8px;">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);margin-bottom:8px;">Active Agents</div>
+        <div id="agents-list-content" style="display:flex;flex-wrap:wrap;gap:6px;">
+          <span style="padding:4px 10px;background:rgba(34,197,94,0.2);color:var(--green);border-radius:12px;font-size:12px;">PM</span>
+          <span style="padding:4px 10px;background:rgba(34,197,94,0.2);color:var(--green);border-radius:12px;font-size:12px;">Builder</span>
+          <span style="padding:4px 10px;background:rgba(34,197,94,0.2);color:var(--green);border-radius:12px;font-size:12px;">Overseer</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeBroadcastModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="sendBroadcast()">📢 Broadcast</button>
+    </div>
+  </div>
+</div>
+
+<!-- MANTRA -->
+<div class="mantra-bar">
+  No shortcuts &middot; Best possible &middot; Production-ready &middot; Always improving
+</div>
+
+<script>
+  // ═══════════════════════════════════════════════════════════
+  // STATE
+  // ═══════════════════════════════════════════════════════════
+  let tasks = [];
+  let currentFilter = 'all';
+  let selectedTask = null;
+
+  // ═══════════════════════════════════════════════════════════
+  // API
+  // ═══════════════════════════════════════════════════════════
+  const API = '';  // Same origin
+
+  // ═══ CONNECTION MONITOR — auto-reconnect when server wakes up ═══
+  let serverOnline = true;
+  let reconnectAttempts = 0;
+  let reconnectTimer = null;
+
+  function showConnectionBanner(show) {
+    let banner = document.getElementById('connection-banner');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'connection-banner';
+      banner.style.cssText = `
+        position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+        background: linear-gradient(135deg, #dc2626, #b91c1c);
+        color: white; text-align: center; padding: 10px 16px;
+        font-size: 14px; font-weight: 600; letter-spacing: 0.02em;
+        display: none; box-shadow: 0 2px 12px rgba(220,38,38,0.4);
+        transition: transform 0.3s ease;
+      `;
+      document.body.prepend(banner);
+    }
+    if (show) {
+      banner.textContent = `Server unreachable — reconnecting... (attempt ${reconnectAttempts})`;
+      banner.style.display = 'block';
+    } else {
+      if (reconnectAttempts > 0) {
+        banner.style.background = 'linear-gradient(135deg, #16a34a, #15803d)';
+        banner.textContent = 'Reconnected!';
+        setTimeout(() => { banner.style.display = 'none'; banner.style.background = 'linear-gradient(135deg, #dc2626, #b91c1c)'; }, 2000);
+      } else {
+        banner.style.display = 'none';
+      }
+      reconnectAttempts = 0;
+    }
+  }
+
+  function startReconnect() {
+    if (reconnectTimer) return;
+    reconnectTimer = setInterval(async () => {
+      reconnectAttempts++;
+      showConnectionBanner(true);
+      try {
+        const res = await fetch(API + '/api/tasks', { signal: AbortSignal.timeout(5000) });
+        if (res.ok) {
+          clearInterval(reconnectTimer);
+          reconnectTimer = null;
+          serverOnline = true;
+          showConnectionBanner(false);
+          loadTasks();
+          loadActivity();
+        }
+      } catch (_) { /* still offline */ }
+    }, 4000);
+  }
+
+  async function apiGet(path) {
+    try {
+      const res = await fetch(API + path, { signal: AbortSignal.timeout(8000) });
+      if (!serverOnline) { serverOnline = true; showConnectionBanner(false); }
+      return res.json();
+    } catch (err) {
+      serverOnline = false;
+      startReconnect();
+      throw err;
+    }
+  }
+
+  async function apiPost(path, data) {
+    try {
+      const res = await fetch(API + path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+        signal: AbortSignal.timeout(15000)
+      });
+      if (!serverOnline) { serverOnline = true; showConnectionBanner(false); }
+      return res.json();
+    } catch (err) {
+      serverOnline = false;
+      startReconnect();
+      throw err;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // LOAD TASKS
+  // ═══════════════════════════════════════════════════════════
+  async function loadTasks() {
+    try {
+      const board = await apiGet('/api/tasks');
+      tasks = board.tasks || [];
+      updateStats();
+      renderTasks();
+    } catch (err) {
+      console.error('Failed to load tasks:', err);
+      // Don't spam toasts when server is offline — the banner handles it
+      if (serverOnline) showToast('Failed to load tasks', 'error');
+    }
+  }
+
+  function updateStats() {
+    const pending = tasks.filter(t => t.status === 'pending').length;
+    const progress = tasks.filter(t => t.status === 'in_progress').length;
+    const done = tasks.filter(t => t.status === 'done').length;
+    document.getElementById('stat-pending').textContent = pending;
+    document.getElementById('stat-progress').textContent = progress;
+    document.getElementById('stat-done').textContent = done;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // RENDER
+  // ═══════════════════════════════════════════════════════════
+  function renderTasks() {
+    const list = document.getElementById('task-list');
+    let filtered = tasks;
+
+    if (currentFilter === 'high') {
+      filtered = tasks.filter(t => t.priority === 'high');
+    } else if (currentFilter !== 'all') {
+      filtered = tasks.filter(t => t.status === currentFilter);
+    }
+
+    if (filtered.length === 0) {
+      list.innerHTML = `
+        <div class="empty-state">
+          <h3>${currentFilter === 'all' ? 'No tasks yet' : 'No ' + currentFilter.replace('_', ' ') + ' tasks'}</h3>
+          <p>${currentFilter === 'all' ? 'Create your first task to get started.' : 'Try a different filter.'}</p>
+          ${currentFilter === 'all' ? '<button class="btn btn-primary" onclick="openNewTaskModal()">+ New Task</button>' : ''}
+        </div>`;
+      return;
+    }
+
+    list.innerHTML = filtered.map(task => {
+      const progress = task.progress || 0;
+      const progressLabel = task.progress_label || '';
+      const isActive = task.status === 'in_progress';
+      const isDone = task.status === 'done';
+      const showProgress = isActive || (isDone && progress > 0);
+
+      return `
+      <div class="task-card ${selectedTask && selectedTask.id === task.id ? 'selected' : ''}"
+           onclick="selectTask('${task.id}')">
+        <div class="task-status-indicator ${task.status}"></div>
+        <div class="task-content">
+          <div class="task-header">
+            <span class="task-id">${task.id}</span>
+            <span class="task-title">${escapeHtml(task.title)}</span>
+          </div>
+          <div class="task-meta">
+            <span class="tag tag-role">${task.role || 'builder'}</span>
+            <span class="tag tag-priority-${task.priority || 'medium'}">${(task.priority || 'medium').toUpperCase()}</span>
+            <span class="tag tag-status-${task.status}">${(task.status || 'pending').replace('_', ' ')}</span>
+          </div>
+          ${showProgress ? `
+          <div class="task-progress">
+            ${isActive ? '<div class="progress-spinner"></div>' : ''}
+            <div class="progress-bar-track">
+              <div class="progress-bar-fill ${isDone ? 'complete' : ''}" style="width:${isDone ? 100 : progress}%"></div>
+            </div>
+            <div class="progress-info">
+              <span class="progress-pct ${isDone ? 'complete' : ''}">${isDone ? 100 : progress}%</span>
+            </div>
+          </div>
+          ${progressLabel ? `<div class="progress-label">${escapeHtml(progressLabel)}</div>` : ''}
+          ` : ''}
+        </div>
+        <div class="task-actions">
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); quickCycle('${task.id}')"
+            title="Cycle status">&circlearrowright;</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // TASK ACTIONS
+  // ═══════════════════════════════════════════════════════════
+  function selectTask(id) {
+    selectedTask = tasks.find(t => t.id === id);
+    if (!selectedTask) return;
+
+    document.getElementById('detail-id').textContent = selectedTask.id;
+    document.getElementById('detail-title').textContent = selectedTask.title;
+    document.getElementById('detail-description').textContent = selectedTask.description || 'No description';
+    document.getElementById('detail-context').innerHTML =
+      (selectedTask.context || []).map(c => `<div>${escapeHtml(c)}</div>`).join('') || '<div style="color:var(--text-muted)">None</div>';
+    document.getElementById('detail-created').textContent = selectedTask.created || 'Unknown';
+
+    document.getElementById('detail-tags').innerHTML = `
+      <span class="tag tag-status-${selectedTask.status}">${(selectedTask.status || 'pending').replace('_', ' ')}</span>
+      <span class="tag tag-priority-${selectedTask.priority || 'medium'}">${(selectedTask.priority || 'medium').toUpperCase()}</span>
+      <span class="tag tag-role">${selectedTask.role || 'builder'}</span>
+    `;
+
+    renderContextNotes();
+    document.getElementById('detail-panel').classList.add('open');
+    renderTasks();  // Update selected state
+  }
+
+  function closeDetail() {
+    document.getElementById('detail-panel').classList.remove('open');
+    selectedTask = null;
+    renderTasks();
+  }
+
+  async function cycleStatus() {
+    if (!selectedTask) return;
+    const order = ['pending', 'in_progress', 'done'];
+    const idx = order.indexOf(selectedTask.status);
+    const next = order[(idx + 1) % order.length];
+
+    const result = await apiPost('/api/tasks/update', { id: selectedTask.id, status: next });
+    if (result.success) {
+      showToast(`${selectedTask.id} → ${next.replace('_', ' ')}`, 'success');
+      await loadTasks();
+      selectTask(selectedTask.id);
+    }
+  }
+
+  async function quickCycle(id) {
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+    const order = ['pending', 'in_progress', 'done'];
+    const idx = order.indexOf(task.status);
+    const next = order[(idx + 1) % order.length];
+
+    await apiPost('/api/tasks/update', { id: id, status: next });
+    showToast(`${id} → ${next.replace('_', ' ')}`, 'success');
+    await loadTasks();
+  }
+
+  async function deleteCurrentTask() {
+    if (!selectedTask) return;
+    if (!confirm(`Delete ${selectedTask.id}: ${selectedTask.title}?`)) return;
+
+    const result = await apiPost('/api/tasks/delete', { id: selectedTask.id });
+    if (result.success) {
+      showToast(`Deleted ${selectedTask.id}`, 'success');
+      closeDetail();
+      await loadTasks();
+    }
+  }
+
+  async function launchAgent() {
+    if (!selectedTask) return;
+
+    const result = await apiPost('/api/launch', { task_id: selectedTask.id });
+    if (result.success) {
+      if (result.launched) {
+        showToast(`Claude agent launched for ${selectedTask.id}!`, 'success');
+      } else {
+        showToast(`Prompt saved to .last-prompt.md - launch Claude manually`, 'success');
+      }
+      await loadTasks();
+      selectTask(selectedTask.id);
+    } else {
+      showToast(result.error || 'Failed to launch', 'error');
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // CREATE TASK
+  // ═══════════════════════════════════════════════════════════
+  function openNewTaskModal() {
+    document.getElementById('new-task-modal').classList.add('open');
+    document.getElementById('new-title').focus();
+  }
+
+  function closeModal() {
+    document.getElementById('new-task-modal').classList.remove('open');
+    document.getElementById('new-title').value = '';
+    document.getElementById('new-description').value = '';
+    document.getElementById('new-context').value = '';
+  }
+
+  async function createTask() {
+    const title = document.getElementById('new-title').value.trim();
+    if (!title) {
+      showToast('Title is required', 'error');
+      return;
+    }
+
+    const createBtn = document.querySelector('.modal-footer .btn-primary');
+    createBtn.textContent = 'Creating...';
+    createBtn.disabled = true;
+
+    const context = document.getElementById('new-context').value.trim()
+      .split('\n').map(s => s.trim()).filter(Boolean);
+
+    try {
+      const result = await apiPost('/api/tasks', {
+        title: title,
+        description: document.getElementById('new-description').value.trim(),
+        role: document.getElementById('new-role').value,
+        priority: document.getElementById('new-priority').value,
+        context: context
+      });
+
+      if (result.success) {
+        closeModal();
+        await loadTasks();
+        showConfirmation('Task created successfully', result.task.id, title);
+      } else {
+        showToast('Failed to create task', 'error');
+      }
+    } catch (err) {
+      showToast('Network error - try again', 'error');
+    }
+
+    createBtn.textContent = 'Create Task';
+    createBtn.disabled = false;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // FILTER
+  // ═══════════════════════════════════════════════════════════
+  function setFilter(filter, btn) {
+    currentFilter = filter;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderTasks();
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // UTILITIES
+  // ═══════════════════════════════════════════════════════════
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function showToast(msg, type = 'success') {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.className = `toast ${type} show`;
+    setTimeout(() => toast.classList.remove('show'), 3000);
+  }
+
+  function showConfirmation(message, taskId, title) {
+    const banner = document.getElementById('confirm-banner');
+    document.getElementById('confirm-message').textContent = message;
+    document.getElementById('confirm-ref').textContent = taskId + ': ' + (title.length > 40 ? title.slice(0,40) + '...' : title);
+    banner.classList.add('show');
+
+    // Haptic feedback on mobile if available
+    if (navigator.vibrate) navigator.vibrate(100);
+
+    setTimeout(() => banner.classList.remove('show'), 4000);
+  }
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+
+    if (e.key === 'n') { e.preventDefault(); openNewTaskModal(); }
+    if (e.key === 'Escape') { closeDetail(); closeModal(); }
+    if (e.key === 'd' && selectedTask) { e.preventDefault(); cycleStatus(); }
+    if (e.key === 'Enter' && selectedTask) { e.preventDefault(); launchAgent(); }
+    if (e.key === 'x' && selectedTask) { e.preventDefault(); deleteCurrentTask(); }
+  });
+
+  // Close modal on overlay click
+  document.getElementById('new-task-modal').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('new-task-modal')) closeModal();
+  });
+
+  // ═══════════════════════════════════════════════════════════
+  // TABS
+  // ═══════════════════════════════════════════════════════════
+  let currentTab = 'tasks';
+
+  function switchTab(tab, btn) {
+    currentTab = tab;
+    document.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tasks-view').style.display = tab === 'tasks' ? 'block' : 'none';
+    document.getElementById('questions-view').style.display = tab === 'questions' ? 'block' : 'none';
+    document.getElementById('activity-view').style.display = tab === 'activity' ? 'block' : 'none';
+    document.getElementById('launch-view').style.display = tab === 'launch' ? 'block' : 'none';
+    document.getElementById('uploads-view').style.display = tab === 'uploads' ? 'block' : 'none';
+    if (tab === 'activity') loadActivity();
+    if (tab === 'questions') loadAgentQuestions();
+    if (tab === 'launch') loadLaunchChecklist();
+    if (tab === 'uploads') loadUploads();
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // ACTIVITY FEED
+  // ═══════════════════════════════════════════════════════════
+  let activityItems = [];
+
+  async function loadActivity() {
+    try {
+      const data = await apiGet('/api/activity');
+      activityItems = data.activity || [];
+      const unread = data.unread || 0;
+
+      // Update badge
+      const badge = document.getElementById('activity-badge');
+      if (unread > 0) {
+        badge.style.display = 'inline-flex';
+        badge.textContent = unread;
+      } else {
+        badge.style.display = 'none';
+      }
+
+      renderActivity();
+    } catch (err) { console.error('Activity load error:', err); }
+  }
+
+  function renderActivity() {
+    const feed = document.getElementById('activity-feed');
+    document.getElementById('activity-count').textContent = activityItems.length + ' update' + (activityItems.length !== 1 ? 's' : '');
+
+    if (activityItems.length === 0) {
+      feed.innerHTML = '<div class="empty-state"><h3>No activity yet</h3><p>Agent completions, questions, and updates will appear here.</p></div>';
+      return;
+    }
+
+    feed.innerHTML = activityItems.map(act => {
+      const typeLabel = act.type || 'update';
+      const time = act.timestamp ? new Date(act.timestamp).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '';
+      const filesHtml = (act.files_changed || []).map(f =>
+        `<span class="act-file">${escapeHtml(f)}</span>`
+      ).join('');
+
+      return `
+      <div class="activity-item ${act.read ? '' : 'unread'}" data-act-id="${act.id}">
+        <div class="act-header">
+          <span class="act-type ${typeLabel}">${typeLabel}</span>
+          <span class="act-task-ref">${escapeHtml(act.task_id || '')}</span>
+          <span class="act-time">${time}</span>
+        </div>
+        <div class="act-title">${escapeHtml(act.title || '')}</div>
+        <div class="act-summary">${escapeHtml(act.summary || '')}</div>
+        ${filesHtml ? `<div class="act-files">${filesHtml}</div>` : ''}
+        <div class="act-actions">
+          ${!act.read ? `<button class="btn btn-ghost btn-sm" onclick="markRead('${act.id}')">Mark Read</button>` : ''}
+          <button class="btn btn-ghost btn-sm" onclick="spawnFromActivity('${act.task_id}', '${escapeHtml(act.title || '')}')">Spawn Follow-up</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  async function markRead(actId) {
+    await apiPost('/api/activity/read', { id: actId });
+    loadActivity();
+  }
+
+  async function markAllRead() {
+    await apiPost('/api/activity/read', { all: true });
+    loadActivity();
+    showToast('All marked as read', 'success');
+  }
+
+  function spawnFromActivity(taskId, title) {
+    // Pre-fill the new task modal with context from the completed task
+    openNewTaskModal();
+    document.getElementById('new-title').value = 'Follow-up: ' + title;
+    document.getElementById('new-description').value = 'Follow-up from ' + taskId + '. ';
+    document.getElementById('new-description').focus();
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // AGENT QUESTION SYSTEM — agents ask, you answer
+  // ═══════════════════════════════════════════════════════════
+  let agentQuestions = { pending: [], answered: [] };
+
+  async function loadAgentQuestions() {
+    try {
+      const data = await apiGet('/api/agent/questions');
+      agentQuestions = data;
+      const badge = document.getElementById('questions-badge');
+      if (data.pending_count > 0) {
+        badge.style.display = 'inline-flex';
+        badge.textContent = data.pending_count;
+      } else {
+        badge.style.display = 'none';
+      }
+      if (currentTab === 'questions') renderAgentQuestions();
+    } catch (err) { console.error('Agent questions load error:', err); }
+  }
+
+  function renderAgentQuestions() {
+    // IMPORTANT: Don't re-render if user is typing in an answer input
+    const activeEl = document.activeElement;
+    if (activeEl && activeEl.id && activeEl.id.startsWith('aq-input-')) return;
+
+    const list = document.getElementById('questions-list');
+    const answeredSection = document.getElementById('answered-section');
+    const answeredList = document.getElementById('answered-list');
+    document.getElementById('questions-count').textContent =
+      agentQuestions.pending.length + ' pending question' + (agentQuestions.pending.length !== 1 ? 's' : '');
+
+    if (agentQuestions.pending.length === 0) {
+      list.innerHTML = '<div class="empty-state"><h3>No pending questions</h3><p>When agents need your input, their questions appear here. You answer, they continue working.</p></div>';
+    } else {
+      list.innerHTML = agentQuestions.pending.map(q => {
+        const time = q.timestamp ? new Date(q.timestamp).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '';
+        return `
+        <div class="task-card" style="border-left:3px solid var(--red);margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+            <div>
+              <span style="font-size:11px;background:var(--red);color:white;padding:2px 8px;border-radius:4px;font-weight:600">${escapeHtml(q.agent)}</span>
+              ${q.task_id ? `<span style="font-size:11px;color:var(--text-muted);margin-left:6px">${escapeHtml(q.task_id)}</span>` : ''}
+            </div>
+            <span style="font-size:11px;color:var(--text-muted)">${time}</span>
+          </div>
+          <div style="font-size:15px;font-weight:600;margin-bottom:6px">${escapeHtml(q.question)}</div>
+          ${q.context ? `<div style="font-size:12px;color:var(--text-secondary);margin-bottom:10px">${escapeHtml(q.context)}</div>` : ''}
+          ${q.options && q.options.length > 0 ?
+            `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">${q.options.map(o =>
+              `<button class="btn btn-ghost btn-sm" onclick="answerAgentQuestion(${q.id}, '${escapeHtml(o)}')">${escapeHtml(o)}</button>`
+            ).join('')}</div>` : ''}
+          <div style="display:flex;gap:6px">
+            <input type="text" id="aq-input-${q.id}" placeholder="Type your answer..."
+              style="flex:1;background:var(--bg-primary);border:1px solid var(--border);color:var(--text-primary);padding:8px 12px;border-radius:8px;font-size:13px"
+              onkeydown="if(event.key==='Enter')answerAgentQuestion(${q.id})">
+            <button class="btn btn-primary btn-sm" onclick="answerAgentQuestion(${q.id})">Answer</button>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    // Answered section
+    if (agentQuestions.answered && agentQuestions.answered.length > 0) {
+      answeredSection.style.display = 'block';
+      answeredList.innerHTML = agentQuestions.answered.slice(-10).reverse().map(q => {
+        const time = q.answer_timestamp ? new Date(q.answer_timestamp).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '';
+        return `
+        <div class="task-card" style="opacity:0.7;margin-bottom:6px;border-left:3px solid var(--green)">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+            <span style="font-size:11px;color:var(--green);font-weight:600">${escapeHtml(q.agent)} — answered</span>
+            <span style="font-size:11px;color:var(--text-muted)">${time}</span>
+          </div>
+          <div style="font-size:13px;margin-bottom:4px"><strong>Q:</strong> ${escapeHtml(q.question)}</div>
+          <div style="font-size:13px;color:var(--green)"><strong>A:</strong> ${escapeHtml(q.answer)}</div>
+        </div>`;
+      }).join('');
+    } else {
+      answeredSection.style.display = 'none';
+    }
+  }
+
+  async function answerAgentQuestion(qid, presetAnswer) {
+    const input = document.getElementById(`aq-input-${qid}`);
+    const answer = presetAnswer || (input ? input.value.trim() : '');
+    if (!answer) { showToast('Please type an answer', 'error'); return; }
+
+    try {
+      await apiPost('/api/agent/answer', { question_id: qid, answer: answer });
+      showToast('Answer sent to agent', 'success');
+      loadAgentQuestions();
+    } catch (err) {
+      showToast('Failed to send answer', 'error');
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // LAUNCH READINESS CHECKLIST — idea to market, zero surprises
+  // ═══════════════════════════════════════════════════════════
+  let launchData = { items: [], stats: {} };
+  let launchCatFilter = 'all';
+
+  async function loadLaunchChecklist() {
+    try {
+      launchData = await apiGet('/api/launch-checklist');
+      // Update badge
+      const badge = document.getElementById('launch-badge');
+      if (launchData.stats) {
+        badge.style.display = 'inline-flex';
+        badge.textContent = launchData.stats.pct + '%';
+        badge.style.background = launchData.stats.pct >= 80 ? 'var(--green)' : launchData.stats.pct >= 40 ? 'var(--accent)' : 'var(--red)';
+      }
+      if (currentTab === 'launch') renderLaunchChecklist();
+    } catch (err) { console.error('Launch checklist load error:', err); }
+  }
+
+  function filterLaunchCat(cat, btn) {
+    launchCatFilter = cat;
+    document.querySelectorAll('#launch-cat-filters .filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderLaunchChecklist();
+  }
+
+  function renderLaunchChecklist() {
+    if (!launchData.items) return;
+    const list = document.getElementById('launch-list');
+
+    // Update progress
+    if (launchData.stats) {
+      document.getElementById('launch-progress-fill').style.width = launchData.stats.pct + '%';
+      document.getElementById('launch-pct').textContent = launchData.stats.pct + '%';
+      document.getElementById('launch-subtitle').textContent =
+        `${launchData.stats.done}/${launchData.stats.total} complete | ${launchData.stats.in_progress} in progress`;
+    }
+
+    // Build category filters
+    const cats = [...new Set(launchData.items.map(i => i.cat))];
+    const filterDiv = document.getElementById('launch-cat-filters');
+    filterDiv.innerHTML = `<button class="filter-btn ${launchCatFilter === 'all' ? 'active' : ''}" onclick="filterLaunchCat('all', this)">All</button>` +
+      cats.map(c => {
+        const catDone = launchData.items.filter(i => i.cat === c && i.status === 'done').length;
+        const catTotal = launchData.items.filter(i => i.cat === c).length;
+        return `<button class="filter-btn ${launchCatFilter === c ? 'active' : ''}" onclick="filterLaunchCat('${c}', this)">${c} <span style="opacity:0.5;font-size:10px">${catDone}/${catTotal}</span></button>`;
+      }).join('');
+
+    // Filter items
+    let items = launchData.items;
+    if (launchCatFilter !== 'all') {
+      items = items.filter(i => i.cat === launchCatFilter);
+    }
+
+    // Group by category
+    const grouped = {};
+    items.forEach(i => {
+      if (!grouped[i.cat]) grouped[i.cat] = [];
+      grouped[i.cat].push(i);
+    });
+
+    list.innerHTML = Object.entries(grouped).map(([cat, catItems]) => {
+      const catDone = catItems.filter(i => i.status === 'done').length;
+      return `
+      <div style="margin-bottom:20px">
+        <div style="font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:8px;display:flex;align-items:center;gap:8px">
+          ${escapeHtml(cat)}
+          <span style="font-size:11px;color:var(--text-muted);font-weight:400">${catDone}/${catItems.length}</span>
+        </div>
+        ${catItems.sort((a,b) => (a.order||0) - (b.order||0)).map(item => {
+          const statusIcon = item.status === 'done' ? '<span style="color:var(--green);font-size:18px">&#10003;</span>' :
+            item.status === 'in_progress' ? '<span style="color:var(--accent);font-size:14px">&#9679;</span>' :
+            '<span style="color:var(--text-muted);font-size:14px">&#9675;</span>';
+          const priorityColor = item.priority === 'critical' ? 'var(--red)' : item.priority === 'high' ? 'var(--accent)' : 'var(--text-muted)';
+          return `
+          <div class="task-card" style="margin-bottom:6px;opacity:${item.status === 'done' ? '0.6' : '1'};border-left:3px solid ${item.status === 'done' ? 'var(--green)' : item.status === 'in_progress' ? 'var(--accent)' : 'var(--border)'};cursor:pointer" onclick="openLaunchDetail('${item.id}')" title="Click to view details">
+            <div style="display:flex;align-items:flex-start;gap:10px">
+              <div style="cursor:pointer;padding:2px 4px" onclick="event.stopPropagation();cycleLaunchStatus('${item.id}')" title="Click to cycle status">${statusIcon}</div>
+              <div style="flex:1">
+                <div style="font-size:14px;font-weight:600;${item.status === 'done' ? 'text-decoration:line-through;' : ''}">${escapeHtml(item.title)}</div>
+                <div style="font-size:12px;color:var(--text-secondary);margin-top:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${escapeHtml(item.desc)}</div>
+                <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;align-items:center">
+                  <span style="font-size:10px;color:${priorityColor};font-weight:600;text-transform:uppercase">${item.priority}</span>
+                  <span style="font-size:10px;color:var(--text-muted)">${escapeHtml(item.cost || '')}</span>
+                  <span style="font-size:10px;color:var(--text-muted)">${escapeHtml(item.timeline || '')}</span>
+                  ${item.depends ? `<span style="font-size:10px;color:var(--accent)">Depends: ${escapeHtml(item.depends)}</span>` : ''}
+                  <span style="font-size:10px;color:var(--accent);margin-left:auto">Click for details →</span>
+                </div>
+              </div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`;
+    }).join('');
+  }
+
+  async function cycleLaunchStatus(itemId) {
+    const item = launchData.items.find(i => i.id === itemId);
+    if (!item) return;
+    const next = item.status === 'not_started' ? 'in_progress' : item.status === 'in_progress' ? 'done' : 'not_started';
+    try {
+      await apiPost('/api/launch-checklist/update', { id: itemId, status: next });
+      item.status = next;
+      renderLaunchChecklist();
+      loadLaunchChecklist(); // Refresh from server for accurate stats
+    } catch (err) { showToast('Failed to update', 'error'); }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // LAUNCH CHECKLIST DETAIL MODAL
+  // ═══════════════════════════════════════════════════════════
+  let currentLaunchItemId = null;
+
+  // Category-specific helpful links
+  const launchCategoryLinks = {
+    'Business Formation': [
+      { label: 'IRS: Apply for EIN Online', url: 'https://www.irs.gov/businesses/small-businesses-self-employed/apply-for-an-employer-identification-number-ein-online' },
+      { label: 'Wyoming LLC (Privacy)', url: 'https://sos.wyo.gov/Business/StartBusiness.aspx' },
+      { label: 'Delaware LLC', url: 'https://corp.delaware.gov/howtoform/' },
+      { label: 'D&B: Get DUNS Number', url: 'https://www.dnb.com/duns-number/get-a-duns.html' },
+      { label: 'Compare LLC States', url: 'https://www.incfile.com/best-state-to-start-llc/' }
+    ],
+    'Legal': [
+      { label: 'Termly: Free Privacy Policy Generator', url: 'https://termly.io/products/privacy-policy-generator/' },
+      { label: 'Anthropic Usage Policy', url: 'https://www.anthropic.com/legal/aup' },
+      { label: 'GDPR Template Generator', url: 'https://gdpr.eu/privacy-notice/' },
+      { label: 'Terms of Service Generator', url: 'https://www.termsfeed.com/terms-service-generator/' }
+    ],
+    'Apple App Store': [
+      { label: 'Apple Developer Program', url: 'https://developer.apple.com/programs/' },
+      { label: 'App Store Review Guidelines', url: 'https://developer.apple.com/app-store/review/guidelines/' },
+      { label: 'Guideline 5.1.2 (AI/ML)', url: 'https://developer.apple.com/app-store/review/guidelines/#data-collection-and-storage' },
+      { label: 'TestFlight Documentation', url: 'https://developer.apple.com/testflight/' },
+      { label: 'Privacy Labels', url: 'https://developer.apple.com/app-store/app-privacy-details/' },
+      { label: 'Small Business Program', url: 'https://developer.apple.com/app-store/small-business-program/' }
+    ],
+    'Google Play Store': [
+      { label: 'Google Play Console', url: 'https://play.google.com/console/' },
+      { label: 'Developer Policy Center', url: 'https://play.google.com/about/developer-content-policy/' },
+      { label: 'Data Safety Form', url: 'https://support.google.com/googleplay/android-developer/answer/10787469' },
+      { label: 'AI-Generated Content Policy', url: 'https://support.google.com/googleplay/android-developer/answer/14023419' },
+      { label: 'Identity Verification', url: 'https://support.google.com/googleplay/android-developer/answer/13851108' }
+    ],
+    'Desktop Distribution': [
+      { label: 'Apple Notarization Guide', url: 'https://developer.apple.com/documentation/security/notarizing_macos_software_before_distribution' },
+      { label: 'Azure Trusted Signing', url: 'https://azure.microsoft.com/en-us/products/trusted-signing' },
+      { label: 'Tauri 2.0 Documentation', url: 'https://v2.tauri.app/' },
+      { label: 'Electron Builder', url: 'https://www.electron.build/' }
+    ],
+    'Compliance': [
+      { label: 'GDPR Official Site', url: 'https://gdpr.eu/' },
+      { label: 'California Consumer Privacy Act', url: 'https://oag.ca.gov/privacy/ccpa' },
+      { label: 'EU AI Act Overview', url: 'https://artificialintelligenceact.eu/' },
+      { label: 'CA SB 942 (AI Transparency)', url: 'https://leginfo.legislature.ca.gov/faces/billTextClient.xhtml?bill_id=202320240SB942' },
+      { label: 'COPPA Rule', url: 'https://www.ftc.gov/legal-library/browse/rules/childrens-online-privacy-protection-rule-coppa' }
+    ],
+    'Payments': [
+      { label: 'Stripe Dashboard', url: 'https://dashboard.stripe.com/' },
+      { label: 'Stripe Billing', url: 'https://stripe.com/billing' },
+      { label: 'Stripe Tax', url: 'https://stripe.com/tax' },
+      { label: 'Apple In-App Purchase', url: 'https://developer.apple.com/in-app-purchase/' },
+      { label: 'Google Play Billing', url: 'https://developer.android.com/google/play/billing' }
+    ],
+    'Intellectual Property': [
+      { label: 'USPTO Trademark Search (TESS)', url: 'https://tmsearch.uspto.gov/' },
+      { label: 'USPTO File Trademark Online', url: 'https://www.uspto.gov/trademarks/apply' },
+      { label: 'WIPO Global Brand Database', url: 'https://branddb.wipo.int/' },
+      { label: 'Choose an Open Source License', url: 'https://choosealicense.com/' }
+    ],
+    'Security': [
+      { label: 'Let\'s Encrypt', url: 'https://letsencrypt.org/' },
+      { label: 'Supabase Auth', url: 'https://supabase.com/docs/guides/auth' },
+      { label: 'OWASP Top 10', url: 'https://owasp.org/www-project-top-ten/' },
+      { label: 'SSL Labs Test', url: 'https://www.ssllabs.com/ssltest/' }
+    ],
+    'Marketing': [
+      { label: 'CAN-SPAM Act', url: 'https://www.ftc.gov/business-guidance/resources/can-spam-act-compliance-guide-business' },
+      { label: 'FTC Endorsement Guides', url: 'https://www.ftc.gov/business-guidance/resources/ftcs-endorsement-guides-what-people-are-asking' }
+    ],
+    'Accessibility': [
+      { label: 'WCAG 2.1 Guidelines', url: 'https://www.w3.org/WAI/WCAG21/quickref/' },
+      { label: 'WebAIM Contrast Checker', url: 'https://webaim.org/resources/contrastchecker/' },
+      { label: 'axe DevTools', url: 'https://www.deque.com/axe/devtools/' }
+    ],
+    'Accounting': [
+      { label: 'QuickBooks', url: 'https://quickbooks.intuit.com/' },
+      { label: 'Xero', url: 'https://www.xero.com/' },
+      { label: 'IRS Quarterly Estimated Tax', url: 'https://www.irs.gov/businesses/small-businesses-self-employed/estimated-taxes' }
+    ]
+  };
+
+  function openLaunchDetail(itemId) {
+    const item = launchData.items.find(i => i.id === itemId);
+    if (!item) return;
+
+    currentLaunchItemId = itemId;
+
+    // Populate modal
+    document.getElementById('launch-detail-title').textContent = item.title;
+    document.getElementById('launch-detail-category').textContent = item.cat;
+
+    // Priority badge
+    const priorityEl = document.getElementById('launch-detail-priority');
+    priorityEl.textContent = item.priority.toUpperCase();
+    priorityEl.style.background = item.priority === 'critical' ? 'rgba(239,68,68,0.2)' :
+      item.priority === 'high' ? 'rgba(168,85,247,0.2)' : 'var(--bg-tertiary)';
+    priorityEl.style.color = item.priority === 'critical' ? 'var(--red)' :
+      item.priority === 'high' ? 'var(--accent)' : 'var(--text-muted)';
+
+    // Status badge
+    const statusEl = document.getElementById('launch-detail-status');
+    const statusText = item.status === 'done' ? 'Complete' : item.status === 'in_progress' ? 'In Progress' : 'Not Started';
+    statusEl.textContent = statusText;
+    statusEl.style.background = item.status === 'done' ? 'rgba(34,197,94,0.2)' :
+      item.status === 'in_progress' ? 'rgba(168,85,247,0.2)' : 'var(--bg-tertiary)';
+    statusEl.style.color = item.status === 'done' ? 'var(--green)' :
+      item.status === 'in_progress' ? 'var(--accent)' : 'var(--text-muted)';
+
+    // Instructions
+    document.getElementById('launch-detail-instructions').innerHTML = escapeHtml(item.desc).replace(/\. /g, '.<br><br>');
+
+    // Cost & Timeline
+    document.getElementById('launch-detail-cost').textContent = item.cost || 'Free';
+    document.getElementById('launch-detail-timeline').textContent = item.timeline || 'Varies';
+
+    // Dependencies
+    const dependsSection = document.getElementById('launch-detail-depends-section');
+    if (item.depends) {
+      const dependItem = launchData.items.find(i => i.id === item.depends);
+      dependsSection.style.display = 'block';
+      document.getElementById('launch-detail-depends').innerHTML = dependItem ?
+        `<span style="cursor:pointer" onclick="closeLaunchDetail();setTimeout(()=>openLaunchDetail('${item.depends}'),100)">${escapeHtml(dependItem.title)} →</span>` :
+        escapeHtml(item.depends);
+    } else {
+      dependsSection.style.display = 'none';
+    }
+
+    // Helpful links
+    const linksDiv = document.getElementById('launch-detail-links');
+    const categoryLinks = launchCategoryLinks[item.cat] || [];
+    if (categoryLinks.length > 0) {
+      document.getElementById('launch-detail-links-section').style.display = 'block';
+      linksDiv.innerHTML = categoryLinks.map(link =>
+        `<a href="${escapeHtml(link.url)}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg-tertiary);border-radius:6px;text-decoration:none;color:var(--accent);font-size:13px;transition:background 0.15s" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='var(--bg-tertiary)'">
+          <span style="font-size:16px">🔗</span>
+          ${escapeHtml(link.label)}
+          <span style="margin-left:auto;opacity:0.5">↗</span>
+        </a>`
+      ).join('');
+    } else {
+      document.getElementById('launch-detail-links-section').style.display = 'none';
+    }
+
+    // Action button text
+    const actionText = document.getElementById('launch-detail-action-text');
+    actionText.textContent = item.status === 'not_started' ? 'Mark In Progress' :
+      item.status === 'in_progress' ? 'Mark Complete' : 'Reset to Not Started';
+
+    // Open modal
+    document.getElementById('launch-detail-modal').classList.add('open');
+  }
+
+  function closeLaunchDetail() {
+    document.getElementById('launch-detail-modal').classList.remove('open');
+    currentLaunchItemId = null;
+  }
+
+  async function cycleLaunchStatusFromModal() {
+    if (!currentLaunchItemId) return;
+    await cycleLaunchStatus(currentLaunchItemId);
+    // Refresh modal to show updated status
+    openLaunchDetail(currentLaunchItemId);
+  }
+
+  // Close modal on overlay click
+  document.getElementById('launch-detail-modal').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('launch-detail-modal')) closeLaunchDetail();
+  });
+
+  // ═══════════════════════════════════════════════════════════
+  // FILE UPLOADS
+  // ═══════════════════════════════════════════════════════════
+  let uploadsData = { files: [], stats: {} };
+
+  async function loadUploads() {
+    try {
+      const res = await fetch('/api/uploads');
+      uploadsData = await res.json();
+      renderUploads();
+      // Update badge
+      const badge = document.getElementById('uploads-badge');
+      if (uploadsData.stats && uploadsData.stats.count > 0) {
+        badge.style.display = 'inline-flex';
+        badge.textContent = uploadsData.stats.count;
+      } else {
+        badge.style.display = 'none';
+      }
+    } catch (err) {
+      console.error('Failed to load uploads:', err);
+    }
+  }
+
+  function renderUploads() {
+    const list = document.getElementById('uploads-list');
+    const empty = document.getElementById('uploads-empty');
+    const files = uploadsData.files || [];
+
+    // Update stats
+    document.getElementById('uploads-count').textContent = uploadsData.stats?.count || 0;
+    document.getElementById('uploads-size').textContent = (uploadsData.stats?.total_size_mb || 0) + ' MB';
+
+    if (files.length === 0) {
+      list.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+
+    empty.style.display = 'none';
+
+    list.innerHTML = files.map(file => {
+      const icon = getFileIcon(file.type);
+      const sizeStr = formatFileSize(file.size);
+      const dateStr = new Date(file.uploaded_at).toLocaleDateString();
+      return `
+      <div class="task-card" style="margin-bottom:8px;display:flex;align-items:center;gap:12px">
+        <div style="font-size:24px">${icon}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:600;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+            <a href="${escapeHtml(file.url)}" target="_blank" style="color:inherit;text-decoration:none" title="Click to view/download">${escapeHtml(file.original_name || file.filename)}</a>
+          </div>
+          <div style="display:flex;gap:12px;font-size:11px;color:var(--text-muted);margin-top:2px">
+            <span>${sizeStr}</span>
+            <span>${dateStr}</span>
+            ${file.task_id ? `<span style="color:var(--accent)">📌 ${escapeHtml(file.task_id)}</span>` : ''}
+          </div>
+          ${file.description ? `<div style="font-size:12px;color:var(--text-secondary);margin-top:4px">${escapeHtml(file.description)}</div>` : ''}
+        </div>
+        <div style="display:flex;gap:8px">
+          <a href="${escapeHtml(file.url)}" download="${escapeHtml(file.filename)}" class="btn btn-ghost btn-sm" title="Download">⬇️</a>
+          <button class="btn btn-ghost btn-sm" onclick="deleteUpload(${file.id})" title="Delete" style="color:var(--red)">🗑️</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function getFileIcon(type) {
+    const icons = {
+      'image': '🖼️',
+      'pdf': '📕',
+      'word': '📘',
+      'excel': '📗',
+      'text': '📄',
+      'document': '📁'
+    };
+    return icons[type] || '📁';
+  }
+
+  function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+  }
+
+  async function handleFileUpload(input) {
+    const files = input.files;
+    if (!files || files.length === 0) return;
+
+    for (const file of files) {
+      await uploadSingleFile(file);
+    }
+    input.value = ''; // Reset input
+    await loadUploads();
+    showToast(`${files.length} file(s) uploaded`, 'success');
+  }
+
+  async function uploadSingleFile(file, taskId = null, description = '') {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (taskId) formData.append('task_id', taskId);
+    if (description) formData.append('description', description);
+
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        showToast('Upload failed: ' + (data.error || 'Unknown error'), 'error');
+      }
+      return data;
+    } catch (err) {
+      showToast('Upload failed: ' + err.message, 'error');
+      return { ok: false, error: err.message };
+    }
+  }
+
+  async function deleteUpload(fileId) {
+    if (!confirm('Delete this file?')) return;
+    try {
+      const res = await fetch('/api/uploads/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: fileId })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        await loadUploads();
+        showToast('File deleted', 'success');
+      } else {
+        showToast('Delete failed: ' + (data.error || 'Unknown error'), 'error');
+      }
+    } catch (err) {
+      showToast('Delete failed: ' + err.message, 'error');
+    }
+  }
+
+  // Drag & drop handling
+  const dropzone = document.getElementById('upload-dropzone');
+
+  dropzone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropzone.style.borderColor = 'var(--accent)';
+    dropzone.style.background = 'rgba(168,85,247,0.1)';
+  });
+
+  dropzone.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    dropzone.style.borderColor = 'var(--border)';
+    dropzone.style.background = 'var(--bg-secondary)';
+  });
+
+  dropzone.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    dropzone.style.borderColor = 'var(--border)';
+    dropzone.style.background = 'var(--bg-secondary)';
+
+    const files = e.dataTransfer.files;
+    if (files.length === 0) return;
+
+    for (const file of files) {
+      await uploadSingleFile(file);
+    }
+    await loadUploads();
+    showToast(`${files.length} file(s) uploaded`, 'success');
+  });
+
+  // Click on dropzone triggers file input
+  dropzone.addEventListener('click', () => {
+    document.getElementById('file-upload-input').click();
+  });
+
+  // ═══════════════════════════════════════════════════════════
+  // CONTEXT NOTES (add to running agents)
+  // ═══════════════════════════════════════════════════════════
+  async function addContextNote() {
+    if (!selectedTask) return;
+    const input = document.getElementById('context-note-input');
+    const note = input.value.trim();
+    if (!note) return;
+
+    input.value = '';
+    const result = await apiPost('/api/tasks/context', { id: selectedTask.id, note: note });
+    if (result.success) {
+      showToast('Context sent to ' + selectedTask.id, 'success');
+      selectedTask = result.task;
+      renderContextNotes();
+    } else {
+      showToast(result.error || 'Failed', 'error');
+    }
+  }
+
+  function renderContextNotes() {
+    const list = document.getElementById('context-notes-list');
+    const notes = (selectedTask && selectedTask.notes) || [];
+    if (notes.length === 0) {
+      list.innerHTML = '';
+      return;
+    }
+    list.innerHTML = notes.map(n => {
+      const time = n.timestamp ? new Date(n.timestamp).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '';
+      return `<div class="context-note-item">
+        <span class="context-note-time">${time}</span> ${escapeHtml(n.text)}
+      </div>`;
+    }).join('');
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // INIT
+  // ═══════════════════════════════════════════════════════════
+  loadTasks();
+  loadActivity();  // Load activity on start for badge count
+  loadAgentQuestions();  // Load agent questions on start for badge count
+
+  // Auto-refresh every 3 seconds (no AI tokens - just reads local JSON file)
+  setInterval(() => {
+    loadTasks();
+    loadActivity();  // Always check for badge updates
+    loadAgentQuestions();  // Always check for question badge updates
+  }, 3000);
+
+  // ═══════════════════════════════════════════════════════════
+  // BRAIN DUMP
+  // ═══════════════════════════════════════════════════════════
+  let extractedTasks = [];
+
+  function openBrainDump() {
+    document.getElementById('braindump-text').value = '';
+    document.getElementById('braindump-result').style.display = 'none';
+    document.getElementById('braindump-process-btn').style.display = 'inline-flex';
+    document.getElementById('braindump-process-btn').textContent = 'Process Thoughts';
+    document.getElementById('braindump-process-btn').disabled = false;
+    document.getElementById('braindump-save-btn').style.display = 'none';
+    document.getElementById('braindump-modal').classList.add('open');
+    document.getElementById('braindump-text').focus();
+  }
+
+  function closeBrainDump() {
+    document.getElementById('braindump-modal').classList.remove('open');
+    extractedTasks = [];
+  }
+
+  async function processBrainDump() {
+    const text = document.getElementById('braindump-text').value.trim();
+    if (!text) { showToast('Type your thoughts first', 'error'); return; }
+
+    const btn = document.getElementById('braindump-process-btn');
+    btn.textContent = 'Processing...';
+    btn.disabled = true;
+
+    try {
+      const result = await apiPost('/api/braindump', { text: text });
+
+      if (result.tasks && result.tasks.length > 0) {
+        extractedTasks = result.tasks;
+        renderExtractedTasks();
+        document.getElementById('braindump-result').style.display = 'block';
+        btn.style.display = 'none';
+        document.getElementById('braindump-save-btn').style.display = 'inline-flex';
+      } else {
+        showToast('No tasks extracted. Try being more specific.', 'error');
+        btn.textContent = 'Process Thoughts';
+        btn.disabled = false;
+      }
+    } catch (err) {
+      showToast('Processing failed - try again', 'error');
+      btn.textContent = 'Process Thoughts';
+      btn.disabled = false;
+    }
+  }
+
+  function renderExtractedTasks() {
+    const container = document.getElementById('braindump-tasks');
+    container.innerHTML = extractedTasks.map((task, i) => `
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:10px;background:var(--bg-primary);border-radius:8px;margin-bottom:6px;border:1px solid var(--border)">
+        <input type="checkbox" checked id="bd-task-${i}" style="margin-top:3px">
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:14px">${escapeHtml(task.title)}</div>
+          <div style="font-size:12px;color:var(--text-secondary);margin-top:2px">${escapeHtml(task.description || '')}</div>
+          <div style="display:flex;gap:6px;margin-top:6px">
+            <span class="tag tag-role">${task.role || 'builder'}</span>
+            <span class="tag tag-priority-${task.priority || 'medium'}">${(task.priority || 'medium').toUpperCase()}</span>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  async function saveBrainDumpTasks() {
+    const selected = extractedTasks.filter((_, i) =>
+      document.getElementById('bd-task-' + i).checked
+    );
+
+    if (selected.length === 0) { showToast('Select at least one task', 'error'); return; }
+
+    const saveBtn = document.getElementById('braindump-save-btn');
+    saveBtn.textContent = 'Saving...';
+    saveBtn.disabled = true;
+
+    let created = 0;
+    for (const task of selected) {
+      const result = await apiPost('/api/tasks', {
+        title: task.title,
+        description: task.description || '',
+        role: task.role || 'builder',
+        priority: task.priority || 'medium',
+        context: task.context || []
+      });
+      if (result.success) created++;
+    }
+
+    closeBrainDump();
+    await loadTasks();
+    showConfirmation(`${created} tasks created from brain dump`, '', `${created} new tasks`);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // CHAT WITH PM
+  // ═══════════════════════════════════════════════════════════
+  let chatHistory = [];
+  let chatOpen = false;
+  let firstSummon = true;  // Dramatic entrance only once per session
+  let chatMode = 'overseer'; // 'overseer' or 'pm'
+  let pmInboxMessages = [];
+
+  function toggleChat() {
+    chatOpen = !chatOpen;
+    const panel = document.getElementById('chat-panel');
+    const fab = document.getElementById('chat-fab');
+
+    if (chatOpen) {
+      if (firstSummon) {
+        // ═══ GRAND ENTRANCE: smoke cloud + stars + delayed reveal ═══
+        // Get FAB position BEFORE hiding it
+        const fabRect = fab.getBoundingClientRect();
+        fab.style.display = 'none';
+        firstSummon = false;
+        summonTheGreatOverseer(fabRect, panel);
+      } else {
+        fab.style.display = 'none';
+        // ═══ SIMPLE OPEN: quick slide, no drama ═══
+        panel.classList.remove('smoke-reveal', 'simple-open');
+        panel.classList.add('open');
+        void panel.offsetWidth;
+        panel.classList.add('simple-open');
+        document.getElementById('chat-input').focus();
+        scrollChat();
+      }
+    } else {
+      panel.classList.remove('open', 'smoke-reveal', 'simple-open');
+      fab.style.display = 'flex';
+    }
+  }
+
+  function summonTheGreatOverseer(fabRect, panel) {
+    const cx = fabRect.left + fabRect.width / 2;
+    const cy = fabRect.top + fabRect.height / 2;
+
+    // Show chat panel behind the smoke — revealed as smoke clears
+    panel.classList.remove('smoke-reveal', 'simple-open');
+    panel.classList.add('open', 'smoke-reveal');
+
+    // Get chat panel's FULL bounding box so smoke covers the ENTIRE area
+    const panelRect = panel.getBoundingClientRect();
+
+    // ═══ USE ULTRA HYPER-REALISTIC VOLUMETRIC SMOKE ENGINE v2.0 ═══
+    if (window.HyperSmokeEngine) {
+      window.HyperSmokeEngine.start(panelRect, () => {
+        // Focus chat input once smoke completely clears
+        document.getElementById('chat-input').focus();
+        scrollChat();
+      });
+      // Focus once smoke starts clearing (after ~1.8s when fade begins)
+      setTimeout(() => {
+        document.getElementById('chat-input').focus();
+        scrollChat();
+      }, 2000);
+      return; // Skip old CSS smoke
+    }
+    const panelCx = panelRect.left + panelRect.width / 2;
+    const panelCy = panelRect.top + panelRect.height / 2;
+    const panelW = panelRect.width;
+    const panelH = panelRect.height;
+
+    // ═══════════════════════════════════════════════════════
+    // MAGICAL SMOKE — blankets the ENTIRE chat panel area
+    // Dense, opaque, completely obscures the panel
+    // Then billows upward and fades, revealing the chat
+    // ═══════════════════════════════════════════════════════
+    const stage = document.createElement('div');
+    stage.className = 'smoke-stage';
+    document.body.appendChild(stage);
+
+    // Rise distance: from panel center upward past the top
+    const maxRise = -(panelH * 0.8);
+
+    const turbClasses = ['turb', 'turb2', 'turb3'];
+    const shapes = [
+      '42% 58% 45% 55% / 50% 48% 52% 46%',
+      '55% 45% 52% 48% / 44% 56% 50% 50%',
+      '48% 52% 56% 44% / 53% 47% 45% 55%',
+      '50% 50% 42% 58% / 55% 45% 52% 48%',
+      '44% 56% 50% 50% / 48% 52% 56% 44%',
+    ];
+
+    // ── PHASE 1: Total coverage — blanket the ENTIRE chat panel ──
+    // 30 massive overlapping dark blobs spread across the full panel area
+    for (let j = 0; j < 30; j++) {
+      const el = document.createElement('div');
+      // Blobs big enough that each one alone covers most of the panel
+      const size = Math.max(panelW, panelH) * (0.9 + Math.random() * 0.6);
+      const tf = turbClasses[j % 3];
+      const shape = shapes[j % shapes.length];
+      const cls = j < 20 ? 'dark' : 'mid';
+      // Spread spawn points across the entire panel area (not just one corner)
+      const spawnX = panelRect.left + Math.random() * panelW;
+      const spawnY = panelRect.top + Math.random() * panelH;
+      el.className = `smoke-blob ${cls} ${tf}`;
+      el.style.cssText = `
+        left: ${spawnX - size / 2}px;
+        top: ${spawnY - size / 2}px;
+        width: ${size}px;
+        height: ${size * (0.65 + Math.random() * 0.45)}px;
+        border-radius: ${shape};
+        --delay: ${j * 30}ms;
+        --dur: ${4.0 + Math.random() * 1.0}s;
+        --drift: ${(Math.random() - 0.5) * 60}px;
+        --rise: ${maxRise * (0.05 + Math.random() * 0.12)}px;
+        --rot: ${(Math.random() - 0.5) * 14}deg;
+        --wave: ${(Math.random() - 0.5) * 15}px;
+      `;
+      stage.appendChild(el);
+    }
+
+    // ── PHASE 2: Flowing billow — rises upward from across the panel ──
+    // Blobs originate from different positions across the panel, not just one point
+    const streamBlobs = 55;
+    const spawnDuration = 2800;
+
+    for (let i = 0; i < streamBlobs; i++) {
+      const t = i / streamBlobs; // 0→1 progress through stream
+
+      const delay = 80 + t * spawnDuration + Math.random() * 90;
+      const rise = maxRise * (0.15 + t * 0.55 + Math.random() * 0.3);
+      const drift = (Math.random() - 0.5) * 120;
+      const wave = (Math.random() - 0.5) * 30;
+      // Blobs sized relative to panel so they always cover well
+      const size = Math.max(panelW, panelH) * (0.5 + (1 - t * 0.35) * 0.5 + Math.random() * 0.3);
+      const dur = 3.5 + Math.random() * 2.0;
+      const rot = (Math.random() - 0.5) * 28;
+
+      let cls;
+      const r = Math.random();
+      if (t < 0.2) {
+        cls = r < 0.55 ? 'dark' : r < 0.85 ? 'mid' : 'ember';
+      } else if (t < 0.45) {
+        cls = r < 0.3 ? 'dark' : r < 0.65 ? 'mid' : 'light';
+      } else if (t < 0.7) {
+        cls = r < 0.1 ? 'dark' : r < 0.4 ? 'mid' : r < 0.75 ? 'light' : 'ash';
+      } else {
+        cls = r < 0.25 ? 'light' : r < 0.55 ? 'ash' : 'wisp';
+      }
+
+      // Spawn across the panel area — concentrated at center, spreads outward
+      const spawnX = panelRect.left + panelW * (0.2 + Math.random() * 0.6);
+      const spawnY = panelRect.top + panelH * (0.3 + Math.random() * 0.6);
+
+      const el = document.createElement('div');
+      const tf = turbClasses[i % 3];
+      const shape = shapes[i % shapes.length];
+      const h = size * (0.6 + Math.random() * 0.55);
+
+      el.className = `smoke-blob ${cls} ${tf}`;
+      el.style.cssText = `
+        left: ${spawnX - size / 2}px;
+        top: ${spawnY - size / 2}px;
+        width: ${size}px;
+        height: ${h}px;
+        border-radius: ${shape};
+        --delay: ${delay}ms;
+        --dur: ${dur}s;
+        --drift: ${drift}px;
+        --rise: ${rise}px;
+        --rot: ${rot}deg;
+        --wave: ${wave}px;
+      `;
+      stage.appendChild(el);
+    }
+
+    // Clean up after all animations complete
+    setTimeout(() => stage.remove(), 7500);
+
+    // Focus chat input once panel is mostly visible (~75% through chat reveal)
+    setTimeout(() => {
+      document.getElementById('chat-input').focus();
+      scrollChat();
+    }, 3800);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // MULTI-AGENT SYSTEM - Dynamic agents + Broadcasting
+  // ═══════════════════════════════════════════════════════════
+  let currentAgent = 'pm';  // Default to PM
+  let dynamicAgents = {};   // Agents loaded from registry
+  const agentConfig = {
+    pm: {
+      name: 'PM (Project Manager)',
+      status: 'Coordinates tasks, delegates to Builder',
+      placeholder: 'Message PM...',
+      intro: 'I am your Project Manager. I coordinate tasks, prioritize work, and delegate to Builder. What do you need done?'
+    },
+    builder: {
+      name: 'Builder',
+      status: 'Executes code tasks from PM',
+      placeholder: 'Message Builder directly...',
+      intro: 'I am Builder. I execute coding tasks, fix bugs, and build features. PM usually assigns my tasks, but you can talk to me directly too.'
+    },
+    overseer: {
+      name: 'The Great Overseer',
+      status: 'Full project context + file access',
+      placeholder: 'Ask the Overseer anything...',
+      intro: 'I am The Great Overseer. I have REAL access to every file in this project — I can read code, list directories, and search across the codebase. Ask me anything.'
+    }
+  };
+  const agentChatHistory = { pm: [], builder: [], overseer: [] };
+
+  // ═══ DYNAMIC AGENT LOADING ═══
+  async function loadDynamicAgents() {
+    try {
+      const data = await apiGet('/api/agents');
+      if (data.agents) {
+        dynamicAgents = {};
+        const selector = document.getElementById('agent-selector');
+        const agentsList = document.getElementById('agents-list-content');
+
+        // Remove old dynamic agent buttons (keep static PM, Builder, Overseer, Broadcast)
+        selector.querySelectorAll('.agent-btn.spawned').forEach(btn => btn.remove());
+
+        // Reset agents list in broadcast modal
+        if (agentsList) {
+          agentsList.innerHTML = `
+            <span style="padding:4px 10px;background:rgba(34,197,94,0.2);color:var(--green);border-radius:12px;font-size:12px;">PM</span>
+            <span style="padding:4px 10px;background:rgba(34,197,94,0.2);color:var(--green);border-radius:12px;font-size:12px;">Builder</span>
+            <span style="padding:4px 10px;background:rgba(34,197,94,0.2);color:var(--green);border-radius:12px;font-size:12px;">Overseer</span>
+          `;
+        }
+
+        // Add new dynamic agents
+        const broadcastBtn = selector.querySelector('.broadcast-btn');
+        for (const agent of data.agents) {
+          if (['pm', 'builder', 'overseer'].includes(agent.id)) continue; // Skip built-ins
+
+          dynamicAgents[agent.id] = agent;
+          agentChatHistory[agent.id] = agentChatHistory[agent.id] || [];
+
+          // Add to config
+          agentConfig[agent.id] = {
+            name: agent.name,
+            status: agent.description || 'Spawned agent',
+            placeholder: `Message ${agent.name}...`,
+            intro: `I am ${agent.name}. ${agent.description || 'Ready to help.'}`
+          };
+
+          // Create button
+          const btn = document.createElement('button');
+          btn.className = `agent-btn spawned ${currentAgent === agent.id ? 'active' : ''}`;
+          btn.dataset.agent = agent.id;
+          btn.onclick = () => selectAgent(agent.id);
+          btn.innerHTML = `
+            <span class="agent-dot ${agent.status === 'online' ? 'online' : ''}"></span>
+            ${agent.name}
+            <span class="unread-badge" id="${agent.id}-unread" style="display:none">0</span>
+          `;
+
+          // Insert before broadcast button
+          if (broadcastBtn) {
+            selector.insertBefore(btn, broadcastBtn);
+          } else {
+            selector.appendChild(btn);
+          }
+
+          // Add to broadcast modal list
+          if (agentsList && agent.status === 'online') {
+            const span = document.createElement('span');
+            span.style.cssText = 'padding:4px 10px;background:rgba(168,85,247,0.2);color:#a855f7;border-radius:12px;font-size:12px;';
+            span.textContent = agent.name;
+            agentsList.appendChild(span);
+          }
+        }
+      }
+    } catch (err) {
+      console.log('Could not load dynamic agents:', err);
+    }
+  }
+
+  // ═══ BROADCAST MODAL ═══
+  function openBroadcastModal() {
+    loadDynamicAgents(); // Refresh agent list
+    document.getElementById('broadcast-modal').classList.add('open');
+    document.getElementById('broadcast-message').focus();
+  }
+
+  function closeBroadcastModal() {
+    document.getElementById('broadcast-modal').classList.remove('open');
+    document.getElementById('broadcast-message').value = '';
+  }
+
+  async function sendBroadcast() {
+    const message = document.getElementById('broadcast-message').value.trim();
+    const priority = document.getElementById('broadcast-priority').value;
+
+    if (!message) {
+      showToast('Please enter a message', 'error');
+      return;
+    }
+
+    try {
+      const result = await apiPost('/api/intercom/broadcast', { message, priority });
+      if (result.ok) {
+        closeBroadcastModal();
+        showConfirmBanner(`Broadcast sent to ${result.agents_notified || 'all'} agents`, '📢');
+        showToast('Broadcast sent to all agents!', 'success');
+      } else {
+        showToast(result.error || 'Failed to broadcast', 'error');
+      }
+    } catch (err) {
+      showToast('Connection error', 'error');
+    }
+  }
+
+  // ═══ INTERCOM DIRECT SEND (for dynamic agents) ═══
+  async function sendToIntercom(agentId, message) {
+    try {
+      const result = await apiPost('/api/intercom/send', {
+        agent: agentId,
+        message: message,
+        priority: 'normal'
+      });
+      return result;
+    } catch (err) {
+      console.error('Intercom send failed:', err);
+      return { error: err.message };
+    }
+  }
+
+  // Load dynamic agents on startup
+  setTimeout(loadDynamicAgents, 2000);
+  // Refresh every 30 seconds
+  setInterval(loadDynamicAgents, 30000);
+
+  function selectAgent(agent) {
+    if (!agentConfig[agent]) return;
+    currentAgent = agent;
+    chatMode = agent === 'overseer' ? 'overseer' : 'pm';  // Legacy compat
+
+    // Update agent selector buttons
+    document.querySelectorAll('.agent-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.agent === agent);
+    });
+
+    // Update header
+    const config = agentConfig[agent];
+    document.getElementById('chat-name').textContent = config.name;
+    document.getElementById('chat-status').textContent = config.status;
+    document.getElementById('chat-input').placeholder = config.placeholder;
+
+    // Clear chat and show intro
+    const messages = document.getElementById('chat-messages');
+    messages.innerHTML = '';
+    addChatMsg(config.intro, 'assistant');
+
+    // Restore chat history for this agent
+    agentChatHistory[agent].forEach(m => {
+      addChatMsg(m.content, m.role);
+    });
+
+    // Start polling for PM or Builder responses
+    if (agent === 'pm') {
+      startPmPoll();
+      stopBuilderPoll();
+    } else if (agent === 'builder') {
+      startBuilderPoll();
+      stopPmPoll();
+    } else {
+      stopPmPoll();
+      stopBuilderPoll();
+    }
+
+    // Clear unread badge for this agent
+    if (agent === 'builder') {
+      document.getElementById('builder-unread').style.display = 'none';
+    }
+  }
+
+  // Legacy function for compatibility
+  function setChatMode(mode) {
+    if (mode === 'overseer') {
+      selectAgent('overseer');
+    } else {
+      selectAgent('pm');
+    }
+  }
+
+  function addChatMsg(content, role) {
+    const messages = document.getElementById('chat-messages');
+    const div = document.createElement('div');
+    div.className = `chat-msg ${role}`;
+    div.innerHTML = `<div class="chat-msg-content">${escapeHtml(content)}</div>`;
+    messages.appendChild(div);
+    scrollChat();
+  }
+
+  function addThinkingMsg() {
+    const messages = document.getElementById('chat-messages');
+    const div = document.createElement('div');
+    div.className = 'chat-msg thinking';
+    div.id = 'thinking-msg';
+    div.innerHTML = '<div class="chat-msg-content">Thinking...</div>';
+    messages.appendChild(div);
+    scrollChat();
+  }
+
+  function removeThinkingMsg() {
+    const el = document.getElementById('thinking-msg');
+    if (el) el.remove();
+  }
+
+  function scrollChat() {
+    const messages = document.getElementById('chat-messages');
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  async function sendChat() {
+    const input = document.getElementById('chat-input');
+    const msg = input.value.trim();
+    if (!msg) return;
+
+    input.value = '';
+    input.style.height = 'auto';
+    addChatMsg(msg, 'user');
+
+    // Store in agent history
+    agentChatHistory[currentAgent].push({ role: 'user', content: msg });
+
+    const sendBtn = document.getElementById('chat-send-btn');
+
+    if (currentAgent === 'pm') {
+      // PM Direct mode — send message, PM will respond
+      sendBtn.disabled = true;
+      sendBtn.textContent = '...';
+      try {
+        const result = await apiPost('/api/pm/chat', { message: msg });
+        if (result.ok) {
+          addChatMsg('Sent to PM. Response incoming...', 'system');
+        } else {
+          addChatMsg('Failed to send. ' + (result.error || ''), 'system');
+        }
+      } catch (err) {
+        addChatMsg('Connection error. Is the server running?', 'system');
+      }
+      sendBtn.disabled = false;
+      sendBtn.textContent = 'Send';
+      return;
+    }
+
+    if (currentAgent === 'builder') {
+      // Builder Direct mode — send message to Builder via BOTH chat and intercom
+      sendBtn.disabled = true;
+      sendBtn.textContent = '...';
+      try {
+        // Send via chat system
+        const result = await apiPost('/api/builder/chat', { message: msg });
+        // ALSO send via intercom so Builder autonomous sees it
+        await sendToIntercom('builder', msg);
+        if (result.ok) {
+          addChatMsg('Sent to Builder. Response incoming...', 'system');
+        } else {
+          addChatMsg('Failed to send. ' + (result.error || ''), 'system');
+        }
+      } catch (err) {
+        addChatMsg('Connection error. Is the server running?', 'system');
+      }
+      sendBtn.disabled = false;
+      sendBtn.textContent = 'Send';
+      return;
+    }
+
+    // Handle dynamically spawned agents via intercom
+    if (dynamicAgents[currentAgent]) {
+      sendBtn.disabled = true;
+      sendBtn.textContent = '...';
+      try {
+        const result = await sendToIntercom(currentAgent, msg);
+        if (result.ok) {
+          addChatMsg(`Sent to ${agentConfig[currentAgent]?.name || currentAgent}. Waiting for response...`, 'system');
+        } else {
+          addChatMsg('Failed to send. ' + (result.error || ''), 'system');
+        }
+      } catch (err) {
+        addChatMsg('Connection error. Is the server running?', 'system');
+      }
+      sendBtn.disabled = false;
+      sendBtn.textContent = 'Send';
+      return;
+    }
+
+    // Overseer mode — AI with file access
+    chatHistory.push({ role: 'user', content: msg });
+    sendBtn.disabled = true;
+    sendBtn.textContent = '...';
+    document.getElementById('chat-status').textContent = 'Reading files...';
+    addThinkingMsg();
+
+    try {
+      const result = await apiPost('/api/chat', {
+        message: msg,
+        history: chatHistory.slice(-10)
+      });
+
+      removeThinkingMsg();
+
+      if (result.response) {
+        addChatMsg(result.response, 'assistant');
+        chatHistory.push({ role: 'assistant', content: result.response });
+        agentChatHistory.overseer.push({ role: 'assistant', content: result.response });
+      } else {
+        addChatMsg(result.error || 'No response received.', 'assistant');
+      }
+    } catch (err) {
+      removeThinkingMsg();
+      addChatMsg('Connection error. Is the server running?', 'assistant');
+    }
+
+    sendBtn.disabled = false;
+    sendBtn.textContent = 'Send';
+    document.getElementById('chat-status').textContent = 'Full project context + file access';
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // PM DIRECT — POLL FOR RESPONSES
+  // ═══════════════════════════════════════════════════════════
+  let pmPollInterval = null;
+  let pmLastSeenId = 0;
+
+  function startPmPoll() {
+    if (pmPollInterval) return; // already polling
+    pmPollInterval = setInterval(pollPmChat, 3000);
+    // Also poll immediately
+    pollPmChat();
+  }
+
+  function stopPmPoll() {
+    if (pmPollInterval) {
+      clearInterval(pmPollInterval);
+      pmPollInterval = null;
+    }
+  }
+
+  async function pollPmChat() {
+    try {
+      const res = await fetch('/api/pm/chat');
+      const data = await res.json();
+      if (!data.messages) return;
+
+      // Show any new PM responses we haven't displayed yet
+      for (const m of data.messages) {
+        if (m.from === 'pm' && m.id > pmLastSeenId) {
+          addChatMsg(m.message, 'pm');
+          pmLastSeenId = m.id;
+          scrollChat();
+          // Flash the badge if chat is closed
+          if (!chatOpen) {
+            const badge = document.getElementById('chat-fab-badge');
+            badge.style.display = 'flex';
+            badge.textContent = data.unread || '!';
+          }
+        }
+      }
+      // Track highest seen user msg id too
+      for (const m of data.messages) {
+        if (m.id > pmLastSeenId) pmLastSeenId = m.id;
+      }
+    } catch (e) {
+      // Silent fail on poll
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // BUILDER DIRECT — POLL FOR RESPONSES
+  // ═══════════════════════════════════════════════════════════
+  let builderPollInterval = null;
+  let builderLastSeenId = 0;
+
+  function startBuilderPoll() {
+    if (builderPollInterval) return;
+    builderPollInterval = setInterval(pollBuilderChat, 3000);
+    pollBuilderChat();
+    // Also update builder status dot
+    updateBuilderStatus();
+  }
+
+  function stopBuilderPoll() {
+    if (builderPollInterval) {
+      clearInterval(builderPollInterval);
+      builderPollInterval = null;
+    }
+  }
+
+  async function pollBuilderChat() {
+    try {
+      const res = await fetch('/api/builder/chat');
+      const data = await res.json();
+      if (!data.messages) return;
+
+      // Show new builder responses
+      for (const m of data.messages) {
+        if (m.from === 'builder' && m.id > builderLastSeenId) {
+          if (currentAgent === 'builder') {
+            addChatMsg(m.message, 'assistant');
+            agentChatHistory.builder.push({ role: 'assistant', content: m.message });
+          } else {
+            // Show unread badge if not viewing builder
+            const badge = document.getElementById('builder-unread');
+            const count = parseInt(badge.textContent || '0') + 1;
+            badge.textContent = count;
+            badge.style.display = 'inline';
+          }
+          builderLastSeenId = m.id;
+          scrollChat();
+        }
+      }
+      // Track highest seen id
+      for (const m of data.messages) {
+        if (m.id > builderLastSeenId) builderLastSeenId = m.id;
+      }
+    } catch (e) {
+      // Silent fail
+    }
+  }
+
+  async function updateBuilderStatus() {
+    try {
+      const res = await fetch('/api/builder/status');
+      const data = await res.json();
+      const dot = document.getElementById('builder-status-dot');
+      if (data.online) {
+        dot.classList.add('online');
+        if (data.busy) {
+          dot.classList.add('busy');
+          dot.classList.remove('online');
+        } else {
+          dot.classList.remove('busy');
+        }
+      } else {
+        dot.classList.remove('online', 'busy');
+      }
+    } catch (e) {
+      // Offline
+      document.getElementById('builder-status-dot').classList.remove('online', 'busy');
+    }
+  }
+
+  // Poll builder status every 30 seconds
+  setInterval(updateBuilderStatus, 30000);
+
+  // Chat input: Enter to send, Shift+Enter for newline
+  document.getElementById('chat-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendChat();
+    }
+  });
+
+  // Auto-grow chat input
+  document.getElementById('chat-input').addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+  });
+</script>
+</body>
+</html>

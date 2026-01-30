@@ -1,0 +1,145 @@
+{
+  "questions": [
+    {
+      "id": 1,
+      "agent": "Horizon Farm Credit",
+      "task_id": "TASK-LOAN",
+      "question": "What is your approximate annual revenue for 2023, 2024, and 2025?",
+      "options": [
+        "Under 100K",
+        "100K-250K",
+        "250K-500K",
+        "Over 500K"
+      ],
+      "context": "We need these figures to complete the Horizon Farm Credit loan application. The lender requires 3 years of income history.",
+      "timestamp": "2026-01-28T18:12:10.547852",
+      "answered": true,
+      "answer": "250K-500K",
+      "answer_timestamp": "2026-01-28T18:49:13.337715"
+    },
+    {
+      "id": 2,
+      "agent": "Horizon Farm Credit",
+      "task_id": "TASK-LOAN",
+      "question": "Do you have a signed lease agreement with Don, or is it a verbal arrangement?",
+      "options": [
+        "Signed lease",
+        "Verbal agreement",
+        "Own the land",
+        "Other arrangement"
+      ],
+      "context": "Horizon Farm Credit requires proof of land access. A signed lease strengthens the application significantly.",
+      "timestamp": "2026-01-28T18:12:16.433972",
+      "answered": true,
+      "answer": "Verbal agreement",
+      "answer_timestamp": "2026-01-28T18:49:19.140723"
+    },
+    {
+      "id": 3,
+      "agent": "Horizon Farm Credit",
+      "task_id": "TASK-LOAN",
+      "question": "What loan amount are you looking for, and what will the funds be used for?",
+      "options": [],
+      "context": "Need to know the specific dollar amount and purpose (equipment, operating capital, infrastructure, etc.) for the application.",
+      "timestamp": "2026-01-28T18:12:16.642529",
+      "answered": true,
+      "answer": "I am looking for $20,000 for debt consolidation off of HIGH interest credit cards, I am looking for $18,000 for an operating loan to get my season kicked off",
+      "answer_timestamp": "2026-01-28T19:03:27.023998"
+    },
+    {
+      "id": 4,
+      "agent": "DUNS Application",
+      "task_id": "DUNS-001",
+      "question": "What is the EXACT legal name of your LLC? (Must match your state registration exactly)",
+      "options": [],
+      "context": "This must be identical to your LLC filing - D&B will verify against state records. Example: 'Tiny Seed Farm LLC' not 'Tiny Seed Farm'",
+      "timestamp": "2026-01-28T22:21:26.572330",
+      "answered": true,
+      "answer": "Tiny Seed Farm LLC",
+      "answer_timestamp": "2026-01-29T10:12:44.407416"
+    },
+    {
+      "id": 5,
+      "agent": "DUNS Application",
+      "task_id": "DUNS-002",
+      "question": "What is your business PHYSICAL address? (No P.O. boxes allowed)",
+      "options": [],
+      "context": "D&B requires a physical street address. This is where your business operates or where you receive business mail at a physical location.",
+      "timestamp": "2026-01-28T22:21:27.673446",
+      "answered": true,
+      "answer": "102 N. Pittsburgh St. Zelienople Pa 16063",
+      "answer_timestamp": "2026-01-29T10:09:30.545846"
+    },
+    {
+      "id": 6,
+      "agent": "DUNS Application",
+      "task_id": "DUNS-003",
+      "question": "What is your business phone number?",
+      "options": [],
+      "context": "Must be a working number where D&B can reach you to verify. Can be a cell phone.",
+      "timestamp": "2026-01-28T22:21:28.741918",
+      "answered": true,
+      "answer": "717-725-5177",
+      "answer_timestamp": "2026-01-29T10:09:39.059325"
+    },
+    {
+      "id": 7,
+      "agent": "DUNS Application",
+      "task_id": "DUNS-004",
+      "question": "What is your title/role in the company?",
+      "options": [
+        "Owner",
+        "CEO",
+        "Managing Member",
+        "President"
+      ],
+      "context": "Example: Owner, CEO, Managing Member, President",
+      "timestamp": "2026-01-28T22:21:29.869370",
+      "answered": true,
+      "answer": "Owner",
+      "answer_timestamp": "2026-01-29T10:09:45.520531"
+    },
+    {
+      "id": 8,
+      "agent": "DUNS Application",
+      "task_id": "DUNS-005",
+      "question": "How many employees does the business have (including yourself)?",
+      "options": [
+        "1",
+        "2-5",
+        "6-10",
+        "11+"
+      ],
+      "context": "Just need an approximate number",
+      "timestamp": "2026-01-28T22:21:31.087854",
+      "answered": true,
+      "answer": "2-5",
+      "answer_timestamp": "2026-01-29T10:09:59.047114"
+    },
+    {
+      "id": 9,
+      "agent": "DUNS Application",
+      "task_id": "DUNS-006",
+      "question": "When did your business start? (Year is fine)",
+      "options": [],
+      "context": "The year your LLC was formed or when you started operating",
+      "timestamp": "2026-01-28T22:21:32.017341",
+      "answered": true,
+      "answer": "2017",
+      "answer_timestamp": "2026-01-29T10:10:03.124732"
+    },
+    {
+      "id": 10,
+      "agent": "DUNS Application",
+      "task_id": "DUNS-007",
+      "question": "Brief description of what TinyPM does (1-2 sentences)",
+      "options": [],
+      "context": "D&B needs a business description. Example: 'Software company developing AI-powered project management tools'",
+      "timestamp": "2026-01-28T22:21:32.913458",
+      "answered": true,
+      "answer": "TinyPM is the first AI project manager built     as a team of specialized agents\u2014an Overseer      that coordinates, a Scribe that remembers        everything across every session, an Artificer    that executes, and a Mentor that verifies        quality before anything reaches you.                                                              Unlike single-AI tools that forget your          project the moment you close the tab, TinyPM     learns your patterns, anticipates what you       need before you ask, and delivers work that's    already been reviewed.",
+      "answer_timestamp": "2026-01-29T10:13:23.895154"
+    }
+  ],
+  "next_id": 11
+}

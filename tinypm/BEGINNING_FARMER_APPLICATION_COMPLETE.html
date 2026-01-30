@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tiny Seed Farm - Beginning Farmer Tax Credit Application</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Open Sans', sans-serif;
+            font-size: 11pt;
+            line-height: 1.5;
+            color: #2c3e50;
+            max-width: 8.5in;
+            margin: 0 auto;
+            padding: 0.5in;
+            background: white;
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #2d5a27;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .logo-container {
+            margin-bottom: 15px;
+        }
+
+        .logo {
+            max-width: 350px;
+            height: auto;
+        }
+
+        .farm-name {
+            font-family: 'Merriweather', serif;
+            font-size: 24pt;
+            color: #2d5a27;
+            margin-bottom: 5px;
+        }
+
+        .document-title {
+            font-size: 14pt;
+            color: #666;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .document-subtitle {
+            font-size: 11pt;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        .info-box {
+            background: #f8f9f7;
+            border-left: 4px solid #2d5a27;
+            padding: 15px 20px;
+            margin: 20px 0;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .info-item {
+            display: flex;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #2d5a27;
+            min-width: 140px;
+        }
+
+        .section {
+            margin: 30px 0;
+            page-break-inside: avoid;
+        }
+
+        .section-header {
+            background: #2d5a27;
+            color: white;
+            padding: 10px 15px;
+            font-size: 12pt;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+
+        .requirement-box {
+            border: 1px solid #ddd;
+            margin: 20px 0;
+            page-break-inside: avoid;
+        }
+
+        .requirement-header {
+            background: #e8f0e6;
+            padding: 10px 15px;
+            font-weight: 700;
+            color: #2d5a27;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .requirement-content {
+            padding: 15px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+
+        th {
+            background: #2d5a27;
+            color: white;
+            padding: 10px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        tr:nth-child(even) {
+            background: #f8f9f7;
+        }
+
+        .total-row {
+            background: #e8f0e6 !important;
+            font-weight: 700;
+        }
+
+        .total-row td {
+            border-top: 2px solid #2d5a27;
+        }
+
+        .profit-row {
+            background: #2d5a27 !important;
+            color: white;
+            font-weight: 700;
+        }
+
+        .profit-row td {
+            color: white;
+        }
+
+        .amount {
+            text-align: right;
+            font-family: 'Courier New', monospace;
+        }
+
+        .certifications {
+            display: flex;
+            gap: 20px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+
+        .cert-badge {
+            background: #e8f0e6;
+            border: 1px solid #2d5a27;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 10pt;
+            font-weight: 600;
+            color: #2d5a27;
+        }
+
+        .cert-badge.pending {
+            background: #fff8e6;
+            border-color: #d4a017;
+            color: #8b6914;
+        }
+
+        .signature-section {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #2d5a27;
+        }
+
+        .signature-line {
+            display: flex;
+            align-items: flex-end;
+            margin: 20px 0;
+        }
+
+        .signature-line .line {
+            flex: 1;
+            border-bottom: 1px solid #333;
+            margin: 0 10px;
+            min-width: 200px;
+        }
+
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 9pt;
+            color: #888;
+            border-top: 1px solid #ddd;
+            padding-top: 15px;
+        }
+
+        @media print {
+            body {
+                padding: 0;
+            }
+            .section {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo-container">
+            <img src="tiny_seed_farm_logo.png" alt="Tiny Seed Farm and Fleurs - Estd 2017" class="logo">
+        </div>
+        <div class="document-title">2026 Pro Forma Schedule F</div>
+        <div class="document-subtitle">PA Beginning Farmer Tax Credit Application - Form DCED-BFTC-001 Appendix A</div>
+    </div>
+
+    <div class="info-box">
+        <div class="info-grid">
+            <div class="info-item">
+                <span class="info-label">Owner/Operator:</span>
+                <span>Todd Wilson</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">EIN:</span>
+                <span>81-5299411</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Home Address:</span>
+                <span>102 N Pittsburgh St, Zelienople, PA</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Farm Location:</span>
+                <span>257 Zeigler Rd, Rochester, PA 15074</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Email:</span>
+                <span>todd@tinyseedfarmpgh.com</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Cultivated Acres:</span>
+                <span>10-12 acres (2026 season)</span>
+            </div>
+        </div>
+        <div style="margin-top: 15px;">
+            <span class="info-label">Certifications:</span>
+            <div class="certifications">
+                <span class="cert-badge">USDA Certified Organic</span>
+                <span class="cert-badge pending">Real Organic Project (Pending)</span>
+                <span class="cert-badge pending">PA Preferred Organic (Pending)</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- REQUIREMENT 1 -->
+    <div class="requirement-box">
+        <div class="requirement-header">APPLICATION REQUIREMENT #1: Projected Earnings Statement</div>
+        <div class="requirement-content">
+            <p style="margin-bottom: 15px; font-style: italic; color: #666;">
+                "Provide a projected earnings statement or pro forma Federal Schedule F to demonstrate profit potential for the farming conducted by the Beginning Farmer."
+            </p>
+
+            <h3 style="color: #2d5a27; margin: 20px 0 10px;">PART I - PROJECTED FARM INCOME (2026)</h3>
+
+            <h4 style="margin: 15px 0 10px;">CSA Program Revenue - $139,530</h4>
+
+            <table>
+                <tr>
+                    <th>Product</th>
+                    <th>Quantity</th>
+                    <th>Unit Price</th>
+                    <th class="amount">Revenue</th>
+                </tr>
+                <tr><td colspan="4" style="background: #e8f0e6; font-weight: 600;">Vegetable CSA</td></tr>
+                <tr>
+                    <td>Small Summer CSA Share (Weekly)</td>
+                    <td>91</td>
+                    <td>$540</td>
+                    <td class="amount">$49,140</td>
+                </tr>
+                <tr>
+                    <td>Small Summer CSA Share (Biweekly)</td>
+                    <td>61</td>
+                    <td>$270</td>
+                    <td class="amount">$16,470</td>
+                </tr>
+                <tr>
+                    <td>Friends & Family Summer CSA (Weekly)</td>
+                    <td>40</td>
+                    <td>$720</td>
+                    <td class="amount">$28,800</td>
+                </tr>
+                <tr>
+                    <td>Friends & Family Summer CSA (Biweekly)</td>
+                    <td>27</td>
+                    <td>$360</td>
+                    <td class="amount">$9,720</td>
+                </tr>
+                <tr>
+                    <td>Spring CSA Share</td>
+                    <td>50</td>
+                    <td>$150</td>
+                    <td class="amount">$7,500</td>
+                </tr>
+                <tr>
+                    <td>Flex CSA Share (various)</td>
+                    <td>25</td>
+                    <td>$400 avg</td>
+                    <td class="amount">$10,000</td>
+                </tr>
+                <tr class="total-row">
+                    <td colspan="3"><strong>Vegetable CSA Subtotal (175 weekly equivalent)</strong></td>
+                    <td class="amount"><strong>$121,630</strong></td>
+                </tr>
+                <tr><td colspan="4" style="background: #e8f0e6; font-weight: 600;">Flower CSA</td></tr>
+                <tr>
+                    <td>Full Bloom Bouquet Share (Weekly)</td>
+                    <td>19</td>
+                    <td>$400</td>
+                    <td class="amount">$7,600</td>
+                </tr>
+                <tr>
+                    <td>Full Bloom Bouquet Share (Biweekly)</td>
+                    <td>20</td>
+                    <td>$200</td>
+                    <td class="amount">$4,000</td>
+                </tr>
+                <tr>
+                    <td>Petite Bloom Bouquet Share (Weekly)</td>
+                    <td>14</td>
+                    <td>$300</td>
+                    <td class="amount">$4,200</td>
+                </tr>
+                <tr>
+                    <td>Petite Bloom Bouquet Share (Biweekly)</td>
+                    <td>14</td>
+                    <td>$150</td>
+                    <td class="amount">$2,100</td>
+                </tr>
+                <tr class="total-row">
+                    <td colspan="3"><strong>Flower CSA Subtotal (50 weekly equivalent)</strong></td>
+                    <td class="amount"><strong>$17,900</strong></td>
+                </tr>
+            </table>
+
+            <h4 style="margin: 15px 0 10px;">Total Income Summary</h4>
+            <table>
+                <tr>
+                    <th>Income Source</th>
+                    <th class="amount">Amount</th>
+                </tr>
+                <tr>
+                    <td>CSA Program (Vegetable + Flower)</td>
+                    <td class="amount">$139,530</td>
+                </tr>
+                <tr>
+                    <td>Wholesale - Restaurant accounts</td>
+                    <td class="amount">$85,000</td>
+                </tr>
+                <tr>
+                    <td>Wholesale - Retail/grocery</td>
+                    <td class="amount">$45,000</td>
+                </tr>
+                <tr>
+                    <td>Farmers Markets</td>
+                    <td class="amount">$48,000</td>
+                </tr>
+                <tr>
+                    <td>Other Direct Sales</td>
+                    <td class="amount">$48,450</td>
+                </tr>
+                <tr>
+                    <td>Services (custom growing, consulting)</td>
+                    <td class="amount">$12,000</td>
+                </tr>
+                <tr>
+                    <td>Other Income (grants, misc)</td>
+                    <td class="amount">$18,000</td>
+                </tr>
+                <tr>
+                    <td>Less: Discounts/Refunds</td>
+                    <td class="amount">($1,500)</td>
+                </tr>
+                <tr class="total-row">
+                    <td><strong>TOTAL GROSS INCOME</strong></td>
+                    <td class="amount"><strong>$394,480</strong></td>
+                </tr>
+            </table>
+
+            <h3 style="color: #2d5a27; margin: 20px 0 10px;">PART II - PROJECTED FARM EXPENSES (2026)</h3>
+            <table>
+                <tr>
+                    <th>Expense Category</th>
+                    <th class="amount">Amount</th>
+                </tr>
+                <tr>
+                    <td>Cost of Goods Sold</td>
+                    <td class="amount">$16,000</td>
+                </tr>
+                <tr>
+                    <td>Farming Supplies (seeds, amendments)</td>
+                    <td class="amount">$105,000</td>
+                </tr>
+                <tr>
+                    <td>Shipping/Delivery</td>
+                    <td class="amount">$4,000</td>
+                </tr>
+                <tr>
+                    <td>Labor Hired (wages)</td>
+                    <td class="amount">$105,000</td>
+                </tr>
+                <tr>
+                    <td>Payroll Taxes & Processing</td>
+                    <td class="amount">$17,000</td>
+                </tr>
+                <tr>
+                    <td>Rent - Land & Equipment (Kretschmann Farm)</td>
+                    <td class="amount">$21,094</td>
+                </tr>
+                <tr>
+                    <td>Car/Truck & Fuel</td>
+                    <td class="amount">$9,100</td>
+                </tr>
+                <tr>
+                    <td>Insurance</td>
+                    <td class="amount">$10,000</td>
+                </tr>
+                <tr>
+                    <td>Utilities</td>
+                    <td class="amount">$7,000</td>
+                </tr>
+                <tr>
+                    <td>Supplies & Materials</td>
+                    <td class="amount">$48,000</td>
+                </tr>
+                <tr>
+                    <td>Repairs & Maintenance</td>
+                    <td class="amount">$3,500</td>
+                </tr>
+                <tr>
+                    <td>Contractors</td>
+                    <td class="amount">$12,000</td>
+                </tr>
+                <tr>
+                    <td>Interest Paid</td>
+                    <td class="amount">$3,500</td>
+                </tr>
+                <tr>
+                    <td>Other Expenses (fees, office, marketing, etc.)</td>
+                    <td class="amount">$29,400</td>
+                </tr>
+                <tr class="total-row">
+                    <td><strong>TOTAL EXPENSES</strong></td>
+                    <td class="amount"><strong>$390,594</strong></td>
+                </tr>
+            </table>
+
+            <h3 style="color: #2d5a27; margin: 20px 0 10px;">NET FARM INCOME</h3>
+            <table>
+                <tr>
+                    <td>Gross Farm Income</td>
+                    <td class="amount">$394,480</td>
+                </tr>
+                <tr>
+                    <td>Total Farm Expenses</td>
+                    <td class="amount">($390,594)</td>
+                </tr>
+                <tr class="profit-row">
+                    <td><strong>PROJECTED NET FARM PROFIT</strong></td>
+                    <td class="amount"><strong>$3,886</strong></td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- REQUIREMENT 2 -->
+    <div class="requirement-box">
+        <div class="requirement-header">APPLICATION REQUIREMENT #2: Verification of Significant Income</div>
+        <div class="requirement-content">
+            <p style="margin-bottom: 15px; font-style: italic; color: #666;">
+                "Provide verification that the farming conducted by the Beginning Farmer will be a significant source of income for the applicant."
+            </p>
+
+            <h4 style="color: #2d5a27; margin-bottom: 10px;">Income Significance Statement</h4>
+            <p style="margin-bottom: 15px;">
+                Tiny Seed Farm LLC represents the <strong>primary occupation and sole source of income</strong> for Todd Wilson.
+                The farm operation constitutes 100% of the applicant's working activity and livelihood.
+            </p>
+
+            <h4 style="color: #2d5a27; margin-bottom: 10px;">Historical Revenue (Actual)</h4>
+            <table>
+                <tr>
+                    <th>Period</th>
+                    <th class="amount">Gross Income</th>
+                    <th>Source</th>
+                </tr>
+                <tr>
+                    <td>Jan-Sep 2024</td>
+                    <td class="amount">$196,753</td>
+                    <td>QuickBooks P&L</td>
+                </tr>
+                <tr>
+                    <td>Jan-Sep 2025</td>
+                    <td class="amount">$276,648</td>
+                    <td>QuickBooks P&L</td>
+                </tr>
+                <tr class="total-row">
+                    <td><strong>YoY Growth</strong></td>
+                    <td class="amount"><strong>+40.6%</strong></td>
+                    <td></td>
+                </tr>
+            </table>
+
+            <h4 style="color: #2d5a27; margin: 15px 0 10px;">Projected Revenue Trajectory</h4>
+            <table>
+                <tr>
+                    <th>Year</th>
+                    <th class="amount">Gross Income</th>
+                    <th>Status</th>
+                </tr>
+                <tr>
+                    <td>2024 (annualized from 9mo actual)</td>
+                    <td class="amount">~$262,000</td>
+                    <td>Actual</td>
+                </tr>
+                <tr>
+                    <td>2025 (annualized from 9mo actual)</td>
+                    <td class="amount">~$369,000</td>
+                    <td>Actual</td>
+                </tr>
+                <tr class="total-row">
+                    <td><strong>2026 (projected)</strong></td>
+                    <td class="amount"><strong>$394,480</strong></td>
+                    <td><strong>Projected - Profitable</strong></td>
+                </tr>
+            </table>
+
+            <p style="margin-top: 15px;">
+                <strong>Growth Trajectory:</strong> The farm has demonstrated consistent 40%+ annual revenue growth based on actual QuickBooks financial records,
+                establishing a clear trajectory toward sustainable profitability as a full-time commercial operation.
+            </p>
+
+            <h4 style="color: #2d5a27; margin: 15px 0 10px;">Supporting Documentation Available</h4>
+            <ul style="margin-left: 20px;">
+                <li>QuickBooks P&L Statements (2024, 2025)</li>
+                <li>Schedule F Tax Returns (2018-2024)</li>
+                <li>CSA Membership Records (Shopify platform)</li>
+                <li>Wholesale Customer Invoices</li>
+                <li>Bank Statements showing farm income deposits</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- REQUIREMENT 3 -->
+    <div class="requirement-box">
+        <div class="requirement-header">APPLICATION REQUIREMENT #3: Description of Farming</div>
+        <div class="requirement-content">
+            <p style="margin-bottom: 15px; font-style: italic; color: #666;">
+                "Describe the type of farming that will be conducted by the Beginning Farmer."
+            </p>
+
+            <h4 style="color: #2d5a27; margin-bottom: 10px;">Farm Overview</h4>
+            <p style="margin-bottom: 15px;">
+                Tiny Seed Farm is a <strong>USDA Certified Organic</strong> diversified vegetable, cut flower, and gourmet mushroom operation
+                located at 257 Zeigler Rd, Rochester, PA 15074 (Beaver County), in Western Pennsylvania. The farm is
+                actively pursuing additional certifications including <strong>Real Organic Project</strong> certification
+                and <strong>PA Preferred Organic</strong> status, expected in the coming weeks.
+            </p>
+
+            <h4 style="color: #2d5a27; margin-bottom: 10px;">Products</h4>
+            <p style="margin-bottom: 15px;">
+                The farm produces over 40 varieties of vegetables and specialty crops including salad greens, tomatoes,
+                peppers, cucumbers, squash, root vegetables, herbs, and seasonal cut flowers including dahlias,
+                sunflowers, and mixed bouquet arrangements. Additionally, the farm cultivates <strong>gourmet mushrooms</strong>
+                including shiitake, oyster, and lion's mane varieties.
+            </p>
+
+            <h4 style="color: #2d5a27; margin-bottom: 10px;">Sales Channels</h4>
+            <ul style="margin-left: 20px; margin-bottom: 15px;">
+                <li><strong>Community Supported Agriculture (CSA):</strong> 361 member households across vegetable and flower programs,
+                    representing 225 weekly-equivalent shares</li>
+                <li><strong>Wholesale:</strong> Restaurant accounts and specialty food retailers throughout the Pittsburgh region</li>
+                <li><strong>Farmers Markets:</strong> Direct sales at local farmers markets</li>
+                <li><strong>On-farm sales:</strong> Direct purchases and special events</li>
+            </ul>
+
+            <h4 style="color: #2d5a27; margin-bottom: 10px;">Infrastructure & Operations</h4>
+            <p style="margin-bottom: 15px;">
+                The operation will cultivate approximately <strong>10-12 acres</strong> in the 2026 season, utilizing greenhouse space for
+                seedling production, high tunnels for season extension, a pack shed with walk-in cooler, mushroom production
+                facilities, and shared equipment including tractors and specialized vegetable production implements.
+                The farm leases land and equipment from Kretschmann Farm under a cost-sharing arrangement.
+            </p>
+
+            <h4 style="color: #2d5a27; margin-bottom: 10px;">Labor & Management</h4>
+            <p style="margin-bottom: 15px;">
+                All farming practices comply with <strong>USDA National Organic Program (NOP)</strong> standards. The farm
+                employs 2-4 seasonal workers during the growing season (approximately $105,000 in annual labor costs),
+                with the owner <strong>(Todd Wilson)</strong> providing the majority of labor and <strong>100% of all
+                management decisions</strong> including crop planning, financial management, marketing, and customer relations.
+            </p>
+
+            <h4 style="color: #2d5a27; margin-bottom: 10px;">Long-Term Intent</h4>
+            <p>
+                Todd Wilson intends to continue farming this land long-term, coinciding with the landowner's plan to
+                place the property into an Agricultural Land Trust to preserve it for future agricultural use.
+            </p>
+        </div>
+    </div>
+
+    <!-- CERTIFICATION -->
+    <div class="signature-section">
+        <h3 style="color: #2d5a27; margin-bottom: 20px;">CERTIFICATION</h3>
+        <p style="margin-bottom: 20px;">
+            I certify that this projected earnings statement is based on actual historical financial data from
+            Tiny Seed Farm LLC's accounting records and current product pricing from tinyseedfarm.com, and
+            represents a good-faith projection of 2026 farm operations. This farm operation represents my
+            primary occupation and 100% of my working activity.
+        </p>
+
+        <div class="signature-line">
+            <span>Signature:</span>
+            <span class="line"></span>
+            <span style="margin-left: 30px;">Date:</span>
+            <span class="line" style="max-width: 150px;"></span>
+        </div>
+
+        <div class="signature-line">
+            <span>Printed Name:</span>
+            <span class="line"><strong style="margin-left: 10px;">Todd Wilson</strong></span>
+        </div>
+
+        <div class="signature-line">
+            <span>Title:</span>
+            <span class="line"><strong style="margin-left: 10px;">Owner/Operator, Tiny Seed Farm LLC</strong></span>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Prepared January 2026 for PA Beginning Farmer Tax Credit Application</p>
+        <p>Form DCED-BFTC-001 Appendix A | EIN: 81-5299411</p>
+        <p>Tiny Seed Farm LLC | 257 Zeigler Rd, Rochester, PA 15074 | todd@tinyseedfarmpgh.com</p>
+    </div>
+</body>
+</html>

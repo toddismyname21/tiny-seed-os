@@ -1,3 +1,135 @@
+## REGISTRATION INSTRUCTIONS
+
+**Do these steps NOW, in order:**
+
+1. Use the Read tool to read: `/Users/samanthapollack/Documents/TIny_Seed_OS/CLAUDE.md`
+2. Use the Read tool to read: `/Users/samanthapollack/Documents/TIny_Seed_OS/claude_sessions/pm_architect/SYSTEM_MANIFEST.md`
+3. Use the Read tool to read your instructions: `/Users/samanthapollack/Documents/TIny_Seed_OS/claude_sessions/inventory_traceability/INSTRUCTIONS.md`
+4. Use the Edit tool to append to your OUTBOX confirming registration
+
+---
+
+# INBOX: Inventory_Traceability Claude
+## From: PM_Architect
+
+**Updated:** 2026-01-24
+**PRIORITY:** CRITICAL - OWNER DIRECTIVE
+
+---
+
+## 🛠️ TOOLS & DEPLOYMENT - YOU HAVE ACCESS
+
+| Tool | What It Does | Command |
+|------|--------------|---------|
+| **clasp** | Push code to Google Apps Script | `clasp push` |
+| **brew** | Install packages if needed | `brew install <pkg>` |
+| **git** | Version control | `git add . && git commit && git push` |
+| **MCP Server** | 40+ specialized tools | Use when it's the best choice |
+
+### DEPLOYMENT REQUIREMENTS
+
+When you complete work:
+1. **Push to Apps Script (if backend changes):** `clasp push`
+2. **Commit to GitHub:** `git add . && git commit -m "message" && git push`
+3. **Verify live site:** Check https://toddismyname21.github.io/tiny-seed-os/
+
+**Changes must be LIVE, not just local.**
+
+---
+
+## 🔴 PRIORITY OVERRIDE: CSA MEMBER PORTAL AUDIT - 2026-01-24
+**FROM:** PM_Architect (Phone Session)
+**PRIORITY:** CRITICAL - CSA CUSTOMERS BEING INVITED SOON
+**DEADLINE:** Tomorrow morning - FLAWLESS for our reputation
+
+---
+
+### OWNER MANDATE (VERBATIM)
+
+> "I want to start inviting CSA customers to our CSA member dashboard."
+> "They need to be FLAWLESS for our reputation."
+> "They need to be INTUITIVE and USER FRIENDLY."
+> "I don't want to rebuild anything—I just want to confirm what we have and rebuild what we have to and enhance everything."
+> "NO SHORTCUTS. STATE OF THE ART. PRODUCTION READY."
+
+---
+
+### YOUR MISSION: CSA Member Portal - Full Audit
+
+**Goal:** When a CSA member gets invited, EVERYTHING works perfectly. These are paying customers.
+
+#### Phase 1: RESEARCH FIRST (30 min)
+
+Before touching ANY code, research:
+1. Best CSA management platforms (Farmigo, Harvie, Local Line, Barn2Door)
+2. What features do CSA members expect?
+3. Best practices for CSA member portals
+4. How do competitors handle customization/swaps?
+
+**Document your findings. We want STATE OF THE ART.**
+
+#### Phase 2: COMPLETE CSA MEMBER JOURNEY AUDIT
+
+Test the ENTIRE member experience:
+
+| Step | Works? | Notes |
+|------|--------|-------|
+| 1. Member receives invite email | | |
+| 2. Member clicks link | | |
+| 3. Member creates account / logs in | | |
+| 4. Member sees their share details | | |
+| 5. Member sees upcoming box contents | | |
+| 6. Member can customize/swap items | | |
+| 7. Member sees pickup location/time | | |
+| 8. Member can update preferences | | |
+| 9. Member can view payment history | | |
+| 10. Member receives weekly notifications | | |
+
+#### Phase 3: FIX WHAT'S BROKEN
+
+Priority order:
+1. Anything that blocks member access
+2. Anything showing demo/fake data
+3. Anything confusing or ugly
+4. Performance issues
+
+#### RULES
+
+- ❌ DO NOT rebuild what works
+- ❌ DO NOT add features not requested
+- ✅ Fix broken flows
+- ✅ Replace demo data with real
+- ✅ Improve UX based on research
+- ✅ Document everything
+
+#### IMPORTANT: CHECK THE OS FOLDER FIRST
+
+**BEFORE YOU BUILD ANYTHING** - Check the root project folder and subfolders for existing work:
+- CSA specs
+- Portal designs
+- Partial implementations
+- Member management code
+
+**DO NOT DUPLICATE WORK THAT ALREADY EXISTS.**
+
+#### DELIVERABLES
+
+Write to your OUTBOX.md:
+1. Complete CSA member journey audit table
+2. List of issues found
+3. List of fixes made
+4. Research findings summary
+5. Recommendations for enhancements (don't build yet - just document)
+6. **FLAG anything not working or half-built** - these get repaired tomorrow
+
+#### MORNING REPORT REQUIRED
+
+Your findings will be compiled into an email report to the owner tomorrow morning. Be thorough.
+
+---
+
+## PREVIOUS TASK (Lower Priority)
+
 # NEW MISSION: Grant Research - Find the Money
 
 **Date:** 2026-01-22

@@ -1,273 +1,305 @@
-# INBOX: Sales_CRM Claude
-## From: PM_Architect
+# SALES/CRM CLAUDE - NEW PRIORITY TASK
 
-**Updated:** 2026-01-22
-**PRIORITY:** HIGH - Wholesale Portal Standing Orders
-
----
-
-## NEW MISSION: WHOLESALE STANDING ORDERS SYSTEM
-
-**Owner Directive:** Chefs need to sign up for standing orders and get automatic notifications when we can't fulfill them.
-
-### Task 1: Standing Order Data Model
-
-Add to Google Sheet or create new sheet `WHOLESALE_STANDING_ORDERS`:
-
-```
-| Standing_Order_ID | Customer_ID | Product_ID | Product_Name | Quantity | Unit | Frequency | Day_of_Week | Start_Date | End_Date | Status | Last_Fulfilled | Notes |
-```
-
-**Frequency options:** WEEKLY, BIWEEKLY, MONTHLY
-
-### Task 2: Backend API Endpoints
-
-Add to `MERGED TOTAL.js`:
-
-```javascript
-case 'createStandingOrder':
-case 'getStandingOrders':       // by customer
-case 'updateStandingOrder':
-case 'cancelStandingOrder':
-case 'getStandingOrdersDue':    // for fulfillment planning
-case 'markStandingOrderFulfilled':
-case 'markStandingOrderShorted': // triggers notification
-```
-
-### Task 3: Auto-Notification System
-
-When we CAN'T fulfill a standing order:
-
-1. **SMS notification** (via existing Twilio):
-   - "Hi [Chef Name], we're unable to fulfill your standing order for [Product] this week due to [reason]. We apologize for the inconvenience. -Tiny Seed Farm"
-
-2. **Email notification** (via GmailApp):
-   - More detailed message with alternatives if available
-   - Option to substitute or skip
-
-3. **Shortage reasons** (dropdown):
-   - Weather damage
-   - Crop failure
-   - Sold out
-   - Season ended
-   - Other
-
-### Task 4: Wholesale Portal UI Updates
-
-Update `web_app/wholesale.html` to add:
-
-1. **"Standing Orders" tab** in nav
-2. **Create standing order form:**
-   - Select product
-   - Quantity
-   - Frequency (Weekly/Biweekly/Monthly)
-   - Preferred delivery day
-   - Start/End dates (or ongoing)
-
-3. **Manage standing orders:**
-   - View active standing orders
-   - Pause/Resume
-   - Edit quantity
-   - Cancel
-
-### Task 5: Fulfillment Dashboard Integration
-
-Create view for farm staff showing:
-- All standing orders due this week
-- Total quantities needed by product
-- Flag items at risk (low inventory)
-- One-click "fulfilled" or "shorted" buttons
-
-### Deliverables
-
-1. `WHOLESALE_STANDING_ORDERS` sheet created with headers
-2. API endpoints added and deployed
-3. Notification functions (SMS + Email)
-4. UI updates to wholesale.html
-5. Document in OUTBOX.md
+**From:** PM Orchestrator
+**Date:** 2026-01-29
+**Priority:** CRITICAL
+**Type:** Deep Competitive Analysis - AI PM App Market
 
 ---
 
-## URGENT TASK 2: Chef Invitation System
+## ⚠️ READ CAREFULLY: THIS IS A NEW PRODUCT
 
-**DEADLINE: TODAY - Owner wants to invite chefs tonight**
+We are launching an **AI-powered Project Management application** (codename: "Council of Wizards").
 
-### Create Chef Invite Flow
+**THIS IS NOT ABOUT THE FARM.** This is a separate software product we're taking to market.
 
-1. **Invitation API endpoint:**
-```javascript
-case 'inviteChef':
-  // Params: email, company_name, contact_name, phone
-  // Creates chef account in WHOLESALE_CUSTOMERS
-  // Sends magic link via email AND SMS
-  // Returns: { success, customerId, inviteUrl }
+---
+
+## ENHANCED RESEARCH METHODOLOGY
+
+**ULTRATHINK PROTOCOL - Apply Deep Reasoning:**
+
+Before answering any section:
+1. **Think step by step** through the analysis
+2. **Consider all angles** - strengths, weaknesses, edge cases
+3. **Verify claims** - don't assume from marketing copy
+4. **Cross-reference sources** - minimum 2 sources per major claim
+5. **State confidence levels** - High/Medium/Low for key assertions
+6. **Analyze thoroughly** - depth over speed
+
+**Do NOT rush. Quality matters more than speed.**
+
+---
+
+## TARGET COMPETITORS (ANALYZE EACH IN DEPTH)
+
+### Tier 1: MUST ANALYZE (all 7)
+| Product | Website | Focus |
+|---------|---------|-------|
+| **Motion** | usemotion.com | AI calendar + task scheduling |
+| **Reclaim.ai** | reclaim.ai | AI time blocking |
+| **Linear** | linear.app | AI issue tracking for devs |
+| **Notion AI** | notion.so | AI workspace + docs |
+| **ClickUp AI** | clickup.com | AI project management |
+| **Monday.com AI** | monday.com | AI work OS |
+| **Asana Intelligence** | asana.com | AI project insights |
+
+### Tier 2: If Time Permits
+- Taskade AI, Dart, Height, Hive, Forecast PSA
+
+---
+
+## REQUIRED ANALYSIS FOR EACH TIER 1 COMPETITOR
+
+### A. Company Overview
+- Founding year, HQ location
+- Funding raised (if public)
+- Reported user base / customers
+- **Confidence:** [High/Medium/Low]
+
+### B. Pricing Analysis (CRITICAL - BE EXACT)
+| Tier | Monthly Price | Annual Price | What's Included |
+|------|---------------|--------------|-----------------|
+| Free | | | |
+| Starter/Pro | | | |
+| Business | | | |
+| Enterprise | | | |
+
+- Is AI included or add-on cost?
+- Per user or flat rate?
+- **Source:** [URL]
+
+### C. AI Capabilities (BE SPECIFIC, NOT MARKETING FLUFF)
+Answer each:
+- What does the AI actually DO? (list specific actions)
+- Generative AI or rule-based automation?
+- Does it learn from user behavior?
+- Does it have memory across sessions?
+- Single AI or multi-agent architecture?
+- **Confidence:** [High/Medium/Low]
+- **Source:** [URL or "Product demo"]
+
+### D. Strengths (What They Do Well)
+- Top 3 things users love (cite reviews)
+- Unique value proposition
+- **Source:** [G2/Capterra/Reddit thread]
+
+### E. Weaknesses (Where They Fail)
+- Top 3 user complaints (cite reviews)
+- What's missing?
+- **Source:** [G2/Capterra/Reddit thread]
+
+### F. Council of Wizards Advantage
+- How do we beat them specifically?
+
+---
+
+## OUR PRODUCT: COUNCIL OF WIZARDS
+
+**Multi-Agent AI PM Architecture:**
+
+| Agent | Role | What It Does |
+|-------|------|--------------|
+| **Overseer** | Coordination | Full project context, orchestrates other agents |
+| **Scribe** | Memory | Learns patterns, remembers everything across sessions |
+| **Artificer** | Execution | Builds, creates, executes tasks |
+| **Mentor** | Quality | Reviews work, ensures quality before delivery |
+
+**Unique Differentiators (NO competitor has these):**
+1. Multi-agent architecture (team of AIs, not single AI)
+2. Self-learning system (gets smarter from YOUR patterns)
+3. Proactive intelligence (anticipates needs BEFORE you ask)
+4. Critic loop (quality verification before delivery)
+5. Persistent memory (context across ALL sessions, not just one)
+6. Natural language PM (talk to it like a human)
+
+---
+
+## DELIVERABLE FORMAT
+
+Save to: `/Users/samanthapollack/Documents/TIny_Seed_OS/claude_sessions/sales_crm/AI_PM_COMPETITIVE_ANALYSIS.md`
+
+```markdown
+# AI PM App Competitive Analysis
+## Product: Council of Wizards
+## Date: 2026-01-29
+## Analyst: Sales/CRM Claude
+
+---
+
+## EXECUTIVE SUMMARY
+
+**Key Finding 1:** [One sentence]
+**Key Finding 2:** [One sentence]
+**Key Finding 3:** [One sentence]
+**Recommended Positioning:** [One sentence]
+**Confidence Level:** [High/Medium/Low]
+
+---
+
+## DETAILED COMPETITOR ANALYSIS
+
+### 1. MOTION
+
+**Company:** [Overview]
+**Funding:** [Amount if known]
+**Users:** [Number if known]
+
+**Pricing:**
+| Tier | Price | AI Included? |
+|------|-------|--------------|
+| ... | ... | ... |
+
+**AI Capabilities:**
+- [Specific capability 1]
+- [Specific capability 2]
+- Learning: [Yes/No/Limited]
+- Memory: [Yes/No/Limited]
+- Multi-agent: [Yes/No]
+
+**Strengths:**
+1. [Strength + source]
+2. [Strength + source]
+
+**Weaknesses:**
+1. [Weakness + source]
+2. [Weakness + source]
+
+**Our Advantage:** [How Council beats them]
+
+---
+
+[REPEAT FOR ALL 7 TIER 1 COMPETITORS]
+
+---
+
+## PRICING LANDSCAPE
+
+| Product | Free Tier | Entry Price | AI Cost | Best For |
+|---------|-----------|-------------|---------|----------|
+| Motion | | | | |
+| Reclaim | | | | |
+| Linear | | | | |
+| Notion | | | | |
+| ClickUp | | | | |
+| Monday | | | | |
+| Asana | | | | |
+| **Council** | TBD | TBD | Included | Teams wanting intelligent PM |
+
+**Pricing Recommendation for Council:** [Your analysis]
+
+---
+
+## COMPETITIVE MATRIX
+
+| Feature | Motion | Reclaim | Linear | Notion | ClickUp | Monday | Asana | **Council** |
+|---------|:------:|:-------:|:------:|:------:|:-------:|:------:|:-----:|:-----------:|
+| AI Task Scheduling | | | | | | | | ✅ |
+| Multi-Agent AI | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Self-Learning | | | | | | | | ✅ |
+| Proactive Intel | | | | | | | | ✅ |
+| Cross-Session Memory | | | | | | | | ✅ |
+| Quality/Critic Loop | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Natural Language | | | | | | | | ✅ |
+
+---
+
+## MARKET GAPS (Where We Win)
+
+1. [Gap 1 - what's missing in market]
+2. [Gap 2]
+3. [Gap 3]
+
+---
+
+## TOP 3 THREATS
+
+1. **[Competitor]:** [Why they're dangerous]
+2. **[Competitor]:** [Why they're dangerous]
+3. **[Competitor]:** [Why they're dangerous]
+
+---
+
+## TOP 3 OPPORTUNITIES
+
+1. **[Opportunity]:** [Why we can win here]
+2. **[Opportunity]:** [Why we can win here]
+3. **[Opportunity]:** [Why we can win here]
+
+---
+
+## RECOMMENDED POSITIONING
+
+**Tagline:** [Suggested tagline]
+
+**Elevator Pitch:** [2-3 sentences]
+
+**Key Messages:**
+1. [Message 1]
+2. [Message 2]
+3. [Message 3]
+
+---
+
+## SOURCES
+
+- [Source 1 with URL]
+- [Source 2 with URL]
+- [etc.]
 ```
 
-2. **Invitation Email Template:**
-Create `/apps_script/emails/ChefInvitation.html`:
-```html
-Subject: You're Invited - Order Fresh from Tiny Seed Farm
+---
 
-Hi [Chef Name],
+## RESEARCH SOURCES TO USE
 
-[Farm Owner] has invited you to order fresh, organic produce directly from Tiny Seed Farm.
+| Source Type | Where to Look |
+|-------------|---------------|
+| **Official** | Each product's website + pricing page |
+| **Reviews** | G2.com, Capterra.com, TrustRadius |
+| **Community** | Reddit r/productivity, r/projectmanagement |
+| **News** | TechCrunch, Product Hunt |
+| **Demos** | YouTube product demos |
 
-🌱 See what's fresh this week
-📱 Order from your phone in seconds
-🚚 Reliable delivery to your kitchen
+---
 
-[BUTTON: Start Ordering →]
+## QUALITY CHECKLIST
 
-Or copy this link: [Magic Link URL]
-```
+Before submitting, verify:
+- [ ] All 7 Tier 1 competitors analyzed
+- [ ] Pricing has sources (not guessed)
+- [ ] AI capabilities verified (not assumed from marketing)
+- [ ] Weaknesses from actual user reviews
+- [ ] Competitive matrix complete
+- [ ] Confidence levels stated
+- [ ] All sources listed with URLs
 
-3. **Invitation SMS:**
-```
-"Hi [Name]! You're invited to order fresh produce from Tiny Seed Farm. Start here: [short link] -Todd"
-```
+---
 
-4. **Bulk Invite Function:**
-```javascript
-function inviteMultipleChefs(chefList) {
-  // chefList: [{ email, name, company, phone }, ...]
-  // Sends all invites
-  // Returns summary
+## COMMUNICATION
+
+Send status update when starting and when complete:
+
+```bash
+python3 -c "
+import json
+from datetime import datetime
+intercom = json.load(open('/Users/samanthapollack/Documents/TIny_Seed_OS/tinypm/.claude_intercom.json'))
+msg = {
+    'id': intercom.get('next_id', 1),
+    'type': 'update',
+    'from': 'sales_crm',
+    'message': 'AI PM Competitive Analysis: [STATUS]',
+    'timestamp': datetime.now().isoformat()
 }
-```
-
-### Chef Data to Collect (minimum):
-- Email (required - for login)
-- Company/Restaurant Name
-- Contact Name
-- Phone (for SMS)
-- Delivery Address
-
----
-
-### Files to Modify
-
-- `/apps_script/MERGED TOTAL.js` - API endpoints
-- `/web_app/wholesale.html` - UI updates
-- Create: `/apps_script/StandingOrdersModule.js` - Business logic
-
-### Deployment
-
-```bash
-cd /Users/samanthapollack/Documents/TIny_Seed_OS/apps_script
-clasp push
-clasp deploy -i "AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc" -d "Standing Orders for Wholesale"
-```
-
-Then commit to GitHub:
-```bash
-git add . && git commit -m "Add wholesale standing orders system" && git push
+if 'sales_to_pm' not in intercom:
+    intercom['sales_to_pm'] = []
+intercom['sales_to_pm'].append(msg)
+intercom['next_id'] = msg['id'] + 1
+json.dump(intercom, open('/Users/samanthapollack/Documents/TIny_Seed_OS/tinypm/.claude_intercom.json', 'w'), indent=2)
+print(f'Sent #{msg[\"id\"]}')
+"
 ```
 
 ---
 
-## PREVIOUS TASKS (Lower Priority)
-
----
-
-## OVERNIGHT MISSION (Owner is sleeping - WORK AUTONOMOUSLY)
-
-### PRIMARY ASSIGNMENT: PRODUCT FORMALIZATION & STANDARDIZATION
-
-Owner needs products and availability formalized so they're consistent across ALL platforms (Shopify, QB, farmers markets, CSA).
-
-#### Task 1: Product Master List
-
-Create `/claude_sessions/sales_crm/PRODUCT_MASTER_LIST.md`:
-
-**Research from existing data:**
-- What products does Tiny Seed sell? (vegetables, flowers, bundles)
-- What are standard market prices?
-- What's seasonal availability?
-- What units are used (bunch, pound, each, flat)?
-
-**Build the master product list:**
-```
-| Product | Category | Unit | Price | Season | Shopify SKU | QB Item |
-|---------|----------|------|-------|--------|-------------|---------|
-| Tomatoes, Heirloom | Vegetables | lb | $4.00 | Jun-Oct | TOM-HEIR-LB | ... |
-```
-
-**Include:**
-- All vegetable crops
-- All flower varieties
-- CSA shares (if applicable)
-- Bundles/specialty items
-
-#### Task 2: Availability Calendar
-
-Create `/claude_sessions/sales_crm/AVAILABILITY_CALENDAR.md`:
-
-**Map products to seasons:**
-- What's available when?
-- Early season (March-May)
-- Peak season (June-August)
-- Late season (September-November)
-- Storage crops (year-round)
-
-#### Task 3: Platform Sync Spec
-
-Create `/claude_sessions/sales_crm/PLATFORM_SYNC_SPEC.md`:
-
-**Design how products sync across platforms:**
-- Shopify product structure
-- QuickBooks item structure
-- How to keep inventory in sync
-- Price change propagation
-- Availability updates
-
-#### Deliverable: MORNING PRODUCT BRIEF
-
-Create `/claude_sessions/sales_crm/MORNING_PRODUCT_BRIEF.md`:
-- Product count summary
-- Categories overview
-- Recommended standardization changes
-- Questions for owner about pricing/availability
-
----
-
-### SECONDARY ASSIGNMENT (If blocked on primary)
-
-If you can't find product data or hit permissions:
-
-**Sales Channel Analysis**
-- Research best practices for multi-channel farm sales
-- Shopify vs Square vs other platforms
-- How successful farms manage inventory across channels
-- Recommendations for Tiny Seed
-
----
-
-### CREDENTIALS STATUS
-
-Still waiting for owner to provide:
-- Shopify: Store name, API key, API secret, access token
-- QuickBooks: Client ID, Client secret, Company ID
-
-Integration code is ready. Note this in your OUTBOX.
-
----
-
-### CHECK-IN PROTOCOL
-
-Write to your OUTBOX when:
-1. Product list research complete
-2. Master list drafted
-3. Availability calendar done
-4. Morning brief ready
-
-**PM_Architect will check your OUTBOX.**
-
----
-
-*Sales_CRM Claude - Standardize products for multi-channel consistency*
-
----
-
-## IMPORTANT: READ UNIVERSAL_ACCESS.md
-You have full MCP server access and can deploy code via `clasp push`.
-See: `/Users/samanthapollack/Documents/TIny_Seed_OS/claude_sessions/UNIVERSAL_ACCESS.md`
+**BEGIN NOW. Think deeply. Analyze thoroughly. Verify everything.**

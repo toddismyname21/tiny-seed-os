@@ -1,0 +1,28 @@
+{
+  "sales_to_pm": [
+    {
+      "id": 1,
+      "timestamp": "2026-01-24T10:00:00Z",
+      "type": "status",
+      "message": "WHOLESALE CHEF PORTAL AUDIT COMPLETE. All 10 chef journey steps verified working. 0 critical issues. Portal is PRODUCTION READY.",
+      "deliverable": "claude_sessions/sales_crm/OUTBOX.md"
+    },
+    {
+      "id": 2,
+      "timestamp": "2026-01-24T11:30:00Z",
+      "type": "research",
+      "message": "B2B FOOD PLATFORM COMPETITIVE ANALYSIS COMPLETE. 8 platforms researched. Our portal has feature parity with enterprise solutions.",
+      "deliverable": "claude_sessions/sales_crm/OUTBOX.md"
+    },
+    {
+      "id": 3,
+      "timestamp": "2026-01-29T14:00:00Z",
+      "type": "research",
+      "message": "AI PM APP COMPETITIVE ANALYSIS COMPLETE. All 7 Tier 1 competitors analyzed (Motion, Reclaim, Linear, Notion, ClickUp, Monday, Asana). Key finding: NO competitor has multi-agent architecture. Council of Wizards has unique advantages in memory, quality loop, and proactive intelligence.",
+      "deliverable": "claude_sessions/sales_crm/AI_PM_COMPETITIVE_ANALYSIS.md"
+    }
+  ],
+  "backend_to_pm": [],
+  "builder_to_pm": [],
+  "next_id": 4
+}

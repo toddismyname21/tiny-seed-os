@@ -1,0 +1,17 @@
+{
+  "initialized": true,
+  "topology": "hierarchical",
+  "workers": [],
+  "consensus": {
+    "pending": [],
+    "history": []
+  },
+  "sharedMemory": {},
+  "createdAt": "2026-01-28T04:41:48.183Z",
+  "updatedAt": "2026-01-28T04:41:48.183Z",
+  "queen": {
+    "agentId": "pm_bot",
+    "electedAt": "2026-01-28T04:41:48.183Z",
+    "term": 1
+  }
+}
