@@ -86,6 +86,46 @@ After completing ANY work, you MUST:
 6. **NEVER** skip the duplicate check
 7. **NEVER** create a new Morning Brief function (4 already exist)
 8. **NEVER** create a new Approval system (2 already exist)
+9. **NEVER** run `clasp deploy` without the `-i` flag (creates NEW deployment)
+10. **NEVER** use any API URL other than the one in api-config.js
+
+---
+
+## CRITICAL: API URL & DEPLOYMENT RULES
+
+### THE ONE TRUE API URL
+```
+Deployment ID: AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm
+Full URL: https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec
+```
+
+### HOW TO USE API URLs IN HTML FILES
+```html
+<!-- CORRECT: Import api-config.js -->
+<script src="web_app/api-config.js"></script>
+<script>
+    const API_URL = TINY_SEED_API.MAIN_API;
+</script>
+
+<!-- WRONG: Hardcoded URL - NEVER DO THIS -->
+<script>
+    const API_URL = 'https://script.google.com/macros/s/AKfycb.../exec';
+</script>
+```
+
+### HOW TO DEPLOY APPS SCRIPT
+```bash
+# CORRECT: Update existing deployment
+clasp push
+clasp deploy -i AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm -d "Description"
+
+# WRONG: Creates NEW deployment (breaks everything)
+clasp deploy
+```
+
+### VALIDATION
+Run before committing: `./scripts/validate-api-urls.sh`
+Pre-commit hook is installed to block commits with wrong URLs.
 
 ---
 
@@ -133,7 +173,7 @@ Before deploying, confirm:
 
 | Resource | URL |
 |----------|-----|
-| API Endpoint | `https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec` |
+| API Endpoint | `https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec` |
 | Google Sheet | `128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc` |
 | GitHub Pages | `https://toddismyname21.github.io/tiny-seed-os/` |
 
@@ -172,7 +212,7 @@ The owner has explicitly stated they will stop all building until enforcement is
 
 ### Primary API Endpoint
 ```
-https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec
+https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec
 ```
 
 ### Key Files
