@@ -1,10 +1,51 @@
-# TinyPM - Terminal Project Manager
+# TINYPM - PERSONAL AI PROJECT MANAGER
 
-A beautiful TUI dashboard for managing tasks and launching Claude agents with persona injection.
+**Project Manager:** Opus 4.5 Claude (PM Architect)
+**Status:** Pre-Launch Development
+**Last Updated:** 2026-01-30
 
-## Quick Start
+---
 
-### Terminal Mode
+# IMPORTANT: PROJECT SEPARATION
+
+**TinyPM is a SEPARATE project from Tiny Seed OS.**
+
+| Project | Purpose | PM |
+|---------|---------|-----|
+| **Tiny Seed OS** | Farm operations management | Chief of Staff |
+| **TinyPM** | Personal AI life/project manager | Opus 4.5 (This project) |
+
+## Documentation Rules
+
+1. All TinyPM docs stay in `/tinypm/`
+2. Tiny Seed OS docs stay in `/claude_sessions/`
+3. Interactions between systems get documented in BOTH locations
+4. Never mix project scopes
+
+## Communication Channels
+
+| To reach... | Write to... |
+|-------------|-------------|
+| TinyPM PM (me) | `/tinypm/FROM_TINY_SEED_OS_PM.md` |
+| Tiny Seed OS PM | `/claude_sessions/email_chief_of_staff/FROM_TINYPM_PM.md` |
+
+---
+
+# WHAT IS TINYPM?
+
+TinyPM is a **personal AI project manager** that:
+- Knows what you should do before you know it
+- Manages your projects, tasks, and life
+- Uses state-of-the-art multi-agent AI architecture
+- Provides proactive intelligence and recommendations
+
+**Vision:** "FOR ORGANIZATION LIKE NEVER BEFORE, PRODUCTIVITY LIKE NEVER BEFORE."
+
+---
+
+# QUICK START
+
+## Terminal Mode
 ```bash
 cd ~/Documents/TIny_Seed_OS/tinypm
 ./start-terminal.sh
@@ -12,19 +53,12 @@ cd ~/Documents/TIny_Seed_OS/tinypm
 python3 app.py
 ```
 
-### Web Mode (Access from Phone)
+## Web Mode (Access from Phone)
 ```bash
 cd ~/Documents/TIny_Seed_OS/tinypm
 ./start-web.sh
 ```
 Then open `http://YOUR_MAC_IP:8000` on your phone.
-
-### Add Alias (Optional)
-Add to `~/.zshrc` or `~/.bashrc`:
-```bash
-alias pm="python3 ~/Documents/TIny_Seed_OS/tinypm/app.py"
-alias pm-web="~/Documents/TIny_Seed_OS/tinypm/start-web.sh"
-```
 
 ## Keyboard Shortcuts
 
@@ -33,33 +67,95 @@ alias pm-web="~/Documents/TIny_Seed_OS/tinypm/start-web.sh"
 | `n` | New task |
 | `e` | Edit selected task |
 | `Enter` | Launch Claude agent |
-| `d` | Toggle status (pending → in progress → done) |
+| `d` | Toggle status |
 | `x` | Delete task |
 | `/` | Filter tasks |
-| `1` | Show pending only |
-| `2` | Show in progress only |
-| `3` | Show done only |
-| `0` | Show all |
 | `q` | Quit |
 
-## How It Works
+---
 
-### The Magic: Persona Injection
+# PROJECT DOCUMENTATION
 
-When you select a task and press Enter, TinyPM:
+## Core Architecture
 
-1. Reads the task's assigned role (e.g., "builder")
-2. Loads the persona prompt from `personas/builder.md`
-3. Constructs a "mega-prompt" with the task context
-4. Launches Claude Code with that prompt pre-loaded
+| Document | Purpose |
+|----------|---------|
+| `TINYPM_ARCHITECTURE_BLUEPRINT_2026.md` | Complete technical architecture |
+| `WILD_CLAIMS_CZAR_SPEC.md` | Cutting-edge research monitoring system |
+| `TINYPM_COMMERCIAL_GAMEPLAN.md` | Go-to-market strategy |
+| `TINYPM_INVESTOR_REPORT_2026.md` | Investor presentation |
+| `TINYPM_INVESTOR_REPORT_2026.html` | Print-ready investor deck |
 
-This means Claude starts working immediately with full context about:
-- Who it is (Builder, Architect, QA, Chief of Staff)
-- What the rules are (from the persona file)
-- What task to work on (title, description, context files)
-- Where the project is located
+## Research Documents
 
-### Folder Structure
+| Document | Purpose |
+|----------|---------|
+| `IDEA_TO_MARKET_CHECKLIST.md` | Launch checklist |
+| `RESEARCH_AGENT_PROTOCOL.md` | How research agents operate |
+| `CLAUDE_COMPUTER_USE_RESEARCH.md` | Computer use API research |
+
+## Don Lease Negotiation (For Todd)
+
+| Document | Purpose |
+|----------|---------|
+| `DON_LEASE_INDUSTRY_COMPARISON.md` | Industry standards comparison |
+| `DON_MEETING_ONE_PAGER.md` | One-page summary for negotiation |
+| `TINY_SEED_FARM_LEASE_PROPOSAL_2026.md` | Full lease proposal |
+| `WESTERN_PA_FARMLAND_LEASE_RESEARCH.md` | Market rate research |
+
+## Beginning Farmer Application
+
+| Document | Purpose |
+|----------|---------|
+| `BEGINNING_FARMER_COMPLETE_SUBMISSION.pdf` | Full submission package |
+| `TinySeedFarm_BeginningTaxCredit.pdf` | Complete package |
+
+---
+
+# TECHNICAL STACK (SOTA 2026)
+
+## Models
+| Model | Use Case |
+|-------|----------|
+| Claude Opus 4.5 | Coding (80.9% SWE-bench) |
+| GPT-5.2 | Tool use (97% tau2-bench) |
+| Gemini 3 Pro | Long context (1M tokens) |
+| DeepSeek V3.2 | Open source reasoning |
+
+## Frameworks
+| Framework | Purpose |
+|-----------|---------|
+| LangGraph | State machine orchestration |
+| Mem0 | Memory management |
+| MCP | Tool interoperability |
+| LangSmith | Observability |
+| Supabase | Backend-as-a-Service |
+
+## Architecture Patterns
+| Pattern | Application |
+|---------|-------------|
+| CortexDebate | Multi-agent consensus (70% context reduction) |
+| Reflection Loop | Quality improvement |
+| Router-Supervisor | Agent delegation |
+| 5-Level Autonomy | Human-on-the-loop control |
+
+---
+
+# CODEBASE
+
+## Python Components
+
+| File | Purpose |
+|------|---------|
+| `app.py` | Main TUI application |
+| `pm_orchestrator.py` | PM orchestration engine |
+| `pm_brain.py` | PM intelligence |
+| `builder_autonomous.py` | Autonomous builder agent |
+| `critic.py` | Code review agent |
+| `daily-evolution.py` | Daily improvement system |
+| `web_server.py` | Web dashboard server |
+
+## Folder Structure
 
 ```
 tinypm/
@@ -75,90 +171,70 @@ tinypm/
 └── README.md           # This file
 ```
 
-## Personas
+---
 
-### Architect
-- Plans implementation, doesn't write code
-- Checks for duplicates before proposing new files
-- Outputs step-by-step plans for Builders
+# IMPLEMENTATION ROADMAP
 
-### Builder
-- Writes production-quality code
-- Follows CLAUDE.md rules
-- Updates CHANGE_LOG.md after changes
-- Never hardcodes API URLs
+## Sprint 1-2: Foundation
+- [ ] Supabase setup
+- [ ] LangGraph Cloud
+- [ ] Basic state machine
+- [ ] Mem0 integration
 
-### QA
-- Tests and audits, doesn't build features
-- Checks for security vulnerabilities
-- Verifies API connections
-- Finds duplicate functions
+## Sprint 3-4: Core Agents
+- [ ] Supervisor agent
+- [ ] Planner agent
+- [ ] Executor agent
+- [ ] Debate mechanism
 
-### Chief of Staff
-- Coordinates across the whole farm
-- Knows everything about field plan, customers, finances
-- Drafts communications in Todd's voice
-- Surfaces issues proactively
+## Sprint 5-6: Proactive Intelligence
+- [ ] Event bus system
+- [ ] Pattern recognition
+- [ ] Prediction engine
+- [ ] Proactive suggestions
 
-## Adding Tasks
+## Sprint 7-8: Autonomy & Reflection
+- [ ] 5-level autonomy gate
+- [ ] Reflection loop
+- [ ] Human checkpoint system
 
-Tasks are stored in `board.json`. You can:
-- Add via the UI (press `n`)
-- Edit the JSON directly
+## Sprint 9-10: Wild Claims Czar
+- [ ] Forum/Video/Paper scouts
+- [ ] Validation chamber
+- [ ] Integration pipeline
 
-### Task Structure
-```json
-{
-  "id": "TASK-001",
-  "title": "Short description",
-  "description": "Detailed requirements...",
-  "role": "builder",
-  "priority": "high",
-  "status": "pending",
-  "context": [
-    "web_app/file.html",
-    "apps_script/file.js"
-  ],
-  "created": "2026-01-28",
-  "updated": "2026-01-28"
-}
-```
+## Sprint 11-12: Production
+- [ ] Supabase migration
+- [ ] MCP server
+- [ ] LangSmith monitoring
+- [ ] Security audit
 
-## Phone Access
+---
 
-### Option A: Local WiFi
-1. Run `./start-web.sh` on your Mac
-2. Note the "Phone:" URL it shows
-3. Open that URL in your phone's browser
-4. Works when on the same WiFi
+# INVESTOR INFORMATION
 
-### Option B: Anywhere (Tailscale)
-1. Install Tailscale on Mac and Phone
-2. Run `./start-web.sh` on your Mac
-3. Use the Tailscale IP from your phone
-4. Works from anywhere in the world
+**Seeking:** $500K Seed Round
+**Valuation Cap:** $2.5M
+**5-Year Returns:** 10x (conservative) to 58x (aggressive)
 
-## Integration with Tiny Seed OS
+See `TINYPM_INVESTOR_REPORT_2026.md` for details.
 
-TinyPM is designed specifically for Tiny Seed Farm OS. The personas reference:
-- `/Users/samanthapollack/Documents/TIny_Seed_OS` as project root
-- `CLAUDE.md` for mandatory rules
-- `SYSTEM_MANIFEST.md` for system inventory
-- `CHANGE_LOG.md` for change tracking
+---
 
-## Troubleshooting
+# TROUBLESHOOTING
 
-### "Claude CLI not found"
-TinyPM saves the prompt to `.last-prompt.md`. You can run manually:
+## "Claude CLI not found"
+TinyPM saves the prompt to `.last-prompt.md`. Run manually:
 ```bash
 claude --system-prompt "$(cat .last-prompt.md)"
 ```
 
-### Web mode won't start
-Install textual-serve:
+## Web mode won't start
 ```bash
 pip3 install textual-serve
 ```
 
-### Colors look wrong
-Your terminal might need True Color support. Try iTerm2 or the VS Code terminal.
+---
+
+*NO SHORTCUTS. STATE OF THE ART. ONLY THE BEST.*
+*TinyPM will make history.*
