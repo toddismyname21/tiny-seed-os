@@ -240,6 +240,63 @@
             box-shadow: 0 8px 25px rgba(0,0,0,0.3);
         }
 
+        /* Document Card Styles */
+        .document-card {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .document-card:hover {
+            background: var(--bg-light);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .doc-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .doc-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .doc-name {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .doc-meta {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .doc-action {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .document-card:hover .doc-action {
+            color: var(--primary);
+        }
+
         .stat-card-header {
             display: flex;
             justify-content: space-between;
@@ -1234,6 +1291,9 @@
         </button>
         <button class="tab-btn" onclick="showTab('marketing')">
             <i class="fas fa-bullhorn"></i> Marketing
+        </button>
+        <button class="tab-btn" onclick="showTab('documents')">
+            <i class="fas fa-folder-open"></i> Documents
         </button>
     </nav>
 
@@ -3173,6 +3233,276 @@
                 </div>
             </div>
         </div>
+
+        <!-- ============================================= -->
+        <!-- DOCUMENTS TAB -->
+        <!-- ============================================= -->
+        <div id="tab-documents" class="tab-content">
+            <!-- Document Vault Header -->
+            <div class="card" style="margin-bottom: 1.5rem; background: linear-gradient(135deg, var(--bg-card), rgba(67, 97, 238, 0.1));">
+                <div class="card-body" style="text-align: center; padding: 2rem;">
+                    <i class="fas fa-vault" style="font-size: 3rem; color: var(--info); margin-bottom: 1rem;"></i>
+                    <h2 style="margin-bottom: 0.5rem;">Document Vault</h2>
+                    <p style="color: var(--text-secondary);">Quick access to important business & financial documents</p>
+                </div>
+            </div>
+
+            <!-- Document Categories -->
+            <div class="stats-grid" style="margin-bottom: 1.5rem;">
+                <div class="stat-card" onclick="filterDocuments('legal')" style="cursor: pointer;">
+                    <div class="stat-card-header">
+                        <div>
+                            <div class="stat-label">Legal & Formation</div>
+                            <div class="stat-value" id="doc-count-legal">--</div>
+                        </div>
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #9b59b6, #8e44ad);">
+                            <i class="fas fa-gavel"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stat-card" onclick="filterDocuments('tax')" style="cursor: pointer;">
+                    <div class="stat-card-header">
+                        <div>
+                            <div class="stat-label">Tax Documents</div>
+                            <div class="stat-value" id="doc-count-tax">--</div>
+                        </div>
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #e74c3c, #c0392b);">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stat-card" onclick="filterDocuments('banking')" style="cursor: pointer;">
+                    <div class="stat-card-header">
+                        <div>
+                            <div class="stat-label">Banking & Accounts</div>
+                            <div class="stat-value" id="doc-count-banking">--</div>
+                        </div>
+                        <div class="stat-icon" style="background: linear-gradient(135deg, var(--success), #16a085);">
+                            <i class="fas fa-university"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stat-card" onclick="filterDocuments('insurance')" style="cursor: pointer;">
+                    <div class="stat-card-header">
+                        <div>
+                            <div class="stat-label">Insurance & Compliance</div>
+                            <div class="stat-value" id="doc-count-insurance">--</div>
+                        </div>
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #f39c12, #d68910);">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Access Documents -->
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <div class="card-header">
+                    <h3><i class="fas fa-star" style="color: var(--gold);"></i> Quick Access</h3>
+                    <span style="font-size: 0.8rem; color: var(--text-secondary);">Frequently needed documents</span>
+                </div>
+                <div class="card-body">
+                    <div id="quick-access-docs" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
+                        <!-- PA Subsistence Certificate -->
+                        <div class="document-card" onclick="openDocument('PA_Subsistence_Certificate_2026-01-30.pdf', 'legal')">
+                            <div class="doc-icon" style="background: rgba(155, 89, 182, 0.2); color: #9b59b6;">
+                                <i class="fas fa-certificate"></i>
+                            </div>
+                            <div class="doc-info">
+                                <div class="doc-name">PA Subsistence Certificate</div>
+                                <div class="doc-meta">LLC Good Standing • Jan 30, 2026</div>
+                            </div>
+                            <div class="doc-action">
+                                <i class="fas fa-external-link-alt"></i>
+                            </div>
+                        </div>
+
+                        <!-- EIN Letter -->
+                        <div class="document-card" onclick="openDocument('EIN_Confirmation.pdf', 'tax')">
+                            <div class="doc-icon" style="background: rgba(231, 76, 60, 0.2); color: #e74c3c;">
+                                <i class="fas fa-file-alt"></i>
+                            </div>
+                            <div class="doc-info">
+                                <div class="doc-name">EIN Confirmation Letter</div>
+                                <div class="doc-meta">IRS • EIN: 81-5299411</div>
+                            </div>
+                            <div class="doc-action">
+                                <i class="fas fa-external-link-alt"></i>
+                            </div>
+                        </div>
+
+                        <!-- Organic Certificate -->
+                        <div class="document-card" onclick="openDocument('OEFFA_Organic_Certificate.pdf', 'compliance')">
+                            <div class="doc-icon" style="background: rgba(46, 204, 113, 0.2); color: #2ecc71;">
+                                <i class="fas fa-leaf"></i>
+                            </div>
+                            <div class="doc-info">
+                                <div class="doc-name">USDA Organic Certificate</div>
+                                <div class="doc-meta">OEFFA #3839 • Active</div>
+                            </div>
+                            <div class="doc-action">
+                                <i class="fas fa-external-link-alt"></i>
+                            </div>
+                        </div>
+
+                        <!-- Articles of Organization -->
+                        <div class="document-card" onclick="openDocument('Articles_of_Organization.pdf', 'legal')">
+                            <div class="doc-icon" style="background: rgba(155, 89, 182, 0.2); color: #9b59b6;">
+                                <i class="fas fa-file-contract"></i>
+                            </div>
+                            <div class="doc-info">
+                                <div class="doc-name">Articles of Organization</div>
+                                <div class="doc-meta">LLC Formation • Feb 7, 2017</div>
+                            </div>
+                            <div class="doc-action">
+                                <i class="fas fa-external-link-alt"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- All Documents List -->
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-folder-open"></i> All Documents</h3>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-secondary btn-sm" onclick="filterDocuments('all')">All</button>
+                        <button class="btn btn-secondary btn-sm" onclick="openModal('uploadDocumentModal')">
+                            <i class="fas fa-upload"></i> Upload
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="all-documents-list">
+                        <!-- Documents populated by JavaScript -->
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid var(--border);">
+                                    <th style="text-align: left; padding: 0.75rem; color: var(--text-secondary); font-weight: 500;">Document</th>
+                                    <th style="text-align: left; padding: 0.75rem; color: var(--text-secondary); font-weight: 500;">Category</th>
+                                    <th style="text-align: left; padding: 0.75rem; color: var(--text-secondary); font-weight: 500;">Date</th>
+                                    <th style="text-align: right; padding: 0.75rem; color: var(--text-secondary); font-weight: 500;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="documents-table-body">
+                                <tr style="border-bottom: 1px solid var(--border);">
+                                    <td style="padding: 0.75rem;">
+                                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                            <i class="fas fa-certificate" style="color: #9b59b6;"></i>
+                                            <span>PA Subsistence Certificate</span>
+                                        </div>
+                                    </td>
+                                    <td style="padding: 0.75rem;"><span class="badge" style="background: rgba(155, 89, 182, 0.2); color: #9b59b6;">Legal</span></td>
+                                    <td style="padding: 0.75rem; color: var(--text-secondary);">Jan 30, 2026</td>
+                                    <td style="padding: 0.75rem; text-align: right;">
+                                        <button class="btn btn-secondary btn-sm" onclick="openDocument('PA_Subsistence_Certificate_2026-01-30.pdf', 'legal')">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-secondary btn-sm" onclick="downloadDocument('PA_Subsistence_Certificate_2026-01-30.pdf')">
+                                            <i class="fas fa-download"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid var(--border);">
+                                    <td style="padding: 0.75rem;">
+                                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                            <i class="fas fa-file-alt" style="color: #e74c3c;"></i>
+                                            <span>EIN Confirmation Letter (CP 575)</span>
+                                        </div>
+                                    </td>
+                                    <td style="padding: 0.75rem;"><span class="badge" style="background: rgba(231, 76, 60, 0.2); color: #e74c3c;">Tax</span></td>
+                                    <td style="padding: 0.75rem; color: var(--text-secondary);">2017</td>
+                                    <td style="padding: 0.75rem; text-align: right;">
+                                        <button class="btn btn-secondary btn-sm" onclick="openDocument('EIN_Confirmation.pdf', 'tax')">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-secondary btn-sm" onclick="downloadDocument('EIN_Confirmation.pdf')">
+                                            <i class="fas fa-download"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid var(--border);">
+                                    <td style="padding: 0.75rem;">
+                                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                            <i class="fas fa-leaf" style="color: #2ecc71;"></i>
+                                            <span>USDA Organic Certificate</span>
+                                        </div>
+                                    </td>
+                                    <td style="padding: 0.75rem;"><span class="badge" style="background: rgba(46, 204, 113, 0.2); color: #2ecc71;">Compliance</span></td>
+                                    <td style="padding: 0.75rem; color: var(--text-secondary);">2025</td>
+                                    <td style="padding: 0.75rem; text-align: right;">
+                                        <button class="btn btn-secondary btn-sm" onclick="openDocument('OEFFA_Organic_Certificate.pdf', 'compliance')">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-secondary btn-sm" onclick="downloadDocument('OEFFA_Organic_Certificate.pdf')">
+                                            <i class="fas fa-download"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid var(--border);">
+                                    <td style="padding: 0.75rem;">
+                                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                            <i class="fas fa-file-contract" style="color: #9b59b6;"></i>
+                                            <span>Articles of Organization</span>
+                                        </div>
+                                    </td>
+                                    <td style="padding: 0.75rem;"><span class="badge" style="background: rgba(155, 89, 182, 0.2); color: #9b59b6;">Legal</span></td>
+                                    <td style="padding: 0.75rem; color: var(--text-secondary);">Feb 7, 2017</td>
+                                    <td style="padding: 0.75rem; text-align: right;">
+                                        <button class="btn btn-secondary btn-sm" onclick="openDocument('Articles_of_Organization.pdf', 'legal')">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-secondary btn-sm" onclick="downloadDocument('Articles_of_Organization.pdf')">
+                                            <i class="fas fa-download"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Business Info Reference -->
+            <div class="card" style="margin-top: 1.5rem;">
+                <div class="card-header">
+                    <h3><i class="fas fa-building"></i> Business Information</h3>
+                    <span style="font-size: 0.8rem; color: var(--text-secondary);">Quick reference</span>
+                </div>
+                <div class="card-body">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+                        <div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Legal Name</div>
+                            <div style="font-weight: 600;">Tiny Seed Farm, LLC</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.25rem;">EIN</div>
+                            <div style="font-weight: 600; font-family: monospace;">81-5299411</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.25rem;">PA Entity Number</div>
+                            <div style="font-weight: 600; font-family: monospace;">0006509546</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Formation Date</div>
+                            <div style="font-weight: 600;">February 7, 2017</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Entity Type</div>
+                            <div style="font-weight: 600;">Domestic Limited Liability Company</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Status</div>
+                            <div style="font-weight: 600; color: var(--success);"><i class="fas fa-check-circle"></i> Active</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </main>
 
     <!-- ============================================= -->
@@ -4131,6 +4461,114 @@
             // Activate button
             event.target.closest('.tab-btn').classList.add('active');
         }
+
+        // =============================================
+        // DOCUMENT VAULT FUNCTIONS
+        // =============================================
+        const DocumentVault = {
+            documents: [
+                {
+                    id: 'pa-subsistence',
+                    name: 'PA Subsistence Certificate',
+                    filename: 'PA_Subsistence_Certificate_2026-01-30.pdf',
+                    category: 'legal',
+                    date: '2026-01-30',
+                    description: 'LLC Good Standing Certificate',
+                    icon: 'fa-certificate',
+                    color: '#9b59b6'
+                },
+                {
+                    id: 'ein-letter',
+                    name: 'EIN Confirmation Letter (CP 575)',
+                    filename: 'EIN_Confirmation.pdf',
+                    category: 'tax',
+                    date: '2017',
+                    description: 'IRS EIN: 81-5299411',
+                    icon: 'fa-file-alt',
+                    color: '#e74c3c'
+                },
+                {
+                    id: 'organic-cert',
+                    name: 'USDA Organic Certificate',
+                    filename: 'OEFFA_Organic_Certificate.pdf',
+                    category: 'compliance',
+                    date: '2025',
+                    description: 'OEFFA #3839',
+                    icon: 'fa-leaf',
+                    color: '#2ecc71'
+                },
+                {
+                    id: 'articles',
+                    name: 'Articles of Organization',
+                    filename: 'Articles_of_Organization.pdf',
+                    category: 'legal',
+                    date: '2017-02-07',
+                    description: 'LLC Formation Document',
+                    icon: 'fa-file-contract',
+                    color: '#9b59b6'
+                }
+            ],
+
+            getByCategory(category) {
+                if (category === 'all') return this.documents;
+                return this.documents.filter(d => d.category === category);
+            },
+
+            getCounts() {
+                return {
+                    legal: this.documents.filter(d => d.category === 'legal').length,
+                    tax: this.documents.filter(d => d.category === 'tax').length,
+                    banking: this.documents.filter(d => d.category === 'banking').length,
+                    insurance: this.documents.filter(d => d.category === 'insurance' || d.category === 'compliance').length
+                };
+            }
+        };
+
+        function openDocument(filename, category) {
+            // Try to open from the business_docs folder
+            const basePath = '../business_docs/founding/';
+            const fullPath = basePath + filename;
+
+            // Open in new tab
+            window.open(fullPath, '_blank');
+
+            showNotification(`Opening ${filename}...`, 'info');
+        }
+
+        function downloadDocument(filename) {
+            const basePath = '../business_docs/founding/';
+            const fullPath = basePath + filename;
+
+            // Create download link
+            const link = document.createElement('a');
+            link.href = fullPath;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showNotification(`Downloading ${filename}...`, 'success');
+        }
+
+        function filterDocuments(category) {
+            const docs = DocumentVault.getByCategory(category);
+            console.log(`Filtering documents by: ${category}`, docs);
+            showNotification(`Showing ${category === 'all' ? 'all' : category} documents (${docs.length})`, 'info');
+            // Future: Update the table to show filtered documents
+        }
+
+        function updateDocumentCounts() {
+            const counts = DocumentVault.getCounts();
+            document.getElementById('doc-count-legal').textContent = counts.legal;
+            document.getElementById('doc-count-tax').textContent = counts.tax;
+            document.getElementById('doc-count-banking').textContent = counts.banking || '0';
+            document.getElementById('doc-count-insurance').textContent = counts.insurance;
+        }
+
+        // Initialize document counts when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(updateDocumentCounts, 500);
+        });
 
         // =============================================
         // MODAL FUNCTIONS

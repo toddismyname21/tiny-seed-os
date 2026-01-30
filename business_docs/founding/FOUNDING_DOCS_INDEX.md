@@ -33,6 +33,7 @@
 |----------|--------|----------|
 | LLC Formation | ACTIVE | PA Entity #6509546 |
 | EIN | ACTIVE | 81-5299411 |
+| **PA Subsistence Certificate** | ACTIVE | `PA_Subsistence_Certificate_2026-01-30.pdf` |
 | Lease Agreement | **NO SIGNED LEASE** | See `/lease/` |
 | Insurance Policy | [CHECK STATUS] | |
 | Organic Certificate | ACTIVE | OEFFA |
