@@ -152,57 +152,42 @@ These files contain valuable content for generating authentic social media posts
 
 ---
 
-## ⚠️ URGENT: TOKEN EXPIRATION - 2026-01-30
+## ✅ INSTAGRAM API FULLY WORKING - 2026-01-30
 
-### TOKENS EXPIRE TODAY AT 1:00 AM
+### ALL 3 ACCOUNTS POSTING SUCCESSFULLY!
 
-The current Page Access Tokens expire at **2026-01-30 01:00:00**.
+| Account | Instagram ID | Status | Test Post ID |
+|---------|--------------|--------|--------------|
+| **@tinyseedfarm** | `17841403850522716` | ✅ WORKING | `18077607812205789` |
+| **@tinyseedfleurs** | `17841435193515791` | ✅ WORKING | `18556383001028329` |
+| **@tinyseedfungi** | `17841464175329542` | ✅ WORKING | `18094248095487032` |
 
-### Issues Found During Testing
+### What Was Fixed
 
-1. **Tokens expire today** - Must regenerate immediately
-2. **Missing `instagram_basic` permission** - Tokens have `instagram_content_publish` but NOT `instagram_basic`
-3. **Can't verify Instagram Business Account IDs** - Without `instagram_basic`, we cannot confirm the correct IDs
+1. **Added Instagram Product** to Meta App via Use Cases → "Manage messaging & content on Instagram"
+2. **Generated New Tokens** with `instagram_business_basic` permission (IGAA tokens)
+3. **Updated API Endpoint** - Changed from `graph.facebook.com` to `graph.instagram.com` for IGAA tokens
+4. **Correct Instagram IDs** - Retrieved from Meta's Instagram API setup page
 
-### ACTION REQUIRED - Owner Must Complete
+### API Details
 
-1. **Go to Meta Developer Console**: https://developers.facebook.com/apps/1453282209770271/
-2. **Generate New Tokens** via Graph API Explorer:
-   - Go to Tools → Graph API Explorer
-   - Select App: "Tiny Seed Farm OS FINAL"
-   - Click "Generate Access Token"
-   - **CRITICAL**: Select BOTH permissions:
-     - `instagram_basic` (needed to query Instagram accounts)
-     - `instagram_content_publish` (needed to post)
-   - Select all 3 Pages (Farm, Fleurs, Fungi)
-3. **Get Page Access Tokens** for each page
-4. **Exchange for Long-Lived Tokens**:
-   ```
-   GET https://graph.facebook.com/v24.0/oauth/access_token
-   ?grant_type=fb_exchange_token
-   &client_id=1453282209770271
-   &client_secret=923bd5e066093def628e01836769e4a5
-   &fb_exchange_token={YOUR_SHORT_LIVED_USER_TOKEN}
-   ```
-5. **Get Never-Expiring Page Tokens** using the long-lived user token:
-   ```
-   GET https://graph.facebook.com/v24.0/me/accounts
-   ?access_token={LONG_LIVED_USER_TOKEN}
-   ```
-6. **Update Script Properties** with new tokens via:
-   ```
-   ?action=setupInstagramCredentials
-   ```
+| Setting | Value |
+|---------|-------|
+| Instagram App ID | `1829369821799880` |
+| API Endpoint | `https://graph.instagram.com` |
+| Token Type | IGAA (Instagram API) |
+| Permissions | `instagram_business_basic`, `instagram_manage_comments`, `instagram_business_manage_messages` |
 
-### After Getting New Tokens - Verify Instagram IDs
+### How to Post
 
-With `instagram_basic` permission, run this to get correct Instagram Business Account IDs:
 ```
-GET https://graph.facebook.com/v24.0/{page_id}
-?fields=instagram_business_account
-&access_token={new_page_token}
+GET/POST to API:
+?action=testInstagramPost
+&accountIndex=0  (0=Farm, 1=Fleurs, 2=Fungi)
+&imageUrl=https://public-image-url.jpg
+&caption=Your caption here
 ```
 
 ---
 
-*Report updated: 2026-01-30 00:25*
+*Report updated: 2026-01-30 01:45 - FULLY OPERATIONAL*

@@ -51839,17 +51839,24 @@ function postToInstagram(params) {
         if (!account) return { success: false, error: 'Account not found at index ' + accountIndex };
         const accessToken = props.getProperty(`ig_token_${accountIndex}`);
         if (!accessToken) return { success: false, error: 'Access token not found' };
-        const apiVersion = 'v24.0', baseUrl = 'https://graph.facebook.com';
+
+        // Use graph.instagram.com for Instagram API tokens (IGAA...), graph.facebook.com for FB tokens (EAA...)
+        const baseUrl = accessToken.startsWith('IGAA') ? 'https://graph.instagram.com' : 'https://graph.facebook.com/v24.0';
+
         let containerPayload = { access_token: accessToken, caption: caption || '' };
         if (mediaType === 'IMAGE' || mediaType === 'STORIES') { containerPayload.image_url = imageUrl; if (mediaType === 'STORIES') containerPayload.media_type = 'STORIES'; }
         else if (mediaType === 'REELS') { containerPayload.video_url = videoUrl; containerPayload.media_type = 'REELS'; }
-        const containerResponse = UrlFetchApp.fetch(`${baseUrl}/${apiVersion}/${account.igUserId}/media`, { method: 'POST', payload: containerPayload, muteHttpExceptions: true });
+        const containerResponse = UrlFetchApp.fetch(`${baseUrl}/${account.igUserId}/media`, { method: 'POST', payload: containerPayload, muteHttpExceptions: true });
         const containerResult = JSON.parse(containerResponse.getContentText());
-        if (containerResult.error) return { success: false, error: containerResult.error.message };
+        if (containerResult.error) return { success: false, error: containerResult.error.message, details: containerResult.error };
         const containerId = containerResult.id;
-        if (mediaType === 'REELS') { let status = 'IN_PROGRESS', attempts = 0; while (status !== 'FINISHED' && attempts < 30) { Utilities.sleep(5000); const statusResult = JSON.parse(UrlFetchApp.fetch(`${baseUrl}/${apiVersion}/${containerId}?fields=status_code&access_token=${accessToken}`).getContentText()); status = statusResult.status_code; attempts++; if (status === 'ERROR') return { success: false, error: 'Video processing failed' }; } }
-        const publishResult = JSON.parse(UrlFetchApp.fetch(`${baseUrl}/${apiVersion}/${account.igUserId}/media_publish`, { method: 'POST', payload: { creation_id: containerId, access_token: accessToken }, muteHttpExceptions: true }).getContentText());
-        if (publishResult.error) return { success: false, error: publishResult.error.message };
+
+        // Wait for processing (required for Instagram API)
+        Utilities.sleep(10000);
+
+        if (mediaType === 'REELS') { let status = 'IN_PROGRESS', attempts = 0; while (status !== 'FINISHED' && attempts < 30) { Utilities.sleep(5000); const statusResult = JSON.parse(UrlFetchApp.fetch(`${baseUrl}/${containerId}?fields=status_code&access_token=${accessToken}`).getContentText()); status = statusResult.status_code; attempts++; if (status === 'ERROR') return { success: false, error: 'Video processing failed' }; } }
+        const publishResult = JSON.parse(UrlFetchApp.fetch(`${baseUrl}/${account.igUserId}/media_publish`, { method: 'POST', payload: { creation_id: containerId, access_token: accessToken }, muteHttpExceptions: true }).getContentText());
+        if (publishResult.error) return { success: false, error: publishResult.error.message, details: publishResult.error };
         logSocialPost({ account: account.name, mediaType: mediaType, caption: caption, mediaId: publishResult.id, timestamp: new Date().toISOString() });
         return { success: true, mediaId: publishResult.id, account: account.name, mediaType: mediaType };
     } catch (error) { Logger.log('Error posting to Instagram: ' + error.toString()); return { success: false, error: error.toString() }; }
@@ -51885,40 +51892,42 @@ function configureInstagramAccount(params) {
  * ONE-TIME SETUP: Configure all 3 Instagram accounts
  * Run this function ONCE in the Apps Script editor to store credentials
  *
- * Last Updated: 2026-01-29
+ * Last Updated: 2026-01-30 - NEW TOKENS WITH instagram_business_basic permission
  */
 function setupInstagramCredentials_ONETIME() {
     const props = PropertiesService.getScriptProperties();
 
-    // Store Meta App credentials
+    // Store Meta App credentials (Instagram API app)
     props.setProperty('META_APP_ID', '1453282209770271');
     props.setProperty('META_APP_SECRET', '923bd5e066093def628e01836769e4a5');
+    props.setProperty('INSTAGRAM_APP_ID', '1829369821799880');
+    props.setProperty('INSTAGRAM_APP_SECRET', '35fd5e15fbf00ecd78e36e3ad21244d9');
 
-    // Account 0: Tiny Seed Farm
+    // Account 0: Tiny Seed Farm - CORRECT ID from Instagram API
     configureInstagramAccount({
         accountIndex: 0,
         name: 'Tiny Seed Farm',
-        igUserId: '17841403850522',
+        igUserId: '17841403850522716',
         fbPageId: '1760385317513019',
-        accessToken: 'EAAUpwKHfKx8BQi92G2mojrsPm5iokMIYYcWCYl0oaqY8FX1iCvjjtDgWC0SZB1Td1W5ZC8tmx0eRH7DnXsHo6tkZBE2UgiRC53ZAZCJZATOLiJQZBsq0dKSKLAKD0zZAJYJzRP73iHJvEjoGxf3ZAniNpwynrhv4nIkQUsNjy978K8mzCd29AhXEzJkamfzepmunPFIJziEPEFPhYGXoJDJsreuMqQXtE7OG9l6KM0Wl7CbDn7XVuZAISHCmEZD'
+        accessToken: 'IGAAZAZCzVpkJchBZAFlPLThzR1RHU1cyc0FlbHZADM2FRYzNDMm94M2ZAfSXJuX2E0SHRtejJ2NjlpYXFITWNEZA2hWYjBUSnZAHX3FBelBFWHItWGRhNHQyU3ZASM0FjOXUxU01rak8ybUpmdHBlR29wTmJRWExsdEtrVXY3UXVvdnM1VQZDZD'
     });
 
-    // Account 1: Tiny Seed Fleurs
+    // Account 1: Tiny Seed Fleurs - CORRECT ID from Instagram API
     configureInstagramAccount({
         accountIndex: 1,
         name: 'Tiny Seed Fleurs',
-        igUserId: '17841435193515793',
+        igUserId: '17841435193515791',
         fbPageId: '975076245687644',
-        accessToken: 'EAAUpwKHfKx8BQtcLLKvR2VsctslWZBz9DvGmBCWvyiE9nfpSvi2qyvyrBNO7PZAAF2Xr7OhlCxaKc45KKHf3opskTwLZBG9rb0ybUuJWGYbbTRrrMBe8T7YmB0gyTQBwu7W4xrWpj2o2ZCs9yFhCV7vzcL9az8ba9sa5sPZC8snQOCtGSQAkB8kRlrLc5prfZCoNgo8ZCQtkj4VxT2EDKm8ZCbcIyG0TfidrpAaKz8j8fdAdciGMxR1YE4QZD'
+        accessToken: 'IGAAZAZCzVpkJchBZAFkwU2thbTdmNGhSdkwycUM4a1J2YmczYXFBQ2cxS1dEWjdzSDdtTFV0ZAWdJQlhoeER6RHJCQU5OWXNuLWdMZA2daV2szM0RyME5qM2ZAqMXBzdjNIdlJoa3l6b3dzMWVqYjBhd3JQUV9UZAm5tcmRmUG5nWUtITQZDZD'
     });
 
-    // Account 2: Tiny Seed Fungi
+    // Account 2: Tiny Seed Fungi - CORRECT ID from Instagram API
     configureInstagramAccount({
         accountIndex: 2,
         name: 'Tiny Seed Fungi',
-        igUserId: '17841464175325954',
+        igUserId: '17841464175329542',
         fbPageId: '1025602933961290',
-        accessToken: 'EAAUpwKHfKx8BQkhyBRRjrnPDcKsNwKKvwwhttIawkvNycUWsZBUpIw6Fp7psdMfjPPoJ0g0d2a3ZA0ZAq964PpEsw4wAFI8QbtGoX6ReDZAG10c3cUhblzWGIL5YFWuCgXsMpm6aN5mpcpr32OVk3zjJeFkCdvQkZBKQzqy23LjsBwULUIuXkZALxSxowMAyYPOGg5sGLYzux1cIgVZCuJEHqej4IKfZCyvP3RNfH3cycG9wH6zabX5iookZD'
+        accessToken: 'IGAAZAZCzVpkJchBZAFlVTTM2SmRkazlWRFM5RnVjWEZAmR3NPQkxrTTdTNnktUFdEeUFhZAldJTFM2aGduWFRqOTMxQkhNTHNjOGdUM01EN1FpTGoyZAU1Kd2VDYmtiNWlPd0tBX2haU2RpQWNiVGViR1lNbE5TcTl2c0Ruc01xS1pSQQZDZD'
     });
 
     Logger.log('✅ All 3 Instagram accounts configured successfully!');

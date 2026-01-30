@@ -40,6 +40,33 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-01-30 - Social_Media_Claude (INSTAGRAM API FULLY WORKING!)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js`:
+  - Fixed `postToInstagram()` to use `graph.instagram.com` for IGAA tokens
+  - Updated `setupInstagramCredentials_ONETIME()` with correct Instagram Business Account IDs
+  - Added 10-second processing delay for Instagram API requirements
+  - Stored Instagram App Secret
+
+### Credentials Updated
+- **@tinyseedfarm** - ID: `17841403850522716` - ✅ POSTING WORKS
+- **@tinyseedfleurs** - ID: `17841435193515791` - ✅ POSTING WORKS
+- **@tinyseedfungi** - ID: `17841464175329542` - ✅ POSTING WORKS
+
+### Key Fix
+Changed API endpoint detection:
+- IGAA tokens (Instagram API) → `https://graph.instagram.com`
+- EAA tokens (Facebook API) → `https://graph.facebook.com`
+
+### Deployment
+- v467 deployed with working Instagram posting
+
+### Test Results
+All 3 accounts successfully posted test images to Instagram.
+
+---
+
 ## 2026-01-30 - Social_Media_Claude (Token Status & Testing)
 
 ### Files Modified
