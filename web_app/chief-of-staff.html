@@ -62,8 +62,7 @@
       background: var(--bg-primary);
       color: var(--text-primary);
       min-height: 100vh;
-      overflow-x: auto; /* Allow horizontal scroll if needed */
-      overflow-y: hidden; /* Prevent double scrollbars */
+      overflow: auto; /* Allow scrolling when content overflows */
       font-size: 16px;
       line-height: 1.5;
       -webkit-font-smoothing: antialiased;
@@ -72,16 +71,23 @@
     /* Layout */
     .app-container {
       display: grid;
-      grid-template-columns: 1fr 440px;
+      grid-template-columns: 1fr 400px;
       grid-template-rows: auto 1fr;
-      height: 100vh;
-      min-width: 900px; /* Prevent layout from being crushed */
+      min-height: 100vh;
       gap: 0;
+    }
+
+    @media (max-width: 1400px) {
+      .app-container {
+        grid-template-columns: 1fr 380px;
+      }
     }
 
     @media (max-width: 1200px) {
       .app-container {
         grid-template-columns: 1fr;
+        height: auto;
+        min-height: 100vh;
       }
       .chat-panel {
         position: fixed;
@@ -2564,39 +2570,107 @@
       document.getElementById('chat-input').placeholder = 'Ask me anything... or click 🎤 to talk';
     }
 
+    let selectedVoice = null;
+    let voicesLoaded = false;
+
+    function loadVoices() {
+      if (!('speechSynthesis' in window)) return;
+
+      const voices = window.speechSynthesis.getVoices();
+      if (voices.length === 0) return;
+
+      voicesLoaded = true;
+
+      // Priority order for natural-sounding voices
+      const voicePreferences = [
+        // macOS premium voices (very natural)
+        v => v.name === 'Samantha',
+        v => v.name === 'Karen',
+        v => v.name === 'Daniel',
+        v => v.name === 'Moira',
+        v => v.name.includes('Enhanced'),
+        v => v.name.includes('Premium'),
+        // Google voices (good quality)
+        v => v.name.includes('Google US English'),
+        v => v.name.includes('Google UK English'),
+        // Microsoft voices
+        v => v.name.includes('Microsoft Zira'),
+        v => v.name.includes('Microsoft David'),
+        // Any English voice as fallback
+        v => v.lang.startsWith('en-US'),
+        v => v.lang.startsWith('en')
+      ];
+
+      for (const pref of voicePreferences) {
+        const found = voices.find(pref);
+        if (found) {
+          selectedVoice = found;
+          console.log('Selected voice:', found.name);
+          break;
+        }
+      }
+    }
+
     function speakResponse(text) {
       if (!('speechSynthesis' in window)) return;
 
-      // Clean up text for speech (remove markdown, emojis)
-      const cleanText = text
-        .replace(/\*\*(.*?)\*\*/g, '$1')
-        .replace(/\*(.*?)\*/g, '$1')
-        .replace(/[📧💬✅❌🎁💰👤⏰⚠️📱📥✉️🔊🎤📋]/g, '')
-        .replace(/•/g, ',')
-        .substring(0, 500); // Limit length for speech
+      // Cancel any ongoing speech
+      window.speechSynthesis.cancel();
 
-      const utterance = new SpeechSynthesisUtterance(cleanText);
-      utterance.rate = 1.0;
-      utterance.pitch = 1.0;
+      // Clean up text for speech
+      let cleanText = text
+        .replace(/\*\*(.*?)\*\*/g, '$1')  // Remove bold
+        .replace(/\*(.*?)\*/g, '$1')       // Remove italic
+        .replace(/[📧💬✅❌🎁💰👤⏰⚠️📱📥✉️🔊🎤📋🚨💡📊🌱]/g, '')  // Remove emojis
+        .replace(/•/g, '')                  // Remove bullets
+        .replace(/\n+/g, '. ')             // Convert newlines to pauses
+        .replace(/\s+/g, ' ')              // Normalize spaces
+        .trim();
 
-      // Try to use a natural voice
-      const voices = window.speechSynthesis.getVoices();
-      const preferredVoice = voices.find(v =>
-        v.name.includes('Samantha') ||
-        v.name.includes('Google') ||
-        v.name.includes('Natural')
-      ) || voices.find(v => v.lang.startsWith('en'));
+      // Split into sentences for more natural pacing
+      const sentences = cleanText.match(/[^.!?]+[.!?]+/g) || [cleanText];
 
-      if (preferredVoice) utterance.voice = preferredVoice;
+      // Speak each sentence with a slight pause between
+      sentences.forEach((sentence, index) => {
+        const utterance = new SpeechSynthesisUtterance(sentence.trim());
 
-      window.speechSynthesis.speak(utterance);
+        // Natural speech settings
+        utterance.rate = 0.95;   // Slightly slower than default
+        utterance.pitch = 1.0;   // Natural pitch
+        utterance.volume = 1.0;
+
+        if (selectedVoice) {
+          utterance.voice = selectedVoice;
+        }
+
+        // Add small pause between sentences
+        if (index > 0) {
+          setTimeout(() => {
+            window.speechSynthesis.speak(utterance);
+          }, index * 100);
+        } else {
+          window.speechSynthesis.speak(utterance);
+        }
+      });
+    }
+
+    // Stop speaking
+    function stopSpeaking() {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
     }
 
     // Load voices when available
     if ('speechSynthesis' in window) {
-      window.speechSynthesis.onvoiceschanged = () => {
-        window.speechSynthesis.getVoices();
-      };
+      // Try to load immediately
+      loadVoices();
+
+      // Also load when voices change (async loading)
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+
+      // Fallback: try again after a short delay
+      setTimeout(loadVoices, 100);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
