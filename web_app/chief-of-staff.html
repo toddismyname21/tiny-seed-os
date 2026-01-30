@@ -1725,6 +1725,30 @@
     </div>
   </div>
 
+  <!-- Email Detail Modal -->
+  <div class="modal-overlay" id="email-detail-modal" style="display:none;">
+    <div class="modal" style="max-width:700px;max-height:90vh;display:flex;flex-direction:column;">
+      <div class="modal-header" style="border-bottom:1px solid var(--border-color);padding-bottom:16px;">
+        <div style="flex:1;">
+          <h3 id="email-detail-subject" style="font-size:18px;font-weight:700;margin-bottom:8px;color:var(--text-primary);"></h3>
+          <div style="font-size:14px;color:var(--text-secondary);">
+            <span id="email-detail-from"></span>
+            <span style="color:var(--text-muted);margin-left:12px;" id="email-detail-date"></span>
+          </div>
+        </div>
+        <button class="modal-close" onclick="closeEmailDetail()">&times;</button>
+      </div>
+      <div class="modal-body" style="flex:1;overflow-y:auto;padding:20px 0;">
+        <div id="email-detail-body" style="font-size:15px;line-height:1.7;color:var(--text-primary);white-space:pre-wrap;"></div>
+      </div>
+      <div class="modal-footer" style="border-top:1px solid var(--border-color);padding-top:16px;gap:12px;">
+        <button class="btn btn-secondary" onclick="closeEmailDetail()">Close</button>
+        <button class="btn btn-secondary" onclick="archiveCurrentEmail()">📥 Archive</button>
+        <button class="btn btn-primary" onclick="replyToCurrentEmail()">✉️ Draft Reply</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // PRODUCTION API - v444 Overnight mega upgrade (2026-01-28)
     const API_BASE = 'https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec';
@@ -1989,10 +2013,71 @@
       selectedMessageId = id;
       renderCommunications();
 
-      // Load message details in chat
+      // Load full email details
       const msg = communications.find(c => c.id === id);
-      if (msg) {
+      if (msg && msg.type === 'email') {
+        showEmailDetail(id);
+      } else if (msg) {
+        // For SMS, use chat
         askQuestion(`Tell me more about the ${msg.type} from ${msg.from}: "${msg.subject}"`);
+      }
+    }
+
+    async function showEmailDetail(threadId) {
+      const modal = document.getElementById('email-detail-modal');
+      document.getElementById('email-detail-subject').textContent = 'Loading...';
+      document.getElementById('email-detail-from').textContent = '';
+      document.getElementById('email-detail-date').textContent = '';
+      document.getElementById('email-detail-body').textContent = 'Loading email content...';
+      modal.style.display = 'flex';
+
+      try {
+        const res = await fetch(`${API_BASE}?action=getEmailDetail&threadId=${encodeURIComponent(threadId)}`);
+        const data = await res.json();
+
+        if (data.success && data.data) {
+          const email = data.data;
+          document.getElementById('email-detail-subject').textContent = email.subject || 'No Subject';
+          document.getElementById('email-detail-from').textContent = `From: ${email.from}`;
+          document.getElementById('email-detail-date').textContent = new Date(email.date).toLocaleString();
+          document.getElementById('email-detail-body').textContent = email.body || 'No content';
+        } else {
+          document.getElementById('email-detail-body').textContent = 'Failed to load email: ' + (data.error || 'Unknown error');
+        }
+      } catch (error) {
+        document.getElementById('email-detail-body').textContent = 'Error loading email: ' + error.message;
+      }
+    }
+
+    function closeEmailDetail() {
+      document.getElementById('email-detail-modal').style.display = 'none';
+    }
+
+    async function archiveCurrentEmail() {
+      if (!selectedMessageId) return;
+      try {
+        const res = await fetch(`${API_BASE}?action=archiveEmail&threadId=${encodeURIComponent(selectedMessageId)}`);
+        const data = await res.json();
+        if (data.success) {
+          showToast('Email archived', 'success');
+          closeEmailDetail();
+          communications = communications.filter(c => c.id !== selectedMessageId);
+          renderCommunications();
+          updateStats();
+        } else {
+          showToast('Failed to archive: ' + (data.error || 'Unknown error'), 'error');
+        }
+      } catch (error) {
+        showToast('Error archiving email', 'error');
+      }
+    }
+
+    function replyToCurrentEmail() {
+      if (!selectedMessageId) return;
+      closeEmailDetail();
+      const msg = communications.find(c => c.id === selectedMessageId);
+      if (msg) {
+        askQuestion(`Help me draft a reply to ${msg.from} about "${msg.subject}". What should I say?`);
       }
     }
 
