@@ -128,4 +128,28 @@ POST https://graph.facebook.com/v24.0/{instagram-business-account-id}/media_publ
 
 ---
 
+## CONTENT SOURCES FOR SOCIAL MEDIA POSTS
+
+These files contain valuable content for generating authentic social media posts:
+
+| File | Content Type | Use For |
+|------|--------------|---------|
+| `claude_sessions/business_foundation/OUTBOX.md` | Farm mission, values, story | Brand posts, about us content, mission statements |
+| `CHANGE_LOG.md` | New features & updates | Announcements, "what's new" posts, tech updates |
+| `apps_script/MarketModule.js` | Market schedules & locations | Market day reminders, location posts, schedule updates |
+| `web_app/csa.html` | CSA program details | CSA promotion, member benefits, signup CTAs |
+
+### Other OUTBOX Files (Real-Time Activity Logs)
+
+| Claude Session | OUTBOX Location | Content Gold |
+|----------------|-----------------|--------------|
+| PM_Architect | `claude_sessions/pm_architect/OUTBOX.md` | System updates, big picture news |
+| Sales CRM | `claude_sessions/sales_crm/OUTBOX.md` | Customer wins, sales milestones |
+| Field Operations | `claude_sessions/field_operations/OUTBOX.md` | Harvest updates, field activity |
+| Backend | `claude_sessions/backend/OUTBOX.md` | Technical achievements |
+
+**Pro Tip:** Check OUTBOX files before generating posts - they contain real-time farm activity that makes authentic content.
+
+---
+
 *Report updated: 2026-01-29*
