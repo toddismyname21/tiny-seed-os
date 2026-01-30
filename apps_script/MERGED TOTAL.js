@@ -51823,7 +51823,7 @@ function postToInstagram(params) {
         if (!account) return { success: false, error: 'Account not found at index ' + accountIndex };
         const accessToken = props.getProperty(`ig_token_${accountIndex}`);
         if (!accessToken) return { success: false, error: 'Access token not found' };
-        const apiVersion = 'v21.0', baseUrl = 'https://graph.facebook.com';
+        const apiVersion = 'v24.0', baseUrl = 'https://graph.facebook.com';
         let containerPayload = { access_token: accessToken, caption: caption || '' };
         if (mediaType === 'IMAGE' || mediaType === 'STORIES') { containerPayload.image_url = imageUrl; if (mediaType === 'STORIES') containerPayload.media_type = 'STORIES'; }
         else if (mediaType === 'REELS') { containerPayload.video_url = videoUrl; containerPayload.media_type = 'REELS'; }
@@ -51847,7 +51847,7 @@ function getInstagramInsights(params) {
         if (accounts.length === 0) return { success: false, error: 'Instagram not configured' };
         const account = accounts[accountIndex], accessToken = props.getProperty(`ig_token_${accountIndex}`);
         if (!accessToken) return { success: false, error: 'Access token not found' };
-        const result = JSON.parse(UrlFetchApp.fetch(`https://graph.facebook.com/v21.0/${account.igUserId}/insights?metric=impressions,reach,follower_count&period=${period}&access_token=${accessToken}`, { muteHttpExceptions: true }).getContentText());
+        const result = JSON.parse(UrlFetchApp.fetch(`https://graph.facebook.com/v24.0/${account.igUserId}/insights?metric=impressions,reach,follower_count&period=${period}&access_token=${accessToken}`, { muteHttpExceptions: true }).getContentText());
         if (result.error) return { success: false, error: result.error.message };
         return { success: true, account: account.name, period: period, insights: result.data };
     } catch (error) { Logger.log('Error getting Instagram insights: ' + error.toString()); return { success: false, error: error.toString() }; }
@@ -51912,7 +51912,7 @@ function getSocialStats(params) {
             if (accessToken && account.igUserId) {
                 try {
                     const result = JSON.parse(UrlFetchApp.fetch(
-                        `https://graph.facebook.com/v21.0/${account.igUserId}?fields=followers_count,media_count,username&access_token=${accessToken}`,
+                        `https://graph.facebook.com/v24.0/${account.igUserId}?fields=followers_count,media_count,username&access_token=${accessToken}`,
                         { muteHttpExceptions: true }
                     ).getContentText());
 
