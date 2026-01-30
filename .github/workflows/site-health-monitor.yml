@@ -1,0 +1,114 @@
+name: Site Health Monitor
+
+on:
+  # Run after every push
+  push:
+    branches: [main]
+
+  # Run every 15 minutes
+  schedule:
+    - cron: '*/15 * * * *'
+
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  check-site-health:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check GitHub Pages Build Status
+        id: pages-status
+        run: |
+          STATUS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/pages" | jq -r '.status')
+          echo "pages_status=$STATUS" >> $GITHUB_OUTPUT
+          if [ "$STATUS" = "errored" ]; then
+            echo "::error::GitHub Pages is in ERROR state!"
+            exit 1
+          fi
+          echo "Pages status: $STATUS"
+
+      - name: Check Live Site Loads
+        id: site-check
+        run: |
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://app.tinyseedfarm.com/")
+          echo "http_code=$HTTP_CODE" >> $GITHUB_OUTPUT
+          if [ "$HTTP_CODE" != "200" ] && [ "$HTTP_CODE" != "301" ] && [ "$HTTP_CODE" != "302" ]; then
+            echo "::error::Site returned HTTP $HTTP_CODE"
+            exit 1
+          fi
+          echo "Site HTTP status: $HTTP_CODE"
+
+      - name: Check API is Responding
+        id: api-check
+        run: |
+          RESPONSE=$(curl -sL "https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec?action=testConnection" 2>&1)
+          if echo "$RESPONSE" | grep -q '"success":true'; then
+            echo "API is responding correctly"
+          else
+            echo "::error::API is not responding correctly"
+            echo "Response: $RESPONSE"
+            exit 1
+          fi
+
+      - name: Check Correct API URL in Live Site
+        id: url-check
+        run: |
+          LIVE_URL=$(curl -sL "http://app.tinyseedfarm.com/index.html" | grep -o "AKfycb[a-zA-Z0-9_-]*" | head -1)
+          CORRECT_URL="AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm"
+          if [ "$LIVE_URL" != "$CORRECT_URL" ]; then
+            echo "::error::Live site has WRONG API URL!"
+            echo "Expected: $CORRECT_URL"
+            echo "Found: $LIVE_URL"
+            exit 1
+          fi
+          echo "API URL verified correct"
+
+      - name: Send Failure Notification
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "🚨 TINY SEED OS - SITE DOWN OR BROKEN"
+          to: todd@tinyseedfarmpgh.com
+          from: Tiny Seed OS Monitor
+          body: |
+            ⚠️ ALERT: Tiny Seed OS has a problem!
+
+            Pages Status: ${{ steps.pages-status.outputs.pages_status }}
+            HTTP Code: ${{ steps.site-check.outputs.http_code }}
+
+            Check the GitHub Actions log for details:
+            https://github.com/${{ github.repository }}/actions
+
+            Common fixes:
+            1. Check for broken git submodules
+            2. Verify API URLs are correct
+            3. Check GitHub Pages build logs
+
+  notify-on-pages-failure:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - name: Wait for Pages Deploy
+        run: sleep 90
+
+      - name: Check Pages Build Result
+        run: |
+          # Get latest build status
+          BUILD=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/pages/builds" | jq '.[0]')
+
+          STATUS=$(echo $BUILD | jq -r '.status')
+          ERROR=$(echo $BUILD | jq -r '.error.message')
+
+          echo "Build status: $STATUS"
+          echo "Error: $ERROR"
+
+          if [ "$STATUS" = "errored" ]; then
+            echo "::error::GitHub Pages build FAILED: $ERROR"
+            exit 1
+          fi
