@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TinyPM Investor Report 2026</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            line-height: 1.6;
+            color: #1a1a2e;
+            background: #fff;
+            padding: 40px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        @media print {
+            body {
+                padding: 20px;
+                font-size: 11pt;
+            }
+            .page-break {
+                page-break-before: always;
+            }
+            h1, h2 {
+                page-break-after: avoid;
+            }
+            table {
+                page-break-inside: avoid;
+            }
+        }
+
+        h1 {
+            font-size: 2.5em;
+            color: #16213e;
+            margin-bottom: 10px;
+            border-bottom: 4px solid #4361ee;
+            padding-bottom: 15px;
+        }
+
+        h2 {
+            font-size: 1.5em;
+            color: #16213e;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        h3 {
+            font-size: 1.2em;
+            color: #4361ee;
+            margin-top: 25px;
+            margin-bottom: 15px;
+        }
+
+        p {
+            margin-bottom: 15px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 0.9em;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background: #4361ee;
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .highlight-box {
+            background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin: 30px 0;
+        }
+
+        .highlight-box h2 {
+            color: white;
+            border-bottom: 2px solid rgba(255,255,255,0.3);
+            margin-top: 0;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            border-left: 4px solid #4361ee;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: 700;
+            color: #4361ee;
+        }
+
+        .stat-label {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .return-highlight {
+            background: #10b981;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+            display: inline-block;
+            margin: 10px 0;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .success-box {
+            background: #d1fae5;
+            border-left: 4px solid #10b981;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        ul, ol {
+            margin: 15px 0 15px 30px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        .confidential {
+            text-align: center;
+            color: #e63946;
+            font-weight: 600;
+            margin-top: 40px;
+            padding: 15px;
+            border: 2px solid #e63946;
+            border-radius: 8px;
+        }
+
+        .header-meta {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 30px;
+        }
+
+        .toc {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 8px;
+            margin: 30px 0;
+        }
+
+        .toc h3 {
+            margin-top: 0;
+        }
+
+        .toc ul {
+            list-style: none;
+            margin-left: 0;
+        }
+
+        .toc li {
+            padding: 5px 0;
+            border-bottom: 1px dotted #ddd;
+        }
+
+        code {
+            background: #f1f1f1;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Monaco', monospace;
+            font-size: 0.9em;
+        }
+
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .stat-grid, .two-col {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>TINYPM INVESTOR REPORT</h1>
+    <p style="font-size: 1.3em; color: #4361ee; font-weight: 600;">AI-Powered Farm & Project Management Platform</p>
+    <p class="header-meta"><strong>Confidential Investment Memorandum</strong> | January 2026</p>
+
+    <div class="highlight-box">
+        <h2>INVESTMENT OPPORTUNITY</h2>
+        <p style="font-size: 1.2em; margin-bottom: 20px;"><strong>The Ask:</strong> $500,000 Seed Round</p>
+
+        <h3 style="color: white;">Projected 5-Year Returns</h3>
+        <div class="stat-grid" style="margin-top: 20px;">
+            <div class="stat-card" style="background: rgba(255,255,255,0.95); border-left-color: #10b981;">
+                <div class="stat-value" style="color: #10b981;">10x</div>
+                <div class="stat-label">Conservative<br>$500K → $5M</div>
+            </div>
+            <div class="stat-card" style="background: rgba(255,255,255,0.95); border-left-color: #4361ee;">
+                <div class="stat-value">20x</div>
+                <div class="stat-label">Base Case<br>$500K → $10M</div>
+            </div>
+            <div class="stat-card" style="background: rgba(255,255,255,0.95); border-left-color: #7c3aed;">
+                <div class="stat-value" style="color: #7c3aed;">58x</div>
+                <div class="stat-label">Aggressive<br>$500K → $29M</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toc">
+        <h3>Contents</h3>
+        <ul>
+            <li>1. Investment Thesis</li>
+            <li>2. Market Opportunity ($10B+ TAM)</li>
+            <li>3. Product Overview (3 Product Lines)</li>
+            <li>4. Current Traction</li>
+            <li>5. Technology Roadmap</li>
+            <li>6. Competitive Landscape</li>
+            <li>7. Financial Projections</li>
+            <li>8. Go-to-Market Strategy</li>
+            <li>9. Team & Hiring Plan</li>
+            <li>10. Risk Factors & Mitigations</li>
+            <li>11. Exit Opportunities</li>
+            <li>12. Investment Terms</li>
+        </ul>
+    </div>
+
+    <h2>1. WHY INVEST NOW</h2>
+
+    <h3>Perfect Market Timing</h3>
+    <div class="stat-grid">
+        <div class="stat-card">
+            <div class="stat-value">$3.55B</div>
+            <div class="stat-label">AI PM Market (2025)<br>→ $14.45B by 2034</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">$4B</div>
+            <div class="stat-label">Farm Software (2025)<br>→ $10.58B by 2030</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">$2.55B</div>
+            <div class="stat-label">AI in Agriculture<br>→ $7.05B by 2030</div>
+        </div>
+    </div>
+
+    <div class="success-box">
+        <strong>Combined TAM: $10B+</strong> with 17-22% annual growth
+    </div>
+
+    <h3>Underserved Market Gap</h3>
+    <ul>
+        <li><strong>Only 20%</strong> of U.S. farmers use advanced farm management software</li>
+        <li><strong>47%</strong> cite cost as the top barrier to adoption</li>
+        <li>Existing solutions built for large commercial farms, not small/organic operations</li>
+        <li><strong>2.04 million farms</strong> in the U.S., majority are small operations</li>
+    </ul>
+
+    <h3>First-Mover Advantage</h3>
+    <p>No competitor combines:</p>
+    <ul>
+        <li>AI-native multi-agent architecture</li>
+        <li>Farm-specific operations management</li>
+        <li>Project management capabilities</li>
+        <li>Developer extensibility platform</li>
+    </ul>
+
+    <div class="page-break"></div>
+
+    <h2>2. PROJECTED RETURNS (5-YEAR)</h2>
+
+    <h3>Base Case Scenario</h3>
+    <table>
+        <tr>
+            <th>Year</th>
+            <th>ARR</th>
+            <th>Customers</th>
+            <th>Valuation</th>
+            <th>Investor Equity (20%)</th>
+        </tr>
+        <tr>
+            <td>2026</td>
+            <td>$180K</td>
+            <td>300</td>
+            <td>$1.8M</td>
+            <td>$150K</td>
+        </tr>
+        <tr>
+            <td>2027</td>
+            <td>$720K</td>
+            <td>1,200</td>
+            <td>$7.2M</td>
+            <td>$600K</td>
+        </tr>
+        <tr>
+            <td>2028</td>
+            <td>$2.2M</td>
+            <td>3,500</td>
+            <td>$22M</td>
+            <td>$1.83M</td>
+        </tr>
+        <tr>
+            <td>2029</td>
+            <td>$5.5M</td>
+            <td>9,000</td>
+            <td>$55M</td>
+            <td>$4.6M</td>
+        </tr>
+        <tr style="background: #d1fae5;">
+            <td><strong>2030</strong></td>
+            <td><strong>$12M</strong></td>
+            <td><strong>20,000</strong></td>
+            <td><strong>$120M</strong></td>
+            <td><strong>$10M</strong></td>
+        </tr>
+    </table>
+    <p class="return-highlight">Base Case 5-Year Return: 20x ($500K → $10M)</p>
+
+    <h3>Aggressive Scenario (With Strategic Partner)</h3>
+    <table>
+        <tr>
+            <th>Year</th>
+            <th>ARR</th>
+            <th>Customers</th>
+            <th>Valuation</th>
+            <th>Investor Equity (20%)</th>
+        </tr>
+        <tr>
+            <td>2026</td>
+            <td>$300K</td>
+            <td>500</td>
+            <td>$3M</td>
+            <td>$250K</td>
+        </tr>
+        <tr>
+            <td>2027</td>
+            <td>$1.5M</td>
+            <td>2,500</td>
+            <td>$15M</td>
+            <td>$1.25M</td>
+        </tr>
+        <tr>
+            <td>2028</td>
+            <td>$5M</td>
+            <td>8,000</td>
+            <td>$50M</td>
+            <td>$4.2M</td>
+        </tr>
+        <tr>
+            <td>2029</td>
+            <td>$15M</td>
+            <td>25,000</td>
+            <td>$150M</td>
+            <td>$12.5M</td>
+        </tr>
+        <tr style="background: #ddd6fe;">
+            <td><strong>2030</strong></td>
+            <td><strong>$35M</strong></td>
+            <td><strong>60,000</strong></td>
+            <td><strong>$350M</strong></td>
+            <td><strong>$29M</strong></td>
+        </tr>
+    </table>
+    <p class="return-highlight" style="background: #7c3aed;">Aggressive 5-Year Return: 58x ($500K → $29M)</p>
+
+    <div class="page-break"></div>
+
+    <h2>3. PRODUCT OVERVIEW</h2>
+
+    <h3>Three Product Lines</h3>
+
+    <div class="two-col">
+        <div>
+            <h4 style="color: #4361ee;">1. TinyPM for Farms</h4>
+            <p><strong>Target:</strong> Small to mid-sized farms (1-100 acres)</p>
+            <p><strong>Pricing:</strong> $50-200/month</p>
+            <p><strong>Features:</strong></p>
+            <ul>
+                <li>Crop planning & succession</li>
+                <li>Inventory & harvest tracking</li>
+                <li>Customer management</li>
+                <li>Employee scheduling</li>
+                <li>Food safety compliance</li>
+                <li>AI-powered alerts</li>
+                <li>Delivery optimization</li>
+                <li>QuickBooks sync</li>
+            </ul>
+        </div>
+        <div>
+            <h4 style="color: #4361ee;">2. TinyPM Platform</h4>
+            <p><strong>Target:</strong> Any small business</p>
+            <p><strong>Pricing:</strong> $29-99/month</p>
+            <p><strong>Features:</strong></p>
+            <ul>
+                <li>Multi-agent AI assistants</li>
+                <li>Project & task management</li>
+                <li>CRM functionality</li>
+                <li>Financial tracking</li>
+                <li>Customizable workflows</li>
+                <li>Industry templates</li>
+            </ul>
+        </div>
+    </div>
+
+    <h4 style="color: #4361ee; margin-top: 30px;">3. TinyPM Developer Platform</h4>
+    <p><strong>Target:</strong> Developers building integrations</p>
+    <p><strong>Pricing:</strong> API usage-based + 20% marketplace commission</p>
+    <ul>
+        <li>RESTful API with full documentation</li>
+        <li>TypeScript & Python SDKs</li>
+        <li>Plugin/extension marketplace</li>
+        <li>White-label licensing</li>
+    </ul>
+
+    <h2>4. CURRENT TRACTION</h2>
+
+    <h3>Tiny Seed Farm OS (Live Product)</h3>
+
+    <div class="stat-grid">
+        <div class="stat-card">
+            <div class="stat-value">83,314</div>
+            <div class="stat-label">Lines of Backend Code</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">1,650+</div>
+            <div class="stat-label">API Functions</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">15+</div>
+            <div class="stat-label">AI Agents</div>
+        </div>
+    </div>
+
+    <h4>Features Built & Deployed:</h4>
+    <div class="two-col">
+        <ul>
+            <li>Employee time clock & scheduling</li>
+            <li>Driver delivery app with GPS</li>
+            <li>Chef/wholesale ordering portal</li>
+            <li>CSA member portal</li>
+            <li>Crop planning & succession</li>
+            <li>Financial dashboard</li>
+        </ul>
+        <ul>
+            <li>Marketing command center</li>
+            <li>Food safety compliance</li>
+            <li>AI email triage & drafting</li>
+            <li>Morning brief generator</li>
+            <li>Smart CSA intelligence</li>
+            <li>Delivery route optimization</li>
+        </ul>
+    </div>
+
+    <div class="stat-grid" style="margin-top: 20px;">
+        <div class="stat-card">
+            <div class="stat-value">1</div>
+            <div class="stat-label">Farm (Pilot Customer)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">30+</div>
+            <div class="stat-label">Employees</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">150+</div>
+            <div class="stat-label">Customers (Chefs + CSA)</div>
+        </div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <h2>5. TECHNOLOGY ROADMAP</h2>
+
+    <table>
+        <tr>
+            <th>Phase</th>
+            <th>Timeline</th>
+            <th>Investment</th>
+            <th>Deliverables</th>
+        </tr>
+        <tr>
+            <td><strong>Backend Migration</strong><br>Supabase + PostgreSQL</td>
+            <td>Q1-Q2 2026</td>
+            <td>$75,000</td>
+            <td>Real-time sync, row-level security, edge functions, offline-first</td>
+        </tr>
+        <tr>
+            <td><strong>Mobile App</strong><br>React Native + Expo</td>
+            <td>Q2-Q3 2026</td>
+            <td>$100,000</td>
+            <td>iOS & Android apps, offline field ops, push notifications</td>
+        </tr>
+        <tr>
+            <td><strong>AI Infrastructure</strong><br>LangGraph + Claude API</td>
+            <td>Q3-Q4 2026</td>
+            <td>$100,000</td>
+            <td>Multi-agent orchestration, long-term memory, cost optimization</td>
+        </tr>
+        <tr>
+            <td><strong>Developer Platform</strong><br>API + Marketplace</td>
+            <td>Q4 2026 - Q1 2027</td>
+            <td>$75,000</td>
+            <td>REST API, SDKs, plugin system, developer portal</td>
+        </tr>
+    </table>
+
+    <h2>6. COMPETITIVE LANDSCAPE</h2>
+
+    <h3>Farm Management Software</h3>
+    <table>
+        <tr>
+            <th>Competitor</th>
+            <th>Target</th>
+            <th>Gap</th>
+        </tr>
+        <tr>
+            <td>Granular (Corteva)</td>
+            <td>Enterprise farms</td>
+            <td>Too complex, expensive for small farms</td>
+        </tr>
+        <tr>
+            <td>Conservis</td>
+            <td>Large commercial</td>
+            <td>Not accessible to small operations</td>
+        </tr>
+        <tr>
+            <td>FarmLogs</td>
+            <td>Small-mid farms</td>
+            <td>Limited AI, acquired/stagnant</td>
+        </tr>
+    </table>
+
+    <h3>AI Project Management</h3>
+    <table>
+        <tr>
+            <th>Competitor</th>
+            <th>Focus</th>
+            <th>Gap</th>
+        </tr>
+        <tr>
+            <td>Motion</td>
+            <td>Calendar AI</td>
+            <td>Generic, not industry-specific</td>
+        </tr>
+        <tr>
+            <td>Monday.com</td>
+            <td>General PM</td>
+            <td>AI is add-on, not core architecture</td>
+        </tr>
+        <tr>
+            <td>Asana</td>
+            <td>Enterprise PM</td>
+            <td>Complex, enterprise-focused</td>
+        </tr>
+    </table>
+
+    <div class="success-box">
+        <strong>TinyPM Advantage:</strong> First AI-native, multi-agent platform purpose-built for small farms with full business operations coverage.
+    </div>
+
+    <div class="page-break"></div>
+
+    <h2>7. FINANCIAL PROJECTIONS</h2>
+
+    <h3>Revenue Model</h3>
+    <table>
+        <tr>
+            <th>Revenue Stream</th>
+            <th>% of Revenue</th>
+            <th>Description</th>
+        </tr>
+        <tr>
+            <td>SaaS Subscriptions</td>
+            <td>80%</td>
+            <td>$29-199/month per customer</td>
+        </tr>
+        <tr>
+            <td>API & Developer</td>
+            <td>15%</td>
+            <td>Usage-based API pricing</td>
+        </tr>
+        <tr>
+            <td>Marketplace</td>
+            <td>5%</td>
+            <td>20% commission on plugins</td>
+        </tr>
+    </table>
+
+    <h3>5-Year P&L (Base Case)</h3>
+    <table>
+        <tr>
+            <th>Metric</th>
+            <th>2026</th>
+            <th>2027</th>
+            <th>2028</th>
+            <th>2029</th>
+            <th>2030</th>
+        </tr>
+        <tr>
+            <td>Customers</td>
+            <td>300</td>
+            <td>1,200</td>
+            <td>3,500</td>
+            <td>9,000</td>
+            <td>20,000</td>
+        </tr>
+        <tr>
+            <td>ARR</td>
+            <td>$180K</td>
+            <td>$720K</td>
+            <td>$2.2M</td>
+            <td>$5.5M</td>
+            <td>$12M</td>
+        </tr>
+        <tr>
+            <td>Gross Margin</td>
+            <td>70%</td>
+            <td>75%</td>
+            <td>80%</td>
+            <td>82%</td>
+            <td>85%</td>
+        </tr>
+        <tr>
+            <td>Gross Profit</td>
+            <td>$126K</td>
+            <td>$540K</td>
+            <td>$1.76M</td>
+            <td>$4.5M</td>
+            <td>$10.2M</td>
+        </tr>
+        <tr>
+            <td>Burn Rate</td>
+            <td>$30K/mo</td>
+            <td>$50K/mo</td>
+            <td>$80K/mo</td>
+            <td>$120K/mo</td>
+            <td>$200K/mo</td>
+        </tr>
+        <tr style="background: #d1fae5;">
+            <td><strong>Net Income</strong></td>
+            <td>-$234K</td>
+            <td>-$60K</td>
+            <td>$800K</td>
+            <td>$3M</td>
+            <td><strong>$7.8M</strong></td>
+        </tr>
+    </table>
+
+    <h3>Unit Economics</h3>
+    <div class="stat-grid">
+        <div class="stat-card">
+            <div class="stat-value">$150</div>
+            <div class="stat-label">CAC</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">$1,800</div>
+            <div class="stat-label">LTV (3-year)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">12:1</div>
+            <div class="stat-label">LTV:CAC Ratio</div>
+        </div>
+    </div>
+
+    <h2>8. EXIT OPPORTUNITIES</h2>
+
+    <h3>Strategic Acquirers</h3>
+    <table>
+        <tr>
+            <th>Company</th>
+            <th>Rationale</th>
+            <th>Potential Value</th>
+        </tr>
+        <tr>
+            <td>Corteva (Granular)</td>
+            <td>Expand to small farm market</td>
+            <td>$50-100M</td>
+        </tr>
+        <tr>
+            <td>John Deere</td>
+            <td>Digital ag platform expansion</td>
+            <td>$100-200M</td>
+        </tr>
+        <tr>
+            <td>Shopify</td>
+            <td>SMB operations platform</td>
+            <td>$50-150M</td>
+        </tr>
+        <tr>
+            <td>Intuit (QuickBooks)</td>
+            <td>Vertical SaaS expansion</td>
+            <td>$75-150M</td>
+        </tr>
+    </table>
+
+    <div class="page-break"></div>
+
+    <h2>9. INVESTMENT TERMS</h2>
+
+    <div class="highlight-box">
+        <h3 style="color: white; margin-top: 0;">Seed Round: $500,000</h3>
+        <table style="background: white; color: #1a1a2e;">
+            <tr>
+                <td><strong>Structure</strong></td>
+                <td>SAFE with valuation cap</td>
+            </tr>
+            <tr>
+                <td><strong>Valuation Cap</strong></td>
+                <td>$2.5M</td>
+            </tr>
+            <tr>
+                <td><strong>Discount</strong></td>
+                <td>20%</td>
+            </tr>
+            <tr>
+                <td><strong>Pro-rata Rights</strong></td>
+                <td>Yes</td>
+            </tr>
+            <tr>
+                <td><strong>Information Rights</strong></td>
+                <td>Quarterly updates, annual financials</td>
+            </tr>
+        </table>
+    </div>
+
+    <h3>Use of Funds</h3>
+    <table>
+        <tr>
+            <th>Category</th>
+            <th>Amount</th>
+            <th>%</th>
+        </tr>
+        <tr>
+            <td>Product Development (Backend, Mobile, AI)</td>
+            <td>$350,000</td>
+            <td>70%</td>
+        </tr>
+        <tr>
+            <td>Sales & Marketing</td>
+            <td>$100,000</td>
+            <td>20%</td>
+        </tr>
+        <tr>
+            <td>Operations & Legal</td>
+            <td>$50,000</td>
+            <td>10%</td>
+        </tr>
+    </table>
+
+    <h3>Milestones for Series A</h3>
+    <ul>
+        <li>500+ paying customers</li>
+        <li>$500K+ ARR</li>
+        <li>Mobile app launched (iOS + Android)</li>
+        <li>Backend migration complete</li>
+        <li>3 enterprise customers</li>
+        <li>Developer platform in beta</li>
+    </ul>
+
+    <h2>CONTACT</h2>
+    <p><strong>Todd Wilson</strong><br>
+    Founder & CEO, TinyPM</p>
+    <p>Email: todd@tinyseedfarmpgh.com<br>
+    Location: Pittsburgh, PA</p>
+
+    <div class="confidential">
+        CONFIDENTIAL - Do Not Distribute Without Permission<br>
+        <small>This document contains forward-looking statements. Investment involves risk including potential loss of principal.</small>
+    </div>
+
+</body>
+</html>
