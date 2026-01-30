@@ -40,6 +40,24 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-01-30 - Social_Media_Claude (Marketing Command Center v3.0)
+
+### Files Modified
+- `web_app/marketing-command-center.html`:
+  - Added 3 Instagram account cards (Farm, Fleurs, Fungi) to Connections tab
+  - Removed ALL Ayrshare references and dependencies
+  - Added Direct API status card showing $1,200/yr savings
+  - Updated dashboard stats to show Instagram API status
+  - Updated platform connection functions to official APIs
+  - Fixed budget section to show $0/mo
+
+### Ayrshare Removal Complete
+- No more third-party dependencies for social media posting
+- Direct Meta Graph API integration
+- Saving $348/year (was $29/month)
+
+---
+
 ## 2026-01-30 - Social_Media_Claude (INSTAGRAM API FULLY WORKING!)
 
 ### Files Modified
