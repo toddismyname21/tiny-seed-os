@@ -4,7 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Chief of Staff - Tiny Seed Farm</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Performance: Preconnect to font servers -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Performance: Load fonts with swap for faster FCP -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
       /* Modern color palette - better contrast */
@@ -1732,37 +1736,74 @@
     let conversationHistory = [];
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // INITIALIZATION
+    // PERFORMANCE: API Response Cache (60 second TTL)
+    // ═══════════════════════════════════════════════════════════════════════════
+    const apiCache = new Map();
+    const CACHE_TTL = 60000; // 60 seconds
+
+    async function cachedFetch(action, params = {}) {
+      const cacheKey = action + JSON.stringify(params);
+      const cached = apiCache.get(cacheKey);
+      if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+        return cached.data;
+      }
+      const queryParams = new URLSearchParams({ action, ...params });
+      const response = await fetch(`${API_BASE}?${queryParams}`);
+      const data = await response.json();
+      apiCache.set(cacheKey, { data, timestamp: Date.now() });
+      return data;
+    }
+
+    function invalidateCache(action) {
+      for (const key of apiCache.keys()) {
+        if (key.startsWith(action)) apiCache.delete(key);
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // INITIALIZATION - Optimized parallel loading
     // ═══════════════════════════════════════════════════════════════════════════
 
     document.addEventListener('DOMContentLoaded', () => {
-      checkAPIConnection();
+      initializeApp();
       autoResizeTextarea();
     });
 
-    async function checkAPIConnection() {
+    async function initializeApp() {
       updateStatus('connecting', 'Connecting...');
-      try {
-        const response = await fetch(`${API_BASE}?action=getEmailCategories`);
-        const data = await response.json();
+      // PERFORMANCE: Load API check AND data in parallel
+      const [connectionOk] = await Promise.all([
+        checkAPIConnection(),
+        loadAllData() // Start loading immediately, don't wait for connection check
+      ]);
+      if (!connectionOk) {
+        updateStatus('error', 'Connection Failed');
+      }
+    }
 
+    async function checkAPIConnection() {
+      try {
+        const data = await cachedFetch('getEmailCategories');
         if (data.success) {
           updateStatus('connected', 'Connected');
-          loadAllData();
+          return true;
         } else {
           updateStatus('error', 'API Error');
           showToast('API returned error: ' + (data.error || 'Unknown'), 'error');
+          return false;
         }
       } catch (error) {
         updateStatus('error', 'Connection Failed');
         showToast('Cannot connect to API: ' + error.message, 'error');
         console.error('API Connection Error:', error);
+        return false;
       }
     }
 
     function updateStatus(status, text) {
       const dot = document.getElementById('status-dot');
       const statusText = document.getElementById('status-text');
+      if (!dot || !statusText) return;
 
       statusText.textContent = text;
 
@@ -1784,7 +1825,9 @@
     }
 
     function refreshAll() {
-      checkAPIConnection();
+      // Clear cache to get fresh data
+      apiCache.clear();
+      initializeApp();
       showToast('Refreshing data...', 'success');
     }
 
@@ -1794,8 +1837,8 @@
 
     async function loadCommunications() {
       try {
-        // Load combined communications (email + SMS)
-        const commsRes = await fetch(`${API_BASE}?action=getCombinedCommunications`).then(r => r.json()).catch(() => ({ success: false }));
+        // Load combined communications (email + SMS) - uses cache for performance
+        const commsRes = await cachedFetch('getCombinedCommunications').catch(() => ({ success: false }));
 
         communications = [];
 
@@ -1996,8 +2039,7 @@
 
     async function loadActions() {
       try {
-        const response = await fetch(`${API_BASE}?action=getActionQueue`);
-        const data = await response.json();
+        const data = await cachedFetch('getActionQueue');
 
         if (data.success) {
           actions = data.actions || [];
@@ -2074,8 +2116,7 @@
 
     async function loadCommitments() {
       try {
-        const response = await fetch(`${API_BASE}?action=getOpenSMSCommitments`);
-        const data = await response.json();
+        const data = await cachedFetch('getOpenSMSCommitments');
 
         if (data.success) {
           commitments = data.commitments || [];
@@ -2585,7 +2626,7 @@
       const container = document.getElementById('proactive-alerts-list');
       container.innerHTML = '<div class="loading"><div class="spinner"></div><span class="loading-text">Loading alerts...</span></div>';
       try {
-        const res = await fetch(`${API_BASE}?action=getActiveAlerts`).then(r => r.json());
+        const res = await cachedFetch('getActiveAlerts');
         if (res.success !== false && (res.alerts || Array.isArray(res))) {
           proactiveAlerts = res.alerts || res.data || res || [];
           if (!Array.isArray(proactiveAlerts)) proactiveAlerts = [];
@@ -2658,7 +2699,7 @@
       const container = document.getElementById('proactive-suggestions-list');
       container.innerHTML = '<div class="loading"><div class="spinner"></div><span class="loading-text">Loading suggestions...</span></div>';
       try {
-        const res = await fetch(`${API_BASE}?action=getProactiveSuggestions`).then(r => r.json());
+        const res = await cachedFetch('getProactiveSuggestions');
         const suggestions = res.suggestions || res.data || [];
         if (Array.isArray(suggestions) && suggestions.length > 0) {
           let html = '';
@@ -2689,7 +2730,7 @@
       const container = document.getElementById('calendar-schedule');
       container.innerHTML = '<div class="loading"><div class="spinner"></div><span class="loading-text">Loading schedule...</span></div>';
       try {
-        const res = await fetch(`${API_BASE}?action=getTodaySchedule`).then(r => r.json());
+        const res = await cachedFetch('getTodaySchedule');
         const events = res.events || res.schedule || res.data || [];
         if (Array.isArray(events) && events.length > 0) {
           let html = '';
@@ -2790,7 +2831,7 @@
 
       // Load predictive report
       try {
-        const res = await fetch(`${API_BASE}?action=getPredictiveReport`).then(r => r.json());
+        const res = await cachedFetch('getPredictiveReport');
         if (res.success !== false) {
           const r = res.report || res.data || res;
           let tiles = '';
@@ -2874,7 +2915,7 @@
       const container = document.getElementById('memory-patterns-list');
       container.innerHTML = '<div class="loading"><div class="spinner"></div><span class="loading-text">Loading patterns...</span></div>';
       try {
-        const res = await fetch(`${API_BASE}?action=getActivePatterns&minConfidence=0.6`).then(r => r.json());
+        const res = await cachedFetch('getActivePatterns', { minConfidence: '0.6' });
         const patterns = res.patterns || res.data || [];
         if (Array.isArray(patterns) && patterns.length > 0) {
           let html = '';
@@ -2945,7 +2986,7 @@
       const container = document.getElementById('autonomy-settings');
       container.innerHTML = '<div class="loading"><div class="spinner"></div><span class="loading-text">Loading autonomy settings...</span></div>';
       try {
-        const res = await fetch(`${API_BASE}?action=getAutonomyStatus`).then(r => r.json());
+        const res = await cachedFetch('getAutonomyStatus');
         if (res.success !== false) {
           autonomyData = res;
           renderAutonomySettings(res);
@@ -2997,7 +3038,7 @@
       const container = document.getElementById('pending-approvals-list');
       container.innerHTML = '<div class="loading"><div class="spinner"></div><span class="loading-text">Loading approvals...</span></div>';
       try {
-        const res = await fetch(`${API_BASE}?action=getPendingApprovals`).then(r => r.json());
+        const res = await cachedFetch('getPendingApprovals');
         const approvals = res.approvals || res.data || res.pending || [];
         if (Array.isArray(approvals) && approvals.length > 0) {
           let html = '';
@@ -3054,7 +3095,7 @@
       const container = document.getElementById('style-profile-content');
       container.innerHTML = '<div class="loading"><div class="spinner"></div><span class="loading-text">Loading style profile...</span></div>';
       try {
-        const res = await fetch(`${API_BASE}?action=getStyleProfile`).then(r => r.json());
+        const res = await cachedFetch('getStyleProfile');
         if (res.success !== false && (res.profile || res.data || res.style)) {
           const p = res.profile || res.data || res.style || res;
           let html = '';
