@@ -1485,7 +1485,7 @@
                     // Generate from employees if endpoint doesn't exist
                     hrStats = employees.map(emp => ({
                         employeeId: emp.Employee_ID || emp.User_ID || emp.id,
-                        name: emp.Full_Name || emp.fullName || `${emp.First_Name || ''} ${emp.Last_Name || ''}`.trim(),
+                        name: emp.Full_Name || emp.fullName || emp.name || emp.Name || `${emp.First_Name || emp.firstName || ''} ${emp.Last_Name || emp.lastName || ''}`.trim(),
                         role: emp.Role || emp.role || 'Staff',
                         totalHours: emp.Total_Hours || emp.totalHours || Math.floor(Math.random() * 500),
                         sickAccrued: emp.Sick_Accrued || Math.floor((emp.Total_Hours || 200) / 40),
@@ -1529,7 +1529,7 @@
             } else {
                 employees.forEach(emp => {
                     const empId = emp.Employee_ID || emp.User_ID || emp.id;
-                    const empName = emp.Full_Name || emp.fullName || `${emp.First_Name || ''} ${emp.Last_Name || ''}`.trim() || 'Unknown';
+                    const empName = emp.Full_Name || emp.fullName || emp.name || emp.Name || `${emp.First_Name || emp.firstName || ''} ${emp.Last_Name || emp.lastName || ''}`.trim() || 'Unknown';
                     const role = emp.Role || emp.role || 'Staff';
 
                     html += `<div class="employee-row">`;
@@ -1689,7 +1689,7 @@
 
             container.innerHTML = pendingRequests.map(req => {
                 const emp = employees.find(e => (e.Employee_ID || e.User_ID || e.id) === req.employeeId);
-                const empName = emp ? (emp.Full_Name || `${emp.First_Name || ''} ${emp.Last_Name || ''}`.trim()) : 'Unknown';
+                const empName = emp ? (emp.Full_Name || emp.fullName || emp.name || emp.Name || `${emp.First_Name || emp.firstName || ''} ${emp.Last_Name || emp.lastName || ''}`.trim()) : 'Unknown';
                 const isBlackout = isInBlackoutPeriod(req.startDate, req.endDate);
                 const conflicts = getConflicts(req.employeeId, req.startDate, req.endDate);
 
@@ -1723,7 +1723,7 @@
                     if (startDate <= req.endDate && endDate >= req.startDate) {
                         const emp = employees.find(e => (e.Employee_ID || e.User_ID || e.id) === req.employeeId);
                         if (emp) {
-                            const name = emp.Full_Name || emp.First_Name || 'Unknown';
+                            const name = emp.Full_Name || emp.fullName || emp.name || emp.Name || emp.First_Name || emp.firstName || 'Unknown';
                             conflicts.push(name.split(' ')[0]);
                         }
                     }
@@ -1814,7 +1814,7 @@
 
             container.innerHTML = employees.map(emp => {
                 const empId = emp.Employee_ID || emp.User_ID || emp.id;
-                const empName = emp.Full_Name || emp.fullName || `${emp.First_Name || ''} ${emp.Last_Name || ''}`.trim();
+                const empName = emp.Full_Name || emp.fullName || emp.name || emp.Name || `${emp.First_Name || emp.firstName || ''} ${emp.Last_Name || emp.lastName || ''}`.trim() || 'Unknown';
                 const role = emp.Role || emp.role || 'Staff';
                 const stat = hrStats.find(s => s.employeeId === empId) || {};
                 const weekHours = getEmployeeWeekHours(empId);
@@ -1993,7 +1993,7 @@
                 <div style="display: grid; gap: 15px;">
                     ${filtered.map(req => {
                         const emp = employees.find(e => (e.Employee_ID || e.User_ID || e.id) === req.employeeId);
-                        const empName = emp ? (emp.Full_Name || `${emp.First_Name || ''} ${emp.Last_Name || ''}`.trim()) : 'Unknown';
+                        const empName = emp ? (emp.Full_Name || emp.fullName || emp.name || emp.Name || `${emp.First_Name || emp.firstName || ''} ${emp.Last_Name || emp.lastName || ''}`.trim()) : 'Unknown';
                         const isBlackout = isInBlackoutPeriod(req.startDate, req.endDate);
 
                         let statusColor = req.status === 'approved' ? 'var(--success)' : req.status === 'denied' ? 'var(--danger)' : 'var(--warning)';
@@ -2352,7 +2352,7 @@
                 select.innerHTML = '<option value="">Select employee...</option>';
                 employees.forEach(emp => {
                     const empId = emp.Employee_ID || emp.User_ID || emp.id;
-                    const empName = emp.Full_Name || emp.fullName || `${emp.First_Name || ''} ${emp.Last_Name || ''}`.trim();
+                    const empName = emp.Full_Name || emp.fullName || emp.name || emp.Name || `${emp.First_Name || emp.firstName || ''} ${emp.Last_Name || emp.lastName || ''}`.trim() || 'Unknown';
                     select.innerHTML += `<option value="${empId}">${empName}</option>`;
                 });
             });
