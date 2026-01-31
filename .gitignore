@@ -50,3 +50,6 @@ tinypm/.env
 business_docs/tax_returns/*.pdf
 chief_of_staff/.cos_oauth_tokens.json
 chief_of_staff/.env
+
+# Business documents - private
+business_docs/

@@ -101,6 +101,35 @@ except ImportError:
     PREDICTIVE_INTENT_AVAILABLE = False
     print("[Orchestrator] Predictive intent engine not available")
 
+# Import LangGraph wrapper for durable execution (SOTA 2026)
+try:
+    from langgraph_wrapper import TinyPMGraph, TinyPMState, create_initial_state
+    LANGGRAPH_AVAILABLE = True
+    print("[Orchestrator] LangGraph durable execution ENABLED")
+except ImportError as e:
+    LANGGRAPH_AVAILABLE = False
+    print(f"[Orchestrator] LangGraph not available: {e}")
+
+# Import Skills System for modular skill execution (SOTA 2026)
+try:
+    from skills_api import SkillsAPI, SKILLS_AVAILABLE as SKILLS_SYSTEM_AVAILABLE, get_skill_orchestrator
+    _skills_api = None
+
+    def get_skills_api_instance() -> SkillsAPI:
+        """Get lazy-initialized SkillsAPI instance."""
+        global _skills_api
+        if _skills_api is None:
+            _skills_api = SkillsAPI("pm_orchestrator")
+        return _skills_api
+
+    print("[Orchestrator] Skills System ENABLED - modular skill architecture active")
+except ImportError as e:
+    SKILLS_SYSTEM_AVAILABLE = False
+    print(f"[Orchestrator] Skills System not available: {e}")
+
+    def get_skills_api_instance():
+        return None
+
 # ═══════════════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════════════════
@@ -1428,6 +1457,8 @@ class ProactiveEngine:
         Only surfaces suggestions that meet confidence threshold.
 
         ENHANCED v2: Uses calendar context for timing decisions.
+
+        ENHANCED v3: Uses PredictiveIntentEngine for mind-reading predictions.
         """
         # Build calendar timing context for TimingIntelligence
         calendar_timing_ctx = {
@@ -1444,6 +1475,34 @@ class ProactiveEngine:
 
         # Gather all potential suggestions
         potential = self._gather_potential_suggestions(ctx)
+
+        # ═══════════════════════════════════════════════════════════════
+        # PREDICTIVE INTENT SUGGESTIONS (SOTA 2026)
+        # Get "mind-reading" suggestions from the PredictiveIntentEngine
+        # ═══════════════════════════════════════════════════════════════
+        if self.predictive_intent:
+            try:
+                # Get predictions and convert to proactive suggestions
+                predictions = self.predictive_intent.predict_next_actions(limit=3)
+                suggestions = self.predictive_intent.generate_proactive_suggestions(predictions, limit=2)
+
+                for sug in suggestions:
+                    # Only include high-confidence predictions
+                    if sug.prediction.confidence >= 0.65:
+                        potential.append({
+                            "type": f"predicted_{sug.prediction.action_type}",
+                            "message": sug.message,
+                            "priority": "normal" if sug.prediction.confidence < 0.80 else "high",
+                            "context": {
+                                "data_completeness": 0.7,
+                                "novelty_score": 0.4,
+                                "base_confidence": sug.prediction.confidence
+                            },
+                            "_predictive": True  # Flag for tracking
+                        })
+                        log(f"PredictiveIntent: Added suggestion '{sug.prediction.action_type}' ({int(sug.prediction.confidence*100)}%)")
+            except Exception as e:
+                log(f"PredictiveIntent: Error getting suggestions: {e}", "WARN")
 
         # Filter through confidence scoring
         items = []
@@ -1507,10 +1566,40 @@ class ProactiveEngine:
         """Record whether a suggestion was helpful for learning.
 
         Call this after user interacts with suggestion.
+        Also updates PredictiveIntentEngine for continuous learning.
         """
         self.confidence_scorer.record_outcome(suggestion_type, was_helpful)
         self.timing_intelligence.record_timing_outcome(was_helpful, {"suggestion_type": suggestion_type})
+
+        # Also record to predictive intent engine if it's a predicted suggestion
+        if self.predictive_intent and suggestion_type.startswith("predicted_"):
+            action_type = suggestion_type.replace("predicted_", "")
+            self.predictive_intent.intent_engine.record_prediction_outcome(action_type, was_helpful)
+            log(f"PredictiveIntent: Recorded outcome for '{action_type}': {'correct' if was_helpful else 'incorrect'}")
+
         log(f"ProactiveEngine: Recorded outcome for '{suggestion_type}': {'helpful' if was_helpful else 'not helpful'}")
+
+    def record_user_action(self, action_type: str, context: Dict = None, metadata: Dict = None):
+        """Record a user action for pattern learning.
+
+        Call this when user performs any significant action to train
+        the PredictiveIntentEngine.
+
+        Args:
+            action_type: Type of action (e.g., "create_task", "check_calendar")
+            context: Optional context dict (e.g., {"email_from": "john@example.com"})
+            metadata: Optional metadata dict
+        """
+        if self.predictive_intent:
+            try:
+                self.predictive_intent.record_action_simple(
+                    action_type,
+                    context=context,
+                    metadata=metadata
+                )
+                log(f"PredictiveIntent: Recorded action '{action_type}'")
+            except Exception as e:
+                log(f"PredictiveIntent: Error recording action: {e}", "WARN")
 
 # ═══════════════════════════════════════════════════════════════════════════════════════
 # ALERT CONSOLIDATOR
@@ -2040,7 +2129,7 @@ class PMOrchestrator:
     - Intelligence integration: Uses ConfidenceScorer and TimingIntelligence via ProactiveEngine
     """
 
-    def __init__(self):
+    def __init__(self, use_langgraph: bool = False):
         self.state = self._load_state()
         self.memory = MemoryManager()
         self.claude = ClaudeInterface()
@@ -2050,6 +2139,22 @@ class PMOrchestrator:
         self.alert_consolidator = AlertConsolidator()  # NEW: Batch notifications
         self.running = False
         self._last_consolidated_alert_time: Optional[str] = None
+
+        # LangGraph integration for durable execution (SOTA 2026)
+        self.use_langgraph = use_langgraph and LANGGRAPH_AVAILABLE
+        self.langgraph: Optional['TinyPMGraph'] = None
+        if self.use_langgraph:
+            try:
+                self.langgraph = TinyPMGraph()
+                log("LangGraph durable execution mode ENABLED")
+            except Exception as e:
+                log(f"Failed to initialize LangGraph: {e}", "ERROR")
+                self.use_langgraph = False
+
+        # Skills System integration (SOTA 2026)
+        self.skills_api = get_skills_api_instance() if SKILLS_SYSTEM_AVAILABLE else None
+        if self.skills_api:
+            log("Skills System integration ENABLED")
 
     def _load_state(self) -> OrchestratorState:
         """Load orchestrator state."""
@@ -2071,24 +2176,135 @@ class PMOrchestrator:
         """Save orchestrator state."""
         safe_write_json(ORCHESTRATOR_STATE_FILE, asdict(self.state))
 
+    def try_skill_execution(self, user_message: str) -> Optional[str]:
+        """
+        Try to route the message to a skill and execute it.
+
+        Returns the skill result as a formatted string, or None if no skill matched.
+        This enables intent-to-skill routing for the PM.
+        """
+        if not self.skills_api:
+            return None
+
+        try:
+            # Parse intent to find matching skills
+            intent_result = self.skills_api.parse_intent(user_message)
+            if not intent_result.get("success") or intent_result.get("match_count", 0) == 0:
+                return None
+
+            # Get the best match (highest confidence)
+            best_match = intent_result["matches"][0]
+            confidence = best_match.get("confidence", 0)
+
+            # Only execute if confidence is high enough (> 0.6)
+            if confidence < 0.6:
+                log(f"Skill match '{best_match['skill_name']}' confidence too low ({confidence:.2f})")
+                return None
+
+            skill_name = best_match["skill_name"]
+            parameters = best_match.get("parameters", {})
+
+            log(f"Executing skill '{skill_name}' with confidence {confidence:.2f}")
+
+            # Execute the skill
+            result = self.skills_api.execute_skill(skill_name, parameters)
+
+            if result.get("requires_approval"):
+                return f"This action requires approval. Approval ID: {result.get('approval_request_id')}"
+
+            if not result.get("success"):
+                return None  # Skill failed, fall back to normal processing
+
+            # Format the skill result for the response
+            data = result.get("data", {})
+            return self._format_skill_result(skill_name, data)
+
+        except Exception as e:
+            log(f"Skill execution error: {e}", "WARN")
+            return None
+
+    def _format_skill_result(self, skill_name: str, data: Dict) -> Optional[str]:
+        """Format skill execution result for inclusion in PM response."""
+        if skill_name == "list_tasks":
+            tasks = data.get("tasks", [])
+            if not tasks:
+                return "No tasks found matching those criteria."
+            lines = [f"Found {data.get('count', len(tasks))} tasks:"]
+            for t in tasks[:5]:
+                lines.append(f"  - [{t.get('status')}] {t.get('id')}: {t.get('title')}")
+            if data.get('count', 0) > 5:
+                lines.append(f"  ... and {data.get('count') - 5} more")
+            return "\n".join(lines)
+
+        elif skill_name == "get_task_summary":
+            return (
+                f"Project Summary:\n"
+                f"  - Total tasks: {data.get('total_tasks', 0)}\n"
+                f"  - Completion: {data.get('completion_percentage', 0)}%\n"
+                f"  - By status: {data.get('by_status', {})}"
+            )
+
+        elif skill_name in ["get_upcoming_events", "get_events_today"]:
+            events = data.get("events", [])
+            if not events:
+                return "No events found."
+            lines = [f"Found {data.get('count', len(events))} events:"]
+            for e in events[:5]:
+                lines.append(f"  - {e.get('title')} at {e.get('start_formatted', e.get('start'))}")
+            return "\n".join(lines)
+
+        # Generic formatting for other skills
+        if isinstance(data, dict):
+            return f"Skill '{skill_name}' result: {json.dumps(data, indent=2, default=str)[:500]}"
+        return str(data)[:500]
+
     def process_dashboard_message(self, msg: Dict):
-        """Process a message from the dashboard."""
+        """Process a message from the dashboard.
+
+        If LangGraph is enabled, uses the durable execution graph with checkpointing.
+        Otherwise, uses the traditional response generation pipeline.
+        Now enhanced with Skills System routing for direct skill execution.
+        """
         user_message = msg["message"]
         msg_id = msg["id"]
 
         log(f"Processing #{msg_id}: {user_message[:50]}...")
 
+        # NEW: Try skill execution first (intent-to-skill routing)
+        skill_result = self.try_skill_execution(user_message)
+        if skill_result:
+            # Skill handled the request, send the result
+            self.channels.send_dashboard_response(skill_result, msg_id)
+            self.state.messages_processed += 1
+            self.state.last_processed_msg_id = msg_id
+            self._save_state()
+            return
+
         # Analyze for routing
         routing = SmartRouter.analyze(user_message)
 
-        # Gather context
-        ctx = ContextGatherer.gather()
+        # Use LangGraph if enabled - provides durable execution with checkpointing
+        if self.use_langgraph and self.langgraph:
+            log("Using LangGraph durable execution mode")
+            result = self.langgraph.process_message(user_message)
+            response = result.get("response", "Error: No response from LangGraph")
 
-        # Get conversation history
-        history = self.channels.get_conversation_history()
+            # Log LangGraph execution details
+            log(f"LangGraph: intent={result.get('intent')} conf={result.get('confidence', 0):.0%} duration={result.get('duration_ms', 0)}ms")
 
-        # Generate response
-        response = self.response_gen.generate(user_message, history, ctx)
+            if result.get("errors"):
+                for err in result["errors"]:
+                    log(f"LangGraph error: {err.get('error', 'Unknown')}", "WARN")
+        else:
+            # Traditional response generation
+            # Gather context
+            ctx = ContextGatherer.gather()
+
+            # Get conversation history
+            history = self.channels.get_conversation_history()
+
+            # Generate response
+            response = self.response_gen.generate(user_message, history, ctx)
 
         # Send response
         self.channels.send_dashboard_response(response, msg_id)
@@ -2297,6 +2513,14 @@ class PMOrchestrator:
         confidence_stats = confidence_scorer.get_confidence_stats()
         timing_stats = timing_intel.get_timing_stats()
 
+        # Predictive Intent stats
+        predictive_stats = None
+        if self.proactive.predictive_intent:
+            try:
+                predictive_stats = self.proactive.predictive_intent.get_stats()
+            except:
+                pass
+
         # Calendar status
         calendar_status = "Not available"
         if CALENDAR_AVAILABLE:
@@ -2312,6 +2536,16 @@ class PMOrchestrator:
                 email_status = f"Connected ({ctx.unread_email_count} unread)"
             else:
                 email_status = "Not connected"
+
+        # Predictive intent status
+        predictive_status = "Not available"
+        if PREDICTIVE_INTENT_AVAILABLE:
+            if predictive_stats:
+                pm = predictive_stats.get("pattern_mining", {})
+                pa = predictive_stats.get("prediction_accuracy", {})
+                predictive_status = f"Active (patterns: {pm.get('total_actions', 0)}, accuracy: {int(pa.get('overall_accuracy', 0)*100)}%)"
+            else:
+                predictive_status = "Available but not initialized"
 
         print(f"""
 ═══════════════════════════════════════════════════════════════
@@ -2334,6 +2568,7 @@ class PMOrchestrator:
   INTEGRATIONS:
     Calendar:        {calendar_status}
     Email:           {email_status}
+    Predictive AI:   {predictive_status}
 
   CALENDAR CONTEXT:
     In meeting:      {ctx.is_in_meeting}
@@ -2367,9 +2602,441 @@ class PMOrchestrator:
 
     Alert Consolidator:
       Queued alerts:       {self.alert_consolidator.get_queue_size()}
-      High priority:       {self.alert_consolidator.get_high_priority_count()}
-═══════════════════════════════════════════════════════════════
-""")
+      High priority:       {self.alert_consolidator.get_high_priority_count()}""")
+
+        # Add predictive intent section if available
+        if predictive_stats:
+            pm = predictive_stats.get("pattern_mining", {})
+            pa = predictive_stats.get("prediction_accuracy", {})
+            print(f"""
+    PREDICTIVE INTENT (MIND-READING):
+      Pattern Mining:
+        Total actions:       {pm.get('total_actions', 0)}
+        Time patterns:       {pm.get('time_slots_with_patterns', 0)}
+        Sequence patterns:   {pm.get('sequence_patterns', 0)}
+        Trigger patterns:    {pm.get('trigger_patterns', 0)}
+
+      Prediction Accuracy:
+        Total predictions:   {pa.get('total_predictions', 0)}
+        Correct:             {pa.get('correct_predictions', 0)}
+        Accuracy:            {int(pa.get('overall_accuracy', 0) * 100)}%""")
+
+        print("═══════════════════════════════════════════════════════════════\n")
+
+    # ═══════════════════════════════════════════════════════════════════════════════════
+    # LANGGRAPH DURABLE EXECUTION API
+    # ═══════════════════════════════════════════════════════════════════════════════════
+
+    def get_langgraph_status(self) -> Dict[str, Any]:
+        """Get LangGraph execution engine status.
+
+        Returns status information about the LangGraph durable execution system.
+        """
+        if not LANGGRAPH_AVAILABLE:
+            return {
+                "enabled": False,
+                "available": False,
+                "error": "LangGraph not installed"
+            }
+
+        if not self.use_langgraph or not self.langgraph:
+            return {
+                "enabled": False,
+                "available": True,
+                "message": "LangGraph available but not enabled. Use --langgraph flag."
+            }
+
+        try:
+            status = self.langgraph.get_status()
+            return {
+                "enabled": True,
+                "available": True,
+                "graph_available": status.get("graph_available", False),
+                "checkpointer_type": status.get("checkpointer_type", "unknown"),
+                "total_threads": status.get("total_threads", 0),
+                "successful_threads": status.get("successful_threads", 0),
+                "failed_threads": status.get("failed_threads", 0),
+                "anthropic_configured": status.get("anthropic_configured", False)
+            }
+        except Exception as e:
+            return {
+                "enabled": True,
+                "available": True,
+                "error": str(e)
+            }
+
+    def get_langgraph_threads(self, limit: int = 50) -> List[Dict[str, Any]]:
+        """List all LangGraph conversation threads.
+
+        Args:
+            limit: Maximum number of threads to return
+
+        Returns:
+            List of thread objects with id, status, and metadata
+        """
+        if not self.use_langgraph or not self.langgraph:
+            return []
+
+        try:
+            return self.langgraph.list_threads(limit)
+        except Exception as e:
+            log(f"Error listing LangGraph threads: {e}", "ERROR")
+            return []
+
+    def langgraph_process(self, message: str, thread_id: str = None) -> Dict[str, Any]:
+        """Process a message through LangGraph durable execution.
+
+        Args:
+            message: The user message to process
+            thread_id: Optional thread ID for conversation continuity
+
+        Returns:
+            Result dict with response, metadata, and any errors
+        """
+        if not LANGGRAPH_AVAILABLE:
+            return {
+                "success": False,
+                "error": "LangGraph not available"
+            }
+
+        # Temporarily enable LangGraph if not already
+        if not self.langgraph:
+            try:
+                self.langgraph = TinyPMGraph()
+            except Exception as e:
+                return {
+                    "success": False,
+                    "error": f"Failed to initialize LangGraph: {e}"
+                }
+
+        try:
+            result = self.langgraph.process_message(message, thread_id)
+            return result
+        except Exception as e:
+            log(f"LangGraph process error: {e}", "ERROR")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
+    def langgraph_recover_thread(self, thread_id: str) -> Dict[str, Any]:
+        """Recover a LangGraph thread from its last checkpoint.
+
+        Args:
+            thread_id: ID of the thread to recover
+
+        Returns:
+            Recovered thread state or error
+        """
+        if not self.langgraph:
+            return {"success": False, "error": "LangGraph not initialized"}
+
+        try:
+            state = self.langgraph.recover_thread(thread_id)
+            if state:
+                return {"success": True, "state": state}
+            return {"success": False, "error": f"Thread {thread_id} not found"}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    # ═══════════════════════════════════════════════════════════════════════════════════
+    # A2A PROTOCOL INTEGRATION
+    # ═══════════════════════════════════════════════════════════════════════════════════
+
+    async def delegate_to_a2a_agent(
+        self,
+        agent_name: str,
+        message: str,
+        skill: str = None
+    ) -> Dict[str, Any]:
+        """
+        Delegate a task to an external A2A agent.
+
+        This enables TinyPM to call out to external A2A-compatible agents
+        like Salesforce, ServiceNow, Workday, etc.
+
+        Args:
+            agent_name: Name of the registered external agent
+            message: Task description or query
+            skill: Optional skill hint for routing
+
+        Returns:
+            Result from external agent
+        """
+        try:
+            from a2a_client import get_agent_registry, call_external_agent
+
+            result = await call_external_agent(
+                agent_name=agent_name,
+                message=message,
+                skill=skill
+            )
+
+            log(f"A2A delegation to {agent_name}: {'success' if result.success else 'failed'}")
+
+            return {
+                "success": result.success,
+                "response": result.text,
+                "data": result.data,
+                "task_id": result.task_id,
+                "error": result.error
+            }
+
+        except ImportError:
+            log("A2A client not available", "WARN")
+            return {
+                "success": False,
+                "error": "A2A client module not installed"
+            }
+        except Exception as e:
+            log(f"A2A delegation error: {e}", "ERROR")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
+    def get_a2a_capabilities(self) -> Dict[str, Any]:
+        """
+        Get TinyPM's A2A capabilities for external agents.
+
+        Returns:
+            Dict with skills, status, and capabilities
+        """
+        capabilities = {
+            "agent_name": "TinyPM Orchestrator",
+            "protocol": "A2A v0.3",
+            "skills": [
+                {
+                    "id": "task_management",
+                    "name": "Task Management",
+                    "available": True
+                },
+                {
+                    "id": "predictive_intent",
+                    "name": "Predictive Intelligence",
+                    "available": PREDICTIVE_INTENT_AVAILABLE
+                },
+                {
+                    "id": "agent_delegation",
+                    "name": "Agent Delegation",
+                    "available": True
+                },
+                {
+                    "id": "status_reporting",
+                    "name": "Status Reporting",
+                    "available": True
+                },
+                {
+                    "id": "wizard_council",
+                    "name": "Wizard Council Decision",
+                    "available": True
+                },
+                {
+                    "id": "wild_claims_research",
+                    "name": "Wild Claims Verification",
+                    "available": True  # Will check dynamically
+                }
+            ],
+            "integrations": {
+                "calendar": CALENDAR_AVAILABLE,
+                "email": EMAIL_AVAILABLE,
+                "predictive_intent": PREDICTIVE_INTENT_AVAILABLE
+            },
+            "status": "active" if self.running else "idle"
+        }
+
+        # Check wild claims availability
+        try:
+            from wild_claims_czar import WildClaimsCzar
+        except ImportError:
+            for skill in capabilities["skills"]:
+                if skill["id"] == "wild_claims_research":
+                    skill["available"] = False
+
+        return capabilities
+
+    def process_a2a_request(
+        self,
+        message: str,
+        skill: str = None,
+        context_id: str = None
+    ) -> Dict[str, Any]:
+        """
+        Process an incoming A2A request.
+
+        Routes to the appropriate handler based on skill or auto-detection.
+
+        Args:
+            message: The incoming message from external agent
+            skill: Optional skill hint
+            context_id: Optional conversation context ID
+
+        Returns:
+            Response dict with text and structured data
+        """
+        message_lower = message.lower()
+
+        # Gather context
+        ctx = ContextGatherer.gather()
+
+        # Route based on skill or auto-detect
+        if skill == "predictive_intent" or any(kw in message_lower for kw in [
+            "predict", "suggest", "what should", "next", "pattern", "anticipate"
+        ]):
+            return self._handle_a2a_predictive(message, ctx)
+
+        elif skill == "status_reporting" or any(kw in message_lower for kw in [
+            "status", "health", "report", "progress", "overview"
+        ]):
+            return self._handle_a2a_status(message, ctx)
+
+        elif skill == "agent_delegation" or any(kw in message_lower for kw in [
+            "build", "implement", "fix", "create", "code", "developer"
+        ]):
+            return self._handle_a2a_delegation(message, ctx)
+
+        else:
+            return self._handle_a2a_task_management(message, ctx)
+
+    def _handle_a2a_predictive(self, message: str, ctx: ProjectContext) -> Dict[str, Any]:
+        """Handle A2A predictive intelligence request."""
+        if not self.proactive.predictive_intent:
+            return {
+                "text": "Predictive intelligence is not currently available.",
+                "data": {"status": "unavailable"}
+            }
+
+        try:
+            # Use the proactive engine to get predictions
+            suggestions = self.proactive.get_proactive_suggestions(ctx)
+
+            if suggestions:
+                text_parts = [f"Proactive suggestions based on current context ({len(suggestions)} items):"]
+                for i, s in enumerate(suggestions[:5], 1):
+                    text_parts.append(f"{i}. {s}")
+                text = "\n".join(text_parts)
+            else:
+                text = "No specific suggestions at this time."
+
+            return {
+                "text": text,
+                "data": {
+                    "suggestions": suggestions[:5],
+                    "context": {
+                        "tasks_pending": ctx.tasks_pending,
+                        "tasks_in_progress": ctx.tasks_in_progress,
+                        "builder_status": ctx.builder_status
+                    }
+                }
+            }
+
+        except Exception as e:
+            log(f"A2A predictive error: {e}", "ERROR")
+            return {
+                "text": f"Error generating predictions: {str(e)}",
+                "data": {"error": str(e)}
+            }
+
+    def _handle_a2a_status(self, message: str, ctx: ProjectContext) -> Dict[str, Any]:
+        """Handle A2A status request."""
+        text = f"""TinyPM Status Report
+
+Tasks:
+- Pending: {ctx.tasks_pending}
+- In Progress: {ctx.tasks_in_progress}
+- Total: {ctx.tasks_total}
+
+Builder: {ctx.builder_status}
+{f'  Last: {ctx.builder_last_msg}' if ctx.builder_last_msg else ''}
+Queue: {ctx.builder_queue_size} tasks
+
+Agent Questions Waiting: {ctx.agent_questions_waiting}
+Launch Progress: {ctx.launch_progress_pct}%
+
+Session Stats:
+- Messages Processed: {self.state.messages_processed}
+- Proactive Suggestions: {self.state.proactive_suggestions}
+- Errors: {self.state.errors}"""
+
+        return {
+            "text": text,
+            "data": {
+                "tasks": {
+                    "pending": ctx.tasks_pending,
+                    "in_progress": ctx.tasks_in_progress,
+                    "total": ctx.tasks_total,
+                    "active": ctx.active_tasks
+                },
+                "builder": {
+                    "status": ctx.builder_status,
+                    "queue_size": ctx.builder_queue_size,
+                    "last_message": ctx.builder_last_msg
+                },
+                "session": {
+                    "messages_processed": self.state.messages_processed,
+                    "proactive_suggestions": self.state.proactive_suggestions,
+                    "errors": self.state.errors
+                },
+                "timestamp": datetime.now().isoformat()
+            }
+        }
+
+    def _handle_a2a_delegation(self, message: str, ctx: ProjectContext) -> Dict[str, Any]:
+        """Handle A2A delegation request - queue for Builder."""
+        self.channels.send_to_builder(
+            f"[A2A External Request] {message}",
+            "normal"
+        )
+
+        return {
+            "text": f"Task delegated to Builder agent. Current queue size: {ctx.builder_queue_size + 1}",
+            "data": {
+                "delegated": True,
+                "queue_size": ctx.builder_queue_size + 1,
+                "builder_status": ctx.builder_status
+            }
+        }
+
+    def _handle_a2a_task_management(self, message: str, ctx: ProjectContext) -> Dict[str, Any]:
+        """Handle A2A task management request."""
+        # Get board data
+        board = safe_read_json(BOARD_FILE, {"tasks": []})
+        tasks = board.get("tasks", [])
+
+        message_lower = message.lower()
+
+        if "list" in message_lower or "show" in message_lower:
+            active = [t for t in tasks if t.get("status") in ["pending", "in_progress"]][:10]
+            task_list = "\n".join([
+                f"- [{t.get('status')}] {t.get('title', 'Untitled')}"
+                for t in active
+            ])
+            return {
+                "text": f"Active tasks:\n{task_list}" if task_list else "No active tasks.",
+                "data": {
+                    "tasks": [
+                        {"id": t.get("id"), "title": t.get("title"), "status": t.get("status")}
+                        for t in active
+                    ]
+                }
+            }
+
+        elif "status" in message_lower or "count" in message_lower:
+            return {
+                "text": f"Tasks: {ctx.tasks_pending} pending, {ctx.tasks_in_progress} in progress, {ctx.tasks_total} total",
+                "data": {
+                    "pending": ctx.tasks_pending,
+                    "in_progress": ctx.tasks_in_progress,
+                    "total": ctx.tasks_total
+                }
+            }
+
+        else:
+            return {
+                "text": "Task management ready. Send 'list tasks' or 'task status' for information.",
+                "data": {"status": "ready"}
+            }
+
 
 # ═══════════════════════════════════════════════════════════════════════════════════════
 # MAIN
@@ -2379,9 +3046,15 @@ def main():
     parser = argparse.ArgumentParser(description="PM Orchestrator - Intelligent Autonomous PM")
     parser.add_argument("--status", action="store_true", help="Show status")
     parser.add_argument("--responder-only", action="store_true", help="Only respond to messages (no proactive)")
+    parser.add_argument("--langgraph", action="store_true", help="Use LangGraph durable execution mode with checkpointing")
     args = parser.parse_args()
 
-    orchestrator = PMOrchestrator()
+    # Initialize with LangGraph if requested and available
+    use_langgraph = args.langgraph and LANGGRAPH_AVAILABLE
+    if args.langgraph and not LANGGRAPH_AVAILABLE:
+        print("[WARNING] LangGraph requested but not available. Using standard mode.")
+
+    orchestrator = PMOrchestrator(use_langgraph=use_langgraph)
 
     if args.status:
         orchestrator.status()

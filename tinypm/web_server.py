@@ -29,6 +29,58 @@ from urllib.parse import parse_qs, urlparse
 
 APP_DIR = Path(__file__).parent
 
+
+# =============================================================================
+# SKILLS SYSTEM INTEGRATION (January 2026 SOTA - Modular Skill Architecture)
+# =============================================================================
+try:
+    from skills_api import SkillsAPI, SKILLS_AVAILABLE, get_skill_orchestrator
+    _skills_api = None
+
+    def get_skills_api() -> SkillsAPI:
+        """Lazy initialization of SkillsAPI."""
+        global _skills_api
+        if _skills_api is None:
+            _skills_api = SkillsAPI("dashboard_user")
+        return _skills_api
+except ImportError as e:
+    print(f"[TinyPM] Skills System not available: {e}")
+    SKILLS_AVAILABLE = False
+
+    def get_skills_api():
+        return None
+
+# =============================================================================
+# WILD CLAIMS CZAR INTEGRATION (Multi-Agent Research System)
+# =============================================================================
+try:
+    from wild_claims_czar import (
+        WildClaimsCzar,
+        ClaimsDatabase,
+        ClaimStatus,
+        get_db as get_claims_db,
+    )
+    _wild_claims_czar = None
+
+    def get_claims_czar() -> WildClaimsCzar:
+        """Lazy initialization of WildClaimsCzar."""
+        global _wild_claims_czar
+        if _wild_claims_czar is None:
+            _wild_claims_czar = WildClaimsCzar()
+        return _wild_claims_czar
+
+    WILD_CLAIMS_AVAILABLE = True
+    print("[TinyPM] Wild Claims Czar ENABLED - research scanner active")
+except ImportError as e:
+    print(f"[TinyPM] Wild Claims Czar not available: {e}")
+    WILD_CLAIMS_AVAILABLE = False
+
+    def get_claims_czar():
+        return None
+
+    def get_claims_db():
+        return None
+
 # Load .env file if present
 _env_file = APP_DIR / ".env"
 if _env_file.exists():
@@ -411,6 +463,44 @@ class TinyPMHandler(SimpleHTTPRequestHandler):
             self.api_get_intercom()
         elif path == "/api/intercom/user":
             self.api_get_user_intercom()
+        # OAuth Status API
+        elif path == "/api/oauth/status":
+            self.api_oauth_status()
+        # Wild Claims Czar API
+        elif path == "/api/claims":
+            self.api_get_claims()
+        elif path == "/api/claims/validated":
+            self.api_get_validated_claims()
+        elif path == "/api/claims/stats":
+            self.api_get_claims_stats()
+        elif path == "/api/claims/recent":
+            self.api_get_recent_claims()
+        # Skills System API (January 2026 SOTA)
+        elif path == "/api/skills":
+            self.api_get_skills()
+        elif path == "/api/skills/pending-approvals":
+            self.api_get_pending_approvals()
+        elif path == "/api/skills/history":
+            self.api_get_skill_history()
+        # Nudge / Life Organizer API
+        elif path == "/api/nudges":
+            self.api_get_nudges()
+        elif path == "/api/nudges/pending":
+            self.api_get_pending_nudges()
+        elif path == "/api/contacts":
+            self.api_get_contacts()
+        elif path == "/api/goals":
+            self.api_get_goals()
+        elif path == "/api/important-dates":
+            self.api_get_important_dates()
+        # LangGraph Durable Execution API (SOTA 2026)
+        elif path == "/api/langgraph/status":
+            self.api_get_langgraph_status()
+        elif path == "/api/langgraph/threads":
+            self.api_get_langgraph_threads()
+        # A2A Protocol API
+        elif path == "/api/a2a/status":
+            self.api_a2a_status()
         else:
             super().do_GET()
 
@@ -474,6 +564,44 @@ class TinyPMHandler(SimpleHTTPRequestHandler):
             self.api_intercom_send(data)
         elif path == "/api/intercom/broadcast":
             self.api_intercom_broadcast(data)
+        # Wild Claims Czar POST endpoints
+        elif path == "/api/claims/scan":
+            self.api_trigger_claims_scan(data)
+        elif path == "/api/claims/validate":
+            self.api_trigger_claims_validate(data)
+        # Skills System POST endpoints (January 2026 SOTA)
+        elif path == "/api/skills/execute":
+            self.api_execute_skill(data)
+        elif path == "/api/skills/approve":
+            self.api_approve_skill(data)
+        elif path == "/api/skills/deny":
+            self.api_deny_skill(data)
+        elif path == "/api/skills/parse-intent":
+            self.api_parse_intent(data)
+        # LangGraph Durable Execution POST endpoints (SOTA 2026)
+        elif path == "/api/langgraph/run":
+            self.api_langgraph_run(data)
+        elif path == "/api/langgraph/recover":
+            self.api_langgraph_recover(data)
+        # Nudge / Life Organizer POST endpoints
+        elif path == "/api/contacts":
+            self.api_add_contact(data)
+        elif path == "/api/contacts/update":
+            self.api_update_contact(data)
+        elif path == "/api/contacts/record":
+            self.api_record_contact(data)
+        elif path == "/api/goals":
+            self.api_add_goal(data)
+        elif path == "/api/goals/update":
+            self.api_update_goal(data)
+        elif path == "/api/nudges/dismiss":
+            self.api_dismiss_nudge(data)
+        elif path == "/api/nudges/helpful":
+            self.api_mark_nudge_helpful(data)
+        elif path == "/api/nudges/check":
+            self.api_check_nudges(data)
+        elif path == "/api/important-dates":
+            self.api_add_important_date(data)
         else:
             self.send_json({"error": "Unknown endpoint"}, 404)
 
@@ -2224,6 +2352,481 @@ Note: This is a binary file ({ext}). For images, describe what you need to know 
         self.end_headers()
         self.wfile.write(content)
 
+    # =========================================================================
+    # OAUTH STATUS API
+    # =========================================================================
+
+    def api_oauth_status(self):
+        """
+        GET /api/oauth/status
+        Returns the OAuth configuration status for TinyPM.
+
+        This endpoint helps users verify their Google OAuth setup is correct.
+
+        Response:
+        {
+            "configured": true/false,          # Are all credentials set?
+            "client_id_set": true/false,       # Is GOOGLE_CLIENT_ID set?
+            "client_secret_set": true/false,   # Is GOOGLE_CLIENT_SECRET set?
+            "redirect_uri": "...",             # Current redirect URI
+            "allowed_scopes": [...],           # Scopes TinyPM requests
+            "forbidden_scopes": [...],         # Scopes TinyPM blocks (security)
+            "setup_guide": "..."               # Link to setup documentation
+        }
+        """
+        try:
+            # Try to import the OAuth manager
+            try:
+                from oauth_manager import get_oauth_manager, TINYPM_ALLOWED_SCOPES, FORBIDDEN_SCOPES
+                oauth = get_oauth_manager()
+                status = oauth.get_status()
+
+                # Add helpful information
+                status["setup_guide"] = "See GOOGLE_OAUTH_SETUP.md for detailed instructions"
+                status["help"] = {
+                    "check_credentials": "Ensure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set in .env",
+                    "redirect_uri_format": "http://localhost:8000/oauth/callback (development)",
+                    "google_console": "https://console.cloud.google.com/apis/credentials"
+                }
+
+                self.send_json(status)
+
+            except ImportError:
+                # Fall back to google_oauth module
+                try:
+                    from google_oauth import is_configured, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI, GOOGLE_SCOPES, FORBIDDEN_SCOPE_PATTERNS
+
+                    self.send_json({
+                        "configured": is_configured(),
+                        "client_id_set": bool(GOOGLE_CLIENT_ID),
+                        "client_secret_set": bool(GOOGLE_CLIENT_SECRET),
+                        "redirect_uri": GOOGLE_REDIRECT_URI,
+                        "allowed_scopes": GOOGLE_SCOPES,
+                        "forbidden_scope_patterns": FORBIDDEN_SCOPE_PATTERNS,
+                        "setup_guide": "See GOOGLE_OAUTH_SETUP.md for detailed instructions",
+                        "help": {
+                            "check_credentials": "Ensure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set in .env",
+                            "redirect_uri_format": "http://localhost:8000/oauth/callback (development)",
+                            "google_console": "https://console.cloud.google.com/apis/credentials"
+                        }
+                    })
+
+                except ImportError:
+                    # Neither OAuth module available
+                    self.send_json({
+                        "configured": False,
+                        "error": "OAuth modules not available",
+                        "client_id_set": False,
+                        "client_secret_set": False,
+                        "redirect_uri": None,
+                        "setup_guide": "See GOOGLE_OAUTH_SETUP.md for detailed instructions"
+                    })
+
+        except Exception as e:
+            self.send_json({
+                "configured": False,
+                "error": str(e),
+                "setup_guide": "See GOOGLE_OAUTH_SETUP.md for detailed instructions"
+            }, 500)
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # A2A PROTOCOL STATUS API (Google's Agent-to-Agent Protocol)
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    def api_a2a_status(self):
+        """GET /api/a2a/status - Returns A2A Protocol server status."""
+        import socket
+        A2A_PORT = int(os.environ.get("A2A_PORT", "9000"))
+        def check_port(port):
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            result = sock.connect_ex(('localhost', port))
+            sock.close()
+            return result == 0
+        server_running = check_port(A2A_PORT)
+        try:
+            from a2a_server import A2A_SDK_AVAILABLE, A2A_AUTH_AVAILABLE, LANGGRAPH_AVAILABLE, PREDICTIVE_AVAILABLE
+            sdk_available = A2A_SDK_AVAILABLE
+            auth_available = A2A_AUTH_AVAILABLE
+            langgraph_available = LANGGRAPH_AVAILABLE
+            predictive_available = PREDICTIVE_AVAILABLE
+        except ImportError:
+            sdk_available = auth_available = langgraph_available = predictive_available = False
+        skills = [
+            {"id": "task_management", "name": "Task Management", "available": True},
+            {"id": "predictive_intent", "name": "Predictive Intelligence", "available": predictive_available},
+            {"id": "agent_delegation", "name": "Agent Delegation", "available": True},
+            {"id": "status_reporting", "name": "Status Reporting", "available": True},
+            {"id": "wizard_council", "name": "Wizard Council Decision", "available": langgraph_available},
+        ]
+        self.send_json({
+            "enabled": sdk_available, "server_running": server_running, "port": A2A_PORT,
+            "agent_card_url": f"http://localhost:{A2A_PORT}/.well-known/agent.json" if server_running else None,
+            "rpc_endpoint": f"http://localhost:{A2A_PORT}/a2a" if server_running else None,
+            "skills": skills,
+            "capabilities": {"sdk_available": sdk_available, "auth_available": auth_available,
+                "langgraph": langgraph_available, "predictive": predictive_available,
+                "streaming": True, "push_notifications": True},
+            "start_command": "python3 a2a_server.py --port 9000" if not server_running else None,
+            "protocol_version": "0.3.0", "governance": "Linux Foundation"
+        })
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # LANGGRAPH DURABLE EXECUTION API (SOTA 2026)
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    def api_get_langgraph_status(self):
+        """
+        GET /api/langgraph/status
+        Check if LangGraph durable execution is available and get status.
+        """
+        try:
+            from langgraph_wrapper import TinyPMGraph
+            LANGGRAPH_INSTALLED = True
+        except ImportError:
+            LANGGRAPH_INSTALLED = False
+
+        if not LANGGRAPH_INSTALLED:
+            self.send_json({
+                "enabled": False,
+                "available": False,
+                "error": "LangGraph not installed. Run: pip install langgraph langchain-core"
+            })
+            return
+
+        try:
+            # Get status from a LangGraph instance
+            graph = TinyPMGraph()
+            status = graph.get_status()
+            self.send_json({
+                "enabled": True,
+                "available": True,
+                "graph_available": status.get("graph_available", False),
+                "checkpointer_type": status.get("checkpointer_type", "unknown"),
+                "total_threads": status.get("total_threads", 0),
+                "successful_threads": status.get("successful_threads", 0),
+                "failed_threads": status.get("failed_threads", 0),
+                "anthropic_configured": status.get("anthropic_configured", False),
+                "supabase_configured": status.get("supabase_configured", False)
+            })
+        except Exception as e:
+            self.send_json({
+                "enabled": False,
+                "available": True,
+                "error": str(e)
+            }, 500)
+
+    def api_get_langgraph_threads(self):
+        """
+        GET /api/langgraph/threads
+        List all active LangGraph conversation threads.
+        """
+        try:
+            from langgraph_wrapper import TinyPMGraph
+        except ImportError:
+            self.send_json({"threads": [], "error": "LangGraph not available"})
+            return
+
+        try:
+            graph = TinyPMGraph()
+            threads = graph.list_threads(limit=50)
+            self.send_json({"threads": threads, "count": len(threads)})
+        except Exception as e:
+            self.send_json({"threads": [], "error": str(e)}, 500)
+
+    def api_langgraph_run(self, data: dict):
+        """
+        POST /api/langgraph/run
+        Execute a conversation through the LangGraph durable execution system.
+
+        Request body:
+        {
+            "message": "User message to process",
+            "thread_id": "optional-thread-id-for-continuity"
+        }
+        """
+        try:
+            from langgraph_wrapper import TinyPMGraph
+        except ImportError:
+            self.send_json({
+                "success": False,
+                "error": "LangGraph not available. Install with: pip install langgraph langchain-core"
+            }, 500)
+            return
+
+        message = data.get("message", "").strip()
+        if not message:
+            self.send_json({"success": False, "error": "No message provided"}, 400)
+            return
+
+        thread_id = data.get("thread_id")
+
+        try:
+            graph = TinyPMGraph()
+            result = graph.process_message(message, thread_id)
+
+            self.send_json({
+                "success": result.get("success", False),
+                "thread_id": result.get("thread_id"),
+                "response": result.get("response", ""),
+                "intent": result.get("intent"),
+                "confidence": result.get("confidence"),
+                "proactive_items": result.get("proactive_items", []),
+                "duration_ms": result.get("duration_ms", 0),
+                "nodes_executed": result.get("nodes_executed", []),
+                "errors": result.get("errors", [])
+            })
+        except Exception as e:
+            self.send_json({
+                "success": False,
+                "error": str(e)
+            }, 500)
+
+    def api_langgraph_recover(self, data: dict):
+        """
+        POST /api/langgraph/recover
+        Recover a LangGraph thread from its last checkpoint.
+
+        Request body:
+        {
+            "thread_id": "thread-id-to-recover"
+        }
+        """
+        try:
+            from langgraph_wrapper import TinyPMGraph
+        except ImportError:
+            self.send_json({"success": False, "error": "LangGraph not available"}, 500)
+            return
+
+        thread_id = data.get("thread_id", "").strip()
+        if not thread_id:
+            self.send_json({"success": False, "error": "No thread_id provided"}, 400)
+            return
+
+        try:
+            graph = TinyPMGraph()
+            state = graph.recover_thread(thread_id)
+
+            if state:
+                self.send_json({
+                    "success": True,
+                    "thread_id": thread_id,
+                    "current_node": state.get("current_node"),
+                    "nodes_executed": state.get("nodes_executed", []),
+                    "last_response": state.get("response", "")[:500],
+                    "recovered": True
+                })
+            else:
+                self.send_json({
+                    "success": False,
+                    "error": f"Thread {thread_id} not found in checkpoints"
+                }, 404)
+        except Exception as e:
+            self.send_json({"success": False, "error": str(e)}, 500)
+
+    # =========================================================================
+    # SKILLS SYSTEM API (January 2026 SOTA - Modular Skill Architecture)
+    # =========================================================================
+
+    def api_get_skills(self):
+        """GET /api/skills - List all available skills."""
+        api = get_skills_api()
+        if not api:
+            self.send_json({"success": False, "error": "Skills system not available"})
+            return
+        self.send_json(api.get_skills())
+
+    def api_get_pending_approvals(self):
+        """GET /api/skills/pending-approvals - Get pending approval requests."""
+        api = get_skills_api()
+        if not api:
+            self.send_json({"success": False, "error": "Skills system not available"})
+            return
+        self.send_json(api.get_pending_approvals())
+
+    def api_get_skill_history(self):
+        """GET /api/skills/history - Get execution history."""
+        api = get_skills_api()
+        if not api:
+            self.send_json({"success": False, "error": "Skills system not available"})
+            return
+        self.send_json(api.get_history())
+
+    def api_execute_skill(self, data: dict):
+        """POST /api/skills/execute - Execute a skill by name."""
+        api = get_skills_api()
+        if not api:
+            self.send_json({"success": False, "error": "Skills system not available"})
+            return
+
+        skill_name = data.get("skill_name")
+        if not skill_name:
+            self.send_json({"success": False, "error": "skill_name required"}, 400)
+            return
+
+        result = api.execute_skill(
+            skill_name,
+            data.get("parameters", {}),
+            data.get("context", {}),
+        )
+        self.send_json(result)
+
+    def api_approve_skill(self, data: dict):
+        """POST /api/skills/approve - Approve a pending action."""
+        api = get_skills_api()
+        if not api:
+            self.send_json({"success": False, "error": "Skills system not available"})
+            return
+
+        approval_id = data.get("approval_id")
+        if not approval_id:
+            self.send_json({"success": False, "error": "approval_id required"}, 400)
+            return
+
+        result = api.approve(approval_id, data.get("approver_id"))
+        self.send_json(result)
+
+    def api_deny_skill(self, data: dict):
+        """POST /api/skills/deny - Deny a pending action."""
+        api = get_skills_api()
+        if not api:
+            self.send_json({"success": False, "error": "Skills system not available"})
+            return
+
+        approval_id = data.get("approval_id")
+        if not approval_id:
+            self.send_json({"success": False, "error": "approval_id required"}, 400)
+            return
+
+        result = api.deny(approval_id, data.get("reason", "Denied by user"))
+        self.send_json(result)
+
+    def api_parse_intent(self, data: dict):
+        """POST /api/skills/parse-intent - Parse natural language to skills."""
+        api = get_skills_api()
+        if not api:
+            self.send_json({"success": False, "error": "Skills system not available"})
+            return
+
+        text = data.get("text")
+        if not text:
+            self.send_json({"success": False, "error": "text required"}, 400)
+            return
+
+        result = api.parse_intent(text)
+        self.send_json(result)
+
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # WILD CLAIMS CZAR API - Research Scanner Endpoints
+    # ═══════════════════════════════════════════════════════════════════════════════
+
+    def api_get_claims(self):
+        """GET /api/claims - Returns all claims sorted by discovery time."""
+        if not WILD_CLAIMS_AVAILABLE:
+            self.send_json({"available": False, "claims": [], "error": "Wild Claims Czar not available"})
+            return
+        try:
+            db = get_claims_db()
+            if db:
+                all_claims = list(db.claims.values())
+                all_claims.sort(key=lambda c: c.discovered_at, reverse=True)
+                self.send_json({"available": True, "claims": [c.to_dict() for c in all_claims[:50]], "total": len(all_claims)})
+            else:
+                self.send_json({"available": False, "claims": [], "error": "Database not initialized"})
+        except Exception as e:
+            self.send_json({"available": False, "claims": [], "error": str(e)}, 500)
+
+    def api_get_validated_claims(self):
+        """GET /api/claims/validated - Returns validated claims sorted by wildness."""
+        if not WILD_CLAIMS_AVAILABLE:
+            self.send_json({"available": False, "claims": [], "error": "Wild Claims Czar not available"})
+            return
+        try:
+            db = get_claims_db()
+            if db:
+                validated = db.get_top_claims(limit=20)
+                self.send_json({"available": True, "claims": [c.to_dict() for c in validated], "total": len(validated)})
+            else:
+                self.send_json({"available": False, "claims": [], "error": "Database not initialized"})
+        except Exception as e:
+            self.send_json({"available": False, "claims": [], "error": str(e)}, 500)
+
+    def api_get_claims_stats(self):
+        """GET /api/claims/stats - Returns claims database statistics."""
+        if not WILD_CLAIMS_AVAILABLE:
+            self.send_json({"available": False, "stats": {}, "error": "Wild Claims Czar not available"})
+            return
+        try:
+            db = get_claims_db()
+            if db:
+                stats = db.get_stats()
+                self.send_json({"available": True, "stats": stats})
+            else:
+                self.send_json({"available": False, "stats": {}, "error": "Database not initialized"})
+        except Exception as e:
+            self.send_json({"available": False, "stats": {}, "error": str(e)}, 500)
+
+    def api_get_recent_claims(self):
+        """GET /api/claims/recent - Returns claims from last 24 hours."""
+        if not WILD_CLAIMS_AVAILABLE:
+            self.send_json({"available": False, "claims": [], "error": "Wild Claims Czar not available"})
+            return
+        try:
+            db = get_claims_db()
+            if db:
+                recent = db.get_recent_discoveries(hours=24)
+                self.send_json({"available": True, "claims": [c.to_dict() for c in recent], "total": len(recent), "hours": 24})
+            else:
+                self.send_json({"available": False, "claims": [], "error": "Database not initialized"})
+        except Exception as e:
+            self.send_json({"available": False, "claims": [], "error": str(e)}, 500)
+
+    def api_trigger_claims_scan(self, data: dict):
+        """POST /api/claims/scan - Triggers scan for wild claims."""
+        if not WILD_CLAIMS_AVAILABLE:
+            self.send_json({"success": False, "error": "Wild Claims Czar not available"})
+            return
+        try:
+            import asyncio
+            def run_scan():
+                try:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    czar = get_claims_czar()
+                    loop.run_until_complete(czar.scan_all_sources())
+                    loop.close()
+                    print("[WildClaims] Scan completed successfully")
+                except Exception as e:
+                    print(f"[WildClaims] Scan error: {e}")
+            scan_thread = threading.Thread(target=run_scan, daemon=True, name="WildClaims-Scanner")
+            scan_thread.start()
+            self.send_json({"success": True, "message": "Scan started in background", "status": "scanning"})
+        except Exception as e:
+            self.send_json({"success": False, "error": str(e)}, 500)
+
+    def api_trigger_claims_validate(self, data: dict):
+        """POST /api/claims/validate - Triggers validation of pending claims."""
+        if not WILD_CLAIMS_AVAILABLE:
+            self.send_json({"success": False, "error": "Wild Claims Czar not available"})
+            return
+        try:
+            import asyncio
+            def run_validation():
+                try:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    czar = get_claims_czar()
+                    loop.run_until_complete(czar.validate_pending_claims())
+                    loop.close()
+                    print("[WildClaims] Validation completed successfully")
+                except Exception as e:
+                    print(f"[WildClaims] Validation error: {e}")
+            validate_thread = threading.Thread(target=run_validation, daemon=True, name="WildClaims-Validator")
+            validate_thread.start()
+            self.send_json({"success": True, "message": "Validation started in background", "status": "validating"})
+        except Exception as e:
+            self.send_json({"success": False, "error": str(e)}, 500)
+
+
     def send_json(self, data: dict, status: int = 200):
         body = json.dumps(data).encode('utf-8')
         self.send_response(status)
@@ -2244,6 +2847,225 @@ Note: This is a binary file ({ext}). For images, describe what you need to know 
     def log_message(self, format, *args):
         # Cleaner logging
         sys.stderr.write(f"[TinyPM] {args[0]} {args[1]}\n")
+
+
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # NUDGE / LIFE ORGANIZER API HANDLERS
+    # ═══════════════════════════════════════════════════════════════════════════════
+
+    def api_get_nudges(self):
+        try:
+            from nudge_engine import get_nudge_engine
+            engine = get_nudge_engine()
+            nudges = engine.nudges
+            self.send_json({"nudges": [n.to_dict() for n in nudges], "count": len(nudges)})
+        except ImportError:
+            self.send_json({"nudges": [], "count": 0, "error": "Nudge engine not available"})
+
+    def api_get_pending_nudges(self):
+        try:
+            from nudge_engine import get_nudge_engine
+            engine = get_nudge_engine()
+            pending = engine.get_pending_nudges()
+            self.send_json({"nudges": [n.to_dict() for n in pending], "count": len(pending)})
+        except ImportError:
+            self.send_json({"nudges": [], "count": 0, "error": "Nudge engine not available"})
+
+    def api_get_contacts(self):
+        try:
+            from nudge_engine import get_nudge_engine
+            engine = get_nudge_engine()
+            contacts = engine.contact_analyzer.contacts
+            overdue = engine.contact_analyzer.get_overdue_contacts()
+            overdue_ids = {c["contact"].id for c in overdue}
+            contact_list = []
+            for contact in contacts:
+                c_dict = contact.to_dict()
+                c_dict["is_overdue"] = contact.id in overdue_ids
+                for o in overdue:
+                    if o["contact"].id == contact.id:
+                        c_dict["days_since_contact"] = o.get("days_since_contact")
+                        c_dict["days_overdue"] = o.get("days_overdue", 0)
+                        break
+                contact_list.append(c_dict)
+            self.send_json({"contacts": contact_list, "count": len(contacts), "overdue_count": len(overdue)})
+        except ImportError:
+            self.send_json({"contacts": [], "count": 0, "error": "Nudge engine not available"})
+
+    def api_get_goals(self):
+        try:
+            from nudge_engine import get_nudge_engine
+            engine = get_nudge_engine()
+            goals = engine.goal_tracker.goals
+            self.send_json({"goals": [g.to_dict() for g in goals], "count": len(goals)})
+        except ImportError:
+            self.send_json({"goals": [], "count": 0, "error": "Nudge engine not available"})
+
+    def api_get_important_dates(self):
+        try:
+            from nudge_engine import get_nudge_engine
+            engine = get_nudge_engine()
+            upcoming = engine.date_detector.get_upcoming_dates(days=30)
+            self.send_json({"dates": [{"id": d["date"].id, "title": d["date"].title, "date": d["date"].date, "category": d["date"].category, "next_occurrence": d["next_occurrence"], "days_until": d["days_until"]} for d in upcoming], "count": len(upcoming)})
+        except ImportError:
+            self.send_json({"dates": [], "count": 0, "error": "Nudge engine not available"})
+
+    def api_add_contact(self, data):
+        name = data.get("name", "").strip()
+        if not name:
+            self.send_json({"error": "Name required"}, 400)
+            return
+        try:
+            from nudge_engine import get_nudge_engine, Contact
+            import uuid
+            engine = get_nudge_engine()
+            contact = Contact(id=str(uuid.uuid4()), name=name, email=data.get("email"), phone=data.get("phone"), relationship_type=data.get("relationship_type", "default"), birthday=data.get("birthday"), notes=data.get("notes", ""))
+            engine.contact_analyzer.add_contact(contact)
+            self.send_json({"ok": True, "contact": contact.to_dict()})
+        except ImportError:
+            self.send_json({"error": "Nudge engine not available"}, 500)
+
+    def api_update_contact(self, data):
+        contact_id = data.get("id")
+        if not contact_id:
+            self.send_json({"error": "No contact ID"}, 400)
+            return
+        try:
+            from nudge_engine import get_nudge_engine
+            from datetime import datetime
+            engine = get_nudge_engine()
+            updates = {}
+            for key in ["name", "email", "phone", "relationship_type", "birthday", "notes", "active"]:
+                if key in data:
+                    updates[key] = data[key]
+            if "last_contact" in data:
+                updates["last_contact"] = datetime.fromisoformat(data["last_contact"])
+            if engine.contact_analyzer.update_contact(contact_id, updates):
+                self.send_json({"ok": True, "updated": contact_id})
+            else:
+                self.send_json({"error": f"Contact {contact_id} not found"}, 404)
+        except ImportError:
+            self.send_json({"error": "Nudge engine not available"}, 500)
+
+    def api_record_contact(self, data):
+        contact_id = data.get("id")
+        if not contact_id:
+            self.send_json({"error": "No contact ID"}, 400)
+            return
+        try:
+            from nudge_engine import get_nudge_engine
+            from datetime import datetime
+            engine = get_nudge_engine()
+            when = datetime.fromisoformat(data["when"]) if data.get("when") else None
+            if engine.contact_analyzer.record_contact(contact_id, when):
+                self.send_json({"ok": True, "contact_id": contact_id})
+            else:
+                self.send_json({"error": f"Contact {contact_id} not found"}, 404)
+        except ImportError:
+            self.send_json({"error": "Nudge engine not available"}, 500)
+
+    def api_add_goal(self, data):
+        title = data.get("title", "").strip()
+        if not title:
+            self.send_json({"error": "Title required"}, 400)
+            return
+        try:
+            from nudge_engine import get_nudge_engine, Goal
+            import uuid
+            from datetime import datetime
+            engine = get_nudge_engine()
+            target_date = datetime.fromisoformat(data["target_date"]) if data.get("target_date") else None
+            goal = Goal(id=str(uuid.uuid4()), title=title, description=data.get("description", ""), target_date=target_date, progress=data.get("progress", 0), category=data.get("category", "general"))
+            engine.goal_tracker.add_goal(goal)
+            self.send_json({"ok": True, "goal": goal.to_dict()})
+        except ImportError:
+            self.send_json({"error": "Nudge engine not available"}, 500)
+
+    def api_update_goal(self, data):
+        goal_id = data.get("id")
+        if not goal_id:
+            self.send_json({"error": "No goal ID"}, 400)
+            return
+        progress = data.get("progress")
+        if progress is None:
+            self.send_json({"error": "No progress value"}, 400)
+            return
+        try:
+            from nudge_engine import get_nudge_engine
+            engine = get_nudge_engine()
+            if engine.goal_tracker.update_goal_progress(goal_id, progress):
+                self.send_json({"ok": True, "goal_id": goal_id, "progress": progress})
+            else:
+                self.send_json({"error": f"Goal {goal_id} not found"}, 404)
+        except ImportError:
+            self.send_json({"error": "Nudge engine not available"}, 500)
+
+    def api_dismiss_nudge(self, data):
+        nudge_id = data.get("id")
+        if not nudge_id:
+            self.send_json({"error": "No nudge ID"}, 400)
+            return
+        try:
+            from nudge_engine import get_nudge_engine
+            engine = get_nudge_engine()
+            if engine.dismiss_nudge(nudge_id):
+                self.send_json({"ok": True, "dismissed": nudge_id})
+            else:
+                self.send_json({"error": f"Nudge {nudge_id} not found"}, 404)
+        except ImportError:
+            self.send_json({"error": "Nudge engine not available"}, 500)
+
+    def api_mark_nudge_helpful(self, data):
+        nudge_id = data.get("id")
+        helpful = data.get("helpful")
+        if not nudge_id:
+            self.send_json({"error": "No nudge ID"}, 400)
+            return
+        if helpful is None:
+            self.send_json({"error": "No helpful value"}, 400)
+            return
+        try:
+            from nudge_engine import get_nudge_engine
+            engine = get_nudge_engine()
+            if engine.mark_helpful(nudge_id, helpful):
+                self.send_json({"ok": True, "nudge_id": nudge_id, "helpful": helpful})
+            else:
+                self.send_json({"error": f"Nudge {nudge_id} not found"}, 404)
+        except ImportError:
+            self.send_json({"error": "Nudge engine not available"}, 500)
+
+    def api_check_nudges(self, data):
+        try:
+            from nudge_engine import get_nudge_engine
+            engine = get_nudge_engine()
+            results = {"contact_nudges": [], "date_nudges": [], "goal_nudges": []}
+            contact_nudges = engine.analyze_contact_frequency()
+            results["contact_nudges"] = [n.to_dict() for n in contact_nudges]
+            date_nudges = engine.check_important_dates()
+            results["date_nudges"] = [n.to_dict() for n in date_nudges]
+            goal_nudges = engine.check_goal_progress()
+            results["goal_nudges"] = [n.to_dict() for n in goal_nudges]
+            total_created = len(contact_nudges) + len(date_nudges) + len(goal_nudges)
+            self.send_json({"ok": True, "nudges_created": total_created, "results": results})
+        except ImportError:
+            self.send_json({"error": "Nudge engine not available"}, 500)
+
+    def api_add_important_date(self, data):
+        title = data.get("title", "").strip()
+        date = data.get("date", "").strip()
+        if not title or not date:
+            self.send_json({"error": "Title and date required"}, 400)
+            return
+        try:
+            from nudge_engine import get_nudge_engine, ImportantDate
+            import uuid
+            engine = get_nudge_engine()
+            imp_date = ImportantDate(id=str(uuid.uuid4()), title=title, date=date, recurring=data.get("recurring", True), reminder_days_before=data.get("reminder_days_before", [3, 1]), category=data.get("category", "custom"), contact_id=data.get("contact_id"), notes=data.get("notes", ""))
+            engine.date_detector.add_important_date(imp_date)
+            self.send_json({"ok": True, "date": imp_date.to_dict()})
+        except ImportError:
+            self.send_json({"error": "Nudge engine not available"}, 500)
+
 
 
 def main():

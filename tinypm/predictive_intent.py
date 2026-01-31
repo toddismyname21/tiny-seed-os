@@ -36,6 +36,7 @@ Author: PM_Architect
 import json
 import math
 import statistics
+import random
 from collections import defaultdict, Counter
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timedelta
@@ -44,6 +45,20 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Set
 import hashlib
 import re
+
+# For Supabase integration (optional)
+try:
+    from supabase import create_client, Client
+    import os
+    SUPABASE_URL = os.getenv("SUPABASE_URL")
+    SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
+    if SUPABASE_URL and SUPABASE_KEY:
+        supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+        SUPABASE_AVAILABLE = True
+    else:
+        SUPABASE_AVAILABLE = False
+except ImportError:
+    SUPABASE_AVAILABLE = False
 
 
 # ===============================================================================
@@ -57,6 +72,9 @@ INTENT_PATTERNS_FILE = APP_DIR / ".pm_intent_patterns.json"
 INTENT_HISTORY_FILE = APP_DIR / ".pm_intent_history.json"
 PREDICTION_OUTCOMES_FILE = APP_DIR / ".pm_prediction_outcomes.json"
 LEARNED_WEIGHTS_FILE = APP_DIR / ".pm_learned_weights.json"
+CALIBRATION_DATA_FILE = APP_DIR / ".pm_calibration_data.json"
+ENERGY_PATTERNS_FILE = APP_DIR / ".pm_energy_patterns.json"
+FEEDBACK_HISTORY_FILE = APP_DIR / ".pm_feedback_history.json"
 
 # Import existing TinyPM modules for integration
 try:
@@ -550,6 +568,1136 @@ class BehaviorPatternMiner:
 
 
 # ===============================================================================
+# CONFIDENCE CALIBRATOR - STATE OF THE ART (2026)
+# ===============================================================================
+
+class ConfidenceCalibrator:
+    """
+    State-of-the-art confidence calibration using temperature scaling
+    and historical blending.
+
+    Research basis:
+    - Temperature scaling: calibrated_prob = sigmoid(logit(raw_prob) / temperature)
+      - logit(p) = log(p / (1-p))
+      - sigmoid(x) = 1 / (1 + exp(-x))
+    - When temperature > 1: Makes predictions LESS confident (more spread)
+    - When temperature < 1: Makes predictions MORE confident (more peaked)
+    - Historical blending: 60% current + 40% track record
+    - Target: Expected Calibration Error (ECE) < 10%
+
+    Modern neural networks are systematically overconfident. This class
+    ensures that when we say "85% confident", the prediction is actually
+    correct ~85% of the time.
+    """
+
+    # Target calibration error threshold
+    TARGET_ECE = 0.10  # 10%
+
+    # Minimum samples before we trust historical accuracy
+    MIN_SAMPLES_FOR_HISTORY = 10
+
+    # Bins for ECE calculation
+    NUM_CALIBRATION_BINS = 10
+
+    def __init__(self):
+        self.calibration_data = self._load_calibration_data()
+
+        # Default temperature (>1.0 = less confident, <1.0 = more confident)
+        self.default_temperature = 1.5  # Start conservative (less confident)
+
+    def _load_calibration_data(self) -> Dict:
+        """Load calibration data from storage."""
+        if CALIBRATION_DATA_FILE.exists():
+            try:
+                return json.loads(CALIBRATION_DATA_FILE.read_text())
+            except Exception as e:
+                print(f"[ConfidenceCalibrator] Error loading data: {e}")
+
+        return {
+            "temperatures": {},          # action_type -> learned temperature
+            "prediction_log": [],        # List of (predicted_conf, actual_correct, action_type)
+            "calibration_metrics": {
+                "ece": None,             # Expected Calibration Error
+                "mce": None,             # Maximum Calibration Error
+                "last_calculated": None
+            },
+            "bin_accuracies": {},        # For reliability diagram
+            "metadata": {
+                "created_at": datetime.now().isoformat(),
+                "total_calibrations": 0
+            }
+        }
+
+    def _save_calibration_data(self):
+        """Save calibration data to storage."""
+        try:
+            CALIBRATION_DATA_FILE.write_text(
+                json.dumps(self.calibration_data, indent=2, default=str)
+            )
+        except Exception as e:
+            print(f"[ConfidenceCalibrator] Error saving data: {e}")
+
+        # Also sync to Supabase if available
+        if SUPABASE_AVAILABLE:
+            try:
+                supabase.table("pm_calibration").upsert({
+                    "id": "confidence_calibrator",
+                    "data": self.calibration_data,
+                    "updated_at": datetime.now().isoformat()
+                }).execute()
+            except Exception as e:
+                print(f"[ConfidenceCalibrator] Supabase sync error: {e}")
+
+    def _temperature_scale(self, confidence: float, temperature: float) -> float:
+        """
+        Apply temperature scaling using correct logit transformation.
+
+        Formula: calibrated = sigmoid(logit(p) / temperature)
+
+        This is the CORRECT temperature scaling formula:
+        - logit(p) = log(p / (1-p)) converts probability to log-odds
+        - Dividing by temperature > 1 shrinks log-odds toward 0 (less confident)
+        - Dividing by temperature < 1 expands log-odds away from 0 (more confident)
+        - sigmoid converts back to probability space
+
+        Args:
+            confidence: Raw confidence value (0.0 to 1.0)
+            temperature: Temperature parameter (>1 = less confident, <1 = more confident)
+
+        Returns:
+            Temperature-scaled confidence
+        """
+        # Epsilon to prevent log(0) or division by zero at boundaries
+        EPSILON = 1e-7
+
+        # Clamp confidence to valid range with epsilon buffer
+        p = max(EPSILON, min(1.0 - EPSILON, confidence))
+
+        # Convert to logit (log-odds)
+        logit = math.log(p / (1.0 - p))
+
+        # Scale by temperature
+        scaled_logit = logit / temperature
+
+        # Convert back to probability via sigmoid
+        calibrated = 1.0 / (1.0 + math.exp(-scaled_logit))
+
+        return calibrated
+
+    def calibrate(
+        self,
+        raw_confidence: float,
+        action_type: str,
+        prediction_history: Optional[Dict] = None
+    ) -> float:
+        """
+        Calibrate a raw confidence score using temperature scaling
+        and historical blending.
+
+        Args:
+            raw_confidence: The raw prediction confidence (0.0-1.0)
+            action_type: The action type being predicted
+            prediction_history: Optional dict with 'correct' and 'total' counts
+
+        Returns:
+            Calibrated confidence score (0.0-0.95)
+        """
+        # Step 1: Apply temperature scaling using logit transformation
+        # Formula: calibrated = sigmoid(logit(p) / temperature)
+        # - temperature > 1: less confident (spreads distribution)
+        # - temperature < 1: more confident (sharpens distribution)
+        temperature = self.calibration_data["temperatures"].get(
+            action_type, self.default_temperature
+        )
+        temp_scaled = self._temperature_scale(raw_confidence, temperature)
+
+        # Step 2: Blend with historical accuracy (60% current + 40% history)
+        if prediction_history and prediction_history.get("total", 0) >= self.MIN_SAMPLES_FOR_HISTORY:
+            historical_accuracy = prediction_history["correct"] / prediction_history["total"]
+            # 60% temperature-scaled + 40% historical
+            calibrated = 0.6 * temp_scaled + 0.4 * historical_accuracy
+        else:
+            # Discount for unknown accuracy (be more conservative)
+            calibrated = temp_scaled * 0.7
+
+        # Track for metrics
+        self.calibration_data["metadata"]["total_calibrations"] += 1
+
+        # Clamp to valid range (cap at 95% - never be "certain")
+        return max(0.0, min(0.95, calibrated))
+
+    def record_prediction_outcome(
+        self,
+        predicted_confidence: float,
+        was_correct: bool,
+        action_type: str
+    ):
+        """
+        Record the outcome of a prediction for calibration learning.
+
+        This is the feedback loop that allows the calibrator to learn
+        optimal temperatures for each action type.
+        """
+        # Add to prediction log
+        self.calibration_data["prediction_log"].append({
+            "confidence": predicted_confidence,
+            "correct": was_correct,
+            "action_type": action_type,
+            "timestamp": datetime.now().isoformat()
+        })
+
+        # Keep log bounded
+        if len(self.calibration_data["prediction_log"]) > 5000:
+            self.calibration_data["prediction_log"] = \
+                self.calibration_data["prediction_log"][-5000:]
+
+        # Periodically recalculate calibration metrics and adjust temperatures
+        if len(self.calibration_data["prediction_log"]) % 50 == 0:
+            self._recalculate_calibration()
+            self._adjust_temperatures()
+
+        self._save_calibration_data()
+
+    def _recalculate_calibration(self):
+        """
+        Recalculate Expected Calibration Error (ECE) and bin accuracies.
+
+        ECE = Sum over bins of: (bin_weight * |accuracy - confidence|)
+
+        A well-calibrated model has ECE close to 0.
+        """
+        log = self.calibration_data["prediction_log"]
+        if len(log) < 20:
+            return
+
+        # Create bins
+        bins = [[] for _ in range(self.NUM_CALIBRATION_BINS)]
+        bin_size = 1.0 / self.NUM_CALIBRATION_BINS
+
+        for entry in log:
+            conf = entry["confidence"]
+            bin_idx = min(int(conf / bin_size), self.NUM_CALIBRATION_BINS - 1)
+            bins[bin_idx].append(entry)
+
+        # Calculate ECE and bin accuracies
+        ece = 0.0
+        mce = 0.0
+        bin_accuracies = {}
+
+        for i, bin_entries in enumerate(bins):
+            if not bin_entries:
+                continue
+
+            # Average confidence in this bin
+            avg_confidence = sum(e["confidence"] for e in bin_entries) / len(bin_entries)
+
+            # Actual accuracy in this bin
+            actual_accuracy = sum(1 for e in bin_entries if e["correct"]) / len(bin_entries)
+
+            # Weight by number of samples
+            weight = len(bin_entries) / len(log)
+
+            # Calibration error for this bin
+            bin_error = abs(actual_accuracy - avg_confidence)
+
+            ece += weight * bin_error
+            mce = max(mce, bin_error)
+
+            # Store for reliability diagram
+            bin_label = f"{i * bin_size:.1f}-{(i + 1) * bin_size:.1f}"
+            bin_accuracies[bin_label] = {
+                "avg_confidence": round(avg_confidence, 3),
+                "actual_accuracy": round(actual_accuracy, 3),
+                "count": len(bin_entries),
+                "error": round(bin_error, 3)
+            }
+
+        self.calibration_data["calibration_metrics"] = {
+            "ece": round(ece, 4),
+            "mce": round(mce, 4),
+            "last_calculated": datetime.now().isoformat()
+        }
+        self.calibration_data["bin_accuracies"] = bin_accuracies
+
+        print(f"[ConfidenceCalibrator] ECE: {ece:.3f}, MCE: {mce:.3f}")
+
+    def _adjust_temperatures(self):
+        """
+        Adjust temperatures per action type to reduce calibration error.
+
+        If predictions are overconfident (confidence > accuracy), increase temperature.
+        If underconfident (confidence < accuracy), decrease temperature.
+        """
+        log = self.calibration_data["prediction_log"][-500:]  # Recent predictions
+
+        # Group by action type
+        by_type: Dict[str, List] = defaultdict(list)
+        for entry in log:
+            by_type[entry["action_type"]].append(entry)
+
+        for action_type, entries in by_type.items():
+            if len(entries) < 10:
+                continue
+
+            avg_confidence = sum(e["confidence"] for e in entries) / len(entries)
+            actual_accuracy = sum(1 for e in entries if e["correct"]) / len(entries)
+
+            # Calibration error direction
+            error = avg_confidence - actual_accuracy
+
+            # Adjust temperature
+            current_temp = self.calibration_data["temperatures"].get(
+                action_type, self.default_temperature
+            )
+
+            if error > 0.05:  # Overconfident
+                # Increase temperature (softens probabilities)
+                new_temp = min(current_temp + 0.1, 3.0)
+            elif error < -0.05:  # Underconfident
+                # Decrease temperature (sharpens probabilities)
+                new_temp = max(current_temp - 0.1, 0.5)
+            else:
+                # Well calibrated
+                new_temp = current_temp
+
+            self.calibration_data["temperatures"][action_type] = new_temp
+
+    def get_calibration_stats(self) -> Dict:
+        """Get calibration statistics."""
+        ece = self.calibration_data["calibration_metrics"].get("ece")
+        return {
+            "ece": ece,
+            "mce": self.calibration_data["calibration_metrics"].get("mce"),
+            "target_ece": self.TARGET_ECE,
+            "is_well_calibrated": (
+                ece is not None and ece < self.TARGET_ECE
+            ),
+            "total_predictions_logged": len(self.calibration_data["prediction_log"]),
+            "temperatures": self.calibration_data["temperatures"],
+            "bin_accuracies": self.calibration_data["bin_accuracies"]
+        }
+
+
+# ===============================================================================
+# TASK BOUNDARY DETECTOR - STATE OF THE ART (2026)
+# ===============================================================================
+
+class TaskBoundaryDetector:
+    """
+    Detects natural task boundaries for non-intrusive suggestions.
+
+    Research basis (IUI '26):
+    - Interruptions at task boundaries are 49.7% faster to respond to
+    - ML can infer task boundaries from behavior patterns
+    - Natural transition points minimize disruption
+
+    Don't interrupt during deep work. Detect when user finishes a task
+    and is in a natural transition state - that's the magic moment.
+    """
+
+    # Boundary signal types
+    BOUNDARY_SIGNALS = [
+        'task_completed',           # User completed a task
+        'session_start',            # Beginning of work session
+        'context_switch',           # Switched task category
+        'meeting_ended',            # Meeting just ended
+        'long_pause',               # >5 min inactivity
+        'email_sent',               # Email sent (natural break)
+        'commit_pushed',            # Code committed
+        'document_saved',           # Document saved
+    ]
+
+    # Deep work indicators (don't interrupt)
+    DEEP_WORK_PATTERNS = [
+        ActionCategory.DEEP_WORK,
+        ActionCategory.RESEARCH,
+    ]
+
+    # Minimum deep work session before protecting
+    MIN_DEEP_WORK_MINUTES = 15
+
+    def __init__(self):
+        self.last_activity = datetime.now()
+        self.current_task_category: Optional[ActionCategory] = None
+        self.deep_work_started: Optional[datetime] = None
+        self.recent_boundaries: List[Dict] = []
+        self.boundary_stats = self._load_boundary_stats()
+
+    def _load_boundary_stats(self) -> Dict:
+        """Load boundary detection statistics."""
+        # Could persist this, but keeping in-memory for simplicity
+        return {
+            "boundaries_detected": 0,
+            "suggestions_at_boundary": 0,
+            "acceptance_at_boundary": 0,
+            "acceptance_not_at_boundary": 0
+        }
+
+    def check_boundary(self, new_action: Optional[ActionEvent] = None) -> Tuple[bool, List[str]]:
+        """
+        Check if this is a good moment to make a suggestion.
+
+        Args:
+            new_action: The action just taken (or None for periodic check)
+
+        Returns:
+            Tuple of (is_boundary, list_of_signals_detected)
+        """
+        signals_detected = []
+        now = datetime.now()
+
+        # Check for long pause (natural boundary)
+        pause_seconds = (now - self.last_activity).total_seconds()
+        pause_minutes = pause_seconds / 60
+
+        if pause_minutes >= 5 and pause_minutes < 30:
+            # 5-30 min pause = natural boundary
+            # >30 min = might have left, don't interrupt on return
+            signals_detected.append("long_pause")
+
+        if new_action:
+            # Check for task completion signals
+            completion_actions = [
+                'complete_task', 'send_message', 'send_email',
+                'push_commit', 'save_document', 'end_meeting',
+                'close_ticket', 'mark_done', 'archive'
+            ]
+            if any(ca in new_action.action_type for ca in completion_actions):
+                signals_detected.append("task_completed")
+
+            # Check for context switch (category change)
+            if self.current_task_category and new_action.category != self.current_task_category:
+                # Switching categories = task boundary
+                signals_detected.append("context_switch")
+
+            # Check for session start (first action after gap)
+            if pause_minutes >= 30:
+                signals_detected.append("session_start")
+
+            # Update tracking
+            self.current_task_category = new_action.category
+            self.last_activity = now
+
+            # Track deep work sessions
+            if new_action.category in self.DEEP_WORK_PATTERNS:
+                if self.deep_work_started is None:
+                    self.deep_work_started = now
+            else:
+                self.deep_work_started = None
+
+        # Check if in protected deep work session
+        if self.deep_work_started:
+            deep_work_minutes = (now - self.deep_work_started).total_seconds() / 60
+            if deep_work_minutes >= self.MIN_DEEP_WORK_MINUTES:
+                # In protected deep work - NOT a boundary
+                return (False, ["in_deep_work"])
+
+        is_boundary = len(signals_detected) > 0
+
+        if is_boundary:
+            self.boundary_stats["boundaries_detected"] += 1
+            self.recent_boundaries.append({
+                "timestamp": now.isoformat(),
+                "signals": signals_detected
+            })
+            # Keep bounded
+            self.recent_boundaries = self.recent_boundaries[-100:]
+
+        return (is_boundary, signals_detected)
+
+    def get_time_until_next_boundary(self) -> Optional[int]:
+        """
+        Estimate minutes until next natural boundary.
+
+        Based on historical patterns of boundary timing.
+        Returns None if unknown.
+        """
+        if len(self.recent_boundaries) < 5:
+            return None
+
+        # Calculate average time between boundaries
+        boundaries_with_time = []
+        for i in range(1, len(self.recent_boundaries)):
+            prev = datetime.fromisoformat(self.recent_boundaries[i-1]["timestamp"])
+            curr = datetime.fromisoformat(self.recent_boundaries[i]["timestamp"])
+            gap_minutes = (curr - prev).total_seconds() / 60
+            if gap_minutes < 120:  # Only count gaps < 2 hours
+                boundaries_with_time.append(gap_minutes)
+
+        if not boundaries_with_time:
+            return None
+
+        avg_gap = statistics.mean(boundaries_with_time)
+        time_since_last = (datetime.now() - datetime.fromisoformat(
+            self.recent_boundaries[-1]["timestamp"]
+        )).total_seconds() / 60
+
+        estimated_remaining = max(0, avg_gap - time_since_last)
+        return int(estimated_remaining)
+
+    def record_suggestion_outcome(self, was_at_boundary: bool, was_accepted: bool):
+        """Record whether suggestions at boundaries are more effective."""
+        self.boundary_stats["suggestions_at_boundary"] += (1 if was_at_boundary else 0)
+        if was_accepted:
+            if was_at_boundary:
+                self.boundary_stats["acceptance_at_boundary"] += 1
+            else:
+                self.boundary_stats["acceptance_not_at_boundary"] += 1
+
+    def get_boundary_effectiveness(self) -> Dict:
+        """Get statistics on boundary-based suggestion effectiveness."""
+        at_boundary = self.boundary_stats["suggestions_at_boundary"]
+        acc_at = self.boundary_stats["acceptance_at_boundary"]
+
+        total = self.boundary_stats["boundaries_detected"]
+        not_at = total - at_boundary if total > at_boundary else 0
+        acc_not = self.boundary_stats["acceptance_not_at_boundary"]
+
+        return {
+            "boundaries_detected": self.boundary_stats["boundaries_detected"],
+            "acceptance_rate_at_boundary": acc_at / at_boundary if at_boundary > 0 else None,
+            "acceptance_rate_not_at_boundary": acc_not / not_at if not_at > 0 else None,
+            "boundary_boost": (
+                (acc_at / at_boundary) / (acc_not / not_at)
+                if at_boundary > 0 and not_at > 0 and acc_not > 0
+                else None
+            )
+        }
+
+
+# ===============================================================================
+# IMPLICIT FEEDBACK COLLECTOR - STATE OF THE ART (2026)
+# ===============================================================================
+
+class ImplicitFeedbackCollector:
+    """
+    Collects implicit feedback from user behavior patterns.
+
+    Research basis:
+    - Each action feeds the model, making predictions sharper
+    - Implicit signals: acceptance time, dismissal patterns, follow-through
+    - Automatic model improvement without explicit ratings
+
+    The system learns from what you DO, not what you say.
+    """
+
+    # Feedback signal types
+    IMPLICIT_ACCEPT_SIGNALS = [
+        "user_did_suggested_action",      # User did what we suggested
+        "quick_response",                  # Fast action after suggestion (< 2 min)
+        "clicked_quick_action",            # Clicked one of the quick action buttons
+        "engaged_with_suggestion",         # Opened/expanded suggestion
+    ]
+
+    IMPLICIT_REJECT_SIGNALS = [
+        "suggestion_expired",              # Suggestion timed out without action
+        "explicit_dismiss",                # User clicked dismiss
+        "did_different_action",            # User did something else immediately
+        "ignored_multiple_times",          # Same suggestion ignored 3+ times
+    ]
+
+    # Time thresholds
+    QUICK_RESPONSE_SECONDS = 120          # < 2 min = quick response
+    SUGGESTION_TIMEOUT_MINUTES = 30       # After 30 min = implicit reject
+    IMMEDIATE_ACTION_SECONDS = 10         # < 10 sec = very strong signal
+
+    def __init__(self):
+        self.pending_suggestions: Dict[str, Tuple[Any, datetime]] = {}
+        self.feedback_history: List[Dict] = []
+        self.feedback_patterns = self._load_feedback_patterns()
+
+    def _load_feedback_patterns(self) -> Dict:
+        """Load learned feedback patterns."""
+        if FEEDBACK_HISTORY_FILE.exists():
+            try:
+                data = json.loads(FEEDBACK_HISTORY_FILE.read_text())
+                return data.get("patterns", {})
+            except:
+                pass
+
+        return {
+            "action_acceptance_rates": {},    # action_type -> acceptance rate
+            "time_of_day_rates": {},          # hour -> acceptance rate
+            "context_signals": {},            # context_key -> impact on acceptance
+            "suggestion_fatigue": {           # Track suggestion fatigue
+                "suggestions_today": 0,
+                "acceptances_today": 0,
+                "last_reset": datetime.now().date().isoformat()
+            }
+        }
+
+    def _save_feedback_patterns(self):
+        """Save feedback patterns."""
+        try:
+            data = {
+                "patterns": self.feedback_patterns,
+                "history": self.feedback_history[-1000:],  # Keep last 1000
+                "updated_at": datetime.now().isoformat()
+            }
+            FEEDBACK_HISTORY_FILE.write_text(json.dumps(data, indent=2))
+        except Exception as e:
+            print(f"[ImplicitFeedback] Error saving: {e}")
+
+        # Supabase sync
+        if SUPABASE_AVAILABLE:
+            try:
+                supabase.table("pm_feedback").upsert({
+                    "id": "implicit_feedback",
+                    "data": self.feedback_patterns,
+                    "updated_at": datetime.now().isoformat()
+                }).execute()
+            except:
+                pass
+
+    def track_suggestion(self, suggestion: 'ProactiveSuggestion') -> str:
+        """
+        Start tracking a suggestion for implicit feedback.
+
+        Returns a tracking ID.
+        """
+        sid = hashlib.md5(
+            f"{suggestion.message}{datetime.now().isoformat()}".encode()
+        ).hexdigest()[:12]
+
+        self.pending_suggestions[sid] = (suggestion, datetime.now())
+
+        # Update fatigue tracking
+        today = datetime.now().date().isoformat()
+        if self.feedback_patterns["suggestion_fatigue"]["last_reset"] != today:
+            # New day - reset counters
+            self.feedback_patterns["suggestion_fatigue"] = {
+                "suggestions_today": 0,
+                "acceptances_today": 0,
+                "last_reset": today
+            }
+
+        self.feedback_patterns["suggestion_fatigue"]["suggestions_today"] += 1
+
+        return sid
+
+    def check_implicit_feedback(
+        self,
+        user_action: ActionEvent,
+        suggestion_id: Optional[str] = None
+    ) -> List[Dict]:
+        """
+        Check if user actions imply feedback on pending suggestions.
+
+        Returns list of feedback events detected.
+        """
+        feedback_events = []
+        now = datetime.now()
+        to_remove = []
+
+        for sid, (suggestion, shown_at) in self.pending_suggestions.items():
+            # Check for explicit tracking
+            if suggestion_id and sid != suggestion_id:
+                continue
+
+            time_since_shown = (now - shown_at).total_seconds()
+
+            # Check if user did the suggested action
+            if user_action.action_type == suggestion.prediction.action_type:
+                # They did it! Implicit acceptance
+                signal_strength = 1.0
+
+                # Stronger signal if quick response
+                if time_since_shown < self.IMMEDIATE_ACTION_SECONDS:
+                    signal_strength = 1.5  # Very strong
+                elif time_since_shown < self.QUICK_RESPONSE_SECONDS:
+                    signal_strength = 1.2  # Strong
+
+                feedback = {
+                    "type": "implicit_accept",
+                    "signal": "user_did_suggested_action",
+                    "action_type": suggestion.prediction.action_type,
+                    "time_to_action": time_since_shown,
+                    "signal_strength": signal_strength,
+                    "timestamp": now.isoformat()
+                }
+                feedback_events.append(feedback)
+                self._record_feedback(feedback, suggestion)
+                to_remove.append(sid)
+
+            # Check for timeout (implicit reject)
+            elif time_since_shown > self.SUGGESTION_TIMEOUT_MINUTES * 60:
+                feedback = {
+                    "type": "implicit_reject",
+                    "signal": "suggestion_expired",
+                    "action_type": suggestion.prediction.action_type,
+                    "time_to_timeout": time_since_shown,
+                    "signal_strength": 0.5,  # Weak reject (might have just been busy)
+                    "timestamp": now.isoformat()
+                }
+                feedback_events.append(feedback)
+                self._record_feedback(feedback, suggestion)
+                to_remove.append(sid)
+
+            # Check if user did something completely different immediately
+            elif time_since_shown < 60 and user_action.action_type != suggestion.prediction.action_type:
+                # Quick action but not what we suggested = mild reject
+                feedback = {
+                    "type": "implicit_reject",
+                    "signal": "did_different_action",
+                    "action_type": suggestion.prediction.action_type,
+                    "actual_action": user_action.action_type,
+                    "signal_strength": 0.7,
+                    "timestamp": now.isoformat()
+                }
+                feedback_events.append(feedback)
+                self._record_feedback(feedback, suggestion)
+                to_remove.append(sid)
+
+        # Clean up tracked suggestions
+        for sid in to_remove:
+            del self.pending_suggestions[sid]
+
+        return feedback_events
+
+    def record_explicit_feedback(
+        self,
+        suggestion: 'ProactiveSuggestion',
+        response: str,
+        suggestion_id: Optional[str] = None
+    ):
+        """Record explicit feedback (user clicked a button)."""
+        is_accept = response.lower() in [
+            "ok", "yes", "start", "view", "open", "accept",
+            "do it", "proceed", "confirm"
+        ]
+
+        feedback = {
+            "type": "explicit_accept" if is_accept else "explicit_reject",
+            "signal": "clicked_quick_action" if is_accept else "explicit_dismiss",
+            "action_type": suggestion.prediction.action_type,
+            "response": response,
+            "signal_strength": 1.0,  # Explicit = strong signal
+            "timestamp": datetime.now().isoformat()
+        }
+
+        self._record_feedback(feedback, suggestion)
+
+        # Remove from pending
+        if suggestion_id and suggestion_id in self.pending_suggestions:
+            del self.pending_suggestions[suggestion_id]
+
+        # Update fatigue tracking
+        if is_accept:
+            self.feedback_patterns["suggestion_fatigue"]["acceptances_today"] += 1
+
+    def _record_feedback(self, feedback: Dict, suggestion: 'ProactiveSuggestion'):
+        """Internal: record feedback and update patterns."""
+        self.feedback_history.append(feedback)
+
+        action_type = feedback["action_type"]
+        is_accept = "accept" in feedback["type"]
+
+        # Update action acceptance rates
+        if action_type not in self.feedback_patterns["action_acceptance_rates"]:
+            self.feedback_patterns["action_acceptance_rates"][action_type] = {
+                "accepts": 0, "rejects": 0
+            }
+
+        if is_accept:
+            self.feedback_patterns["action_acceptance_rates"][action_type]["accepts"] += 1
+        else:
+            self.feedback_patterns["action_acceptance_rates"][action_type]["rejects"] += 1
+
+        # Update time-of-day rates
+        hour = str(datetime.now().hour)
+        if hour not in self.feedback_patterns["time_of_day_rates"]:
+            self.feedback_patterns["time_of_day_rates"][hour] = {
+                "accepts": 0, "rejects": 0
+            }
+
+        if is_accept:
+            self.feedback_patterns["time_of_day_rates"][hour]["accepts"] += 1
+        else:
+            self.feedback_patterns["time_of_day_rates"][hour]["rejects"] += 1
+
+        # Periodically save
+        if len(self.feedback_history) % 10 == 0:
+            self._save_feedback_patterns()
+
+    def get_acceptance_rate(self, action_type: str) -> Optional[float]:
+        """Get historical acceptance rate for an action type."""
+        rates = self.feedback_patterns["action_acceptance_rates"].get(action_type)
+        if not rates:
+            return None
+
+        total = rates["accepts"] + rates["rejects"]
+        if total < 5:
+            return None
+
+        return rates["accepts"] / total
+
+    def get_optimal_suggestion_count(self) -> int:
+        """
+        Get optimal number of suggestions for today based on fatigue patterns.
+
+        More rejections = reduce suggestions. High acceptance = can show more.
+        """
+        fatigue = self.feedback_patterns["suggestion_fatigue"]
+
+        shown = fatigue["suggestions_today"]
+        accepted = fatigue["acceptances_today"]
+
+        if shown == 0:
+            return 5  # Default: up to 5 suggestions
+
+        acceptance_rate = accepted / shown
+
+        if acceptance_rate < 0.2:
+            # Low acceptance - reduce suggestions
+            return max(2, 5 - shown // 3)
+        elif acceptance_rate > 0.6:
+            # High acceptance - can show more
+            return min(10, 5 + int(acceptance_rate * 5))
+        else:
+            return 5  # Normal
+
+    def get_feedback_stats(self) -> Dict:
+        """Get feedback collection statistics."""
+        return {
+            "total_feedback_events": len(self.feedback_history),
+            "pending_suggestions": len(self.pending_suggestions),
+            "action_acceptance_rates": {
+                k: v["accepts"] / (v["accepts"] + v["rejects"])
+                if (v["accepts"] + v["rejects"]) > 0 else None
+                for k, v in self.feedback_patterns["action_acceptance_rates"].items()
+            },
+            "today_stats": self.feedback_patterns["suggestion_fatigue"],
+            "optimal_suggestions_remaining": self.get_optimal_suggestion_count()
+        }
+
+
+# ===============================================================================
+# ENERGY & FOCUS ESTIMATOR - STATE OF THE ART (2026)
+# ===============================================================================
+
+class EnergyFocusEstimator:
+    """
+    Estimates user's current energy and focus level from behavior.
+
+    Research basis:
+    - Match suggestions to user state
+    - High energy -> complex tasks, Low energy -> simple tasks
+    - Personal circadian patterns learned over time
+
+    The goal: suggest the RIGHT task at the RIGHT moment.
+    """
+
+    # Default circadian energy curve (normalized 0-1)
+    DEFAULT_ENERGY_CURVE = {
+        0: 0.15, 1: 0.10, 2: 0.08, 3: 0.08, 4: 0.10, 5: 0.20,
+        6: 0.40, 7: 0.60, 8: 0.80, 9: 0.90, 10: 1.00, 11: 0.95,
+        12: 0.70, 13: 0.60, 14: 0.65, 15: 0.75, 16: 0.80, 17: 0.70,
+        18: 0.55, 19: 0.45, 20: 0.35, 21: 0.30, 22: 0.25, 23: 0.20
+    }
+
+    # Task complexity mapping
+    TASK_COMPLEXITY = {
+        ActionCategory.DEEP_WORK: 1.0,       # Needs high energy
+        ActionCategory.PLANNING: 0.9,
+        ActionCategory.RESEARCH: 0.85,
+        ActionCategory.REVIEW: 0.7,
+        ActionCategory.COMMUNICATION: 0.5,
+        ActionCategory.TASK_MANAGEMENT: 0.4,
+        ActionCategory.CALENDAR: 0.3,
+        ActionCategory.ADMINISTRATIVE: 0.3,
+        ActionCategory.STANDUP: 0.4,
+        ActionCategory.DELEGATION: 0.5,
+        ActionCategory.UNKNOWN: 0.5,
+    }
+
+    def __init__(self):
+        self.personal_energy_curve: Optional[Dict[int, float]] = None
+        self.activity_data: List[Dict] = []
+        self.energy_patterns = self._load_energy_patterns()
+
+    def _load_energy_patterns(self) -> Dict:
+        """Load learned energy patterns."""
+        if ENERGY_PATTERNS_FILE.exists():
+            try:
+                data = json.loads(ENERGY_PATTERNS_FILE.read_text())
+                self.personal_energy_curve = data.get("personal_curve")
+                self.activity_data = data.get("activity_data", [])[-1000:]
+                return data.get("patterns", {})
+            except:
+                pass
+
+        return {
+            "hourly_productivity": {},     # hour -> productivity score
+            "day_patterns": {},            # day_of_week -> patterns
+            "streak_data": {               # Focus streak tracking
+                "current_streak": 0,
+                "max_streak": 0,
+                "streak_start": None
+            }
+        }
+
+    def _save_energy_patterns(self):
+        """Save energy patterns."""
+        try:
+            data = {
+                "personal_curve": self.personal_energy_curve,
+                "activity_data": self.activity_data[-1000:],
+                "patterns": self.energy_patterns,
+                "updated_at": datetime.now().isoformat()
+            }
+            ENERGY_PATTERNS_FILE.write_text(json.dumps(data, indent=2, default=str))
+        except Exception as e:
+            print(f"[EnergyEstimator] Error saving: {e}")
+
+    def estimate_energy(
+        self,
+        hour: int,
+        recent_actions: List[ActionEvent] = None
+    ) -> float:
+        """
+        Estimate current energy level (0.0 - 1.0).
+
+        Combines:
+        1. Time-of-day baseline (personal or default curve)
+        2. Recent activity level (more activity = higher energy)
+        3. Deep work streaks (sustained focus = flow state boost)
+        """
+        # Base from time of day
+        if self.personal_energy_curve:
+            base_energy = self.personal_energy_curve.get(hour, 0.5)
+        else:
+            base_energy = self.DEFAULT_ENERGY_CURVE.get(hour, 0.5)
+
+        if not recent_actions:
+            return base_energy
+
+        # Adjust based on recent activity
+        now = datetime.now()
+        recent_hour = [
+            a for a in recent_actions
+            if (now - a.timestamp).total_seconds() < 3600
+        ]
+
+        # Activity boost: more actions = higher energy (up to +0.2)
+        activity_boost = min(len(recent_hour) / 15, 1.0) * 0.2
+
+        # Focus boost: sustained deep work = flow state (up to +0.15)
+        deep_work_actions = [
+            a for a in recent_hour
+            if a.category in [ActionCategory.DEEP_WORK, ActionCategory.RESEARCH]
+        ]
+
+        focus_boost = 0.0
+        if len(deep_work_actions) >= 3:
+            # Check if sustained (not interrupted)
+            if len(recent_hour) > 0:
+                deep_work_ratio = len(deep_work_actions) / len(recent_hour)
+                if deep_work_ratio > 0.7:
+                    focus_boost = 0.15  # In flow state
+
+        # Fatigue penalty: too many hours of work without break
+        if len(self.activity_data) > 0:
+            # Check how long user has been active today
+            today_start = datetime.now().replace(hour=0, minute=0, second=0)
+            today_actions = [
+                a for a in self.activity_data
+                if datetime.fromisoformat(a["timestamp"]) > today_start
+            ]
+
+            hours_active = len(set(
+                datetime.fromisoformat(a["timestamp"]).hour
+                for a in today_actions
+            ))
+
+            if hours_active > 8:
+                # Fatigue penalty after 8+ hours
+                fatigue_penalty = min((hours_active - 8) * 0.05, 0.2)
+            else:
+                fatigue_penalty = 0.0
+        else:
+            fatigue_penalty = 0.0
+
+        final_energy = base_energy + activity_boost + focus_boost - fatigue_penalty
+        return max(0.1, min(1.0, final_energy))
+
+    def estimate_focus(
+        self,
+        recent_actions: List[ActionEvent] = None,
+        context: 'FusedContext' = None
+    ) -> float:
+        """
+        Estimate current focus/concentration level (0.0 - 1.0).
+
+        Combines:
+        1. Recent action homogeneity (same category = focused)
+        2. Action frequency (steady pace = focused)
+        3. External interruption potential (calendar, emails)
+        """
+        focus = 0.5  # Baseline
+
+        if recent_actions and len(recent_actions) >= 3:
+            recent_5 = recent_actions[-5:]
+
+            # Category homogeneity (all same category = focused)
+            categories = [a.category for a in recent_5]
+            unique_categories = len(set(categories))
+
+            if unique_categories == 1:
+                focus += 0.3  # Single category = highly focused
+            elif unique_categories == 2:
+                focus += 0.1  # Two categories = somewhat focused
+
+            # Check for deep work focus
+            if all(c in [ActionCategory.DEEP_WORK, ActionCategory.RESEARCH] for c in categories):
+                focus += 0.1  # Extra boost for deep work
+
+        # Context-based adjustments
+        if context:
+            # Meeting soon = lower focus
+            if context.next_meeting_in_minutes and context.next_meeting_in_minutes < 30:
+                focus -= 0.2
+
+            # Many unread emails = potential distraction
+            if context.unread_count > 10:
+                focus -= 0.1
+
+            # Overdue tasks = stress reduces focus
+            if context.tasks_overdue > 2:
+                focus -= 0.1
+
+        return max(0.1, min(1.0, focus))
+
+    def get_task_match_score(
+        self,
+        action_category: ActionCategory,
+        current_energy: float,
+        current_focus: float
+    ) -> float:
+        """
+        Calculate how well a task matches current energy/focus state.
+
+        Returns 0.0-1.0 score:
+        - 1.0 = perfect match
+        - 0.0 = terrible match (high-energy task when exhausted)
+        """
+        task_complexity = self.TASK_COMPLEXITY.get(action_category, 0.5)
+
+        # Energy match: complex tasks need high energy
+        energy_match = 1.0 - abs(task_complexity - current_energy)
+
+        # Focus match: complex tasks also benefit from focus
+        focus_weight = task_complexity * 0.5  # Complex tasks weight focus more
+        focus_match = 1.0 - (focus_weight * (1.0 - current_focus))
+
+        # Combined score
+        match_score = 0.6 * energy_match + 0.4 * focus_match
+
+        return max(0.0, min(1.0, match_score))
+
+    def record_action(self, action: ActionEvent, outcome: Optional[str] = None):
+        """Record action for energy pattern learning."""
+        self.activity_data.append({
+            "timestamp": action.timestamp.isoformat(),
+            "hour": action.timestamp.hour,
+            "day": action.timestamp.weekday(),
+            "category": action.category.value,
+            "action_type": action.action_type,
+            "outcome": outcome
+        })
+
+        # Keep bounded
+        self.activity_data = self.activity_data[-2000:]
+
+        # Periodically rebuild personal curve
+        if len(self.activity_data) % 100 == 0:
+            self._rebuild_personal_curve()
+            self._save_energy_patterns()
+
+    def _rebuild_personal_curve(self):
+        """Rebuild personal energy curve from activity data."""
+        if len(self.activity_data) < 50:
+            return
+
+        # Calculate productivity by hour
+        hourly_data: Dict[int, List[Dict]] = defaultdict(list)
+
+        for entry in self.activity_data:
+            hour = entry["hour"]
+            hourly_data[hour].append(entry)
+
+        # Build curve based on activity frequency and complexity
+        curve = {}
+        for hour, entries in hourly_data.items():
+            if len(entries) < 3:
+                continue
+
+            # More activity at this hour = higher baseline energy
+            activity_score = len(entries) / len(self.activity_data) * 24
+
+            # Bonus for deep work at this hour
+            deep_work_count = sum(
+                1 for e in entries
+                if e["category"] in [ActionCategory.DEEP_WORK.value, ActionCategory.RESEARCH.value]
+            )
+            deep_work_bonus = deep_work_count / len(entries) * 0.2
+
+            curve[hour] = min(1.0, activity_score + deep_work_bonus)
+
+        if len(curve) >= 12:  # Need at least half the hours
+            # Fill in missing hours with interpolation
+            for h in range(24):
+                if h not in curve:
+                    # Use average of neighbors
+                    prev_h = (h - 1) % 24
+                    next_h = (h + 1) % 24
+                    if prev_h in curve and next_h in curve:
+                        curve[h] = (curve[prev_h] + curve[next_h]) / 2
+                    else:
+                        curve[h] = self.DEFAULT_ENERGY_CURVE[h]
+
+            self.personal_energy_curve = curve
+            print(f"[EnergyEstimator] Rebuilt personal energy curve from {len(self.activity_data)} data points")
+
+    def suggest_optimal_task_type(self, current_energy: float, current_focus: float) -> List[ActionCategory]:
+        """
+        Suggest optimal task types for current energy/focus state.
+
+        Returns list of ActionCategory sorted by match score.
+        """
+        scores = []
+        for category in ActionCategory:
+            if category == ActionCategory.UNKNOWN:
+                continue
+            score = self.get_task_match_score(category, current_energy, current_focus)
+            scores.append((category, score))
+
+        scores.sort(key=lambda x: x[1], reverse=True)
+        return [cat for cat, score in scores if score > 0.5]
+
+    def get_energy_stats(self) -> Dict:
+        """Get energy estimation statistics."""
+        current_hour = datetime.now().hour
+
+        return {
+            "current_energy_estimate": self.estimate_energy(current_hour),
+            "has_personal_curve": self.personal_energy_curve is not None,
+            "data_points": len(self.activity_data),
+            "peak_hours": (
+                sorted(
+                    self.personal_energy_curve.items() if self.personal_energy_curve
+                    else self.DEFAULT_ENERGY_CURVE.items(),
+                    key=lambda x: x[1], reverse=True
+                )[:3]
+            ),
+            "suggested_task_types": [
+                cat.value for cat in self.suggest_optimal_task_type(
+                    self.estimate_energy(current_hour), 0.5
+                )[:3]
+            ]
+        }
+
+
+# ===============================================================================
 # CONTEXT FUSION ENGINE
 # ===============================================================================
 
@@ -843,6 +1991,12 @@ class IntentPredictionEngine:
         self.pattern_miner = BehaviorPatternMiner()
         self.context_engine = ContextFusionEngine()
         self.prediction_outcomes = self._load_outcomes()
+
+        # SOTA Enhancement: Confidence Calibrator
+        self.confidence_calibrator = ConfidenceCalibrator()
+
+        # SOTA Enhancement: Energy/Focus Estimator
+        self.energy_estimator = EnergyFocusEstimator()
 
         # Action type to category mapping
         self.action_categories = self._build_action_category_map()
@@ -1139,7 +2293,14 @@ class IntentPredictionEngine:
         candidates[action_type]["reasoning"].append(reason)
 
     def _calibrate_predictions(self, candidates: Dict) -> List[PredictedAction]:
-        """Calibrate confidence scores and create PredictedAction objects."""
+        """
+        Calibrate confidence scores and create PredictedAction objects.
+
+        SOTA Enhancement (2026):
+        - Uses ConfidenceCalibrator with temperature scaling
+        - Historical blending: 60% current + 40% track record
+        - Target calibration error: <10%
+        """
         predictions = []
 
         for action_type, data in candidates.items():
@@ -1157,15 +2318,16 @@ class IntentPredictionEngine:
                 agreement_boost = 1 + (len(factors) - 1) * 0.1
                 raw_confidence = (sum(factors) / len(factors)) * min(agreement_boost, 1.5)
 
-            # Apply historical accuracy calibration
-            historical_accuracy = self._get_historical_accuracy(action_type)
-            if historical_accuracy is not None:
-                calibrated = raw_confidence * (0.7 + historical_accuracy * 0.3)
-            else:
-                calibrated = raw_confidence * 0.85  # Discount for unknown accuracy
+            # SOTA: Apply temperature scaling + historical calibration
+            historical_data = self.prediction_outcomes.get("accuracy_by_type", {}).get(action_type)
+            calibrated = self.confidence_calibrator.calibrate(
+                raw_confidence,
+                action_type,
+                historical_data
+            )
 
-            # Clamp to valid range
-            final_confidence = max(0.0, min(0.99, calibrated))
+            # Clamp to valid range (already done in calibrator, but ensure)
+            final_confidence = max(0.0, min(0.95, calibrated))
 
             # Determine action level
             if final_confidence >= self.THRESHOLD_AUTO:
@@ -1179,6 +2341,9 @@ class IntentPredictionEngine:
             else:
                 continue  # Skip low-confidence predictions
 
+            # Get historical accuracy for evidence
+            historical_accuracy = self._get_historical_accuracy(action_type)
+
             predictions.append(PredictedAction(
                 action_type=action_type,
                 category=self._get_category(action_type),
@@ -1188,7 +2353,8 @@ class IntentPredictionEngine:
                 supporting_evidence={
                     "confidence_factors": factors,
                     "historical_accuracy": historical_accuracy,
-                    "factor_count": len(factors)
+                    "factor_count": len(factors),
+                    "calibration_method": "temperature_scaling_plus_historical"
                 }
             ))
 
@@ -1255,8 +2421,18 @@ class IntentPredictionEngine:
         """Record an action for pattern learning."""
         self.pattern_miner.record_action(action)
 
-    def record_prediction_outcome(self, action_type: str, was_correct: bool):
-        """Record whether a prediction was correct for learning."""
+    def record_prediction_outcome(
+        self,
+        action_type: str,
+        was_correct: bool,
+        predicted_confidence: float = None
+    ):
+        """
+        Record whether a prediction was correct for learning.
+
+        SOTA Enhancement: Also updates the ConfidenceCalibrator for
+        continuous calibration improvement.
+        """
         # Update accuracy tracking
         if action_type not in self.prediction_outcomes["accuracy_by_type"]:
             self.prediction_outcomes["accuracy_by_type"][action_type] = {
@@ -1276,10 +2452,19 @@ class IntentPredictionEngine:
         self.prediction_outcomes["predictions"].append({
             "action_type": action_type,
             "was_correct": was_correct,
+            "predicted_confidence": predicted_confidence,
             "timestamp": datetime.now().isoformat()
         })
 
         self._save_outcomes()
+
+        # SOTA: Update calibrator for continuous improvement
+        if predicted_confidence is not None:
+            self.confidence_calibrator.record_prediction_outcome(
+                predicted_confidence,
+                was_correct,
+                action_type
+            )
 
     def get_accuracy_stats(self) -> Dict:
         """Get prediction accuracy statistics."""
@@ -1303,120 +2488,157 @@ class ProactiveSuggestionGenerator:
     """
     Transforms predictions into human-friendly proactive suggestions.
 
+    SOTA Enhancements (2026):
+    1. Confidence-qualified language ("I'm fairly confident..." vs "I think...")
+    2. Task boundary awareness (don't interrupt deep work)
+    3. Implicit feedback collection (learn from behavior)
+    4. Energy-aware suggestions (match task to energy level)
+    5. Progressive automation levels (suggest -> approve -> auto)
+
     The goal is to make suggestions feel natural and helpful, not intrusive.
     Each suggestion should feel like a thoughtful human assistant.
-
-    Suggestion templates are crafted to be:
-    1. Conversational, not robotic
-    2. Action-oriented
-    3. Contextually relevant
-    4. Respectful of user's time/attention
     """
 
-    # Suggestion templates by action type
+    # SOTA: Confidence-qualified templates by confidence level
+    CONFIDENCE_PREFIXES = {
+        "very_high": [  # >= 0.85
+            "I'm confident that",
+            "Based on your patterns, it's time to",
+            "This is a great time to",
+        ],
+        "high": [  # 0.70 - 0.85
+            "I'm fairly confident that",
+            "Your patterns suggest",
+            "It looks like time to",
+        ],
+        "medium": [  # 0.50 - 0.70
+            "I think",
+            "You might want to",
+            "It could be a good time to",
+        ],
+        "low": [  # < 0.50
+            "Just a thought:",
+            "Perhaps consider",
+            "Maybe",
+        ]
+    }
+
+    # Suggestion templates by action type - ENHANCED with reasoning
     TEMPLATES = {
         # Morning rituals
         "morning_review": [
-            "Good morning! Ready to review today's priorities?",
-            "Time to plan your day - shall we look at what's on deck?",
-            "Morning check-in: you have {tasks_pending} tasks waiting."
+            "{prefix} review today's priorities. {reasoning}",
+            "{prefix} plan your day - you have {tasks_pending} tasks waiting. {reasoning}",
+            "Good morning! {prefix} do a quick check-in. {reasoning}"
         ],
 
         # Email actions
         "read_email": [
-            "You have {unread_count} unread emails - worth a quick scan?",
-            "{urgent_count} urgent emails need attention.",
-            "Inbox check time? {unread_count} messages waiting."
+            "{prefix} check your inbox - {unread_count} emails waiting. {reasoning}",
+            "{prefix} handle {urgent_count} urgent emails. {reasoning}",
+            "{prefix} do a quick email scan. {reasoning}"
         ],
         "reply_email": [
-            "Email from {sender} might need a response.",
-            "Quick reply to {sender}? Their email's been waiting.",
-            "Looks like {sender} is expecting a response."
+            "{prefix} respond to {sender}. {reasoning}",
+            "{prefix} send a quick reply to {sender}. {reasoning}",
+            "{sender} is waiting for a response. {prefix} reply now. {reasoning}"
         ],
 
         # Calendar/meetings
         "prep_meeting": [
-            "Meeting in {minutes} minutes - time to prep?",
-            "'{meeting_title}' starts soon. Need the context?",
-            "Heads up: meeting in {minutes} min. Prep time?"
+            "{prefix} prep for your meeting in {minutes} minutes. {reasoning}",
+            "'{meeting_title}' starts soon. {prefix} review the context. {reasoning}",
+            "Meeting in {minutes} min - {prefix} get ready. {reasoning}"
         ],
         "check_calendar": [
-            "What's on your calendar today?",
-            "Worth checking what's coming up?",
-            "Calendar check - {meetings_today} meetings today."
+            "{prefix} check what's on your calendar. {reasoning}",
+            "{prefix} review today's {meetings_today} meetings. {reasoning}",
+            "{prefix} see what's coming up. {reasoning}"
         ],
 
         # Task management
         "update_task": [
-            "Task '{task_title}' needs an update.",
-            "{overdue_count} overdue tasks could use attention.",
-            "Some tasks are falling behind - quick update?"
+            "{prefix} update '{task_title}'. {reasoning}",
+            "{prefix} address {overdue_count} overdue tasks. {reasoning}",
+            "Some tasks need attention. {prefix} do a quick update. {reasoning}"
         ],
         "complete_task": [
-            "Ready to mark '{task_title}' complete?",
-            "Looks like '{task_title}' might be done - close it out?",
-            "Task finished? Let's update the board."
+            "{prefix} mark '{task_title}' complete. {reasoning}",
+            "'{task_title}' looks done - {prefix} close it out. {reasoning}",
+            "{prefix} update the board with completed work. {reasoning}"
         ],
         "create_task": [
-            "Want to capture that as a task?",
-            "Should we add this to the board?",
-            "New task to track?"
+            "{prefix} capture this as a task. {reasoning}",
+            "{prefix} add this to the board. {reasoning}",
+            "New task to track? {prefix} create it now. {reasoning}"
         ],
 
         # Deep work
         "focus_session": [
-            "You have {free_time} minutes of focus time - good for deep work.",
-            "Clear block ahead. Perfect for focused work.",
-            "No meetings for a while - focus time?"
+            "{prefix} start a focus session - you have {free_time} minutes free. {reasoning}",
+            "Clear block ahead. {prefix} do some deep work. {reasoning}",
+            "No meetings for a while - {prefix} focus now. {reasoning}"
         ],
         "coding": [
-            "Ready to dive into code?",
-            "Good time for development work.",
-            "Coding session? The calendar's clear."
+            "{prefix} dive into code. {reasoning}",
+            "{prefix} start a coding session - calendar's clear. {reasoning}",
+            "Good time for development. {prefix} start coding. {reasoning}"
         ],
 
         # End of day
         "end_of_day": [
-            "Wrapping up? Let's do a quick status update.",
-            "End of day - anything to capture before tomorrow?",
-            "Time to wind down. Want to review what got done?"
+            "{prefix} wrap up with a status update. {reasoning}",
+            "End of day - {prefix} capture anything for tomorrow. {reasoning}",
+            "{prefix} review what got done today. {reasoning}"
         ],
 
         # Status/updates
         "status_update": [
-            "Quick status update for the team?",
-            "Time to share progress?",
-            "The team might want an update on your progress."
+            "{prefix} share a quick status update. {reasoning}",
+            "{prefix} update the team on progress. {reasoning}",
+            "Team might want an update. {prefix} share your progress. {reasoning}"
         ],
 
         # Review
         "review_pr": [
-            "PR waiting for your review.",
-            "Code review needed - want to take a look?",
-            "PR review time? Something's waiting."
+            "{prefix} review the waiting PR. {reasoning}",
+            "Code review needed - {prefix} take a look. {reasoning}",
+            "{prefix} start the PR review. {reasoning}"
         ],
 
-        # Generic fallbacks
+        # Generic fallbacks with confidence
         "default": [
-            "Based on your patterns, you might want to {action}.",
-            "Usually you {action} around this time.",
-            "Time for {action}? Your patterns suggest so."
+            "{prefix} {action}. {reasoning}",
+            "{prefix} do {action} - your patterns suggest it's time. {reasoning}",
+            "{prefix} {action} now. {reasoning}"
         ]
     }
 
-    # Quick actions by category
+    # Quick actions by category - ENHANCED with more options
     QUICK_ACTIONS = {
-        ActionCategory.COMMUNICATION: ["Open Inbox", "Quick Reply", "Skip for Now"],
-        ActionCategory.TASK_MANAGEMENT: ["View Tasks", "Mark Complete", "Remind Later"],
-        ActionCategory.CALENDAR: ["Open Calendar", "Prep Now", "Dismiss"],
-        ActionCategory.DEEP_WORK: ["Start Focus", "Block Time", "Not Now"],
-        ActionCategory.STANDUP: ["Give Update", "Skip", "Remind Later"],
-        ActionCategory.REVIEW: ["Start Review", "Delegate", "Later"]
+        ActionCategory.COMMUNICATION: ["Open Inbox", "Quick Reply", "Snooze 30min", "Skip"],
+        ActionCategory.TASK_MANAGEMENT: ["View Tasks", "Mark Done", "Snooze 30min", "Dismiss"],
+        ActionCategory.CALENDAR: ["Open Calendar", "Start Prep", "5min Warning", "Dismiss"],
+        ActionCategory.DEEP_WORK: ["Start Focus", "Block 2hr", "Snooze 1hr", "Not Now"],
+        ActionCategory.STANDUP: ["Give Update", "Quick Note", "Skip Today", "Dismiss"],
+        ActionCategory.REVIEW: ["Start Review", "Assign Other", "Snooze 1hr", "Later"],
+        ActionCategory.PLANNING: ["Start Planning", "Quick Notes", "Later", "Skip"],
+        ActionCategory.RESEARCH: ["Start Research", "Bookmark", "Later", "Skip"],
+        ActionCategory.DELEGATION: ["Assign Now", "Follow Up", "Later", "Skip"],
     }
 
     def __init__(self):
         self.intent_engine = IntentPredictionEngine()
         self.context_engine = ContextFusionEngine()
+
+        # SOTA: Task Boundary Detector
+        self.boundary_detector = TaskBoundaryDetector()
+
+        # SOTA: Implicit Feedback Collector
+        self.feedback_collector = ImplicitFeedbackCollector()
+
+        # SOTA: Energy/Focus Estimator
+        self.energy_estimator = EnergyFocusEstimator()
 
         # Track shown suggestions to avoid repetition
         self.recently_shown: List[str] = []
@@ -1426,25 +2648,61 @@ class ProactiveSuggestionGenerator:
         self,
         predictions: List[PredictedAction] = None,
         context: FusedContext = None,
-        limit: int = 3
+        recent_actions: List[ActionEvent] = None,
+        limit: int = 3,
+        respect_boundaries: bool = True
     ) -> List[ProactiveSuggestion]:
         """
         Generate proactive suggestions from predictions.
 
+        SOTA Enhancements:
+        - Task boundary awareness (only suggest at natural breaks)
+        - Energy-aware filtering (match suggestions to user energy)
+        - Implicit feedback-informed limiting (avoid suggestion fatigue)
+
         Args:
             predictions: Pre-computed predictions, or will compute fresh
             context: Pre-gathered context
+            recent_actions: Recent actions for boundary detection
             limit: Maximum suggestions to return
+            respect_boundaries: If True, only suggest at task boundaries
 
         Returns:
             List of ProactiveSuggestion ready for presentation
         """
         # Gather fresh data if not provided
         if context is None:
-            context = self.context_engine.gather_context()
+            context = self.context_engine.gather_context(recent_actions)
 
         if predictions is None:
-            predictions = self.intent_engine.predict_next_actions(context, limit=limit + 2)
+            predictions = self.intent_engine.predict_next_actions(
+                context, recent_actions, limit=limit + 3
+            )
+
+        # SOTA: Check task boundary (don't interrupt deep work)
+        if respect_boundaries and recent_actions:
+            is_boundary, signals = self.boundary_detector.check_boundary(
+                recent_actions[-1] if recent_actions else None
+            )
+            if not is_boundary:
+                # Not at a boundary - return empty or very limited suggestions
+                if "in_deep_work" in signals:
+                    # In deep work - don't interrupt at all
+                    return []
+                else:
+                    # Not at natural break - limit to 1 high-confidence suggestion
+                    limit = 1
+                    predictions = [p for p in predictions if p.confidence >= 0.85]
+
+        # SOTA: Apply feedback-based limits (avoid suggestion fatigue)
+        optimal_count = self.feedback_collector.get_optimal_suggestion_count()
+        limit = min(limit, optimal_count)
+
+        # SOTA: Get current energy for task matching
+        current_energy = self.energy_estimator.estimate_energy(
+            context.hour, recent_actions
+        )
+        current_focus = self.energy_estimator.estimate_focus(recent_actions, context)
 
         suggestions = []
 
@@ -1453,8 +2711,16 @@ class ProactiveSuggestionGenerator:
             if pred.action_type in self.recently_shown[-5:]:
                 continue
 
+            # SOTA: Check energy match (don't suggest complex tasks when tired)
+            energy_match = self.energy_estimator.get_task_match_score(
+                pred.category, current_energy, current_focus
+            )
+            if energy_match < 0.4:
+                # Poor energy match - skip this suggestion
+                continue
+
             # Generate the suggestion
-            suggestion = self._create_suggestion(pred, context)
+            suggestion = self._create_suggestion(pred, context, energy_match)
 
             if suggestion:
                 suggestions.append(suggestion)
@@ -1462,15 +2728,113 @@ class ProactiveSuggestionGenerator:
             if len(suggestions) >= limit:
                 break
 
+        # COLD START: Generate bootstrap suggestions when no predictions pass threshold
+        if not suggestions and not predictions:
+            suggestions = self._generate_bootstrap_suggestions(context, current_energy, current_focus, limit)
+
+        return suggestions
+
+    def _generate_bootstrap_suggestions(
+        self,
+        context: FusedContext,
+        energy: float,
+        focus: float,
+        limit: int
+    ) -> List[ProactiveSuggestion]:
+        """
+        Generate bootstrap suggestions for new users without enough history.
+
+        These are context-aware but don't rely on learned patterns.
+        """
+        bootstrap_predictions = []
+
+        # Morning routine
+        if context.is_morning and context.hour <= 10:
+            bootstrap_predictions.append(PredictedAction(
+                action_type="morning_review",
+                category=ActionCategory.STANDUP,
+                confidence=0.55,
+                reasoning=["Good time for a morning check-in"],
+                action_level="suggest"
+            ))
+
+        # Check email if there are unread
+        if context.unread_count > 0:
+            conf = min(0.65, 0.5 + context.unread_count * 0.01)
+            bootstrap_predictions.append(PredictedAction(
+                action_type="read_email",
+                category=ActionCategory.COMMUNICATION,
+                confidence=conf,
+                reasoning=[f"{context.unread_count} emails waiting"],
+                action_level="suggest"
+            ))
+
+        # Task management if tasks pending
+        if context.tasks_pending > 0:
+            bootstrap_predictions.append(PredictedAction(
+                action_type="update_task",
+                category=ActionCategory.TASK_MANAGEMENT,
+                confidence=0.55,
+                reasoning=[f"{context.tasks_pending} tasks need attention"],
+                action_level="suggest"
+            ))
+
+        # Deep work if good focus time
+        if not context.busy_day and energy > 0.6 and focus > 0.5:
+            bootstrap_predictions.append(PredictedAction(
+                action_type="focus_session",
+                category=ActionCategory.DEEP_WORK,
+                confidence=0.50,
+                reasoning=["Calendar looks clear for focused work"],
+                action_level="suggest"
+            ))
+
+        # Meeting prep if meeting soon
+        if context.next_meeting_in_minutes and 10 <= context.next_meeting_in_minutes <= 45:
+            bootstrap_predictions.append(PredictedAction(
+                action_type="prep_meeting",
+                category=ActionCategory.CALENDAR,
+                confidence=0.60,
+                reasoning=[f"Meeting in {context.next_meeting_in_minutes} minutes"],
+                action_level="suggest"
+            ))
+
+        # End of day
+        if context.is_evening and context.hour >= 17:
+            bootstrap_predictions.append(PredictedAction(
+                action_type="end_of_day",
+                category=ActionCategory.STANDUP,
+                confidence=0.50,
+                reasoning=["Time to wrap up for the day"],
+                action_level="suggest"
+            ))
+
+        # Create suggestions from bootstrap predictions
+        suggestions = []
+        for pred in bootstrap_predictions[:limit]:
+            energy_match = self.energy_estimator.get_task_match_score(
+                pred.category, energy, focus
+            )
+            suggestion = self._create_suggestion(pred, context, energy_match)
+            if suggestion:
+                suggestions.append(suggestion)
+
         return suggestions
 
     def _create_suggestion(
         self,
         prediction: PredictedAction,
-        context: FusedContext
+        context: FusedContext,
+        energy_match: float = 1.0
     ) -> Optional[ProactiveSuggestion]:
-        """Create a suggestion from a prediction."""
+        """
+        Create a suggestion from a prediction.
 
+        SOTA Enhancements:
+        - Confidence-qualified language
+        - Includes reasoning for transparency
+        - Energy-aware priority adjustment
+        """
         # Get templates for this action type
         templates = self.TEMPLATES.get(
             prediction.action_type,
@@ -1481,22 +2845,28 @@ class ProactiveSuggestionGenerator:
         template_idx = hash(datetime.now().isoformat()) % len(templates)
         template = templates[template_idx]
 
-        # Fill in template variables
-        message = self._fill_template(template, prediction, context)
+        # SOTA: Get confidence-qualified prefix
+        prefix = self._get_confidence_prefix(prediction.confidence)
+
+        # SOTA: Build concise reasoning from prediction evidence
+        reasoning = self._build_reasoning(prediction)
+
+        # Fill in template variables with prefix and reasoning
+        message = self._fill_template(template, prediction, context, prefix, reasoning)
 
         # Get quick actions
         quick_actions = self.QUICK_ACTIONS.get(
             prediction.category,
-            ["OK", "Not Now"]
+            ["OK", "Snooze", "Not Now"]
         )
 
-        # Calculate priority
-        priority = self._calculate_priority(prediction, context)
+        # Calculate priority (SOTA: includes energy match factor)
+        priority = self._calculate_priority(prediction, context, energy_match)
 
         # Set expiry (suggestions get stale)
         expires_at = datetime.now() + timedelta(minutes=30)
 
-        return ProactiveSuggestion(
+        suggestion = ProactiveSuggestion(
             message=message,
             prediction=prediction,
             priority=priority,
@@ -1504,14 +2874,69 @@ class ProactiveSuggestionGenerator:
             expires_at=expires_at
         )
 
+        # SOTA: Track for implicit feedback
+        self.feedback_collector.track_suggestion(suggestion)
+
+        return suggestion
+
+    def _get_confidence_prefix(self, confidence: float) -> str:
+        """
+        Get confidence-qualified language prefix.
+
+        SOTA: Match language to actual confidence level.
+        Research shows users trust systems more when they express appropriate uncertainty.
+        """
+        if confidence >= 0.85:
+            prefixes = self.CONFIDENCE_PREFIXES["very_high"]
+        elif confidence >= 0.70:
+            prefixes = self.CONFIDENCE_PREFIXES["high"]
+        elif confidence >= 0.50:
+            prefixes = self.CONFIDENCE_PREFIXES["medium"]
+        else:
+            prefixes = self.CONFIDENCE_PREFIXES["low"]
+
+        # Random selection for variety
+        return random.choice(prefixes)
+
+    def _build_reasoning(self, prediction: PredictedAction) -> str:
+        """
+        Build concise reasoning string from prediction evidence.
+
+        SOTA: Show WHY we're suggesting, not just WHAT.
+        This builds trust by being transparent.
+        """
+        if not prediction.reasoning:
+            return ""
+
+        # Take first reason (most important)
+        primary_reason = prediction.reasoning[0]
+
+        # Shorten if too long
+        if len(primary_reason) > 60:
+            primary_reason = primary_reason[:57] + "..."
+
+        # Format based on confidence level
+        conf_pct = int(prediction.confidence * 100)
+        if conf_pct >= 85:
+            return f"({primary_reason})"
+        elif conf_pct >= 70:
+            return f"(Why: {primary_reason})"
+        else:
+            return f"({conf_pct}% confident - {primary_reason})"
+
     def _fill_template(
         self,
         template: str,
         prediction: PredictedAction,
-        context: FusedContext
+        context: FusedContext,
+        prefix: str = "",
+        reasoning: str = ""
     ) -> str:
-        """Fill in template variables with actual values."""
+        """
+        Fill in template variables with actual values.
 
+        SOTA Enhancement: Now includes confidence prefix and reasoning.
+        """
         # Build replacement dict
         replacements = {
             "action": prediction.action_type.replace("_", " "),
@@ -1520,13 +2945,19 @@ class ProactiveSuggestionGenerator:
             "urgent_count": str(context.urgent_count),
             "meetings_today": str(context.meetings_today),
             "free_time": str(context.free_time_minutes),
-            "overdue_count": str(context.tasks_overdue)
+            "overdue_count": str(context.tasks_overdue),
+            # SOTA: Confidence prefix and reasoning
+            "prefix": prefix,
+            "reasoning": reasoning
         }
 
         # Add meeting info if available
         if context.next_meeting_in_minutes is not None:
             replacements["minutes"] = str(context.next_meeting_in_minutes)
             replacements["meeting_title"] = "upcoming meeting"  # Would need calendar integration
+        else:
+            replacements["minutes"] = "0"
+            replacements["meeting_title"] = "meeting"
 
         # Add task info from supporting evidence
         if "task_title" in prediction.supporting_evidence:
@@ -1541,21 +2972,33 @@ class ProactiveSuggestionGenerator:
 
         # Fill template
         try:
-            return template.format(**replacements)
-        except KeyError:
+            message = template.format(**replacements)
+            # Clean up any double spaces or trailing/leading whitespace
+            message = " ".join(message.split())
+            return message
+        except KeyError as e:
             # Fallback if template has unfilled variables
+            print(f"[SuggestionGenerator] Template key error: {e}")
             return template.replace("{", "").replace("}", "")
 
     def _calculate_priority(
         self,
         prediction: PredictedAction,
-        context: FusedContext
+        context: FusedContext,
+        energy_match: float = 1.0
     ) -> int:
-        """Calculate suggestion priority (higher = more important)."""
+        """
+        Calculate suggestion priority (higher = more important).
+
+        SOTA Enhancement: Includes energy match factor.
+        """
         priority = 0
 
         # Base priority from confidence
         priority += int(prediction.confidence * 50)
+
+        # SOTA: Energy match boost (good match = higher priority)
+        priority += int(energy_match * 15)
 
         # Boost for urgent context
         if context.urgent_count > 0:
@@ -1571,6 +3014,10 @@ class ProactiveSuggestionGenerator:
         high_value_actions = {"reply_email", "prep_meeting", "update_task", "review_pr"}
         if prediction.action_type in high_value_actions:
             priority += 10
+
+        # SOTA: Penalty if action level is collaborative (lower confidence)
+        if prediction.action_level == "collaborative":
+            priority -= 10
 
         return priority
 
@@ -1591,14 +3038,42 @@ class ProactiveSuggestionGenerator:
         })
 
     def record_response(self, suggestion: ProactiveSuggestion, response: str):
-        """Record user's response to a suggestion for learning."""
-        was_accepted = response in ["OK", "Start", "View", "Open", "Yes"]
+        """
+        Record user's response to a suggestion for learning.
 
-        # Update intent engine's prediction outcomes
+        SOTA Enhancement: Uses implicit feedback collector and confidence calibrator.
+        """
+        was_accepted = response.lower() in [
+            "ok", "start", "view", "open", "yes", "accept",
+            "do it", "proceed", "confirm", "mark done"
+        ]
+
+        # SOTA: Record explicit feedback through collector
+        self.feedback_collector.record_explicit_feedback(suggestion, response)
+
+        # Update intent engine's prediction outcomes (with confidence for calibration)
         self.intent_engine.record_prediction_outcome(
             suggestion.prediction.action_type,
-            was_accepted
+            was_accepted,
+            suggestion.prediction.confidence  # SOTA: Include confidence for calibration
         )
+
+        # SOTA: Record boundary effectiveness
+        is_at_boundary, _ = self.boundary_detector.check_boundary()
+        self.boundary_detector.record_suggestion_outcome(is_at_boundary, was_accepted)
+
+        # SOTA: Record action for energy learning
+        if was_accepted:
+            self.energy_estimator.record_action(
+                ActionEvent(
+                    id=hashlib.md5(f"response_{datetime.now().isoformat()}".encode()).hexdigest()[:12],
+                    timestamp=datetime.now(),
+                    category=suggestion.prediction.category,
+                    action_type=suggestion.prediction.action_type,
+                    context={"from_suggestion": True}
+                ),
+                outcome="accepted"
+            )
 
         # Also update timing intelligence if available
         if BRAIN_AVAILABLE:
@@ -1620,7 +3095,16 @@ class PredictiveIntentEngine:
     """
     The unified interface to TinyPM's predictive intelligence.
 
-    This is the main class that external code should use.
+    STATE OF THE ART IMPLEMENTATION (January 2026):
+    - ConfidenceCalibrator: Temperature scaling + historical blending (<10% ECE)
+    - TaskBoundaryDetector: Don't interrupt deep work (49.7% faster responses)
+    - ImplicitFeedbackCollector: Learn from behavior automatically
+    - EnergyFocusEstimator: Match suggestions to user energy level
+
+    TARGET METRICS:
+    - Accuracy@3: 70%
+    - Acceptance Rate: 52% (IUI benchmark)
+    - Calibration Error: <10%
 
     Usage:
         engine = PredictiveIntentEngine()
@@ -1634,6 +3118,12 @@ class PredictiveIntentEngine:
         # Record what user actually did (for learning)
         engine.record_action(action_event)
         engine.record_suggestion_response(suggestion, "OK")
+
+        # SOTA: Check if good time to suggest
+        is_good_time = engine.is_good_time_to_suggest()
+
+        # SOTA: Get calibration stats
+        calibration = engine.get_calibration_stats()
     """
 
     def __init__(self):
@@ -1642,9 +3132,16 @@ class PredictiveIntentEngine:
         self.context_engine = ContextFusionEngine()
         self.pattern_miner = BehaviorPatternMiner()
 
+        # SOTA: Direct access to new components
+        self.confidence_calibrator = self.intent_engine.confidence_calibrator
+        self.task_boundary_detector = self.suggestion_generator.boundary_detector
+        self.feedback_collector = self.suggestion_generator.feedback_collector
+        self.energy_estimator = self.suggestion_generator.energy_estimator
+
         # Track for integration with pm_orchestrator
         self._last_context: Optional[FusedContext] = None
         self._last_predictions: List[PredictedAction] = []
+        self._recent_actions: List[ActionEvent] = []
 
     def predict_next_actions(
         self,
@@ -1674,24 +3171,29 @@ class PredictiveIntentEngine:
         self,
         predictions: List[PredictedAction] = None,
         context: FusedContext = None,
-        limit: int = 3
+        limit: int = 3,
+        respect_boundaries: bool = True
     ) -> List[ProactiveSuggestion]:
         """
         Generate human-friendly proactive suggestions.
 
-        These are ready to present to the user.
+        SOTA Enhancement: Now includes task boundary awareness and energy matching.
 
         Returns:
             List of ProactiveSuggestion sorted by priority
         """
         if context is None:
-            context = self._last_context or self.context_engine.gather_context()
+            context = self._last_context or self.context_engine.gather_context(self._recent_actions)
 
         if predictions is None:
-            predictions = self._last_predictions or self.predict_next_actions(context)
+            predictions = self._last_predictions or self.predict_next_actions(context, self._recent_actions)
 
         suggestions = self.suggestion_generator.generate_suggestions(
-            predictions, context, limit
+            predictions=predictions,
+            context=context,
+            recent_actions=self._recent_actions,
+            limit=limit,
+            respect_boundaries=respect_boundaries
         )
 
         # Sort by priority
@@ -1751,8 +3253,99 @@ class PredictiveIntentEngine:
             "pattern_mining": self.pattern_miner.get_stats(),
             "prediction_accuracy": self.intent_engine.get_accuracy_stats(),
             "context_weights": self.context_engine.signal_weights,
-            "recently_shown_suggestions": len(self.suggestion_generator.recently_shown)
+            "recently_shown_suggestions": len(self.suggestion_generator.recently_shown),
+            # SOTA: New stats
+            "calibration": self.confidence_calibrator.get_calibration_stats(),
+            "boundary_effectiveness": self.task_boundary_detector.get_boundary_effectiveness(),
+            "feedback_stats": self.feedback_collector.get_feedback_stats(),
+            "energy_stats": self.energy_estimator.get_energy_stats()
         }
+
+    # =========================================================================
+    # SOTA: New Methods for Enhanced Functionality
+    # =========================================================================
+
+    def is_good_time_to_suggest(self, last_action: ActionEvent = None) -> Tuple[bool, List[str]]:
+        """
+        SOTA: Check if this is a good time to make a suggestion.
+
+        Uses TaskBoundaryDetector to avoid interrupting deep work.
+
+        Returns:
+            Tuple of (is_good_time, signals_detected)
+        """
+        action = last_action or (self._recent_actions[-1] if self._recent_actions else None)
+        return self.task_boundary_detector.check_boundary(action)
+
+    def get_energy_and_focus(self, recent_actions: List[ActionEvent] = None) -> Dict:
+        """
+        SOTA: Get current energy and focus estimates.
+
+        Returns dict with:
+        - energy: 0.0-1.0 (higher = more energy)
+        - focus: 0.0-1.0 (higher = more focused)
+        - suggested_tasks: list of task types that match current state
+        """
+        context = self._last_context or self.context_engine.gather_context()
+        actions = recent_actions or self._recent_actions
+
+        energy = self.energy_estimator.estimate_energy(context.hour, actions)
+        focus = self.energy_estimator.estimate_focus(actions, context)
+        suggested = self.energy_estimator.suggest_optimal_task_type(energy, focus)
+
+        return {
+            "energy": round(energy, 2),
+            "focus": round(focus, 2),
+            "energy_level": "high" if energy > 0.7 else "medium" if energy > 0.4 else "low",
+            "focus_level": "high" if focus > 0.7 else "medium" if focus > 0.4 else "low",
+            "suggested_task_types": [cat.value for cat in suggested[:3]],
+            "optimal_for_deep_work": energy > 0.6 and focus > 0.6
+        }
+
+    def get_calibration_stats(self) -> Dict:
+        """
+        SOTA: Get confidence calibration statistics.
+
+        Returns dict with:
+        - ece: Expected Calibration Error (target: <0.10)
+        - is_well_calibrated: bool
+        - temperatures: learned temperatures per action type
+        """
+        return self.confidence_calibrator.get_calibration_stats()
+
+    def check_implicit_feedback(self, user_action: ActionEvent) -> List[Dict]:
+        """
+        SOTA: Check if user action implies feedback on pending suggestions.
+
+        Call this whenever user takes an action to automatically learn.
+
+        Returns list of feedback events detected.
+        """
+        # Track the action
+        self._recent_actions.append(user_action)
+        if len(self._recent_actions) > 100:
+            self._recent_actions = self._recent_actions[-100:]
+
+        # Check for implicit feedback
+        return self.feedback_collector.check_implicit_feedback(user_action)
+
+    def get_acceptance_rate(self, action_type: str = None) -> Optional[float]:
+        """
+        SOTA: Get acceptance rate for suggestions.
+
+        Args:
+            action_type: Specific action type, or None for overall
+
+        Returns acceptance rate 0.0-1.0 or None if insufficient data.
+        """
+        if action_type:
+            return self.feedback_collector.get_acceptance_rate(action_type)
+        else:
+            stats = self.feedback_collector.get_feedback_stats()
+            today = stats.get("today_stats", {})
+            shown = today.get("suggestions_today", 0)
+            accepted = today.get("acceptances_today", 0)
+            return accepted / shown if shown > 0 else None
 
     def integrate_with_pm_orchestrator(self, ctx_from_orchestrator: Dict) -> List[str]:
         """
@@ -1795,8 +3388,14 @@ def main():
     import sys
 
     print("=" * 70)
-    print("TinyPM PREDICTIVE INTENT ENGINE")
+    print("TinyPM PREDICTIVE INTENT ENGINE - STATE OF THE ART (2026)")
     print("'The AI that reads your mind'")
+    print("=" * 70)
+    print("\nSOTA Features:")
+    print("  - Confidence Calibration (target ECE <10%)")
+    print("  - Task Boundary Detection (49.7% faster responses)")
+    print("  - Implicit Feedback Learning")
+    print("  - Energy/Focus Matching")
     print("=" * 70)
 
     engine = PredictiveIntentEngine()
@@ -1815,12 +3414,20 @@ def main():
                     print(f"\n{i}. {pred.action_type} ({pred.confidence_pct})")
                     print(f"   Category: {pred.category.value}")
                     print(f"   Action level: {pred.action_level}")
+                    print(f"   Calibration: {pred.supporting_evidence.get('calibration_method', 'N/A')}")
                     print(f"   Reasoning:")
                     for reason in pred.reasoning[:3]:
                         print(f"     - {reason}")
 
         elif cmd == "suggest":
             print("\nGenerating suggestions...")
+
+            # SOTA: Check if good time first
+            is_good_time, signals = engine.is_good_time_to_suggest()
+            print(f"\nBoundary check: {'Good time' if is_good_time else 'Not ideal'}")
+            if signals:
+                print(f"  Signals: {', '.join(signals)}")
+
             suggestions = engine.generate_proactive_suggestions()
 
             if not suggestions:
@@ -1852,7 +3459,7 @@ def main():
         elif cmd == "stats":
             print("\nEngine statistics:")
             stats = engine.get_stats()
-            print(json.dumps(stats, indent=2))
+            print(json.dumps(stats, indent=2, default=str))
 
         elif cmd == "record":
             if len(sys.argv) < 3:
@@ -1862,9 +3469,49 @@ def main():
             engine.record_action_simple(action_type)
             print(f"Recorded action: {action_type}")
 
+        # SOTA: New commands
+        elif cmd == "energy":
+            print("\nCurrent Energy & Focus:")
+            energy_data = engine.get_energy_and_focus()
+            for key, value in energy_data.items():
+                print(f"  {key}: {value}")
+
+        elif cmd == "calibration":
+            print("\nConfidence Calibration Stats:")
+            cal_stats = engine.get_calibration_stats()
+            print(f"  ECE (Expected Calibration Error): {cal_stats.get('ece', 'N/A')}")
+            print(f"  Target ECE: <{cal_stats.get('target_ece', 0.10)}")
+            print(f"  Is Well Calibrated: {cal_stats.get('is_well_calibrated', 'Unknown')}")
+            print(f"  Predictions Logged: {cal_stats.get('total_predictions_logged', 0)}")
+            if cal_stats.get("temperatures"):
+                print(f"  Learned Temperatures:")
+                for action, temp in list(cal_stats["temperatures"].items())[:5]:
+                    print(f"    {action}: {temp:.2f}")
+
+        elif cmd == "boundary":
+            print("\nTask Boundary Effectiveness:")
+            boundary_stats = engine.task_boundary_detector.get_boundary_effectiveness()
+            for key, value in boundary_stats.items():
+                if value is not None:
+                    if isinstance(value, float):
+                        print(f"  {key}: {value:.2%}")
+                    else:
+                        print(f"  {key}: {value}")
+
+        elif cmd == "feedback":
+            print("\nImplicit Feedback Stats:")
+            feedback_stats = engine.feedback_collector.get_feedback_stats()
+            for key, value in feedback_stats.items():
+                print(f"  {key}: {value}")
+
+        elif cmd == "test":
+            # Run unit tests for confidence calibration
+            test_confidence_calibration()
+
         else:
             print(f"Unknown command: {cmd}")
-            print("\nCommands: predict, suggest, lookahead [hours], context, stats, record <action>")
+            print("\nCommands: predict, suggest, lookahead, context, stats, record,")
+            print("          energy, calibration, boundary, feedback, test")
 
     else:
         print("\nUsage: python predictive_intent.py <command>")
@@ -1873,12 +3520,129 @@ def main():
         print("  suggest              - Generate proactive suggestions")
         print("  lookahead [hours]    - Predict actions for next N hours")
         print("  context              - Show current fused context")
-        print("  stats                - Show engine statistics")
+        print("  stats                - Show all engine statistics")
         print("  record <action>      - Record an action for learning")
+        print("\nSOTA Commands:")
+        print("  energy               - Show energy & focus estimates")
+        print("  calibration          - Show confidence calibration stats")
+        print("  boundary             - Show task boundary effectiveness")
+        print("  feedback             - Show implicit feedback stats")
+        print("\nTesting:")
+        print("  test                 - Run unit tests for calibration")
         print("\nExamples:")
         print("  python predictive_intent.py predict")
-        print("  python predictive_intent.py lookahead 4")
+        print("  python predictive_intent.py energy")
+        print("  python predictive_intent.py calibration")
+        print("  python predictive_intent.py test")
         print("  python predictive_intent.py record check_calendar")
+
+
+def test_confidence_calibration():
+    """
+    Unit test for ConfidenceCalibrator temperature scaling.
+
+    Verifies that the temperature scaling formula works correctly:
+    - temperature > 1: should make predictions LESS confident (closer to 0.5)
+    - temperature < 1: should make predictions MORE confident (away from 0.5)
+    - temperature = 1: should leave predictions unchanged
+    - Edge cases: handles p=0 and p=1 gracefully
+    """
+    print("\n" + "=" * 60)
+    print("UNIT TEST: ConfidenceCalibrator Temperature Scaling")
+    print("=" * 60)
+
+    calibrator = ConfidenceCalibrator()
+    all_passed = True
+
+    # Test 1: Temperature = 1 should leave confidence unchanged
+    print("\nTest 1: Temperature = 1.0 (identity)")
+    for test_conf in [0.3, 0.5, 0.7, 0.9]:
+        result = calibrator._temperature_scale(test_conf, 1.0)
+        passed = abs(result - test_conf) < 0.001
+        status = "PASS" if passed else "FAIL"
+        print(f"  {test_conf:.1f} -> {result:.4f} [{status}]")
+        if not passed:
+            all_passed = False
+
+    # Test 2: Temperature > 1 should make predictions LESS confident (closer to 0.5)
+    print("\nTest 2: Temperature = 2.0 (should move toward 0.5)")
+    for test_conf in [0.8, 0.9, 0.95]:
+        result = calibrator._temperature_scale(test_conf, 2.0)
+        # Result should be between 0.5 and original
+        passed = 0.5 < result < test_conf
+        status = "PASS" if passed else "FAIL"
+        print(f"  {test_conf:.2f} -> {result:.4f} (moved toward 0.5) [{status}]")
+        if not passed:
+            all_passed = False
+
+    for test_conf in [0.2, 0.1, 0.05]:
+        result = calibrator._temperature_scale(test_conf, 2.0)
+        # Result should be between original and 0.5
+        passed = test_conf < result < 0.5
+        status = "PASS" if passed else "FAIL"
+        print(f"  {test_conf:.2f} -> {result:.4f} (moved toward 0.5) [{status}]")
+        if not passed:
+            all_passed = False
+
+    # Test 3: Temperature < 1 should make predictions MORE confident (away from 0.5)
+    print("\nTest 3: Temperature = 0.5 (should move away from 0.5)")
+    for test_conf in [0.7, 0.8]:
+        result = calibrator._temperature_scale(test_conf, 0.5)
+        # Result should be more extreme (further from 0.5)
+        passed = result > test_conf
+        status = "PASS" if passed else "FAIL"
+        print(f"  {test_conf:.2f} -> {result:.4f} (more confident, moved away from 0.5) [{status}]")
+        if not passed:
+            all_passed = False
+
+    for test_conf in [0.3, 0.2]:
+        result = calibrator._temperature_scale(test_conf, 0.5)
+        # Result should be more extreme (further from 0.5)
+        passed = result < test_conf
+        status = "PASS" if passed else "FAIL"
+        print(f"  {test_conf:.2f} -> {result:.4f} (more confident, moved away from 0.5) [{status}]")
+        if not passed:
+            all_passed = False
+
+    # Test 4: Edge cases (p near 0 and 1)
+    print("\nTest 4: Edge cases (boundary handling)")
+    for edge_conf in [0.0, 0.0001, 0.9999, 1.0]:
+        try:
+            result = calibrator._temperature_scale(edge_conf, 1.5)
+            passed = 0.0 <= result <= 1.0
+            status = "PASS" if passed else "FAIL"
+            print(f"  {edge_conf:.4f} -> {result:.4f} (in valid range) [{status}]")
+            if not passed:
+                all_passed = False
+        except Exception as e:
+            print(f"  {edge_conf:.4f} -> ERROR: {e} [FAIL]")
+            all_passed = False
+
+    # Test 5: Verify symmetry around 0.5
+    print("\nTest 5: Symmetry around 0.5")
+    for offset in [0.1, 0.2, 0.3, 0.4]:
+        high = 0.5 + offset
+        low = 0.5 - offset
+        high_result = calibrator._temperature_scale(high, 1.5)
+        low_result = calibrator._temperature_scale(low, 1.5)
+        # They should be equidistant from 0.5
+        high_dist = abs(high_result - 0.5)
+        low_dist = abs(low_result - 0.5)
+        passed = abs(high_dist - low_dist) < 0.001
+        status = "PASS" if passed else "FAIL"
+        print(f"  {low:.1f} -> {low_result:.4f}, {high:.1f} -> {high_result:.4f} (symmetric) [{status}]")
+        if not passed:
+            all_passed = False
+
+    # Summary
+    print("\n" + "=" * 60)
+    if all_passed:
+        print("ALL TESTS PASSED - Temperature scaling is correctly implemented")
+    else:
+        print("SOME TESTS FAILED - Check implementation")
+    print("=" * 60)
+
+    return all_passed
 
 
 if __name__ == "__main__":

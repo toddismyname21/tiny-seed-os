@@ -8,6 +8,7 @@ This gives PM full terminal capabilities (file editing, task execution).
 Like Builder watches the intercom, PM watches the direct line.
 """
 
+import argparse
 import json
 import subprocess
 import time
@@ -197,8 +198,8 @@ def add_pm_response(chat: dict, response: str) -> int:
 
     return msg["id"]
 
-def main():
-    """Main PM direct line loop."""
+def run_watcher():
+    """Main PM direct line watcher loop."""
     log("=" * 60)
     log("PM DIRECT LINE WATCHER STARTING")
     log("=" * 60)
@@ -250,6 +251,105 @@ def main():
             log(f"Main loop error: {e}", "ERROR")
 
         time.sleep(POLL_INTERVAL)
+
+
+def show_status():
+    """Display current status of the direct line watcher."""
+    state = load_state()
+    chat = load_chat()
+
+    pending = get_pending_messages(chat, state.get("last_message_id", 0))
+    total_messages = len(chat.get("messages", []))
+
+    print(f"""
+PM Direct Line Status
+=====================
+  Last message ID:     #{state.get('last_message_id', 0)}
+  Messages handled:    {state.get('messages_handled', 0)}
+  Pending messages:    {len(pending)}
+  Total in chat:       {total_messages}
+  Chat file:           {PM_CHAT_FILE}
+  State file:          {STATE_FILE}
+  Log file:            {LOG_FILE}
+  Claude CLI:          {CLAUDE_CLI}
+  Poll interval:       {POLL_INTERVAL}s
+""")
+
+
+def process_once():
+    """Process pending messages once and exit."""
+    state = load_state()
+    chat = load_chat()
+    pending = get_pending_messages(chat, state.get("last_message_id", 0))
+
+    if not pending:
+        print("No pending messages.")
+        return
+
+    print(f"Processing {len(pending)} pending message(s)...")
+
+    for user_msg in pending:
+        msg_id = user_msg.get("id", 0)
+        log(f"Processing message #{msg_id}...")
+
+        response = respond_to_message(user_msg)
+        response_id = add_pm_response(chat, response)
+
+        for m in chat.get("messages", []):
+            if m.get("id") == msg_id:
+                m["handled_by_pm_cli"] = True
+                break
+
+        save_chat(chat)
+
+        state["last_message_id"] = msg_id
+        state["messages_handled"] = state.get("messages_handled", 0) + 1
+        save_state(state)
+
+        print(f"Responded to message #{msg_id} with response #{response_id}")
+
+
+def main():
+    """Main entry point with CLI argument parsing."""
+    global POLL_INTERVAL
+
+    parser = argparse.ArgumentParser(
+        description="PM Direct Line - Watch and respond to dashboard messages using Claude CLI",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python pm_direct_line.py              # Run watcher continuously
+  python pm_direct_line.py --status     # Show current status
+  python pm_direct_line.py --once       # Process pending and exit
+  python pm_direct_line.py --help       # Show this help
+
+The PM Direct Line watches for user messages from the dashboard and
+responds using the Claude CLI, giving PM full terminal capabilities
+(file editing, task execution, code changes).
+"""
+    )
+    parser.add_argument("--status", action="store_true",
+                       help="Show current status and exit")
+    parser.add_argument("--once", action="store_true",
+                       help="Process pending messages once and exit")
+    parser.add_argument("--interval", type=int, default=POLL_INTERVAL,
+                       help=f"Poll interval in seconds (default: {POLL_INTERVAL})")
+
+    args = parser.parse_args()
+
+    if args.status:
+        show_status()
+        return
+
+    if args.once:
+        process_once()
+        return
+
+    # Update poll interval if specified
+    POLL_INTERVAL = args.interval
+
+    run_watcher()
+
 
 if __name__ == "__main__":
     main()

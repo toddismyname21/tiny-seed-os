@@ -24,7 +24,24 @@ You MUST identify which Claude role you are operating as:
 
 ---
 
-## STEP 2: CHECK THE MANIFEST BEFORE BUILDING ANYTHING
+## STEP 2: CHECK CONFIGURATION STATUS (TinyPM)
+
+**MANDATORY FOR TINYPM WORK:** Before declaring ANYTHING as "missing" or "blocking":
+
+```bash
+# Check what's actually configured
+cat /Users/samanthapollack/Documents/TIny_Seed_OS/tinypm/.env | grep -v "^#" | grep "="
+
+# Read the system status file
+cat /Users/samanthapollack/Documents/TIny_Seed_OS/tinypm/SYSTEM_STATUS.md
+```
+
+**NEVER assume OAuth, Supabase, or API keys are missing without checking .env first!**
+This caused hours of wasted work on 2026-01-31 when OAuth was already configured.
+
+---
+
+## STEP 3: CHECK THE MANIFEST BEFORE BUILDING ANYTHING
 
 **MANDATORY:** Before creating ANY new file or function, check if it already exists.
 
@@ -41,7 +58,7 @@ This file contains:
 
 ---
 
-## STEP 3: CHECK FOR DUPLICATES
+## STEP 4: CHECK FOR DUPLICATES
 
 Before adding ANY function, search for similar functions:
 
@@ -59,7 +76,7 @@ Grep for: function name, similar keywords, related functionality
 
 ---
 
-## STEP 4: LOG YOUR CHANGES
+## STEP 5: LOG YOUR CHANGES
 
 After completing ANY work, you MUST:
 
