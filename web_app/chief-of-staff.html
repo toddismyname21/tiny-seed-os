@@ -2711,6 +2711,28 @@
       <div class="modal-body" style="flex:1;overflow-y:auto;padding:20px 0;">
         <div id="email-detail-body" style="font-size:15px;line-height:1.7;color:var(--text-primary);white-space:pre-wrap;"></div>
       </div>
+      <!-- Email Chatbot Section -->
+      <div id="email-chat-section" style="border-top:1px solid var(--border-color);padding:16px 0;margin-top:16px;">
+        <div style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:10px;">
+          💬 Ask Chief of Staff about this email:
+        </div>
+        <div id="email-chat-messages" style="max-height:150px;overflow-y:auto;margin-bottom:12px;padding:8px;background:var(--bg-secondary);border-radius:8px;display:none;"></div>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="email-chat-input" placeholder="e.g. 'Draft a polite decline' or 'What's the context here?'"
+            style="flex:1;padding:10px 14px;border-radius:8px;border:1px solid var(--border-color);background:var(--bg-input);color:var(--text-primary);font-size:14px;"
+            onkeydown="if(event.key==='Enter')sendEmailChat()">
+          <button class="btn btn-primary" onclick="sendEmailChat()" style="padding:10px 16px;">
+            Send
+          </button>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;">
+          <button class="btn btn-secondary" style="font-size:12px;padding:6px 10px;" onclick="quickEmailAction('Summarize this email in 2 sentences')">📝 Summarize</button>
+          <button class="btn btn-secondary" style="font-size:12px;padding:6px 10px;" onclick="quickEmailAction('Draft a brief reply agreeing to this')">✅ Draft Accept</button>
+          <button class="btn btn-secondary" style="font-size:12px;padding:6px 10px;" onclick="quickEmailAction('Draft a polite decline')">❌ Draft Decline</button>
+          <button class="btn btn-secondary" style="font-size:12px;padding:6px 10px;" onclick="quickEmailAction('What action items are in this email?')">📋 Action Items</button>
+          <button class="btn btn-secondary" style="font-size:12px;padding:6px 10px;" onclick="quickEmailAction('Is this urgent? Should I respond today?')">⚡ Check Urgency</button>
+        </div>
+      </div>
       <div class="modal-footer" style="border-top:1px solid var(--border-color);padding-top:16px;gap:12px;">
         <button class="btn btn-secondary" onclick="closeEmailDetail()">Close</button>
         <button class="btn btn-secondary" onclick="archiveCurrentEmail()">📥 Archive</button>
@@ -3008,25 +3030,28 @@
       document.getElementById('email-detail-from').textContent = `From: ${msg.from || 'Unknown'}`;
       document.getElementById('email-detail-date').textContent = msg.receivedAt ? new Date(msg.receivedAt).toLocaleString() : '';
 
-      // Show summary + option to load full body
-      document.getElementById('email-detail-body').innerHTML = `
-        <div style="font-size:15px;line-height:1.7;color:var(--text-primary);margin-bottom:20px;">
-          ${escapeHtml(msg.summary || 'No preview available')}
+      // Show summary immediately (INSTANT - no API call)
+      const summaryHtml = `
+        <div style="font-size:15px;line-height:1.7;color:var(--text-primary);margin-bottom:16px;">
+          <strong style="color:var(--text-muted);font-size:12px;text-transform:uppercase;">AI Summary:</strong><br>
+          ${escapeHtml(msg.summary || msg.aisummary || 'No summary available')}
         </div>
-        <div style="padding:16px;background:var(--bg-secondary);border-radius:10px;border:1px solid var(--border-color);">
-          <div style="font-size:14px;color:var(--text-muted);margin-bottom:12px;">
-            💡 <strong>Quick Actions:</strong>
-          </div>
-          <div style="display:flex;flex-wrap:wrap;gap:8px;">
-            <button onclick="askAboutEmail('${escapeAttr(msg.id)}')" class="btn btn-primary" style="font-size:13px;padding:8px 14px;">
-              🤖 Ask Chief of Staff
-            </button>
-            <button onclick="loadFullEmailBody('${escapeAttr(msg.id)}')" class="btn btn-secondary" style="font-size:13px;padding:8px 14px;">
-              📄 Load Full Email
-            </button>
-          </div>
+        <div style="padding:12px;background:var(--bg-secondary);border-radius:8px;border:1px solid var(--border-color);margin-bottom:16px;">
+          <button onclick="loadFullEmailBodyFast('${escapeAttr(msg.id)}')" class="btn btn-secondary" style="font-size:13px;padding:8px 14px;">
+            📄 Load Full Email Body
+          </button>
+          <span style="font-size:12px;color:var(--text-muted);margin-left:12px;">Click to see complete email text</span>
         </div>
       `;
+      document.getElementById('email-detail-body').innerHTML = summaryHtml;
+
+      // Store for chat context
+      selectedMessageId = threadId;
+
+      // Clear previous chat messages
+      document.getElementById('email-chat-messages').innerHTML = '';
+      document.getElementById('email-chat-messages').style.display = 'none';
+      document.getElementById('email-chat-input').value = '';
 
       modal.style.display = 'flex';
     }
@@ -3060,6 +3085,96 @@
 
     function closeEmailDetail() {
       document.getElementById('email-detail-modal').style.display = 'none';
+      // Clear email chat
+      document.getElementById('email-chat-messages').style.display = 'none';
+      document.getElementById('email-chat-messages').innerHTML = '';
+      document.getElementById('email-chat-input').value = '';
+    }
+
+    // Email-specific chat with Chief of Staff
+    let currentEmailContext = null;
+
+    async function sendEmailChat() {
+      const input = document.getElementById('email-chat-input');
+      const message = input.value.trim();
+      if (!message) return;
+
+      const messagesEl = document.getElementById('email-chat-messages');
+      messagesEl.style.display = 'block';
+
+      // Get current email context
+      const msg = communications.find(c => c.id === selectedMessageId);
+      if (!msg) {
+        messagesEl.innerHTML += `<div style="color:var(--accent-red);padding:8px;">No email selected</div>`;
+        return;
+      }
+
+      // Show user message
+      messagesEl.innerHTML += `<div style="padding:8px;margin-bottom:8px;background:var(--bg-elevated);border-radius:8px;"><strong>You:</strong> ${escapeHtml(message)}</div>`;
+      input.value = '';
+
+      // Show loading
+      const loadingId = 'loading-' + Date.now();
+      messagesEl.innerHTML += `<div id="${loadingId}" style="padding:8px;color:var(--text-muted);">🤔 Chief of Staff is thinking...</div>`;
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+
+      try {
+        // Build context-aware query
+        const contextQuery = `
+About this email:
+- From: ${msg.from}
+- Subject: ${msg.subject}
+- Summary: ${msg.summary || 'No summary available'}
+- Priority: ${msg.priority || 'Unknown'}
+
+User's request: ${message}
+
+Please help with this email. Be concise and actionable.`;
+
+        const response = await fetch(`${API_BASE}?action=chatWithChiefOfStaff&message=${encodeURIComponent(contextQuery)}`);
+        const data = await response.json();
+
+        // Remove loading
+        document.getElementById(loadingId)?.remove();
+
+        if (data.success && data.response) {
+          messagesEl.innerHTML += `<div style="padding:8px;margin-bottom:8px;background:var(--bg-card);border-radius:8px;border-left:3px solid var(--accent-green);"><strong>Chief of Staff:</strong> ${escapeHtml(data.response)}</div>`;
+        } else {
+          messagesEl.innerHTML += `<div style="padding:8px;color:var(--accent-red);">Error: ${escapeHtml(data.error || 'No response')}</div>`;
+        }
+      } catch (error) {
+        document.getElementById(loadingId)?.remove();
+        messagesEl.innerHTML += `<div style="padding:8px;color:var(--accent-red);">Error: ${escapeHtml(error.message)}</div>`;
+      }
+
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function quickEmailAction(prompt) {
+      document.getElementById('email-chat-input').value = prompt;
+      sendEmailChat();
+    }
+
+    // FAST email body loader - skips slow operations
+    async function loadFullEmailBodyFast(threadId) {
+      const bodyEl = document.getElementById('email-detail-body');
+      bodyEl.innerHTML = '<div style="color:var(--accent-amber);padding:20px;text-align:center;">⏳ Loading...</div>';
+
+      try {
+        // Use fast endpoint that only gets the body
+        const res = await fetch(`${API_BASE}?action=getEmailBodyFast&threadId=${encodeURIComponent(threadId)}`);
+        const data = await res.json();
+
+        if (data.success && data.body) {
+          bodyEl.innerHTML = `<div style="font-size:15px;line-height:1.7;white-space:pre-wrap;">${escapeHtml(data.body)}</div>`;
+        } else if (data.success === false) {
+          // Fallback to regular endpoint
+          loadFullEmailBody(threadId);
+        }
+      } catch (error) {
+        // Fallback to regular endpoint
+        loadFullEmailBody(threadId);
+      }
     }
 
     async function archiveCurrentEmail() {

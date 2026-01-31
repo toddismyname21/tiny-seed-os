@@ -4495,6 +4495,39 @@ function getEmailDetail(threadId) {
 }
 
 /**
+ * FAST email body retrieval - OPTIMIZED FOR SPEED
+ * Skips: spreadsheet lookup, attachments, labels, HTML body
+ * Only returns plain text body - 10x faster than getEmailDetail
+ */
+function getEmailBodyFast(threadId) {
+  if (!threadId) {
+    return { success: false, error: 'Thread ID required' };
+  }
+
+  try {
+    const thread = GmailApp.getThreadById(threadId);
+    if (!thread) {
+      return { success: false, error: 'Email thread not found' };
+    }
+
+    const messages = thread.getMessages();
+    const latestMessage = messages[messages.length - 1];
+
+    // ONLY get the essential data - no spreadsheet, no attachments, no labels
+    return {
+      success: true,
+      body: latestMessage.getPlainBody(),
+      subject: thread.getFirstMessageSubject(),
+      from: latestMessage.getFrom(),
+      date: latestMessage.getDate().toISOString(),
+      messageCount: messages.length
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
  * Archive an email thread
  */
 function archiveEmail(threadId) {
@@ -12497,6 +12530,8 @@ function doGet(e) {
         return jsonResponse(reclassifySMS(e.parameter.id, e.parameter.priority));
       case 'getEmailDetail':
         return jsonResponse(getEmailDetail(e.parameter.threadId));
+      case 'getEmailBodyFast':
+        return jsonResponse(getEmailBodyFast(e.parameter.threadId));
       case 'archiveEmail':
         return jsonResponse(archiveEmail(e.parameter.threadId));
       case 'deleteEmail':
