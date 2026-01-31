@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remote Access - Tiny Seed OS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            min-height: 100vh;
+        }
+
+        .header {
+            padding: 20px;
+            background: rgba(255,255,255,0.1);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header h1::before {
+            content: '';
+            width: 40px;
+            height: 40px;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%234ade80"><path d="M20 3H4c-1.103 0-2 .897-2 2v14c0 1.103.897 2 2 2h16c1.103 0 2-.897 2-2V5c0-1.103-.897-2-2-2zM4 19V7h16l.002 12H4z"/><path d="m8 10-4 4h3v4h2v-4h3zM16 10l4 4h-3v4h-2v-4h-3z"/></svg>') center/contain no-repeat;
+        }
+
+        .connection-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .connection-badge .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #f87171;
+        }
+
+        .connection-badge.connected .dot {
+            background: #4ade80;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .main-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .sessions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .session-card {
+            background: rgba(255,255,255,0.05);
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .session-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #4ade80, #22d3ee);
+            transform: scaleX(0);
+            transition: transform 0.3s;
+        }
+
+        .session-card:hover {
+            background: rgba(255,255,255,0.1);
+            transform: translateY(-4px);
+            border-color: rgba(255,255,255,0.2);
+        }
+
+        .session-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .session-card.active {
+            border-color: #4ade80;
+            background: rgba(74, 222, 128, 0.1);
+        }
+
+        .session-card.active::before {
+            transform: scaleX(1);
+        }
+
+        .session-icon {
+            font-size: 40px;
+            margin-bottom: 16px;
+        }
+
+        .session-name {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .session-description {
+            font-size: 14px;
+            color: rgba(255,255,255,0.6);
+            margin-bottom: 16px;
+        }
+
+        .session-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #f87171;
+        }
+
+        .status-indicator.connected { background: #4ade80; }
+        .status-indicator.available { background: #fbbf24; }
+
+        .connection-form {
+            max-width: 500px;
+            margin: 40px auto;
+            padding: 32px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+        }
+
+        .connection-form h2 {
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 10px;
+            background: rgba(255,255,255,0.05);
+            color: white;
+            font-size: 16px;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #4ade80;
+        }
+
+        .form-group input::placeholder {
+            color: rgba(255,255,255,0.4);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #4ade80, #22d3ee);
+            color: #000;
+            padding: 14px 28px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(74, 222, 128, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #f87171, #ef4444);
+        }
+
+        .terminal-wrapper {
+            background: #0d0d0d;
+            border-radius: 16px;
+            overflow: hidden;
+            display: none;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        .terminal-wrapper.visible {
+            display: block;
+        }
+
+        .terminal-header {
+            background: #1a1a1a;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #333;
+        }
+
+        .terminal-title {
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .terminal-title .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4ade80;
+        }
+
+        .terminal-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .terminal-actions button {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            color: white;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .terminal-actions button:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .terminal-actions button.danger {
+            background: rgba(248, 113, 113, 0.2);
+            color: #f87171;
+        }
+
+        .terminal-actions button.danger:hover {
+            background: rgba(248, 113, 113, 0.4);
+        }
+
+        #terminal {
+            padding: 16px;
+            height: 500px;
+        }
+
+        .help-text {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: rgba(255,255,255,0.5);
+        }
+
+        .help-text a {
+            color: #4ade80;
+            text-decoration: none;
+        }
+
+        .help-text a:hover {
+            text-decoration: underline;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 20px;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover {
+            color: white;
+        }
+
+        .shortcuts-panel {
+            margin-top: 20px;
+            padding: 16px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+        }
+
+        .shortcuts-panel h3 {
+            font-size: 14px;
+            margin-bottom: 12px;
+            color: rgba(255,255,255,0.7);
+        }
+
+        .shortcut {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 13px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .shortcut:last-child {
+            border-bottom: none;
+        }
+
+        .shortcut kbd {
+            background: rgba(255,255,255,0.1);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+
+        .error-message {
+            background: rgba(248, 113, 113, 0.1);
+            border: 1px solid rgba(248, 113, 113, 0.3);
+            color: #f87171;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .error-message.visible {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .sessions-grid {
+                grid-template-columns: 1fr;
+            }
+
+            #terminal {
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>Remote Access</h1>
+        <div class="connection-badge" id="connection-badge">
+            <span class="dot"></span>
+            <span id="connection-status-text">Not Connected</span>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <a href="index.html" class="back-link">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            Back to Dashboard
+        </a>
+
+        <!-- Connection Form -->
+        <div id="setup-form" class="connection-form">
+            <h2>Connect to Remote Terminal</h2>
+
+            <div id="error-message" class="error-message"></div>
+
+            <div class="form-group">
+                <label>Bridge URL</label>
+                <input type="text" id="bridge-url" placeholder="ws://localhost:8765 or wss://your-tunnel.trycloudflare.com">
+            </div>
+
+            <div class="form-group">
+                <label>Access Token</label>
+                <input type="password" id="access-token" placeholder="Enter your access token">
+            </div>
+
+            <button class="btn" onclick="connectToBridge()">Connect</button>
+
+            <p class="help-text">
+                Need help? Run <code>./start-remote-bridge.sh token</code> on your host machine to generate a token.
+            </p>
+        </div>
+
+        <!-- Connected View -->
+        <div id="connected-view" style="display:none;">
+            <!-- Session Cards -->
+            <div class="sessions-grid" id="sessions-grid">
+                <div class="session-card active" onclick="selectSession('tinypm')">
+                    <div class="session-icon">📋</div>
+                    <div class="session-name">TinyPM</div>
+                    <div class="session-description">Your AI Project Manager - manage tasks, track progress, get intelligent suggestions.</div>
+                    <div class="session-status">
+                        <span class="status-indicator connected"></span>
+                        <span>Active Session</span>
+                    </div>
+                </div>
+
+                <div class="session-card" onclick="selectSession('chief-of-staff')">
+                    <div class="session-icon">👔</div>
+                    <div class="session-name">Chief of Staff</div>
+                    <div class="session-description">Your executive assistant - emails, calendar, and proactive intelligence.</div>
+                    <div class="session-status">
+                        <span class="status-indicator available"></span>
+                        <span>Available</span>
+                    </div>
+                </div>
+
+                <div class="session-card" onclick="selectSession('custom')">
+                    <div class="session-icon">+</div>
+                    <div class="session-name">New Session</div>
+                    <div class="session-description">Start a fresh Claude Code session in any directory.</div>
+                    <div class="session-status">
+                        <span class="status-indicator available"></span>
+                        <span>Create New</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Terminal -->
+            <div class="terminal-wrapper" id="terminal-wrapper">
+                <div class="terminal-header">
+                    <div class="terminal-title">
+                        <span class="dot"></span>
+                        <span id="terminal-session-name">Claude Code</span>
+                    </div>
+                    <div class="terminal-actions">
+                        <button onclick="clearTerminal()">Clear</button>
+                        <button onclick="restartSession()">Restart</button>
+                        <button class="danger" onclick="disconnect()">Disconnect</button>
+                    </div>
+                </div>
+                <div id="terminal"></div>
+            </div>
+
+            <!-- Shortcuts Panel -->
+            <div class="shortcuts-panel">
+                <h3>Keyboard Shortcuts</h3>
+                <div class="shortcut">
+                    <span>Clear terminal</span>
+                    <kbd>Ctrl+L</kbd>
+                </div>
+                <div class="shortcut">
+                    <span>Cancel current operation</span>
+                    <kbd>Ctrl+C</kbd>
+                </div>
+                <div class="shortcut">
+                    <span>Previous command</span>
+                    <kbd>Up Arrow</kbd>
+                </div>
+                <div class="shortcut">
+                    <span>Escape</span>
+                    <kbd>Esc</kbd>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-web-links@0.9.0/lib/xterm-addon-web-links.min.js"></script>
+
+    <script>
+        let ws = null;
+        let term = null;
+        let fitAddon = null;
+        let currentSessionId = null;
+        let reconnectAttempts = 0;
+        const maxReconnectAttempts = 3;
+
+        // Load saved settings
+        function loadSettings() {
+            const savedUrl = localStorage.getItem('remote_bridge_url');
+            const savedToken = localStorage.getItem('remote_bridge_token');
+
+            if (savedUrl) document.getElementById('bridge-url').value = savedUrl;
+            if (savedToken) document.getElementById('access-token').value = savedToken;
+
+            // Default URL if empty
+            if (!document.getElementById('bridge-url').value) {
+                document.getElementById('bridge-url').value = 'ws://localhost:8765';
+            }
+        }
+
+        // Save settings
+        function saveSettings() {
+            localStorage.setItem('remote_bridge_url', document.getElementById('bridge-url').value);
+            localStorage.setItem('remote_bridge_token', document.getElementById('access-token').value);
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorEl = document.getElementById('error-message');
+            errorEl.textContent = message;
+            errorEl.classList.add('visible');
+        }
+
+        // Hide error message
+        function hideError() {
+            document.getElementById('error-message').classList.remove('visible');
+        }
+
+        // Connect to bridge
+        function connectToBridge() {
+            hideError();
+
+            const url = document.getElementById('bridge-url').value.trim();
+            const token = document.getElementById('access-token').value.trim();
+
+            if (!url) {
+                showError('Please enter a bridge URL');
+                return;
+            }
+
+            if (!token) {
+                showError('Please enter an access token');
+                return;
+            }
+
+            // Save settings
+            saveSettings();
+
+            // Update UI
+            document.getElementById('connection-status-text').textContent = 'Connecting...';
+
+            try {
+                ws = new WebSocket(url);
+            } catch (e) {
+                showError('Invalid WebSocket URL');
+                return;
+            }
+
+            ws.onopen = () => {
+                console.log('WebSocket connected, sending auth...');
+                ws.send(JSON.stringify({
+                    type: 'auth',
+                    content: token,
+                    timestamp: new Date().toISOString()
+                }));
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const msg = JSON.parse(event.data);
+                    handleMessage(msg);
+                } catch (e) {
+                    console.error('Failed to parse message:', e);
+                }
+            };
+
+            ws.onclose = (event) => {
+                console.log('WebSocket closed:', event.code, event.reason);
+                updateConnectionStatus(false);
+
+                if (reconnectAttempts < maxReconnectAttempts && currentSessionId) {
+                    reconnectAttempts++;
+                    console.log(`Attempting reconnect ${reconnectAttempts}/${maxReconnectAttempts}...`);
+                    setTimeout(connectToBridge, 2000);
+                }
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                showError('Connection failed. Check URL and ensure the bridge is running.');
+                updateConnectionStatus(false);
+            };
+        }
+
+        // Handle incoming messages
+        function handleMessage(msg) {
+            switch (msg.type) {
+                case 'status':
+                    if (msg.content === 'Connected to Remote Terminal Bridge') {
+                        currentSessionId = msg.session_id;
+                        reconnectAttempts = 0;
+                        updateConnectionStatus(true);
+                        showConnectedView();
+                        initTerminal();
+                    } else if (msg.content === 'Claude Code session started') {
+                        if (term) {
+                            term.write('\r\n\x1b[32m[Connected to Claude Code]\x1b[0m\r\n\r\n');
+                        }
+                    }
+                    break;
+
+                case 'output':
+                    if (term) {
+                        term.write(msg.content);
+                    }
+                    break;
+
+                case 'error':
+                    console.error('Server error:', msg.content);
+                    if (msg.content.includes('Authentication failed')) {
+                        showError('Authentication failed. Check your access token.');
+                        disconnect();
+                    } else if (term) {
+                        term.write('\r\n\x1b[31m[ERROR] ' + msg.content + '\x1b[0m\r\n');
+                    } else {
+                        showError(msg.content);
+                    }
+                    break;
+
+                case 'heartbeat':
+                    ws.send(JSON.stringify({ type: 'heartbeat', content: 'pong' }));
+                    break;
+            }
+        }
+
+        // Update connection status UI
+        function updateConnectionStatus(connected) {
+            const badge = document.getElementById('connection-badge');
+            const text = document.getElementById('connection-status-text');
+
+            if (connected) {
+                badge.classList.add('connected');
+                text.textContent = 'Connected';
+            } else {
+                badge.classList.remove('connected');
+                text.textContent = 'Disconnected';
+                document.getElementById('setup-form').style.display = 'block';
+                document.getElementById('connected-view').style.display = 'none';
+            }
+        }
+
+        // Show connected view
+        function showConnectedView() {
+            document.getElementById('setup-form').style.display = 'none';
+            document.getElementById('connected-view').style.display = 'block';
+        }
+
+        // Initialize xterm.js terminal
+        function initTerminal() {
+            if (term) return;
+
+            term = new Terminal({
+                cursorBlink: true,
+                fontSize: 14,
+                fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+                theme: {
+                    background: '#0d0d0d',
+                    foreground: '#e5e5e5',
+                    cursor: '#4ade80',
+                    cursorAccent: '#000000',
+                    selection: 'rgba(74, 222, 128, 0.3)',
+                    black: '#000000',
+                    red: '#f87171',
+                    green: '#4ade80',
+                    yellow: '#fbbf24',
+                    blue: '#60a5fa',
+                    magenta: '#c084fc',
+                    cyan: '#22d3ee',
+                    white: '#e5e5e5'
+                },
+                allowTransparency: false,
+                scrollback: 10000
+            });
+
+            fitAddon = new FitAddon.FitAddon();
+            term.loadAddon(fitAddon);
+            term.loadAddon(new WebLinksAddon.WebLinksAddon());
+
+            const container = document.getElementById('terminal');
+            term.open(container);
+            fitAddon.fit();
+
+            document.getElementById('terminal-wrapper').classList.add('visible');
+
+            // Handle terminal input
+            term.onData((data) => {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({
+                        type: 'message',
+                        content: data,
+                        session_id: currentSessionId
+                    }));
+                }
+            });
+
+            // Handle resize
+            const resizeObserver = new ResizeObserver(() => {
+                if (fitAddon) {
+                    fitAddon.fit();
+                    // Send resize to server
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({
+                            type: 'command',
+                            content: `resize ${term.cols}x${term.rows}`
+                        }));
+                    }
+                }
+            });
+            resizeObserver.observe(container);
+
+            term.focus();
+        }
+
+        // Select a session
+        function selectSession(sessionType) {
+            console.log('Selected session:', sessionType);
+            document.getElementById('terminal-session-name').textContent =
+                sessionType === 'tinypm' ? 'TinyPM' :
+                sessionType === 'chief-of-staff' ? 'Chief of Staff' :
+                'New Session';
+
+            // Update card states
+            document.querySelectorAll('.session-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+
+            if (term) {
+                term.focus();
+            }
+        }
+
+        // Clear terminal
+        function clearTerminal() {
+            if (term) {
+                term.clear();
+            }
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'command',
+                    content: 'clear'
+                }));
+            }
+        }
+
+        // Restart session
+        function restartSession() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'command',
+                    content: 'restart'
+                }));
+            }
+        }
+
+        // Disconnect
+        function disconnect() {
+            reconnectAttempts = maxReconnectAttempts; // Prevent auto-reconnect
+
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+
+            if (term) {
+                term.dispose();
+                term = null;
+            }
+
+            currentSessionId = null;
+            document.getElementById('terminal-wrapper').classList.remove('visible');
+            updateConnectionStatus(false);
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSettings();
+
+            // Handle Enter key in form
+            document.getElementById('access-token').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    connectToBridge();
+                }
+            });
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (ws) {
+                ws.close();
+            }
+        });
+    </script>
+</body>
+</html>
