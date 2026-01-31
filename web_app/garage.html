@@ -1,0 +1,3208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Garage - Tiny Seed OS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Match Chief of Staff dark theme */
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-card: #1e293b;
+      --bg-card-hover: #283555;
+      --bg-input: #0f1629;
+      --bg-elevated: #243354;
+
+      /* High contrast text */
+      --text-primary: #f5f5f5;
+      --text-secondary: #b8c5d6;
+      --text-muted: #8899a8;
+      --text-dim: #667788;
+
+      /* Borders */
+      --border-color: #2a3f5f;
+      --border-light: #344968;
+      --border-focus: #5b8def;
+
+      /* Status colors - Traffic light system */
+      --status-green: #22C55E;
+      --status-green-bg: rgba(34, 197, 94, 0.15);
+      --status-yellow: #EAB308;
+      --status-yellow-bg: rgba(234, 179, 8, 0.15);
+      --status-red: #EF4444;
+      --status-red-bg: rgba(239, 68, 68, 0.15);
+
+      /* Accent colors */
+      --accent-green: #22c55e;
+      --accent-green-dim: #16a34a;
+      --accent-blue: #60a5fa;
+      --accent-purple: #a78bfa;
+      --accent-amber: #fbbf24;
+      --accent-teal: #2dd4bf;
+
+      /* Shadows */
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.25);
+      --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.35);
+      --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.45);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Layout */
+    .app-container {
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+    }
+
+    /* Sidebar Navigation */
+    .sidebar {
+      width: 240px;
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+
+    .sidebar-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .sidebar-header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .sidebar-header h1 span {
+      font-size: 24px;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 16px 12px;
+      overflow-y: auto;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      transition: all 0.2s ease;
+      margin-bottom: 4px;
+    }
+
+    .nav-item:hover {
+      background: var(--bg-card-hover);
+      color: var(--text-primary);
+    }
+
+    .nav-item.active {
+      background: var(--accent-green);
+      color: #0a1628;
+      font-weight: 600;
+    }
+
+    .nav-item .icon {
+      font-size: 20px;
+      width: 24px;
+      text-align: center;
+    }
+
+    .sidebar-footer {
+      padding: 16px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .sidebar-footer a {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      padding: 10px;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .sidebar-footer a:hover {
+      background: var(--bg-card-hover);
+      color: var(--text-primary);
+    }
+
+    /* Main Content Area */
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Header */
+    .header {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .header h2 {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .header-stats {
+      display: flex;
+      gap: 16px;
+    }
+
+    .header-stat {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    .header-stat .count {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .header-stat .count.green {
+      background: var(--status-green-bg);
+      color: var(--status-green);
+    }
+
+    .header-stat .count.yellow {
+      background: var(--status-yellow-bg);
+      color: var(--status-yellow);
+    }
+
+    .header-stat .count.red {
+      background: var(--status-red-bg);
+      color: var(--status-red);
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    /* Search Bar */
+    .search-bar {
+      position: relative;
+      width: 300px;
+    }
+
+    .search-bar input {
+      width: 100%;
+      padding: 12px 16px 12px 44px;
+      background: var(--bg-input);
+      border: 2px solid var(--border-color);
+      border-radius: 10px;
+      color: var(--text-primary);
+      font-size: 14px;
+    }
+
+    .search-bar input:focus {
+      outline: none;
+      border-color: var(--accent-green);
+    }
+
+    .search-bar input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .search-bar .search-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 18px;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      min-height: 44px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-green-dim) 100%);
+      color: #0a1628;
+      box-shadow: 0 2px 12px rgba(34, 197, 94, 0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(34, 197, 94, 0.4);
+    }
+
+    .btn-secondary {
+      background: var(--bg-card);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-light);
+    }
+
+    /* Scrollable Content */
+    .content-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+    }
+
+    /* Alerts Banner */
+    .alerts-banner {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .alert-card {
+      flex: 1;
+      min-width: 200px;
+      padding: 16px 20px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .alert-card:hover {
+      transform: translateY(-2px);
+    }
+
+    .alert-card.red {
+      background: var(--status-red-bg);
+      border: 1px solid var(--status-red);
+    }
+
+    .alert-card.yellow {
+      background: var(--status-yellow-bg);
+      border: 1px solid var(--status-yellow);
+    }
+
+    .alert-card .alert-icon {
+      font-size: 28px;
+    }
+
+    .alert-card .alert-content h4 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .alert-card.red .alert-content h4 { color: var(--status-red); }
+    .alert-card.yellow .alert-content h4 { color: var(--status-yellow); }
+
+    .alert-card .alert-content p {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    /* Section Headers */
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .section-header h3 {
+      font-size: 16px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-header h3 .icon {
+      font-size: 20px;
+    }
+
+    .view-all-link {
+      font-size: 14px;
+      color: var(--accent-green);
+      text-decoration: none;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .view-all-link:hover {
+      text-decoration: underline;
+    }
+
+    /* Quick Actions Grid */
+    .quick-actions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .quick-action-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 20px 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      min-height: 100px;
+    }
+
+    .quick-action-btn:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--accent-green);
+      transform: translateY(-2px);
+    }
+
+    .quick-action-btn .icon {
+      font-size: 28px;
+    }
+
+    .quick-action-btn span {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-align: center;
+    }
+
+    .quick-action-btn:hover span {
+      color: var(--text-primary);
+    }
+
+    /* Equipment Grid */
+    .equipment-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .equipment-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .equipment-card:hover {
+      border-color: var(--accent-green);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .equipment-card.status-green { border-left: 4px solid var(--status-green); }
+    .equipment-card.status-yellow { border-left: 4px solid var(--status-yellow); }
+    .equipment-card.status-red { border-left: 4px solid var(--status-red); }
+
+    .equipment-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .equipment-photo {
+      width: 56px;
+      height: 56px;
+      border-radius: 10px;
+      background: var(--bg-elevated);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      flex-shrink: 0;
+    }
+
+    .equipment-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .equipment-name {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .equipment-type {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .status-badge.green {
+      background: var(--status-green-bg);
+      color: var(--status-green);
+    }
+
+    .status-badge.yellow {
+      background: var(--status-yellow-bg);
+      color: var(--status-yellow);
+    }
+
+    .status-badge.red {
+      background: var(--status-red-bg);
+      color: var(--status-red);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .equipment-body {
+      padding: 16px 18px;
+    }
+
+    .equipment-metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .metric {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .metric-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .metric-value {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .metric-value.warning {
+      color: var(--status-yellow);
+    }
+
+    .metric-value.critical {
+      color: var(--status-red);
+    }
+
+    .equipment-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .equipment-action-btn {
+      flex: 1;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      min-height: 44px;
+    }
+
+    .equipment-action-btn:hover {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      border-color: var(--border-light);
+    }
+
+    /* Calendar Preview */
+    .calendar-section {
+      margin-bottom: 32px;
+    }
+
+    .calendar-preview {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .calendar-week {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+    }
+
+    .calendar-day {
+      padding: 12px;
+      border-right: 1px solid var(--border-color);
+      min-height: 100px;
+    }
+
+    .calendar-day:last-child {
+      border-right: none;
+    }
+
+    .calendar-day-header {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .calendar-day.today .calendar-day-header {
+      color: var(--accent-green);
+    }
+
+    .calendar-event {
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      margin-bottom: 6px;
+      cursor: pointer;
+    }
+
+    .calendar-event.oil {
+      background: rgba(96, 165, 250, 0.2);
+      color: var(--accent-blue);
+    }
+
+    .calendar-event.inspection {
+      background: rgba(167, 139, 250, 0.2);
+      color: var(--accent-purple);
+    }
+
+    .calendar-event.blade {
+      background: rgba(251, 191, 36, 0.2);
+      color: var(--accent-amber);
+    }
+
+    .calendar-event.service {
+      background: var(--status-green-bg);
+      color: var(--status-green);
+    }
+
+    /* Parts Low Stock */
+    .parts-low-stock {
+      margin-bottom: 32px;
+    }
+
+    .parts-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .part-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .part-item:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-light);
+    }
+
+    .part-info {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .part-info .icon {
+      font-size: 24px;
+    }
+
+    .part-details h4 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .part-details p {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .part-stock {
+      text-align: right;
+    }
+
+    .part-stock .count {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--status-red);
+    }
+
+    .part-stock .min {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .btn-order {
+      padding: 8px 14px;
+      background: var(--status-red);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      min-height: 44px;
+    }
+
+    .btn-order:hover {
+      opacity: 0.9;
+    }
+
+    /* Modals */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal {
+      background: var(--bg-secondary);
+      border-radius: 16px;
+      width: 90%;
+      max-width: 600px;
+      max-height: 90vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transform: translateY(20px);
+      transition: transform 0.3s ease;
+    }
+
+    .modal-overlay.active .modal {
+      transform: translateY(0);
+    }
+
+    .modal.large {
+      max-width: 800px;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .modal-header h3 {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .modal-close {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .modal-close:hover {
+      background: var(--bg-card-hover);
+      color: var(--text-primary);
+    }
+
+    .modal-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      padding: 20px 24px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    /* Form Styles */
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 8px;
+      color: var(--text-secondary);
+    }
+
+    .form-group label.required::after {
+      content: '*';
+      color: var(--status-red);
+      margin-left: 4px;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 12px 16px;
+      background: var(--bg-input);
+      border: 2px solid var(--border-color);
+      border-radius: 10px;
+      color: var(--text-primary);
+      font-size: 15px;
+      font-family: inherit;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: var(--accent-green);
+    }
+
+    .form-group textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    /* Tabs in Modal */
+    .modal-tabs {
+      display: flex;
+      gap: 4px;
+      padding: 0 24px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .modal-tab {
+      padding: 14px 20px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-muted);
+      background: none;
+      border: none;
+      cursor: pointer;
+      position: relative;
+      transition: color 0.2s ease;
+    }
+
+    .modal-tab:hover {
+      color: var(--text-primary);
+    }
+
+    .modal-tab.active {
+      color: var(--accent-green);
+    }
+
+    .modal-tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--accent-green);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Equipment Detail Modal Specific */
+    .equipment-detail-header {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    .equipment-detail-photo {
+      width: 120px;
+      height: 120px;
+      border-radius: 12px;
+      background: var(--bg-elevated);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      flex-shrink: 0;
+    }
+
+    .equipment-detail-info {
+      flex: 1;
+    }
+
+    .equipment-detail-info h2 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .equipment-detail-info .type-location {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .detail-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+
+    .detail-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    .detail-card h4 {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-bottom: 12px;
+    }
+
+    .detail-card .value {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .detail-card .subvalue {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Maintenance History */
+    .maintenance-timeline {
+      position: relative;
+      padding-left: 24px;
+    }
+
+    .maintenance-timeline::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--border-color);
+    }
+
+    .timeline-item {
+      position: relative;
+      padding-bottom: 20px;
+    }
+
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: -24px;
+      top: 4px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent-green);
+      border: 2px solid var(--bg-secondary);
+    }
+
+    .timeline-date {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .timeline-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .timeline-details {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    /* Loading State */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 60px;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--border-color);
+      border-top-color: var(--accent-green);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    .loading-text {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+
+    .empty-state .icon {
+      font-size: 56px;
+      margin-bottom: 16px;
+      opacity: 0.6;
+    }
+
+    .empty-state p {
+      font-size: 15px;
+      margin-bottom: 20px;
+    }
+
+    /* Responsive */
+    @media (max-width: 1200px) {
+      .sidebar {
+        width: 200px;
+      }
+    }
+
+    @media (max-width: 992px) {
+      .sidebar {
+        position: fixed;
+        left: -240px;
+        top: 0;
+        bottom: 0;
+        z-index: 100;
+        transition: left 0.3s ease;
+      }
+
+      .sidebar.open {
+        left: 0;
+      }
+
+      .mobile-menu-btn {
+        display: flex !important;
+      }
+
+      .calendar-week {
+        grid-template-columns: repeat(4, 1fr);
+      }
+
+      .calendar-day:nth-child(n+5) {
+        display: none;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .header {
+        padding: 12px 16px;
+      }
+
+      .content-scroll {
+        padding: 16px;
+      }
+
+      .equipment-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+
+      .detail-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .search-bar {
+        width: 100%;
+      }
+    }
+
+    /* Utility Classes */
+    .hidden { display: none !important; }
+    .mobile-menu-btn { display: none; }
+
+    /* Toast Notifications */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 14px 24px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 500;
+      z-index: 2000;
+      animation: slideUp 0.3s ease;
+    }
+
+    .toast.success {
+      background: var(--status-green);
+      color: white;
+    }
+
+    .toast.error {
+      background: var(--status-red);
+      color: white;
+    }
+
+    .toast.warning {
+      background: var(--status-yellow);
+      color: #0a1628;
+    }
+
+    @keyframes slideUp {
+      from {
+        transform: translate(-50%, 100%);
+        opacity: 0;
+      }
+      to {
+        transform: translate(-50%, 0);
+        opacity: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <h1><span>🔧</span> The Garage</h1>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-item active" data-view="dashboard" onclick="switchView('dashboard')">
+          <span class="icon">📊</span> Dashboard
+        </div>
+        <div class="nav-item" data-view="equipment" onclick="switchView('equipment')">
+          <span class="icon">🚜</span> Equipment
+        </div>
+        <div class="nav-item" data-view="parts" onclick="switchView('parts')">
+          <span class="icon">🔩</span> Parts Inventory
+        </div>
+        <div class="nav-item" data-view="manuals" onclick="switchView('manuals')">
+          <span class="icon">📄</span> Manuals & Docs
+        </div>
+        <div class="nav-item" data-view="calendar" onclick="switchView('calendar')">
+          <span class="icon">📅</span> Service Calendar
+        </div>
+        <div class="nav-item" data-view="reports" onclick="switchView('reports')">
+          <span class="icon">📈</span> Reports
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <a href="chief-of-staff.html">
+          <span>←</span> Back to Command Center
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Header -->
+      <header class="header">
+        <div class="header-left">
+          <button class="btn-secondary mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+          <h2 id="viewTitle">Fleet Overview</h2>
+          <div class="header-stats" id="headerStats">
+            <div class="header-stat">
+              <span>Operational:</span>
+              <span class="count green" id="statOperational">-</span>
+            </div>
+            <div class="header-stat">
+              <span>Needs Attention:</span>
+              <span class="count yellow" id="statAttention">-</span>
+            </div>
+            <div class="header-stat">
+              <span>Out of Service:</span>
+              <span class="count red" id="statOutOfService">-</span>
+            </div>
+          </div>
+        </div>
+        <div class="header-actions">
+          <div class="search-bar">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="globalSearch" placeholder="Search equipment, parts, manuals..." onkeyup="handleSearch(event)">
+          </div>
+          <button class="btn-secondary" onclick="openModal('qrScanModal')">
+            <span>📷</span> Scan QR
+          </button>
+          <button class="btn-primary" onclick="openModal('addEquipmentModal')">
+            <span>+</span> Add Equipment
+          </button>
+        </div>
+      </header>
+
+      <!-- Scrollable Content -->
+      <div class="content-scroll">
+        <!-- Dashboard View -->
+        <div class="view-content" id="dashboardView">
+          <!-- Alerts Banner -->
+          <div class="alerts-banner" id="alertsBanner">
+            <!-- Populated by JS -->
+          </div>
+
+          <!-- Quick Actions -->
+          <div class="section-header">
+            <h3><span class="icon">⚡</span> Quick Actions</h3>
+          </div>
+          <div class="quick-actions-grid">
+            <div class="quick-action-btn" onclick="openModal('addEquipmentModal')">
+              <span class="icon">🚜</span>
+              <span>Add Equipment</span>
+            </div>
+            <div class="quick-action-btn" onclick="openModal('logServiceModal')">
+              <span class="icon">🔧</span>
+              <span>Log Service</span>
+            </div>
+            <div class="quick-action-btn" onclick="openModal('logFuelModal')">
+              <span class="icon">⛽</span>
+              <span>Log Fuel</span>
+            </div>
+            <div class="quick-action-btn" onclick="openModal('reportIssueModal')">
+              <span class="icon">⚠️</span>
+              <span>Report Issue</span>
+            </div>
+            <div class="quick-action-btn" onclick="switchView('parts')">
+              <span class="icon">🔍</span>
+              <span>Find Part</span>
+            </div>
+            <div class="quick-action-btn" onclick="openModal('qrScanModal')">
+              <span class="icon">📷</span>
+              <span>Scan QR</span>
+            </div>
+          </div>
+
+          <!-- Fleet Overview Grid -->
+          <div class="section-header">
+            <h3><span class="icon">🚜</span> Fleet Overview</h3>
+            <a class="view-all-link" onclick="switchView('equipment')">View All →</a>
+          </div>
+          <div class="equipment-grid" id="equipmentGrid">
+            <div class="loading">
+              <div class="spinner"></div>
+              <div class="loading-text">Loading equipment...</div>
+            </div>
+          </div>
+
+          <!-- Maintenance Calendar Preview -->
+          <div class="calendar-section">
+            <div class="section-header">
+              <h3><span class="icon">📅</span> Service Schedule</h3>
+              <a class="view-all-link" onclick="switchView('calendar')">Full Calendar →</a>
+            </div>
+            <div class="calendar-preview" id="calendarPreview">
+              <div class="calendar-week">
+                <!-- Populated by JS -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Parts Low Stock -->
+          <div class="parts-low-stock">
+            <div class="section-header">
+              <h3><span class="icon">⚠️</span> Parts Needing Reorder</h3>
+              <a class="view-all-link" onclick="switchView('parts')">View Inventory →</a>
+            </div>
+            <div class="parts-list" id="lowStockParts">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Equipment View -->
+        <div class="view-content hidden" id="equipmentView">
+          <div class="filter-bar">
+            <button class="filter-chip active" onclick="filterEquipment('all', this)">All</button>
+            <button class="filter-chip" onclick="filterEquipment('Tractor', this)">Tractors</button>
+            <button class="filter-chip" onclick="filterEquipment('Vehicle', this)">Vehicles</button>
+            <button class="filter-chip" onclick="filterEquipment('Mower', this)">Mowers</button>
+            <button class="filter-chip" onclick="filterEquipment('Implement', this)">Implements</button>
+            <button class="filter-chip" onclick="filterEquipment('Tool', this)">Tools</button>
+          </div>
+          <div class="equipment-grid" id="fullEquipmentGrid">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Parts View -->
+        <div class="view-content hidden" id="partsView">
+          <div class="section-header">
+            <h3><span class="icon">🔩</span> Parts Inventory</h3>
+            <button class="btn-primary" onclick="openModal('addPartModal')">
+              <span>+</span> Add Part
+            </button>
+          </div>
+          <div class="filter-bar">
+            <button class="filter-chip active" onclick="filterParts('all', this)">All</button>
+            <button class="filter-chip" onclick="filterParts('Filter', this)">Filters</button>
+            <button class="filter-chip" onclick="filterParts('Oil', this)">Fluids</button>
+            <button class="filter-chip" onclick="filterParts('Belt', this)">Belts</button>
+            <button class="filter-chip" onclick="filterParts('Blade', this)">Blades</button>
+            <button class="filter-chip" onclick="filterParts('Battery', this)">Batteries</button>
+            <button class="filter-chip low-stock-filter" onclick="filterParts('lowstock', this)">Low Stock Only</button>
+          </div>
+          <div class="parts-list" id="fullPartsList">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Manuals View -->
+        <div class="view-content hidden" id="manualsView">
+          <div class="section-header">
+            <h3><span class="icon">📄</span> Manuals & Documents</h3>
+            <button class="btn-primary" onclick="openModal('addManualModal')">
+              <span>+</span> Add Manual
+            </button>
+          </div>
+          <div class="filter-bar">
+            <button class="filter-chip active" onclick="filterManuals('all', this)">All</button>
+            <button class="filter-chip" onclick="filterManuals('Operating', this)">Operating</button>
+            <button class="filter-chip" onclick="filterManuals('Maintenance', this)">Maintenance</button>
+            <button class="filter-chip" onclick="filterManuals('Parts', this)">Parts Catalog</button>
+            <button class="filter-chip" onclick="filterManuals('Quick', this)">Quick Reference</button>
+          </div>
+          <div class="parts-list" id="manualsList">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Calendar View -->
+        <div class="view-content hidden" id="calendarView">
+          <div class="section-header">
+            <h3><span class="icon">📅</span> Service Calendar</h3>
+            <button class="btn-primary" onclick="openModal('scheduleServiceModal')">
+              <span>+</span> Schedule Service
+            </button>
+          </div>
+          <div id="fullCalendar">
+            <!-- Full calendar implementation -->
+          </div>
+        </div>
+
+        <!-- Reports View -->
+        <div class="view-content hidden" id="reportsView">
+          <div class="section-header">
+            <h3><span class="icon">📈</span> Reports & Analytics</h3>
+          </div>
+          <div class="empty-state">
+            <span class="icon">📊</span>
+            <p>Reports and cost analytics coming soon!</p>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Add Equipment Modal -->
+  <div class="modal-overlay" id="addEquipmentModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Add New Equipment</h3>
+        <button class="modal-close" onclick="closeModal('addEquipmentModal')">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="addEquipmentForm" onsubmit="saveEquipment(event)">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="required">Equipment Name</label>
+              <input type="text" name="assetName" required placeholder="e.g., John Deere 5075E">
+            </div>
+            <div class="form-group">
+              <label class="required">Type</label>
+              <select name="assetType" required>
+                <option value="">Select type...</option>
+                <option value="Tractor">Tractor</option>
+                <option value="Vehicle">Vehicle</option>
+                <option value="Mower">Mower</option>
+                <option value="Implement">Implement</option>
+                <option value="Tool">Tool</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Make</label>
+              <input type="text" name="make" placeholder="e.g., John Deere">
+            </div>
+            <div class="form-group">
+              <label>Model</label>
+              <input type="text" name="model" placeholder="e.g., 5075E">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Year</label>
+              <input type="number" name="year" placeholder="e.g., 2019">
+            </div>
+            <div class="form-group">
+              <label>Serial Number</label>
+              <input type="text" name="serialNumber" placeholder="e.g., 1LV5075ECKK000123">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Current Hours/Miles</label>
+              <input type="number" name="currentReading" placeholder="e.g., 1247">
+            </div>
+            <div class="form-group">
+              <label>Location</label>
+              <input type="text" name="location" placeholder="e.g., Equipment Barn">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Notes</label>
+            <textarea name="notes" placeholder="Any additional notes about this equipment..."></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('addEquipmentModal')">Cancel</button>
+        <button class="btn-primary" type="submit" form="addEquipmentForm">Save Equipment</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Part Modal -->
+  <div class="modal-overlay" id="addPartModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Add New Part</h3>
+        <button class="modal-close" onclick="closeModal('addPartModal')">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="addPartForm" onsubmit="savePart(event)">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="required">Part Number</label>
+              <input type="text" name="partNumber" required placeholder="e.g., RE504836">
+            </div>
+            <div class="form-group">
+              <label class="required">Description</label>
+              <input type="text" name="description" required placeholder="e.g., Engine Oil Filter">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="required">Category</label>
+              <select name="category" required>
+                <option value="">Select category...</option>
+                <option value="Filter">Filter</option>
+                <option value="Oil">Oil / Fluid</option>
+                <option value="Belt">Belt</option>
+                <option value="Blade">Blade</option>
+                <option value="Battery">Battery</option>
+                <option value="Tire">Tire</option>
+                <option value="Hardware">Hardware</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Fits Equipment</label>
+              <input type="text" name="fitsEquipment" placeholder="e.g., 5075E, 3032E">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="required">Quantity On Hand</label>
+              <input type="number" name="quantity" required placeholder="0">
+            </div>
+            <div class="form-group">
+              <label>Minimum Stock Level</label>
+              <input type="number" name="minStock" placeholder="2">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Unit Cost ($)</label>
+              <input type="number" step="0.01" name="unitCost" placeholder="0.00">
+            </div>
+            <div class="form-group">
+              <label>Storage Location</label>
+              <input type="text" name="storageLocation" placeholder="e.g., Parts Room - Shelf A3">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Supplier / Order URL</label>
+            <input type="text" name="supplierUrl" placeholder="https://...">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('addPartModal')">Cancel</button>
+        <button class="btn-primary" type="submit" form="addPartForm">Save Part</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Manual Modal -->
+  <div class="modal-overlay" id="addManualModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Add Manual / Document</h3>
+        <button class="modal-close" onclick="closeModal('addManualModal')">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="addManualForm" onsubmit="saveManual(event)">
+          <div class="form-group">
+            <label class="required">Title</label>
+            <input type="text" name="title" required placeholder="e.g., Kubota L3130 Operator's Manual">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="required">Type</label>
+              <select name="manualType" required>
+                <option value="">Select type...</option>
+                <option value="Operating">Operating Manual</option>
+                <option value="Maintenance">Maintenance Manual</option>
+                <option value="Parts">Parts Catalog</option>
+                <option value="Quick">Quick Reference</option>
+                <option value="Other">Other Document</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Equipment</label>
+              <select name="assetId" id="manualAssetSelect">
+                <option value="">General / All Equipment</option>
+                <!-- Populated by JS -->
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="required">File URL (Google Drive, Web Link, etc.)</label>
+            <input type="url" name="fileUrl" required placeholder="https://drive.google.com/...">
+          </div>
+          <div class="form-group">
+            <label>Key Topics / Tags</label>
+            <input type="text" name="keyTopics" placeholder="e.g., oil change, filter, maintenance schedule">
+          </div>
+          <div class="form-group">
+            <label>Notes</label>
+            <textarea name="notes" placeholder="Any additional notes..."></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('addManualModal')">Cancel</button>
+        <button class="btn-primary" type="submit" form="addManualForm">Save Manual</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Log Service Modal -->
+  <div class="modal-overlay" id="logServiceModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Log Service / Maintenance</h3>
+        <button class="modal-close" onclick="closeModal('logServiceModal')">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="logServiceForm" onsubmit="logService(event)">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="required">Equipment</label>
+              <select name="assetId" id="serviceAssetSelect" required>
+                <option value="">Select equipment...</option>
+                <!-- Populated by JS -->
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="required">Service Type</label>
+              <select name="serviceType" required>
+                <option value="">Select type...</option>
+                <option value="Oil Change">Oil Change</option>
+                <option value="Filter Replace">Filter Replace</option>
+                <option value="Grease Points">Grease Points</option>
+                <option value="Blade Change">Blade Change</option>
+                <option value="Belt Replace">Belt Replace</option>
+                <option value="Tire Service">Tire Service</option>
+                <option value="Inspection">Inspection</option>
+                <option value="Repair">Repair</option>
+                <option value="Annual Service">Annual Service</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="required">Date</label>
+              <input type="date" name="serviceDate" required>
+            </div>
+            <div class="form-group">
+              <label>Current Hours/Miles</label>
+              <input type="number" name="currentReading" placeholder="At time of service">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Performed By</label>
+              <input type="text" name="performedBy" placeholder="e.g., Jake, County Implement">
+            </div>
+            <div class="form-group">
+              <label>Cost ($)</label>
+              <input type="number" step="0.01" name="cost" placeholder="0.00">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Parts Used</label>
+            <input type="text" name="partsUsed" placeholder="e.g., RE504836 Oil Filter, 2.4 gal 15W-40">
+          </div>
+          <div class="form-group">
+            <label>Notes</label>
+            <textarea name="notes" placeholder="Additional service notes..."></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('logServiceModal')">Cancel</button>
+        <button class="btn-primary" type="submit" form="logServiceForm">Log Service</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Log Fuel Modal -->
+  <div class="modal-overlay" id="logFuelModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Log Fuel Purchase</h3>
+        <button class="modal-close" onclick="closeModal('logFuelModal')">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="logFuelForm" onsubmit="logFuel(event)">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="required">Equipment</label>
+              <select name="assetId" id="fuelAssetSelect" required>
+                <option value="">Select equipment...</option>
+                <!-- Populated by JS -->
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="required">Date</label>
+              <input type="date" name="fuelDate" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="required">Gallons</label>
+              <input type="number" step="0.1" name="gallons" required placeholder="0.0">
+            </div>
+            <div class="form-group">
+              <label>Total Cost ($)</label>
+              <input type="number" step="0.01" name="cost" placeholder="0.00">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Current Hours/Miles</label>
+            <input type="number" name="currentReading" placeholder="At time of fill-up">
+          </div>
+          <div class="form-group">
+            <label>Notes</label>
+            <textarea name="notes" placeholder="Optional notes..."></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('logFuelModal')">Cancel</button>
+        <button class="btn-primary" type="submit" form="logFuelForm">Log Fuel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Report Issue Modal -->
+  <div class="modal-overlay" id="reportIssueModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Report Equipment Issue</h3>
+        <button class="modal-close" onclick="closeModal('reportIssueModal')">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="reportIssueForm" onsubmit="reportIssue(event)">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="required">Equipment</label>
+              <select name="assetId" id="issueAssetSelect" required>
+                <option value="">Select equipment...</option>
+                <!-- Populated by JS -->
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="required">Severity</label>
+              <select name="severity" required>
+                <option value="">Select severity...</option>
+                <option value="Critical">Critical - Out of Service</option>
+                <option value="High">High - Needs Prompt Attention</option>
+                <option value="Medium">Medium - Should Be Addressed</option>
+                <option value="Low">Low - Minor Issue</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="required">Issue Description</label>
+            <textarea name="description" required placeholder="Describe the issue in detail..."></textarea>
+          </div>
+          <div class="form-group">
+            <label>Reported By</label>
+            <input type="text" name="reportedBy" placeholder="Your name">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('reportIssueModal')">Cancel</button>
+        <button class="btn-primary" type="submit" form="reportIssueForm">Submit Issue</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Equipment Detail Modal -->
+  <div class="modal-overlay" id="equipmentDetailModal">
+    <div class="modal large">
+      <div class="modal-header">
+        <h3 id="equipmentDetailTitle">Equipment Details</h3>
+        <button class="modal-close" onclick="closeModal('equipmentDetailModal')">×</button>
+      </div>
+      <div class="modal-tabs">
+        <button class="modal-tab active" onclick="switchDetailTab('overview', this)">Overview</button>
+        <button class="modal-tab" onclick="switchDetailTab('maintenance', this)">Maintenance</button>
+        <button class="modal-tab" onclick="switchDetailTab('parts', this)">Parts</button>
+        <button class="modal-tab" onclick="switchDetailTab('documents', this)">Documents</button>
+      </div>
+      <div class="modal-body" id="equipmentDetailBody">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- QR Scan Placeholder Modal -->
+  <div class="modal-overlay" id="qrScanModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Scan Equipment QR Code</h3>
+        <button class="modal-close" onclick="closeModal('qrScanModal')">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="empty-state">
+          <span class="icon">📷</span>
+          <p>QR code scanning will be available in the mobile app.<br>Each piece of equipment will have a QR code for quick access.</p>
+          <button class="btn-secondary" onclick="closeModal('qrScanModal')">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="api-config.js"></script>
+  <script>
+    // ========================================
+    // GARAGE DASHBOARD - JAVASCRIPT
+    // ========================================
+
+    const API_BASE = TINY_SEED_API.MAIN_API;
+
+    // State
+    let equipmentData = [];
+    let partsData = [];
+    let manualsData = [];
+    let currentView = 'dashboard';
+    let currentEquipmentFilter = 'all';
+    let currentPartsFilter = 'all';
+    let currentManualsFilter = 'all';
+
+    // ========================================
+    // INITIALIZATION
+    // ========================================
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Set default date on forms
+      const today = new Date().toISOString().split('T')[0];
+      document.querySelectorAll('input[type="date"]').forEach(input => {
+        input.value = today;
+      });
+
+      // Load initial data
+      loadGarageDashboard();
+
+      // Setup auto-refresh every 5 minutes
+      setInterval(refreshDashboard, 300000);
+    });
+
+    // ========================================
+    // CORE DATA LOADING
+    // ========================================
+
+    async function loadGarageDashboard() {
+      try {
+        // Load equipment data
+        await loadEquipment();
+
+        // Load parts inventory
+        await loadParts();
+
+        // Load manuals
+        await loadManuals();
+
+        // Update UI
+        renderDashboard();
+        renderCalendarPreview();
+        populateEquipmentSelects();
+
+      } catch (error) {
+        console.error('Error loading garage dashboard:', error);
+        showToast('Failed to load dashboard data', 'error');
+      }
+    }
+
+    async function refreshDashboard() {
+      console.log('Refreshing dashboard...');
+      await loadGarageDashboard();
+    }
+
+    async function loadEquipment() {
+      try {
+        const response = await fetch(`${API_BASE}?action=getFleetAssets`);
+        const data = await response.json();
+
+        if (data.success && data.data) {
+          equipmentData = data.data;
+        } else {
+          // Use sample data for demo if no data available
+          equipmentData = getSampleEquipment();
+        }
+      } catch (error) {
+        console.error('Error loading equipment:', error);
+        equipmentData = getSampleEquipment();
+      }
+    }
+
+    async function loadParts() {
+      try {
+        const response = await fetch(`${API_BASE}?action=getGarageParts`);
+        const data = await response.json();
+
+        if (data.success && data.data) {
+          partsData = data.data;
+        } else {
+          partsData = getSampleParts();
+        }
+      } catch (error) {
+        console.error('Error loading parts:', error);
+        partsData = getSampleParts();
+      }
+    }
+
+    async function loadManuals() {
+      try {
+        const response = await fetch(`${API_BASE}?action=getGarageManuals`);
+        const data = await response.json();
+
+        if (data.success && data.data) {
+          manualsData = data.data;
+        } else {
+          manualsData = getSampleManuals();
+        }
+      } catch (error) {
+        console.error('Error loading manuals:', error);
+        manualsData = getSampleManuals();
+      }
+    }
+
+    // ========================================
+    // RENDER FUNCTIONS
+    // ========================================
+
+    function renderDashboard() {
+      renderAlerts();
+      renderEquipmentGrid('equipmentGrid', 6);
+      renderEquipmentGrid('fullEquipmentGrid');
+      renderLowStockParts();
+      updateHeaderStats();
+    }
+
+    function renderAlerts() {
+      const alertsBanner = document.getElementById('alertsBanner');
+
+      // Count equipment by status
+      const overdue = equipmentData.filter(e => e.status === 'Critical' || e.status === 'Out of Service').length;
+      const dueSoon = equipmentData.filter(e => e.status === 'Attention').length;
+      const lowStock = partsData.filter(p => p.quantity <= p.minStock).length;
+
+      let html = '';
+
+      if (overdue > 0) {
+        html += `
+          <div class="alert-card red" onclick="switchView('equipment')">
+            <span class="alert-icon">🚨</span>
+            <div class="alert-content">
+              <h4>${overdue} Service${overdue > 1 ? 's' : ''} Overdue</h4>
+              <p>Equipment needs immediate attention</p>
+            </div>
+          </div>
+        `;
+      }
+
+      if (dueSoon > 0) {
+        html += `
+          <div class="alert-card yellow" onclick="switchView('equipment')">
+            <span class="alert-icon">⚠️</span>
+            <div class="alert-content">
+              <h4>${dueSoon} Service${dueSoon > 1 ? 's' : ''} Due Soon</h4>
+              <p>Schedule maintenance this week</p>
+            </div>
+          </div>
+        `;
+      }
+
+      if (lowStock > 0) {
+        html += `
+          <div class="alert-card yellow" onclick="switchView('parts')">
+            <span class="alert-icon">📦</span>
+            <div class="alert-content">
+              <h4>${lowStock} Part${lowStock > 1 ? 's' : ''} Low Stock</h4>
+              <p>Parts need reordering</p>
+            </div>
+          </div>
+        `;
+      }
+
+      if (html === '') {
+        html = `
+          <div class="alert-card" style="background: var(--status-green-bg); border: 1px solid var(--status-green);">
+            <span class="alert-icon">✅</span>
+            <div class="alert-content">
+              <h4 style="color: var(--status-green);">All Systems Operational</h4>
+              <p>No urgent issues to address</p>
+            </div>
+          </div>
+        `;
+      }
+
+      alertsBanner.innerHTML = html;
+    }
+
+    function renderEquipmentGrid(containerId, limit = null) {
+      const container = document.getElementById(containerId);
+
+      let filteredData = [...equipmentData];
+
+      // Apply filter
+      if (currentEquipmentFilter !== 'all') {
+        filteredData = filteredData.filter(e => e.assetType === currentEquipmentFilter);
+      }
+
+      // Apply limit
+      if (limit) {
+        filteredData = filteredData.slice(0, limit);
+      }
+
+      if (filteredData.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <span class="icon">🚜</span>
+            <p>No equipment found</p>
+            <button class="btn-primary" onclick="openModal('addEquipmentModal')">Add Equipment</button>
+          </div>
+        `;
+        return;
+      }
+
+      let html = '';
+
+      filteredData.forEach(equipment => {
+        const statusClass = getStatusClass(equipment.status);
+        const statusText = getStatusText(equipment.status);
+        const icon = getEquipmentIcon(equipment.assetType);
+
+        html += `
+          <div class="equipment-card status-${statusClass}" onclick="openEquipmentDetail('${equipment.assetId}')">
+            <div class="equipment-header">
+              <div class="equipment-photo">${icon}</div>
+              <div class="equipment-info">
+                <div class="equipment-name">${equipment.assetName || equipment.make + ' ' + equipment.model}</div>
+                <div class="equipment-type">${equipment.assetType}</div>
+              </div>
+              <div class="status-badge ${statusClass}">
+                <span class="status-dot"></span>
+                ${statusText}
+              </div>
+            </div>
+            <div class="equipment-body">
+              <div class="equipment-metrics">
+                <div class="metric">
+                  <span class="metric-label">Hours/Miles</span>
+                  <span class="metric-value">${formatNumber(equipment.currentHours || equipment.currentMiles || 0)}</span>
+                </div>
+                <div class="metric">
+                  <span class="metric-label">Next Service</span>
+                  <span class="metric-value ${equipment.hoursToService < 10 ? 'warning' : ''} ${equipment.hoursToService < 0 ? 'critical' : ''}">
+                    ${equipment.hoursToService ? equipment.hoursToService + ' hrs' : 'N/A'}
+                  </span>
+                </div>
+              </div>
+              <div class="equipment-actions">
+                <button class="equipment-action-btn" onclick="event.stopPropagation(); quickLogService('${equipment.assetId}')">Log Service</button>
+                <button class="equipment-action-btn" onclick="event.stopPropagation(); openManualForEquipment('${equipment.assetId}')">Manual</button>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function renderLowStockParts() {
+      const container = document.getElementById('lowStockParts');
+
+      const lowStock = partsData.filter(p => p.quantity <= p.minStock).slice(0, 5);
+
+      if (lowStock.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state" style="padding: 30px;">
+            <span class="icon">✅</span>
+            <p>All parts are well stocked</p>
+          </div>
+        `;
+        return;
+      }
+
+      let html = '';
+
+      lowStock.forEach(part => {
+        const icon = getPartIcon(part.category);
+
+        html += `
+          <div class="part-item" onclick="openPartDetail('${part.partId}')">
+            <div class="part-info">
+              <span class="icon">${icon}</span>
+              <div class="part-details">
+                <h4>${part.description}</h4>
+                <p>${part.partNumber} - ${part.category}</p>
+              </div>
+            </div>
+            <div class="part-stock">
+              <div class="count">${part.quantity} left</div>
+              <div class="min">Min: ${part.minStock}</div>
+            </div>
+            <button class="btn-order" onclick="event.stopPropagation(); orderPart('${part.partId}')">Order</button>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function renderCalendarPreview() {
+      const container = document.getElementById('calendarPreview');
+
+      const today = new Date();
+      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+      let html = '<div class="calendar-week">';
+
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(today);
+        date.setDate(today.getDate() + i);
+        const isToday = i === 0;
+        const dayName = days[date.getDay()];
+        const dayNum = date.getDate();
+
+        html += `
+          <div class="calendar-day ${isToday ? 'today' : ''}">
+            <div class="calendar-day-header">${dayName} ${dayNum}</div>
+            ${getCalendarEvents(date)}
+          </div>
+        `;
+      }
+
+      html += '</div>';
+      container.innerHTML = html;
+    }
+
+    function getCalendarEvents(date) {
+      // Sample events - in production, this would come from the service schedule
+      const events = [];
+      const dayOfWeek = date.getDay();
+
+      // Add some sample events based on day
+      if (dayOfWeek === 1) {
+        events.push({ type: 'oil', text: '5075E Oil' });
+      }
+      if (dayOfWeek === 3) {
+        events.push({ type: 'blade', text: 'ZD1211 Blades' });
+      }
+      if (dayOfWeek === 5) {
+        events.push({ type: 'inspection', text: 'F-250 DOT' });
+      }
+
+      return events.map(e => `<div class="calendar-event ${e.type}">${e.text}</div>`).join('');
+    }
+
+    function updateHeaderStats() {
+      const operational = equipmentData.filter(e => e.status === 'Operational' || e.status === 'Active').length;
+      const attention = equipmentData.filter(e => e.status === 'Attention').length;
+      const outOfService = equipmentData.filter(e => e.status === 'Critical' || e.status === 'Out of Service').length;
+
+      document.getElementById('statOperational').textContent = operational;
+      document.getElementById('statAttention').textContent = attention;
+      document.getElementById('statOutOfService').textContent = outOfService;
+    }
+
+    function populateEquipmentSelects() {
+      const selects = ['serviceAssetSelect', 'fuelAssetSelect', 'issueAssetSelect', 'manualAssetSelect'];
+
+      selects.forEach(selectId => {
+        const select = document.getElementById(selectId);
+        if (!select) return;
+
+        // Keep first option
+        const firstOption = select.options[0];
+        select.innerHTML = '';
+        select.appendChild(firstOption);
+
+        // Add equipment options
+        equipmentData.forEach(equipment => {
+          const option = document.createElement('option');
+          option.value = equipment.assetId;
+          option.textContent = equipment.assetName || `${equipment.make} ${equipment.model}`;
+          select.appendChild(option);
+        });
+      });
+    }
+
+    // ========================================
+    // VIEW SWITCHING
+    // ========================================
+
+    function switchView(viewName) {
+      currentView = viewName;
+
+      // Update nav items
+      document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+        if (item.dataset.view === viewName) {
+          item.classList.add('active');
+        }
+      });
+
+      // Show/hide views
+      document.querySelectorAll('.view-content').forEach(view => {
+        view.classList.add('hidden');
+      });
+
+      const targetView = document.getElementById(viewName + 'View');
+      if (targetView) {
+        targetView.classList.remove('hidden');
+      }
+
+      // Update title
+      const titles = {
+        dashboard: 'Fleet Overview',
+        equipment: 'Equipment List',
+        parts: 'Parts Inventory',
+        manuals: 'Manuals & Documents',
+        calendar: 'Service Calendar',
+        reports: 'Reports & Analytics'
+      };
+      document.getElementById('viewTitle').textContent = titles[viewName] || 'The Garage';
+
+      // Render specific view content
+      if (viewName === 'parts') {
+        renderPartsInventory();
+      } else if (viewName === 'manuals') {
+        renderManualsList();
+      }
+
+      // Close mobile sidebar
+      document.getElementById('sidebar').classList.remove('open');
+    }
+
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+    }
+
+    // ========================================
+    // FILTERS
+    // ========================================
+
+    function filterEquipment(filter, btn) {
+      currentEquipmentFilter = filter;
+
+      // Update active state
+      btn.parentElement.querySelectorAll('.filter-chip').forEach(chip => {
+        chip.classList.remove('active');
+      });
+      btn.classList.add('active');
+
+      renderEquipmentGrid('fullEquipmentGrid');
+    }
+
+    function filterParts(filter, btn) {
+      currentPartsFilter = filter;
+
+      btn.parentElement.querySelectorAll('.filter-chip').forEach(chip => {
+        chip.classList.remove('active');
+      });
+      btn.classList.add('active');
+
+      renderPartsInventory();
+    }
+
+    function filterManuals(filter, btn) {
+      currentManualsFilter = filter;
+
+      btn.parentElement.querySelectorAll('.filter-chip').forEach(chip => {
+        chip.classList.remove('active');
+      });
+      btn.classList.add('active');
+
+      renderManualsList();
+    }
+
+    // ========================================
+    // PARTS INVENTORY
+    // ========================================
+
+    function renderPartsInventory() {
+      const container = document.getElementById('fullPartsList');
+
+      let filteredData = [...partsData];
+
+      if (currentPartsFilter === 'lowstock') {
+        filteredData = filteredData.filter(p => p.quantity <= p.minStock);
+      } else if (currentPartsFilter !== 'all') {
+        filteredData = filteredData.filter(p => p.category === currentPartsFilter);
+      }
+
+      if (filteredData.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <span class="icon">🔩</span>
+            <p>No parts found</p>
+            <button class="btn-primary" onclick="openModal('addPartModal')">Add Part</button>
+          </div>
+        `;
+        return;
+      }
+
+      let html = '';
+
+      filteredData.forEach(part => {
+        const icon = getPartIcon(part.category);
+        const isLow = part.quantity <= part.minStock;
+
+        html += `
+          <div class="part-item" onclick="openPartDetail('${part.partId}')">
+            <div class="part-info">
+              <span class="icon">${icon}</span>
+              <div class="part-details">
+                <h4>${part.description}</h4>
+                <p>${part.partNumber} - Fits: ${part.fitsEquipment || 'Various'}</p>
+              </div>
+            </div>
+            <div class="part-stock">
+              <div class="count" style="color: ${isLow ? 'var(--status-red)' : 'var(--status-green)'}">${part.quantity} in stock</div>
+              <div class="min">Min: ${part.minStock} | $${part.unitCost || '0.00'}</div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button class="equipment-action-btn" onclick="event.stopPropagation(); adjustStock('${part.partId}', 1)">+</button>
+              <button class="equipment-action-btn" onclick="event.stopPropagation(); adjustStock('${part.partId}', -1)">-</button>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function adjustStock(partId, delta) {
+      // Find the part
+      const part = partsData.find(p => p.partId === partId);
+      if (!part) return;
+
+      // Update locally
+      part.quantity = Math.max(0, part.quantity + delta);
+
+      // Re-render
+      renderPartsInventory();
+      renderLowStockParts();
+
+      // Save to server
+      savePartAdjustment(partId, delta);
+
+      showToast(`Stock ${delta > 0 ? 'increased' : 'decreased'} for ${part.description}`, 'success');
+    }
+
+    async function savePartAdjustment(partId, delta) {
+      try {
+        await fetch(API_BASE, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'adjustPartInventory',
+            partId: partId,
+            delta: delta
+          })
+        });
+      } catch (error) {
+        console.error('Error saving stock adjustment:', error);
+      }
+    }
+
+    // ========================================
+    // MANUALS
+    // ========================================
+
+    function renderManualsList() {
+      const container = document.getElementById('manualsList');
+
+      let filteredData = [...manualsData];
+
+      if (currentManualsFilter !== 'all') {
+        filteredData = filteredData.filter(m => m.manualType === currentManualsFilter);
+      }
+
+      if (filteredData.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <span class="icon">📄</span>
+            <p>No manuals found</p>
+            <button class="btn-primary" onclick="openModal('addManualModal')">Add Manual</button>
+          </div>
+        `;
+        return;
+      }
+
+      let html = '';
+
+      filteredData.forEach(manual => {
+        const icon = getManualIcon(manual.fileType);
+
+        html += `
+          <div class="part-item" onclick="openManual('${manual.fileUrl}')">
+            <div class="part-info">
+              <span class="icon">${icon}</span>
+              <div class="part-details">
+                <h4>${manual.title}</h4>
+                <p>${manual.manualType} - ${manual.equipmentName || 'General'}</p>
+              </div>
+            </div>
+            <button class="btn-secondary" onclick="event.stopPropagation(); openManual('${manual.fileUrl}')">Open</button>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function openManual(url) {
+      if (url) {
+        window.open(url, '_blank');
+      } else {
+        showToast('Manual URL not available', 'warning');
+      }
+    }
+
+    function openManualForEquipment(assetId) {
+      const manual = manualsData.find(m => m.assetId === assetId);
+      if (manual) {
+        openManual(manual.fileUrl);
+      } else {
+        showToast('No manual found for this equipment', 'warning');
+      }
+    }
+
+    // ========================================
+    // EQUIPMENT DETAIL
+    // ========================================
+
+    function openEquipmentDetail(assetId) {
+      const equipment = equipmentData.find(e => e.assetId === assetId);
+      if (!equipment) return;
+
+      document.getElementById('equipmentDetailTitle').textContent = equipment.assetName || `${equipment.make} ${equipment.model}`;
+
+      renderEquipmentDetailTabs(equipment, 'overview');
+      openModal('equipmentDetailModal');
+    }
+
+    function switchDetailTab(tabName, btn) {
+      // Update tab buttons
+      document.querySelectorAll('.modal-tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      btn.classList.add('active');
+
+      // Get current equipment
+      const title = document.getElementById('equipmentDetailTitle').textContent;
+      const equipment = equipmentData.find(e => (e.assetName || `${e.make} ${e.model}`) === title);
+
+      if (equipment) {
+        renderEquipmentDetailTabs(equipment, tabName);
+      }
+    }
+
+    function renderEquipmentDetailTabs(equipment, activeTab) {
+      const container = document.getElementById('equipmentDetailBody');
+      const icon = getEquipmentIcon(equipment.assetType);
+      const statusClass = getStatusClass(equipment.status);
+      const statusText = getStatusText(equipment.status);
+
+      let content = '';
+
+      if (activeTab === 'overview') {
+        content = `
+          <div class="equipment-detail-header">
+            <div class="equipment-detail-photo">${icon}</div>
+            <div class="equipment-detail-info">
+              <h2>${equipment.assetName || equipment.make + ' ' + equipment.model}</h2>
+              <div class="type-location">${equipment.assetType} | ${equipment.location || 'Location not set'}</div>
+              <div class="status-badge ${statusClass}" style="display: inline-flex;">
+                <span class="status-dot"></span>
+                ${statusText}
+              </div>
+            </div>
+          </div>
+          <div class="detail-grid">
+            <div class="detail-card">
+              <h4>Engine Hours</h4>
+              <div class="value">${formatNumber(equipment.currentHours || 0)}</div>
+            </div>
+            <div class="detail-card">
+              <h4>Next Service</h4>
+              <div class="value">${equipment.hoursToService ? equipment.hoursToService + ' hrs' : 'N/A'}</div>
+              <div class="subvalue">${equipment.nextServiceType || 'Oil Change'}</div>
+            </div>
+            <div class="detail-card">
+              <h4>Make / Model</h4>
+              <div class="value">${equipment.make || '-'}</div>
+              <div class="subvalue">${equipment.model || '-'}</div>
+            </div>
+            <div class="detail-card">
+              <h4>Year / Serial</h4>
+              <div class="value">${equipment.year || '-'}</div>
+              <div class="subvalue">${equipment.serialNumber || '-'}</div>
+            </div>
+          </div>
+          <div class="detail-actions" style="margin-top: 24px;">
+            <button class="btn-primary" onclick="quickLogService('${equipment.assetId}')">Log Service</button>
+            <button class="btn-secondary" onclick="quickLogFuel('${equipment.assetId}')">Log Fuel</button>
+            <button class="btn-secondary" onclick="quickReportIssue('${equipment.assetId}')">Report Issue</button>
+          </div>
+        `;
+      } else if (activeTab === 'maintenance') {
+        content = `
+          <div class="section-header">
+            <h3>Maintenance History</h3>
+          </div>
+          <div class="maintenance-timeline">
+            <div class="timeline-item">
+              <div class="timeline-date">Jan 15, 2026</div>
+              <div class="timeline-title">Oil Change - 1,200 hrs</div>
+              <div class="timeline-details">Performed by: Jake | Cost: $85</div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-date">Dec 1, 2025</div>
+              <div class="timeline-title">Air Filter Replacement - 1,150 hrs</div>
+              <div class="timeline-details">Performed by: Mike | Cost: $45</div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-date">Oct 20, 2025</div>
+              <div class="timeline-title">Annual Service - 1,100 hrs</div>
+              <div class="timeline-details">Performed by: County Implement | Cost: $650</div>
+            </div>
+          </div>
+        `;
+      } else if (activeTab === 'parts') {
+        const compatibleParts = partsData.filter(p =>
+          p.fitsEquipment && p.fitsEquipment.includes(equipment.assetId)
+        );
+
+        if (compatibleParts.length === 0) {
+          content = `
+            <div class="empty-state">
+              <span class="icon">🔩</span>
+              <p>No parts linked to this equipment yet</p>
+            </div>
+          `;
+        } else {
+          content = `
+            <div class="section-header">
+              <h3>Compatible Parts</h3>
+            </div>
+            <div class="parts-list">
+              ${compatibleParts.map(part => `
+                <div class="part-item">
+                  <div class="part-info">
+                    <span class="icon">${getPartIcon(part.category)}</span>
+                    <div class="part-details">
+                      <h4>${part.description}</h4>
+                      <p>${part.partNumber}</p>
+                    </div>
+                  </div>
+                  <div class="part-stock">
+                    <div class="count" style="color: ${part.quantity <= part.minStock ? 'var(--status-red)' : 'var(--status-green)'}">
+                      ${part.quantity} in stock
+                    </div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          `;
+        }
+      } else if (activeTab === 'documents') {
+        const equipmentManuals = manualsData.filter(m => m.assetId === equipment.assetId);
+
+        if (equipmentManuals.length === 0) {
+          content = `
+            <div class="empty-state">
+              <span class="icon">📄</span>
+              <p>No documents linked to this equipment yet</p>
+              <button class="btn-primary" onclick="openModal('addManualModal')">Add Manual</button>
+            </div>
+          `;
+        } else {
+          content = `
+            <div class="parts-list">
+              ${equipmentManuals.map(manual => `
+                <div class="part-item" onclick="openManual('${manual.fileUrl}')">
+                  <div class="part-info">
+                    <span class="icon">${getManualIcon(manual.fileType)}</span>
+                    <div class="part-details">
+                      <h4>${manual.title}</h4>
+                      <p>${manual.manualType}</p>
+                    </div>
+                  </div>
+                  <button class="btn-secondary">Open</button>
+                </div>
+              `).join('')}
+            </div>
+          `;
+        }
+      }
+
+      container.innerHTML = content;
+    }
+
+    // ========================================
+    // QUICK ACTIONS
+    // ========================================
+
+    function quickLogService(assetId) {
+      document.getElementById('serviceAssetSelect').value = assetId;
+      closeModal('equipmentDetailModal');
+      openModal('logServiceModal');
+    }
+
+    function quickLogFuel(assetId) {
+      document.getElementById('fuelAssetSelect').value = assetId;
+      closeModal('equipmentDetailModal');
+      openModal('logFuelModal');
+    }
+
+    function quickReportIssue(assetId) {
+      document.getElementById('issueAssetSelect').value = assetId;
+      closeModal('equipmentDetailModal');
+      openModal('reportIssueModal');
+    }
+
+    function orderPart(partId) {
+      const part = partsData.find(p => p.partId === partId);
+      if (part && part.supplierUrl) {
+        window.open(part.supplierUrl, '_blank');
+      } else {
+        showToast('No supplier URL available for this part', 'warning');
+      }
+    }
+
+    // ========================================
+    // FORM SUBMISSIONS
+    // ========================================
+
+    async function saveEquipment(event) {
+      event.preventDefault();
+      const form = event.target;
+      const formData = new FormData(form);
+
+      const data = {
+        action: 'createFleetAsset',
+        assetName: formData.get('assetName'),
+        assetType: formData.get('assetType'),
+        make: formData.get('make'),
+        model: formData.get('model'),
+        year: formData.get('year'),
+        serialNumber: formData.get('serialNumber'),
+        currentHours: formData.get('currentReading'),
+        location: formData.get('location'),
+        notes: formData.get('notes'),
+        status: 'Operational'
+      };
+
+      try {
+        const response = await fetch(API_BASE, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          showToast('Equipment added successfully!', 'success');
+          closeModal('addEquipmentModal');
+          form.reset();
+          await loadEquipment();
+          renderDashboard();
+          populateEquipmentSelects();
+        } else {
+          showToast(result.error || 'Failed to add equipment', 'error');
+        }
+      } catch (error) {
+        console.error('Error saving equipment:', error);
+        showToast('Error saving equipment', 'error');
+      }
+    }
+
+    async function savePart(event) {
+      event.preventDefault();
+      const form = event.target;
+      const formData = new FormData(form);
+
+      const data = {
+        action: 'createGaragePart',
+        partNumber: formData.get('partNumber'),
+        description: formData.get('description'),
+        category: formData.get('category'),
+        fitsEquipment: formData.get('fitsEquipment'),
+        quantity: parseInt(formData.get('quantity')) || 0,
+        minStock: parseInt(formData.get('minStock')) || 2,
+        unitCost: parseFloat(formData.get('unitCost')) || 0,
+        storageLocation: formData.get('storageLocation'),
+        supplierUrl: formData.get('supplierUrl')
+      };
+
+      try {
+        const response = await fetch(API_BASE, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          showToast('Part added successfully!', 'success');
+          closeModal('addPartModal');
+          form.reset();
+          await loadParts();
+          renderLowStockParts();
+          if (currentView === 'parts') renderPartsInventory();
+        } else {
+          showToast(result.error || 'Failed to add part', 'error');
+        }
+      } catch (error) {
+        console.error('Error saving part:', error);
+        showToast('Error saving part', 'error');
+      }
+    }
+
+    async function saveManual(event) {
+      event.preventDefault();
+      const form = event.target;
+      const formData = new FormData(form);
+
+      const data = {
+        action: 'createGarageManual',
+        title: formData.get('title'),
+        manualType: formData.get('manualType'),
+        assetId: formData.get('assetId'),
+        fileUrl: formData.get('fileUrl'),
+        keyTopics: formData.get('keyTopics'),
+        notes: formData.get('notes')
+      };
+
+      try {
+        const response = await fetch(API_BASE, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          showToast('Manual added successfully!', 'success');
+          closeModal('addManualModal');
+          form.reset();
+          await loadManuals();
+          if (currentView === 'manuals') renderManualsList();
+        } else {
+          showToast(result.error || 'Failed to add manual', 'error');
+        }
+      } catch (error) {
+        console.error('Error saving manual:', error);
+        showToast('Error saving manual', 'error');
+      }
+    }
+
+    async function logService(event) {
+      event.preventDefault();
+      const form = event.target;
+      const formData = new FormData(form);
+
+      const data = {
+        action: 'logFleetMaintenance',
+        assetId: formData.get('assetId'),
+        serviceType: formData.get('serviceType'),
+        serviceDate: formData.get('serviceDate'),
+        currentReading: formData.get('currentReading'),
+        performedBy: formData.get('performedBy'),
+        cost: parseFloat(formData.get('cost')) || 0,
+        partsUsed: formData.get('partsUsed'),
+        notes: formData.get('notes')
+      };
+
+      try {
+        const response = await fetch(API_BASE, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          showToast('Service logged successfully!', 'success');
+          closeModal('logServiceModal');
+          form.reset();
+          await loadEquipment();
+          renderDashboard();
+        } else {
+          showToast(result.error || 'Failed to log service', 'error');
+        }
+      } catch (error) {
+        console.error('Error logging service:', error);
+        showToast('Error logging service', 'error');
+      }
+    }
+
+    async function logFuel(event) {
+      event.preventDefault();
+      const form = event.target;
+      const formData = new FormData(form);
+
+      const data = {
+        action: 'logFleetFuel',
+        assetId: formData.get('assetId'),
+        fuelDate: formData.get('fuelDate'),
+        gallons: parseFloat(formData.get('gallons')) || 0,
+        cost: parseFloat(formData.get('cost')) || 0,
+        currentReading: formData.get('currentReading'),
+        notes: formData.get('notes')
+      };
+
+      try {
+        const response = await fetch(API_BASE, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          showToast('Fuel logged successfully!', 'success');
+          closeModal('logFuelModal');
+          form.reset();
+        } else {
+          showToast(result.error || 'Failed to log fuel', 'error');
+        }
+      } catch (error) {
+        console.error('Error logging fuel:', error);
+        showToast('Error logging fuel', 'error');
+      }
+    }
+
+    async function reportIssue(event) {
+      event.preventDefault();
+      const form = event.target;
+      const formData = new FormData(form);
+
+      // For now, log as maintenance with issue type
+      const data = {
+        action: 'logFleetMaintenance',
+        assetId: formData.get('assetId'),
+        serviceType: 'Issue Report',
+        severity: formData.get('severity'),
+        notes: formData.get('description'),
+        reportedBy: formData.get('reportedBy'),
+        serviceDate: new Date().toISOString().split('T')[0]
+      };
+
+      try {
+        const response = await fetch(API_BASE, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          showToast('Issue reported successfully!', 'success');
+          closeModal('reportIssueModal');
+          form.reset();
+
+          // Update equipment status if critical
+          if (formData.get('severity') === 'Critical') {
+            const equipment = equipmentData.find(e => e.assetId === formData.get('assetId'));
+            if (equipment) {
+              equipment.status = 'Critical';
+              renderDashboard();
+            }
+          }
+        } else {
+          showToast(result.error || 'Failed to report issue', 'error');
+        }
+      } catch (error) {
+        console.error('Error reporting issue:', error);
+        showToast('Error reporting issue', 'error');
+      }
+    }
+
+    // ========================================
+    // SEARCH
+    // ========================================
+
+    function handleSearch(event) {
+      const query = event.target.value.toLowerCase().trim();
+
+      if (query.length < 2) {
+        renderDashboard();
+        return;
+      }
+
+      // Search equipment
+      const matchingEquipment = equipmentData.filter(e =>
+        (e.assetName && e.assetName.toLowerCase().includes(query)) ||
+        (e.make && e.make.toLowerCase().includes(query)) ||
+        (e.model && e.model.toLowerCase().includes(query)) ||
+        (e.serialNumber && e.serialNumber.toLowerCase().includes(query))
+      );
+
+      // Search parts
+      const matchingParts = partsData.filter(p =>
+        (p.description && p.description.toLowerCase().includes(query)) ||
+        (p.partNumber && p.partNumber.toLowerCase().includes(query))
+      );
+
+      // Display results based on current view
+      if (currentView === 'dashboard' || currentView === 'equipment') {
+        const tempData = equipmentData;
+        equipmentData = matchingEquipment;
+        renderEquipmentGrid('equipmentGrid', 6);
+        renderEquipmentGrid('fullEquipmentGrid');
+        equipmentData = tempData;
+      }
+
+      if (currentView === 'parts') {
+        const tempData = partsData;
+        partsData = matchingParts;
+        renderPartsInventory();
+        partsData = tempData;
+      }
+    }
+
+    // ========================================
+    // MODAL FUNCTIONS
+    // ========================================
+
+    function openModal(modalId) {
+      document.getElementById(modalId).classList.add('active');
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.remove('active');
+    }
+
+    // Close modal on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+          overlay.classList.remove('active');
+        }
+      });
+    });
+
+    // Close modal on Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        document.querySelectorAll('.modal-overlay.active').forEach(modal => {
+          modal.classList.remove('active');
+        });
+      }
+    });
+
+    // ========================================
+    // UTILITY FUNCTIONS
+    // ========================================
+
+    function showToast(message, type = 'info') {
+      // Remove existing toasts
+      document.querySelectorAll('.toast').forEach(t => t.remove());
+
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+
+      setTimeout(() => {
+        toast.remove();
+      }, 3000);
+    }
+
+    function formatNumber(num) {
+      return new Intl.NumberFormat().format(num);
+    }
+
+    function getStatusClass(status) {
+      if (!status) return 'green';
+      const s = status.toLowerCase();
+      if (s.includes('critical') || s.includes('out of service')) return 'red';
+      if (s.includes('attention') || s.includes('due')) return 'yellow';
+      return 'green';
+    }
+
+    function getStatusText(status) {
+      if (!status) return 'Operational';
+      const s = status.toLowerCase();
+      if (s.includes('critical') || s.includes('out of service')) return 'Out of Service';
+      if (s.includes('attention') || s.includes('due')) return 'Needs Attention';
+      return 'Operational';
+    }
+
+    function getEquipmentIcon(type) {
+      const icons = {
+        'Tractor': '🚜',
+        'Vehicle': '🚗',
+        'Mower': '🌿',
+        'Implement': '⚙️',
+        'Tool': '🔧',
+        'Truck': '🚚'
+      };
+      return icons[type] || '🔧';
+    }
+
+    function getPartIcon(category) {
+      const icons = {
+        'Filter': '🔲',
+        'Oil': '🛢️',
+        'Belt': '⭕',
+        'Blade': '🔪',
+        'Battery': '🔋',
+        'Tire': '⚫',
+        'Hardware': '🔩'
+      };
+      return icons[category] || '🔩';
+    }
+
+    function getManualIcon(fileType) {
+      const icons = {
+        'PDF': '📕',
+        'Video': '🎬',
+        'Web': '🌐'
+      };
+      return icons[fileType] || '📄';
+    }
+
+    // ========================================
+    // SAMPLE DATA (For demo when API unavailable)
+    // ========================================
+
+    function getSampleEquipment() {
+      return [
+        {
+          assetId: 'KUBOTA-3130',
+          assetName: 'Kubota L3130',
+          assetType: 'Tractor',
+          make: 'Kubota',
+          model: 'L3130',
+          year: 2019,
+          currentHours: 1247,
+          hoursToService: 15,
+          status: 'Attention',
+          location: 'Equipment Barn'
+        },
+        {
+          assetId: 'JD-5075E',
+          assetName: 'John Deere 5075E',
+          assetType: 'Tractor',
+          make: 'John Deere',
+          model: '5075E',
+          year: 2020,
+          currentHours: 892,
+          hoursToService: 58,
+          status: 'Operational',
+          location: 'North Field'
+        },
+        {
+          assetId: 'F250-WORK',
+          assetName: 'Ford F-250 Work Truck',
+          assetType: 'Vehicle',
+          make: 'Ford',
+          model: 'F-250',
+          year: 2021,
+          currentMiles: 45230,
+          hoursToService: -5,
+          status: 'Critical',
+          location: 'Main Parking'
+        },
+        {
+          assetId: 'ZD1211',
+          assetName: 'Kubota ZD1211',
+          assetType: 'Mower',
+          make: 'Kubota',
+          model: 'ZD1211',
+          year: 2022,
+          currentHours: 456,
+          hoursToService: 44,
+          status: 'Operational',
+          location: 'Equipment Shed'
+        },
+        {
+          assetId: 'BOXBLADE-6',
+          assetName: "6' Box Blade",
+          assetType: 'Implement',
+          make: 'Land Pride',
+          model: 'BB0672',
+          status: 'Operational',
+          location: 'Implement Shed'
+        }
+      ];
+    }
+
+    function getSampleParts() {
+      return [
+        {
+          partId: 'PART-001',
+          partNumber: 'RE504836',
+          description: 'Engine Oil Filter',
+          category: 'Filter',
+          fitsEquipment: 'JD-5075E, KUBOTA-3130',
+          quantity: 3,
+          minStock: 2,
+          unitCost: 18.50,
+          storageLocation: 'Parts Room - Shelf A3'
+        },
+        {
+          partId: 'PART-002',
+          partNumber: 'RE196945',
+          description: 'Air Filter',
+          category: 'Filter',
+          fitsEquipment: 'JD-5075E',
+          quantity: 1,
+          minStock: 2,
+          unitCost: 32.00,
+          storageLocation: 'Parts Room - Shelf A3'
+        },
+        {
+          partId: 'PART-003',
+          partNumber: '15W40-5GAL',
+          description: '15W-40 Engine Oil (5 gal)',
+          category: 'Oil',
+          fitsEquipment: 'General',
+          quantity: 2,
+          minStock: 2,
+          unitCost: 65.00,
+          storageLocation: 'Parts Room - Shelf B1'
+        },
+        {
+          partId: 'PART-004',
+          partNumber: 'BLADE-54',
+          description: 'Mower Blades 54"',
+          category: 'Blade',
+          fitsEquipment: 'ZD1211',
+          quantity: 0,
+          minStock: 2,
+          unitCost: 45.00,
+          storageLocation: 'Parts Room - Bin C2'
+        }
+      ];
+    }
+
+    function getSampleManuals() {
+      return [
+        {
+          manualId: 'MAN-001',
+          title: "Kubota L3130 Operator's Manual",
+          manualType: 'Operating',
+          assetId: 'KUBOTA-3130',
+          equipmentName: 'Kubota L3130',
+          fileUrl: 'https://example.com/manual.pdf',
+          fileType: 'PDF'
+        },
+        {
+          manualId: 'MAN-002',
+          title: 'John Deere 5075E Service Manual',
+          manualType: 'Maintenance',
+          assetId: 'JD-5075E',
+          equipmentName: 'John Deere 5075E',
+          fileUrl: 'https://example.com/service.pdf',
+          fileType: 'PDF'
+        },
+        {
+          manualId: 'MAN-003',
+          title: 'Oil Specifications Quick Reference',
+          manualType: 'Quick',
+          assetId: '',
+          equipmentName: 'General',
+          fileUrl: 'https://example.com/oils.pdf',
+          fileType: 'PDF'
+        }
+      ];
+    }
+  </script>
+</body>
+</html>

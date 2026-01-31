@@ -40,6 +40,63 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-01-30 - Backend_Claude (THE GARAGE - Virtual Equipment Dashboard)
+
+### Major Feature Addition - Complete Garage/Fleet Management System
+
+### Files Created
+- `web_app/garage.html` - 3,208 line desktop dashboard for equipment, parts, manuals, service scheduling
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js`:
+  - Added GARAGE_SHEETS constant, headers for Parts/Manuals/Service sheets (lines 29166-29248)
+  - Added 19 new API endpoints to doGet/doPost routers (lines 13267-13291, 15045-15057)
+  - Added initializeGarageSheets() function (lines 37638-37657)
+  - Added 7 Parts Inventory APIs (lines 37669-37996)
+  - Added 4 Manuals APIs (lines 38002-38173)
+  - Added 5 Service Schedule APIs (lines 38182-38499)
+  - Added getGarageDashboard() unified dashboard API (lines 38509-38591)
+  - Total lines added: ~1,089
+
+### Functions Added (19 new API endpoints)
+- `initializeGarageSheets()` - Create GARAGE_PartsInventory, GARAGE_Manuals, GARAGE_ServiceSchedule sheets
+- `getGarageParts(params)` - List parts with filters
+- `getGaragePartById(params)` - Single part details
+- `createGaragePart(data)` - Add new part (minimal required fields)
+- `updateGaragePart(data)` - Update part info
+- `adjustPartInventory(data)` - Increase/decrease stock
+- `getPartsLowStock()` - Parts below reorder level
+- `getPartsByEquipment(params)` - Parts that fit specific asset
+- `getGarageManuals(params)` - List manuals with filters
+- `getManualsByAsset(params)` - Manuals for specific equipment
+- `createGarageManual(data)` - Add new manual link
+- `searchManuals(params)` - Search titles/topics
+- `getServiceSchedule(params)` - All scheduled services
+- `getServiceDue(params)` - Services due within X days
+- `createServiceSchedule(data)` - Create interval-based schedule
+- `logServiceCompleted(data)` - Mark done, auto-update next due
+- `getServiceHistory(params)` - Past services by asset
+- `getGarageDashboard()` - Combined dashboard data
+
+### Frontend Features (garage.html)
+- Sidebar navigation (Dashboard, Equipment, Parts, Manuals, Calendar, Reports)
+- Fleet overview grid with status indicators (green/yellow/red)
+- 8 modals (Add Equipment, Add Part, Add Manual, Log Service, Log Fuel, Report Issue, Equipment Detail, QR Scan)
+- Parts inventory with low stock alerts
+- Maintenance calendar preview (7-day view)
+- Universal search across equipment/parts/manuals
+- Responsive design, dark theme matching Chief of Staff
+
+### Reason
+User requested "virtual garage" for tracking all farm equipment: tractors, delivery vehicles, farm trucks, lawnmowers, cultivating equipment, hand tools, power tools. Includes parts inventory lookup and instant access to operating/maintenance manuals.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md - no existing Garage module
+- [x] Searched for similar functions - leverages existing Fleet APIs, does not duplicate
+- [x] No duplicates created - new GARAGE_ prefix distinguishes from FLEET_ functions
+
+---
+
 ## 2026-01-30 - Backend_Claude (Chief of Staff 2.0 - Smart Priority & Decision Support)
 
 ### Major Feature Addition - Intelligent Dashboard Functionality

@@ -13264,6 +13264,32 @@ function doGet(e) {
       case 'getFleetDashboard':
         return jsonResponse(getFleetDashboard(e.parameter));
 
+      // ============ GARAGE MODULE ============
+      case 'initializeGarageSheets':
+        return jsonResponse(initializeGarageSheets());
+      case 'getGarageParts':
+        return jsonResponse(getGarageParts(e.parameter));
+      case 'getGaragePartById':
+        return jsonResponse(getGaragePartById(e.parameter));
+      case 'getPartsLowStock':
+        return jsonResponse(getPartsLowStock());
+      case 'getPartsByEquipment':
+        return jsonResponse(getPartsByEquipment(e.parameter));
+      case 'getGarageManuals':
+        return jsonResponse(getGarageManuals(e.parameter));
+      case 'getManualsByAsset':
+        return jsonResponse(getManualsByAsset(e.parameter));
+      case 'searchManuals':
+        return jsonResponse(searchManuals(e.parameter));
+      case 'getServiceSchedule':
+        return jsonResponse(getServiceSchedule(e.parameter));
+      case 'getServiceDue':
+        return jsonResponse(getServiceDue(e.parameter));
+      case 'getServiceHistory':
+        return jsonResponse(getServiceHistory(e.parameter));
+      case 'getGarageDashboard':
+        return jsonResponse(getGarageDashboard());
+
       // ============ FOOD SAFETY COMPLIANCE ============
       case 'initComplianceSheets':
         return jsonResponse(initComplianceSheets());
@@ -15015,6 +15041,20 @@ function doPost(e) {
         return jsonResponse(logFleetMaintenance(data));
       case 'linkUsageToTask':
         return jsonResponse(linkUsageToTask(data));
+
+      // ============ GARAGE MODULE ACTIONS ============
+      case 'createGaragePart':
+        return jsonResponse(createGaragePart(data));
+      case 'updateGaragePart':
+        return jsonResponse(updateGaragePart(data));
+      case 'adjustPartInventory':
+        return jsonResponse(adjustPartInventory(data));
+      case 'createGarageManual':
+        return jsonResponse(createGarageManual(data));
+      case 'createServiceSchedule':
+        return jsonResponse(createServiceSchedule(data));
+      case 'logServiceCompleted':
+        return jsonResponse(logServiceCompleted(data));
 
       // ============ FINANCIAL MODULE - DEBTS ============
       case 'saveDebt':
@@ -29120,6 +29160,92 @@ const FLEET_SHEETS = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
+// GARAGE MODULE - Parts, Manuals, and Service Schedule Sheets
+// ═══════════════════════════════════════════════════════════════════════════
+
+const GARAGE_SHEETS = {
+  PARTS: 'GARAGE_PartsInventory',
+  MANUALS: 'GARAGE_Manuals',
+  SERVICE_SCHEDULE: 'GARAGE_ServiceSchedule'
+};
+
+// Garage Parts Inventory Headers
+const GARAGE_PARTS_HEADERS = [
+  'Part_ID',           // Auto-generated unique ID
+  'Part_Number',       // Manufacturer part number
+  'Description',       // Part name/description
+  'Category',          // Oil, Filter, Belt, Blade, Bearing, Tire, Battery, etc.
+  'Fits_Equipment',    // Comma-separated Asset_IDs
+  'Quantity_On_Hand',  // Current inventory count
+  'Reorder_Level',     // Trigger quantity for reorder alert
+  'Reorder_Qty',       // Default quantity to reorder
+  'Unit_Cost',         // Cost per unit
+  'Supplier',          // Primary supplier name
+  'Supplier_URL',      // Link to purchase
+  'Location',          // Where stored (Tool Shed, Equipment Barn, etc.)
+  'Last_Ordered',      // Date last ordered
+  'Last_Used',         // Date last consumed
+  'Notes'              // Special instructions
+];
+
+// Garage Manuals Headers
+const GARAGE_MANUALS_HEADERS = [
+  'Manual_ID',         // Auto-generated
+  'Asset_ID',          // Links to equipment (can be blank for general)
+  'Manual_Type',       // Operating, Maintenance, Parts, Quick Reference
+  'Title',             // Manual title
+  'File_URL',          // Google Drive link or web URL
+  'File_Type',         // PDF, Video, Web Link
+  'Language',          // English, Spanish
+  'Version',           // Edition/year
+  'Page_Count',        // For quick reference
+  'Key_Topics',        // Comma-separated topics
+  'Date_Added',        // When uploaded
+  'Notes'              // Key info or table of contents summary
+];
+
+// Garage Service Schedule Headers
+const GARAGE_SERVICE_HEADERS = [
+  'Schedule_ID',         // Auto-generated
+  'Asset_ID',            // Links to equipment
+  'Service_Type',        // Oil Change, Filter Replace, Grease Points, etc.
+  'Interval_Type',       // Hours, Miles, Months, Annual
+  'Interval_Value',      // Numeric interval
+  'Last_Service_Date',   // When last performed
+  'Last_Service_Reading',// Hour/mile meter at last service
+  'Next_Due_Date',       // Calculated date
+  'Next_Due_Reading',    // Calculated hour/mile
+  'Reminder_Days_Before',// Alert timing (default 7)
+  'Priority',            // Critical, High, Medium, Low
+  'Estimated_Cost',      // Budget planning
+  'Parts_Required',      // Link to parts needed
+  'Instructions',        // Brief procedure
+  'Notes'                // Special instructions
+];
+
+// Garage Parts Categories
+const GARAGE_PARTS_CATEGORIES = [
+  'Oil', 'Hydraulic Fluid', 'Coolant', 'Grease',
+  'Oil Filter', 'Air Filter', 'Fuel Filter', 'Hydraulic Filter',
+  'Belt', 'Blade', 'Bearing', 'Seal', 'Gasket',
+  'Tire', 'Tube', 'Battery',
+  'Spark Plug', 'Glow Plug',
+  'Hose', 'Clamp', 'Fastener',
+  'Light Bulb', 'Fuse', 'Electrical',
+  'Other'
+];
+
+// Garage Service Types
+const GARAGE_SERVICE_TYPES = [
+  'Oil Change', 'Filter Replace', 'Grease Points',
+  'Belt Inspection', 'Belt Replace', 'Blade Sharpen', 'Blade Replace',
+  'Tire Inspection', 'Tire Replace', 'Battery Check', 'Battery Replace',
+  'Fluid Top-Off', 'Full Service', 'Safety Inspection',
+  'Winterization', 'Spring Prep', 'Annual Service',
+  'Repair', 'Other'
+];
+
+// ═══════════════════════════════════════════════════════════════════════════
 // INITIALIZATION - Run this once to create all sheets
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -37495,6 +37621,969 @@ function getFleetDashboard(params) {
         maintenanceDueCount: maintenanceDue.length,
         maintenanceDueAssets: maintenanceDue,
         costSummary: costReport
+      }
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GARAGE MODULE - Parts Inventory, Manuals, and Service Schedule
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Initialize all Garage sheets - run once to create
+ */
+function initializeGarageSheets() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    // Create Parts Inventory sheet
+    createSheetIfNotExists(ss, GARAGE_SHEETS.PARTS, GARAGE_PARTS_HEADERS, '#f97316');
+
+    // Create Manuals sheet
+    createSheetIfNotExists(ss, GARAGE_SHEETS.MANUALS, GARAGE_MANUALS_HEADERS, '#06b6d4');
+
+    // Create Service Schedule sheet
+    createSheetIfNotExists(ss, GARAGE_SHEETS.SERVICE_SCHEDULE, GARAGE_SERVICE_HEADERS, '#8b5cf6');
+
+    return {
+      success: true,
+      message: 'Garage sheets initialized successfully',
+      sheets: [GARAGE_SHEETS.PARTS, GARAGE_SHEETS.MANUALS, GARAGE_SHEETS.SERVICE_SCHEDULE]
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GARAGE PARTS INVENTORY APIs
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Get all garage parts with optional filters
+ * @param {Object} params - category, equipment, location, lowStock
+ */
+function getGarageParts(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(GARAGE_SHEETS.PARTS);
+
+    if (!sheet || sheet.getLastRow() < 2) {
+      return { success: true, parts: [], message: 'No parts found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    let parts = [];
+
+    for (let i = 1; i < data.length; i++) {
+      let part = {};
+      headers.forEach((h, j) => part[h] = data[i][j]);
+
+      // Skip empty rows
+      if (!part.Part_ID) continue;
+
+      // Apply filters
+      if (params.category && part.Category !== params.category) continue;
+      if (params.location && part.Location !== params.location) continue;
+      if (params.equipment && part.Fits_Equipment &&
+          !part.Fits_Equipment.toString().includes(params.equipment)) continue;
+      if (params.lowStock === 'true' &&
+          (part.Quantity_On_Hand > part.Reorder_Level || !part.Reorder_Level)) continue;
+
+      parts.push(part);
+    }
+
+    // Sort by description by default
+    parts.sort((a, b) => (a.Description || '').localeCompare(b.Description || ''));
+
+    return { success: true, parts: parts, count: parts.length };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get a single part by ID
+ * @param {Object} params - partId
+ */
+function getGaragePartById(params) {
+  try {
+    if (!params.partId) {
+      return { success: false, error: 'partId is required' };
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(GARAGE_SHEETS.PARTS);
+
+    if (!sheet) {
+      return { success: false, error: 'Parts sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === params.partId) {
+        let part = {};
+        headers.forEach((h, j) => part[h] = data[i][j]);
+        return { success: true, part: part };
+      }
+    }
+
+    return { success: false, error: 'Part not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Create a new part in inventory
+ * Required: description. All else optional for easy adding.
+ * @param {Object} data - part data
+ */
+function createGaragePart(data) {
+  try {
+    if (!data.description) {
+      return { success: false, error: 'description is required' };
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(GARAGE_SHEETS.PARTS);
+
+    if (!sheet) {
+      // Auto-initialize if sheet doesn't exist
+      initializeGarageSheets();
+    }
+
+    const partSheet = ss.getSheetByName(GARAGE_SHEETS.PARTS);
+    const partId = 'PART-' + Date.now().toString().slice(-8);
+
+    partSheet.appendRow([
+      partId,
+      data.partNumber || '',
+      data.description,
+      data.category || 'Other',
+      data.fitsEquipment || '',
+      data.quantityOnHand || 0,
+      data.reorderLevel || 0,
+      data.reorderQty || 1,
+      data.unitCost || 0,
+      data.supplier || '',
+      data.supplierUrl || '',
+      data.location || '',
+      data.lastOrdered || '',
+      '',  // Last_Used starts empty
+      data.notes || ''
+    ]);
+
+    return {
+      success: true,
+      partId: partId,
+      message: 'Part added successfully'
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Update an existing part
+ * @param {Object} data - must include partId, plus fields to update
+ */
+function updateGaragePart(data) {
+  try {
+    if (!data.partId) {
+      return { success: false, error: 'partId is required' };
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(GARAGE_SHEETS.PARTS);
+
+    if (!sheet) {
+      return { success: false, error: 'Parts sheet not found' };
+    }
+
+    const values = sheet.getDataRange().getValues();
+    const headers = values[0];
+
+    for (let i = 1; i < values.length; i++) {
+      if (values[i][0] === data.partId) {
+        // Map data keys to header columns
+        const updateMap = {
+          partNumber: 'Part_Number',
+          description: 'Description',
+          category: 'Category',
+          fitsEquipment: 'Fits_Equipment',
+          quantityOnHand: 'Quantity_On_Hand',
+          reorderLevel: 'Reorder_Level',
+          reorderQty: 'Reorder_Qty',
+          unitCost: 'Unit_Cost',
+          supplier: 'Supplier',
+          supplierUrl: 'Supplier_URL',
+          location: 'Location',
+          lastOrdered: 'Last_Ordered',
+          lastUsed: 'Last_Used',
+          notes: 'Notes'
+        };
+
+        for (const [key, header] of Object.entries(updateMap)) {
+          if (data[key] !== undefined) {
+            const colIdx = headers.indexOf(header);
+            if (colIdx >= 0) {
+              sheet.getRange(i + 1, colIdx + 1).setValue(data[key]);
+            }
+          }
+        }
+
+        return { success: true, message: 'Part updated successfully' };
+      }
+    }
+
+    return { success: false, error: 'Part not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Adjust part inventory quantity (increase or decrease)
+ * @param {Object} data - partId, adjustment (positive or negative), reason
+ */
+function adjustPartInventory(data) {
+  try {
+    if (!data.partId || data.adjustment === undefined) {
+      return { success: false, error: 'partId and adjustment are required' };
+    }
+
+    const adjustment = parseInt(data.adjustment);
+    if (isNaN(adjustment)) {
+      return { success: false, error: 'adjustment must be a number' };
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(GARAGE_SHEETS.PARTS);
+
+    if (!sheet) {
+      return { success: false, error: 'Parts sheet not found' };
+    }
+
+    const values = sheet.getDataRange().getValues();
+    const headers = values[0];
+    const qtyColIdx = headers.indexOf('Quantity_On_Hand');
+    const lastUsedColIdx = headers.indexOf('Last_Used');
+
+    for (let i = 1; i < values.length; i++) {
+      if (values[i][0] === data.partId) {
+        const currentQty = parseInt(values[i][qtyColIdx]) || 0;
+        const newQty = Math.max(0, currentQty + adjustment);
+
+        sheet.getRange(i + 1, qtyColIdx + 1).setValue(newQty);
+
+        // If decreasing, update last used date
+        if (adjustment < 0) {
+          sheet.getRange(i + 1, lastUsedColIdx + 1).setValue(new Date().toISOString().split('T')[0]);
+        }
+
+        return {
+          success: true,
+          message: `Inventory adjusted by ${adjustment}`,
+          previousQty: currentQty,
+          newQty: newQty,
+          partId: data.partId
+        };
+      }
+    }
+
+    return { success: false, error: 'Part not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get all parts that are at or below reorder level
+ */
+function getPartsLowStock() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(GARAGE_SHEETS.PARTS);
+
+    if (!sheet || sheet.getLastRow() < 2) {
+      return { success: true, parts: [], count: 0 };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const lowStockParts = [];
+
+    for (let i = 1; i < data.length; i++) {
+      let part = {};
+      headers.forEach((h, j) => part[h] = data[i][j]);
+
+      // Skip empty rows or parts without reorder level set
+      if (!part.Part_ID || !part.Reorder_Level) continue;
+
+      if (part.Quantity_On_Hand <= part.Reorder_Level) {
+        part.shortage = part.Reorder_Level - part.Quantity_On_Hand;
+        part.urgency = part.Quantity_On_Hand === 0 ? 'critical' : 'warning';
+        lowStockParts.push(part);
+      }
+    }
+
+    // Sort by urgency (critical first) then by shortage amount
+    lowStockParts.sort((a, b) => {
+      if (a.urgency !== b.urgency) return a.urgency === 'critical' ? -1 : 1;
+      return b.shortage - a.shortage;
+    });
+
+    return {
+      success: true,
+      parts: lowStockParts,
+      count: lowStockParts.length,
+      criticalCount: lowStockParts.filter(p => p.urgency === 'critical').length
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get parts that fit a specific piece of equipment
+ * @param {Object} params - assetId (required)
+ */
+function getPartsByEquipment(params) {
+  try {
+    if (!params.assetId) {
+      return { success: false, error: 'assetId is required' };
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(GARAGE_SHEETS.PARTS);
+
+    if (!sheet || sheet.getLastRow() < 2) {
+      return { success: true, parts: [], count: 0 };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const matchingParts = [];
+
+    for (let i = 1; i < data.length; i++) {
+      let part = {};
+      headers.forEach((h, j) => part[h] = data[i][j]);
+
+      if (!part.Part_ID) continue;
+
+      // Check if this part fits the equipment
+      const fitsEquipment = (part.Fits_Equipment || '').toString();
+      if (fitsEquipment.includes(params.assetId) || fitsEquipment === '' || fitsEquipment.toLowerCase() === 'universal') {
+        matchingParts.push(part);
+      }
+    }
+
+    return { success: true, parts: matchingParts, count: matchingParts.length, assetId: params.assetId };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GARAGE MANUALS APIs
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Get all manuals with optional filters
+ * @param {Object} params - assetId, type, language
+ */
+function getGarageManuals(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(GARAGE_SHEETS.MANUALS);
+
+    if (!sheet || sheet.getLastRow() < 2) {
+      return { success: true, manuals: [], message: 'No manuals found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    let manuals = [];
+
+    for (let i = 1; i < data.length; i++) {
+      let manual = {};
+      headers.forEach((h, j) => manual[h] = data[i][j]);
+
+      if (!manual.Manual_ID) continue;
+
+      // Apply filters
+      if (params.assetId && manual.Asset_ID && manual.Asset_ID !== params.assetId) continue;
+      if (params.type && manual.Manual_Type !== params.type) continue;
+      if (params.language && manual.Language !== params.language) continue;
+
+      manuals.push(manual);
+    }
+
+    // Sort by title
+    manuals.sort((a, b) => (a.Title || '').localeCompare(b.Title || ''));
+
+    return { success: true, manuals: manuals, count: manuals.length };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get manuals for a specific piece of equipment
+ * @param {Object} params - assetId (required)
+ */
+function getManualsByAsset(params) {
+  try {
+    if (!params.assetId) {
+      return { success: false, error: 'assetId is required' };
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(GARAGE_SHEETS.MANUALS);
+
+    if (!sheet || sheet.getLastRow() < 2) {
+      return { success: true, manuals: [], count: 0 };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const manuals = [];
+
+    for (let i = 1; i < data.length; i++) {
+      let manual = {};
+      headers.forEach((h, j) => manual[h] = data[i][j]);
+
+      if (!manual.Manual_ID) continue;
+
+      // Match asset or general (no asset assigned)
+      if (manual.Asset_ID === params.assetId || !manual.Asset_ID) {
+        manuals.push(manual);
+      }
+    }
+
+    // Sort: equipment-specific first, then by type
+    manuals.sort((a, b) => {
+      if (a.Asset_ID && !b.Asset_ID) return -1;
+      if (!a.Asset_ID && b.Asset_ID) return 1;
+      return (a.Manual_Type || '').localeCompare(b.Manual_Type || '');
+    });
+
+    return { success: true, manuals: manuals, count: manuals.length, assetId: params.assetId };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Create a new manual entry
+ * Required: title, fileUrl. All else optional for easy adding.
+ * @param {Object} data - manual data
+ */
+function createGarageManual(data) {
+  try {
+    if (!data.title || !data.fileUrl) {
+      return { success: false, error: 'title and fileUrl are required' };
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(GARAGE_SHEETS.MANUALS);
+
+    if (!sheet) {
+      initializeGarageSheets();
+      sheet = ss.getSheetByName(GARAGE_SHEETS.MANUALS);
+    }
+
+    const manualId = 'MAN-' + Date.now().toString().slice(-8);
+
+    sheet.appendRow([
+      manualId,
+      data.assetId || '',
+      data.manualType || 'Operating',
+      data.title,
+      data.fileUrl,
+      data.fileType || 'PDF',
+      data.language || 'English',
+      data.version || '',
+      data.pageCount || '',
+      data.keyTopics || '',
+      new Date().toISOString().split('T')[0],
+      data.notes || ''
+    ]);
+
+    return {
+      success: true,
+      manualId: manualId,
+      message: 'Manual added successfully'
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Search manuals by title or key topics
+ * @param {Object} params - query (search string)
+ */
+function searchManuals(params) {
+  try {
+    if (!params.query) {
+      return { success: false, error: 'query is required' };
+    }
+
+    const searchTerm = params.query.toLowerCase();
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(GARAGE_SHEETS.MANUALS);
+
+    if (!sheet || sheet.getLastRow() < 2) {
+      return { success: true, manuals: [], count: 0 };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const results = [];
+
+    for (let i = 1; i < data.length; i++) {
+      let manual = {};
+      headers.forEach((h, j) => manual[h] = data[i][j]);
+
+      if (!manual.Manual_ID) continue;
+
+      // Search in title and key topics
+      const title = (manual.Title || '').toLowerCase();
+      const topics = (manual.Key_Topics || '').toLowerCase();
+      const notes = (manual.Notes || '').toLowerCase();
+
+      if (title.includes(searchTerm) || topics.includes(searchTerm) || notes.includes(searchTerm)) {
+        results.push(manual);
+      }
+    }
+
+    return { success: true, manuals: results, count: results.length, query: params.query };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GARAGE SERVICE SCHEDULE APIs
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Get all service schedules with optional filters
+ * @param {Object} params - assetId, serviceType, priority
+ */
+function getServiceSchedule(params) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(GARAGE_SHEETS.SERVICE_SCHEDULE);
+
+    if (!sheet || sheet.getLastRow() < 2) {
+      return { success: true, schedules: [], message: 'No service schedules found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    let schedules = [];
+
+    for (let i = 1; i < data.length; i++) {
+      let schedule = {};
+      headers.forEach((h, j) => schedule[h] = data[i][j]);
+
+      if (!schedule.Schedule_ID) continue;
+
+      // Apply filters
+      if (params.assetId && schedule.Asset_ID !== params.assetId) continue;
+      if (params.serviceType && schedule.Service_Type !== params.serviceType) continue;
+      if (params.priority && schedule.Priority !== params.priority) continue;
+
+      schedules.push(schedule);
+    }
+
+    // Sort by next due date
+    schedules.sort((a, b) => {
+      const dateA = a.Next_Due_Date ? new Date(a.Next_Due_Date) : new Date('2099-12-31');
+      const dateB = b.Next_Due_Date ? new Date(b.Next_Due_Date) : new Date('2099-12-31');
+      return dateA - dateB;
+    });
+
+    return { success: true, schedules: schedules, count: schedules.length };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get services due within X days
+ * @param {Object} params - days (default 7)
+ */
+function getServiceDue(params) {
+  try {
+    const daysAhead = parseInt(params.days) || 7;
+    const now = new Date();
+    const futureDate = new Date(now.getTime() + (daysAhead * 24 * 60 * 60 * 1000));
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(GARAGE_SHEETS.SERVICE_SCHEDULE);
+
+    if (!sheet || sheet.getLastRow() < 2) {
+      return { success: true, services: [], count: 0 };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const dueServices = [];
+
+    // Also get current equipment readings for hour-based due dates
+    const assets = getFleetAssets({}).assets || [];
+    const assetMap = {};
+    assets.forEach(a => assetMap[a.Asset_ID] = a);
+
+    for (let i = 1; i < data.length; i++) {
+      let schedule = {};
+      headers.forEach((h, j) => schedule[h] = data[i][j]);
+
+      if (!schedule.Schedule_ID) continue;
+
+      let isDue = false;
+      let dueReason = '';
+
+      // Check date-based due
+      if (schedule.Next_Due_Date) {
+        const dueDate = new Date(schedule.Next_Due_Date);
+        if (dueDate <= futureDate) {
+          isDue = true;
+          if (dueDate < now) {
+            dueReason = 'Overdue by ' + Math.ceil((now - dueDate) / (24 * 60 * 60 * 1000)) + ' days';
+            schedule.status = 'overdue';
+          } else {
+            dueReason = 'Due in ' + Math.ceil((dueDate - now) / (24 * 60 * 60 * 1000)) + ' days';
+            schedule.status = 'upcoming';
+          }
+        }
+      }
+
+      // Check reading-based due (hours/miles)
+      if (schedule.Next_Due_Reading && schedule.Asset_ID) {
+        const asset = assetMap[schedule.Asset_ID];
+        if (asset) {
+          const currentReading = schedule.Interval_Type === 'Miles' ?
+            (asset.Current_Miles || 0) : (asset.Current_Hours || 0);
+          const dueReading = parseFloat(schedule.Next_Due_Reading) || 0;
+          const remaining = dueReading - currentReading;
+
+          if (remaining <= 25) { // Within 25 hours/miles
+            isDue = true;
+            if (remaining <= 0) {
+              dueReason = `Overdue by ${Math.abs(remaining)} ${schedule.Interval_Type || 'hours'}`;
+              schedule.status = 'overdue';
+            } else {
+              dueReason = `Due in ${remaining} ${schedule.Interval_Type || 'hours'}`;
+              schedule.status = 'upcoming';
+            }
+          }
+        }
+      }
+
+      if (isDue) {
+        schedule.dueReason = dueReason;
+        dueServices.push(schedule);
+      }
+    }
+
+    // Sort: overdue first, then by urgency
+    dueServices.sort((a, b) => {
+      if (a.status === 'overdue' && b.status !== 'overdue') return -1;
+      if (a.status !== 'overdue' && b.status === 'overdue') return 1;
+      return 0;
+    });
+
+    return {
+      success: true,
+      services: dueServices,
+      count: dueServices.length,
+      overdueCount: dueServices.filter(s => s.status === 'overdue').length,
+      daysAhead: daysAhead
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Create a new service schedule
+ * Required: assetId, serviceType. All else optional.
+ * @param {Object} data - service schedule data
+ */
+function createServiceSchedule(data) {
+  try {
+    if (!data.assetId || !data.serviceType) {
+      return { success: false, error: 'assetId and serviceType are required' };
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(GARAGE_SHEETS.SERVICE_SCHEDULE);
+
+    if (!sheet) {
+      initializeGarageSheets();
+      sheet = ss.getSheetByName(GARAGE_SHEETS.SERVICE_SCHEDULE);
+    }
+
+    const scheduleId = 'SCHED-' + Date.now().toString().slice(-8);
+
+    // Calculate next due date if interval provided
+    let nextDueDate = data.nextDueDate || '';
+    let nextDueReading = data.nextDueReading || '';
+
+    if (data.intervalType === 'Months' && data.intervalValue && !nextDueDate) {
+      const futureDate = new Date();
+      futureDate.setMonth(futureDate.getMonth() + parseInt(data.intervalValue));
+      nextDueDate = futureDate.toISOString().split('T')[0];
+    }
+
+    if ((data.intervalType === 'Hours' || data.intervalType === 'Miles') &&
+        data.intervalValue && data.lastServiceReading && !nextDueReading) {
+      nextDueReading = (parseFloat(data.lastServiceReading) || 0) + (parseFloat(data.intervalValue) || 0);
+    }
+
+    sheet.appendRow([
+      scheduleId,
+      data.assetId,
+      data.serviceType,
+      data.intervalType || 'Hours',
+      data.intervalValue || '',
+      data.lastServiceDate || '',
+      data.lastServiceReading || '',
+      nextDueDate,
+      nextDueReading,
+      data.reminderDaysBefore || 7,
+      data.priority || 'Medium',
+      data.estimatedCost || '',
+      data.partsRequired || '',
+      data.instructions || '',
+      data.notes || ''
+    ]);
+
+    return {
+      success: true,
+      scheduleId: scheduleId,
+      message: 'Service schedule created successfully'
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Log a service as completed and update the schedule
+ * @param {Object} data - scheduleId, completedDate, completedReading, notes
+ */
+function logServiceCompleted(data) {
+  try {
+    if (!data.scheduleId) {
+      return { success: false, error: 'scheduleId is required' };
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(GARAGE_SHEETS.SERVICE_SCHEDULE);
+
+    if (!sheet) {
+      return { success: false, error: 'Service Schedule sheet not found' };
+    }
+
+    const values = sheet.getDataRange().getValues();
+    const headers = values[0];
+
+    for (let i = 1; i < values.length; i++) {
+      if (values[i][0] === data.scheduleId) {
+        const completedDate = data.completedDate || new Date().toISOString().split('T')[0];
+        const completedReading = data.completedReading || '';
+
+        // Get interval info for calculating next due
+        const intervalType = values[i][headers.indexOf('Interval_Type')];
+        const intervalValue = parseFloat(values[i][headers.indexOf('Interval_Value')]) || 0;
+
+        // Update last service date and reading
+        sheet.getRange(i + 1, headers.indexOf('Last_Service_Date') + 1).setValue(completedDate);
+        if (completedReading) {
+          sheet.getRange(i + 1, headers.indexOf('Last_Service_Reading') + 1).setValue(completedReading);
+        }
+
+        // Calculate and update next due
+        let nextDueDate = '';
+        let nextDueReading = '';
+
+        if (intervalType === 'Months' && intervalValue) {
+          const futureDate = new Date(completedDate);
+          futureDate.setMonth(futureDate.getMonth() + intervalValue);
+          nextDueDate = futureDate.toISOString().split('T')[0];
+        } else if (intervalType === 'Annual') {
+          const futureDate = new Date(completedDate);
+          futureDate.setFullYear(futureDate.getFullYear() + 1);
+          nextDueDate = futureDate.toISOString().split('T')[0];
+        }
+
+        if ((intervalType === 'Hours' || intervalType === 'Miles') && intervalValue && completedReading) {
+          nextDueReading = parseFloat(completedReading) + intervalValue;
+        }
+
+        sheet.getRange(i + 1, headers.indexOf('Next_Due_Date') + 1).setValue(nextDueDate);
+        sheet.getRange(i + 1, headers.indexOf('Next_Due_Reading') + 1).setValue(nextDueReading);
+
+        // Also log to FLEET_Maintenance for history
+        const schedule = {};
+        headers.forEach((h, j) => schedule[h] = values[i][j]);
+
+        logFleetMaintenance({
+          assetId: schedule.Asset_ID,
+          maintType: schedule.Service_Type,
+          description: `Scheduled service: ${schedule.Service_Type}`,
+          notes: data.notes || schedule.Notes,
+          date: completedDate
+        });
+
+        return {
+          success: true,
+          message: 'Service logged and schedule updated',
+          nextDueDate: nextDueDate,
+          nextDueReading: nextDueReading
+        };
+      }
+    }
+
+    return { success: false, error: 'Schedule not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get service history for an asset (from FLEET_Maintenance)
+ * @param {Object} params - assetId, limit
+ */
+function getServiceHistory(params) {
+  try {
+    if (!params.assetId) {
+      return { success: false, error: 'assetId is required' };
+    }
+
+    // Use existing fleet maintenance log
+    const result = getFleetMaintenanceLog({ assetId: params.assetId });
+
+    if (!result.success) {
+      return result;
+    }
+
+    let history = result.maintenance || [];
+
+    // Apply limit if specified
+    if (params.limit) {
+      history = history.slice(0, parseInt(params.limit));
+    }
+
+    return {
+      success: true,
+      history: history,
+      count: history.length,
+      assetId: params.assetId
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UNIFIED GARAGE DASHBOARD API
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Get comprehensive Garage dashboard data
+ * Combines: Equipment counts, services due, low stock parts, recent activity, health scores
+ */
+function getGarageDashboard() {
+  try {
+    // Get fleet data
+    const fleetResult = getFleetAssets({});
+    const assets = fleetResult.success ? fleetResult.assets : [];
+
+    // Count by type
+    const assetsByType = {};
+    const assetsByStatus = {};
+    assets.forEach(a => {
+      const type = a.Asset_Type || 'Other';
+      const status = a.Status || 'Unknown';
+      assetsByType[type] = (assetsByType[type] || 0) + 1;
+      assetsByStatus[status] = (assetsByStatus[status] || 0) + 1;
+    });
+
+    // Get services due this week
+    const servicesDue = getServiceDue({ days: 7 });
+
+    // Get low stock parts
+    const lowStock = getPartsLowStock();
+
+    // Get recent maintenance activity (last 10)
+    const recentMaintenance = getFleetMaintenanceLog({ limit: 10 });
+
+    // Get equipment health if available
+    let healthData = null;
+    try {
+      healthData = getEquipmentHealth();
+    } catch (e) {
+      // Health function might not exist or might fail
+      healthData = { success: false };
+    }
+
+    // Get cost summary for current month
+    const costReport = getFleetCostReport({});
+
+    return {
+      success: true,
+      dashboard: {
+        // Equipment summary
+        equipment: {
+          total: assets.length,
+          byType: assetsByType,
+          byStatus: assetsByStatus,
+          active: assetsByStatus['Active'] || 0,
+          inRepair: assetsByStatus['In Repair'] || 0
+        },
+
+        // Services due
+        servicesDue: {
+          count: servicesDue.count || 0,
+          overdueCount: servicesDue.overdueCount || 0,
+          items: (servicesDue.services || []).slice(0, 5) // Top 5
+        },
+
+        // Parts alerts
+        partsAlerts: {
+          lowStockCount: lowStock.count || 0,
+          criticalCount: lowStock.criticalCount || 0,
+          items: (lowStock.parts || []).slice(0, 5) // Top 5
+        },
+
+        // Recent activity
+        recentActivity: (recentMaintenance.maintenance || []).slice(0, 5),
+
+        // Health overview
+        health: healthData && healthData.success ? {
+          overallScore: healthData.overallScore || null,
+          criticalAlerts: healthData.criticalAlerts || [],
+          itemsNeedingAttention: healthData.itemsNeedingAttention || 0
+        } : null,
+
+        // Costs
+        costs: costReport.success ? costReport.report : null,
+
+        // Timestamp
+        generatedAt: new Date().toISOString()
       }
     };
   } catch (error) {
