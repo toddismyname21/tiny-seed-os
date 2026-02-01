@@ -1,0 +1,36 @@
+{
+  "items": [
+    {
+      "id": "723614e1-a47c-4390-904c-e00b237b909a",
+      "type": "feature",
+      "title": "Add dark mode toggle",
+      "details": "It would be great to have a toggle in settings to switch between light and dark mode themes.",
+      "status": "reviewed",
+      "page": "/settings",
+      "user_agent": "",
+      "user_email": "user@example.com",
+      "screenshot": null,
+      "timestamp": "2026-01-30T19:24:43.313254",
+      "admin_notes": "Good idea, will add to backlog",
+      "reviewed_at": "2026-01-30T19:24:43.314216",
+      "reviewed_by": null
+    },
+    {
+      "id": "4872ec30-ca32-409f-8519-c6a7b4d1a02b",
+      "type": "bug",
+      "title": "Test Bug Report",
+      "details": "This is a test bug report to verify the feedback system is working.",
+      "status": "new",
+      "page": "/dashboard",
+      "user_agent": "",
+      "user_email": "test@example.com",
+      "screenshot": null,
+      "timestamp": "2026-01-30T19:23:53.470447",
+      "admin_notes": "",
+      "reviewed_at": null,
+      "reviewed_by": null
+    }
+  ],
+  "created": "2026-01-30T19:23:53.470490",
+  "last_updated": "2026-01-30T19:24:43.314220"
+}

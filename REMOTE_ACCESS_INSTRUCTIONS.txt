@@ -1,0 +1,54 @@
+============================================
+REMOTE ACCESS TO CLAUDE CODE - INSTRUCTIONS
+============================================
+
+Your tunnel is LIVE and waiting for you!
+
+STEP 1: Open this URL in your browser
+-----------------------------------------
+https://expanding-dublin-grab-horse.trycloudflare.com
+
+Wait - that's the WebSocket endpoint. You need the dashboard.
+
+STEP 2: Open the Remote Dashboard
+-----------------------------------------
+Open this file on your other computer (or host it):
+/Users/samanthapollack/Documents/TIny_Seed_OS/web_app/remote-dashboard.html
+
+OR just open it locally on this Mac and it will work.
+
+STEP 3: Enter These Credentials
+-----------------------------------------
+Bridge URL: wss://expanding-dublin-grab-horse.trycloudflare.com
+Token: jTd8PNkQz3UgPTBKre2fUrBsvN3KvVKafdTXlp0QY8w
+
+STEP 4: Click Connect
+-----------------------------------------
+You'll see a terminal and can talk to Claude Code!
+
+============================================
+IMPORTANT NOTES
+============================================
+- Your Mac must stay ON with terminal running
+- The tunnel URL changes if you restart cloudflared
+- The token expires in 7 days
+
+============================================
+CHIEF OF STAFF STATUS
+============================================
+Working on: Speed optimization, Calendar integration, Intelligence
+Priority tasks:
+1. Make page load under 2 seconds
+2. Add calendar widget
+3. Enhance AI intelligence
+
+============================================
+TINYPM STATUS  
+============================================
+Remote bridge: RUNNING (PID 11095)
+Cloudflare tunnel: ACTIVE
+Ready for remote access!
+
+See you from the other side!
+- TinyPM
+============================================

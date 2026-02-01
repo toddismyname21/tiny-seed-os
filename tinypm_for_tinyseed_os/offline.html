@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#6366f1">
+  <title>TinyPM - Offline</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/png" sizes="32x32" href="/pwa-assets/favicon-32x32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/pwa-assets/apple-touch-icon-180.png">
+  <style>
+    :root {
+      --bg-primary: #0f1117;
+      --bg-secondary: #1a1d27;
+      --bg-card: #1e2130;
+      --border: #2a2d3e;
+      --text-primary: #f0f0f5;
+      --text-secondary: #a0a4b8;
+      --text-muted: #6b6f82;
+      --accent: #6366f1;
+      --accent-hover: #818cf8;
+      --green: #22c55e;
+      --yellow: #eab308;
+      --radius: 16px;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .offline-container {
+      text-align: center;
+      max-width: 400px;
+      animation: fadeIn 0.5s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .offline-icon {
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 24px;
+      background: linear-gradient(135deg, var(--accent), #a855f7);
+      border-radius: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.05); opacity: 0.9; }
+    }
+
+    .offline-icon svg {
+      width: 60px;
+      height: 60px;
+      stroke: white;
+      stroke-width: 1.5;
+      fill: none;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      color: var(--text-secondary);
+      font-size: 16px;
+      line-height: 1.6;
+      margin-bottom: 32px;
+    }
+
+    .status-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0;
+    }
+
+    .status-row:not(:last-child) {
+      border-bottom: 1px solid var(--border);
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .status-dot.pending {
+      background: var(--yellow);
+      animation: blink 1.5s ease infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .status-dot.ready {
+      background: var(--green);
+    }
+
+    .status-text {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    .status-text strong {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 14px 28px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      width: 100%;
+    }
+
+    .btn:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .pending-actions {
+      margin-top: 32px;
+      text-align: left;
+    }
+
+    .pending-header {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
+    }
+
+    .pending-item {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .pending-item-icon {
+      width: 36px;
+      height: 36px;
+      background: rgba(99, 102, 241, 0.15);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .pending-item-icon svg {
+      width: 18px;
+      height: 18px;
+      stroke: var(--accent);
+    }
+
+    .pending-item-text {
+      flex: 1;
+    }
+
+    .pending-item-title {
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+
+    .pending-item-time {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    /* Network status indicator */
+    .network-status {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 30px;
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .network-status.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .network-status.online {
+      background: rgba(34, 197, 94, 0.15);
+      border-color: rgba(34, 197, 94, 0.3);
+      color: var(--green);
+    }
+
+    /* Footer */
+    .footer {
+      position: fixed;
+      bottom: 20px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="network-status" id="networkStatus">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+      <polyline points="22 4 12 14.01 9 11.01"/>
+    </svg>
+    <span>Back online!</span>
+  </div>
+
+  <div class="offline-container">
+    <div class="offline-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path d="M1 1l22 22M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/>
+        <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/>
+        <path d="M10.71 5.05A16 16 0 0 1 22.58 9"/>
+        <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/>
+        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+        <circle cx="12" cy="20" r="1"/>
+      </svg>
+    </div>
+
+    <h1>You're Offline</h1>
+    <p class="subtitle">
+      No worries! Your changes are saved locally and will automatically sync when you're back online.
+    </p>
+
+    <div class="status-card">
+      <div class="status-row">
+        <div class="status-dot pending"></div>
+        <div class="status-text">
+          <strong>Waiting for connection</strong>
+        </div>
+      </div>
+      <div class="status-row">
+        <div class="status-dot ready"></div>
+        <div class="status-text">
+          <strong id="pendingCount">0</strong> pending actions ready to sync
+        </div>
+      </div>
+      <div class="status-row">
+        <div class="status-dot ready"></div>
+        <div class="status-text">
+          Cached data available for viewing
+        </div>
+      </div>
+    </div>
+
+    <button class="btn" onclick="retryConnection()">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M23 4v6h-6"/>
+        <path d="M1 20v-6h6"/>
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+      </svg>
+      Try Again
+    </button>
+
+    <div class="pending-actions" id="pendingActions">
+      <div class="pending-header">Pending Changes</div>
+      <div id="pendingList">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    TinyPM works offline - your data is safe
+  </div>
+
+  <script>
+    // Check for pending actions in localStorage
+    function loadPendingActions() {
+      try {
+        const queue = JSON.parse(localStorage.getItem('tinypm_offline_queue') || '[]');
+        const pendingList = document.getElementById('pendingList');
+        const pendingCount = document.getElementById('pendingCount');
+        const pendingActions = document.getElementById('pendingActions');
+
+        pendingCount.textContent = queue.length;
+
+        if (queue.length === 0) {
+          pendingActions.classList.add('hidden');
+          return;
+        }
+
+        pendingActions.classList.remove('hidden');
+        pendingList.innerHTML = '';
+
+        queue.slice(0, 5).forEach(action => {
+          const item = document.createElement('div');
+          item.className = 'pending-item';
+          item.innerHTML = `
+            <div class="pending-item-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
+            </div>
+            <div class="pending-item-text">
+              <div class="pending-item-title">${action.description || action.type || 'Pending action'}</div>
+              <div class="pending-item-time">${formatTime(action.timestamp)}</div>
+            </div>
+          `;
+          pendingList.appendChild(item);
+        });
+
+        if (queue.length > 5) {
+          const more = document.createElement('div');
+          more.className = 'pending-item';
+          more.innerHTML = `
+            <div class="pending-item-text">
+              <div class="pending-item-title" style="color: var(--text-muted);">
+                +${queue.length - 5} more actions pending
+              </div>
+            </div>
+          `;
+          pendingList.appendChild(more);
+        }
+      } catch (e) {
+        console.error('Error loading pending actions:', e);
+      }
+    }
+
+    function formatTime(timestamp) {
+      if (!timestamp) return 'Just now';
+      const diff = Date.now() - timestamp;
+      const minutes = Math.floor(diff / 60000);
+      if (minutes < 1) return 'Just now';
+      if (minutes < 60) return `${minutes}m ago`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `${hours}h ago`;
+      return `${Math.floor(hours / 24)}d ago`;
+    }
+
+    function retryConnection() {
+      const btn = document.querySelector('.btn');
+      btn.innerHTML = `
+        <svg class="spin" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10" stroke-dasharray="60" stroke-dashoffset="20"/>
+        </svg>
+        Checking...
+      `;
+
+      // Add spin animation
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        .spin { animation: spin 1s linear infinite; }
+      `;
+      document.head.appendChild(style);
+
+      // Check connection
+      fetch('/manifest.json', { cache: 'no-store' })
+        .then(response => {
+          if (response.ok) {
+            showOnline();
+            setTimeout(() => {
+              window.location.href = '/web_dashboard.html';
+            }, 1000);
+          } else {
+            throw new Error('Still offline');
+          }
+        })
+        .catch(() => {
+          btn.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M23 4v6h-6"/>
+              <path d="M1 20v-6h6"/>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+            </svg>
+            Try Again
+          `;
+        });
+    }
+
+    function showOnline() {
+      const status = document.getElementById('networkStatus');
+      status.classList.add('visible', 'online');
+    }
+
+    // Listen for online event
+    window.addEventListener('online', () => {
+      showOnline();
+      setTimeout(() => {
+        window.location.href = '/web_dashboard.html';
+      }, 1500);
+    });
+
+    // Listen for service worker sync messages
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data?.type === 'SYNC_COMPLETE') {
+          loadPendingActions();
+        }
+      });
+    }
+
+    // Initial load
+    loadPendingActions();
+
+    // Periodically check connection
+    setInterval(() => {
+      if (navigator.onLine) {
+        fetch('/manifest.json', { cache: 'no-store' })
+          .then(response => {
+            if (response.ok) {
+              showOnline();
+              setTimeout(() => {
+                window.location.href = '/web_dashboard.html';
+              }, 1000);
+            }
+          })
+          .catch(() => {});
+      }
+    }, 5000);
+  </script>
+</body>
+</html>

@@ -1,0 +1,105 @@
+{
+  "updated_at": "2026-01-31T18:23:45.140371",
+  "nudges": [
+    {
+      "id": "7bbd58a1-9de7-4530-ab0d-586ed533a73e",
+      "type": "contact_reminder",
+      "title": "Reach out to Marcus Chen",
+      "message": "It's been 45 days since you last connected",
+      "priority": "medium",
+      "created_at": "2026-01-31T09:46:25.954988",
+      "expires_at": "2026-02-02T09:46:25.954988",
+      "action_url": null,
+      "action_label": "Send Message",
+      "metadata": {
+        "contact_id": "150f5e3d-76cf-4c48-83c2-5b11f2883b52",
+        "contact_name": "Marcus Chen",
+        "contact_email": "marcus@company.com"
+      },
+      "read": false,
+      "dismissed": true,
+      "helpful": null,
+      "dismissed_at": "2026-01-31T09:46:25.956387"
+    },
+    {
+      "id": "af05bdb9-af11-4aee-af80-ea48bccda044",
+      "type": "contact_reminder",
+      "title": "Reach out to Sarah Mitchell",
+      "message": "It's been 14 days since you last connected",
+      "priority": "medium",
+      "created_at": "2026-01-31T09:46:25.955475",
+      "expires_at": "2026-02-02T09:46:25.955476",
+      "action_url": null,
+      "action_label": "Send Message",
+      "metadata": {
+        "contact_id": "ecc29102-872f-480f-b1c9-c51637081666",
+        "contact_name": "Sarah Mitchell",
+        "contact_email": "sarah@example.com"
+      },
+      "read": false,
+      "dismissed": false,
+      "helpful": null,
+      "dismissed_at": null
+    },
+    {
+      "id": "594efa93-b17f-46e9-ab65-6ca2549f7927",
+      "type": "contact_reminder",
+      "title": "Reach out to David Park",
+      "message": "It's been 20 days since you last connected",
+      "priority": "medium",
+      "created_at": "2026-01-31T09:46:25.955663",
+      "expires_at": "2026-02-02T09:46:25.955663",
+      "action_url": null,
+      "action_label": "Send Message",
+      "metadata": {
+        "contact_id": "1ac61c9d-a868-4f1a-8974-8a0f1fe9fb84",
+        "contact_name": "David Park",
+        "contact_email": "david@client.com"
+      },
+      "read": false,
+      "dismissed": false,
+      "helpful": null,
+      "dismissed_at": null
+    },
+    {
+      "id": "73bfa965-aab8-406a-9edc-136158b64b98",
+      "type": "contact_reminder",
+      "title": "Reach out to Marcus Chen",
+      "message": "It's been 45 days since you last connected",
+      "priority": "medium",
+      "created_at": "2026-01-31T18:23:45.139692",
+      "expires_at": "2026-02-02T18:23:45.139692",
+      "action_url": null,
+      "action_label": "Send Message",
+      "metadata": {
+        "contact_id": "150f5e3d-76cf-4c48-83c2-5b11f2883b52",
+        "contact_name": "Marcus Chen",
+        "contact_email": "marcus@company.com"
+      },
+      "read": false,
+      "dismissed": false,
+      "helpful": null,
+      "dismissed_at": null
+    },
+    {
+      "id": "0738aa55-5bca-45d9-b0fb-b530dfa5ba49",
+      "type": "contact_reminder",
+      "title": "Reach out to Mom",
+      "message": "It's been 10 days since you last connected",
+      "priority": "medium",
+      "created_at": "2026-01-31T18:23:45.140365",
+      "expires_at": "2026-02-02T18:23:45.140366",
+      "action_url": null,
+      "action_label": "Send Message",
+      "metadata": {
+        "contact_id": "1e601bb6-e988-4b61-83c5-b56fea50f226",
+        "contact_name": "Mom",
+        "contact_email": null
+      },
+      "read": false,
+      "dismissed": false,
+      "helpful": null,
+      "dismissed_at": null
+    }
+  ]
+}

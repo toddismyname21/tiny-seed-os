@@ -1,0 +1,77 @@
+{
+  "updated_at": "2026-01-31T18:23:59.222433",
+  "contacts": [
+    {
+      "id": "ecc29102-872f-480f-b1c9-c51637081666",
+      "name": "Sarah Mitchell",
+      "email": "sarah@example.com",
+      "phone": null,
+      "relationship_type": "close_friend",
+      "last_contact": "2026-01-31T09:46:25.956764",
+      "contact_cadence_days": null,
+      "birthday": "03-15",
+      "notes": "",
+      "active": true
+    },
+    {
+      "id": "150f5e3d-76cf-4c48-83c2-5b11f2883b52",
+      "name": "Marcus Chen",
+      "email": "marcus@company.com",
+      "phone": null,
+      "relationship_type": "colleague",
+      "last_contact": "2026-01-31T18:23:59.222427",
+      "contact_cadence_days": null,
+      "birthday": "07-22",
+      "notes": "",
+      "active": true
+    },
+    {
+      "id": "1e601bb6-e988-4b61-83c5-b56fea50f226",
+      "name": "Mom",
+      "email": null,
+      "phone": "+1-555-0123",
+      "relationship_type": "family",
+      "last_contact": "2026-01-31T18:23:57.499633",
+      "contact_cadence_days": null,
+      "birthday": "05-08",
+      "notes": "",
+      "active": true
+    },
+    {
+      "id": "1ac61c9d-a868-4f1a-8974-8a0f1fe9fb84",
+      "name": "David Park",
+      "email": "david@client.com",
+      "phone": null,
+      "relationship_type": "client",
+      "last_contact": "2026-01-31T18:23:58.454528",
+      "contact_cadence_days": null,
+      "birthday": null,
+      "notes": "",
+      "active": true
+    },
+    {
+      "id": "49765332-2965-4f81-a3b4-e1dffbaf14f6",
+      "name": "Emma Williams",
+      "email": "emma@example.com",
+      "phone": null,
+      "relationship_type": "friend",
+      "last_contact": "2026-01-28T09:42:46.881659",
+      "contact_cadence_days": null,
+      "birthday": "02-14",
+      "notes": "",
+      "active": true
+    },
+    {
+      "id": "41079fdb-2828-47de-b529-3e511747b496",
+      "name": "Bob",
+      "email": "bob@bob.com",
+      "phone": "8678675309",
+      "relationship_type": "friend",
+      "last_contact": "2026-01-31T18:23:55.731164",
+      "contact_cadence_days": null,
+      "birthday": "03-15",
+      "notes": "",
+      "active": true
+    }
+  ]
+}

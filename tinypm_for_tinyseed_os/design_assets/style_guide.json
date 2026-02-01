@@ -1,0 +1,166 @@
+{
+  "name": "TinyPM Wizard Theme",
+  "version": "1.0.0",
+  "created_at": "2026-01-30",
+  "theme": "Wizard / Mad Scientist Laboratory",
+
+  "colors": {
+    "primary": {
+      "main": "#6B21A8",
+      "light": "#A855F7",
+      "dark": "#4C1D95",
+      "description": "Royal purple - the color of wizardry and wisdom"
+    },
+    "secondary": {
+      "main": "#059669",
+      "light": "#34D399",
+      "dark": "#047857",
+      "description": "Mystical emerald - potions and nature magic"
+    },
+    "accent": {
+      "gold": "#F59E0B",
+      "amber": "#FBBF24",
+      "cyan": "#06B6D4",
+      "pink": "#EC4899",
+      "description": "Magical accents for highlights and effects"
+    },
+    "background": {
+      "dark": "#0F0F1A",
+      "medium": "#1A1A2E",
+      "light": "#252540",
+      "card": "#1E1E32",
+      "description": "Laboratory darkness - mysterious and professional"
+    },
+    "text": {
+      "primary": "#F8FAFC",
+      "secondary": "#94A3B8",
+      "muted": "#64748B",
+      "description": "Clear, readable text hierarchy"
+    },
+    "status": {
+      "success": "#22C55E",
+      "warning": "#EAB308",
+      "error": "#EF4444",
+      "info": "#3B82F6"
+    }
+  },
+
+  "typography": {
+    "fonts": {
+      "display": "Cinzel Decorative",
+      "heading": "Cinzel",
+      "body": "Inter",
+      "mono": "JetBrains Mono"
+    },
+    "scale": {
+      "xs": "0.75rem",
+      "sm": "0.875rem",
+      "base": "1rem",
+      "lg": "1.125rem",
+      "xl": "1.25rem",
+      "2xl": "1.5rem",
+      "3xl": "1.875rem",
+      "4xl": "2.25rem",
+      "5xl": "3rem"
+    },
+    "usage": {
+      "display": "Main titles, hero sections",
+      "heading": "Section headings, card titles",
+      "body": "All body text, UI elements",
+      "mono": "Code, data, technical values"
+    }
+  },
+
+  "effects": {
+    "glows": {
+      "purple": "0 0 20px rgba(168, 85, 247, 0.4)",
+      "gold": "0 0 20px rgba(251, 191, 36, 0.4)",
+      "cyan": "0 0 20px rgba(6, 182, 212, 0.4)",
+      "emerald": "0 0 20px rgba(52, 211, 153, 0.4)"
+    },
+    "shadows": {
+      "sm": "0 1px 2px rgba(0, 0, 0, 0.5)",
+      "md": "0 4px 6px rgba(0, 0, 0, 0.5)",
+      "lg": "0 10px 15px rgba(0, 0, 0, 0.5)",
+      "xl": "0 20px 25px rgba(0, 0, 0, 0.5)"
+    },
+    "animations": [
+      "pulse-glow: Breathing glow effect",
+      "float: Gentle vertical float",
+      "shimmer: Horizontal light sweep",
+      "sparkle: Scale and opacity pulse",
+      "rotate-slow: Continuous slow rotation"
+    ]
+  },
+
+  "components": {
+    "cards": {
+      "background": "#1E1E32",
+      "border": "1px solid rgba(168, 85, 247, 0.1)",
+      "radius": "0.75rem",
+      "hover": "Add purple glow, lift -2px"
+    },
+    "buttons": {
+      "primary": "Purple gradient with glow shadow",
+      "secondary": "Transparent with border",
+      "magical": "Gold-purple gradient with shimmer"
+    },
+    "inputs": {
+      "background": "#0F0F1A",
+      "border": "rgba(168, 85, 247, 0.2)",
+      "focus": "Purple border with glow ring"
+    }
+  },
+
+  "characters": {
+    "pm_wizard": {
+      "name": "The Grand Orchestrator",
+      "colors": ["#6B21A8", "#A855F7", "#F59E0B"],
+      "symbol": "staff_crystal"
+    },
+    "builder_golem": {
+      "name": "The Code Golem",
+      "colors": ["#059669", "#34D399", "#06B6D4"],
+      "symbol": "hammer_lightning"
+    },
+    "research_owl": {
+      "name": "The Knowledge Seeker",
+      "colors": ["#3B82F6", "#60A5FA", "#A855F7"],
+      "symbol": "eye_book"
+    },
+    "time_wizard": {
+      "name": "The Chronos Keeper",
+      "colors": ["#F59E0B", "#FBBF24", "#F97316"],
+      "symbol": "hourglass_sun"
+    },
+    "critic_specter": {
+      "name": "The Quality Specter",
+      "colors": ["#EC4899", "#F472B6", "#EF4444"],
+      "symbol": "magnifying_flame"
+    },
+    "data_alchemist": {
+      "name": "The Data Alchemist",
+      "colors": ["#06B6D4", "#22D3EE", "#10B981"],
+      "symbol": "flask_data"
+    },
+    "artistic_director": {
+      "name": "The Chromatic Sage",
+      "colors": ["#F59E0B", "#A855F7", "#06B6D4"],
+      "symbol": "palette_wand"
+    }
+  },
+
+  "accessibility": {
+    "min_contrast_normal": 4.5,
+    "min_contrast_large": 3.0,
+    "focus_indicators": "Required on all interactive elements",
+    "motion": "Respect prefers-reduced-motion"
+  },
+
+  "notes": [
+    "All colors should have appropriate contrast ratios",
+    "Glowing effects should not impede readability",
+    "Animations should be subtle and purposeful",
+    "Dark theme is primary - light theme optional"
+  ]
+}

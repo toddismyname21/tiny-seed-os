@@ -1,0 +1,26 @@
+# Nixpacks configuration for Railway
+# https://nixpacks.com/docs/configuration/file
+# TinyPM Production Configuration
+
+[phases.setup]
+nixPkgs = ["python311", "gcc", "libffi"]
+
+[phases.install]
+cmds = [
+    "pip install --upgrade pip",
+    "pip install -r requirements.txt"
+]
+
+[phases.build]
+cmds = [
+    "python -c 'print(\"TinyPM build verification complete\")'",
+    "python -c 'import anthropic; print(f\"Anthropic SDK: {anthropic.__version__}\")'"
+]
+
+[start]
+cmd = "python web_server.py"
+
+[variables]
+PYTHON_VERSION = "3.11"
+PYTHONUNBUFFERED = "1"
+PYTHONDONTWRITEBYTECODE = "1"

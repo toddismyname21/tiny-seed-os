@@ -1,0 +1,860 @@
+<!--
+  TinyPM Remote Terminal Panel
+  ============================
+  Standalone HTML module that can be included in web_dashboard.html
+  Provides WebSocket-based remote access to Claude Code CLI
+
+  To integrate:
+  1. Add the styles to the <style> section
+  2. Add the HTML structure to the main content area
+  3. Add the tab button to the view-tabs
+  4. Add the JavaScript to the <script> section
+  5. Update switchTab() function
+
+  Created: 2026-01-30
+-->
+
+<!-- ═══════════════════════════════════════════════════════════════════════════════
+     STYLES - Add these to the <style> section of web_dashboard.html
+     ═══════════════════════════════════════════════════════════════════════════════ -->
+<style>
+  /* ═══ REMOTE TERMINAL STYLES ═══ */
+  .terminal-container {
+    background: #0d1117;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    height: calc(100vh - 260px);
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .terminal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: rgba(22, 27, 34, 0.95);
+    border-bottom: 1px solid rgba(48, 54, 61, 0.8);
+  }
+
+  .terminal-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .terminal-status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--red);
+    box-shadow: 0 0 8px var(--red);
+    transition: all 0.3s;
+  }
+
+  .terminal-status-dot.connected {
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+  }
+
+  .terminal-status-dot.connecting {
+    background: var(--yellow);
+    box-shadow: 0 0 8px var(--yellow);
+    animation: pulse 1s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .terminal-status-text {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  .terminal-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .terminal-output {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    font-family: 'SF Mono', 'Fira Code', 'Monaco', 'Consolas', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #e6edf3;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .terminal-output::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .terminal-output::-webkit-scrollbar-track {
+    background: #161b22;
+  }
+
+  .terminal-output::-webkit-scrollbar-thumb {
+    background: #30363d;
+    border-radius: 4px;
+  }
+
+  .terminal-line {
+    margin-bottom: 4px;
+  }
+
+  .terminal-line.user {
+    color: #58a6ff;
+  }
+
+  .terminal-line.user::before {
+    content: '> ';
+    color: #7ee787;
+  }
+
+  .terminal-line.system {
+    color: #8b949e;
+    font-style: italic;
+  }
+
+  .terminal-line.error {
+    color: #f85149;
+  }
+
+  .terminal-line.output {
+    color: #e6edf3;
+  }
+
+  .terminal-input-area {
+    display: flex;
+    gap: 8px;
+    padding: 12px 16px;
+    background: rgba(22, 27, 34, 0.95);
+    border-top: 1px solid rgba(48, 54, 61, 0.8);
+  }
+
+  .terminal-input {
+    flex: 1;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 10px 14px;
+    color: #e6edf3;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 13px;
+    resize: none;
+    min-height: 42px;
+    max-height: 120px;
+  }
+
+  .terminal-input:focus {
+    outline: none;
+    border-color: #58a6ff;
+    box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+  }
+
+  .terminal-input::placeholder {
+    color: #484f58;
+  }
+
+  .terminal-send-btn {
+    background: #238636;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 20px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .terminal-send-btn:hover {
+    background: #2ea043;
+  }
+
+  .terminal-send-btn:disabled {
+    background: #21262d;
+    color: #484f58;
+    cursor: not-allowed;
+  }
+
+  /* Connection Setup Panel */
+  .terminal-setup {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 40px;
+    text-align: center;
+  }
+
+  .terminal-setup-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+    opacity: 0.8;
+  }
+
+  .terminal-setup h3 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+  }
+
+  .terminal-setup p {
+    color: var(--text-secondary);
+    margin-bottom: 24px;
+    max-width: 400px;
+    line-height: 1.6;
+  }
+
+  .terminal-setup-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+    max-width: 360px;
+  }
+
+  .terminal-setup-form .form-group {
+    text-align: left;
+  }
+
+  .terminal-setup-form .form-input {
+    background: var(--bg-primary);
+  }
+
+  .terminal-instructions {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 20px;
+    text-align: left;
+    max-width: 500px;
+  }
+
+  .terminal-instructions h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .terminal-instructions code {
+    background: rgba(0,0,0,0.3);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'SF Mono', monospace;
+    font-size: 12px;
+    color: #58a6ff;
+  }
+
+  .terminal-instructions ol {
+    padding-left: 20px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 1.8;
+  }
+
+  /* Session Info Panel */
+  .session-info {
+    display: flex;
+    gap: 16px;
+    padding: 12px 16px;
+    background: rgba(22, 27, 34, 0.6);
+    border-bottom: 1px solid rgba(48, 54, 61, 0.5);
+    font-size: 12px;
+  }
+
+  .session-info-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-muted);
+  }
+
+  .session-info-item span {
+    color: var(--text-secondary);
+  }
+
+  /* Quick Commands */
+  .quick-commands {
+    display: flex;
+    gap: 6px;
+    padding: 8px 16px;
+    background: rgba(22, 27, 34, 0.4);
+    border-bottom: 1px solid rgba(48, 54, 61, 0.3);
+    overflow-x: auto;
+  }
+
+  .quick-cmd {
+    padding: 4px 10px;
+    background: #21262d;
+    border: 1px solid #30363d;
+    border-radius: 4px;
+    color: #8b949e;
+    font-size: 11px;
+    font-family: 'SF Mono', monospace;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+
+  .quick-cmd:hover {
+    background: #30363d;
+    color: #e6edf3;
+    border-color: #484f58;
+  }
+</style>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════════
+     HTML STRUCTURE - Add this after the agents-view section
+     ═══════════════════════════════════════════════════════════════════════════════ -->
+
+<!-- TAB BUTTON - Add this to .view-tabs -->
+<!--
+<button class="view-tab" id="terminal-tab-btn" onclick="switchTab('terminal', this)">
+  Remote Terminal <span class="tab-badge" id="terminal-badge" style="display:none;background:var(--green)">LIVE</span>
+</button>
+-->
+
+<!-- REMOTE TERMINAL VIEW -->
+<div class="main-content" id="terminal-view" style="display:none">
+  <div style="padding:20px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div>
+        <div style="font-size:16px;font-weight:700;color:var(--text-primary);display:flex;align-items:center;gap:8px">
+          <span style="font-size:20px">></span> Remote Terminal
+        </div>
+        <div style="font-size:12px;color:var(--text-muted)" id="terminal-subtitle">Chat with Claude Code from anywhere - Developer Tier Feature</div>
+      </div>
+      <div class="terminal-actions">
+        <button class="btn btn-ghost btn-sm" onclick="terminalShowSetup()" id="terminal-settings-btn">
+          Settings
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="terminalClearOutput()">
+          Clear
+        </button>
+      </div>
+    </div>
+
+    <!-- Terminal Container -->
+    <div class="terminal-container" id="terminal-container">
+      <!-- Setup Panel (shown when not connected) -->
+      <div class="terminal-setup" id="terminal-setup">
+        <div class="terminal-setup-icon">></div>
+        <h3>Connect to Claude Code</h3>
+        <p>
+          Access Claude Code CLI remotely through the TinyPM bridge.
+          Run commands, chat with Claude, and manage your projects from anywhere.
+        </p>
+
+        <div class="terminal-setup-form">
+          <div class="form-group">
+            <label class="form-label">Bridge URL</label>
+            <input type="text" class="form-input" id="terminal-url"
+                   placeholder="ws://localhost:8765" value="ws://localhost:8765">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Access Token</label>
+            <input type="password" class="form-input" id="terminal-token"
+                   placeholder="Enter your access token">
+          </div>
+          <button class="btn btn-primary" onclick="terminalConnect()" id="terminal-connect-btn">
+            Connect
+          </button>
+        </div>
+
+        <div class="terminal-instructions">
+          <h4>Setup Instructions</h4>
+          <ol>
+            <li>Start the bridge server on your machine:<br>
+                <code>python remote_terminal_bridge.py start</code></li>
+            <li>Generate an access token:<br>
+                <code>python remote_terminal_bridge.py token new</code></li>
+            <li>If accessing remotely, use ngrok:<br>
+                <code>ngrok tcp 8765</code></li>
+            <li>Enter the bridge URL and token above</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- Active Terminal (shown when connected) -->
+      <div id="terminal-active" style="display:none;height:100%;display:flex;flex-direction:column">
+        <!-- Header -->
+        <div class="terminal-header">
+          <div class="terminal-status">
+            <div class="terminal-status-dot" id="terminal-status-dot"></div>
+            <span class="terminal-status-text" id="terminal-status-text">Disconnected</span>
+          </div>
+          <div class="terminal-actions">
+            <button class="btn btn-ghost btn-sm" onclick="terminalRestart()" title="Restart Claude session">
+              Restart
+            </button>
+            <button class="btn btn-danger btn-sm" onclick="terminalDisconnect()">
+              Disconnect
+            </button>
+          </div>
+        </div>
+
+        <!-- Session Info -->
+        <div class="session-info" id="terminal-session-info">
+          <div class="session-info-item">
+            Session: <span id="terminal-session-id">--</span>
+          </div>
+          <div class="session-info-item">
+            Connected: <span id="terminal-connected-time">--</span>
+          </div>
+          <div class="session-info-item">
+            Latency: <span id="terminal-latency">--</span>
+          </div>
+        </div>
+
+        <!-- Quick Commands -->
+        <div class="quick-commands">
+          <button class="quick-cmd" onclick="terminalQuickCmd('help')">help</button>
+          <button class="quick-cmd" onclick="terminalQuickCmd('status')">status</button>
+          <button class="quick-cmd" onclick="terminalQuickCmd('What files are in this directory?')">ls</button>
+          <button class="quick-cmd" onclick="terminalQuickCmd('Show me the project structure')">tree</button>
+          <button class="quick-cmd" onclick="terminalQuickCmd('What tasks are pending?')">tasks</button>
+          <button class="quick-cmd" onclick="terminalQuickCmd('Summarize recent changes')">changes</button>
+        </div>
+
+        <!-- Output -->
+        <div class="terminal-output" id="terminal-output">
+          <div class="terminal-line system">Connecting to Claude Code...</div>
+        </div>
+
+        <!-- Input -->
+        <div class="terminal-input-area">
+          <textarea class="terminal-input" id="terminal-input"
+                    placeholder="Type a message or command..."
+                    rows="1"
+                    onkeydown="terminalInputKeydown(event)"></textarea>
+          <button class="terminal-send-btn" onclick="terminalSend()" id="terminal-send-btn" disabled>
+            Send
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════════
+     JAVASCRIPT - Add this to the <script> section
+     ═══════════════════════════════════════════════════════════════════════════════ -->
+<script>
+// ═══════════════════════════════════════════════════════════════════════════════
+// REMOTE TERMINAL BRIDGE CLIENT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const TerminalBridge = {
+  socket: null,
+  sessionId: null,
+  isConnected: false,
+  reconnectAttempts: 0,
+  maxReconnectAttempts: 5,
+  reconnectDelay: 2000,
+  heartbeatInterval: null,
+  lastHeartbeat: null,
+  connectedAt: null,
+  savedToken: null,
+  savedUrl: null,
+
+  // ═══ CONNECTION ═══
+  async connect(url, token) {
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      console.log('Already connected');
+      return;
+    }
+
+    this.savedUrl = url;
+    this.savedToken = token;
+
+    // Save to localStorage for reconnection
+    localStorage.setItem('terminal_url', url);
+    localStorage.setItem('terminal_token', token);
+
+    this.updateStatus('connecting', 'Connecting...');
+    this.addOutput('system', `Connecting to ${url}...`);
+
+    try {
+      this.socket = new WebSocket(url);
+
+      this.socket.onopen = () => {
+        console.log('WebSocket connected, sending auth...');
+        // Send authentication
+        this.send({
+          type: 'auth',
+          content: token,
+          session_id: this.sessionId  // Resume session if we have one
+        });
+      };
+
+      this.socket.onmessage = (event) => {
+        this.handleMessage(event.data);
+      };
+
+      this.socket.onclose = (event) => {
+        console.log('WebSocket closed:', event.code, event.reason);
+        this.handleDisconnect(event);
+      };
+
+      this.socket.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        this.addOutput('error', 'Connection error. Check the bridge URL and ensure the server is running.');
+      };
+
+    } catch (err) {
+      console.error('Connection failed:', err);
+      this.addOutput('error', `Connection failed: ${err.message}`);
+      this.updateStatus('disconnected', 'Connection failed');
+    }
+  },
+
+  disconnect() {
+    if (this.socket) {
+      this.socket.close(1000, 'User disconnected');
+      this.socket = null;
+    }
+    this.isConnected = false;
+    this.sessionId = null;
+    this.stopHeartbeat();
+    this.updateStatus('disconnected', 'Disconnected');
+    this.showSetup();
+  },
+
+  // ═══ MESSAGE HANDLING ═══
+  send(data) {
+    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+      console.error('Cannot send: socket not open');
+      return false;
+    }
+    const msg = typeof data === 'string' ? data : JSON.stringify(data);
+    this.socket.send(msg);
+    return true;
+  },
+
+  sendMessage(text) {
+    if (!text.trim()) return;
+
+    this.addOutput('user', text);
+    this.send({
+      type: 'message',
+      content: text,
+      session_id: this.sessionId,
+      timestamp: new Date().toISOString()
+    });
+  },
+
+  sendCommand(cmd) {
+    this.send({
+      type: 'command',
+      content: cmd,
+      session_id: this.sessionId,
+      timestamp: new Date().toISOString()
+    });
+  },
+
+  handleMessage(raw) {
+    try {
+      const msg = JSON.parse(raw);
+
+      switch (msg.type) {
+        case 'status':
+          this.handleStatus(msg);
+          break;
+        case 'output':
+          this.addOutput('output', msg.content, msg.metadata);
+          break;
+        case 'error':
+          this.addOutput('error', msg.content);
+          break;
+        case 'heartbeat':
+          this.handleHeartbeat(msg);
+          break;
+        default:
+          console.log('Unknown message type:', msg.type);
+      }
+    } catch (err) {
+      // Plain text output
+      this.addOutput('output', raw);
+    }
+  },
+
+  handleStatus(msg) {
+    if (msg.session_id) {
+      this.sessionId = msg.session_id;
+      document.getElementById('terminal-session-id').textContent = msg.session_id.slice(0, 8);
+    }
+
+    if (msg.content.includes('Connected')) {
+      this.isConnected = true;
+      this.connectedAt = new Date();
+      this.reconnectAttempts = 0;
+      this.updateStatus('connected', 'Connected');
+      this.showTerminal();
+      this.startHeartbeat();
+      this.addOutput('system', msg.content);
+
+      // Show badge
+      const badge = document.getElementById('terminal-badge');
+      if (badge) {
+        badge.style.display = 'inline-flex';
+        badge.textContent = 'LIVE';
+      }
+    } else if (msg.content.includes('started')) {
+      this.addOutput('system', 'Claude Code session started. Ready for input.');
+    } else {
+      this.addOutput('system', msg.content);
+    }
+
+    // Update session info
+    if (msg.metadata) {
+      if (msg.metadata.server_version) {
+        console.log('Server version:', msg.metadata.server_version);
+      }
+    }
+  },
+
+  handleDisconnect(event) {
+    this.isConnected = false;
+    this.stopHeartbeat();
+
+    // Hide badge
+    const badge = document.getElementById('terminal-badge');
+    if (badge) badge.style.display = 'none';
+
+    if (event.code === 1000) {
+      // Normal close
+      this.updateStatus('disconnected', 'Disconnected');
+      return;
+    }
+
+    // Attempt reconnection
+    if (this.reconnectAttempts < this.maxReconnectAttempts && this.savedUrl && this.savedToken) {
+      this.reconnectAttempts++;
+      this.updateStatus('connecting', `Reconnecting (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
+      this.addOutput('system', `Connection lost. Reconnecting in ${this.reconnectDelay/1000}s...`);
+
+      setTimeout(() => {
+        this.connect(this.savedUrl, this.savedToken);
+      }, this.reconnectDelay);
+    } else {
+      this.updateStatus('disconnected', 'Disconnected');
+      this.addOutput('error', 'Connection lost. Click Connect to try again.');
+      this.showSetup();
+    }
+  },
+
+  // ═══ HEARTBEAT ═══
+  startHeartbeat() {
+    this.stopHeartbeat();
+    this.heartbeatInterval = setInterval(() => {
+      if (this.isConnected) {
+        const start = Date.now();
+        this.lastHeartbeat = start;
+        this.send({ type: 'heartbeat', content: 'ping' });
+      }
+    }, 30000);
+  },
+
+  stopHeartbeat() {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    }
+  },
+
+  handleHeartbeat(msg) {
+    if (this.lastHeartbeat) {
+      const latency = Date.now() - this.lastHeartbeat;
+      document.getElementById('terminal-latency').textContent = `${latency}ms`;
+    }
+  },
+
+  // ═══ UI UPDATES ═══
+  updateStatus(state, text) {
+    const dot = document.getElementById('terminal-status-dot');
+    const statusText = document.getElementById('terminal-status-text');
+
+    if (dot) {
+      dot.className = 'terminal-status-dot';
+      if (state === 'connected') dot.classList.add('connected');
+      else if (state === 'connecting') dot.classList.add('connecting');
+    }
+
+    if (statusText) statusText.textContent = text;
+  },
+
+  addOutput(type, content, metadata = {}) {
+    const output = document.getElementById('terminal-output');
+    if (!output) return;
+
+    // Handle ANSI escape codes (basic support)
+    content = this.stripAnsi(content);
+
+    // Split by newlines and add each line
+    const lines = content.split('\n');
+    lines.forEach(line => {
+      if (line.trim() || type === 'output') {
+        const lineDiv = document.createElement('div');
+        lineDiv.className = `terminal-line ${type}`;
+        lineDiv.textContent = line;
+        output.appendChild(lineDiv);
+      }
+    });
+
+    // Auto-scroll to bottom
+    output.scrollTop = output.scrollHeight;
+
+    // Limit output lines (keep last 1000)
+    while (output.children.length > 1000) {
+      output.removeChild(output.firstChild);
+    }
+  },
+
+  stripAnsi(text) {
+    // Remove ANSI escape codes
+    return text.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '');
+  },
+
+  clearOutput() {
+    const output = document.getElementById('terminal-output');
+    if (output) output.innerHTML = '';
+  },
+
+  showSetup() {
+    document.getElementById('terminal-setup').style.display = 'flex';
+    document.getElementById('terminal-active').style.display = 'none';
+  },
+
+  showTerminal() {
+    document.getElementById('terminal-setup').style.display = 'none';
+    document.getElementById('terminal-active').style.display = 'flex';
+    document.getElementById('terminal-send-btn').disabled = false;
+
+    // Focus input
+    document.getElementById('terminal-input').focus();
+
+    // Update connected time
+    this.updateConnectedTime();
+  },
+
+  updateConnectedTime() {
+    if (!this.connectedAt) return;
+
+    const update = () => {
+      const elapsed = Math.floor((Date.now() - this.connectedAt) / 1000);
+      const mins = Math.floor(elapsed / 60);
+      const secs = elapsed % 60;
+      document.getElementById('terminal-connected-time').textContent =
+        `${mins}m ${secs}s`;
+    };
+
+    update();
+    setInterval(update, 1000);
+  },
+
+  // ═══ INITIALIZATION ═══
+  init() {
+    // Check for saved credentials
+    const savedUrl = localStorage.getItem('terminal_url');
+    const savedToken = localStorage.getItem('terminal_token');
+
+    if (savedUrl) {
+      document.getElementById('terminal-url').value = savedUrl;
+    }
+    if (savedToken) {
+      document.getElementById('terminal-token').value = savedToken;
+    }
+
+    // Auto-grow textarea
+    const input = document.getElementById('terminal-input');
+    if (input) {
+      input.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+      });
+    }
+  }
+};
+
+// ═══ PUBLIC FUNCTIONS (called from HTML) ═══
+
+function terminalConnect() {
+  const url = document.getElementById('terminal-url').value.trim();
+  const token = document.getElementById('terminal-token').value.trim();
+
+  if (!url) {
+    showToast('Please enter a bridge URL', 'error');
+    return;
+  }
+  if (!token) {
+    showToast('Please enter an access token', 'error');
+    return;
+  }
+
+  TerminalBridge.connect(url, token);
+}
+
+function terminalDisconnect() {
+  TerminalBridge.disconnect();
+}
+
+function terminalSend() {
+  const input = document.getElementById('terminal-input');
+  const text = input.value.trim();
+
+  if (text) {
+    TerminalBridge.sendMessage(text);
+    input.value = '';
+    input.style.height = 'auto';
+  }
+}
+
+function terminalInputKeydown(event) {
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault();
+    terminalSend();
+  }
+}
+
+function terminalQuickCmd(cmd) {
+  document.getElementById('terminal-input').value = cmd;
+  terminalSend();
+}
+
+function terminalClearOutput() {
+  TerminalBridge.clearOutput();
+}
+
+function terminalShowSetup() {
+  TerminalBridge.showSetup();
+}
+
+function terminalRestart() {
+  TerminalBridge.sendCommand('restart');
+  TerminalBridge.addOutput('system', 'Restarting Claude session...');
+}
+
+// Initialize on load
+document.addEventListener('DOMContentLoaded', () => {
+  TerminalBridge.init();
+});
+
+// ═══ SWITCH TAB UPDATE ═══
+// Add this line to the switchTab function:
+// document.getElementById('terminal-view').style.display = tab === 'terminal' ? 'block' : 'none';
+</script>

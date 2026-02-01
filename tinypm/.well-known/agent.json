@@ -1,0 +1,137 @@
+{
+  "name": "TinyPM Orchestrator",
+  "description": "Intelligent project management agent with predictive capabilities, multi-agent coordination, proactive intelligence, and behavioral pattern analysis. Part of the Tiny Seed Farm OS ecosystem.",
+  "version": "1.0.0",
+  "url": "http://localhost:8000/a2a",
+  "provider": {
+    "organization": "Tiny Seed Farm",
+    "url": "https://tinyseedfarm.com"
+  },
+  "documentationUrl": "https://github.com/TinySeedFarm/tinypm/docs",
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": true,
+    "stateTransitionHistory": true
+  },
+  "securitySchemes": {
+    "apiKey": {
+      "type": "apiKey",
+      "in": "header",
+      "name": "X-TinyPM-API-Key"
+    }
+  },
+  "security": ["apiKey"],
+  "defaultInputModes": ["text/plain", "application/json"],
+  "defaultOutputModes": ["text/plain", "application/json"],
+  "skills": [
+    {
+      "id": "task_management",
+      "name": "Task Management",
+      "description": "Create, update, track, and complete project tasks. Supports prioritization, assignment, dependencies, and status tracking. Can delegate development tasks to the Builder agent.",
+      "tags": ["tasks", "projects", "planning", "tracking", "management", "delegation"],
+      "examples": [
+        "Create a new task for implementing user authentication",
+        "What tasks are currently in progress?",
+        "Mark task #123 as complete",
+        "Assign the API refactor task to Builder",
+        "Show me overdue tasks",
+        "What's blocking our launch?"
+      ],
+      "inputModes": ["text/plain"],
+      "outputModes": ["text/plain", "application/json"]
+    },
+    {
+      "id": "predictive_intent",
+      "name": "Predictive Intelligence",
+      "description": "Predict user needs based on behavioral patterns, time-of-day context, calendar state, and work history. Uses Markov chains, LRU pattern caching, and context fusion to generate proactive suggestions before the user asks. SOTA 2026 implementation with pattern mining, sequence prediction, and confidence scoring.",
+      "tags": ["prediction", "proactive", "intelligence", "patterns", "suggestions", "behavioral", "anticipation"],
+      "examples": [
+        "What should I focus on next?",
+        "Analyze my work patterns",
+        "When is the best time for deep work?",
+        "What tasks typically follow my current activity?",
+        "Predict what I need before I ask"
+      ],
+      "inputModes": ["text/plain"],
+      "outputModes": ["text/plain", "application/json"]
+    },
+    {
+      "id": "agent_delegation",
+      "name": "Agent Delegation",
+      "description": "Delegate development tasks to the Builder agent for code generation, bug fixes, and feature implementation. Coordinates multi-agent workflows with task queuing, status tracking, and completion monitoring.",
+      "tags": ["delegation", "development", "builder", "code", "automation", "multi-agent"],
+      "examples": [
+        "Build a new API endpoint for user management",
+        "Fix the authentication bug in the login flow",
+        "Implement the new dashboard feature",
+        "Refactor the database queries for performance",
+        "What is Builder working on?"
+      ],
+      "inputModes": ["text/plain"],
+      "outputModes": ["text/plain", "application/json"]
+    },
+    {
+      "id": "status_reporting",
+      "name": "Status Reporting",
+      "description": "Get comprehensive status reports on projects, tasks, builder progress, and system health. Includes launch readiness tracking, alert consolidation, and calendar/email context integration.",
+      "tags": ["status", "reporting", "progress", "metrics", "health", "monitoring"],
+      "examples": [
+        "Give me a project status update",
+        "How is the Builder progressing?",
+        "Show me the system health report",
+        "What's our launch readiness percentage?",
+        "How many tasks are in each status?"
+      ],
+      "inputModes": ["text/plain"],
+      "outputModes": ["text/plain", "application/json"]
+    },
+    {
+      "id": "wizard_council",
+      "name": "Wizard Council Decision",
+      "description": "Multi-agent collaborative decision making for complex architectural choices and strategic decisions. Gathers perspectives from multiple expert agents to reach consensus on difficult problems.",
+      "tags": ["decision", "council", "collaboration", "architecture", "strategy", "consensus"],
+      "examples": [
+        "Should we use PostgreSQL or MongoDB for this project?",
+        "Evaluate the architecture options for our new service",
+        "What's the best approach for scaling our API?",
+        "Analyze the tradeoffs between microservices and monolith"
+      ],
+      "inputModes": ["text/plain"],
+      "outputModes": ["text/plain", "application/json"]
+    },
+    {
+      "id": "wild_claims_research",
+      "name": "Wild Claims Verification",
+      "description": "Research and verify claims about technologies, products, or statements. Uses the Wild Claims Czar agent to fact-check and provide sourced evidence for or against claims.",
+      "tags": ["research", "verification", "fact-check", "claims", "evidence", "truth"],
+      "examples": [
+        "Is it true that Python is faster than JavaScript for web servers?",
+        "Verify this claim about React Native performance",
+        "Research whether this vendor's promises are realistic",
+        "Fact-check this technology comparison"
+      ],
+      "inputModes": ["text/plain"],
+      "outputModes": ["text/plain", "application/json"]
+    }
+  ],
+  "extensions": {
+    "tinypm.predictive": {
+      "version": "2026.1",
+      "features": [
+        "markov_chain_prediction",
+        "lru_pattern_caching",
+        "context_fusion",
+        "proactive_suggestions",
+        "behavioral_pattern_mining",
+        "confidence_scoring",
+        "timing_intelligence"
+      ]
+    },
+    "tinypm.integrations": {
+      "calendar": true,
+      "email": true,
+      "supabase": true,
+      "langgraph": true
+    }
+  }
+}

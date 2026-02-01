@@ -1,0 +1,41 @@
+# TinyPM Docker Compose Configuration
+#
+# Development: docker compose up
+# Production:  docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+version: '3.8'
+
+services:
+  tinypm:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${PORT:-8000}:8000"
+    environment:
+      - PORT=8000
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-http://localhost:8000/oauth/callback}
+      - TINYPM_AUTONOMY_LEVEL=${TINYPM_AUTONOMY_LEVEL:-2}
+      - TINYPM_DEBUG=${TINYPM_DEBUG:-false}
+      - A2A_API_KEYS=${A2A_API_KEYS}
+    volumes:
+      # Persist uploads
+      - tinypm_uploads:/app/uploads
+      # Persist board and state (for development)
+      - ./board.json:/app/board.json
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  tinypm_uploads:

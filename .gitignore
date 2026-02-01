@@ -53,3 +53,5 @@ chief_of_staff/.env
 
 # Business documents - private
 business_docs/
+OAUTH_CREDENTIALS.md
+*.rtf

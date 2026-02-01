@@ -1,0 +1,16 @@
+{
+  "updated_at": "2026-01-31T09:46:25.957223",
+  "goals": [
+    {
+      "id": "88495e46-94d1-40c4-8cc9-5fe22f1fd270",
+      "title": "Test Goal - Launch MVP",
+      "description": "Complete the MVP launch",
+      "target_date": "2026-03-02T09:46:25.957215",
+      "progress": 25,
+      "milestones": [],
+      "created_at": "2026-01-31T09:46:25.957220",
+      "status": "active",
+      "category": "work"
+    }
+  ]
+}

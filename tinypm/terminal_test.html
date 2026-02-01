@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>WebSocket Test</title>
+  <style>
+    body { font-family: monospace; padding: 20px; background: #1a1a2e; color: #eee; }
+    .log { background: #0a0a1a; padding: 10px; margin: 10px 0; border-radius: 8px; max-height: 300px; overflow-y: auto; }
+    input, button { padding: 10px; margin: 5px; }
+    input { width: 300px; }
+    button { cursor: pointer; background: #4CAF50; color: white; border: none; border-radius: 4px; }
+    .error { color: #f85149; }
+    .success { color: #7ee787; }
+    .info { color: #58a6ff; }
+  </style>
+</head>
+<body>
+  <h1>WebSocket Bridge Test</h1>
+  <div>
+    <input type="text" id="url" value="ws://localhost:8765" placeholder="WebSocket URL">
+    <input type="text" id="token" value="eUvs1lMj76j0uJaG4-7c3YOa4dGoS0FfaqeK9I4tLOQ" placeholder="Token">
+    <button onclick="testConnect()">Test Connect</button>
+  </div>
+  <div class="log" id="log"></div>
+
+  <script>
+    function log(msg, type='info') {
+      const logDiv = document.getElementById('log');
+      const line = document.createElement('div');
+      line.className = type;
+      line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      logDiv.appendChild(line);
+      logDiv.scrollTop = logDiv.scrollHeight;
+      console.log(msg);
+    }
+
+    function testConnect() {
+      const url = document.getElementById('url').value;
+      const token = document.getElementById('token').value;
+
+      log(`Connecting to ${url}...`);
+
+      try {
+        const ws = new WebSocket(url);
+        log('WebSocket object created', 'success');
+
+        ws.onopen = () => {
+          log('WebSocket OPEN! Sending auth...', 'success');
+          ws.send(JSON.stringify({ type: 'auth', content: token }));
+        };
+
+        ws.onmessage = (event) => {
+          log(`Received: ${event.data}`, 'success');
+        };
+
+        ws.onerror = (err) => {
+          log(`WebSocket ERROR: ${JSON.stringify(err)}`, 'error');
+        };
+
+        ws.onclose = (event) => {
+          log(`WebSocket CLOSED: code=${event.code}, reason=${event.reason}`, 'info');
+        };
+      } catch (err) {
+        log(`Exception: ${err.message}`, 'error');
+      }
+    }
+  </script>
+</body>
+</html>

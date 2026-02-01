@@ -1,0 +1,839 @@
+/**
+ * PREDICTIVE DELAY SHIELD - CSS Styles
+ * =====================================
+ * Elegant, non-intrusive UI for focus protection
+ *
+ * Design Principles:
+ * - Subtle when inactive, clear when active
+ * - Non-blocking interactions
+ * - Consistent with Tiny Seed OS design language
+ * - Dark mode optimized
+ */
+
+/* ========================================
+   CSS Variables
+   ======================================== */
+:root {
+    /* Shield-specific colors */
+    --pds-bg-primary: #1a1a2e;
+    --pds-bg-secondary: #16213e;
+    --pds-bg-card: #1f2a48;
+    --pds-bg-card-hover: #283555;
+    --pds-bg-elevated: #243354;
+    --pds-bg-overlay: rgba(0, 0, 0, 0.85);
+
+    /* Text */
+    --pds-text-primary: #f5f5f5;
+    --pds-text-secondary: #b8c5d6;
+    --pds-text-muted: #8899a8;
+
+    /* Borders */
+    --pds-border-color: #2a3f5f;
+    --pds-border-light: #344968;
+    --pds-border-focus: #5b8def;
+
+    /* Accents */
+    --pds-accent-green: #4ade80;
+    --pds-accent-green-dim: #22c55e;
+    --pds-accent-blue: #60a5fa;
+    --pds-accent-purple: #a78bfa;
+    --pds-accent-amber: #fbbf24;
+    --pds-accent-red: #f87171;
+    --pds-accent-teal: #2dd4bf;
+
+    /* Shield-specific */
+    --pds-shield-glow: rgba(74, 222, 128, 0.4);
+    --pds-shield-border: rgba(74, 222, 128, 0.6);
+
+    /* Shadows */
+    --pds-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.25);
+    --pds-shadow-md: 0 4px 20px rgba(0, 0, 0, 0.35);
+    --pds-shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.45);
+    --pds-shadow-glow: 0 0 30px var(--pds-shield-glow);
+
+    /* Timing */
+    --pds-transition-fast: 0.15s ease;
+    --pds-transition-normal: 0.25s ease;
+    --pds-transition-slow: 0.4s ease;
+}
+
+/* ========================================
+   Container Positioning
+   ======================================== */
+.pds-container {
+    position: fixed;
+    z-index: 10000;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--pds-text-primary);
+    -webkit-font-smoothing: antialiased;
+}
+
+.pds-container.pds-top-right {
+    top: 20px;
+    right: 20px;
+}
+
+.pds-container.pds-top-left {
+    top: 20px;
+    left: 20px;
+}
+
+.pds-container.pds-bottom-right {
+    bottom: 20px;
+    right: 20px;
+}
+
+.pds-container.pds-bottom-left {
+    bottom: 20px;
+    left: 20px;
+}
+
+/* ========================================
+   Shield Active Border Effect
+   ======================================== */
+body.pds-shield-active {
+    position: relative;
+}
+
+body.pds-shield-active::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 3px solid var(--pds-shield-border);
+    border-radius: 0;
+    pointer-events: none;
+    z-index: 9999;
+    animation: pds-shield-pulse 3s ease-in-out infinite;
+    box-shadow: inset 0 0 50px rgba(74, 222, 128, 0.1);
+}
+
+@keyframes pds-shield-pulse {
+    0%, 100% {
+        border-color: rgba(74, 222, 128, 0.6);
+        box-shadow: inset 0 0 50px rgba(74, 222, 128, 0.1);
+    }
+    50% {
+        border-color: rgba(74, 222, 128, 0.3);
+        box-shadow: inset 0 0 30px rgba(74, 222, 128, 0.05);
+    }
+}
+
+/* Shield corner indicator */
+body.pds-shield-active::after {
+    content: '\1F6E1';
+    position: fixed;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 20px;
+    padding: 4px 12px;
+    background: var(--pds-bg-elevated);
+    border: 1px solid var(--pds-shield-border);
+    border-top: none;
+    border-radius: 0 0 10px 10px;
+    z-index: 10001;
+    animation: pds-badge-glow 2s ease-in-out infinite;
+}
+
+@keyframes pds-badge-glow {
+    0%, 100% { box-shadow: 0 4px 15px var(--pds-shield-glow); }
+    50% { box-shadow: 0 4px 25px var(--pds-shield-glow); }
+}
+
+/* ========================================
+   Focus Indicator (Always Visible)
+   ======================================== */
+.pds-focus-indicator {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    background: var(--pds-bg-card);
+    border: 1px solid var(--pds-border-color);
+    border-radius: 20px;
+    opacity: 0.7;
+    transition: opacity var(--pds-transition-normal);
+    cursor: pointer;
+}
+
+.pds-focus-indicator:hover {
+    opacity: 1;
+    border-color: var(--pds-border-light);
+}
+
+.pds-focus-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--pds-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.pds-focus-bar {
+    width: 60px;
+    height: 6px;
+    background: var(--pds-bg-secondary);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.pds-focus-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--pds-accent-blue);
+    border-radius: 3px;
+    transition: width var(--pds-transition-normal), background var(--pds-transition-normal);
+}
+
+/* ========================================
+   Prediction Popup
+   ======================================== */
+.pds-prediction {
+    position: absolute;
+    top: 50px;
+    right: 0;
+    width: 340px;
+    background: var(--pds-bg-elevated);
+    border: 1px solid var(--pds-border-light);
+    border-radius: 16px;
+    box-shadow: var(--pds-shadow-lg);
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+    visibility: hidden;
+    transition: all var(--pds-transition-normal);
+}
+
+.pds-prediction.pds-visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    visibility: visible;
+}
+
+.pds-prediction-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--pds-border-color);
+}
+
+.pds-prediction-icon {
+    font-size: 22px;
+    animation: pds-icon-pulse 2s ease-in-out infinite;
+}
+
+@keyframes pds-icon-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+.pds-prediction-title {
+    flex: 1;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--pds-text-primary);
+}
+
+.pds-prediction-close {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: var(--pds-bg-card);
+    color: var(--pds-text-muted);
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    transition: all var(--pds-transition-fast);
+}
+
+.pds-prediction-close:hover {
+    background: var(--pds-bg-card-hover);
+    color: var(--pds-text-primary);
+}
+
+.pds-prediction-body {
+    padding: 16px;
+}
+
+.pds-prediction-text {
+    font-size: 14px;
+    color: var(--pds-text-secondary);
+    margin-bottom: 14px;
+    line-height: 1.6;
+}
+
+.pds-prediction-text strong {
+    color: var(--pds-accent-green);
+    font-weight: 600;
+}
+
+.pds-prediction-confidence {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--pds-bg-card);
+    border-radius: 8px;
+}
+
+.pds-confidence-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--pds-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.pds-confidence-bar {
+    flex: 1;
+    height: 6px;
+    background: var(--pds-bg-secondary);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.pds-confidence-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--pds-accent-green-dim), var(--pds-accent-green));
+    border-radius: 3px;
+    transition: width var(--pds-transition-slow);
+}
+
+.pds-confidence-value {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--pds-accent-green);
+    min-width: 40px;
+    text-align: right;
+}
+
+.pds-prediction-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0 16px 16px;
+}
+
+/* ========================================
+   Buttons
+   ======================================== */
+.pds-btn {
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all var(--pds-transition-fast);
+    white-space: nowrap;
+}
+
+.pds-btn-primary {
+    background: linear-gradient(135deg, var(--pds-accent-green), var(--pds-accent-green-dim));
+    color: #0a1628;
+    box-shadow: 0 2px 12px rgba(74, 222, 128, 0.3);
+    flex: 1;
+}
+
+.pds-btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(74, 222, 128, 0.4);
+}
+
+.pds-btn-secondary {
+    background: var(--pds-bg-card);
+    color: var(--pds-text-primary);
+    border: 1px solid var(--pds-border-color);
+}
+
+.pds-btn-secondary:hover {
+    background: var(--pds-bg-card-hover);
+    border-color: var(--pds-border-light);
+}
+
+.pds-btn-ghost {
+    background: transparent;
+    color: var(--pds-text-muted);
+    padding: 10px 12px;
+}
+
+.pds-btn-ghost:hover {
+    color: var(--pds-text-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* ========================================
+   Duration Picker
+   ======================================== */
+.pds-duration-picker {
+    padding: 16px;
+}
+
+.pds-duration-presets {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.pds-duration-preset {
+    padding: 12px 8px;
+    background: var(--pds-bg-card);
+    border: 1px solid var(--pds-border-color);
+    border-radius: 8px;
+    color: var(--pds-text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--pds-transition-fast);
+}
+
+.pds-duration-preset:hover {
+    border-color: var(--pds-accent-green);
+    color: var(--pds-text-primary);
+}
+
+.pds-duration-preset.pds-selected {
+    background: rgba(74, 222, 128, 0.15);
+    border-color: var(--pds-accent-green);
+    color: var(--pds-accent-green);
+}
+
+.pds-duration-custom {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-top: 12px;
+    border-top: 1px solid var(--pds-border-color);
+}
+
+.pds-duration-custom label {
+    font-size: 13px;
+    color: var(--pds-text-muted);
+}
+
+.pds-duration-custom input {
+    width: 60px;
+    padding: 8px 10px;
+    background: var(--pds-bg-card);
+    border: 1px solid var(--pds-border-color);
+    border-radius: 8px;
+    color: var(--pds-text-primary);
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+}
+
+.pds-duration-custom input:focus {
+    outline: none;
+    border-color: var(--pds-accent-green);
+}
+
+.pds-duration-custom span {
+    font-size: 13px;
+    color: var(--pds-text-muted);
+}
+
+/* ========================================
+   Active Shield Panel
+   ======================================== */
+.pds-active-shield {
+    position: absolute;
+    top: 50px;
+    right: 0;
+    width: 300px;
+    background: var(--pds-bg-elevated);
+    border: 1px solid var(--pds-shield-border);
+    border-radius: 16px;
+    box-shadow: var(--pds-shadow-lg), var(--pds-shadow-glow);
+    opacity: 0;
+    transform: translateY(-10px);
+    visibility: hidden;
+    transition: all var(--pds-transition-normal);
+}
+
+.pds-active-shield.pds-visible {
+    opacity: 1;
+    transform: translateY(0);
+    visibility: visible;
+}
+
+.pds-shield-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--pds-border-color);
+}
+
+.pds-shield-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.pds-shield-icon {
+    font-size: 22px;
+}
+
+.pds-shield-icon.pds-pulse {
+    animation: pds-shield-icon-pulse 2s ease-in-out infinite;
+}
+
+@keyframes pds-shield-icon-pulse {
+    0%, 100% {
+        filter: drop-shadow(0 0 8px var(--pds-shield-glow));
+    }
+    50% {
+        filter: drop-shadow(0 0 15px var(--pds-shield-glow));
+    }
+}
+
+.pds-shield-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--pds-accent-green);
+}
+
+.pds-shield-end {
+    padding: 6px 12px;
+    background: transparent;
+    border: 1px solid var(--pds-border-color);
+    border-radius: 6px;
+    color: var(--pds-text-muted);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--pds-transition-fast);
+}
+
+.pds-shield-end:hover {
+    border-color: var(--pds-accent-red);
+    color: var(--pds-accent-red);
+}
+
+/* Timer */
+.pds-shield-timer {
+    text-align: center;
+    padding: 20px 16px 10px;
+}
+
+.pds-timer-value {
+    font-size: 42px;
+    font-weight: 700;
+    color: var(--pds-text-primary);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+}
+
+.pds-timer-label {
+    display: block;
+    font-size: 12px;
+    color: var(--pds-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 4px;
+}
+
+/* Progress Bar */
+.pds-shield-progress {
+    height: 4px;
+    background: var(--pds-bg-card);
+    margin: 0 16px;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.pds-progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--pds-accent-green-dim), var(--pds-accent-green));
+    border-radius: 2px;
+    transition: width 1s linear;
+}
+
+/* Notification Queue */
+.pds-shield-queue {
+    padding: 14px 16px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.pds-queue-empty {
+    text-align: center;
+    color: var(--pds-text-muted);
+    font-size: 13px;
+    padding: 10px 0;
+}
+
+.pds-queue-empty span {
+    display: block;
+    font-size: 24px;
+    margin-bottom: 8px;
+}
+
+.pds-queue-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.pds-queue-count {
+    color: var(--pds-accent-amber);
+    font-weight: 600;
+}
+
+.pds-queue-allowed {
+    color: var(--pds-text-muted);
+}
+
+.pds-queue-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.pds-queue-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: var(--pds-bg-card);
+    border-radius: 8px;
+    font-size: 13px;
+}
+
+.pds-queue-item.pds-held {
+    border-left: 3px solid var(--pds-accent-amber);
+}
+
+.pds-queue-item.pds-allowed {
+    border-left: 3px solid var(--pds-accent-red);
+    opacity: 0.8;
+}
+
+.pds-queue-icon {
+    font-size: 14px;
+}
+
+.pds-queue-text {
+    flex: 1;
+    color: var(--pds-text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pds-queue-status {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--pds-text-muted);
+}
+
+/* ========================================
+   Summary (After Shield Ends)
+   ======================================== */
+.pds-summary {
+    text-align: center;
+    padding: 24px 16px;
+}
+
+.pds-summary-icon {
+    font-size: 36px;
+    display: block;
+    margin-bottom: 12px;
+}
+
+.pds-summary-text {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--pds-text-primary);
+    margin-bottom: 12px;
+}
+
+.pds-summary-stats {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    font-size: 12px;
+    color: var(--pds-text-muted);
+}
+
+/* ========================================
+   Animations
+   ======================================== */
+@keyframes pds-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pds-slide-in {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* ========================================
+   Responsive Design
+   ======================================== */
+@media (max-width: 768px) {
+    .pds-container {
+        left: 10px;
+        right: 10px;
+        top: auto;
+        bottom: 70px;
+    }
+
+    .pds-container.pds-top-right,
+    .pds-container.pds-top-left,
+    .pds-container.pds-bottom-right,
+    .pds-container.pds-bottom-left {
+        top: auto;
+        bottom: 70px;
+        left: 10px;
+        right: 10px;
+    }
+
+    .pds-prediction,
+    .pds-active-shield {
+        position: fixed;
+        left: 10px;
+        right: 10px;
+        top: auto;
+        bottom: 10px;
+        width: auto;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .pds-focus-indicator {
+        display: none; /* Hide on mobile to save space */
+    }
+
+    body.pds-shield-active::after {
+        font-size: 16px;
+        padding: 3px 10px;
+    }
+}
+
+/* ========================================
+   Dark Mode Already Default
+   ======================================== */
+/* Light mode override if needed */
+@media (prefers-color-scheme: light) {
+    .pds-container {
+        /* Keep dark for now - can add light mode later */
+    }
+}
+
+/* ========================================
+   Reduced Motion Support
+   ======================================== */
+@media (prefers-reduced-motion: reduce) {
+    .pds-shield-icon.pds-pulse,
+    .pds-prediction-icon,
+    body.pds-shield-active::before,
+    body.pds-shield-active::after {
+        animation: none;
+    }
+
+    .pds-prediction,
+    .pds-active-shield {
+        transition: opacity var(--pds-transition-fast);
+        transform: none !important;
+    }
+}
+
+/* ========================================
+   Manual Trigger Button (Optional)
+   ======================================== */
+.pds-manual-trigger {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--pds-accent-green), var(--pds-accent-teal));
+    border: none;
+    cursor: pointer;
+    box-shadow: var(--pds-shadow-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: #0a1628;
+    transition: all var(--pds-transition-fast);
+    z-index: 9998;
+}
+
+.pds-manual-trigger:hover {
+    transform: scale(1.1);
+    box-shadow: var(--pds-shadow-lg), var(--pds-shadow-glow);
+}
+
+.pds-manual-trigger.pds-hidden {
+    display: none;
+}
+
+/* ========================================
+   Integration with Chief of Staff Header
+   ======================================== */
+.header .pds-mini-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: var(--pds-bg-card);
+    border: 1px solid var(--pds-border-color);
+    border-radius: 20px;
+    font-size: 13px;
+    color: var(--pds-text-secondary);
+    cursor: pointer;
+    transition: all var(--pds-transition-fast);
+}
+
+.header .pds-mini-indicator:hover {
+    border-color: var(--pds-accent-green);
+    color: var(--pds-text-primary);
+}
+
+.header .pds-mini-indicator.pds-active {
+    background: rgba(74, 222, 128, 0.15);
+    border-color: var(--pds-accent-green);
+    color: var(--pds-accent-green);
+}
+
+.header .pds-mini-indicator .pds-mini-icon {
+    font-size: 16px;
+}
+
+.header .pds-mini-indicator .pds-mini-text {
+    font-weight: 500;
+}

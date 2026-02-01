@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form DCED-BFTC-001 - Beginning Farmer Tax Credit Certification</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Open Sans', Arial, sans-serif;
+            font-size: 11pt;
+            line-height: 1.4;
+            color: #000;
+            max-width: 8.5in;
+            margin: 0 auto;
+            padding: 0.5in;
+            background: white;
+        }
+
+        .page {
+            page-break-after: always;
+            min-height: 10in;
+        }
+
+        .page:last-child {
+            page-break-after: avoid;
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #000;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        .state-seal {
+            font-size: 14pt;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .dept-name {
+            font-size: 11pt;
+            margin-bottom: 10px;
+        }
+
+        .form-title {
+            font-size: 16pt;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .form-number {
+            font-size: 10pt;
+            color: #333;
+        }
+
+        .section {
+            margin: 20px 0;
+            border: 1px solid #000;
+        }
+
+        .section-header {
+            background: #000;
+            color: white;
+            padding: 8px 12px;
+            font-weight: bold;
+            font-size: 11pt;
+        }
+
+        .section-content {
+            padding: 15px;
+        }
+
+        .form-row {
+            display: flex;
+            margin-bottom: 12px;
+            align-items: flex-start;
+        }
+
+        .form-label {
+            font-weight: 600;
+            min-width: 180px;
+        }
+
+        .form-value {
+            flex: 1;
+            border-bottom: 1px solid #666;
+            padding-bottom: 2px;
+            min-height: 20px;
+        }
+
+        .filled-value {
+            color: #00008B;
+            font-weight: 500;
+        }
+
+        .checkbox-item {
+            margin: 15px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            background: #f9f9f9;
+        }
+
+        .checkbox-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .checkbox {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #000;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 16pt;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .checkbox.checked {
+            background: #e8f5e9;
+        }
+
+        .checkbox-text {
+            flex: 1;
+            font-size: 10pt;
+        }
+
+        .experience-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .experience-table th,
+        .experience-table td {
+            border: 1px solid #000;
+            padding: 8px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .experience-table th {
+            background: #e0e0e0;
+            font-weight: 600;
+        }
+
+        .experience-table td {
+            font-size: 10pt;
+        }
+
+        .filled-cell {
+            color: #00008B;
+        }
+
+        .requirement-box {
+            border: 1px solid #000;
+            margin: 15px 0;
+        }
+
+        .requirement-header {
+            background: #e0e0e0;
+            padding: 8px 12px;
+            font-weight: bold;
+            border-bottom: 1px solid #000;
+        }
+
+        .requirement-content {
+            padding: 12px;
+        }
+
+        .requirement-quote {
+            font-style: italic;
+            color: #333;
+            margin-bottom: 10px;
+            padding: 8px;
+            background: #f5f5f5;
+            border-left: 3px solid #666;
+        }
+
+        .attachment-note {
+            background: #e8f5e9;
+            border: 1px solid #4caf50;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 10pt;
+        }
+
+        .signature-section {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #000;
+        }
+
+        .signature-line {
+            display: flex;
+            align-items: flex-end;
+            margin: 15px 0;
+        }
+
+        .signature-line .label {
+            min-width: 120px;
+            font-weight: 600;
+        }
+
+        .signature-line .line {
+            flex: 1;
+            border-bottom: 1px solid #000;
+            margin: 0 10px;
+            min-height: 25px;
+        }
+
+        .signature-line .date-line {
+            max-width: 150px;
+        }
+
+        .instructions-box {
+            background: #fff3e0;
+            border: 1px solid #ff9800;
+            padding: 12px;
+            margin: 15px 0;
+            font-size: 10pt;
+        }
+
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 9pt;
+            color: #666;
+            border-top: 1px solid #ccc;
+            padding-top: 10px;
+        }
+
+        @media print {
+            body {
+                padding: 0.25in;
+            }
+            .page {
+                page-break-after: always;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- PAGE 1 -->
+    <div class="page">
+        <div class="header">
+            <div class="state-seal">COMMONWEALTH OF PENNSYLVANIA</div>
+            <div class="dept-name">Department of Community & Economic Development</div>
+            <div class="form-title">BEGINNING FARMER TAX CREDIT CERTIFICATION</div>
+            <div class="form-number">Form DCED-BFTC-001 (Rev. 06/2020)</div>
+        </div>
+
+        <div class="instructions-box">
+            <strong>INSTRUCTIONS:</strong> Complete all sections of this form. Attach required documentation as specified in Section 2.
+            Submit to PA DCED, Center for Business Financing, 400 North Street, 4th Floor, Harrisburg, PA 17120,
+            or apply online through the PA Enterprise eGrants System.
+        </div>
+
+        <!-- SECTION 1: PERSONAL INFORMATION -->
+        <div class="section">
+            <div class="section-header">SECTION 1: BEGINNING FARMER INFORMATION</div>
+            <div class="section-content">
+                <div class="form-row">
+                    <span class="form-label">1. NAME:</span>
+                    <span class="form-value filled-value">Todd Wilson</span>
+                </div>
+                <div class="form-row">
+                    <span class="form-label">2. SPOUSE (if applicable):</span>
+                    <span class="form-value filled-value">N/A</span>
+                </div>
+                <div class="form-row">
+                    <span class="form-label">3. ADDRESS:</span>
+                    <span class="form-value filled-value">102 N Pittsburgh St, Zelienople, PA 16063</span>
+                </div>
+                <div class="form-row">
+                    <span class="form-label">4. PHONE NUMBER:</span>
+                    <span class="form-value filled-value">(717) 725-5177</span>
+                </div>
+                <div class="form-row">
+                    <span class="form-label">5. EMAIL ADDRESS:</span>
+                    <span class="form-value filled-value">todd@tinyseedfarmpgh.com</span>
+                </div>
+                <div class="form-row">
+                    <span class="form-label">6. FARM BUSINESS NAME:</span>
+                    <span class="form-value filled-value">Tiny Seed Farm LLC</span>
+                </div>
+                <div class="form-row">
+                    <span class="form-label">7. FARM LOCATION:</span>
+                    <span class="form-value filled-value">257 Zeigler Rd, Rochester, PA 15074 (Beaver County)</span>
+                </div>
+                <div class="form-row">
+                    <span class="form-label">8. EIN/SSN:</span>
+                    <span class="form-value filled-value">81-5299411</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 2: ELIGIBILITY REQUIREMENTS -->
+        <div class="section">
+            <div class="section-header">SECTION 2: ELIGIBILITY REQUIREMENTS - Check all boxes that apply</div>
+            <div class="section-content">
+                <p style="margin-bottom: 15px; font-size: 10pt;">
+                    To be certified as a Beginning Farmer, you must meet ALL of the following requirements.
+                    Check each box to certify compliance.
+                </p>
+
+                <div class="checkbox-item">
+                    <div class="checkbox-row">
+                        <div class="checkbox checked">X</div>
+                        <div class="checkbox-text">
+                            <strong>1. EXPERIENCE CERTIFICATION</strong><br>
+                            I hereby certify that I have experience in the agriculture industry or related field or other transferable skills.
+                            <br><em>(Supporting documentation: Schedule F history, experience table below)</em>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="checkbox-item">
+                    <div class="checkbox-row">
+                        <div class="checkbox checked">X</div>
+                        <div class="checkbox-text">
+                            <strong>2. LESS THAN 10 YEARS OF FARM INCOME</strong><br>
+                            I hereby certify that I have not received federal gross income from agricultural production for more than the 10 most recent taxable years.
+                            <br><em>(First Schedule F filed: 2018 - approximately 7 years of farming income)</em>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="checkbox-item">
+                    <div class="checkbox-row">
+                        <div class="checkbox checked">X</div>
+                        <div class="checkbox-text">
+                            <strong>3. PA FARMING INTENT</strong><br>
+                            I hereby certify that I intend to engage in agricultural production within the borders of this Commonwealth and to provide a majority of the labor and management involved in that agricultural production.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="checkbox-item">
+                    <div class="checkbox-row">
+                        <div class="checkbox checked">X</div>
+                        <div class="checkbox-text">
+                            <strong>4. NOT RELATED TO LANDOWNER</strong><br>
+                            I hereby certify that I am not, and my spouse is not, a partner, member, shareholder, or trustee of the owner of agricultural assets from whom I seek to purchase or rent agricultural assets.
+                            <br><em>(Landowner: Don Kretschmann / Kretschmann Farm - no ownership relationship)</em>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 3: EXPERIENCE TABLE -->
+        <div class="section">
+            <div class="section-header">SECTION 3: FARMING EXPERIENCE</div>
+            <div class="section-content">
+                <p style="margin-bottom: 10px; font-size: 10pt;">
+                    List your relevant agricultural experience, including employment, education, and training:
+                </p>
+
+                <table class="experience-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 30%;">Experience / Position</th>
+                            <th style="width: 45%;">Job Duties / Responsibilities</th>
+                            <th style="width: 25%;">Dates</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="filled-cell"><strong>Tiny Seed Farm LLC</strong><br>Owner/Operator</td>
+                            <td class="filled-cell">Full management of USDA Certified Organic vegetable and cut flower operation. Responsibilities include: crop planning, field preparation, planting, cultivation, harvest, post-harvest handling, direct sales (farmers markets, CSA, wholesale), employee management (2-4 seasonal workers), financial management, equipment operation, organic certification compliance.</td>
+                            <td class="filled-cell">2017 - Present<br>(9 years)</td>
+                        </tr>
+                        <tr>
+                            <td class="filled-cell"><strong>Kretschmann Farm</strong><br>Farm Employee</td>
+                            <td class="filled-cell">Worked full-time on 40+ year established USDA Certified Organic vegetable operation under mentorship of Don Kretschmann. Responsibilities included all aspects of organic vegetable production: field preparation, planting, cultivation, irrigation, pest/disease management, harvest, post-harvest handling, CSA packing, farmers market sales, equipment operation and maintenance. Learned comprehensive organic farming systems, crop rotation, soil management, and farm business operations.</td>
+                            <td class="filled-cell">Dec 2011 - Aug 2016<br>(4 years, 9 months)</td>
+                        </tr>
+                        <tr>
+                            <td class="filled-cell"><strong>Grow Pittsburgh</strong><br>Farm Apprentice</td>
+                            <td class="filled-cell">Apprenticeship at urban farming non-profit organization. Training in organic vegetable production, urban agriculture techniques, community garden management, and sustainable farming practices. Hands-on experience with planting, cultivation, harvest, and direct sales.</td>
+                            <td class="filled-cell">May 2011 - Nov 2011<br>(7 months)</td>
+                        </tr>
+                        <tr>
+                            <td class="filled-cell"><strong>University Education</strong><br>Prior to Farming</td>
+                            <td class="filled-cell">University studies providing foundation in business principles, critical thinking, and analytical skills applied to farm business development and management.</td>
+                            <td class="filled-cell">Pre-2011</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p style="margin-top: 15px; font-size: 10pt; background: #e8f5e9; padding: 10px; border-left: 3px solid #2d5a27;">
+                    <strong>TOTAL AGRICULTURAL EXPERIENCE:</strong> 14+ years (May 2011 - Present)<br>
+                    Continuous progression from apprentice to farm employee to independent farm owner/operator.
+                </p>
+            </div>
+        </div>
+
+        <div class="footer">
+            Form DCED-BFTC-001 (Rev. 06/2020) | Page 1 of 2
+        </div>
+    </div>
+
+    <!-- PAGE 2 -->
+    <div class="page">
+        <div class="header">
+            <div class="form-title">BEGINNING FARMER TAX CREDIT CERTIFICATION</div>
+            <div class="form-number">Form DCED-BFTC-001 (Rev. 06/2020) - Page 2</div>
+        </div>
+
+        <!-- APPLICATION REQUIREMENTS -->
+        <div class="section">
+            <div class="section-header">SECTION 4: APPLICATION REQUIREMENTS</div>
+            <div class="section-content">
+                <p style="margin-bottom: 15px; font-size: 10pt;">
+                    The following documentation must be attached to this application:
+                </p>
+
+                <div class="requirement-box">
+                    <div class="requirement-header">REQUIREMENT 1: Projected Earnings Statement</div>
+                    <div class="requirement-content">
+                        <div class="requirement-quote">
+                            "Provide a projected earnings statement or pro forma Federal Schedule F to demonstrate profit potential for the farming conducted by the Beginning Farmer."
+                        </div>
+                        <div class="attachment-note">
+                            <strong>ATTACHED:</strong> 2026 Pro Forma Schedule F (Appendix A)<br>
+                            Projected Gross Income: $394,480 | Projected Net Profit: $3,886
+                        </div>
+                    </div>
+                </div>
+
+                <div class="requirement-box">
+                    <div class="requirement-header">REQUIREMENT 2: Verification of Significant Income</div>
+                    <div class="requirement-content">
+                        <div class="requirement-quote">
+                            "Provide verification that the farming conducted by the Beginning Farmer will be a significant source of income for the applicant."
+                        </div>
+                        <div class="attachment-note">
+                            <strong>ATTACHED:</strong> Income Verification Documentation (Appendix A, Section 2)<br>
+                            - Tiny Seed Farm is the PRIMARY occupation and SOLE source of income for Todd Wilson<br>
+                            - Historical revenue: $196,753 (Jan-Sep 2024) to $276,648 (Jan-Sep 2025) = 40.6% YoY growth<br>
+                            - Supporting documents: QuickBooks P&L statements, Schedule F tax returns (2018-2024)
+                        </div>
+                    </div>
+                </div>
+
+                <div class="requirement-box">
+                    <div class="requirement-header">REQUIREMENT 3: Description of Farming</div>
+                    <div class="requirement-content">
+                        <div class="requirement-quote">
+                            "Describe the type of farming that will be conducted by the Beginning Farmer."
+                        </div>
+                        <div class="attachment-note">
+                            <strong>ATTACHED:</strong> Farm Description (Appendix A, Section 3)<br>
+                            - USDA Certified Organic diversified vegetable, cut flower, and gourmet mushroom operation<br>
+                            - 10-12 cultivated acres in Beaver County, PA<br>
+                            - Sales channels: CSA (361 members), wholesale, farmers markets, direct sales<br>
+                            - 2-4 seasonal employees; owner provides majority of labor and 100% of management
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ADDITIONAL CERTIFICATIONS -->
+        <div class="section">
+            <div class="section-header">SECTION 5: ADDITIONAL CERTIFICATIONS</div>
+            <div class="section-content">
+                <div class="checkbox-item">
+                    <div class="checkbox-row">
+                        <div class="checkbox checked">X</div>
+                        <div class="checkbox-text">
+                            <strong>NO JOINT VENTURE</strong><br>
+                            I hereby certify that I am not engaged in farming by means of a joint business venture with the owner/lessor of the property I am buying/leasing or with anyone else who would not meet the definition of a beginning farmer under applicable law.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="checkbox-item">
+                    <div class="checkbox-row">
+                        <div class="checkbox checked">X</div>
+                        <div class="checkbox-text">
+                            <strong>NOTIFICATION AGREEMENT</strong><br>
+                            I hereby certify that I will notify the Department of Community & Economic Development within 60 days if I no longer meet the certification and eligibility requirements of a Beginning Farmer within the three-year certification period.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SIGNATURE SECTION -->
+        <div class="signature-section">
+            <div class="section-header" style="background: #000; color: white; padding: 8px 12px; margin-bottom: 20px;">
+                SECTION 6: ACKNOWLEDGEMENT & SIGNATURE
+            </div>
+
+            <p style="margin-bottom: 20px; font-size: 10pt;">
+                I certify that the information provided in this application is true and accurate to the best of my knowledge.
+                I understand that any false statements may result in denial or revocation of certification and may be subject
+                to penalties under applicable law.
+            </p>
+
+            <div class="signature-line">
+                <span class="label">Signature:</span>
+                <span class="line"></span>
+                <span class="label" style="min-width: 50px;">Date:</span>
+                <span class="line date-line"></span>
+            </div>
+
+            <div class="signature-line">
+                <span class="label">Printed Name:</span>
+                <span class="line" style="color: #00008B; font-weight: 500; padding-left: 10px;">Todd Wilson</span>
+            </div>
+
+            <div class="signature-line">
+                <span class="label">Title:</span>
+                <span class="line" style="color: #00008B; font-weight: 500; padding-left: 10px;">Owner/Operator, Tiny Seed Farm LLC</span>
+            </div>
+        </div>
+
+        <!-- SUBMISSION INFO -->
+        <div style="margin-top: 30px; padding: 15px; background: #e3f2fd; border: 1px solid #2196f3;">
+            <strong>SUBMIT COMPLETED APPLICATION TO:</strong><br><br>
+            <strong>By Mail:</strong><br>
+            Department of Community & Economic Development<br>
+            Center for Business Financing<br>
+            Beginning Farmer Tax Credit Program<br>
+            Commonwealth Keystone Building<br>
+            400 North Street, 4th Floor<br>
+            Harrisburg, PA 17120<br><br>
+            <strong>Online:</strong> PA Enterprise eGrants System - <a href="https://www.esa.dced.state.pa.us">www.esa.dced.state.pa.us</a><br><br>
+            <strong>Questions:</strong> 1-800-379-7448 | ra-dabordfarms@pa.gov
+        </div>
+
+        <div class="footer">
+            Form DCED-BFTC-001 (Rev. 06/2020) | Page 2 of 2
+        </div>
+    </div>
+</body>
+</html>

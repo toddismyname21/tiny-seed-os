@@ -1,0 +1,35 @@
+{
+  "tier": "procedural",
+  "count": 1,
+  "updated_at": "2026-02-01T01:29:40.874397",
+  "items": [
+    {
+      "id": "5f872d8b-8e21-46aa-a3a0-40787901ea5c",
+      "content": "When user says urgent, prioritize immediately and notify within 5 minutes",
+      "memory_type": "procedural",
+      "created_at": "2026-02-01T01:29:40.869982",
+      "last_accessed": "2026-02-01T01:29:40.869983",
+      "access_count": 0,
+      "importance_score": 0.5,
+      "surprise_score": 1.0,
+      "emotional_valence": 0.0,
+      "memory_strength": 1.0,
+      "state": "active",
+      "ttl": null,
+      "entities": [
+        "person_ee11cbb1",
+        "person_ee11cbb1",
+        "person_c70b611c",
+        "person_a7c4a51e",
+        "person_6e44964d"
+      ],
+      "relationships": [],
+      "source_conversation_id": "94d6b9ec-ca3c-4e38-a608-b3c1bdc6533c",
+      "source_message_ids": [],
+      "merged_into": null,
+      "embedding_id": null,
+      "tags": [],
+      "metadata": {}
+    }
+  ]
+}

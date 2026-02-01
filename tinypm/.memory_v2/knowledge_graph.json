@@ -1,0 +1,347 @@
+{
+  "nodes": {
+    "person_ee11cbb1": {
+      "id": "person_ee11cbb1",
+      "name": "User",
+      "entity_type": "person",
+      "attributes": {},
+      "first_seen": "2026-02-01T01:29:33.090923",
+      "last_seen": "2026-02-01T01:29:57.114672",
+      "mention_count": 10,
+      "memory_ids": [
+        "498335c2-bb43-4590-be46-adfe36a24458",
+        "5f872d8b-8e21-46aa-a3a0-40787901ea5c",
+        "b7fae3fc-4e19-4c8b-b8dd-330e6051bae9",
+        "43920678-dfb0-47ea-8564-7c3beca3e622",
+        "771a1f7c-0df2-4957-908f-364ad5d45055"
+      ]
+    },
+    "person_332532dc": {
+      "id": "person_332532dc",
+      "name": "Sam",
+      "entity_type": "person",
+      "attributes": {},
+      "first_seen": "2026-02-01T01:29:33.090923",
+      "last_seen": "2026-02-01T01:29:33.090923",
+      "mention_count": 1,
+      "memory_ids": [
+        "498335c2-bb43-4590-be46-adfe36a24458"
+      ]
+    },
+    "person_25cf8d47": {
+      "id": "person_25cf8d47",
+      "name": "prefers morning",
+      "entity_type": "person",
+      "attributes": {},
+      "first_seen": "2026-02-01T01:29:33.090923",
+      "last_seen": "2026-02-01T01:29:33.090923",
+      "mention_count": 1,
+      "memory_ids": [
+        "498335c2-bb43-4590-be46-adfe36a24458"
+      ]
+    },
+    "person_3602a3ef": {
+      "id": "person_3602a3ef",
+      "name": "meetings and",
+      "entity_type": "person",
+      "attributes": {},
+      "first_seen": "2026-02-01T01:29:33.090923",
+      "last_seen": "2026-02-01T01:29:33.090923",
+      "mention_count": 1,
+      "memory_ids": [
+        "498335c2-bb43-4590-be46-adfe36a24458"
+      ]
+    },
+    "person_4ffdd070": {
+      "id": "person_4ffdd070",
+      "name": "likes concise",
+      "entity_type": "person",
+      "attributes": {},
+      "first_seen": "2026-02-01T01:29:33.090923",
+      "last_seen": "2026-02-01T01:29:33.090923",
+      "mention_count": 1,
+      "memory_ids": [
+        "498335c2-bb43-4590-be46-adfe36a24458"
+      ]
+    },
+    "person_ff5051ea": {
+      "id": "person_ff5051ea",
+      "name": "On January",
+      "entity_type": "person",
+      "attributes": {},
+      "first_seen": "2026-02-01T01:29:37.058991",
+      "last_seen": "2026-02-01T01:29:37.058991",
+      "mention_count": 1,
+      "memory_ids": [
+        "778b5136-7dcb-46b1-b97a-81421dd0dba6"
+      ]
+    },
+    "person_e34437ba": {
+      "id": "person_e34437ba",
+      "name": "the builder",
+      "entity_type": "person",
+      "attributes": {},
+      "first_seen": "2026-02-01T01:29:37.058991",
+      "last_seen": "2026-02-01T01:29:37.058991",
+      "mention_count": 1,
+      "memory_ids": [
+        "778b5136-7dcb-46b1-b97a-81421dd0dba6"
+      ]
+    },
+    "person_88429352": {
+      "id": "person_88429352",
+      "name": "completed task",
+      "entity_type": "person",
+      "attributes": {},
+      "first_seen": "2026-02-01T01:29:37.058991",
+      "last_seen": "2026-02-01T01:29:37.058991",
+      "mention_count": 1,
+      "memory_ids": [
+        "778b5136-7dcb-46b1-b97a-81421dd0dba6"
+      ]
+    },
+    "person_7a8beb44": {
+      "id": "person_7a8beb44",
+      "name": "for the",
+      "entity_type": "person",
+      "attributes": {},
+      "first_seen": "2026-02-01T01:29:37.058991",
+      "last_seen": "2026-02-01T01:29:37.058991",
+      "mention_count": 2,
+      "memory_ids": [
+        "778b5136-7dcb-46b1-b97a-81421dd0dba6"
+      ]
+    },
+    "person_73d8ad70": {
+      "id": "person_73d8ad70",
+      "name": "dashboard redesign",
+      "entity_type": "person",
+      "attributes": {},
+      "first_seen": "2026-02-01T01:29:37.058991",
+      "last_seen": "2026-02-01T01:29:37.058991",
+      "mention_count": 1,
+      "memory_ids": [
+        "778b5136-7dcb-46b1-b97a-81421dd0dba6"
+      ]
+    },
+    "person_c70b611c": {
+      "id": "person_c70b611c",
+      "name": "says urgent",
+      "entity_type": "person",
+      "attributes": {},
+      "first_seen": "2026-02-01T01:29:40.869982",
+      "last_seen": "2026-02-01T01:29:40.869982",
+      "mention_count": 1,
+      "memory_ids": [
+        "5f872d8b-8e21-46aa-a3a0-40787901ea5c"
+      ]
+    },
+    "person_a7c4a51e": {
+      "id": "person_a7c4a51e",
+      "name": "prioritize immediately",
+      "entity_type": "person",
+      "attributes": {},
+      "first_seen": "2026-02-01T01:29:40.869982",
+      "last_seen": "2026-02-01T01:29:40.869982",
+      "mention_count": 1,
+      "memory_ids": [
+        "5f872d8b-8e21-46aa-a3a0-40787901ea5c"
+      ]
+    },
+    "person_6e44964d": {
+      "id": "person_6e44964d",
+      "name": "and notify",
+      "entity_type": "person",
+      "attributes": {},
+      "first_seen": "2026-02-01T01:29:40.869982",
+      "last_seen": "2026-02-01T01:29:40.869982",
+      "mention_count": 1,
+      "memory_ids": [
+        "5f872d8b-8e21-46aa-a3a0-40787901ea5c"
+      ]
+    },
+    "person_0dbff52c": {
+      "id": "person_0dbff52c",
+      "name": "about task",
+      "entity_type": "person",
+      "attributes": {},
+      "first_seen": "2026-02-01T01:29:57.106699",
+      "last_seen": "2026-02-01T01:29:57.106699",
+      "mention_count": 1,
+      "memory_ids": [
+        "b7fae3fc-4e19-4c8b-b8dd-330e6051bae9"
+      ]
+    },
+    "person_62a2c580": {
+      "id": "person_62a2c580",
+      "name": "status at",
+      "entity_type": "person",
+      "attributes": {},
+      "first_seen": "2026-02-01T01:29:57.106699",
+      "last_seen": "2026-02-01T01:29:57.106699",
+      "mention_count": 2,
+      "memory_ids": [
+        "b7fae3fc-4e19-4c8b-b8dd-330e6051bae9"
+      ]
+    },
+    "person_446ae56b": {
+      "id": "person_446ae56b",
+      "name": "daily standup",
+      "entity_type": "person",
+      "attributes": {},
+      "first_seen": "2026-02-01T01:29:57.112095",
+      "last_seen": "2026-02-01T01:29:57.112095",
+      "mention_count": 1,
+      "memory_ids": [
+        "43920678-dfb0-47ea-8564-7c3beca3e622"
+      ]
+    },
+    "person_d7406c02": {
+      "id": "person_d7406c02",
+      "name": "Builder reported",
+      "entity_type": "person",
+      "attributes": {},
+      "first_seen": "2026-02-01T01:29:57.112757",
+      "last_seen": "2026-02-01T01:29:57.112757",
+      "mention_count": 1,
+      "memory_ids": [
+        "12ec6ce3-f5ed-47e0-9dda-7b6a5d5773d3"
+      ]
+    },
+    "person_b43dde84": {
+      "id": "person_b43dde84",
+      "name": "progress on",
+      "entity_type": "person",
+      "attributes": {},
+      "first_seen": "2026-02-01T01:29:57.112757",
+      "last_seen": "2026-02-01T01:29:57.112757",
+      "mention_count": 1,
+      "memory_ids": [
+        "12ec6ce3-f5ed-47e0-9dda-7b6a5d5773d3"
+      ]
+    },
+    "person_381d8eeb": {
+      "id": "person_381d8eeb",
+      "name": "dashboard feature",
+      "entity_type": "person",
+      "attributes": {},
+      "first_seen": "2026-02-01T01:29:57.112757",
+      "last_seen": "2026-02-01T01:29:57.112757",
+      "mention_count": 1,
+      "memory_ids": [
+        "12ec6ce3-f5ed-47e0-9dda-7b6a5d5773d3"
+      ]
+    },
+    "person_c1875419": {
+      "id": "person_c1875419",
+      "name": "the new",
+      "entity_type": "person",
+      "attributes": {},
+      "first_seen": "2026-02-01T01:29:57.114672",
+      "last_seen": "2026-02-01T01:29:57.114672",
+      "mention_count": 1,
+      "memory_ids": [
+        "771a1f7c-0df2-4957-908f-364ad5d45055"
+      ]
+    },
+    "person_c22d78ea": {
+      "id": "person_c22d78ea",
+      "name": "color scheme",
+      "entity_type": "person",
+      "attributes": {},
+      "first_seen": "2026-02-01T01:29:57.114672",
+      "last_seen": "2026-02-01T01:29:57.114672",
+      "mention_count": 1,
+      "memory_ids": [
+        "771a1f7c-0df2-4957-908f-364ad5d45055"
+      ]
+    },
+    "person_f894427c": {
+      "id": "person_f894427c",
+      "name": "Team",
+      "entity_type": "person",
+      "attributes": {},
+      "first_seen": "2026-02-01T01:29:57.116502",
+      "last_seen": "2026-02-01T01:29:57.116502",
+      "mention_count": 2,
+      "memory_ids": [
+        "1d1d5aaa-28b6-4574-8cb2-0e5cbfa1e459"
+      ]
+    },
+    "person_24fbb71a": {
+      "id": "person_24fbb71a",
+      "name": "scheduled for",
+      "entity_type": "person",
+      "attributes": {},
+      "first_seen": "2026-02-01T01:29:57.116502",
+      "last_seen": "2026-02-01T01:29:57.116502",
+      "mention_count": 1,
+      "memory_ids": [
+        "1d1d5aaa-28b6-4574-8cb2-0e5cbfa1e459"
+      ]
+    },
+    "person_b5c485a1": {
+      "id": "person_b5c485a1",
+      "name": "next Monday",
+      "entity_type": "person",
+      "attributes": {},
+      "first_seen": "2026-02-01T01:29:57.116502",
+      "last_seen": "2026-02-01T01:29:57.116502",
+      "mention_count": 2,
+      "memory_ids": [
+        "1d1d5aaa-28b6-4574-8cb2-0e5cbfa1e459"
+      ]
+    },
+    "person_a9c2ebe0": {
+      "id": "person_a9c2ebe0",
+      "name": "Test integration",
+      "entity_type": "person",
+      "attributes": {},
+      "first_seen": "2026-02-01T01:31:44.022469",
+      "last_seen": "2026-02-01T01:31:44.022469",
+      "mention_count": 1,
+      "memory_ids": [
+        "5c53e6d5-58d8-4df8-ba24-e04e9a83fb8a"
+      ]
+    }
+  },
+  "edges": {
+    "528d5c24-7903-450e-8fff-b755f65d49ca": {
+      "id": "528d5c24-7903-450e-8fff-b755f65d49ca",
+      "from_node": "person_332532dc",
+      "to_node": "person_25cf8d47",
+      "relation_type": "prefers",
+      "temporal": "present",
+      "created_at": "2026-02-01T01:29:33.090923",
+      "source_memory_id": "498335c2-bb43-4590-be46-adfe36a24458",
+      "weight": 1.0
+    }
+  },
+  "node_index": {
+    "user": "person_ee11cbb1",
+    "sam": "person_332532dc",
+    "prefers morning": "person_25cf8d47",
+    "meetings and": "person_3602a3ef",
+    "likes concise": "person_4ffdd070",
+    "on january": "person_ff5051ea",
+    "the builder": "person_e34437ba",
+    "completed task": "person_88429352",
+    "for the": "person_7a8beb44",
+    "dashboard redesign": "person_73d8ad70",
+    "says urgent": "person_c70b611c",
+    "prioritize immediately": "person_a7c4a51e",
+    "and notify": "person_6e44964d",
+    "about task": "person_0dbff52c",
+    "status at": "person_62a2c580",
+    "daily standup": "person_446ae56b",
+    "builder reported": "person_d7406c02",
+    "progress on": "person_b43dde84",
+    "dashboard feature": "person_381d8eeb",
+    "the new": "person_c1875419",
+    "color scheme": "person_c22d78ea",
+    "team": "person_f894427c",
+    "scheduled for": "person_24fbb71a",
+    "next monday": "person_b5c485a1",
+    "test integration": "person_a9c2ebe0"
+  }
+}

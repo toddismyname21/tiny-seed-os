@@ -118,6 +118,36 @@
     align-items: center;
   }
 
+  /* ═══ USER AVATAR ═══ */
+  .user-avatar-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+  }
+
+  .user-avatar-mini {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid var(--border);
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(20, 184, 166, 0.2));
+    transition: all 0.2s ease;
+    cursor: pointer;
+  }
+
+  .user-avatar-mini:hover {
+    transform: scale(1.1);
+    border-color: #8B5CF6;
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
+  }
+
+  .user-avatar-mini svg {
+    width: 100%;
+    height: 100%;
+  }
+
   /* ═══ NOTIFICATION BELL ═══ */
   .notification-container {
     position: relative;
@@ -3535,6 +3565,16 @@
     </div>
   </div>
   <div class="header-actions">
+    <!-- User Avatar -->
+    <a href="/avatar-builder" class="user-avatar-link" title="Edit your avatar" id="headerAvatar">
+      <div class="user-avatar-mini" id="headerAvatarSvg">
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="50" cy="50" r="40" fill="linear-gradient(135deg, #8B5CF6, #14B8A6)" opacity="0.3"/>
+          <circle cx="38" cy="50" r="8" fill="#8B5CF6"/>
+          <circle cx="62" cy="50" r="8" fill="#14B8A6"/>
+        </svg>
+      </div>
+    </a>
     <!-- Notification Bell -->
     <div class="notification-container">
       <button class="notification-bell" onclick="toggleNotificationDropdown()" title="Notifications">
@@ -5580,16 +5620,16 @@
       return `
       <div class="activity-item ${act.read ? '' : 'unread'}" data-act-id="${act.id}">
         <div class="act-header">
-          <span class="act-type ${typeLabel}">${typeLabel}</span>
+          <span class="act-type ${typeLabel}">${typeLabel.replace('_', ' ')}</span>
           <span class="act-task-ref">${escapeHtml(act.task_id || '')}</span>
           <span class="act-time">${time}</span>
         </div>
-        <div class="act-title">${escapeHtml(act.title || '')}</div>
+        <div class="act-title">${escapeHtml(act.title || act.description || '')}</div>
         <div class="act-summary">${escapeHtml(act.summary || '')}</div>
         ${filesHtml ? `<div class="act-files">${filesHtml}</div>` : ''}
         <div class="act-actions">
           ${!act.read ? `<button class="btn btn-ghost btn-sm" onclick="markRead('${act.id}')">Mark Read</button>` : ''}
-          <button class="btn btn-ghost btn-sm" onclick="spawnFromActivity('${act.task_id}', '${escapeHtml(act.title || '')}')">Spawn Follow-up</button>
+          <button class="btn btn-ghost btn-sm" onclick="spawnFromActivity('${act.task_id}', '${escapeHtml(act.title || act.description || '')}')">Spawn Follow-up</button>
         </div>
       </div>`;
     }).join('');
@@ -6792,13 +6832,17 @@
     const sendBtn = document.getElementById('chat-send-btn');
 
     if (currentAgent === 'pm') {
-      // PM Direct mode — send message, PM will respond
+      // PM Direct mode — send message and get immediate AI response
       sendBtn.disabled = true;
       sendBtn.textContent = '...';
       try {
         const result = await apiPost('/api/pm/chat', { message: msg });
-        if (result.ok) {
-          addChatMsg('Sent to PM. Response incoming...', 'system');
+        if (result.ok && result.response) {
+          // Show PM's response immediately
+          agentChatHistory['pm'].push({ role: 'agent', content: result.response });
+          addChatMsg(result.response, 'agent');
+        } else if (result.ok) {
+          addChatMsg('Message sent. Waiting for response...', 'system');
         } else {
           addChatMsg('Failed to send. ' + (result.error || ''), 'system');
         }
@@ -7379,7 +7423,11 @@
     savedUrl: null,
 
     async connect(url, token) {
-      if (this.socket && this.socket.readyState === WebSocket.OPEN) return;
+      console.log('[TerminalBridge] connect() called with URL:', url);
+      if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+        console.log('[TerminalBridge] Already connected, returning');
+        return;
+      }
       this.savedUrl = url;
       this.savedToken = token;
       localStorage.setItem('terminal_url', url);
@@ -7388,16 +7436,28 @@
       this.addOutput('system', `Connecting to ${url}...`);
 
       try {
+        console.log('[TerminalBridge] Creating WebSocket...');
         this.socket = new WebSocket(url);
+        console.log('[TerminalBridge] WebSocket created, setting handlers...');
         this.socket.onopen = () => {
+          console.log('[TerminalBridge] WebSocket opened, sending auth...');
+          this.addOutput('system', 'WebSocket connected, authenticating...');
           this.send({ type: 'auth', content: token, session_id: this.sessionId });
         };
-        this.socket.onmessage = (event) => this.handleMessage(event.data);
-        this.socket.onclose = (event) => this.handleDisconnect(event);
-        this.socket.onerror = () => {
+        this.socket.onmessage = (event) => {
+          console.log('[TerminalBridge] Message received:', event.data.substring(0, 100));
+          this.handleMessage(event.data);
+        };
+        this.socket.onclose = (event) => {
+          console.log('[TerminalBridge] WebSocket closed:', event.code, event.reason);
+          this.handleDisconnect(event);
+        };
+        this.socket.onerror = (err) => {
+          console.error('[TerminalBridge] WebSocket error:', err);
           this.addOutput('error', 'Connection error. Check the bridge URL and ensure the server is running.');
         };
       } catch (err) {
+        console.error('[TerminalBridge] Exception:', err);
         this.addOutput('error', `Connection failed: ${err.message}`);
         this.updateStatus('disconnected', 'Connection failed');
       }
@@ -7542,11 +7602,20 @@
     if (savedToken) document.getElementById('terminal-token').value = savedToken;
   }
   function terminalConnect() {
+    console.log('[Terminal] Connect button clicked');
+    showToast('Connecting to bridge...', 'success');
     const url = document.getElementById('terminal-url').value.trim();
     const token = document.getElementById('terminal-token').value.trim();
+    console.log('[Terminal] URL:', url, 'Token length:', token.length);
     if (!url) { showToast('Please enter a bridge URL', 'error'); return; }
     if (!token) { showToast('Please enter an access token', 'error'); return; }
-    TerminalBridge.connect(url, token);
+    console.log('[Terminal] Calling TerminalBridge.connect...');
+    try {
+      TerminalBridge.connect(url, token);
+    } catch (err) {
+      console.error('[Terminal] Error:', err);
+      showToast('Connection error: ' + err.message, 'error');
+    }
   }
   function terminalDisconnect() { TerminalBridge.disconnect(); }
   function terminalSend() {
@@ -8208,6 +8277,47 @@
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initMobileUI);
   else initMobileUI();
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // USER AVATAR LOADING
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  async function loadUserAvatar() {
+    try {
+      const response = await fetch('/api/avatar/get');
+      const data = await response.json();
+
+      if (data.state) {
+        // Generate mini avatar SVG
+        const s = data.state;
+        const miniSvg = `
+          <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="miniBody" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:${s.bodyTone || '#F5D0C5'}"/>
+                <stop offset="100%" style="stop-color:${s.bodyTone || '#F5D0C5'}"/>
+              </linearGradient>
+            </defs>
+            <path d="M 50,15 C 75,25 80,45 80,55 C 80,75 70,90 50,90 C 30,90 20,75 20,55 C 20,45 25,25 50,15 Z"
+                  fill="url(#miniBody)" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
+            <circle cx="38" cy="50" r="10" fill="${s.magicEyeColor || '#8B5CF6'}"/>
+            <circle cx="62" cy="50" r="10" fill="${s.scienceEyeColor || '#14B8A6'}"/>
+            <circle cx="38" cy="50" r="5" fill="#1E1B4B"/>
+            <circle cx="62" cy="50" r="5" fill="#1E1B4B"/>
+          </svg>
+        `;
+        const avatarContainer = document.getElementById('headerAvatarSvg');
+        if (avatarContainer) {
+          avatarContainer.innerHTML = miniSvg;
+        }
+      }
+    } catch (e) {
+      console.log('[TinyPM] No saved avatar found');
+    }
+  }
+
+  // Load avatar on page load
+  loadUserAvatar();
 
   // ═══════════════════════════════════════════════════════════════════════════
   // PWA SERVICE WORKER REGISTRATION
@@ -9273,23 +9383,23 @@
             'research': '&#128218;'
           }[claim.claim_type] || '&#9889;';
 
-          return \`
-            <div style="padding:10px 12px;background:var(--bg-secondary);border-radius:8px;cursor:pointer" onclick="showClaimDetails('\${claim.id}')">
+          return `
+            <div style="padding:10px 12px;background:var(--bg-secondary);border-radius:8px;cursor:pointer" onclick="showClaimDetails('${claim.id}')">
               <div style="display:flex;align-items:flex-start;gap:8px">
-                <span style="font-size:16px">\${typeIcon}</span>
+                <span style="font-size:16px">${typeIcon}</span>
                 <div style="flex:1;min-width:0">
                   <div style="font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-                    \${escapeHtml(claim.title.substring(0, 50))}\${claim.title.length > 50 ? '...' : ''}
+                    ${escapeHtml(claim.title.substring(0, 50))}${claim.title.length > 50 ? '...' : ''}
                   </div>
                   <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
-                    <span style="font-size:11px;color:var(--text-muted)">\${claim.source_type}</span>
-                    <span style="font-size:11px;font-weight:700;color:\${wildnessColor}">\${claim.wildness_score}/10 wild</span>
-                    \${claim.validation_score ? \`<span style="font-size:11px;color:var(--green)">\${(claim.validation_score * 100).toFixed(0)}% valid</span>\` : ''}
+                    <span style="font-size:11px;color:var(--text-muted)">${claim.source_type}</span>
+                    <span style="font-size:11px;font-weight:700;color:${wildnessColor}">${claim.wildness_score}/10 wild</span>
+                    ${claim.validation_score ? `<span style="font-size:11px;color:var(--green)">${(claim.validation_score * 100).toFixed(0)}% valid</span>` : ''}
                   </div>
                 </div>
               </div>
             </div>
-          \`;
+          `;
         }).join('');
       } else {
         // Check for any claims (including unvalidated)
@@ -9303,28 +9413,28 @@
               'rejected': 'var(--red)'
             }[claim.status] || 'var(--text-muted)';
 
-            return \`
+            return `
               <div style="padding:10px 12px;background:var(--bg-secondary);border-radius:8px">
                 <div style="display:flex;align-items:flex-start;gap:8px">
-                  <div style="width:8px;height:8px;border-radius:50%;background:\${statusColor};margin-top:4px;flex-shrink:0"></div>
+                  <div style="width:8px;height:8px;border-radius:50%;background:${statusColor};margin-top:4px;flex-shrink:0"></div>
                   <div style="flex:1;min-width:0">
                     <div style="font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-                      \${escapeHtml(claim.title.substring(0, 50))}\${claim.title.length > 50 ? '...' : ''}
+                      ${escapeHtml(claim.title.substring(0, 50))}${claim.title.length > 50 ? '...' : ''}
                     </div>
                     <div style="font-size:11px;color:var(--text-muted);margin-top:2px">
-                      \${claim.source_type} - \${claim.status}
+                      ${claim.source_type} - ${claim.status}
                     </div>
                   </div>
                 </div>
               </div>
-            \`;
+            `;
           }).join('');
         } else {
-          container.innerHTML = \`
+          container.innerHTML = `
             <div style="text-align:center;padding:16px;color:var(--text-muted);font-size:13px">
               No claims discovered yet. Click "Scan" to search for wild AI claims!
             </div>
-          \`;
+          `;
         }
       }
     } catch (err) {

@@ -1,0 +1,15 @@
+{
+  "messages": [
+    {
+      "id": 1,
+      "from": "user",
+      "message": "Do you want to work on some design stuff here?",
+      "timestamp": "2026-01-30T23:29:46.488974",
+      "read_by_agent": false
+    }
+  ],
+  "next_id": 2,
+  "agent_info": {
+    "id": "artistic"
+  }
+}

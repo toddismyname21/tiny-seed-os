@@ -1,0 +1,1713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TinyPM Avatar Builder - Create Your Magic vs Science Avatar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ==========================================
+       CSS CUSTOM PROPERTIES - DESIGN TOKENS
+       ========================================== */
+    :root {
+      /* Magic Colors */
+      --magic-midnight: #1a1a3e;
+      --magic-gold: #d4a84b;
+      --magic-purple: #9b6dff;
+      --magic-pink: #ff9ff3;
+      --magic-violet: #8B5CF6;
+      --magic-glow: rgba(155, 109, 255, 0.6);
+
+      /* Science Colors */
+      --science-teal: #14B8A6;
+      --science-green: #10B981;
+      --science-cyan: #22D3EE;
+      --science-blue: #3B82F6;
+      --science-glow: rgba(0, 217, 255, 0.6);
+
+      /* Hybrid Colors */
+      --hybrid-purple: #7c3aed;
+      --hybrid-magenta: #EC4899;
+      --fusion-pearl: #F0ABFC;
+
+      /* Backgrounds */
+      --bg-primary: #121218;
+      --bg-secondary: #1a1a24;
+      --bg-card: rgba(26, 26, 46, 0.7);
+      --bg-card-hover: rgba(30, 30, 55, 0.85);
+
+      /* Glassmorphism */
+      --glass-bg: rgba(255, 255, 255, 0.03);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --glass-blur: 20px;
+
+      /* Text */
+      --text-primary: #f0f0f5;
+      --text-secondary: #9090a0;
+      --text-muted: #606070;
+
+      /* Animation */
+      --transition-fast: 200ms;
+      --transition-medium: 350ms;
+      --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+      --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+      /* Shadows */
+      --shadow-glow-magic: 0 0 30px var(--magic-glow);
+      --shadow-glow-science: 0 0 30px var(--science-glow);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ==========================================
+       ANIMATIONS
+       ========================================== */
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.8; transform: scale(1.02); }
+    }
+
+    @keyframes shimmer {
+      0% { background-position: -200% center; }
+      100% { background-position: 200% center; }
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes pipFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    @keyframes pipPulse {
+      0%, 100% { filter: drop-shadow(0 0 20px var(--magic-glow)); }
+      50% { filter: drop-shadow(0 0 40px var(--magic-glow)); }
+    }
+
+    @keyframes companionOrbit {
+      0% { transform: rotate(0deg) translateX(50px) rotate(0deg); }
+      100% { transform: rotate(360deg) translateX(50px) rotate(-360deg); }
+    }
+
+    @keyframes sproutSway {
+      0%, 100% { transform: rotate(-5deg); }
+      50% { transform: rotate(5deg); }
+    }
+
+    @keyframes eyeBlink {
+      0%, 90%, 100% { transform: scaleY(1); }
+      95% { transform: scaleY(0.1); }
+    }
+
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    @keyframes sparkle {
+      0%, 100% { opacity: 0; transform: scale(0); }
+      50% { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes successBurst {
+      0% { transform: scale(0); opacity: 0; }
+      50% { transform: scale(1.2); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* ==========================================
+       AMBIENT BACKGROUND
+       ========================================== */
+    .ambient-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .ambient-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(100px);
+      opacity: 0.3;
+      animation: float 20s ease-in-out infinite;
+    }
+
+    .orb-1 {
+      width: 400px;
+      height: 400px;
+      background: var(--magic-purple);
+      top: -10%;
+      left: -10%;
+    }
+
+    .orb-2 {
+      width: 350px;
+      height: 350px;
+      background: var(--science-teal);
+      top: 50%;
+      right: -10%;
+      animation-delay: -7s;
+    }
+
+    .orb-3 {
+      width: 300px;
+      height: 300px;
+      background: var(--hybrid-magenta);
+      bottom: -10%;
+      left: 30%;
+      animation-delay: -14s;
+    }
+
+    /* ==========================================
+       HEADER
+       ========================================== */
+    .header {
+      position: relative;
+      padding: 40px 20px;
+      text-align: center;
+      z-index: 1;
+    }
+
+    .back-link {
+      position: absolute;
+      left: 20px;
+      top: 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      padding: 10px 16px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(var(--glass-blur));
+      border: 1px solid var(--glass-border);
+      border-radius: 10px;
+      transition: all var(--transition-medium) var(--ease-smooth);
+    }
+
+    .back-link:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-primary);
+      transform: translateX(-4px);
+    }
+
+    .header h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2rem, 5vw, 3rem);
+      margin-bottom: 10px;
+      background: linear-gradient(90deg, var(--magic-purple), var(--magic-gold), var(--science-teal));
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: shimmer 4s linear infinite;
+    }
+
+    .header p {
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+    }
+
+    /* ==========================================
+       MAIN CONTAINER
+       ========================================== */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .builder-layout {
+      display: grid;
+      grid-template-columns: 1fr 400px;
+      gap: 30px;
+      min-height: calc(100vh - 200px);
+    }
+
+    @media (max-width: 1000px) {
+      .builder-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ==========================================
+       PREVIEW PANEL
+       ========================================== */
+    .preview-panel {
+      background: var(--bg-card);
+      backdrop-filter: blur(var(--glass-blur));
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .preview-panel::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--magic-purple), var(--science-teal));
+    }
+
+    .avatar-preview {
+      width: 300px;
+      height: 300px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 30px;
+      position: relative;
+    }
+
+    .avatar-preview svg {
+      width: 100%;
+      height: 100%;
+      animation: pipFloat 4s ease-in-out infinite, pipPulse 3s ease-in-out infinite;
+    }
+
+    .preview-label {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--transition-medium) var(--ease-smooth);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--magic-purple), var(--science-teal));
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(139, 92, 246, 0.4);
+    }
+
+    .btn-secondary {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      color: var(--text-primary);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: var(--magic-purple);
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, var(--science-green), var(--science-teal));
+      color: white;
+    }
+
+    .btn-success:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    .btn .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    /* ==========================================
+       CUSTOMIZATION PANEL
+       ========================================== */
+    .customization-panel {
+      background: var(--bg-card);
+      backdrop-filter: blur(var(--glass-blur));
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      padding: 30px;
+      overflow-y: auto;
+      max-height: calc(100vh - 200px);
+    }
+
+    .panel-section {
+      margin-bottom: 30px;
+    }
+
+    .panel-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-primary);
+    }
+
+    .section-title .icon {
+      font-size: 1.3rem;
+    }
+
+    /* Photo Upload */
+    .upload-zone {
+      border: 2px dashed var(--glass-border);
+      border-radius: 16px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all var(--transition-medium) var(--ease-smooth);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .upload-zone:hover,
+    .upload-zone.dragover {
+      border-color: var(--magic-purple);
+      background: rgba(139, 92, 246, 0.1);
+    }
+
+    .upload-zone.has-image {
+      padding: 10px;
+    }
+
+    .upload-zone input {
+      display: none;
+    }
+
+    .upload-icon {
+      font-size: 3rem;
+      margin-bottom: 15px;
+    }
+
+    .upload-text {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+    }
+
+    .upload-text strong {
+      color: var(--magic-purple);
+    }
+
+    .uploaded-preview {
+      max-width: 100%;
+      max-height: 200px;
+      border-radius: 12px;
+      object-fit: contain;
+    }
+
+    .analyze-btn-wrapper {
+      margin-top: 15px;
+    }
+
+    /* Option Groups */
+    .option-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .option-btn {
+      padding: 10px 16px;
+      border: 1px solid var(--glass-border);
+      border-radius: 10px;
+      background: var(--glass-bg);
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all var(--transition-fast) var(--ease-smooth);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .option-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-primary);
+    }
+
+    .option-btn.active {
+      background: rgba(139, 92, 246, 0.2);
+      border-color: var(--magic-purple);
+      color: var(--text-primary);
+    }
+
+    /* Color Pickers */
+    .color-picker-group {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .color-picker-item {
+      flex: 1;
+      min-width: 140px;
+    }
+
+    .color-picker-label {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .color-picker-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 10px;
+      padding: 8px 12px;
+    }
+
+    .color-picker-wrapper input[type="color"] {
+      width: 40px;
+      height: 40px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: transparent;
+    }
+
+    .color-picker-wrapper input[type="color"]::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+
+    .color-picker-wrapper input[type="color"]::-webkit-color-swatch {
+      border: 2px solid rgba(255,255,255,0.2);
+      border-radius: 6px;
+    }
+
+    .color-hex {
+      font-family: 'Monaco', 'Consolas', monospace;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* Preset Colors */
+    .color-presets {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .color-preset {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .color-preset:hover {
+      transform: scale(1.15);
+      border-color: white;
+    }
+
+    /* Slider */
+    .slider-group {
+      margin-bottom: 15px;
+    }
+
+    .slider-label {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .slider-label span:first-child {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .slider-label span:last-child {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 8px;
+      border-radius: 4px;
+      background: var(--bg-secondary);
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--magic-purple), var(--science-teal));
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+
+    /* AI Reasoning Box */
+    .ai-reasoning {
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(20, 184, 166, 0.1));
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      border-radius: 12px;
+      padding: 15px;
+      margin-top: 15px;
+      display: none;
+    }
+
+    .ai-reasoning.visible {
+      display: block;
+      animation: successBurst 0.4s ease-out;
+    }
+
+    .ai-reasoning-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      font-weight: 600;
+      color: var(--magic-purple);
+    }
+
+    .ai-reasoning-text {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    /* ==========================================
+       SUCCESS MODAL
+       ========================================== */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(10px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal-overlay.visible {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--bg-card);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      padding: 40px;
+      max-width: 500px;
+      text-align: center;
+      animation: successBurst 0.5s ease-out;
+    }
+
+    .modal h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.8rem;
+      margin-bottom: 15px;
+      background: linear-gradient(90deg, var(--magic-purple), var(--science-teal));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .modal p {
+      color: var(--text-secondary);
+      margin-bottom: 20px;
+    }
+
+    .modal-avatar {
+      width: 200px;
+      height: 200px;
+      margin: 0 auto 30px;
+    }
+
+    .modal-avatar svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    /* ==========================================
+       SPARKLE EFFECTS
+       ========================================== */
+    .sparkle {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      pointer-events: none;
+    }
+
+    .sparkle::before,
+    .sparkle::after {
+      content: '';
+      position: absolute;
+      background: var(--magic-gold);
+    }
+
+    .sparkle::before {
+      width: 2px;
+      height: 10px;
+      left: 4px;
+    }
+
+    .sparkle::after {
+      width: 10px;
+      height: 2px;
+      top: 4px;
+    }
+
+    /* ==========================================
+       RESPONSIVE
+       ========================================== */
+    @media (max-width: 768px) {
+      .header {
+        padding-top: 70px;
+      }
+
+      .back-link {
+        position: relative;
+        left: 0;
+        top: 0;
+        margin-bottom: 20px;
+        display: inline-flex;
+      }
+
+      .preview-panel {
+        padding: 30px 20px;
+      }
+
+      .avatar-preview {
+        width: 220px;
+        height: 220px;
+      }
+
+      .customization-panel {
+        max-height: none;
+      }
+
+      .action-buttons {
+        flex-direction: column;
+        width: 100%;
+      }
+
+      .btn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+
+    /* ==========================================
+       LOADING STATE
+       ========================================== */
+    .loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(18, 18, 24, 0.9);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 20px;
+      border-radius: 24px;
+      z-index: 10;
+    }
+
+    .loading-overlay.visible {
+      display: flex;
+    }
+
+    .loading-spinner {
+      width: 60px;
+      height: 60px;
+      border: 4px solid var(--glass-border);
+      border-top-color: var(--magic-purple);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    .loading-text {
+      color: var(--text-secondary);
+      font-size: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <!-- Ambient Background -->
+  <div class="ambient-bg">
+    <div class="ambient-orb orb-1"></div>
+    <div class="ambient-orb orb-2"></div>
+    <div class="ambient-orb orb-3"></div>
+  </div>
+
+  <!-- Header -->
+  <header class="header">
+    <a href="/" class="back-link">
+      <span>&#8592;</span> Back to Dashboard
+    </a>
+    <h1>Avatar Builder</h1>
+    <p>Create your TinyPM avatar where Magic meets Science</p>
+  </header>
+
+  <!-- Main Container -->
+  <div class="container">
+    <div class="builder-layout">
+      <!-- Preview Panel -->
+      <div class="preview-panel">
+        <div class="loading-overlay" id="previewLoading">
+          <div class="loading-spinner"></div>
+          <div class="loading-text">Generating your avatar...</div>
+        </div>
+
+        <div class="preview-label">Your TinyPM Avatar</div>
+        <div class="avatar-preview" id="avatarPreview">
+          <!-- SVG Avatar will be rendered here -->
+        </div>
+
+        <div class="action-buttons">
+          <button class="btn btn-secondary" onclick="randomizeAvatar()">
+            <span>&#127922;</span> Randomize
+          </button>
+          <button class="btn btn-primary" onclick="downloadAvatar('svg')">
+            <span>&#128190;</span> Download SVG
+          </button>
+          <button class="btn btn-success" onclick="saveAvatar()">
+            <span>&#10004;</span> Save Avatar
+          </button>
+        </div>
+      </div>
+
+      <!-- Customization Panel -->
+      <div class="customization-panel">
+        <!-- Photo Upload Section -->
+        <div class="panel-section">
+          <div class="section-title">
+            <span class="icon">&#128247;</span>
+            Upload Your Photo
+          </div>
+          <div class="upload-zone" id="uploadZone" onclick="document.getElementById('photoInput').click()">
+            <input type="file" id="photoInput" accept="image/*" onchange="handlePhotoUpload(event)">
+            <div class="upload-content" id="uploadContent">
+              <div class="upload-icon">&#128248;</div>
+              <div class="upload-text">
+                <strong>Click to upload</strong> or drag and drop<br>
+                AI will suggest an avatar based on your photo
+              </div>
+            </div>
+          </div>
+          <div class="analyze-btn-wrapper" id="analyzeWrapper" style="display: none;">
+            <button class="btn btn-primary" onclick="analyzePhoto()" id="analyzeBtn">
+              <span>&#10024;</span> Analyze Photo with AI
+            </button>
+          </div>
+          <p class="privacy-notice" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 12px; text-align: center; line-height: 1.4;">
+            Your photo is analyzed by AI but never stored. Only your avatar preferences are saved.
+          </p>
+          <div class="ai-reasoning" id="aiReasoning">
+            <div class="ai-reasoning-header">
+              <span>&#129302;</span> AI Suggestion
+            </div>
+            <div class="ai-reasoning-text" id="aiReasoningText"></div>
+          </div>
+        </div>
+
+        <!-- Base Shape -->
+        <div class="panel-section">
+          <div class="section-title">
+            <span class="icon">&#128142;</span>
+            Base Shape
+          </div>
+          <div class="option-group" id="baseShapeOptions">
+            <button class="option-btn active" data-value="seed" onclick="setOption('baseShape', 'seed', this)">
+              <span>&#127793;</span> Seed
+            </button>
+            <button class="option-btn" data-value="orb" onclick="setOption('baseShape', 'orb', this)">
+              <span>&#128302;</span> Orb
+            </button>
+            <button class="option-btn" data-value="crystal" onclick="setOption('baseShape', 'crystal', this)">
+              <span>&#128142;</span> Crystal
+            </button>
+            <button class="option-btn" data-value="flame" onclick="setOption('baseShape', 'flame', this)">
+              <span>&#128293;</span> Flame
+            </button>
+            <button class="option-btn" data-value="star" onclick="setOption('baseShape', 'star', this)">
+              <span>&#11088;</span> Star
+            </button>
+          </div>
+        </div>
+
+        <!-- Eye Colors -->
+        <div class="panel-section">
+          <div class="section-title">
+            <span class="icon">&#128064;</span>
+            Eye Colors
+          </div>
+          <div class="color-picker-group">
+            <div class="color-picker-item">
+              <label class="color-picker-label">Magic Eye (Left)</label>
+              <div class="color-picker-wrapper">
+                <input type="color" id="magicEyeColor" value="#8B5CF6" onchange="updateColor('magicEye', this.value)">
+                <span class="color-hex" id="magicEyeHex">#8B5CF6</span>
+              </div>
+              <div class="color-presets">
+                <div class="color-preset" style="background: #8B5CF6" onclick="setPresetColor('magicEye', '#8B5CF6')"></div>
+                <div class="color-preset" style="background: #F59E0B" onclick="setPresetColor('magicEye', '#F59E0B')"></div>
+                <div class="color-preset" style="background: #EC4899" onclick="setPresetColor('magicEye', '#EC4899')"></div>
+                <div class="color-preset" style="background: #C4B5FD" onclick="setPresetColor('magicEye', '#C4B5FD')"></div>
+              </div>
+            </div>
+            <div class="color-picker-item">
+              <label class="color-picker-label">Science Eye (Right)</label>
+              <div class="color-picker-wrapper">
+                <input type="color" id="scienceEyeColor" value="#14B8A6" onchange="updateColor('scienceEye', this.value)">
+                <span class="color-hex" id="scienceEyeHex">#14B8A6</span>
+              </div>
+              <div class="color-presets">
+                <div class="color-preset" style="background: #14B8A6" onclick="setPresetColor('scienceEye', '#14B8A6')"></div>
+                <div class="color-preset" style="background: #3B82F6" onclick="setPresetColor('scienceEye', '#3B82F6')"></div>
+                <div class="color-preset" style="background: #22D3EE" onclick="setPresetColor('scienceEye', '#22D3EE')"></div>
+                <div class="color-preset" style="background: #10B981" onclick="setPresetColor('scienceEye', '#10B981')"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Body Tone -->
+        <div class="panel-section">
+          <div class="section-title">
+            <span class="icon">&#127912;</span>
+            Body Tone
+          </div>
+          <div class="color-picker-wrapper">
+            <input type="color" id="bodyToneColor" value="#F5D0C5" onchange="updateColor('bodyTone', this.value)">
+            <span class="color-hex" id="bodyToneHex">#F5D0C5</span>
+          </div>
+          <div class="color-presets">
+            <div class="color-preset" style="background: #F5D0C5" onclick="setPresetColor('bodyTone', '#F5D0C5')"></div>
+            <div class="color-preset" style="background: #E8B89D" onclick="setPresetColor('bodyTone', '#E8B89D')"></div>
+            <div class="color-preset" style="background: #C68642" onclick="setPresetColor('bodyTone', '#C68642')"></div>
+            <div class="color-preset" style="background: #8D5524" onclick="setPresetColor('bodyTone', '#8D5524')"></div>
+            <div class="color-preset" style="background: #FFE4C4" onclick="setPresetColor('bodyTone', '#FFE4C4')"></div>
+            <div class="color-preset" style="background: #DEB887" onclick="setPresetColor('bodyTone', '#DEB887')"></div>
+            <div class="color-preset" style="background: #D2691E" onclick="setPresetColor('bodyTone', '#D2691E')"></div>
+            <div class="color-preset" style="background: #4A3728" onclick="setPresetColor('bodyTone', '#4A3728')"></div>
+          </div>
+        </div>
+
+        <!-- Hair/Sprout Style -->
+        <div class="panel-section">
+          <div class="section-title">
+            <span class="icon">&#127807;</span>
+            Sprout Style
+          </div>
+          <div class="option-group" id="hairStyleOptions">
+            <button class="option-btn active" data-value="leaf" onclick="setOption('hairStyle', 'leaf', this)">
+              <span>&#127807;</span> Leaf
+            </button>
+            <button class="option-btn" data-value="antenna" onclick="setOption('hairStyle', 'antenna', this)">
+              <span>&#128225;</span> Antenna
+            </button>
+            <button class="option-btn" data-value="sprout" onclick="setOption('hairStyle', 'sprout', this)">
+              <span>&#127793;</span> Sprout
+            </button>
+            <button class="option-btn" data-value="flower" onclick="setOption('hairStyle', 'flower', this)">
+              <span>&#127804;</span> Flower
+            </button>
+            <button class="option-btn" data-value="lightning" onclick="setOption('hairStyle', 'lightning', this)">
+              <span>&#9889;</span> Lightning
+            </button>
+          </div>
+        </div>
+
+        <!-- Accessories -->
+        <div class="panel-section">
+          <div class="section-title">
+            <span class="icon">&#129523;</span>
+            Accessories
+          </div>
+          <div class="option-group" id="accessoryOptions">
+            <button class="option-btn" data-value="none" onclick="toggleAccessory('none', this)">
+              None
+            </button>
+            <button class="option-btn" data-value="wizard_hat" onclick="toggleAccessory('wizard_hat', this)">
+              <span>&#129534;</span> Wizard Hat
+            </button>
+            <button class="option-btn" data-value="goggles" onclick="toggleAccessory('goggles', this)">
+              <span>&#128083;</span> Goggles
+            </button>
+            <button class="option-btn" data-value="crown" onclick="toggleAccessory('crown', this)">
+              <span>&#128081;</span> Crown
+            </button>
+            <button class="option-btn" data-value="halo" onclick="toggleAccessory('halo', this)">
+              <span>&#128124;</span> Halo
+            </button>
+          </div>
+        </div>
+
+        <!-- Expression -->
+        <div class="panel-section">
+          <div class="section-title">
+            <span class="icon">&#128522;</span>
+            Expression
+          </div>
+          <div class="option-group" id="expressionOptions">
+            <button class="option-btn active" data-value="happy" onclick="setOption('expression', 'happy', this)">
+              <span>&#128522;</span> Happy
+            </button>
+            <button class="option-btn" data-value="thinking" onclick="setOption('expression', 'thinking', this)">
+              <span>&#129300;</span> Thinking
+            </button>
+            <button class="option-btn" data-value="alert" onclick="setOption('expression', 'alert', this)">
+              <span>&#128562;</span> Alert
+            </button>
+            <button class="option-btn" data-value="celebrating" onclick="setOption('expression', 'celebrating', this)">
+              <span>&#129395;</span> Celebrating
+            </button>
+          </div>
+        </div>
+
+        <!-- Glow Intensity -->
+        <div class="panel-section">
+          <div class="section-title">
+            <span class="icon">&#10024;</span>
+            Glow Settings
+          </div>
+          <div class="slider-group">
+            <div class="slider-label">
+              <span>Glow Intensity</span>
+              <span id="glowValue">70%</span>
+            </div>
+            <input type="range" min="0" max="100" value="70" id="glowSlider" oninput="updateGlow(this.value)">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success Modal -->
+  <div class="modal-overlay" id="successModal" onclick="if(event.target === this) closeModal()">
+    <div class="modal">
+      <h2>Avatar Saved!</h2>
+      <p>Your TinyPM avatar has been created and saved to your profile.</p>
+      <div class="modal-avatar" id="modalAvatar"></div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal()">Continue Editing</button>
+        <button class="btn btn-primary" onclick="goToDashboard()">Go to Dashboard</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===========================================
+    // AVATAR STATE
+    // ===========================================
+    let avatarState = {
+      baseShape: 'seed',
+      magicEyeColor: '#8B5CF6',
+      scienceEyeColor: '#14B8A6',
+      bodyTone: '#F5D0C5',
+      hairStyle: 'leaf',
+      accessories: [],
+      expression: 'happy',
+      glowIntensity: 70
+    };
+
+    let uploadedPhoto = null;
+
+    // ===========================================
+    // SVG AVATAR GENERATOR
+    // ===========================================
+    function generateAvatarSVG(state = avatarState) {
+      const { baseShape, magicEyeColor, scienceEyeColor, bodyTone, hairStyle, accessories, expression, glowIntensity } = state;
+
+      // Calculate glow values
+      const glowOpacity = glowIntensity / 100;
+      const glowBlur = 8 + (glowIntensity / 10);
+
+      // Expression-based eye modifications
+      let eyeTransform = '';
+      let mouthPath = '';
+      switch(expression) {
+        case 'happy':
+          eyeTransform = 'scaleY(0.8)';
+          mouthPath = 'M 42,68 Q 50,75 58,68';
+          break;
+        case 'thinking':
+          eyeTransform = 'scaleY(1)';
+          mouthPath = 'M 45,70 Q 50,68 55,70';
+          break;
+        case 'alert':
+          eyeTransform = 'scaleY(1.1)';
+          mouthPath = 'M 46,72 Q 50,70 54,72';
+          break;
+        case 'celebrating':
+          eyeTransform = 'scaleY(0.6)';
+          mouthPath = 'M 40,65 Q 50,78 60,65';
+          break;
+      }
+
+      // Base shape paths
+      let bodyPath = '';
+      let bodyGradientId = 'bodyGradient';
+
+      switch(baseShape) {
+        case 'seed':
+          bodyPath = `
+            <path d="M 50,15
+                     C 75,25 80,45 80,55
+                     C 80,75 70,90 50,90
+                     C 30,90 20,75 20,55
+                     C 20,45 25,25 50,15 Z"
+                  fill="url(#${bodyGradientId})"
+                  stroke="rgba(255,255,255,0.2)"
+                  stroke-width="1"/>
+          `;
+          break;
+        case 'orb':
+          bodyPath = `
+            <circle cx="50" cy="55" r="35"
+                    fill="url(#${bodyGradientId})"
+                    stroke="rgba(255,255,255,0.2)"
+                    stroke-width="1"/>
+          `;
+          break;
+        case 'crystal':
+          bodyPath = `
+            <polygon points="50,15 75,40 75,70 50,90 25,70 25,40"
+                     fill="url(#${bodyGradientId})"
+                     stroke="rgba(255,255,255,0.3)"
+                     stroke-width="1"/>
+            <line x1="50" y1="15" x2="50" y2="90" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+            <line x1="25" y1="55" x2="75" y2="55" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+          `;
+          break;
+        case 'flame':
+          bodyPath = `
+            <path d="M 50,10
+                     C 65,25 75,40 70,60
+                     C 68,75 60,85 50,90
+                     C 40,85 32,75 30,60
+                     C 25,40 35,25 50,10 Z"
+                  fill="url(#${bodyGradientId})"
+                  stroke="rgba(255,255,255,0.2)"
+                  stroke-width="1">
+              <animate attributeName="d"
+                       values="M 50,10 C 65,25 75,40 70,60 C 68,75 60,85 50,90 C 40,85 32,75 30,60 C 25,40 35,25 50,10 Z;
+                               M 50,12 C 68,27 77,42 72,62 C 70,77 62,87 50,92 C 38,87 30,77 28,62 C 23,42 32,27 50,12 Z;
+                               M 50,10 C 65,25 75,40 70,60 C 68,75 60,85 50,90 C 40,85 32,75 30,60 C 25,40 35,25 50,10 Z"
+                       dur="2s" repeatCount="indefinite"/>
+            </path>
+          `;
+          break;
+        case 'star':
+          bodyPath = `
+            <polygon points="50,10 58,38 88,38 64,55 73,85 50,68 27,85 36,55 12,38 42,38"
+                     fill="url(#${bodyGradientId})"
+                     stroke="rgba(255,255,255,0.2)"
+                     stroke-width="1"/>
+          `;
+          break;
+      }
+
+      // Sprout/Hair styles
+      let sproutSVG = '';
+      switch(hairStyle) {
+        case 'leaf':
+          sproutSVG = `
+            <g class="sprout" style="transform-origin: 50px 15px; animation: sproutSway 2s ease-in-out infinite;">
+              <path d="M 50,15 Q 45,5 50,-5 Q 55,5 50,15" fill="#10B981" stroke="#059669" stroke-width="1"/>
+              <path d="M 50,0 Q 40,-5 35,5" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round"/>
+              <path d="M 50,0 Q 60,-5 65,5" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round"/>
+            </g>
+          `;
+          break;
+        case 'antenna':
+          sproutSVG = `
+            <g class="sprout" style="transform-origin: 50px 15px; animation: sproutSway 2s ease-in-out infinite;">
+              <line x1="50" y1="15" x2="50" y2="-5" stroke="${scienceEyeColor}" stroke-width="3" stroke-linecap="round"/>
+              <circle cx="50" cy="-8" r="5" fill="${scienceEyeColor}">
+                <animate attributeName="opacity" values="1;0.5;1" dur="1s" repeatCount="indefinite"/>
+              </circle>
+            </g>
+          `;
+          break;
+        case 'sprout':
+          sproutSVG = `
+            <g class="sprout" style="transform-origin: 50px 15px; animation: sproutSway 2s ease-in-out infinite;">
+              <path d="M 50,15 C 50,10 48,5 50,-2" fill="none" stroke="#10B981" stroke-width="3" stroke-linecap="round"/>
+              <ellipse cx="50" cy="-5" rx="6" ry="4" fill="#10B981"/>
+            </g>
+          `;
+          break;
+        case 'flower':
+          sproutSVG = `
+            <g class="sprout" style="transform-origin: 50px 15px; animation: sproutSway 2s ease-in-out infinite;">
+              <line x1="50" y1="15" x2="50" y2="-5" stroke="#10B981" stroke-width="2"/>
+              <circle cx="50" cy="-10" r="4" fill="#FCD34D"/>
+              <circle cx="45" cy="-12" r="4" fill="#EC4899"/>
+              <circle cx="55" cy="-12" r="4" fill="#EC4899"/>
+              <circle cx="47" cy="-6" r="4" fill="#EC4899"/>
+              <circle cx="53" cy="-6" r="4" fill="#EC4899"/>
+            </g>
+          `;
+          break;
+        case 'lightning':
+          sproutSVG = `
+            <g class="sprout">
+              <path d="M 50,15 L 48,5 L 55,5 L 50,-5 L 52,2 L 45,2 Z"
+                    fill="${scienceEyeColor}"
+                    stroke="white"
+                    stroke-width="0.5">
+                <animate attributeName="opacity" values="1;0.7;1" dur="0.5s" repeatCount="indefinite"/>
+              </path>
+            </g>
+          `;
+          break;
+      }
+
+      // Accessories
+      let accessorySVG = '';
+      accessories.forEach(acc => {
+        switch(acc) {
+          case 'wizard_hat':
+            accessorySVG += `
+              <g class="accessory-hat">
+                <path d="M 30,20 L 50,-10 L 70,20 Z" fill="#4A148C" stroke="#8B5CF6" stroke-width="1"/>
+                <ellipse cx="50" cy="20" rx="22" ry="5" fill="#4A148C" stroke="#8B5CF6" stroke-width="1"/>
+                <circle cx="50" cy="-8" r="4" fill="#FCD34D">
+                  <animate attributeName="opacity" values="1;0.6;1" dur="2s" repeatCount="indefinite"/>
+                </circle>
+              </g>
+            `;
+            break;
+          case 'goggles':
+            accessorySVG += `
+              <g class="accessory-goggles">
+                <ellipse cx="38" cy="50" rx="12" ry="10" fill="none" stroke="#B45309" stroke-width="3"/>
+                <ellipse cx="62" cy="50" rx="12" ry="10" fill="none" stroke="#B45309" stroke-width="3"/>
+                <rect x="48" y="48" width="4" height="4" rx="1" fill="#B45309"/>
+                <ellipse cx="38" cy="50" rx="10" ry="8" fill="rgba(34, 211, 238, 0.3)"/>
+                <ellipse cx="62" cy="50" rx="10" ry="8" fill="rgba(34, 211, 238, 0.3)"/>
+              </g>
+            `;
+            break;
+          case 'crown':
+            accessorySVG += `
+              <g class="accessory-crown">
+                <path d="M 30,22 L 35,10 L 42,18 L 50,5 L 58,18 L 65,10 L 70,22 Z"
+                      fill="#FCD34D" stroke="#D97706" stroke-width="1"/>
+                <circle cx="50" cy="8" r="3" fill="#EC4899"/>
+                <circle cx="38" cy="14" r="2" fill="#3B82F6"/>
+                <circle cx="62" cy="14" r="2" fill="#3B82F6"/>
+              </g>
+            `;
+            break;
+          case 'halo':
+            accessorySVG += `
+              <g class="accessory-halo">
+                <ellipse cx="50" cy="8" rx="25" ry="8" fill="none" stroke="#FCD34D" stroke-width="3" opacity="0.8">
+                  <animate attributeName="opacity" values="0.8;1;0.8" dur="2s" repeatCount="indefinite"/>
+                </ellipse>
+              </g>
+            `;
+            break;
+        }
+      });
+
+      // Floating companions
+      const companionsSVG = `
+        <g class="companions">
+          <circle cx="0" cy="0" r="5" fill="#FCD34D" opacity="0.9">
+            <animateMotion dur="5s" repeatCount="indefinite">
+              <mpath href="#companionPath1"/>
+            </animateMotion>
+          </circle>
+          <circle cx="0" cy="0" r="4" fill="${scienceEyeColor}" opacity="0.9">
+            <animateMotion dur="5s" repeatCount="indefinite" begin="-2.5s">
+              <mpath href="#companionPath2"/>
+            </animateMotion>
+          </circle>
+        </g>
+        <defs>
+          <path id="companionPath1" d="M 50,55 m -45,0 a 45,45 0 1,1 90,0 a 45,45 0 1,1 -90,0" fill="none"/>
+          <path id="companionPath2" d="M 50,55 m 45,0 a 45,45 0 1,0 -90,0 a 45,45 0 1,0 90,0" fill="none"/>
+        </defs>
+      `;
+
+      // Complete SVG
+      const svg = `
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <!-- Body Gradient -->
+            <linearGradient id="${bodyGradientId}" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:${bodyTone}"/>
+              <stop offset="50%" style="stop-color:${bodyTone}"/>
+              <stop offset="100%" style="stop-color:${adjustColor(bodyTone, -30)}"/>
+            </linearGradient>
+
+            <!-- Glow Filter -->
+            <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="${glowBlur}" result="coloredBlur"/>
+              <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+
+            <!-- Inner Glow -->
+            <radialGradient id="innerGlow" cx="50%" cy="40%" r="50%">
+              <stop offset="0%" style="stop-color:white;stop-opacity:0.3"/>
+              <stop offset="100%" style="stop-color:white;stop-opacity:0"/>
+            </radialGradient>
+          </defs>
+
+          <!-- Main Group with Glow -->
+          <g filter="url(#glow)" opacity="${0.7 + (glowOpacity * 0.3)}">
+            <!-- Body -->
+            ${bodyPath}
+
+            <!-- Inner highlight -->
+            <ellipse cx="45" cy="45" rx="15" ry="10" fill="url(#innerGlow)"/>
+
+            <!-- Eyes -->
+            <g class="eyes" style="transform-origin: center; animation: eyeBlink 5s ease-in-out infinite;">
+              <!-- Magic Eye (Left) -->
+              <g style="transform: ${eyeTransform}; transform-origin: 38px 50px;">
+                <circle cx="38" cy="50" r="8" fill="${magicEyeColor}"/>
+                <circle cx="38" cy="50" r="4" fill="#1E1B4B"/>
+                <circle cx="36" cy="48" r="2" fill="white" opacity="0.8"/>
+              </g>
+
+              <!-- Science Eye (Right) -->
+              <g style="transform: ${eyeTransform}; transform-origin: 62px 50px;">
+                <circle cx="62" cy="50" r="8" fill="${scienceEyeColor}"/>
+                <circle cx="62" cy="50" r="4" fill="#1E1B4B"/>
+                <circle cx="60" cy="48" r="2" fill="white" opacity="0.8"/>
+              </g>
+            </g>
+
+            <!-- Mouth -->
+            <path d="${mouthPath}" fill="none" stroke="#1E1B4B" stroke-width="2" stroke-linecap="round"/>
+
+            <!-- Sprout -->
+            ${sproutSVG}
+
+            <!-- Accessories -->
+            ${accessorySVG}
+          </g>
+
+          <!-- Floating Companions -->
+          ${companionsSVG}
+
+          <style>
+            @keyframes sproutSway {
+              0%, 100% { transform: rotate(-5deg); }
+              50% { transform: rotate(5deg); }
+            }
+            @keyframes eyeBlink {
+              0%, 90%, 100% { transform: scaleY(1); }
+              95% { transform: scaleY(0.1); }
+            }
+          </style>
+        </svg>
+      `;
+
+      return svg;
+    }
+
+    // Helper: Adjust color brightness
+    function adjustColor(color, amount) {
+      const hex = color.replace('#', '');
+      const r = Math.max(0, Math.min(255, parseInt(hex.slice(0, 2), 16) + amount));
+      const g = Math.max(0, Math.min(255, parseInt(hex.slice(2, 4), 16) + amount));
+      const b = Math.max(0, Math.min(255, parseInt(hex.slice(4, 6), 16) + amount));
+      return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+    }
+
+    // ===========================================
+    // UI HANDLERS
+    // ===========================================
+    function renderAvatar() {
+      const preview = document.getElementById('avatarPreview');
+      preview.innerHTML = generateAvatarSVG(avatarState);
+    }
+
+    function setOption(key, value, btn) {
+      avatarState[key] = value;
+
+      // Update button states
+      const group = btn.parentElement;
+      group.querySelectorAll('.option-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      renderAvatar();
+    }
+
+    function toggleAccessory(value, btn) {
+      if (value === 'none') {
+        avatarState.accessories = [];
+        btn.parentElement.querySelectorAll('.option-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      } else {
+        const idx = avatarState.accessories.indexOf(value);
+        if (idx > -1) {
+          avatarState.accessories.splice(idx, 1);
+          btn.classList.remove('active');
+        } else {
+          avatarState.accessories.push(value);
+          btn.classList.add('active');
+          // Remove "none" active state
+          btn.parentElement.querySelector('[data-value="none"]').classList.remove('active');
+        }
+      }
+      renderAvatar();
+    }
+
+    function updateColor(type, value) {
+      switch(type) {
+        case 'magicEye':
+          avatarState.magicEyeColor = value;
+          document.getElementById('magicEyeHex').textContent = value.toUpperCase();
+          break;
+        case 'scienceEye':
+          avatarState.scienceEyeColor = value;
+          document.getElementById('scienceEyeHex').textContent = value.toUpperCase();
+          break;
+        case 'bodyTone':
+          avatarState.bodyTone = value;
+          document.getElementById('bodyToneHex').textContent = value.toUpperCase();
+          break;
+      }
+      renderAvatar();
+    }
+
+    function setPresetColor(type, value) {
+      const inputId = type === 'magicEye' ? 'magicEyeColor' :
+                      type === 'scienceEye' ? 'scienceEyeColor' : 'bodyToneColor';
+      document.getElementById(inputId).value = value;
+      updateColor(type, value);
+    }
+
+    function updateGlow(value) {
+      avatarState.glowIntensity = parseInt(value);
+      document.getElementById('glowValue').textContent = value + '%';
+      renderAvatar();
+    }
+
+    function randomizeAvatar() {
+      const shapes = ['seed', 'orb', 'crystal', 'flame', 'star'];
+      const hairs = ['leaf', 'antenna', 'sprout', 'flower', 'lightning'];
+      const expressions = ['happy', 'thinking', 'alert', 'celebrating'];
+      const accessoryOptions = ['wizard_hat', 'goggles', 'crown', 'halo'];
+
+      // Random colors
+      const magicColors = ['#8B5CF6', '#F59E0B', '#EC4899', '#C4B5FD', '#A855F7'];
+      const scienceColors = ['#14B8A6', '#3B82F6', '#22D3EE', '#10B981', '#06B6D4'];
+      const toneColors = ['#F5D0C5', '#E8B89D', '#C68642', '#8D5524', '#FFE4C4', '#DEB887', '#D2691E', '#4A3728'];
+
+      avatarState = {
+        baseShape: shapes[Math.floor(Math.random() * shapes.length)],
+        magicEyeColor: magicColors[Math.floor(Math.random() * magicColors.length)],
+        scienceEyeColor: scienceColors[Math.floor(Math.random() * scienceColors.length)],
+        bodyTone: toneColors[Math.floor(Math.random() * toneColors.length)],
+        hairStyle: hairs[Math.floor(Math.random() * hairs.length)],
+        accessories: Math.random() > 0.5 ? [accessoryOptions[Math.floor(Math.random() * accessoryOptions.length)]] : [],
+        expression: expressions[Math.floor(Math.random() * expressions.length)],
+        glowIntensity: 50 + Math.floor(Math.random() * 50)
+      };
+
+      // Update UI
+      updateUIFromState();
+      renderAvatar();
+
+      // Add sparkle effect
+      addSparkles();
+    }
+
+    function updateUIFromState() {
+      // Update color pickers
+      document.getElementById('magicEyeColor').value = avatarState.magicEyeColor;
+      document.getElementById('magicEyeHex').textContent = avatarState.magicEyeColor.toUpperCase();
+      document.getElementById('scienceEyeColor').value = avatarState.scienceEyeColor;
+      document.getElementById('scienceEyeHex').textContent = avatarState.scienceEyeColor.toUpperCase();
+      document.getElementById('bodyToneColor').value = avatarState.bodyTone;
+      document.getElementById('bodyToneHex').textContent = avatarState.bodyTone.toUpperCase();
+
+      // Update glow
+      document.getElementById('glowSlider').value = avatarState.glowIntensity;
+      document.getElementById('glowValue').textContent = avatarState.glowIntensity + '%';
+
+      // Update option buttons
+      updateOptionButtons('baseShapeOptions', avatarState.baseShape);
+      updateOptionButtons('hairStyleOptions', avatarState.hairStyle);
+      updateOptionButtons('expressionOptions', avatarState.expression);
+
+      // Update accessories
+      document.querySelectorAll('#accessoryOptions .option-btn').forEach(btn => {
+        const val = btn.dataset.value;
+        if (val === 'none') {
+          btn.classList.toggle('active', avatarState.accessories.length === 0);
+        } else {
+          btn.classList.toggle('active', avatarState.accessories.includes(val));
+        }
+      });
+    }
+
+    function updateOptionButtons(groupId, activeValue) {
+      document.querySelectorAll(`#${groupId} .option-btn`).forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.value === activeValue);
+      });
+    }
+
+    function addSparkles() {
+      const preview = document.querySelector('.avatar-preview');
+      for (let i = 0; i < 8; i++) {
+        const sparkle = document.createElement('div');
+        sparkle.className = 'sparkle';
+        sparkle.style.left = (20 + Math.random() * 60) + '%';
+        sparkle.style.top = (20 + Math.random() * 60) + '%';
+        sparkle.style.animation = `sparkle ${0.5 + Math.random() * 0.5}s ease-out`;
+        preview.appendChild(sparkle);
+        setTimeout(() => sparkle.remove(), 1000);
+      }
+    }
+
+    // ===========================================
+    // PHOTO UPLOAD & AI ANALYSIS
+    // ===========================================
+    const uploadZone = document.getElementById('uploadZone');
+
+    uploadZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadZone.classList.add('dragover');
+    });
+
+    uploadZone.addEventListener('dragleave', () => {
+      uploadZone.classList.remove('dragover');
+    });
+
+    uploadZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadZone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) {
+        processUploadedImage(file);
+      }
+    });
+
+    function handlePhotoUpload(event) {
+      const file = event.target.files[0];
+      if (file) {
+        processUploadedImage(file);
+      }
+    }
+
+    function processUploadedImage(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        uploadedPhoto = e.target.result;
+
+        // Show preview
+        const uploadContent = document.getElementById('uploadContent');
+        uploadContent.innerHTML = `<img src="${uploadedPhoto}" class="uploaded-preview" alt="Your photo">`;
+        uploadZone.classList.add('has-image');
+
+        // Show analyze button
+        document.getElementById('analyzeWrapper').style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function analyzePhoto() {
+      if (!uploadedPhoto) return;
+
+      const analyzeBtn = document.getElementById('analyzeBtn');
+      const originalContent = analyzeBtn.innerHTML;
+      analyzeBtn.innerHTML = '<div class="spinner"></div> Analyzing...';
+      analyzeBtn.disabled = true;
+
+      try {
+        const response = await fetch('/api/avatar/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: uploadedPhoto })
+        });
+
+        const result = await response.json();
+
+        if (result.error) {
+          alert('Analysis failed: ' + result.error);
+          return;
+        }
+
+        // Apply AI suggestions
+        if (result.suggested_base) avatarState.baseShape = result.suggested_base;
+        if (result.magic_eye_color) avatarState.magicEyeColor = result.magic_eye_color;
+        if (result.science_eye_color) avatarState.scienceEyeColor = result.science_eye_color;
+        if (result.body_tone) avatarState.bodyTone = result.body_tone;
+        if (result.hair_style) avatarState.hairStyle = result.hair_style;
+        if (result.accessories) avatarState.accessories = result.accessories;
+        if (result.expression) avatarState.expression = result.expression;
+
+        // Update UI
+        updateUIFromState();
+        renderAvatar();
+        addSparkles();
+
+        // Show AI reasoning
+        if (result.reasoning) {
+          document.getElementById('aiReasoningText').textContent = result.reasoning;
+          document.getElementById('aiReasoning').classList.add('visible');
+        }
+
+      } catch (err) {
+        console.error('Analysis error:', err);
+        alert('Failed to analyze photo. Please try again.');
+      } finally {
+        analyzeBtn.innerHTML = originalContent;
+        analyzeBtn.disabled = false;
+      }
+    }
+
+    // ===========================================
+    // SAVE & DOWNLOAD
+    // ===========================================
+    async function saveAvatar() {
+      const loading = document.getElementById('previewLoading');
+      loading.classList.add('visible');
+
+      try {
+        const response = await fetch('/api/avatar/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            avatar_state: avatarState,
+            svg_data: generateAvatarSVG(avatarState)
+          })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          // Show success modal
+          document.getElementById('modalAvatar').innerHTML = generateAvatarSVG(avatarState);
+          document.getElementById('successModal').classList.add('visible');
+        } else {
+          alert('Failed to save avatar: ' + (result.error || 'Unknown error'));
+        }
+      } catch (err) {
+        console.error('Save error:', err);
+        alert('Failed to save avatar. Please try again.');
+      } finally {
+        loading.classList.remove('visible');
+      }
+    }
+
+    function downloadAvatar(format) {
+      const svg = generateAvatarSVG(avatarState);
+
+      if (format === 'svg') {
+        const blob = new Blob([svg], { type: 'image/svg+xml' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'my-tinypm-avatar.svg';
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    }
+
+    function closeModal() {
+      document.getElementById('successModal').classList.remove('visible');
+    }
+
+    function goToDashboard() {
+      window.location.href = '/';
+    }
+
+    // ===========================================
+    // INIT
+    // ===========================================
+    document.addEventListener('DOMContentLoaded', () => {
+      renderAvatar();
+    });
+  </script>
+</body>
+</html>

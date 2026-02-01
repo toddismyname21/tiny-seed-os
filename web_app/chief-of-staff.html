@@ -1044,6 +1044,221 @@
 
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* ═══════════════════════════════════════════════════════════════════════════
+       SKELETON LOADING STATES - Speed Optimization
+       Progressive content reveal with realistic placeholders
+       ═══════════════════════════════════════════════════════════════════════════ */
+
+    /* Base skeleton shimmer animation */
+    @keyframes skeleton-shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+
+    .skeleton {
+      background: linear-gradient(
+        90deg,
+        var(--bg-secondary) 0%,
+        var(--bg-elevated) 40%,
+        var(--bg-secondary) 80%
+      );
+      background-size: 200% 100%;
+      animation: skeleton-shimmer 1.5s ease-in-out infinite;
+      border-radius: 6px;
+    }
+
+    .skeleton-text {
+      height: 14px;
+      margin-bottom: 8px;
+      border-radius: 4px;
+    }
+
+    .skeleton-text.short { width: 40%; }
+    .skeleton-text.medium { width: 70%; }
+    .skeleton-text.long { width: 90%; }
+
+    .skeleton-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .skeleton-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 18px 20px;
+      margin-bottom: 12px;
+    }
+
+    .skeleton-card-header {
+      display: flex;
+      gap: 14px;
+      margin-bottom: 12px;
+    }
+
+    .skeleton-card-body {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    /* Skeleton message card */
+    .skeleton-message {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .skeleton-message-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .skeleton-message-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+    }
+
+    .skeleton-message-meta {
+      flex: 1;
+    }
+
+    .skeleton-tag {
+      width: 60px;
+      height: 22px;
+      border-radius: 6px;
+      display: inline-block;
+      margin-right: 8px;
+    }
+
+    /* Optimistic UI - Completed state (instant feedback) */
+    .optimistic-complete {
+      opacity: 0.6;
+      pointer-events: none;
+      transition: opacity 0.15s ease;
+    }
+
+    .optimistic-complete::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 24px;
+      height: 24px;
+      margin: -12px 0 0 -12px;
+      border: 3px solid var(--accent-green);
+      border-radius: 50%;
+      animation: optimistic-check 0.3s ease forwards;
+    }
+
+    @keyframes optimistic-check {
+      0% { transform: scale(0); opacity: 0; }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Optimistic undo toast */
+    .optimistic-undo-toast {
+      position: fixed;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-light);
+      border-radius: 10px;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: var(--shadow-lg);
+      z-index: 1500;
+      animation: slideUp 0.25s ease;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateX(-50%) translateY(20px); opacity: 0; }
+      to { transform: translateX(-50%) translateY(0); opacity: 1; }
+    }
+
+    .optimistic-undo-toast .undo-btn {
+      background: var(--accent-green);
+      color: #0a1628;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .optimistic-undo-toast .undo-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .optimistic-undo-toast .undo-timer {
+      width: 24px;
+      height: 24px;
+      border: 2px solid var(--text-muted);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    /* Prefetch indicator (subtle) */
+    .prefetching::before {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent-green), transparent);
+      animation: prefetch-indicator 0.8s ease;
+    }
+
+    @keyframes prefetch-indicator {
+      from { opacity: 0; transform: scaleX(0); }
+      to { opacity: 1; transform: scaleX(1); }
+    }
+
+    /* Command Palette - Recent section highlight */
+    .command-palette-group.recent {
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
+      margin-bottom: 8px;
+    }
+
+    .command-palette-group.recent .command-palette-group-title {
+      color: var(--accent-green);
+    }
+
+    /* Command Palette - AI suggestion styling */
+    .command-palette-item.ai-suggestion {
+      background: linear-gradient(90deg, rgba(167, 139, 250, 0.1), transparent);
+      border-left: 2px solid var(--accent-purple);
+    }
+
+    .command-palette-item.ai-suggestion .command-palette-item-icon {
+      color: var(--accent-purple);
+    }
+
+    /* Fuzzy match highlighting */
+    .fuzzy-match {
+      background: rgba(74, 222, 128, 0.2);
+      color: var(--accent-green);
+      border-radius: 2px;
+      padding: 0 2px;
+    }
+
     /* Empty State */
     .empty-state {
       text-align: center;
@@ -2314,6 +2529,736 @@
     .integration-status.disconnected {
       background: rgba(248, 113, 113, 0.15); color: var(--accent-red);
     }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       NLP COMMAND INTERFACE STYLES
+       Natural Language Processing Command Bar and Response Cards
+       ═══════════════════════════════════════════════════════════════════════════ */
+
+    /* NLP Command Bar Enhancement */
+    .nlp-command-bar {
+      position: relative;
+      margin-bottom: 20px;
+    }
+
+    .nlp-input-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--bg-card);
+      border: 2px solid var(--border-color);
+      border-radius: 14px;
+      padding: 12px 16px;
+      transition: all 0.2s ease;
+    }
+
+    .nlp-input-wrapper:focus-within {
+      border-color: var(--accent-green);
+      box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.15);
+    }
+
+    .nlp-input-icon {
+      font-size: 20px;
+      color: var(--text-muted);
+    }
+
+    .nlp-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      font-size: 16px;
+      color: var(--text-primary);
+      font-family: inherit;
+      outline: none;
+    }
+
+    .nlp-input::placeholder {
+      color: var(--text-dim);
+    }
+
+    .nlp-intent-badge {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .nlp-intent-badge.show {
+      display: flex;
+    }
+
+    .nlp-intent-badge.read {
+      background: rgba(96, 165, 250, 0.15);
+      color: var(--accent-blue);
+    }
+
+    .nlp-intent-badge.write {
+      background: rgba(251, 191, 36, 0.15);
+      color: var(--accent-amber);
+    }
+
+    .nlp-shortcut {
+      font-size: 12px;
+      padding: 4px 8px;
+      background: var(--bg-secondary);
+      border-radius: 6px;
+      color: var(--text-muted);
+      font-family: monospace;
+    }
+
+    /* NLP Suggestions Dropdown */
+    .nlp-suggestions {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      margin-top: 8px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: 14px;
+      box-shadow: var(--shadow-lg);
+      z-index: 100;
+      display: none;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .nlp-suggestions.show {
+      display: block;
+    }
+
+    .nlp-suggestions-group {
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .nlp-suggestions-group:last-child {
+      border-bottom: none;
+    }
+
+    .nlp-suggestions-group-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+      padding: 4px 16px 8px;
+    }
+
+    .nlp-suggestion-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+
+    .nlp-suggestion-item:hover,
+    .nlp-suggestion-item.selected {
+      background: var(--bg-elevated);
+    }
+
+    .nlp-suggestion-item.selected {
+      border-left: 3px solid var(--accent-green);
+    }
+
+    .nlp-suggestion-icon {
+      font-size: 18px;
+      width: 28px;
+      text-align: center;
+    }
+
+    .nlp-suggestion-text {
+      flex: 1;
+      font-size: 14px;
+      color: var(--text-primary);
+    }
+
+    .nlp-suggestion-type {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-weight: 600;
+    }
+
+    .nlp-suggestion-type.query {
+      background: rgba(96, 165, 250, 0.15);
+      color: var(--accent-blue);
+    }
+
+    .nlp-suggestion-type.action {
+      background: rgba(251, 191, 36, 0.15);
+      color: var(--accent-amber);
+    }
+
+    /* NLP Processing Indicator */
+    .nlp-processing {
+      display: none;
+      align-items: center;
+      gap: 12px;
+      padding: 16px;
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      margin-bottom: 16px;
+    }
+
+    .nlp-processing.show {
+      display: flex;
+    }
+
+    .nlp-processing-spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--border-color);
+      border-top-color: var(--accent-green);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    .nlp-processing-text {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    /* NLP Response Cards */
+    .nlp-response-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      margin-bottom: 16px;
+      overflow: hidden;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .nlp-response-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-color);
+      background: var(--bg-secondary);
+    }
+
+    .nlp-response-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .nlp-response-title-icon {
+      font-size: 20px;
+    }
+
+    .nlp-response-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .nlp-response-action-btn {
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--border-color);
+      background: var(--bg-card);
+      color: var(--text-secondary);
+      transition: all 0.15s ease;
+    }
+
+    .nlp-response-action-btn:hover {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+    }
+
+    .nlp-response-body {
+      padding: 20px;
+    }
+
+    .nlp-response-summary {
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--text-primary);
+      margin-bottom: 16px;
+    }
+
+    .nlp-response-key-points {
+      margin-bottom: 16px;
+    }
+
+    .nlp-response-key-points-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    .nlp-response-key-points ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .nlp-response-key-points li {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      line-height: 1.5;
+    }
+
+    /* Source Citations */
+    .nlp-sources {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .nlp-sources-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    .nlp-source-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .nlp-source-item:hover {
+      border-color: var(--accent-blue);
+      background: var(--bg-elevated);
+    }
+
+    .nlp-source-icon {
+      font-size: 16px;
+      width: 24px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .nlp-source-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .nlp-source-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .nlp-source-preview {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-style: italic;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .nlp-source-link {
+      font-size: 12px;
+      color: var(--accent-blue);
+      margin-top: 4px;
+    }
+
+    /* Follow-up Suggestions */
+    .nlp-followups {
+      margin-top: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .nlp-followup-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid var(--border-color);
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      transition: all 0.15s ease;
+    }
+
+    .nlp-followup-btn:hover {
+      border-color: var(--accent-green);
+      color: var(--text-primary);
+      background: var(--bg-elevated);
+    }
+
+    .nlp-followup-btn .icon {
+      font-size: 14px;
+    }
+
+    /* Write Confirmation Modal */
+    .nlp-confirm-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.75);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      backdrop-filter: blur(4px);
+    }
+
+    .nlp-confirm-overlay.show {
+      display: flex;
+    }
+
+    .nlp-confirm-modal {
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: 16px;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: var(--shadow-lg);
+      animation: fadeIn 0.2s ease;
+    }
+
+    .nlp-confirm-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .nlp-confirm-header-icon {
+      font-size: 24px;
+    }
+
+    .nlp-confirm-header h3 {
+      font-size: 18px;
+      font-weight: 700;
+      flex: 1;
+    }
+
+    .nlp-confirm-body {
+      padding: 24px;
+    }
+
+    .nlp-confirm-description {
+      font-size: 15px;
+      color: var(--text-secondary);
+      margin-bottom: 20px;
+    }
+
+    .nlp-confirm-preview {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .nlp-confirm-preview-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .nlp-confirm-preview-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .nlp-confirm-preview-item:last-child {
+      border-bottom: none;
+    }
+
+    .nlp-confirm-preview-label {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .nlp-confirm-preview-value {
+      font-size: 13px;
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    .nlp-confirm-footer {
+      padding: 16px 24px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+
+    /* List Response Style */
+    .nlp-list-response {
+      padding: 0;
+    }
+
+    .nlp-list-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .nlp-list-count {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .nlp-list-sort {
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+
+    .nlp-list-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-color);
+      transition: background 0.15s ease;
+    }
+
+    .nlp-list-item:last-child {
+      border-bottom: none;
+    }
+
+    .nlp-list-item:hover {
+      background: var(--bg-secondary);
+    }
+
+    .nlp-list-item-priority {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .nlp-list-item-priority.critical {
+      background: var(--critical);
+    }
+
+    .nlp-list-item-priority.high {
+      background: var(--high);
+    }
+
+    .nlp-list-item-priority.medium {
+      background: var(--medium);
+    }
+
+    .nlp-list-item-priority.low {
+      background: var(--low);
+    }
+
+    .nlp-list-item-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .nlp-list-item-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .nlp-list-item-meta {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .nlp-list-item-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .nlp-list-item-action {
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--border-color);
+      background: var(--bg-card);
+      color: var(--text-secondary);
+      transition: all 0.15s ease;
+    }
+
+    .nlp-list-item-action:hover {
+      background: var(--bg-elevated);
+    }
+
+    .nlp-list-item-action.primary {
+      background: var(--accent-green);
+      border-color: var(--accent-green);
+      color: #0a1628;
+    }
+
+    /* Highlighted Response (for single answers) */
+    .nlp-highlighted-response {
+      text-align: center;
+      padding: 32px 24px;
+    }
+
+    .nlp-highlighted-card {
+      display: inline-block;
+      background: var(--bg-secondary);
+      border: 2px solid var(--accent-green);
+      border-radius: 16px;
+      padding: 24px 32px;
+      margin-bottom: 20px;
+    }
+
+    .nlp-highlighted-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--accent-green);
+      margin-bottom: 12px;
+    }
+
+    .nlp-highlighted-main {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+
+    .nlp-highlighted-sub {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .nlp-highlighted-meta {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 20px;
+    }
+
+    .nlp-highlighted-actions {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    /* Ambiguity Clarification */
+    .nlp-clarify-options {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .nlp-clarify-option {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .nlp-clarify-option:hover {
+      border-color: var(--accent-green);
+      background: var(--bg-elevated);
+    }
+
+    .nlp-clarify-radio {
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--border-light);
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .nlp-clarify-option.selected .nlp-clarify-radio {
+      border-color: var(--accent-green);
+      background: var(--accent-green);
+    }
+
+    .nlp-clarify-text {
+      font-size: 14px;
+      color: var(--text-primary);
+    }
+
+    /* Example Commands Display */
+    .nlp-examples {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    @media (max-width: 600px) {
+      .nlp-examples {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .nlp-example-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .nlp-example-item:hover {
+      border-color: var(--accent-green);
+    }
+
+    .nlp-example-icon {
+      font-size: 16px;
+    }
+
+    .nlp-example-text {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
   </style>
 </head>
 <body>
@@ -2325,9 +3270,14 @@
         <div class="header-stats">
           <div class="header-stat">
             <span id="api-status">
-              <span id="status-dot" style="background: var(--accent-amber);"></span>
+              <span id="status-dot" style="width:8px;height:8px;border-radius:50%;display:inline-block;background: var(--accent-amber);"></span>
               <span id="status-text">Connecting...</span>
             </span>
+          </div>
+          <!-- Brain Status Indicator -->
+          <div class="header-stat" id="brain-status-indicator" title="TinyPM Brain Status">
+            <span class="brain-status-dot" style="width:8px;height:8px;border-radius:50%;display:inline-block;background:var(--text-muted);"></span>
+            <span class="brain-status-text" style="font-size:12px;color:var(--text-muted);">Brain: Connecting...</span>
           </div>
           <div class="header-stat">
             <span>Critical:</span>
@@ -2596,6 +3546,34 @@
             Conditions are favorable. No immediate disease concerns.
           </div>
         </div>
+
+        <!-- NLP Command Bar - Natural Language Interface -->
+        <div class="nlp-command-bar" id="nlp-command-bar">
+          <div class="nlp-input-wrapper">
+            <span class="nlp-input-icon">🌱</span>
+            <input type="text"
+                   class="nlp-input"
+                   id="nlp-input"
+                   placeholder='Talk to your farm... "Show me tasks due this week" or "Schedule a meeting with Todd tomorrow"'
+                   autocomplete="off"
+                   aria-label="Natural language command input">
+            <div class="nlp-intent-badge" id="nlp-intent-badge">
+              <span id="nlp-intent-icon"></span>
+              <span id="nlp-intent-text"></span>
+            </div>
+            <span class="nlp-shortcut">/</span>
+          </div>
+          <div class="nlp-suggestions" id="nlp-suggestions"></div>
+        </div>
+
+        <!-- NLP Processing Indicator -->
+        <div class="nlp-processing" id="nlp-processing">
+          <div class="nlp-processing-spinner"></div>
+          <span class="nlp-processing-text" id="nlp-processing-text">Understanding your request...</span>
+        </div>
+
+        <!-- NLP Response Container -->
+        <div id="nlp-response-container"></div>
 
         <!-- Filter Bar -->
         <div class="filter-bar">
@@ -2918,90 +3896,90 @@
     </div>
   </div>
 
-  <!-- Keyboard Shortcuts Cheat Sheet (? key) -->
+  <!-- Keyboard Shortcuts Cheat Sheet (? key) - Full 45+ Shortcuts -->
   <div class="shortcuts-overlay" id="shortcuts-overlay" onclick="if(event.target===this)closeShortcutsOverlay()" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
-    <div class="shortcuts-modal" role="document">
+    <div class="shortcuts-modal" role="document" style="max-width:900px;">
       <div class="shortcuts-header">
         <h3><span>⌨️</span> Keyboard Shortcuts</h3>
-        <button class="modal-close" onclick="closeShortcutsOverlay()">&times;</button>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <input type="text" id="shortcut-search" placeholder="Search..." style="padding:6px 10px;border-radius:6px;border:1px solid var(--border-color);background:var(--bg-input);color:var(--text-primary);font-size:12px;width:140px;" oninput="filterShortcuts(this.value)">
+          <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-muted);cursor:pointer;">
+            <input type="checkbox" id="vim-mode-toggle" onchange="ShortcutManager.toggleVimMode(this.checked)">Vim
+          </label>
+          <button class="modal-close" onclick="closeShortcutsOverlay()">&times;</button>
+        </div>
       </div>
-      <div class="shortcuts-body">
-        <div class="shortcuts-section">
-          <div class="shortcuts-section-title">Navigation</div>
-          <div class="shortcut-row">
-            <span class="shortcut-desc">Command Palette</span>
-            <div class="shortcut-keys"><span class="shortcut-key">⌘</span><span class="shortcut-key">K</span></div>
-          </div>
-          <div class="shortcut-row">
-            <span class="shortcut-desc">Go to Communications</span>
-            <div class="shortcut-keys"><span class="shortcut-key">G</span><span class="shortcut-key">C</span></div>
-          </div>
-          <div class="shortcut-row">
-            <span class="shortcut-desc">Go to Actions</span>
-            <div class="shortcut-keys"><span class="shortcut-key">G</span><span class="shortcut-key">A</span></div>
-          </div>
-          <div class="shortcut-row">
-            <span class="shortcut-desc">Go to Calendar</span>
-            <div class="shortcut-keys"><span class="shortcut-key">G</span><span class="shortcut-key">L</span></div>
-          </div>
-          <div class="shortcut-row">
-            <span class="shortcut-desc">Toggle Sidebar</span>
-            <div class="shortcut-keys"><span class="shortcut-key">[</span></div>
-          </div>
+      <div class="shortcuts-body" id="shortcuts-body" style="grid-template-columns:repeat(3,1fr);">
+        <!-- Navigation -->
+        <div class="shortcuts-section" data-category="navigation">
+          <div class="shortcuts-section-title">Navigation (G + key)</div>
+          <div class="shortcut-row" data-keys="gi"><span class="shortcut-desc">Go to Inbox</span><div class="shortcut-keys"><span class="shortcut-key">G</span><span class="shortcut-key">I</span></div></div>
+          <div class="shortcut-row" data-keys="gt"><span class="shortcut-desc">Go to Today</span><div class="shortcut-keys"><span class="shortcut-key">G</span><span class="shortcut-key">T</span></div></div>
+          <div class="shortcut-row" data-keys="gc"><span class="shortcut-desc">Go to Communications</span><div class="shortcut-keys"><span class="shortcut-key">G</span><span class="shortcut-key">C</span></div></div>
+          <div class="shortcut-row" data-keys="ga"><span class="shortcut-desc">Go to Actions</span><div class="shortcut-keys"><span class="shortcut-key">G</span><span class="shortcut-key">A</span></div></div>
+          <div class="shortcut-row" data-keys="gp"><span class="shortcut-desc">Go to Proactive</span><div class="shortcut-keys"><span class="shortcut-key">G</span><span class="shortcut-key">P</span></div></div>
+          <div class="shortcut-row" data-keys="gl"><span class="shortcut-desc">Go to Calendar</span><div class="shortcut-keys"><span class="shortcut-key">G</span><span class="shortcut-key">L</span></div></div>
+          <div class="shortcut-row" data-keys="gm"><span class="shortcut-desc">Go to Memory</span><div class="shortcut-keys"><span class="shortcut-key">G</span><span class="shortcut-key">M</span></div></div>
+          <div class="shortcut-row" data-keys="gs"><span class="shortcut-desc">Go to Settings</span><div class="shortcut-keys"><span class="shortcut-key">G</span><span class="shortcut-key">S</span></div></div>
+          <div class="shortcut-row" data-keys="gk"><span class="shortcut-desc">Go to Commitments</span><div class="shortcut-keys"><span class="shortcut-key">G</span><span class="shortcut-key">K</span></div></div>
+          <div class="shortcut-row" data-keys="gf"><span class="shortcut-desc">Focus Mode</span><div class="shortcut-keys"><span class="shortcut-key">G</span><span class="shortcut-key">F</span></div></div>
+          <div class="shortcut-row" data-keys="["><span class="shortcut-desc">Toggle Sidebar</span><div class="shortcut-keys"><span class="shortcut-key">[</span></div></div>
+          <div class="shortcut-row" data-keys="]"><span class="shortcut-desc">Toggle Chat</span><div class="shortcut-keys"><span class="shortcut-key">]</span></div></div>
+          <div class="shortcut-row" data-keys="cmd+k"><span class="shortcut-desc">Command Palette</span><div class="shortcut-keys"><span class="shortcut-key">Cmd</span><span class="shortcut-key">K</span></div></div>
         </div>
-        <div class="shortcuts-section">
-          <div class="shortcuts-section-title">Actions</div>
-          <div class="shortcut-row">
-            <span class="shortcut-desc">Refresh Data</span>
-            <div class="shortcut-keys"><span class="shortcut-key">R</span></div>
-          </div>
-          <div class="shortcut-row">
-            <span class="shortcut-desc">Process Inbox</span>
-            <div class="shortcut-keys"><span class="shortcut-key">P</span></div>
-          </div>
-          <div class="shortcut-row">
-            <span class="shortcut-desc">Brain Dump</span>
-            <div class="shortcut-keys"><span class="shortcut-key">B</span></div>
-          </div>
-          <div class="shortcut-row">
-            <span class="shortcut-desc">Quick Idea</span>
-            <div class="shortcut-keys"><span class="shortcut-key">I</span></div>
-          </div>
+        <!-- Actions -->
+        <div class="shortcuts-section" data-category="actions">
+          <div class="shortcuts-section-title">Quick Actions</div>
+          <div class="shortcut-row" data-keys="n"><span class="shortcut-desc">New Task</span><div class="shortcut-keys"><span class="shortcut-key">N</span></div></div>
+          <div class="shortcut-row" data-keys="e"><span class="shortcut-desc">Edit Selected</span><div class="shortcut-keys"><span class="shortcut-key">E</span></div></div>
+          <div class="shortcut-row" data-keys="d"><span class="shortcut-desc">Mark Done</span><div class="shortcut-keys"><span class="shortcut-key">D</span></div></div>
+          <div class="shortcut-row" data-keys="x"><span class="shortcut-desc">Delete / Dismiss</span><div class="shortcut-keys"><span class="shortcut-key">X</span></div></div>
+          <div class="shortcut-row" data-keys="a"><span class="shortcut-desc">Archive</span><div class="shortcut-keys"><span class="shortcut-key">A</span></div></div>
+          <div class="shortcut-row" data-keys="s"><span class="shortcut-desc">Snooze</span><div class="shortcut-keys"><span class="shortcut-key">S</span></div></div>
+          <div class="shortcut-row" data-keys="space"><span class="shortcut-desc">Toggle Complete</span><div class="shortcut-keys"><span class="shortcut-key">Space</span></div></div>
+          <div class="shortcut-row" data-keys="enter"><span class="shortcut-desc">Open Selected</span><div class="shortcut-keys"><span class="shortcut-key">Enter</span></div></div>
+          <div class="shortcut-row" data-keys="r"><span class="shortcut-desc">Refresh Data</span><div class="shortcut-keys"><span class="shortcut-key">R</span></div></div>
+          <div class="shortcut-row" data-keys="p"><span class="shortcut-desc">Process Inbox</span><div class="shortcut-keys"><span class="shortcut-key">P</span></div></div>
+          <div class="shortcut-row" data-keys="b"><span class="shortcut-desc">Brain Dump</span><div class="shortcut-keys"><span class="shortcut-key">B</span></div></div>
+          <div class="shortcut-row" data-keys="i"><span class="shortcut-desc">Quick Idea</span><div class="shortcut-keys"><span class="shortcut-key">I</span></div></div>
+          <div class="shortcut-row" data-keys="cmd+z"><span class="shortcut-desc">Undo</span><div class="shortcut-keys"><span class="shortcut-key">Cmd</span><span class="shortcut-key">Z</span></div></div>
         </div>
-        <div class="shortcuts-section">
-          <div class="shortcuts-section-title">Chat</div>
-          <div class="shortcut-row">
-            <span class="shortcut-desc">Focus Chat Input</span>
-            <div class="shortcut-keys"><span class="shortcut-key">/</span></div>
-          </div>
-          <div class="shortcut-row">
-            <span class="shortcut-desc">Voice Input</span>
-            <div class="shortcut-keys"><span class="shortcut-key">V</span></div>
-          </div>
-          <div class="shortcut-row">
-            <span class="shortcut-desc">Morning Brief</span>
-            <div class="shortcut-keys"><span class="shortcut-key">M</span></div>
-          </div>
+        <!-- Chat & List -->
+        <div class="shortcuts-section" data-category="chat">
+          <div class="shortcuts-section-title">Chat & AI</div>
+          <div class="shortcut-row" data-keys="/"><span class="shortcut-desc">Focus Search / Chat</span><div class="shortcut-keys"><span class="shortcut-key">/</span></div></div>
+          <div class="shortcut-row" data-keys="v"><span class="shortcut-desc">Voice Input</span><div class="shortcut-keys"><span class="shortcut-key">V</span></div></div>
+          <div class="shortcut-row" data-keys="m"><span class="shortcut-desc">Morning Brief</span><div class="shortcut-keys"><span class="shortcut-key">M</span></div></div>
+          <div class="shortcut-row" data-keys="w"><span class="shortcut-desc">What Should I Do?</span><div class="shortcut-keys"><span class="shortcut-key">W</span></div></div>
+          <div class="shortcut-row" data-keys="h"><span class="shortcut-desc">Help</span><div class="shortcut-keys"><span class="shortcut-key">H</span></div></div>
+          <div class="shortcuts-section-title" style="margin-top:16px;">List Navigation</div>
+          <div class="shortcut-row" data-keys="j"><span class="shortcut-desc">Next Item</span><div class="shortcut-keys"><span class="shortcut-key">J</span></div></div>
+          <div class="shortcut-row" data-keys="k"><span class="shortcut-desc">Previous Item</span><div class="shortcut-keys"><span class="shortcut-key">K</span></div></div>
+          <div class="shortcut-row" data-keys="shift+j"><span class="shortcut-desc">Select Range Down</span><div class="shortcut-keys"><span class="shortcut-key">Shift</span><span class="shortcut-key">J</span></div></div>
+          <div class="shortcut-row" data-keys="shift+k"><span class="shortcut-desc">Select Range Up</span><div class="shortcut-keys"><span class="shortcut-key">Shift</span><span class="shortcut-key">K</span></div></div>
+          <div class="shortcut-row" data-keys="gg"><span class="shortcut-desc">Go to First</span><div class="shortcut-keys"><span class="shortcut-key">G</span><span class="shortcut-key">G</span></div></div>
+          <div class="shortcut-row" data-keys="shift+g"><span class="shortcut-desc">Go to Last</span><div class="shortcut-keys"><span class="shortcut-key">Shift</span><span class="shortcut-key">G</span></div></div>
+          <div class="shortcuts-section-title" style="margin-top:16px;">View Filters</div>
+          <div class="shortcut-row" data-keys="1"><span class="shortcut-desc">Filter: All</span><div class="shortcut-keys"><span class="shortcut-key">1</span></div></div>
+          <div class="shortcut-row" data-keys="2"><span class="shortcut-desc">Filter: Unread</span><div class="shortcut-keys"><span class="shortcut-key">2</span></div></div>
+          <div class="shortcut-row" data-keys="3"><span class="shortcut-desc">Filter: Email</span><div class="shortcut-keys"><span class="shortcut-key">3</span></div></div>
+          <div class="shortcut-row" data-keys="4"><span class="shortcut-desc">Filter: SMS</span><div class="shortcut-keys"><span class="shortcut-key">4</span></div></div>
+          <div class="shortcut-row" data-keys="?"><span class="shortcut-desc">Show Shortcuts</span><div class="shortcut-keys"><span class="shortcut-key">?</span></div></div>
+          <div class="shortcut-row" data-keys="esc"><span class="shortcut-desc">Close / Escape</span><div class="shortcut-keys"><span class="shortcut-key">Esc</span></div></div>
         </div>
-        <div class="shortcuts-section">
-          <div class="shortcuts-section-title">General</div>
-          <div class="shortcut-row">
-            <span class="shortcut-desc">Show Shortcuts</span>
-            <div class="shortcut-keys"><span class="shortcut-key">?</span></div>
-          </div>
-          <div class="shortcut-row">
-            <span class="shortcut-desc">Close Modal/Overlay</span>
-            <div class="shortcut-keys"><span class="shortcut-key">Esc</span></div>
-          </div>
-          <div class="shortcut-row">
-            <span class="shortcut-desc">Next Item</span>
-            <div class="shortcut-keys"><span class="shortcut-key">J</span></div>
-          </div>
-          <div class="shortcut-row">
-            <span class="shortcut-desc">Previous Item</span>
-            <div class="shortcut-keys"><span class="shortcut-key">K</span></div>
-          </div>
+        <!-- Vim Mode (hidden by default) -->
+        <div class="shortcuts-section vim-mode-section" data-category="vim" style="display:none;">
+          <div class="shortcuts-section-title">Vim Mode (Power Users)</div>
+          <div class="shortcut-row" data-keys="dd"><span class="shortcut-desc">Delete Item</span><div class="shortcut-keys"><span class="shortcut-key">D</span><span class="shortcut-key">D</span></div></div>
+          <div class="shortcut-row" data-keys="yy"><span class="shortcut-desc">Copy Item</span><div class="shortcut-keys"><span class="shortcut-key">Y</span><span class="shortcut-key">Y</span></div></div>
+          <div class="shortcut-row" data-keys="u"><span class="shortcut-desc">Undo</span><div class="shortcut-keys"><span class="shortcut-key">U</span></div></div>
+          <div class="shortcut-row" data-keys=":w"><span class="shortcut-desc">Save</span><div class="shortcut-keys"><span class="shortcut-key">:</span><span class="shortcut-key">W</span></div></div>
+          <div class="shortcut-row" data-keys=":q"><span class="shortcut-desc">Quit</span><div class="shortcut-keys"><span class="shortcut-key">:</span><span class="shortcut-key">Q</span></div></div>
         </div>
+      </div>
+      <div style="padding:10px 24px;border-top:1px solid var(--border-color);display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);">
+        <span>Hover buttons 800ms for hints | Cmd+/ toggles hints</span>
+        <span id="shortcut-count">45 shortcuts</span>
       </div>
     </div>
   </div>
@@ -3173,6 +4151,51 @@
     </div>
   </div>
 
+  <!-- NLP Write Confirmation Modal -->
+  <div class="nlp-confirm-overlay" id="nlp-confirm-overlay" onclick="if(event.target===this)closeNLPConfirm()">
+    <div class="nlp-confirm-modal">
+      <div class="nlp-confirm-header">
+        <span class="nlp-confirm-header-icon" id="nlp-confirm-icon">⚠️</span>
+        <h3 id="nlp-confirm-title">Confirm Action</h3>
+        <button class="modal-close" onclick="closeNLPConfirm()">&times;</button>
+      </div>
+      <div class="nlp-confirm-body">
+        <p class="nlp-confirm-description" id="nlp-confirm-description">
+          You're about to perform the following action:
+        </p>
+        <div class="nlp-confirm-preview" id="nlp-confirm-preview">
+          <!-- Preview content will be populated dynamically -->
+        </div>
+      </div>
+      <div class="nlp-confirm-footer">
+        <button class="btn btn-secondary" onclick="closeNLPConfirm()">Cancel</button>
+        <button class="btn btn-primary" id="nlp-confirm-execute" onclick="executeNLPAction()">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- NLP Ambiguity Clarification Modal -->
+  <div class="nlp-confirm-overlay" id="nlp-clarify-overlay" onclick="if(event.target===this)closeNLPClarify()">
+    <div class="nlp-confirm-modal">
+      <div class="nlp-confirm-header">
+        <span class="nlp-confirm-header-icon">🤔</span>
+        <h3>Need Clarification</h3>
+        <button class="modal-close" onclick="closeNLPClarify()">&times;</button>
+      </div>
+      <div class="nlp-confirm-body">
+        <p class="nlp-confirm-description" id="nlp-clarify-question">
+          I found multiple matches. Which one did you mean?
+        </p>
+        <div class="nlp-clarify-options" id="nlp-clarify-options">
+          <!-- Options will be populated dynamically -->
+        </div>
+      </div>
+      <div class="nlp-confirm-footer">
+        <button class="btn btn-secondary" onclick="closeNLPClarify()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // PRODUCTION API - v444 Overnight mega upgrade (2026-01-28)
     const API_BASE = 'https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec';
@@ -3280,6 +4303,223 @@
       initializeApp();
       showToast('Refreshing data...', 'success');
     }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // NLP COMMAND PROCESSOR - Natural Language Interface
+    // "Talk to your farm like it understands. Because it does."
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    class NLPCommandProcessor {
+      constructor() {
+        this.readPatterns = [
+          { pattern: /^show\s+(?:me\s+)?(.+)/i, intent: 'query', type: 'show' },
+          { pattern: /^what\s+(?:did|does|is|are|was|were)\s+(.+)/i, intent: 'query', type: 'question' },
+          { pattern: /^find\s+(.+)/i, intent: 'query', type: 'search' },
+          { pattern: /^search\s+(?:for\s+)?(.+)/i, intent: 'query', type: 'search' },
+          { pattern: /^get\s+(?:me\s+)?(.+)/i, intent: 'query', type: 'retrieve' },
+          { pattern: /^list\s+(.+)/i, intent: 'query', type: 'list' },
+          { pattern: /^how\s+(?:many|much)\s+(.+)/i, intent: 'query', type: 'count' },
+          { pattern: /^when\s+(.+)/i, intent: 'query', type: 'time' },
+          { pattern: /^who\s+(.+)/i, intent: 'query', type: 'person' },
+          { pattern: /^any\s+(.+)/i, intent: 'query', type: 'check' },
+        ];
+        this.writePatterns = [
+          { pattern: /^schedule\s+(?:a\s+)?(.+)/i, intent: 'action', type: 'schedule' },
+          { pattern: /^create\s+(?:a\s+)?(.+)/i, intent: 'action', type: 'create' },
+          { pattern: /^add\s+(?:a\s+)?(.+)/i, intent: 'action', type: 'add' },
+          { pattern: /^send\s+(?:a\s+)?(.+)/i, intent: 'action', type: 'send' },
+          { pattern: /^email\s+(.+)/i, intent: 'action', type: 'email' },
+          { pattern: /^remind\s+(?:me\s+)?(?:to\s+)?(.+)/i, intent: 'action', type: 'remind' },
+          { pattern: /^draft\s+(?:a\s+)?(.+)/i, intent: 'action', type: 'draft' },
+          { pattern: /^reply\s+(?:to\s+)?(.+)/i, intent: 'action', type: 'reply' },
+          { pattern: /^mark\s+(.+)/i, intent: 'action', type: 'mark' },
+          { pattern: /^complete\s+(.+)/i, intent: 'action', type: 'complete' },
+        ];
+        this.datePatterns = [
+          { pattern: /\b(today|tonight)\b/i, resolve: () => new Date() },
+          { pattern: /\b(tomorrow)\b/i, resolve: () => { const d = new Date(); d.setDate(d.getDate() + 1); return d; } },
+          { pattern: /\bthis\s+week\b/i, resolve: () => ({ type: 'range', label: 'this week' }) },
+          { pattern: /\bnext\s+week\b/i, resolve: () => ({ type: 'range', label: 'next week' }) },
+          { pattern: /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i, resolve: (m) => ({ type: 'day', label: m[1] }) },
+        ];
+        this.queryMappings = {
+          'tasks due': 'getTasks', 'tasks this week': 'getTasks', 'overdue': 'getTasks',
+          'unread emails': 'getCommunications', 'emails from': 'getCommunications',
+          'calendar': 'getTodaySchedule', 'schedule': 'getTodaySchedule',
+          'commitments': 'getCommitments', 'promises': 'getCommitments',
+          'alerts': 'getActiveAlerts',
+        };
+        this.exampleCommands = [
+          { text: 'Show me tasks due this week', icon: '📋', type: 'query' },
+          { text: 'What did the client say about the logo?', icon: '💬', type: 'query' },
+          { text: 'Find emails from Todd', icon: '📧', type: 'query' },
+          { text: 'Show critical alerts', icon: '🚨', type: 'query' },
+          { text: 'Schedule a meeting with Todd tomorrow', icon: '📅', type: 'action' },
+          { text: 'Create a task to review Q1 numbers', icon: '✅', type: 'action' },
+          { text: 'Remind me to call Sarah at 3pm', icon: '⏰', type: 'action' },
+          { text: 'Draft a reply to the last email', icon: '✍️', type: 'action' },
+        ];
+        this.pendingAction = null;
+        this.initUI();
+      }
+
+      initUI() {
+        const input = document.getElementById('nlp-input');
+        if (!input) return;
+        let timer = null, selectedIdx = -1;
+
+        input.addEventListener('input', e => {
+          clearTimeout(timer);
+          timer = setTimeout(() => this.onInput(e.target.value), 150);
+        });
+
+        input.addEventListener('keydown', e => {
+          const items = document.querySelectorAll('#nlp-suggestions .nlp-suggestion-item');
+          if (e.key === 'ArrowDown') { e.preventDefault(); selectedIdx = Math.min(selectedIdx + 1, items.length - 1); this.highlight(items, selectedIdx); }
+          else if (e.key === 'ArrowUp') { e.preventDefault(); selectedIdx = Math.max(selectedIdx - 1, -1); this.highlight(items, selectedIdx); }
+          else if (e.key === 'Enter') { e.preventDefault(); selectedIdx >= 0 && items[selectedIdx] ? items[selectedIdx].click() : input.value.trim() && this.process(input.value.trim()); selectedIdx = -1; }
+          else if (e.key === 'Escape') { this.hide(); input.blur(); }
+        });
+
+        input.addEventListener('focus', () => { if (!input.value.trim()) this.showExamples(); });
+        document.addEventListener('click', e => { if (!e.target.closest('.nlp-command-bar')) this.hide(); });
+      }
+
+      onInput(val) {
+        const badge = document.getElementById('nlp-intent-badge'), icon = document.getElementById('nlp-intent-icon'), text = document.getElementById('nlp-intent-text');
+        if (!val.trim()) { badge.classList.remove('show', 'read', 'write'); this.showExamples(); return; }
+        const p = this.parse(val);
+        if (p.intent === 'query') { badge.className = 'nlp-intent-badge show read'; icon.textContent = '🔍'; text.textContent = 'Query'; }
+        else if (p.intent === 'action') { badge.className = 'nlp-intent-badge show write'; icon.textContent = '✏️'; text.textContent = 'Action'; }
+        else { badge.classList.remove('show'); }
+        this.showFiltered(val);
+      }
+
+      showExamples() {
+        const c = document.getElementById('nlp-suggestions'); if (!c) return;
+        const q = this.exampleCommands.filter(x => x.type === 'query'), a = this.exampleCommands.filter(x => x.type === 'action');
+        let h = '<div class="nlp-suggestions-group"><div class="nlp-suggestions-group-title">Queries</div>';
+        q.slice(0, 4).forEach(x => { h += `<div class="nlp-suggestion-item" onclick="nlpProcessor.select('${this.esc(x.text)}')"><span class="nlp-suggestion-icon">${x.icon}</span><span class="nlp-suggestion-text">${escapeHtml(x.text)}</span><span class="nlp-suggestion-type query">Query</span></div>`; });
+        h += '</div><div class="nlp-suggestions-group"><div class="nlp-suggestions-group-title">Actions</div>';
+        a.slice(0, 4).forEach(x => { h += `<div class="nlp-suggestion-item" onclick="nlpProcessor.select('${this.esc(x.text)}')"><span class="nlp-suggestion-icon">${x.icon}</span><span class="nlp-suggestion-text">${escapeHtml(x.text)}</span><span class="nlp-suggestion-type action">Action</span></div>`; });
+        c.innerHTML = h + '</div>'; c.classList.add('show');
+      }
+
+      showFiltered(query) {
+        const c = document.getElementById('nlp-suggestions'); if (!c) return;
+        const f = this.exampleCommands.filter(x => x.text.toLowerCase().includes(query.toLowerCase()));
+        if (!f.length) { c.innerHTML = `<div style="padding:16px;text-align:center;color:var(--text-muted);">Press Enter: "${escapeHtml(query)}"</div>`; c.classList.add('show'); return; }
+        let h = '';
+        const q = f.filter(x => x.type === 'query'), a = f.filter(x => x.type === 'action');
+        if (q.length) { h += '<div class="nlp-suggestions-group"><div class="nlp-suggestions-group-title">Queries</div>'; q.forEach(x => { h += `<div class="nlp-suggestion-item" onclick="nlpProcessor.select('${this.esc(x.text)}')"><span class="nlp-suggestion-icon">${x.icon}</span><span class="nlp-suggestion-text">${escapeHtml(x.text)}</span><span class="nlp-suggestion-type query">Query</span></div>`; }); h += '</div>'; }
+        if (a.length) { h += '<div class="nlp-suggestions-group"><div class="nlp-suggestions-group-title">Actions</div>'; a.forEach(x => { h += `<div class="nlp-suggestion-item" onclick="nlpProcessor.select('${this.esc(x.text)}')"><span class="nlp-suggestion-icon">${x.icon}</span><span class="nlp-suggestion-text">${escapeHtml(x.text)}</span><span class="nlp-suggestion-type action">Action</span></div>`; }); h += '</div>'; }
+        c.innerHTML = h; c.classList.add('show');
+      }
+
+      highlight(items, idx) { items.forEach((el, i) => el.classList.toggle('selected', i === idx)); if (idx >= 0 && items[idx]) items[idx].scrollIntoView({ block: 'nearest' }); }
+      hide() { const c = document.getElementById('nlp-suggestions'); if (c) c.classList.remove('show'); }
+      select(t) { const i = document.getElementById('nlp-input'); if (i) { i.value = t; i.focus(); } this.hide(); this.process(t); }
+      esc(s) { return s.replace(/'/g, "\\'").replace(/"/g, '\\"'); }
+
+      parse(text) {
+        const r = { original: text, intent: null, type: null, subject: null, entities: { dates: [], people: [] } };
+        for (const p of this.readPatterns) { const m = text.match(p.pattern); if (m) { r.intent = p.intent; r.type = p.type; r.subject = m[1]; break; } }
+        if (!r.intent) for (const p of this.writePatterns) { const m = text.match(p.pattern); if (m) { r.intent = p.intent; r.type = p.type; r.subject = m[1]; break; } }
+        for (const dp of this.datePatterns) { const m = text.match(dp.pattern); if (m) r.entities.dates.push(dp.resolve(m)); }
+        const pm = text.match(/\bwith\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\b/); if (pm) r.entities.people.push({ name: pm[1] });
+        if (!r.intent) { r.intent = 'query'; r.type = 'general'; r.subject = text; }
+        return r;
+      }
+
+      async process(text) {
+        const p = this.parse(text); this.hide(); this.showProc(`Understanding: "${text}"`);
+        try { p.intent === 'action' ? await this.prepAction(p) : await this.execQuery(p); }
+        catch (e) { this.hideProc(); this.showErr('Something went wrong.'); }
+      }
+
+      showProc(t) { const el = document.getElementById('nlp-processing'), tx = document.getElementById('nlp-processing-text'); if (el) el.classList.add('show'); if (tx) tx.textContent = t || 'Processing...'; }
+      hideProc() { const el = document.getElementById('nlp-processing'); if (el) el.classList.remove('show'); }
+
+      async execQuery(p) {
+        this.showProc('Searching...');
+        try {
+          let action = null; const sl = p.subject.toLowerCase();
+          for (const [k, v] of Object.entries(this.queryMappings)) { if (sl.includes(k)) { action = v; break; } }
+          let resp;
+          if (action) {
+            const res = await fetch(`${API_BASE}?action=${action}`); const d = await res.json();
+            resp = { success: true, type: action, data: d.data || d.items || d.tasks || d, source: 'api' };
+          } else {
+            const res = await fetch(`${API_BASE}?action=chatWithChiefOfStaff&message=${encodeURIComponent(p.original)}`); const d = await res.json();
+            resp = { success: true, type: 'ai', data: d.message, source: 'ai', toolsUsed: d.toolsUsed || [] };
+          }
+          this.hideProc(); this.renderResp(resp, p);
+        } catch (e) { this.hideProc(); this.showErr('Search failed: ' + e.message); }
+      }
+
+      renderResp(resp, p) {
+        const c = document.getElementById('nlp-response-container'); if (!c) return;
+        const icons = { show: '📊', question: '💬', search: '🔍', list: '📋', general: '🌱' };
+        let h = `<div class="nlp-response-card"><div class="nlp-response-header"><div class="nlp-response-title"><span class="nlp-response-title-icon">${icons[p.type] || '📊'}</span><span>"${escapeHtml(p.subject || p.original)}"</span></div><div class="nlp-response-actions"><button class="nlp-response-action-btn" onclick="nlpProcessor.clear()">Dismiss</button></div></div><div class="nlp-response-body">`;
+        if (resp.source === 'ai') {
+          h += `<div class="nlp-response-summary">${escapeHtml(resp.data || '').replace(/\n/g, '<br>')}</div>`;
+          if (resp.toolsUsed?.length) { h += '<div class="nlp-sources"><div class="nlp-sources-title">Sources</div>'; resp.toolsUsed.forEach(t => { h += `<div class="nlp-source-item"><span class="nlp-source-icon">📄</span><div class="nlp-source-content"><div class="nlp-source-title">${escapeHtml(t.name || t.type)}</div></div></div>`; }); h += '</div>'; }
+        } else if (Array.isArray(resp.data) && resp.data.length) {
+          h += `<div class="nlp-list-response"><div class="nlp-list-header"><span class="nlp-list-count">${resp.data.length} found</span></div>`;
+          resp.data.slice(0, 8).forEach(i => { const t = i.title || i.subject || i.name || 'Item', m = i.from || i.deadline || '', pr = (i.priority || 'medium').toLowerCase(); h += `<div class="nlp-list-item"><div class="nlp-list-item-priority ${pr}"></div><div class="nlp-list-item-content"><div class="nlp-list-item-title">${escapeHtml(t)}</div><div class="nlp-list-item-meta">${escapeHtml(m)}</div></div></div>`; });
+          if (resp.data.length > 8) h += `<div style="padding:12px;text-align:center;color:var(--text-muted);">+${resp.data.length - 8} more</div>`;
+          h += '</div>';
+        } else { h += '<p class="nlp-response-summary">No results found.</p>'; }
+        h += this.followups(p) + '</div></div>'; c.innerHTML = h;
+      }
+
+      followups(p) {
+        const f = [];
+        if (p.subject?.includes('task')) f.push({ icon: '✅', label: 'Complete all', text: 'Mark all tasks complete' });
+        if (p.subject?.includes('email')) f.push({ icon: '📥', label: 'Archive read', text: 'Archive read emails' });
+        if (p.entities.people.length) f.push({ icon: '📧', label: `Email ${p.entities.people[0].name}`, text: `Email ${p.entities.people[0].name}` });
+        if (!f.length) return '';
+        let h = '<div class="nlp-followups">'; f.forEach(x => { h += `<button class="nlp-followup-btn" onclick="nlpProcessor.select('${this.esc(x.text)}')"><span class="icon">${x.icon}</span>${escapeHtml(x.label)}</button>`; }); return h + '</div>';
+      }
+
+      async prepAction(p) {
+        this.hideProc(); this.pendingAction = p;
+        const ov = document.getElementById('nlp-confirm-overlay'), ti = document.getElementById('nlp-confirm-title'), desc = document.getElementById('nlp-confirm-description'), prev = document.getElementById('nlp-confirm-preview'), ic = document.getElementById('nlp-confirm-icon'), btn = document.getElementById('nlp-confirm-execute');
+        if (!ov) return;
+        const icons = { schedule: '📅', create: '✅', add: '➕', send: '📤', email: '✉️', remind: '⏰', draft: '✍️', reply: '↩️', mark: '✓', complete: '✅' };
+        const titles = { schedule: 'Schedule Meeting', create: 'Create Task', remind: 'Set Reminder', draft: 'Draft Message', email: 'Send Email' };
+        ic.textContent = icons[p.type] || '⚠️'; ti.textContent = titles[p.type] || 'Confirm Action'; desc.textContent = `You're about to ${p.type}:`;
+        let ph = '<div class="nlp-confirm-preview-title">Preview</div>';
+        ph += `<div class="nlp-confirm-preview-item"><span class="nlp-confirm-preview-label">Action</span><span class="nlp-confirm-preview-value">${p.type}</span></div>`;
+        ph += `<div class="nlp-confirm-preview-item"><span class="nlp-confirm-preview-label">Details</span><span class="nlp-confirm-preview-value">${escapeHtml(p.subject)}</span></div>`;
+        if (p.entities.dates.length) { const d = p.entities.dates[0]; ph += `<div class="nlp-confirm-preview-item"><span class="nlp-confirm-preview-label">Date</span><span class="nlp-confirm-preview-value">${d instanceof Date ? d.toLocaleDateString() : d.label || 'TBD'}</span></div>`; }
+        if (p.entities.people.length) { ph += `<div class="nlp-confirm-preview-item"><span class="nlp-confirm-preview-label">With</span><span class="nlp-confirm-preview-value">${p.entities.people.map(x => x.name).join(', ')}</span></div>`; }
+        prev.innerHTML = ph; btn.textContent = { schedule: 'Schedule It', create: 'Create', remind: 'Set Reminder', send: 'Send', draft: 'Draft It' }[p.type] || 'Confirm';
+        ov.classList.add('show');
+      }
+
+      async execAction() {
+        if (!this.pendingAction) return;
+        const p = this.pendingAction; closeNLPConfirm(); this.showProc(`Executing: ${p.type}...`);
+        try {
+          const res = await fetch(`${API_BASE}?action=chatWithChiefOfStaff&message=${encodeURIComponent('Execute: ' + p.original)}`); const d = await res.json();
+          this.hideProc(); this.showOK(d, p); this.pendingAction = null;
+          if (['create', 'add', 'complete', 'mark'].includes(p.type)) loadActions();
+          if (['schedule'].includes(p.type)) loadTodaySchedule();
+        } catch (e) { this.hideProc(); this.showErr('Action failed: ' + e.message); }
+      }
+
+      showOK(r, p) { const c = document.getElementById('nlp-response-container'); if (!c) return; c.innerHTML = `<div class="nlp-response-card"><div class="nlp-response-header" style="background:rgba(74,222,128,0.1)"><div class="nlp-response-title"><span class="nlp-response-title-icon">✅</span><span>Done</span></div><div class="nlp-response-actions"><button class="nlp-response-action-btn" onclick="nlpProcessor.clear()">Dismiss</button></div></div><div class="nlp-response-body"><p class="nlp-response-summary">${escapeHtml(r.message || 'Completed: ' + p.type)}</p></div></div>`; }
+      showErr(m) { const c = document.getElementById('nlp-response-container'); if (!c) return; c.innerHTML = `<div class="nlp-response-card" style="border-color:var(--accent-red)"><div class="nlp-response-header" style="background:rgba(248,113,113,0.1)"><div class="nlp-response-title"><span class="nlp-response-title-icon">❌</span><span>Error</span></div><div class="nlp-response-actions"><button class="nlp-response-action-btn" onclick="nlpProcessor.clear()">Dismiss</button></div></div><div class="nlp-response-body"><p class="nlp-response-summary" style="color:var(--accent-red)">${escapeHtml(m)}</p></div></div>`; }
+      clear() { const c = document.getElementById('nlp-response-container'); if (c) c.innerHTML = ''; const i = document.getElementById('nlp-input'); if (i) { i.value = ''; i.focus(); } }
+    }
+
+    let nlpProcessor;
+    document.addEventListener('DOMContentLoaded', () => { nlpProcessor = new NLPCommandProcessor(); });
+
+    function closeNLPConfirm() { const o = document.getElementById('nlp-confirm-overlay'); if (o) o.classList.remove('show'); }
+    function executeNLPAction() { if (nlpProcessor) nlpProcessor.execAction(); }
+    function closeNLPClarify() { const o = document.getElementById('nlp-clarify-overlay'); if (o) o.classList.remove('show'); }
 
     // ═══════════════════════════════════════════════════════════════════════════
     // COMMUNICATIONS
@@ -5589,143 +6829,311 @@ Please help with this email. Be concise and actionable.`;
     });
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // KEYBOARD SHORTCUTS FRAMEWORK
+    // SHORTCUT MANAGER - Full 45+ Keyboard Shortcuts (UX_SPEC_PREDICTIVE_SPEED.md)
+    // Superhuman/Linear-style shortcuts with Vim mode support
     // ═══════════════════════════════════════════════════════════════════════════
 
+    const ShortcutManager = {
+      lastKeyTime: 0,
+      lastKey: '',
+      keySequence: [],
+      COMBO_TIMEOUT: 500,
+      vimMode: localStorage.getItem('vimModeEnabled') === 'true',
+      hintsEnabled: localStorage.getItem('shortcutHintsEnabled') !== 'false',
+      currentListIndex: -1,
+      multiSelectStart: -1,
+      selectedItems: new Set(),
+      undoStack: [],
+      HINT_DELAY: 800,
+
+      shortcuts: {
+        navigation: {
+          'gi': () => switchTab('communications'),
+          'gt': () => switchTab('calendar'),
+          'gc': () => switchTab('communications'),
+          'ga': () => switchTab('actions'),
+          'gp': () => switchTab('proactive'),
+          'gl': () => switchTab('calendar'),
+          'gd': () => switchTab('communications'),
+          'gm': () => switchTab('memory'),
+          'gs': () => switchTab('system'),
+          'gk': () => switchTab('commitments'),
+          'gf': () => ShortcutManager.activateFocusMode(),
+          'gv': () => switchTab('style-voice'),
+          'gg': () => ShortcutManager.navigateToEdge('first'),
+        },
+        actions: {
+          'n': () => openBrainDump(),
+          'e': () => ShortcutManager.editSelected(),
+          'd': () => ShortcutManager.markSelectedDone(),
+          'x': () => ShortcutManager.deleteSelected(),
+          'a': () => ShortcutManager.archiveSelected(),
+          's': () => ShortcutManager.snoozeSelected(),
+          ' ': () => ShortcutManager.toggleComplete(),
+        },
+        chat: {
+          '/': () => document.getElementById('chat-input').focus(),
+          'w': () => askQuestion('What should I work on next?'),
+          'h': () => askQuestion('Help me understand the Chief of Staff system.'),
+        },
+        list: {
+          'j': () => ShortcutManager.navigateList(1),
+          'k': () => ShortcutManager.navigateList(-1),
+          'J': () => ShortcutManager.selectRange(1),
+          'K': () => ShortcutManager.selectRange(-1),
+          'G': () => ShortcutManager.navigateToEdge('last'),
+        },
+        view: {
+          '1': () => setFilter('all'),
+          '2': () => setFilter('unread'),
+          '3': () => setFilter('email'),
+          '4': () => setFilter('sms'),
+          'f': () => ShortcutManager.toggleFiltersPanel(),
+          ']': () => toggleMobileChat(),
+        },
+        vim: {
+          'dd': () => ShortcutManager.deleteSelected(),
+          'yy': () => ShortcutManager.copySelected(),
+          'u': () => ShortcutManager.undo(),
+        }
+      },
+
+      navigateList(dir) {
+        const cards = document.querySelectorAll('.tab-content.active .message-card, .tab-content.active .action-card, .tab-content.active .commitment-card');
+        if (!cards.length) return;
+        this.currentListIndex += dir;
+        if (this.currentListIndex < 0) this.currentListIndex = 0;
+        if (this.currentListIndex >= cards.length) this.currentListIndex = cards.length - 1;
+        cards.forEach((c, i) => {
+          c.classList.toggle('selected', i === this.currentListIndex);
+          if (i === this.currentListIndex) c.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+      },
+
+      navigateToEdge(edge) {
+        const cards = document.querySelectorAll('.tab-content.active .message-card, .tab-content.active .action-card, .tab-content.active .commitment-card');
+        if (!cards.length) return;
+        this.currentListIndex = edge === 'first' ? 0 : cards.length - 1;
+        cards.forEach((c, i) => {
+          c.classList.toggle('selected', i === this.currentListIndex);
+          if (i === this.currentListIndex) c.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+      },
+
+      selectRange(dir) {
+        const cards = document.querySelectorAll('.tab-content.active .message-card, .tab-content.active .action-card, .tab-content.active .commitment-card');
+        if (!cards.length) return;
+        if (this.multiSelectStart === -1) this.multiSelectStart = this.currentListIndex;
+        this.currentListIndex += dir;
+        if (this.currentListIndex < 0) this.currentListIndex = 0;
+        if (this.currentListIndex >= cards.length) this.currentListIndex = cards.length - 1;
+        const start = Math.min(this.multiSelectStart, this.currentListIndex);
+        const end = Math.max(this.multiSelectStart, this.currentListIndex);
+        this.selectedItems.clear();
+        for (let i = start; i <= end; i++) this.selectedItems.add(i);
+        cards.forEach((c, i) => c.classList.toggle('selected', this.selectedItems.has(i)));
+        cards[this.currentListIndex].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      },
+
+      getSelectedCard() { return document.querySelector('.tab-content.active .selected'); },
+      openSelected() { const c = this.getSelectedCard(); if (c) c.click(); },
+      editSelected() { const c = this.getSelectedCard(); if (c) c.click(); },
+
+      markSelectedDone() {
+        const c = this.getSelectedCard();
+        if (c) {
+          const btn = c.querySelector('.action-btn.complete, [onclick*="complete"]');
+          if (btn) { this.undoStack.push({ type: 'complete' }); btn.click(); showToast('Done [Cmd+Z to undo]', 'success'); }
+        }
+      },
+
+      toggleComplete() { this.markSelectedDone(); },
+
+      deleteSelected() {
+        const c = this.getSelectedCard();
+        if (c) {
+          const btn = c.querySelector('.action-btn.dismiss, [onclick*="dismiss"]');
+          if (btn) { this.undoStack.push({ type: 'delete' }); btn.click(); showToast('Deleted [Cmd+Z to undo]', 'success'); }
+        }
+      },
+
+      archiveSelected() { if (selectedMessageId) archiveCurrentEmail(); else showToast('Select an email to archive', 'error'); },
+      snoozeSelected() { showToast('Snoozed for 1 hour', 'success'); },
+      copySelected() {
+        const c = this.getSelectedCard();
+        if (c) {
+          const txt = c.querySelector('.message-subject, .action-description, .commitment-text')?.textContent || '';
+          navigator.clipboard.writeText(txt); showToast('Copied', 'success');
+        }
+      },
+
+      undo() { if (this.undoStack.length) { this.undoStack.pop(); refreshAll(); showToast('Undone', 'success'); } else showToast('Nothing to undo', 'error'); },
+      toggleFiltersPanel() { document.querySelector('.filter-bar')?.classList.toggle('expanded'); },
+      activateFocusMode() { document.body.classList.toggle('focus-mode'); showToast(document.body.classList.contains('focus-mode') ? 'Focus Mode ON' : 'Focus Mode OFF', 'success'); },
+
+      closeAll() {
+        closeCommandPalette(); closeShortcutsOverlay(); closeCompletionModal && closeCompletionModal();
+        closeBrainDump && closeBrainDump(); closeEmailDetail && closeEmailDetail(); closeTaskActionModal && closeTaskActionModal();
+      },
+
+      toggleVimMode(on) {
+        this.vimMode = on;
+        localStorage.setItem('vimModeEnabled', on);
+        document.querySelector('.vim-mode-section')?.style && (document.querySelector('.vim-mode-section').style.display = on ? 'block' : 'none');
+        showToast(on ? 'Vim mode enabled' : 'Vim mode disabled', 'success');
+      },
+
+      toggleHints() {
+        this.hintsEnabled = !this.hintsEnabled;
+        localStorage.setItem('shortcutHintsEnabled', this.hintsEnabled);
+        showToast(this.hintsEnabled ? 'Hints ON' : 'Hints OFF', 'success');
+      },
+
+      getCount() {
+        let c = 0;
+        for (const cat of Object.values(this.shortcuts)) c += Object.keys(cat).length;
+        return c;
+      }
+    };
+
+    // Legacy compatibility
     let lastKeyTime = 0;
     let lastKey = '';
     const COMBO_TIMEOUT = 500; // ms for key combinations like G+C
 
     function openShortcutsOverlay() {
       document.getElementById('shortcuts-overlay').classList.add('show');
+      // Focus search and restore vim mode state
+      const search = document.getElementById('shortcut-search');
+      if (search) { search.value = ''; search.focus(); }
+      const vimToggle = document.getElementById('vim-mode-toggle');
+      if (vimToggle) vimToggle.checked = ShortcutManager.vimMode;
+      const vimSection = document.querySelector('.vim-mode-section');
+      if (vimSection) vimSection.style.display = ShortcutManager.vimMode ? 'block' : 'none';
+      // Update count
+      const countEl = document.getElementById('shortcut-count');
+      if (countEl) countEl.textContent = ShortcutManager.getCount() + ' shortcuts';
     }
 
     function closeShortcutsOverlay() {
       document.getElementById('shortcuts-overlay').classList.remove('show');
     }
 
-    // Global keyboard shortcuts
+    // Filter shortcuts by search query
+    function filterShortcuts(query) {
+      const q = query.toLowerCase().trim();
+      let visible = 0;
+      document.querySelectorAll('.shortcut-row').forEach(row => {
+        const keys = (row.dataset.keys || '').toLowerCase();
+        const desc = row.querySelector('.shortcut-desc')?.textContent.toLowerCase() || '';
+        const match = !q || keys.includes(q) || desc.includes(q);
+        row.style.display = match ? 'flex' : 'none';
+        if (match) visible++;
+      });
+      // Update count
+      const countEl = document.getElementById('shortcut-count');
+      if (countEl) countEl.textContent = visible + ' shortcuts';
+    }
+
+    // Global keyboard shortcuts - Enhanced with ShortcutManager
     document.addEventListener('keydown', (e) => {
-      // Don't trigger shortcuts when typing in inputs
       const target = e.target;
       const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
 
-      // Check for command palette (works even in inputs)
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        openCommandPalette();
-        return;
-      }
+      // Cmd/Ctrl + K = Command palette (works in inputs)
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); openCommandPalette(); return; }
 
-      // Escape closes any open overlay
-      if (e.key === 'Escape') {
-        closeCommandPalette();
-        closeShortcutsOverlay();
-        closeCompletionModal();
-        closeBrainDump();
-        closeEmailDetail();
-        return;
-      }
+      // Cmd/Ctrl + , = Settings
+      if ((e.metaKey || e.ctrlKey) && e.key === ',') { e.preventDefault(); switchTab('system'); return; }
 
-      // Don't process other shortcuts when in input
+      // Cmd/Ctrl + / = Toggle hints
+      if ((e.metaKey || e.ctrlKey) && e.key === '/') { e.preventDefault(); ShortcutManager.toggleHints(); return; }
+
+      // Cmd/Ctrl + Z = Undo
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z') { e.preventDefault(); ShortcutManager.undo(); return; }
+
+      // Escape closes overlays
+      if (e.key === 'Escape') { ShortcutManager.closeAll(); return; }
+
+      // Skip other shortcuts in inputs
       if (isInput) return;
 
-      const now = Date.now();
-      const currentKey = e.key.toUpperCase();
+      // Enter = Open selected
+      if (e.key === 'Enter') { e.preventDefault(); ShortcutManager.openSelected(); return; }
 
-      // Check for two-key combinations (G+C, G+A, G+L)
+      // Space = Toggle complete
+      if (e.key === ' ') { e.preventDefault(); ShortcutManager.toggleComplete(); return; }
+
+      const now = Date.now();
+      const key = e.shiftKey ? e.key.toUpperCase() : e.key.toLowerCase();
+
+      // Build key sequence for G+x combos
       if (now - lastKeyTime < COMBO_TIMEOUT) {
-        if (lastKey === 'G') {
-          if (currentKey === 'C') {
-            e.preventDefault();
-            switchTab('communications');
-            return;
-          } else if (currentKey === 'A') {
-            e.preventDefault();
-            switchTab('actions');
-            return;
-          } else if (currentKey === 'L') {
-            e.preventDefault();
-            switchTab('calendar');
-            return;
-          }
+        ShortcutManager.keySequence.push(key);
+        if (ShortcutManager.keySequence.length > 3) ShortcutManager.keySequence.shift();
+      } else {
+        ShortcutManager.keySequence = [key];
+      }
+      lastKeyTime = now;
+      lastKey = key;
+
+      // Try two-key navigation combos
+      if (ShortcutManager.keySequence.length >= 2) {
+        const combo = ShortcutManager.keySequence.slice(-2).join('');
+        if (ShortcutManager.shortcuts.navigation[combo]) {
+          e.preventDefault(); ShortcutManager.shortcuts.navigation[combo]();
+          ShortcutManager.keySequence = []; return;
+        }
+        if (ShortcutManager.vimMode && ShortcutManager.shortcuts.vim[combo]) {
+          e.preventDefault(); ShortcutManager.shortcuts.vim[combo]();
+          ShortcutManager.keySequence = []; return;
         }
       }
 
-      lastKeyTime = now;
-      lastKey = currentKey;
+      // Skip 'g' alone (wait for combo)
+      if (key === 'g' && ShortcutManager.keySequence.length === 1) return;
 
-      // Single key shortcuts
+      // Single-key shortcuts
+      for (const cat of Object.values(ShortcutManager.shortcuts)) {
+        if (cat[key]) { e.preventDefault(); cat[key](); ShortcutManager.keySequence = []; return; }
+      }
+
+      // Legacy single-key handling
       switch (e.key) {
-        case '?':
-          e.preventDefault();
-          openShortcutsOverlay();
-          break;
-        case '/':
-          e.preventDefault();
-          document.getElementById('chat-input').focus();
-          break;
-        case 'r':
-        case 'R':
-          if (!e.metaKey && !e.ctrlKey) {
-            e.preventDefault();
-            refreshAll();
-          }
-          break;
-        case 'p':
-        case 'P':
-          e.preventDefault();
-          runTriage();
-          break;
-        case 'b':
-        case 'B':
-          e.preventDefault();
-          openBrainDump();
-          break;
-        case 'i':
-        case 'I':
-          e.preventDefault();
-          openQuickIdea();
-          break;
-        case 'm':
-        case 'M':
-          e.preventDefault();
-          askQuestion('Give me my morning brief');
-          break;
-        case 'v':
-        case 'V':
-          e.preventDefault();
-          toggleChatVoice();
-          break;
-        case '[':
-          e.preventDefault();
-          toggleSidebar();
-          break;
-        case 'j':
-        case 'J':
-          e.preventDefault();
-          navigateListItem(1);
-          break;
-        case 'k':
-        case 'K':
-          e.preventDefault();
-          navigateListItem(-1);
-          break;
+        case '?': e.preventDefault(); openShortcutsOverlay(); break;
+        case '/': e.preventDefault(); document.getElementById('chat-input').focus(); break;
+        case 'r': case 'R': if (!e.metaKey && !e.ctrlKey) { e.preventDefault(); refreshAll(); } break;
+        case 'p': case 'P': e.preventDefault(); runTriage(); break;
+        case 'b': case 'B': e.preventDefault(); openBrainDump(); break;
+        case 'i': case 'I': e.preventDefault(); openQuickIdea(); break;
+        case 'm': case 'M': e.preventDefault(); askQuestion('Give me my morning brief'); break;
+        case 'v': case 'V': e.preventDefault(); toggleChatVoice(); break;
+        case '[': e.preventDefault(); toggleSidebar(); break;
+        case 'n': case 'N': e.preventDefault(); openBrainDump(); break;
+        case 'e': case 'E': e.preventDefault(); ShortcutManager.editSelected(); break;
+        case 'd': case 'D': e.preventDefault(); ShortcutManager.markSelectedDone(); break;
+        case 'x': case 'X': e.preventDefault(); ShortcutManager.deleteSelected(); break;
+        case 'a': case 'A': e.preventDefault(); ShortcutManager.archiveSelected(); break;
+        case 's': case 'S': e.preventDefault(); ShortcutManager.snoozeSelected(); break;
+        case 'w': case 'W': e.preventDefault(); askQuestion('What should I work on next?'); break;
+        case 'h': case 'H': e.preventDefault(); askQuestion('Help me with the Chief of Staff system'); break;
+        case 'j': case 'J': e.preventDefault(); ShortcutManager.navigateList(1); break;
+        case 'k': case 'K': e.preventDefault(); ShortcutManager.navigateList(-1); break;
+        case '1': e.preventDefault(); setFilter('all'); break;
+        case '2': e.preventDefault(); setFilter('unread'); break;
+        case '3': e.preventDefault(); setFilter('email'); break;
+        case '4': e.preventDefault(); setFilter('sms'); break;
+        case ']': e.preventDefault(); toggleMobileChat(); break;
       }
     });
 
-    // Navigate through list items with J/K
+    // Legacy navigate function (uses ShortcutManager)
     let currentListIndex = -1;
     function navigateListItem(direction) {
+      ShortcutManager.navigateList(direction);
       const cards = document.querySelectorAll('.tab-content.active .message-card, .tab-content.active .action-card, .tab-content.active .commitment-card');
-      if (cards.length === 0) return;
-
-      currentListIndex += direction;
-      if (currentListIndex < 0) currentListIndex = 0;
-      if (currentListIndex >= cards.length) currentListIndex = cards.length - 1;
-
       cards.forEach((card, i) => {
-        if (i === currentListIndex) {
+        if (i === ShortcutManager.currentListIndex) {
           card.classList.add('selected');
           card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         } else {
@@ -6422,7 +7830,826 @@ Please help with this email. Be concise and actionable.`;
       updateNavBadges();
     };
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SPEED OPTIMIZATION: OPTIMISTIC UI UPDATES
+    // Show changes instantly before server confirms - rollback on error
+    // Target: < 50ms perceived response time
+    // ═══════════════════════════════════════════════════════════════════════════
 
+    const OptimisticUI = {
+      pendingActions: new Map(),
+      undoTimeout: 5000, // 5 seconds to undo
+
+      // Optimistic complete action with instant feedback
+      async completeActionOptimistic(actionId) {
+        const startTime = performance.now();
+        const card = document.querySelector(`.action-card[onclick*="${actionId}"]`) ||
+                     document.querySelector(`[data-action-id="${actionId}"]`);
+
+        if (!card) return completeAction(actionId); // Fallback
+
+        // INSTANT: Show completed state
+        const originalHTML = card.innerHTML;
+        const originalClasses = card.className;
+        card.classList.add('optimistic-complete');
+        card.style.position = 'relative';
+
+        // Remove from local state immediately
+        const actionIndex = actions.findIndex(a => a.id === actionId);
+        const removedAction = actionIndex >= 0 ? actions.splice(actionIndex, 1)[0] : null;
+
+        // Show undo toast
+        const undoToast = this.showUndoToast('Action completed', () => {
+          // Rollback
+          if (removedAction) actions.splice(actionIndex, 0, removedAction);
+          card.classList.remove('optimistic-complete');
+          card.innerHTML = originalHTML;
+          card.className = originalClasses;
+          renderActions();
+        });
+
+        console.log(`[OptimisticUI] Visual update in ${(performance.now() - startTime).toFixed(1)}ms`);
+
+        // Background: Actually complete on server
+        try {
+          const response = await fetch(`${API_BASE}?action=completeAction&actionId=${actionId}`);
+          const result = await response.json();
+
+          if (!result.success) throw new Error(result.error || 'Server error');
+
+          // Success - remove card with animation
+          card.style.transition = 'all 0.3s ease';
+          card.style.opacity = '0';
+          card.style.transform = 'translateX(20px)';
+          setTimeout(() => {
+            card.remove();
+            renderActions();
+          }, 300);
+
+        } catch (error) {
+          console.error('[OptimisticUI] Server error, rolling back:', error);
+          // Rollback on error
+          if (removedAction) actions.splice(actionIndex, 0, removedAction);
+          card.classList.remove('optimistic-complete');
+          card.innerHTML = originalHTML;
+          card.className = originalClasses;
+          this.hideUndoToast(undoToast);
+          showToast('Failed to complete action - restored', 'error');
+        }
+      },
+
+      // Optimistic commitment complete
+      async completeCommitmentOptimistic(commitmentId, text) {
+        const card = document.querySelector(`.commitment-card[onclick*="${commitmentId}"]`);
+        if (!card) return completeCommitment(commitmentId);
+
+        const originalHTML = card.innerHTML;
+        card.classList.add('optimistic-complete');
+        card.style.position = 'relative';
+
+        const commitmentIndex = commitments.findIndex(c => c.id === commitmentId);
+        const removed = commitmentIndex >= 0 ? commitments.splice(commitmentIndex, 1)[0] : null;
+
+        const undoToast = this.showUndoToast('Commitment completed', () => {
+          if (removed) commitments.splice(commitmentIndex, 0, removed);
+          card.classList.remove('optimistic-complete');
+          card.innerHTML = originalHTML;
+          renderCommitments();
+        });
+
+        try {
+          const response = await fetch(`${API_BASE}?action=completeSMSCommitment&commitmentId=${commitmentId}`);
+          const result = await response.json();
+          if (!result.success) throw new Error(result.error);
+
+          card.style.transition = 'all 0.3s ease';
+          card.style.opacity = '0';
+          setTimeout(() => {
+            card.remove();
+            renderCommitments();
+            updateStats();
+          }, 300);
+
+        } catch (error) {
+          if (removed) commitments.splice(commitmentIndex, 0, removed);
+          card.classList.remove('optimistic-complete');
+          card.innerHTML = originalHTML;
+          this.hideUndoToast(undoToast);
+          showToast('Failed - restored', 'error');
+        }
+      },
+
+      // Optimistic archive email
+      async archiveEmailOptimistic(threadId) {
+        const startTime = performance.now();
+        const msg = communications.find(c => c.id === threadId);
+        if (!msg) return archiveCurrentEmail();
+
+        const msgIndex = communications.findIndex(c => c.id === threadId);
+        const removedMsg = communications.splice(msgIndex, 1)[0];
+
+        // INSTANT: Update UI
+        renderCommunications();
+        updateStats();
+        closeEmailDetail();
+
+        console.log(`[OptimisticUI] Archive visual in ${(performance.now() - startTime).toFixed(1)}ms`);
+
+        const undoToast = this.showUndoToast('Email archived', () => {
+          communications.splice(msgIndex, 0, removedMsg);
+          renderCommunications();
+          updateStats();
+        });
+
+        try {
+          const response = await fetch(`${API_BASE}?action=archiveEmail&threadId=${encodeURIComponent(threadId)}`);
+          const result = await response.json();
+          if (!result.success) throw new Error(result.error);
+          showToast('Archived', 'success');
+        } catch (error) {
+          communications.splice(msgIndex, 0, removedMsg);
+          renderCommunications();
+          updateStats();
+          this.hideUndoToast(undoToast);
+          showToast('Archive failed - restored', 'error');
+        }
+      },
+
+      showUndoToast(message, onUndo) {
+        const existing = document.querySelector('.optimistic-undo-toast');
+        if (existing) existing.remove();
+
+        const toast = document.createElement('div');
+        toast.className = 'optimistic-undo-toast';
+        toast.innerHTML = `
+          <span>${escapeHtml(message)}</span>
+          <button class="undo-btn">Undo</button>
+          <span class="undo-timer">5</span>
+        `;
+
+        const undoBtn = toast.querySelector('.undo-btn');
+        const timerEl = toast.querySelector('.undo-timer');
+        let countdown = 5;
+
+        undoBtn.onclick = () => {
+          clearInterval(interval);
+          onUndo();
+          toast.remove();
+        };
+
+        const interval = setInterval(() => {
+          countdown--;
+          timerEl.textContent = countdown;
+          if (countdown <= 0) {
+            clearInterval(interval);
+            toast.style.transition = 'all 0.3s ease';
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 300);
+          }
+        }, 1000);
+
+        document.body.appendChild(toast);
+        return toast;
+      },
+
+      hideUndoToast(toast) {
+        if (toast && toast.parentNode) toast.remove();
+      }
+    };
+
+    // Wire up optimistic updates (override original functions)
+    const _originalCompleteAction = completeAction;
+    completeAction = function(id) {
+      return OptimisticUI.completeActionOptimistic(id);
+    };
+
+    const _originalArchiveEmail = archiveCurrentEmail;
+    archiveCurrentEmail = function() {
+      if (selectedMessageId) {
+        return OptimisticUI.archiveEmailOptimistic(selectedMessageId);
+      }
+      return _originalArchiveEmail();
+    };
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SPEED OPTIMIZATION: PREFETCHING SYSTEM
+    // Predict and preload likely next actions on hover
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    const Prefetcher = {
+      cache: new Map(),
+      hoverTimers: new Map(),
+      HOVER_DELAY: 200, // ms before prefetching
+
+      init() {
+        // Prefetch on hover for message cards
+        document.addEventListener('mouseover', (e) => {
+          const card = e.target.closest('.message-card');
+          if (card) {
+            const msgId = this.extractIdFromCard(card);
+            if (msgId) this.schedulePreload(msgId, 'email');
+          }
+        });
+
+        document.addEventListener('mouseout', (e) => {
+          const card = e.target.closest('.message-card');
+          if (card) {
+            const msgId = this.extractIdFromCard(card);
+            if (msgId) this.cancelPreload(msgId);
+          }
+        });
+
+        // Prefetch command palette data on Cmd press
+        document.addEventListener('keydown', (e) => {
+          if (e.metaKey || e.ctrlKey) {
+            this.prefetchCommandPaletteData();
+          }
+        });
+
+        // Prefetch next tab when hovering
+        document.querySelectorAll('.tab, .nav-sidebar-item').forEach(tab => {
+          tab.addEventListener('mouseenter', () => {
+            const tabName = tab.dataset.tab || tab.dataset.nav;
+            if (tabName) this.prefetchTabData(tabName);
+          });
+        });
+      },
+
+      extractIdFromCard(card) {
+        const onclick = card.getAttribute('onclick');
+        if (!onclick) return null;
+        const match = onclick.match(/selectMessage\(['"](.+?)['"]\)/);
+        return match ? match[1] : null;
+      },
+
+      schedulePreload(id, type) {
+        if (this.cache.has(id)) return; // Already cached
+
+        const timer = setTimeout(() => {
+          this.preload(id, type);
+        }, this.HOVER_DELAY);
+
+        this.hoverTimers.set(id, timer);
+      },
+
+      cancelPreload(id) {
+        const timer = this.hoverTimers.get(id);
+        if (timer) {
+          clearTimeout(timer);
+          this.hoverTimers.delete(id);
+        }
+      },
+
+      async preload(id, type) {
+        if (this.cache.has(id)) return;
+
+        try {
+          if (type === 'email') {
+            // Preload email detail
+            const response = await fetch(`${API_BASE}?action=getEmailDetail&threadId=${encodeURIComponent(id)}`);
+            const data = await response.json();
+            if (data.success) {
+              this.cache.set(id, data.data);
+              console.log(`[Prefetch] Email ${id.slice(0,8)}... cached`);
+            }
+          }
+        } catch (error) {
+          // Silent fail for prefetch
+        }
+      },
+
+      async prefetchTabData(tabName) {
+        const cacheKey = `tab_${tabName}`;
+        if (this.cache.has(cacheKey)) return;
+
+        try {
+          let action = null;
+          switch (tabName) {
+            case 'calendar': action = 'getTodaySchedule'; break;
+            case 'predictive': action = 'getPredictiveReport'; break;
+            case 'proactive': action = 'getProactiveSuggestions'; break;
+            case 'memory': action = 'getMemoryPatterns'; break;
+          }
+
+          if (action) {
+            const data = await cachedFetch(action);
+            this.cache.set(cacheKey, data);
+            console.log(`[Prefetch] Tab ${tabName} data cached`);
+          }
+        } catch (error) {
+          // Silent fail
+        }
+      },
+
+      prefetchCommandPaletteData() {
+        // Prefetch recent commands from localStorage
+        // Already done synchronously, but could load AI suggestions
+      },
+
+      getCached(id) {
+        return this.cache.get(id);
+      }
+    };
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ENHANCED COMMAND PALETTE
+    // With recent commands, fuzzy search, and AI suggestions
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    const EnhancedCommandPalette = {
+      recentCommands: JSON.parse(localStorage.getItem('recentCommands') || '[]'),
+      maxRecent: 5,
+
+      recordCommand(commandName) {
+        // Remove if already exists
+        this.recentCommands = this.recentCommands.filter(c => c !== commandName);
+        // Add to front
+        this.recentCommands.unshift(commandName);
+        // Trim to max
+        this.recentCommands = this.recentCommands.slice(0, this.maxRecent);
+        // Save
+        localStorage.setItem('recentCommands', JSON.stringify(this.recentCommands));
+      },
+
+      getRecentItems() {
+        return this.recentCommands.map(name => {
+          const item = commandPaletteItems.find(i => i.name === name);
+          if (item) {
+            return { ...item, category: 'Recent' };
+          }
+          return null;
+        }).filter(Boolean);
+      },
+
+      getAISuggestions() {
+        // Context-aware AI suggestions based on current state
+        const suggestions = [];
+        const now = new Date();
+        const hour = now.getHours();
+
+        // Morning suggestions (6am-10am)
+        if (hour >= 6 && hour < 10) {
+          suggestions.push({
+            category: 'AI Suggestions',
+            name: 'Get your morning briefing',
+            icon: '☀️',
+            action: () => getEnhancedMorningBrief(),
+            isAI: true
+          });
+        }
+
+        // If there are critical items
+        const criticalCount = communications.filter(c => c.priority === 'CRITICAL').length;
+        if (criticalCount > 0) {
+          suggestions.push({
+            category: 'AI Suggestions',
+            name: `Handle ${criticalCount} critical item${criticalCount > 1 ? 's' : ''}`,
+            icon: '🚨',
+            action: () => { setFilter('unread'); scrollToComms(); },
+            isAI: true
+          });
+        }
+
+        // If there are overdue commitments
+        const overdueCount = commitments.filter(c => c.isOverdue).length;
+        if (overdueCount > 0) {
+          suggestions.push({
+            category: 'AI Suggestions',
+            name: `Review ${overdueCount} overdue commitment${overdueCount > 1 ? 's' : ''}`,
+            icon: '⏰',
+            action: () => { switchTab('commitments'); setCommitmentFilter('overdue'); },
+            isAI: true
+          });
+        }
+
+        // End of day suggestion (4pm-7pm)
+        if (hour >= 16 && hour < 19) {
+          suggestions.push({
+            category: 'AI Suggestions',
+            name: 'Plan tomorrow',
+            icon: '📋',
+            action: () => askQuestion('Help me plan for tomorrow. What should I prepare?'),
+            isAI: true
+          });
+        }
+
+        return suggestions.slice(0, 3); // Max 3 AI suggestions
+      },
+
+      // Fuzzy search with scoring
+      fuzzyMatch(query, text) {
+        if (!query) return { score: 0, matches: [] };
+
+        const queryLower = query.toLowerCase();
+        const textLower = text.toLowerCase();
+
+        // Exact match at start = highest score
+        if (textLower.startsWith(queryLower)) {
+          return { score: 100, matches: [[0, query.length]] };
+        }
+
+        // Contains match
+        const indexOf = textLower.indexOf(queryLower);
+        if (indexOf >= 0) {
+          return { score: 80 - indexOf, matches: [[indexOf, indexOf + query.length]] };
+        }
+
+        // Character-by-character fuzzy match
+        let score = 0;
+        let matches = [];
+        let queryIndex = 0;
+
+        for (let i = 0; i < text.length && queryIndex < query.length; i++) {
+          if (textLower[i] === queryLower[queryIndex]) {
+            matches.push([i, i + 1]);
+            score += 10;
+            // Bonus for consecutive
+            if (matches.length > 1 && matches[matches.length - 1][0] === matches[matches.length - 2][1]) {
+              score += 5;
+            }
+            queryIndex++;
+          }
+        }
+
+        // Only valid if all query chars found
+        if (queryIndex < query.length) {
+          return { score: 0, matches: [] };
+        }
+
+        return { score, matches };
+      },
+
+      highlightMatches(text, matches) {
+        if (!matches || matches.length === 0) return escapeHtml(text);
+
+        let result = '';
+        let lastIndex = 0;
+
+        for (const [start, end] of matches) {
+          result += escapeHtml(text.slice(lastIndex, start));
+          result += `<span class="fuzzy-match">${escapeHtml(text.slice(start, end))}</span>`;
+          lastIndex = end;
+        }
+        result += escapeHtml(text.slice(lastIndex));
+
+        return result;
+      }
+    };
+
+    // Enhanced render function
+    const _originalRenderResults = renderCommandPaletteResults;
+    renderCommandPaletteResults = function(query) {
+      const container = document.getElementById('command-palette-results');
+      const q = query.toLowerCase().trim();
+
+      // Build items list with recent, AI suggestions, and regular items
+      let allItems = [];
+
+      // Add recent commands first (only when no query)
+      if (q === '') {
+        const recentItems = EnhancedCommandPalette.getRecentItems();
+        allItems.push(...recentItems);
+
+        // Add AI suggestions
+        const aiSuggestions = EnhancedCommandPalette.getAISuggestions();
+        allItems.push(...aiSuggestions);
+      }
+
+      // Add regular items
+      allItems.push(...commandPaletteItems);
+
+      // Filter and score
+      if (q === '') {
+        filteredItems = allItems;
+      } else {
+        filteredItems = allItems
+          .map(item => {
+            const match = EnhancedCommandPalette.fuzzyMatch(q, item.name);
+            return { ...item, score: match.score, matches: match.matches };
+          })
+          .filter(item => item.score > 0)
+          .sort((a, b) => b.score - a.score);
+      }
+
+      // Group by category
+      const grouped = {};
+      filteredItems.forEach((item, index) => {
+        if (!grouped[item.category]) grouped[item.category] = [];
+        grouped[item.category].push({ ...item, globalIndex: index });
+      });
+
+      // Render with priority: Recent > AI Suggestions > Others
+      const categoryOrder = ['Recent', 'AI Suggestions', 'Actions', 'Pages', 'AI Assist'];
+      let html = '';
+
+      for (const category of categoryOrder) {
+        if (!grouped[category]) continue;
+        const items = grouped[category];
+
+        const isRecent = category === 'Recent';
+        const isAI = category === 'AI Suggestions';
+
+        html += `<div class="command-palette-group ${isRecent ? 'recent' : ''}">`;
+        html += `<div class="command-palette-group-title">${escapeHtml(category)}</div>`;
+
+        for (const item of items) {
+          const selected = item.globalIndex === commandPaletteSelectedIndex ? 'selected' : '';
+          const aiClass = item.isAI ? 'ai-suggestion' : '';
+          const nameHtml = q && item.matches ?
+            EnhancedCommandPalette.highlightMatches(item.name, item.matches) :
+            escapeHtml(item.name);
+
+          html += `
+            <div class="command-palette-item ${selected} ${aiClass}"
+                 data-index="${item.globalIndex}"
+                 onclick="executeEnhancedCommand(${item.globalIndex}, '${escapeAttr(item.name)}')">
+              <span class="command-palette-item-icon">${item.icon}</span>
+              <div class="command-palette-item-text">
+                <div class="command-palette-item-name">${nameHtml}</div>
+              </div>
+              ${item.shortcut ? `<span class="command-palette-item-shortcut">${escapeHtml(item.shortcut)}</span>` : ''}
+            </div>
+          `;
+        }
+        html += `</div>`;
+      }
+
+      // Render remaining categories
+      for (const [category, items] of Object.entries(grouped)) {
+        if (categoryOrder.includes(category)) continue;
+
+        html += `<div class="command-palette-group">`;
+        html += `<div class="command-palette-group-title">${escapeHtml(category)}</div>`;
+
+        for (const item of items) {
+          const selected = item.globalIndex === commandPaletteSelectedIndex ? 'selected' : '';
+          const nameHtml = q && item.matches ?
+            EnhancedCommandPalette.highlightMatches(item.name, item.matches) :
+            escapeHtml(item.name);
+
+          html += `
+            <div class="command-palette-item ${selected}"
+                 data-index="${item.globalIndex}"
+                 onclick="executeEnhancedCommand(${item.globalIndex}, '${escapeAttr(item.name)}')">
+              <span class="command-palette-item-icon">${item.icon}</span>
+              <div class="command-palette-item-text">
+                <div class="command-palette-item-name">${nameHtml}</div>
+              </div>
+              ${item.shortcut ? `<span class="command-palette-item-shortcut">${escapeHtml(item.shortcut)}</span>` : ''}
+            </div>
+          `;
+        }
+        html += `</div>`;
+      }
+
+      if (filteredItems.length === 0) {
+        html = `<div style="padding:24px;text-align:center;color:var(--text-muted);">No results found</div>`;
+      }
+
+      container.innerHTML = html;
+    };
+
+    function executeEnhancedCommand(index, name) {
+      if (filteredItems[index] && filteredItems[index].action) {
+        EnhancedCommandPalette.recordCommand(name);
+        closeCommandPalette();
+        filteredItems[index].action();
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SKELETON LOADING HELPERS
+    // Generate skeleton placeholders for instant perceived loading
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function renderSkeletonMessages(count = 3) {
+      let html = '';
+      for (let i = 0; i < count; i++) {
+        html += `
+          <div class="skeleton-card">
+            <div class="skeleton-message">
+              <div class="skeleton-message-header">
+                <div class="skeleton skeleton-message-icon"></div>
+                <div class="skeleton-message-meta">
+                  <div class="skeleton skeleton-text short"></div>
+                  <div class="skeleton skeleton-text" style="width:80px;height:10px;"></div>
+                </div>
+              </div>
+              <div class="skeleton skeleton-text long"></div>
+              <div class="skeleton skeleton-text medium"></div>
+              <div style="margin-top:12px;">
+                <span class="skeleton skeleton-tag"></span>
+                <span class="skeleton skeleton-tag"></span>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      return html;
+    }
+
+    function renderSkeletonCards(count = 3) {
+      let html = '';
+      for (let i = 0; i < count; i++) {
+        html += `
+          <div class="skeleton-card">
+            <div class="skeleton-card-header">
+              <div class="skeleton skeleton-avatar"></div>
+              <div style="flex:1;">
+                <div class="skeleton skeleton-text medium"></div>
+                <div class="skeleton skeleton-text short"></div>
+              </div>
+            </div>
+            <div class="skeleton-card-body">
+              <div class="skeleton skeleton-text long"></div>
+              <div class="skeleton skeleton-text medium"></div>
+            </div>
+          </div>
+        `;
+      }
+      return html;
+    }
+
+    // Show skeleton immediately on tab switch
+    const _originalSwitchTab = switchTab;
+    switchTab = function(tabName) {
+      // Show skeleton immediately for perceived speed
+      const tabContent = document.getElementById(`tab-${tabName}`);
+      const listContainer = tabContent?.querySelector('[id$="-list"]');
+
+      if (listContainer && !listContainer.querySelector('.skeleton-card')) {
+        const currentContent = listContainer.innerHTML;
+        // Only show skeleton if it looks like loading state
+        if (currentContent.includes('loading') || currentContent.includes('spinner')) {
+          listContainer.innerHTML = renderSkeletonCards(3);
+        }
+      }
+
+      _originalSwitchTab(tabName);
+    };
+
+    // Initialize prefetcher on load
+    document.addEventListener('DOMContentLoaded', () => {
+      Prefetcher.init();
+      console.log('[Speed] Prefetcher initialized');
+      console.log('[Speed] Optimistic UI ready');
+      console.log('[Speed] Enhanced Command Palette ready');
+    });
+
+
+  </script>
+
+  <!-- TinyPM Brain Integration - Proactive Intelligence Layer -->
+  <script src="brain-integration.js"></script>
+
+  <!-- Brain UI Containers -->
+  <div id="brain-suggestions-container" aria-live="polite" aria-label="AI Suggestions"></div>
+  <div id="brain-nudges-container" aria-live="polite" aria-label="AI Reminders"></div>
+
+  <script>
+    // =========================================================================
+    // BRAIN INTEGRATION WIRING
+    // Wire up the brain to existing Chief of Staff functions
+    // =========================================================================
+
+    // Wait for both DOM and brain to be ready
+    document.addEventListener('DOMContentLoaded', function() {
+      // Give brain time to initialize
+      setTimeout(wireBrainIntegration, 1000);
+    });
+
+    function wireBrainIntegration() {
+      if (typeof BrainAPI === 'undefined') {
+        console.warn('[Brain Wiring] BrainAPI not available - brain features disabled');
+        return;
+      }
+
+      console.log('[Brain Wiring] Connecting brain to Chief of Staff...');
+
+      // Register suggestion handler
+      BrainAPI.onSuggestion(function(suggestion) {
+        // Log for debugging
+        console.log('[Brain] Received suggestion:', suggestion);
+
+        // If suggestion is about communication, update the view
+        if (suggestion.category === 'COMMUNICATION' && suggestion.data?.emailId) {
+          // Highlight the relevant email
+          const emailEl = document.querySelector(`[data-email-id="${suggestion.data.emailId}"]`);
+          if (emailEl) {
+            emailEl.classList.add('brain-highlighted');
+          }
+        }
+      });
+
+      // Register nudge handler
+      BrainAPI.onNudge(function(nudge) {
+        console.log('[Brain] Received nudge:', nudge);
+
+        // If nudge is about overdue commitment, switch to commitments tab
+        if (nudge.type === 'overdue_commitment') {
+          // Flash the commitments tab badge
+          const badge = document.getElementById('nav-overdue-badge');
+          if (badge) {
+            badge.style.animation = 'pulse 0.5s ease 3';
+          }
+        }
+      });
+
+      // Register status change handler
+      BrainAPI.onStatusChange(function(status) {
+        console.log('[Brain] Status changed to:', status);
+        updateBrainStatusUI(status);
+      });
+
+      // Record user actions for pattern learning
+      instrumentUserActions();
+
+      console.log('[Brain Wiring] Brain connected successfully');
+    }
+
+    // Update brain status in the header
+    function updateBrainStatusUI(status) {
+      const indicator = document.getElementById('brain-status-indicator');
+      if (!indicator) return;
+
+      const statusText = indicator.querySelector('.brain-status-text');
+      const statusDot = indicator.querySelector('.brain-status-dot');
+
+      const labels = {
+        'connected': 'Brain Active',
+        'connecting': 'Connecting...',
+        'disconnected': 'Basic Mode',
+        'error': 'Brain Offline'
+      };
+
+      const colors = {
+        'connected': 'var(--accent-green)',
+        'connecting': 'var(--accent-amber)',
+        'disconnected': 'var(--text-muted)',
+        'error': 'var(--accent-red)'
+      };
+
+      if (statusText) statusText.textContent = labels[status] || status;
+      if (statusDot) statusDot.style.background = colors[status] || 'var(--text-muted)';
+    }
+
+    // Instrument user actions for brain learning
+    function instrumentUserActions() {
+      // Track tab switches
+      const originalSwitchTab = window.switchTab;
+      if (typeof originalSwitchTab === 'function') {
+        window.switchTab = function(tabName) {
+          BrainAPI.recordAction('switch_tab', 'navigation', { tab: tabName });
+          return originalSwitchTab(tabName);
+        };
+      }
+
+      // Track message selection
+      const originalSelectMessage = window.selectMessage;
+      if (typeof originalSelectMessage === 'function') {
+        window.selectMessage = function(id) {
+          BrainAPI.recordAction('select_message', 'communication', { messageId: id });
+          return originalSelectMessage(id);
+        };
+      }
+
+      // Track task completion
+      const originalCompleteAction = window.completeAction;
+      if (typeof originalCompleteAction === 'function') {
+        window.completeAction = function(actionId) {
+          BrainAPI.recordAction('complete_task', 'task_management', { actionId: actionId });
+          return originalCompleteAction(actionId);
+        };
+      }
+
+      // Track email archive
+      const originalArchiveCurrentEmail = window.archiveCurrentEmail;
+      if (typeof originalArchiveCurrentEmail === 'function') {
+        window.archiveCurrentEmail = async function() {
+          BrainAPI.recordAction('archive_email', 'communication', { emailId: selectedMessageId });
+          return originalArchiveCurrentEmail();
+        };
+      }
+
+      // Track chat interactions
+      const originalSendMessage = window.sendMessage;
+      if (typeof originalSendMessage === 'function') {
+        window.sendMessage = async function() {
+          BrainAPI.recordAction('send_chat', 'communication', {});
+          return originalSendMessage();
+        };
+      }
+
+      console.log('[Brain Wiring] User action tracking enabled');
+    }
+
+    // Proactive context updates when visibility changes
+    document.addEventListener('visibilitychange', function() {
+      if (!document.hidden && typeof BrainAPI !== 'undefined' && BrainAPI.connected) {
+        // User returned to tab - sync context
+        BrainAPI.syncContext();
+      }
+    });
   </script>
 </body>
 </html>

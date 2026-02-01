@@ -1,0 +1,37 @@
+{
+  "mcpServers": {
+    "tinypm": {
+      "command": "/Users/samanthapollack/Documents/TIny_Seed_OS/tinypm/.mcp_venv/bin/python3",
+      "args": ["/Users/samanthapollack/Documents/TIny_Seed_OS/tinypm/mcp_server.py"],
+      "env": {
+        "PYTHONPATH": "/Users/samanthapollack/Documents/TIny_Seed_OS/tinypm"
+      }
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp@latest"],
+      "env": {
+        "PLAYWRIGHT_HEADLESS": "true"
+      }
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem@latest",
+        "/Users/samanthapollack/Documents"
+      ]
+    },
+    "git": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-git@latest"],
+      "env": {
+        "GIT_REPO_PATH": "/Users/samanthapollack/Documents/TIny_Seed_OS"
+      }
+    },
+    "fetch": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-fetch@latest"]
+    }
+  }
+}

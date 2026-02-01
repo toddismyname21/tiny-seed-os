@@ -1,6 +1,21 @@
 {
-  "messages": [],
-  "next_id": 1,
+  "messages": [
+    {
+      "id": 1,
+      "from": "user",
+      "message": "you there?",
+      "timestamp": "2026-01-31T18:31:42.159902",
+      "read_by_agent": false
+    },
+    {
+      "id": 2,
+      "from": "user",
+      "message": "hey",
+      "timestamp": "2026-01-31T18:31:48.312792",
+      "read_by_agent": false
+    }
+  ],
+  "next_id": 3,
   "agent_info": {
     "id": "builder",
     "name": "Builder",

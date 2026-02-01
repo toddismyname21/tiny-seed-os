@@ -2039,7 +2039,7 @@ function scheduleTaskOptimally(input) {
  */
 function logChiefOfStaffActivity(input) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName('COS_Activity_Log');
     if (!sheet) {
       sheet = ss.insertSheet('COS_Activity_Log');
@@ -2062,7 +2062,7 @@ function logChiefOfStaffActivity(input) {
  */
 function captureChiefOfStaffIdea(input) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName('COS_Ideas');
     if (!sheet) {
       sheet = ss.insertSheet('COS_Ideas');
@@ -2086,7 +2086,7 @@ function captureChiefOfStaffIdea(input) {
  */
 function lookupContactByName(name) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('Customers') || ss.getSheetByName('CUSTOMERS');
     if (!sheet) return null;
 
@@ -5565,7 +5565,7 @@ const DEFAULT_PREFERENCES = {
  * Initialize Calendar AI system
  */
 function initializeCalendarAI() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
   // Create preferences sheet
   let prefsSheet = ss.getSheetByName('COS_CALENDAR_PREFS');
@@ -5614,7 +5614,7 @@ function initializeCalendarAI() {
  * Get calendar preferences
  */
 function getCalendarPreferences() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('COS_CALENDAR_PREFS');
 
   if (!sheet) {
@@ -5642,7 +5642,7 @@ function getCalendarPreferences() {
  * Update calendar preference
  */
 function setCalendarPreference(key, value, source = 'user') {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let sheet = ss.getSheetByName('COS_CALENDAR_PREFS');
 
   if (!sheet) {
@@ -5804,7 +5804,7 @@ function createFocusBlock(start, durationMins, focusType) {
   event.setColor(colors[focusType] || CalendarApp.EventColor.BLUE);
 
   // Log to sheet
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('COS_FOCUS_BLOCKS');
 
   if (sheet) {
@@ -6032,7 +6032,7 @@ function getWeatherScoreForTime(startTime) {
  * Save scheduled task to tracking sheet
  */
 function saveScheduledTask(task, slot, eventId) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let sheet = ss.getSheetByName('COS_SCHEDULED_TASKS');
 
   if (!sheet) {
@@ -6841,7 +6841,7 @@ function executeGetBrief(params, userId) {
 
 function executeGetInboxStatus(params, userId) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const inbox = ss.getSheetByName('EMAIL_INBOX_STATE');
 
     if (!inbox) {
@@ -7266,7 +7266,7 @@ function executeGetCustomerInfo(params, userId) {
     }
 
     // Fallback: Search customer sheet
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const customers = ss.getSheetByName('Customers');
 
     if (customers) {
@@ -9649,7 +9649,7 @@ function getCommitmentAppHtml() {
  * Initialize Predictive Analytics system
  */
 function initializePredictiveAnalytics() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
   // Create predictions sheet
   let predictSheet = ss.getSheetByName('COS_PREDICTIONS');
@@ -9701,7 +9701,7 @@ function initializePredictiveAnalytics() {
  * Run this daily via trigger
  */
 function collectDailyMetrics() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let sheet = ss.getSheetByName('COS_METRICS_HISTORY');
 
   if (!sheet) {
@@ -9793,7 +9793,7 @@ function formatDateForGmail(date) {
 }
 
 function calculateAverageResponseTime(start, end) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('EMAIL_INBOX_STATE');
 
   if (!sheet) return 0;
@@ -9871,7 +9871,7 @@ function countMeetings(start, end) {
 
 function collectRevenueData(start, end) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const ordersSheet = ss.getSheetByName('Orders');
 
     if (!ordersSheet) return { total: 0, orders: 0 };
@@ -9896,7 +9896,7 @@ function collectRevenueData(start, end) {
 }
 
 function countCompletedTasks(start, end) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('COS_SCHEDULED_TASKS');
 
   if (!sheet) return 0;
@@ -9924,7 +9924,7 @@ function countCompletedTasks(start, end) {
  * Predict email volume for upcoming days
  */
 function predictEmailVolume(days = 7) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('COS_METRICS_HISTORY');
 
   if (!sheet || sheet.getLastRow() < 8) {
@@ -10016,7 +10016,7 @@ function calculatePredictionConfidence(history, dayOfWeek) {
  * Predict customers at risk of churning
  */
 function predictCustomerChurn() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const customersSheet = ss.getSheetByName('Customers');
   const ordersSheet = ss.getSheetByName('Orders');
 
@@ -10140,7 +10140,7 @@ function generateRetentionAction(riskScore, customerType, factors) {
  * Analyze response time trends
  */
 function analyzeResponseTimeTrends() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('COS_METRICS_HISTORY');
 
   if (!sheet || sheet.getLastRow() < 8) {
@@ -10244,7 +10244,7 @@ function analyzeResponseTimeTrends() {
  * Detect and predict seasonal patterns
  */
 function detectSeasonalPatterns() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const metricsSheet = ss.getSheetByName('COS_METRICS_HISTORY');
   const ordersSheet = ss.getSheetByName('Orders');
 
@@ -10459,7 +10459,7 @@ function generateWorkloadRecommendation(loadLevel, specialEvents) {
  * Save predictions for accuracy tracking
  */
 function savePredictions(type, predictions) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let sheet = ss.getSheetByName('COS_PREDICTIONS');
 
   if (!sheet) {
@@ -10489,7 +10489,7 @@ function savePredictions(type, predictions) {
  * Update prediction with actual outcome
  */
 function updatePredictionOutcome(predictionId, actualOutcome) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('COS_PREDICTIONS');
 
   if (!sheet) return { success: false, error: 'Predictions sheet not found' };
@@ -10526,7 +10526,7 @@ function updatePredictionOutcome(predictionId, actualOutcome) {
  * Get prediction accuracy metrics
  */
 function getPredictionAccuracy(type = null, days = 30) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('COS_PREDICTIONS');
 
   if (!sheet) return { success: false, error: 'No predictions found' };
@@ -11839,7 +11839,7 @@ function testProactiveIntelligence() {
 }
 
 function initializeSmartLaborSheets() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
   let benchmarksSheet = ss.getSheetByName('LABOR_BENCHMARKS');
   if (!benchmarksSheet) {
@@ -11883,7 +11883,7 @@ function initializeSmartLaborSheets() {
 }
 
 function getBenchmark(taskType, crop, location) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('LABOR_BENCHMARKS');
   crop = crop || 'ALL';
   location = location || 'ALL';
@@ -11903,7 +11903,7 @@ function getBenchmark(taskType, crop, location) {
 }
 
 function setBenchmark(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let sheet = ss.getSheetByName('LABOR_BENCHMARKS');
   if (!sheet) { initializeSmartLaborSheets(); sheet = ss.getSheetByName('LABOR_BENCHMARKS'); }
 
@@ -11913,7 +11913,7 @@ function setBenchmark(data) {
 }
 
 function getAllBenchmarks() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('LABOR_BENCHMARKS');
   if (!sheet) return { benchmarks: [], defaults: LABOR_CONFIG.DEFAULT_BENCHMARKS };
 
@@ -11926,7 +11926,7 @@ function getAllBenchmarks() {
 }
 
 function updateBenchmark(benchmarkId, updates) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('LABOR_BENCHMARKS');
   if (!sheet) return { success: false, error: 'Sheet not found' };
 
@@ -11944,7 +11944,7 @@ function updateBenchmark(benchmarkId, updates) {
 }
 
 function getLaborEmployeeInfo(employeeId) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('Employees') || ss.getSheetByName('EMPLOYEES') || ss.getSheetByName('Users');
   if (!sheet) return null;
 
@@ -11972,7 +11972,7 @@ function getLaborWeatherContext(date) {
 }
 
 function getAvailableTasksForDate(date, employeeId) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const tasks = [];
   const masterLog = ss.getSheetByName('MASTER_LOG');
 
@@ -12045,7 +12045,7 @@ function optimizeTaskSequence(tasks) {
 
 function generateDailyPrescription(employeeId, date) {
   date = date || new Date();
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const employee = getLaborEmployeeInfo(employeeId);
   if (!employee) return { success: false, error: 'Employee not found' };
 
@@ -12082,7 +12082,7 @@ function generateDailyPrescription(employeeId, date) {
 function getMyWorkOrder(employeeId, date) {
   date = date || new Date();
   const dateStr = Utilities.formatDate(date, 'America/New_York', 'yyyy-MM-dd');
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('WORK_PRESCRIPTIONS');
 
   if (sheet) {
@@ -12099,7 +12099,7 @@ function getMyWorkOrder(employeeId, date) {
 }
 
 function checkInTask(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let sheet = ss.getSheetByName('LABOR_CHECKINS');
   if (!sheet) { initializeSmartLaborSheets(); sheet = ss.getSheetByName('LABOR_CHECKINS'); }
 
@@ -12116,7 +12116,7 @@ function checkInTask(data) {
 
 function checkOutTask(checkinId, notes) {
   notes = notes || '';
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('LABOR_CHECKINS');
   if (!sheet) return { success: false, error: 'Sheet not found' };
 
@@ -12156,7 +12156,7 @@ function generateEfficiencyFeedback(efficiency, taskType) {
 }
 
 function getActiveCheckins(employeeId) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('LABOR_CHECKINS');
   if (!sheet) return { checkins: [] };
 
@@ -12175,7 +12175,7 @@ function getActiveCheckins(employeeId) {
 }
 
 function createLaborAlert(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let sheet = ss.getSheetByName('LABOR_ALERTS');
   if (!sheet) { initializeSmartLaborSheets(); sheet = ss.getSheetByName('LABOR_ALERTS'); }
 
@@ -12186,7 +12186,7 @@ function createLaborAlert(data) {
 
 function getLaborAlerts(filters) {
   filters = filters || {};
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('LABOR_ALERTS');
   if (!sheet) return { alerts: [] };
 
@@ -12208,7 +12208,7 @@ function getLaborAlerts(filters) {
 
 function acknowledgeLaborAlert(alertId, acknowledgedBy, actionTaken) {
   actionTaken = actionTaken || '';
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('LABOR_ALERTS');
   if (!sheet) return { success: false, error: 'Sheet not found' };
 
@@ -12227,7 +12227,7 @@ function acknowledgeLaborAlert(alertId, acknowledgedBy, actionTaken) {
 
 function sendLaborEmployeeMessage(employeeId, message, priority) {
   priority = priority || 'normal';
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let sheet = ss.getSheetByName('EMPLOYEE_MESSAGES');
 
   if (!sheet) {
@@ -12242,7 +12242,7 @@ function sendLaborEmployeeMessage(employeeId, message, priority) {
 }
 
 function getEmployeeMessages(employeeId) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('EMPLOYEE_MESSAGES');
   if (!sheet) return { messages: [] };
 
@@ -12257,7 +12257,7 @@ function getEmployeeMessages(employeeId) {
 }
 
 function markMessageRead(messageId) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('EMPLOYEE_MESSAGES');
   if (!sheet) return { success: false };
 
@@ -12273,7 +12273,7 @@ function markMessageRead(messageId) {
 
 function getEmployeeEfficiencyTrend(employeeId, days) {
   days = days || 30;
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('LABOR_CHECKINS');
   if (!sheet) return { trend: [], average: 0 };
 
@@ -12307,7 +12307,7 @@ function getEmployeeEfficiencyTrend(employeeId, days) {
 }
 
 function getBenchmarkAccuracy() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('LABOR_CHECKINS');
   if (!sheet) return { accuracy: {} };
 
@@ -12333,7 +12333,7 @@ function getBenchmarkAccuracy() {
 }
 
 function getLaborIntelligenceDashboard() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const prescriptionsSheet = ss.getSheetByName('WORK_PRESCRIPTIONS');
   let todaysPrescriptions = 0, completedPrescriptions = 0;
 
@@ -15436,7 +15436,7 @@ function testConnection() {
     success: true,
     message: 'Apps Script is working!',
     timestamp: new Date().toISOString(),
-    sheetId: SpreadsheetApp.getActiveSpreadsheet().getId()
+    sheetId: SPREADSHEET_ID
   })).setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -15484,7 +15484,7 @@ const AUDIT_HEADERS = ['Timestamp', 'Actor_ID', 'Actor_Username', 'Action', 'Tar
  * Create or get ACTIVE_SESSIONS sheet
  */
 function getSessionsSheet() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let sheet = ss.getSheetByName(SESSIONS_SHEET_NAME);
 
   if (!sheet) {
@@ -15501,7 +15501,7 @@ function getSessionsSheet() {
  * Create or get AUDIT_LOG sheet
  */
 function getAuditSheet() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let sheet = ss.getSheetByName(AUDIT_SHEET_NAME);
 
   if (!sheet) {
@@ -15946,7 +15946,7 @@ function authenticateUser(params) {
       return { success: false, error: 'Username and PIN are required' };
     }
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName(USERS_SHEET_NAME);
 
     // If USERS sheet doesn't exist, create it with default admin
@@ -16032,7 +16032,7 @@ function validateSession(params) {
 function getUsers(params) {
   try {
     // Only admins can get user list
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(USERS_SHEET_NAME);
 
     if (!sheet) {
@@ -16162,7 +16162,7 @@ function createUsersSheet(ss) {
 
 function createUser(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName(USERS_SHEET_NAME);
 
     if (!sheet) {
@@ -16200,7 +16200,7 @@ function createUser(data) {
 
 function updateUser(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(USERS_SHEET_NAME);
 
     if (!sheet) {
@@ -16247,7 +16247,7 @@ function updateUser(data) {
 
 function deactivateUser(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(USERS_SHEET_NAME);
 
     if (!sheet) {
@@ -16283,7 +16283,7 @@ function deactivateUser(data) {
 
 function resetUserPin(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(USERS_SHEET_NAME);
 
     if (!sheet) {
@@ -16456,7 +16456,7 @@ function inviteEmployee(data) {
  */
 function sendEmployeeMagicLink(userId) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(USERS_SHEET_NAME);
 
     if (!sheet) {
@@ -17824,7 +17824,7 @@ function bulkInviteEmployees(employeeList) {
  */
 function getAllEmployees() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(USERS_SHEET_NAME);
 
     if (!sheet) {
@@ -17881,7 +17881,7 @@ function createSessionsSheet(ss) {
 
 function getActiveSessions(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName(LEGACY_SESSIONS_SHEET_NAME);
 
     if (!sheet) {
@@ -17921,7 +17921,7 @@ function getActiveSessions(params) {
 
 function forceLogout(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(LEGACY_SESSIONS_SHEET_NAME);
 
     if (!sheet) {
@@ -17959,7 +17959,7 @@ function forceLogout(data) {
 
 function createSession(userId, device, ipAddress) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName(LEGACY_SESSIONS_SHEET_NAME);
 
     if (!sheet) {
@@ -18008,7 +18008,7 @@ function createAuditLogSheet(ss) {
 
 function logAdminAction(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName(AUDIT_LOG_SHEET_NAME);
 
     if (!sheet) {
@@ -18037,7 +18037,7 @@ function logAdminAction(data) {
 
 function getAuditLog(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName(AUDIT_LOG_SHEET_NAME);
 
     if (!sheet) {
@@ -18098,7 +18098,7 @@ function getAuditLog(params) {
 
 function getPlanningData() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('PLANNING_2026');
 
     if (!sheet) {
@@ -18398,7 +18398,7 @@ function checkCompanionRelationship(crop1, crop2) {
  */
 function getBedPlantingHistory(bedId, years = 3) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const history = [];
 
     // Check current year
@@ -18448,7 +18448,7 @@ function getBedPlantingHistory(bedId, years = 3) {
  */
 function getBedsWithStatus() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const bedsSheet = ss.getSheetByName('REF_Beds');
     const planSheet = ss.getSheetByName('PLANNING_2026');
 
@@ -18601,7 +18601,7 @@ function calculatePlacementScore(planting, bed, weights) {
  */
 function getOptimalBedAssignments(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const planSheet = ss.getSheetByName('PLANNING_2026');
 
     if (!planSheet) {
@@ -18730,7 +18730,7 @@ function applyOptimalAssignments(params) {
       return { success: false, error: 'No assignments provided' };
     }
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('PLANNING_2026');
 
     if (!sheet) {
@@ -18801,7 +18801,7 @@ function getFieldPlanSuggestions(params) {
  */
 function approveSuggestion(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('PLANNING_2026');
 
     if (!sheet) {
@@ -18846,7 +18846,7 @@ function approveAllSuggestions(params) {
  */
 function analyzeUnassignedPlantings(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('PLANNING_2026');
 
     if (!sheet) {
@@ -18934,7 +18934,7 @@ function assignPlantingsToField(params) {
       return { success: false, error: 'Missing fieldId or plantingIds' };
     }
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('PLANNING_2026');
     const bedsSheet = ss.getSheetByName('REF_Beds');
 
@@ -18987,7 +18987,7 @@ function assignPlantingsToField(params) {
  */
 function getAvailableFields(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const fieldsSheet = ss.getSheetByName('REF_Fields');
     const bedsSheet = ss.getSheetByName('REF_Beds');
 
@@ -19066,7 +19066,7 @@ function analyzeFieldPlan(params) {
  */
 function populateTraySizesFromProfiles() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const planSheet = ss.getSheetByName('PLANNING_2026');
     const profileSheet = ss.getSheetByName('REF_CropProfiles');
 
@@ -19176,7 +19176,7 @@ function populateTraySizesFromProfiles() {
  */
 function savePlantingFromWeb(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('PLANNING_2026');
 
     if (!sheet) {
@@ -19626,7 +19626,7 @@ function formatDateYYYYMMDD(date) {
  * Looks for matching seed in INVENTORY_PRODUCTS, calculates need, deducts stock
  */
 function deductSeedsForPlanting(plantingData) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const invSheet = ss.getSheetByName('INVENTORY_PRODUCTS');
   const transSheet = ss.getSheetByName('INVENTORY_TRANSACTIONS');
 
@@ -19756,7 +19756,7 @@ function generateBatchId(cropName) {
  */
 function getWizardDataWeb() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const bedSheet = ss.getSheetByName('REF_Beds');
     const profileSheet = ss.getSheetByName('REF_CropProfiles');
     const planSheet = ss.getSheetByName('PLANNING_2026');
@@ -19899,7 +19899,7 @@ function getWizardDataWeb() {
  */
 function getTrayInventory() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName('TRAY_INVENTORY');
 
     // Create sheet if it doesn't exist
@@ -19953,7 +19953,7 @@ function getTrayInventory() {
  */
 function saveTrayInventory(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName('TRAY_INVENTORY');
 
     // Create sheet if it doesn't exist
@@ -20000,7 +20000,7 @@ function saveTrayInventory(params) {
 
 function getDashboardStats() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const planSheet = ss.getSheetByName('PLANNING_2026');
     
     if (!planSheet) {
@@ -20069,7 +20069,7 @@ function getDashboardStats() {
 
 function getGreenhouseSeedings() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const planSheet = ss.getSheetByName('PLANNING_2026');
     const profileSheet = ss.getSheetByName('REF_CropProfiles');
 
@@ -20686,7 +20686,7 @@ function getSeedLabelData(seedLotId) {
 
 function getFieldTasks() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const taskSheet = ss.getSheetByName('DAILY_TASKS_GENERATED');
     
     if (!taskSheet) {
@@ -20745,7 +20745,7 @@ function getFieldTasks() {
 
 function getDTMLearningData() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let dtmSheet = ss.getSheetByName('DTM_LEARNING');
     
     if (!dtmSheet) {
@@ -20826,7 +20826,7 @@ function setupDTMAutoTrainingTrigger() {
  */
 function runDTMAutoTraining() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const props = PropertiesService.getScriptProperties();
 
     Logger.log('Starting DTM auto-training...');
@@ -20972,7 +20972,7 @@ function getDTMTrainingStatus() {
 
 function saveSuccessionPlan(plan) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const planSheet = ss.getSheetByName('PLANNING_2026');
     
     if (!planSheet) {
@@ -21025,7 +21025,7 @@ function saveSuccessionPlan(plan) {
 
 function completeTask(taskId, completedBy, notes) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const logSheet = ss.getSheetByName('MASTER_LOG');
     
     if (!logSheet) {
@@ -21069,7 +21069,7 @@ function completeTask(taskId, completedBy, notes) {
  */
 function completeTaskWithTimeLog(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
     // Ensure TIMELOG sheet exists (create if needed)
     let timelogSheet = ss.getSheetByName('TIMELOG');
@@ -21281,7 +21281,7 @@ function updatePlanningLaborTotals(ss, batchId, durationMinutes, laborCost) {
  */
 function getTimelogData(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('TIMELOG');
 
     if (!sheet || sheet.getLastRow() < 2) {
@@ -21357,7 +21357,7 @@ function getTimelogData(params) {
  */
 function getLaborByCrop() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const timelogSheet = ss.getSheetByName('TIMELOG');
     const planningSheet = ss.getSheetByName('PLANNING_2026');
 
@@ -21482,7 +21482,7 @@ function getLaborByCrop() {
  */
 function logComplianceEntry(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
     // Ensure COMPLIANCE_LOG sheet exists
     let sheet = ss.getSheetByName('COMPLIANCE_LOG');
@@ -21674,7 +21674,7 @@ function logTraceabilityCTE(ss, data, logId, lotCode) {
  */
 function getComplianceLogs(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('COMPLIANCE_LOG');
 
     if (!sheet || sheet.getLastRow() < 2) {
@@ -21745,7 +21745,7 @@ function getComplianceLogs(params) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function getPlanning() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('PLANNING_2026');
   if (!sheet) return jsonResponse({error: 'PLANNING_2026 not found'}, 404);
   
@@ -21764,7 +21764,7 @@ function getPlanning() {
  * Get crops data (plain object for caching)
  */
 function getCropsData() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('REF_CropProfiles');
   if (!sheet) return {success: false, error: 'REF_CropProfiles not found'};
 
@@ -21787,7 +21787,7 @@ function getCrops() {
  * Get beds data (plain object for caching)
  */
 function getBedsData() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('REF_Beds');
   if (!sheet) return {success: false, error: 'REF_Beds not found'};
 
@@ -21807,7 +21807,7 @@ function getBeds() {
 }
 
 function addPlanting(planting) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('PLANNING_2026');
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   const row = headers.map(header => planting[header] || '');
@@ -21839,7 +21839,7 @@ function getTasks(date) { return jsonResponse({success: false, message: 'Not imp
 function getTasksByDateRange(start, end) { return jsonResponse({success: false, message: 'Not implemented'}); }
 function getHarvests(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('HARVEST_LOG');
 
     if (!sheet) {
@@ -21867,7 +21867,7 @@ function getHarvests(params) {
 
 function getHarvestsByDateRange(start, end) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('HARVEST_LOG');
 
     if (!sheet) {
@@ -21987,7 +21987,7 @@ function generateWeatherAlerts(data) {
 }
 function getFinancials() { return jsonResponse({success: false, message: 'Not implemented'}); }
   function updatePlanting(params) {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('PLANNING_2026');
     const data = sheet.getDataRange().getValues();
     const headers = data[0];
@@ -22023,7 +22023,7 @@ function deletePlantingById(batchId) {
       return jsonResponse({ success: false, error: 'No batch ID provided' });
     }
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('PLANNING_2026');
 
     if (!sheet) {
@@ -22776,7 +22776,7 @@ function onOpen() {
 }
 
 function updateProjectLog() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const manualSheet = ss.getSheetByName("SYS_UserManual");
   const ui = SpreadsheetApp.getUi();
   const response = ui.prompt("Project Log", "Notes for this session:", ui.ButtonSet.OK_CANCEL);
@@ -22797,7 +22797,7 @@ function deleteSelectedPlantings() {
 // ══════════════════════════════════════════════════════════════════════════════
 
 function setupAllTables() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
   createTabIfNotExists(ss, "SYS_UserManual", 
     ["Date", "Version", "Action_Taken", "Next_Steps_Goals", "Notes"], "#4a86e8");
@@ -22885,7 +22885,7 @@ function createTabIfNotExists(ss, tabName, headers, color) {
 // ══════════════════════════════════════════════════════════════════════════════
 
 function generateAndEmailReport() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var ui = SpreadsheetApp.getUi();
   
   var sheet = ss.getSheetByName("PLANNING_2026"); 
@@ -23084,7 +23084,7 @@ function generateAndEmailReport() {
 // ══════════════════════════════════════════════════════════════════════════════
 
 function generateFieldTabs(runMath) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const ui = SpreadsheetApp.getUi();
   
   if (runMath === true && typeof recalculateAllFieldMath === 'function') {
@@ -23229,7 +23229,7 @@ function updateTab(ss, name, headers, data) {
 }
 
 function applyFieldColors() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('REF_Fields');
   if (!sheet) return;
   sheet.clearConditionalFormatRules();
@@ -23255,7 +23255,7 @@ function applyBedDropdown(ss) {
 // ══════════════════════════════════════════════════════════════════════════════
 
 function generateDailyTasks() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const planSheet = ss.getSheetByName("PLANNING_2026");
   const profileSheet = ss.getSheetByName("REF_CropProfiles");
   const taskSheet = ss.getSheetByName("DAILY_TASKS_GENERATED") || ss.insertSheet("DAILY_TASKS_GENERATED");
@@ -23300,7 +23300,7 @@ function generateDailyTasks() {
 }
 
 function generateAuditPDF() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var auditSheet = ss.getSheetByName("AUDIT_SUBMISSION_VIEW");
   if (auditSheet) ss.deleteSheet(auditSheet);
   auditSheet = ss.insertSheet("AUDIT_SUBMISSION_VIEW");
@@ -23318,7 +23318,7 @@ function generateAuditPDF() {
 }
 
 function generateFieldStatusReport() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const reportSheet = ss.getSheetByName("REPORT_FieldStatus") || ss.insertSheet("REPORT_FieldStatus");
   const bedSheet = ss.getSheetByName("REF_Beds");
   const planSheet = ss.getSheetByName("PLANNING_2026");
@@ -23339,7 +23339,7 @@ function generateFieldStatusReport() {
 }
 
 function generatePriceProjections() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const s = ss.getSheetByName("REF_Pricing");
   if(!s || s.getLastRow() < 2) return;
   const ui = SpreadsheetApp.getUi();
@@ -23357,7 +23357,7 @@ function generatePriceProjections() {
 }
 
 function generateQRSheet() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const s = ss.getSheetByName("PRINT_QR_CODES") || ss.insertSheet("PRINT_QR_CODES");
   const beds = ss.getSheetByName("REF_Beds").getDataRange().getValues();
   let out = [];
@@ -23367,7 +23367,7 @@ function generateQRSheet() {
 }
 
 function registerSelectedPlanting() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const plan = ss.getSheetByName("PLANNING_2026");
   const log = ss.getSheetByName("MASTER_LOG");
   const rIdx = plan.getActiveCell().getRow();
@@ -23380,7 +23380,7 @@ function registerSelectedPlanting() {
 }
 
 function registerHarvest() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const plan = ss.getSheetByName("PLANNING_2026");
   const log = ss.getSheetByName("MASTER_LOG");
   const ui = SpreadsheetApp.getUi();
@@ -23398,7 +23398,7 @@ function registerHarvest() {
 // ══════════════════════════════════════════════════════════════════════════════
 
 function runBedCalculations() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const planSheet = ss.getSheetByName("PLANNING_2026");
   const profileSheet = ss.getSheetByName("REF_CropProfiles");
   const traySheet = ss.getSheetByName("REF_Trays");
@@ -23485,7 +23485,7 @@ function calculateBedCount(sheet, row) {
 }
 
 function recalculateAllFieldMath() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('REF_Fields');
   if (!sheet) return;
   
@@ -23572,7 +23572,7 @@ function onEdit(e) {
 function syncPlanningDates(sheet, row, col, newVal) {
   if (!newVal) return; 
   
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const profileSheet = ss.getSheetByName("REF_CropProfiles");
   
   const rowData = sheet.getRange(row, 3, 1, 3).getValues()[0];
@@ -23644,7 +23644,7 @@ function openNewPlantingDialog() {
 }
 
 function openBatchDuplicateDialog() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getActiveSheet();
   if (sheet.getName() !== "PLANNING_2026") {
     SpreadsheetApp.getUi().alert("Please select rows in PLANNING_2026 first.");
@@ -23655,7 +23655,7 @@ function openBatchDuplicateDialog() {
 }
 
 function forceRecalculateSelectedRow() {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getActiveSheet();
   const row = sheet.getActiveRange().getRow();
   if (sheet.getName() === "Greenhouse 2026" && row > 1) {
     const batchId = sheet.getRange(row, 2).getValue();
@@ -23668,7 +23668,7 @@ function forceRecalculateSelectedRow() {
 }
 
 function getDuplicateInitData() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const planSheet = ss.getSheetByName("PLANNING_2026");
   const bedSheet = ss.getSheetByName("REF_Beds");
   const profileSheet = ss.getSheetByName("REF_CropProfiles");
@@ -23750,7 +23750,7 @@ function getDuplicateInitData() {
 }
 
 function processAllocatedDuplication(form) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const planSheet = ss.getSheetByName("PLANNING_2026");
   const profileSheet = ss.getSheetByName("REF_CropProfiles");
   const bedSheet = ss.getSheetByName("REF_Beds");
@@ -23848,7 +23848,7 @@ function processAllocatedDuplication(form) {
 }
 
 function getWizardData() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const bedSheet = ss.getSheetByName("REF_Beds");
   const profileSheet = ss.getSheetByName("REF_CropProfiles");
   const planSheet = ss.getSheetByName("PLANNING_2026");
@@ -23909,7 +23909,7 @@ function getWizardData() {
 }
 
 function submitPlanting(form) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const planSheet = ss.getSheetByName("PLANNING_2026");
   const profileSheet = ss.getSheetByName("REF_CropProfiles");
 
@@ -24033,7 +24033,7 @@ function openNewCropDialog() {
 }
 
 function getCropTemplate(cropName) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('REF_CropProfiles');
   if (!sheet) return null;
 
@@ -24089,7 +24089,7 @@ function getCropTemplate(cropName) {
 }
 
 function saveNewCropProfile(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('REF_CropProfiles');
   
   if (!sheet) throw new Error("REF_CropProfiles sheet not found!");
@@ -24119,7 +24119,7 @@ function openImportDialog() {
 }
 
 function quickImportStaging() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const stage = ss.getSheetByName('IMPORT_Staging');
   const ui = SpreadsheetApp.getUi();
 
@@ -24191,7 +24191,7 @@ function quickImportStaging() {
 }
 
 function analyzeStaging() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('IMPORT_Staging');
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].filter(String);
   const hString = headers.join(" ").toLowerCase();
@@ -24204,7 +24204,7 @@ function analyzeStaging() {
 }
 
 function executeUniversalImport(type, map) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const stage = ss.getSheetByName('IMPORT_Staging');
   if (type === "CROPS") return runCropImport(stage, ss.getSheetByName('REF_CropProfiles'), map);
   else return runOrderImport(stage, ss.getSheetByName('LOG_Purchases'), map);
@@ -24286,7 +24286,7 @@ function cleanNumber(val) {
 // ══════════════════════════════════════════════════════════════════════════════
 
 function generateVisualMap() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const planSheet = ss.getSheetByName("PLANNING_2026");
   const bedSheet = ss.getSheetByName("REF_Beds");
   const profileSheet = ss.getSheetByName("REF_CropProfiles");
@@ -24387,7 +24387,7 @@ function generateVisualMap() {
 // ══════════════════════════════════════════════════════════════════════════════
 
 function logSession() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const manualSheet = ss.getSheetByName("SYS_UserManual");
   
   if (!manualSheet) { SpreadsheetApp.getUi().alert("❌ Missing SYS_UserManual"); return; }
@@ -24404,7 +24404,7 @@ function logSession() {
 }
 
 function startSession() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const manualSheet = ss.getSheetByName("SYS_UserManual");
   
   if (!manualSheet || manualSheet.getLastRow() < 2) return;
@@ -24423,7 +24423,7 @@ function startSession() {
 // ══════════════════════════════════════════════════════════════════════════════
 
 function logDailyWeather() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let logSheet = ss.getSheetByName("LOG_Weather");
   if (!logSheet) {
     logSheet = ss.insertSheet("LOG_Weather");
@@ -24583,7 +24583,7 @@ function getWeatherSummary(params) {
 }
 
 function updateTrayDropdowns() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const traySheet = ss.getSheetByName("REF_Trays");
   const profileSheet = ss.getSheetByName("REF_CropProfiles");
   
@@ -24601,7 +24601,7 @@ function updateTrayDropdowns() {
 }
 
 function runFrostSafetyCheck() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const planSheet = ss.getSheetByName("PLANNING_2026");
   const profileSheet = ss.getSheetByName("REF_CropProfiles");
   const settingsSheet = ss.getSheetByName("REF_Settings");
@@ -24672,7 +24672,7 @@ function logOrAlert(msg) {
 // ══════════════════════════════════════════════════════════════════════════════
 
 function fixAndEnrichVendors() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('REF_Vendors');
   
   if (!sheet) {
@@ -24779,7 +24779,7 @@ function fixAndEnrichVendors() {
 // ══════════════════════════════════════════════════════════════════════════════
 
 function findMyData() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('REF_CropProfiles');
   const lastRow = sheet.getLastRow();
   
@@ -24801,7 +24801,7 @@ function findMyData() {
 }
 
 function createDirectSeedingTab() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const name = "Direct Seeding";
   let sheet = ss.getSheetByName(name);
 
@@ -25458,7 +25458,7 @@ function getAyrshareAnalytics(platforms) {
 
 function logMarketingPost(postData) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName('MarketingPosts');
 
     if (!sheet) {
@@ -25548,7 +25548,7 @@ function verifyCredentials() {
 
 function healthCheck() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const now = new Date();
 
     return {
@@ -25576,7 +25576,7 @@ function healthCheck() {
 
 function diagnoseSheets() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const allSheets = ss.getSheets().map(s => s.getName());
 
     // Critical sheets that must exist
@@ -25655,7 +25655,7 @@ function diagnoseIntegrations() {
 
     // Check Plaid
     try {
-      const ss = SpreadsheetApp.getActiveSpreadsheet();
+      const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
       const plaidSheet = ss.getSheetByName('PLAID_ITEMS');
       results.integrations.plaid = {
         configured: !!plaidSheet,
@@ -28187,7 +28187,7 @@ function getSmartDashboard() {
  */
 function calculateSupplyNeeds(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const planningSheet = ss.getSheetByName('PLANNING_2026');
     const inventorySheet = ss.getSheetByName('FARM_INVENTORY');
 
@@ -28312,7 +28312,7 @@ function checkSeasonalReadiness(params) {
     if (seasonStart < now) seasonStart.setFullYear(seasonStart.getFullYear() + 1);
     const daysUntil = Math.ceil((seasonStart - now) / (1000 * 60 * 60 * 24));
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('FARM_INVENTORY');
     const checks = [];
     let readyCount = 0;
@@ -28357,7 +28357,7 @@ function checkSeasonalReadiness(params) {
  */
 function calculateDepreciation(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('FARM_INVENTORY');
     if (!sheet) return { success: false, error: 'FARM_INVENTORY sheet not found' };
 
@@ -28417,7 +28417,7 @@ function calculateDepreciation(params) {
  */
 function getInsuranceReport() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('FARM_INVENTORY');
     if (!sheet) return { success: false, error: 'FARM_INVENTORY sheet not found' };
 
@@ -28476,7 +28476,7 @@ function getTaxScheduleReport(params) {
     const depreciation = calculateDepreciation({});
     if (!depreciation.success) return depreciation;
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('FARM_INVENTORY');
     const categories = { depreciable: [], supplies: [], smallEquipment: [] };
 
@@ -28810,7 +28810,7 @@ function holtWintersForecasting(data, seasonLength = 12, alpha = 0.2, beta = 0.1
  */
 function getEquipmentIntelligence(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('FARM_INVENTORY');
     if (!sheet) return { success: false, error: 'FARM_INVENTORY sheet not found' };
 
@@ -29250,7 +29250,7 @@ const GARAGE_SERVICE_TYPES = [
 // ═══════════════════════════════════════════════════════════════════════════
 
 function initializeSalesAndFleetModule() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
   // ─────────────────────────────────────────────────────────────────────────
   // SALES SHEETS
@@ -29418,7 +29418,7 @@ function createSheetIfNotExists(ss, name, headers, color) {
 
 function sendCustomerMagicLink(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const customerSheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
     const linkSheet = ss.getSheetByName(SALES_SHEETS.MAGIC_LINKS);
 
@@ -29522,7 +29522,7 @@ function sendCSAMagicLink(params) {
       return { success: false, error: 'Email is required' };
     }
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const customerSheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
     const csaSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
     const linkSheet = ss.getSheetByName(SALES_SHEETS.MAGIC_LINKS);
@@ -29695,7 +29695,7 @@ function verifyCSAMagicLink(params) {
       return { success: false, error: 'Token and email are required' };
     }
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const linkSheet = ss.getSheetByName(SALES_SHEETS.MAGIC_LINKS);
     const customerSheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
     const csaSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
@@ -29867,7 +29867,7 @@ function sendCSASMSCode(params) {
       formattedPhone = '+' + formattedPhone;
     }
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const customerSheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
     const csaSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
 
@@ -30048,7 +30048,7 @@ function verifyCSASMSCode(params) {
       formattedPhone = '+1' + formattedPhone;
     }
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const linkSheet = ss.getSheetByName(SALES_SHEETS.MAGIC_LINKS);
     const customerSheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
     const csaSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
@@ -30198,7 +30198,7 @@ function authenticateCustomer(params) {
 
 function verifyCustomerToken(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const linkSheet = ss.getSheetByName(SALES_SHEETS.MAGIC_LINKS);
     const customerSheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
 
@@ -30265,7 +30265,7 @@ function verifyCustomerToken(params) {
 
 function getSalesCustomers(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
 
     if (!sheet) {
@@ -30300,7 +30300,7 @@ function getSalesCustomers(params) {
 
 function getCustomerById(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
     const data = sheet.getDataRange().getValues();
     const headers = data[0];
@@ -30334,7 +30334,7 @@ function lookupCustomerByEmail(params) {
       return { success: false, error: 'Email is required' };
     }
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
     const data = sheet.getDataRange().getValues();
     const headers = data[0];
@@ -30387,7 +30387,7 @@ function lookupCustomerByEmail(params) {
 
 function createSalesCustomer(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
 
     // Check for duplicate email
@@ -30431,7 +30431,7 @@ function createSalesCustomer(data) {
 
 function updateSalesCustomer(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
     const values = sheet.getDataRange().getValues();
     const headers = values[0];
@@ -30466,7 +30466,7 @@ function updateCustomerProfile(data) {
 
 function getSalesOrders(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.ORDERS);
 
     if (!sheet) {
@@ -30508,7 +30508,7 @@ function getSalesOrders(params) {
 
 function getOrderById(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.ORDERS);
     const data = sheet.getDataRange().getValues();
     const headers = data[0];
@@ -30533,7 +30533,7 @@ function getCustomerOrders(params) {
 }
 
 function getOrderItems(orderId) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(SALES_SHEETS.ORDER_ITEMS);
   if (!sheet) return [];
 
@@ -30554,7 +30554,7 @@ function getOrderItems(orderId) {
 
 function createSalesOrder(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const orderSheet = ss.getSheetByName(SALES_SHEETS.ORDERS);
     const itemSheet = ss.getSheetByName(SALES_SHEETS.ORDER_ITEMS);
 
@@ -30633,7 +30633,7 @@ function submitCSAOrder(data) {
 
 function updateSalesOrder(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.ORDERS);
     const values = sheet.getDataRange().getValues();
     const headers = values[0];
@@ -30675,7 +30675,7 @@ function cancelSalesOrder(data) {
 
 function updateCustomerOrderStats(customerId, orderTotal) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
     const values = sheet.getDataRange().getValues();
     const headers = values[0];
@@ -30712,7 +30712,7 @@ function getCSAProducts(params) {
 
 function getProductsFromCrops(priceType, params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('REF_Crops');
 
     if (!sheet) {
@@ -30788,7 +30788,7 @@ const STANDING_ORDER_SHEETS = {
  * Initialize Standing Orders sheets
  */
 function initializeStandingOrdersModule() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
   createSheetIfNotExists(ss, STANDING_ORDER_SHEETS.STANDING_ORDERS, [
     'Standing_Order_ID', 'Customer_ID', 'Customer_Name', 'Customer_Phone', 'Customer_Email',
@@ -30812,7 +30812,7 @@ function initializeStandingOrdersModule() {
  */
 function createStandingOrder(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName(STANDING_ORDER_SHEETS.STANDING_ORDERS);
     if (!sheet) { initializeStandingOrdersModule(); sheet = ss.getSheetByName(STANDING_ORDER_SHEETS.STANDING_ORDERS); }
 
@@ -30881,7 +30881,7 @@ function calculateNextDueDate(dayOfWeek, frequency, fromDate) {
  */
 function getStandingOrders(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(STANDING_ORDER_SHEETS.STANDING_ORDERS);
     if (!sheet) return { success: true, orders: [] };
 
@@ -30911,7 +30911,7 @@ function getStandingOrders(params) {
  */
 function getStandingOrdersDue(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(STANDING_ORDER_SHEETS.STANDING_ORDERS);
     if (!sheet) return { success: true, orders: [], totals: {} };
 
@@ -30969,7 +30969,7 @@ function getStandingOrdersDue(params) {
  */
 function updateStandingOrder(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(STANDING_ORDER_SHEETS.STANDING_ORDERS);
     if (!sheet) return { success: false, error: 'Standing orders sheet not found' };
 
@@ -31029,7 +31029,7 @@ function resumeStandingOrder(data) {
   const result = updateStandingOrder({ standingOrderId: data.standingOrderId, Status: 'Active' });
   if (result.success) {
     // Recalculate next due date from today
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(STANDING_ORDER_SHEETS.STANDING_ORDERS);
     const values = sheet.getDataRange().getValues();
     const headers = values[0];
@@ -31053,7 +31053,7 @@ function resumeStandingOrder(data) {
  */
 function markStandingOrderFulfilled(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(STANDING_ORDER_SHEETS.STANDING_ORDERS);
     let logSheet = ss.getSheetByName(STANDING_ORDER_SHEETS.FULFILLMENT_LOG);
     if (!logSheet) { initializeStandingOrdersModule(); logSheet = ss.getSheetByName(STANDING_ORDER_SHEETS.FULFILLMENT_LOG); }
@@ -31141,7 +31141,7 @@ function calculateNextDueDateFromFrequency(frequency, dayOfWeek, fromDate) {
  */
 function markStandingOrderShorted(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(STANDING_ORDER_SHEETS.STANDING_ORDERS);
     let logSheet = ss.getSheetByName(STANDING_ORDER_SHEETS.FULFILLMENT_LOG);
     if (!logSheet) { initializeStandingOrdersModule(); logSheet = ss.getSheetByName(STANDING_ORDER_SHEETS.FULFILLMENT_LOG); }
@@ -31302,7 +31302,7 @@ function getNextDeliveryDay(dayOfWeek) {
  */
 function getFulfillmentLog(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(STANDING_ORDER_SHEETS.FULFILLMENT_LOG);
     if (!sheet) return { success: true, logs: [] };
 
@@ -31344,7 +31344,7 @@ function getStandingOrdersDashboard(params) {
     // Get inventory levels if available (for risk assessment)
     let atRiskProducts = [];
     try {
-      const ss = SpreadsheetApp.getActiveSpreadsheet();
+      const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
       const invSheet = ss.getSheetByName('FARM_INVENTORY');
       if (invSheet && dueOrders.success && dueOrders.totals.length > 0) {
         const invData = invSheet.getDataRange().getValues();
@@ -31987,7 +31987,7 @@ function testChefInvite() {
 
 function getCSAMembers(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
 
     if (!sheet) {
@@ -32028,7 +32028,7 @@ function getSalesCSAMembers(params) {
  */
 function addTestCSAMember(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const customerSheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
     const csaSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
 
@@ -32143,7 +32143,7 @@ function addTestCSAMember(params) {
 
 function createCSAMember(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
 
     const memberId = 'CSA-' + Date.now();
@@ -32195,7 +32195,7 @@ function createCSAMember(data) {
 
 function importShopifyCSAMembers(csvData) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const csaSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
     const customersSheet = ss.getSheetByName('Customers');
 
@@ -32676,7 +32676,7 @@ function importCSAFromShopifyCSV(params) {
 
 function updateCSAMember(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
     const values = sheet.getDataRange().getValues();
     const headers = values[0];
@@ -34052,7 +34052,7 @@ function sendOvernightTeamReport() {
  */
 function sendCSAWelcomeEmail(data) {
   // Generate magic link token
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const linkSheet = ss.getSheetByName(SALES_SHEETS.MAGIC_LINKS);
 
   const token = Utilities.getUuid();
@@ -34198,7 +34198,7 @@ function generateCSAWelcomeEmailHtml(data, magicLink) {
  */
 function logWebhookEvent(type, orderId, email) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName('Webhook_Log');
 
     if (!sheet) {
@@ -34217,7 +34217,7 @@ function logWebhookEvent(type, orderId, email) {
  */
 function logCSAEmailSent(memberId, emailType, recipientEmail) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName('CSA_Email_Log');
 
     if (!sheet) {
@@ -34237,7 +34237,7 @@ function logCSAEmailSent(memberId, emailType, recipientEmail) {
  */
 function resendCSAWelcomeEmail(memberId) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const csaSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
     const custSheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
 
@@ -34366,7 +34366,7 @@ function hasVacationHold(member, weekDate) {
  */
 function scheduleVacationHold(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
     const values = sheet.getDataRange().getValues();
     const headers = values[0];
@@ -34438,7 +34438,7 @@ function scheduleVacationHold(data) {
  */
 function cancelVacationHold(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
     const values = sheet.getDataRange().getValues();
     const headers = values[0];
@@ -34500,7 +34500,7 @@ function cancelVacationHold(data) {
  */
 function getVacationHolds(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
     const values = sheet.getDataRange().getValues();
     const headers = values[0];
@@ -34544,7 +34544,7 @@ function getVacationHolds(params) {
  */
 function getCSAPickupHistory(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const customerId = params.customerId;
     const limit = parseInt(params.limit) || 20;
 
@@ -34627,7 +34627,7 @@ function getCSAPickupHistory(params) {
  */
 function updateCSAMemberPreferences(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const memberId = data.memberId;
     const customerId = data.customerId;
 
@@ -34774,7 +34774,7 @@ function getPickupDateForMember(pickupDay, weekDate) {
  */
 function getBoxContentsForShareType(shareType, shareSize, weekDate) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.CSA_BOX_CONTENTS);
 
     if (!sheet) return [];
@@ -34815,7 +34815,7 @@ function getBoxContentsForShareType(shareType, shareSize, weekDate) {
  */
 function generateWeeklyCSAOrders(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const csaSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
     const orderSheet = ss.getSheetByName('Master_Order_Log') || ss.getSheetByName(SALES_SHEETS.ORDERS);
 
@@ -34969,7 +34969,7 @@ function generateWeeklyCSAOrders(params) {
  */
 function getCSAMetrics(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const csaSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
 
     if (!csaSheet) {
@@ -35099,7 +35099,7 @@ function testWeeklyCSAOrders() {
  */
 function getCSAPickupLocations(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.CSA_PICKUP_LOCATIONS);
 
     if (!sheet) {
@@ -35132,7 +35132,7 @@ function getCSAPickupLocations(params) {
  */
 function createCSAPickupLocation(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.CSA_PICKUP_LOCATIONS);
 
     if (!sheet) {
@@ -35182,7 +35182,7 @@ function getLocationByName(locationName) {
  */
 function assignPickupLocation(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const csaSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
     const locSheet = ss.getSheetByName(SALES_SHEETS.CSA_PICKUP_LOCATIONS);
 
@@ -35276,7 +35276,7 @@ function assignPickupLocation(params) {
  */
 function recalculateLocationCounts() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const csaSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
     const locSheet = ss.getSheetByName(SALES_SHEETS.CSA_PICKUP_LOCATIONS);
 
@@ -35327,7 +35327,7 @@ function recalculateLocationCounts() {
  */
 function getCSAProducts_sales(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.CSA_PRODUCTS);
 
     if (!sheet) {
@@ -35361,7 +35361,7 @@ function getCSAProducts_sales(params) {
  */
 function upsertCSAProduct(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.CSA_PRODUCTS);
 
     if (!sheet) {
@@ -35474,7 +35474,7 @@ function syncCSAProductsFromShopify(shopifyProducts) {
  */
 function recalculateProductCounts() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const csaSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
     const prodSheet = ss.getSheetByName(SALES_SHEETS.CSA_PRODUCTS);
 
@@ -35518,7 +35518,7 @@ function recalculateProductCounts() {
 
 function getCSABoxContents(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.CSA_BOX_CONTENTS);
 
     if (!sheet) {
@@ -35622,7 +35622,7 @@ function customizeCSABox(data) {
 
 function getPickPackList(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.PICK_PACK);
 
     if (!sheet) {
@@ -35653,7 +35653,7 @@ function getPickPackList(params) {
 
 function generatePickListForOrder(orderId, orderData) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.PICK_PACK);
 
     (orderData.items || []).forEach(item => {
@@ -35685,7 +35685,7 @@ function generatePickListForOrder(orderId, orderData) {
 
 function completePickPackItem(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.PICK_PACK);
     const values = sheet.getDataRange().getValues();
     const headers = values[0];
@@ -35718,7 +35718,7 @@ function completePickPackItem(data) {
 
 function getDeliveryRoutes(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.DELIVERIES);
 
     if (!sheet) {
@@ -35750,7 +35750,7 @@ function getDeliveryRoutes(params) {
 }
 
 function getRouteStops(routeId) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(SALES_SHEETS.DELIVERY_STOPS);
   if (!sheet) return [];
 
@@ -35879,7 +35879,7 @@ function getDriverRoute(params) {
 
 function getDeliveryDrivers(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.DRIVERS);
 
     if (!sheet) {
@@ -35909,7 +35909,7 @@ function getDeliveryDrivers(params) {
 
 function authenticateDriver(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.DRIVERS);
 
     if (!sheet) {
@@ -35943,7 +35943,7 @@ function authenticateDriver(params) {
 
 function getDeliveryHistory(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const stopsSheet = ss.getSheetByName(SALES_SHEETS.DELIVERY_STOPS);
 
     if (!stopsSheet) {
@@ -35993,7 +35993,7 @@ function getDeliveryHistory(params) {
  */
 function completeDelivery(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
     // Get or create DELIVERY_LOG sheet
     let logSheet = ss.getSheetByName('DELIVERY_LOG');
@@ -36091,7 +36091,7 @@ function completeDelivery(params) {
  */
 function logDeliveryIssue(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
     // Get or create DELIVERY_LOG sheet
     let logSheet = ss.getSheetByName('DELIVERY_LOG');
@@ -36159,7 +36159,7 @@ function logDeliveryIssue(params) {
  */
 function handleClockIn(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
     // Get or create TIME_CLOCK sheet
     let clockSheet = ss.getSheetByName('TIME_CLOCK');
@@ -36222,7 +36222,7 @@ function handleClockIn(params) {
  */
 function handleClockOut(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const clockSheet = ss.getSheetByName('TIME_CLOCK');
 
     if (!clockSheet) {
@@ -36281,7 +36281,7 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
 
 function createDeliveryRoute(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const routeSheet = ss.getSheetByName(SALES_SHEETS.DELIVERIES);
     const stopsSheet = ss.getSheetByName(SALES_SHEETS.DELIVERY_STOPS);
 
@@ -36330,7 +36330,7 @@ function createDeliveryRoute(data) {
 
 function assignDeliveryRoute(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.DELIVERIES);
     const values = sheet.getDataRange().getValues();
     const headers = values[0];
@@ -36355,7 +36355,7 @@ function assignDeliveryRoute(data) {
 
 function recordDeliveryProof(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const proofSheet = ss.getSheetByName(SALES_SHEETS.DELIVERY_PROOFS);
     const stopsSheet = ss.getSheetByName(SALES_SHEETS.DELIVERY_STOPS);
 
@@ -36406,7 +36406,7 @@ function recordDeliveryProof(data) {
 
 function reportDeliveryIssue(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const stopsSheet = ss.getSheetByName(SALES_SHEETS.DELIVERY_STOPS);
 
     const now = new Date().toISOString();
@@ -36451,7 +36451,7 @@ function reportDeliveryIssue(data) {
 
 function updateDeliveryETA(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.DELIVERY_STOPS);
     const values = sheet.getDataRange().getValues();
     const headers = values[0];
@@ -36489,7 +36489,7 @@ function updateDeliveryStopStatus(sheet, stopId, status, timestamp, photoUrl, si
 
 function updateDeliveryStopStatusFromWeb(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const stopsSheet = ss.getSheetByName(SALES_SHEETS.DELIVERY_STOPS);
 
     if (!stopsSheet) {
@@ -36511,7 +36511,7 @@ function updateDeliveryStopStatusFromWeb(data) {
 }
 
 function updateRouteProgress(routeId) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const routeSheet = ss.getSheetByName(SALES_SHEETS.DELIVERIES);
   const stopsSheet = ss.getSheetByName(SALES_SHEETS.DELIVERY_STOPS);
 
@@ -37173,7 +37173,7 @@ function sendDeliveredNotification(params) {
 
 function getFleetAssets(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(FLEET_SHEETS.ASSETS);
 
     if (!sheet) {
@@ -37208,7 +37208,7 @@ function getFleetAssets(params) {
 
 function getFleetAssetById(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(FLEET_SHEETS.ASSETS);
     const data = sheet.getDataRange().getValues();
     const headers = data[0];
@@ -37233,7 +37233,7 @@ function getFleetAssetById(params) {
 
 function createFleetAsset(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(FLEET_SHEETS.ASSETS);
 
     const assetId = data.assetType.substring(0, 4).toUpperCase() + '-' + Date.now().toString().slice(-6);
@@ -37269,7 +37269,7 @@ function createFleetAsset(data) {
 
 function updateFleetAsset(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(FLEET_SHEETS.ASSETS);
     const values = sheet.getDataRange().getValues();
     const headers = values[0];
@@ -37304,7 +37304,7 @@ function updateFleetAsset(data) {
 
 function getFleetUsageLog(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(FLEET_SHEETS.USAGE_LOG);
 
     if (!sheet) {
@@ -37343,7 +37343,7 @@ function getFleetUsageLog(params) {
 
 function logFleetUsage(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(FLEET_SHEETS.USAGE_LOG);
 
     const usageId = 'USE-' + Date.now();
@@ -37393,7 +37393,7 @@ function logFleetUsage(data) {
 function linkUsageToTask(data) {
   // Link fleet usage to a field task for cost rollup
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const usageSheet = ss.getSheetByName(FLEET_SHEETS.USAGE_LOG);
 
     // Update usage record with task ID
@@ -37415,7 +37415,7 @@ function linkUsageToTask(data) {
 
 function getFleetFuelLog(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(FLEET_SHEETS.FUEL_LOG);
 
     if (!sheet) {
@@ -37447,7 +37447,7 @@ function getFleetFuelLog(params) {
 
 function logFleetFuel(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(FLEET_SHEETS.FUEL_LOG);
 
     const fuelId = 'FUEL-' + Date.now();
@@ -37479,7 +37479,7 @@ function logFleetFuel(data) {
 
 function getFleetMaintenanceLog(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(FLEET_SHEETS.MAINTENANCE);
 
     if (!sheet) {
@@ -37511,7 +37511,7 @@ function getFleetMaintenanceLog(params) {
 
 function logFleetMaintenance(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(FLEET_SHEETS.MAINTENANCE);
     const assetSheet = ss.getSheetByName(FLEET_SHEETS.ASSETS);
 
@@ -37637,7 +37637,7 @@ function getFleetDashboard(params) {
  */
 function initializeGarageSheets() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
     // Create Parts Inventory sheet
     createSheetIfNotExists(ss, GARAGE_SHEETS.PARTS, GARAGE_PARTS_HEADERS, '#f97316');
@@ -37668,7 +37668,7 @@ function initializeGarageSheets() {
  */
 function getGarageParts(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(GARAGE_SHEETS.PARTS);
 
     if (!sheet || sheet.getLastRow() < 2) {
@@ -37716,7 +37716,7 @@ function getGaragePartById(params) {
       return { success: false, error: 'partId is required' };
     }
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(GARAGE_SHEETS.PARTS);
 
     if (!sheet) {
@@ -37751,7 +37751,7 @@ function createGaragePart(data) {
       return { success: false, error: 'description is required' };
     }
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(GARAGE_SHEETS.PARTS);
 
     if (!sheet) {
@@ -37800,7 +37800,7 @@ function updateGaragePart(data) {
       return { success: false, error: 'partId is required' };
     }
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(GARAGE_SHEETS.PARTS);
 
     if (!sheet) {
@@ -37864,7 +37864,7 @@ function adjustPartInventory(data) {
       return { success: false, error: 'adjustment must be a number' };
     }
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(GARAGE_SHEETS.PARTS);
 
     if (!sheet) {
@@ -37909,7 +37909,7 @@ function adjustPartInventory(data) {
  */
 function getPartsLowStock() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(GARAGE_SHEETS.PARTS);
 
     if (!sheet || sheet.getLastRow() < 2) {
@@ -37961,7 +37961,7 @@ function getPartsByEquipment(params) {
       return { success: false, error: 'assetId is required' };
     }
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(GARAGE_SHEETS.PARTS);
 
     if (!sheet || sheet.getLastRow() < 2) {
@@ -38001,7 +38001,7 @@ function getPartsByEquipment(params) {
  */
 function getGarageManuals(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(GARAGE_SHEETS.MANUALS);
 
     if (!sheet || sheet.getLastRow() < 2) {
@@ -38045,7 +38045,7 @@ function getManualsByAsset(params) {
       return { success: false, error: 'assetId is required' };
     }
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(GARAGE_SHEETS.MANUALS);
 
     if (!sheet || sheet.getLastRow() < 2) {
@@ -38092,7 +38092,7 @@ function createGarageManual(data) {
       return { success: false, error: 'title and fileUrl are required' };
     }
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName(GARAGE_SHEETS.MANUALS);
 
     if (!sheet) {
@@ -38138,7 +38138,7 @@ function searchManuals(params) {
     }
 
     const searchTerm = params.query.toLowerCase();
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(GARAGE_SHEETS.MANUALS);
 
     if (!sheet || sheet.getLastRow() < 2) {
@@ -38181,7 +38181,7 @@ function searchManuals(params) {
  */
 function getServiceSchedule(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(GARAGE_SHEETS.SERVICE_SCHEDULE);
 
     if (!sheet || sheet.getLastRow() < 2) {
@@ -38229,7 +38229,7 @@ function getServiceDue(params) {
     const now = new Date();
     const futureDate = new Date(now.getTime() + (daysAhead * 24 * 60 * 60 * 1000));
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(GARAGE_SHEETS.SERVICE_SCHEDULE);
 
     if (!sheet || sheet.getLastRow() < 2) {
@@ -38327,7 +38327,7 @@ function createServiceSchedule(data) {
       return { success: false, error: 'assetId and serviceType are required' };
     }
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName(GARAGE_SHEETS.SERVICE_SCHEDULE);
 
     if (!sheet) {
@@ -38390,7 +38390,7 @@ function logServiceCompleted(data) {
       return { success: false, error: 'scheduleId is required' };
     }
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(GARAGE_SHEETS.SERVICE_SCHEDULE);
 
     if (!sheet) {
@@ -38706,7 +38706,7 @@ function getSalesReports(params) {
 
 function getSMSCampaigns(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.SMS_CAMPAIGNS);
 
     if (!sheet) {
@@ -38736,7 +38736,7 @@ function getSMSCampaigns(params) {
 
 function createSMSCampaign(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.SMS_CAMPAIGNS);
 
     const campaignId = 'SMS-' + Date.now();
@@ -38768,7 +38768,7 @@ function createSMSCampaign(data) {
 
 function sendSMSCampaign(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.SMS_CAMPAIGNS);
     const values = sheet.getDataRange().getValues();
     const headers = values[0];
@@ -38892,7 +38892,7 @@ function savePhotoToDriveSales(base64Data, filename) {
  */
 function getWeeklyCycleOverview(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const weekStart = params?.weekStart || getWeekStartDate();
     const weekEnd = getWeekEndDate(weekStart);
 
@@ -38939,7 +38939,7 @@ function getWeeklyCycleOverview(params) {
  */
 function getAggregatedDemand(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const weekStart = params?.weekStart || getWeekStartDate();
     const weekEnd = getWeekEndDate(weekStart);
 
@@ -39020,7 +39020,7 @@ function getAggregatedDemand(params) {
  */
 function getWeeklyHarvestPlan(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const weekStart = params?.weekStart || getWeekStartDate();
 
     // Get aggregated demand
@@ -39077,7 +39077,7 @@ function getWeeklyHarvestPlan(params) {
  */
 function getWeeklyPackSchedule(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const weekStart = params?.weekStart || getWeekStartDate();
     const weekEnd = getWeekEndDate(weekStart);
 
@@ -39167,7 +39167,7 @@ function getWeeklyPackSchedule(params) {
  */
 function getWeeklyDeliverySchedule(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const weekStart = params?.weekStart || getWeekStartDate();
     const weekEnd = getWeekEndDate(weekStart);
 
@@ -39279,7 +39279,7 @@ function getWeeklyDeliverySchedule(params) {
  */
 function getUnifiedSalesDashboard(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const today = new Date();
     const weekStart = params?.weekStart || getWeekStartDate();
 
@@ -39364,7 +39364,7 @@ function getUnifiedSalesDashboard(params) {
  */
 function getSalesChannelSummary(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const period = params?.period || 'week'; // week, month, season
     const weekStart = getWeekStartDate();
 
@@ -39427,7 +39427,7 @@ function getSalesChannelSummary(params) {
  */
 function generateWeeklyHarvestFromDemand(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const weekStart = params?.weekStart || getWeekStartDate();
 
     // Get harvest plan
@@ -39944,7 +39944,7 @@ function viewFleetDashboard() {
  */
 function getMarketSignItems(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
     // First try dedicated market items sheet
     let sheet = ss.getSheetByName(SALES_SHEETS.MARKET_ITEMS);
@@ -40017,7 +40017,7 @@ function getMarketSignItems(params) {
  */
 function getOrdersForLabels(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const ordersSheet = ss.getSheetByName(SALES_SHEETS.ORDERS);
     const itemsSheet = ss.getSheetByName(SALES_SHEETS.ORDER_ITEMS);
 
@@ -40107,7 +40107,7 @@ function getOrdersForLabels(params) {
  */
 function getSalesCycles(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName(SALES_SHEETS.SALES_CYCLES);
 
     // Create sheet if it doesn't exist
@@ -40163,7 +40163,7 @@ function closeSalesCycle(params) {
       return { success: false, error: 'Cycle ID required' };
     }
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const cycleSheet = ss.getSheetByName(SALES_SHEETS.SALES_CYCLES);
 
     if (!cycleSheet) {
@@ -40228,7 +40228,7 @@ function closeSalesCycle(params) {
  */
 function generateConsolidatedPickList(deliveryDate) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const ordersResult = getOrdersForLabels({ date: deliveryDate });
 
     if (!ordersResult.success) {
@@ -40308,7 +40308,7 @@ function getWeekOf(date) {
  * Initialize the market items sheet with headers
  */
 function initializeMarketItemsSheet() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let sheet = ss.getSheetByName(SALES_SHEETS.MARKET_ITEMS);
 
   if (!sheet) {
@@ -40388,7 +40388,7 @@ const FARM_GEOFENCE = {
 // ============================================
 
 function getOrCreateEmployeeSheet(sheetName) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let sheet = ss.getSheetByName(sheetName);
 
   if (!sheet) {
@@ -40420,7 +40420,7 @@ function authenticateEmployee(params) {
       return { success: false, error: 'Please enter a 4-digit PIN' };
     }
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
     // FIRST: Always check USERS sheet (primary auth source)
     const usersSheet = ss.getSheetByName('USERS');
@@ -40587,7 +40587,7 @@ function registerEmployee(data) {
       return { success: false, error: 'PIN must be exactly 4 digits' };
     }
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
     // Check if PIN already exists in USERS sheet
     const usersSheet = ss.getSheetByName('USERS');
@@ -40691,7 +40691,7 @@ function registerEmployee(data) {
 
 function getPendingRegistrations() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('PENDING_REGISTRATIONS');
 
     if (!sheet) {
@@ -40733,7 +40733,7 @@ function approveRegistration(data) {
       return { success: false, error: 'Registration ID is required' };
     }
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const pendingSheet = ss.getSheetByName('PENDING_REGISTRATIONS');
 
     if (!pendingSheet) {
@@ -40835,7 +40835,7 @@ function rejectRegistration(data) {
       return { success: false, error: 'Registration ID is required' };
     }
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const pendingSheet = ss.getSheetByName('PENDING_REGISTRATIONS');
 
     if (!pendingSheet) {
@@ -40911,7 +40911,7 @@ function createEmployeesSheet(ss) {
 
 function getClockStatus(employeeId) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.TIME_CLOCK);
 
     if (!sheet) {
@@ -40966,7 +40966,7 @@ function clockIn(params) {
     // Check geofence (optional - can be enabled later)
     const inGeofence = isInGeofence(lat, lng);
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = getOrCreateEmployeeSheet(EMPLOYEE_SHEETS.TIME_CLOCK);
 
     const now = new Date();
@@ -41016,7 +41016,7 @@ function clockOut(params) {
       return { success: false, error: 'Not clocked in' };
     }
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.TIME_CLOCK);
     const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
 
@@ -41077,7 +41077,7 @@ function getTimesheet(params) {
       return { success: false, error: 'Employee ID required' };
     }
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.TIME_CLOCK);
 
     if (!sheet) {
@@ -41161,7 +41161,7 @@ function getPayPeriod() {
  */
 function getEmployeeHourlyRate(employeeId) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('EMPLOYEES') || ss.getSheetByName('Employees');
 
     if (!sheet) return 15.00; // Default
@@ -41269,7 +41269,7 @@ function syncToQuickBooks(params) {
  */
 function logTimesheetForExport(employeeId, entries, payPeriod) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName('QB_EXPORT_QUEUE');
 
     if (!sheet) {
@@ -41310,7 +41310,7 @@ function logTimesheetForExport(employeeId, entries, payPeriod) {
  */
 function logQBSync(employeeId, synced, errors, payPeriod) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName('QB_SYNC_LOG');
 
     if (!sheet) {
@@ -41343,7 +41343,7 @@ function getDeliveryCount(params) {
     const employeeId = params.employeeId;
     const today = new Date().toISOString().split('T')[0];
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('DELIVERY_ROUTES') || ss.getSheetByName('Delivery_Routes');
 
     if (!sheet) {
@@ -41380,7 +41380,7 @@ function getTimeClockHistory(params) {
     const employeeId = params.employeeId;
     const days = parseInt(params.days) || 14;
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.TIME_CLOCK);
 
     if (!sheet) {
@@ -41429,7 +41429,7 @@ function getEmployeeTasks(params) {
   try {
     const employeeId = params.employeeId || '';
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const planSheet = ss.getSheetByName('PLANNING_2026');
 
     if (!planSheet) {
@@ -41567,7 +41567,7 @@ function getEmployeeTasks(params) {
 
 // Create sample tasks for testing
 function createSampleTasks() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let sheet = ss.getSheetByName('EMPLOYEE_TASKS');
 
   // Delete existing sheet to recreate with new columns
@@ -41630,7 +41630,7 @@ function completeSharedTask(params) {
       return { success: false, error: 'Task ID required' };
     }
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('EMPLOYEE_TASKS');
 
     if (!sheet) {
@@ -41728,7 +41728,7 @@ function completeSubtask(params) {
       return { success: false, error: 'Task ID and subtask index required' };
     }
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('EMPLOYEE_TASKS');
 
     if (!sheet) {
@@ -41815,7 +41815,7 @@ function completeTaskWithGPS(params) {
     const batchId = parts.slice(0, -1).join('-');
     const taskType = parts[parts.length - 1];
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const planSheet = ss.getSheetByName('PLANNING_2026');
 
     if (!planSheet) {
@@ -41872,7 +41872,7 @@ function completeTaskWithGPS(params) {
 
 function logHarvestWithDetails(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = getOrCreateEmployeeSheet(EMPLOYEE_SHEETS.HARVEST_LOG);
 
     const harvestId = generateId('HRV');
@@ -41920,7 +41920,7 @@ function logHarvestWithDetails(params) {
 
 function saveScoutingReport(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = getOrCreateEmployeeSheet(EMPLOYEE_SHEETS.FIELD_SCOUTING);
 
     const scoutId = generateId('SCT');
@@ -41961,7 +41961,7 @@ function saveScoutingReport(params) {
 
 function logTreatment(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = getOrCreateEmployeeSheet(EMPLOYEE_SHEETS.TREATMENT_LOG);
 
     const treatmentId = generateId('TRT');
@@ -42011,7 +42011,7 @@ function logTreatment(params) {
 
 function logBeneficialRelease(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = getOrCreateEmployeeSheet(EMPLOYEE_SHEETS.BENEFICIAL_RELEASES);
 
     const releaseId = generateId('BEN');
@@ -42039,7 +42039,7 @@ function logBeneficialRelease(params) {
 
 function getActiveREI(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.TREATMENT_LOG);
 
     if (!sheet) {
@@ -42080,7 +42080,7 @@ function getActiveREI(params) {
 
 function reportHazard(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = getOrCreateEmployeeSheet(EMPLOYEE_SHEETS.FIELD_HAZARDS);
 
     const hazardId = generateId('HAZ');
@@ -42111,7 +42111,7 @@ function reportHazard(params) {
 
 function getActiveHazards(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.FIELD_HAZARDS);
 
     if (!sheet) {
@@ -42143,7 +42143,7 @@ function resolveHazard(params) {
     const hazardId = params.hazardId;
     const employeeId = params.employeeId || '';
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.FIELD_HAZARDS);
 
     if (!sheet) {
@@ -42179,7 +42179,7 @@ function resolveHazard(params) {
 
 function logWeedPressure(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = getOrCreateEmployeeSheet(EMPLOYEE_SHEETS.WEED_PRESSURE);
 
     const weedId = generateId('WED');
@@ -42214,7 +42214,7 @@ function logWeedPressure(params) {
 
 function logCultivation(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = getOrCreateEmployeeSheet(EMPLOYEE_SHEETS.CULTIVATION_LOG);
 
     const cultivationId = generateId('CUL');
@@ -42251,7 +42251,7 @@ function getCrewMessages(params) {
   try {
     const employeeId = params.employeeId || '';
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.CREW_MESSAGES);
 
     if (!sheet) {
@@ -42292,7 +42292,7 @@ function acknowledgeMessage(params) {
     const messageId = params.messageId;
     const employeeId = params.employeeId || '';
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.CREW_MESSAGES);
 
     if (!sheet) {
@@ -42322,7 +42322,7 @@ function acknowledgeMessage(params) {
 
 function sendCrewMessage(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = getOrCreateEmployeeSheet(EMPLOYEE_SHEETS.CREW_MESSAGES);
 
     const messageId = generateId('MSG');
@@ -42388,7 +42388,7 @@ function initializeFieldCommandCenter() {
  */
 function assignTaskToEmployee(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = getOrCreateEmployeeSheet(EMPLOYEE_SHEETS.TASK_ASSIGNMENTS);
 
     const assignmentId = generateId('TASK');
@@ -42456,7 +42456,7 @@ function assignTaskToEmployee(params) {
  */
 function getEmployeeById(employeeId) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
     // Try USERS sheet first
     const usersSheet = ss.getSheetByName('USERS');
@@ -42514,7 +42514,7 @@ function getEmployeeById(employeeId) {
  */
 function getAllActiveEmployees() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const employees = [];
 
     // Get from USERS sheet
@@ -42556,7 +42556,7 @@ const SCHEDULE_HEADERS = ['Schedule_ID', 'Employee_ID', 'Date', 'Start_Time', 'E
  * Initialize SCHEDULES sheet if it doesn't exist
  */
 function initScheduleSheet() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let sheet = ss.getSheetByName(SCHEDULE_SHEET_NAME);
 
   if (!sheet) {
@@ -42574,7 +42574,7 @@ function initScheduleSheet() {
  */
 function getSchedules(startDate, endDate) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName(SCHEDULE_SHEET_NAME);
 
     if (!sheet) {
@@ -42659,7 +42659,7 @@ function createSchedule(data) {
  */
 function updateSchedule(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SCHEDULE_SHEET_NAME);
 
     if (!sheet) {
@@ -42697,7 +42697,7 @@ function updateSchedule(data) {
  */
 function deleteSchedule(scheduleId) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SCHEDULE_SHEET_NAME);
 
     if (!sheet) {
@@ -42754,7 +42754,7 @@ function generateSmartSchedule(params) {
     const schedules = [];
 
     // Get pending tasks from WORK_PRESCRIPTIONS or TASK_ASSIGNMENTS
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const taskSheet = ss.getSheetByName('TASK_ASSIGNMENTS') || ss.getSheetByName('TASKS');
 
     // Generate basic schedules for the week
@@ -42859,7 +42859,7 @@ function formatDateString(date) {
  * Initialize TIME_OFF_REQUESTS sheet if it doesn't exist
  */
 function initTimeOffRequestsSheet() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let sheet = ss.getSheetByName('TIME_OFF_REQUESTS');
 
   if (!sheet) {
@@ -42879,7 +42879,7 @@ function initTimeOffRequestsSheet() {
  * Initialize EMPLOYEE_HR_STATS sheet if it doesn't exist
  */
 function initEmployeeHRStatsSheet() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let sheet = ss.getSheetByName('EMPLOYEE_HR_STATS');
 
   if (!sheet) {
@@ -43139,7 +43139,7 @@ function getEmployeeHRStats(employeeId) {
     }
 
     // Get employee info from USERS sheet
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const usersSheet = ss.getSheetByName('USERS');
     let employeeInfo = null;
 
@@ -43423,7 +43423,7 @@ function getHRAlerts() {
  */
 function getEmployeeAssignments(employeeId) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.TASK_ASSIGNMENTS);
 
     if (!sheet) {
@@ -43467,7 +43467,7 @@ function getEmployeeAssignments(employeeId) {
  */
 function getAllActiveAssignments() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.TASK_ASSIGNMENTS);
 
     if (!sheet) {
@@ -43521,7 +43521,7 @@ function getAllActiveAssignments() {
  */
 function updateTaskStatus(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.TASK_ASSIGNMENTS);
 
     if (!sheet) {
@@ -43575,7 +43575,7 @@ function updateTaskStatus(params) {
  */
 function recordTeamCheckin(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = getOrCreateEmployeeSheet(EMPLOYEE_SHEETS.TEAM_CHECKINS);
 
     const checkinId = generateId('CHK');
@@ -43616,7 +43616,7 @@ function recordTeamCheckin(params) {
  */
 function updateAssignmentCheckin(assignmentId, status, timestamp) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.TASK_ASSIGNMENTS);
 
     if (!sheet) return;
@@ -43765,7 +43765,7 @@ function processSMSCheckinResponse(params) {
  */
 function findEmployeeByPhone(phone) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
     // Normalize phone number
     const normalizedPhone = phone.replace(/[^0-9]/g, '').slice(-10);
@@ -43843,7 +43843,7 @@ function alertManagerAboutBlocker(params) {
  */
 function getTeamStatusSummary() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const now = new Date();
 
     // Get all active assignments
@@ -43949,7 +43949,7 @@ function getTeamStatusSummary() {
  */
 function getWhosCurrentlyClockedIn() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.TIME_CLOCK);
 
     if (!sheet) return [];
@@ -43997,7 +43997,7 @@ function getWhosCurrentlyClockedIn() {
  */
 function getRecentCheckins(minutes) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.TEAM_CHECKINS);
 
     if (!sheet) return [];
@@ -44030,7 +44030,7 @@ function getRecentCheckins(minutes) {
 function sendMorningTaskAssignments() {
   try {
     const today = new Date().toISOString().split('T')[0];
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.TASK_ASSIGNMENTS);
 
     if (!sheet) return { success: false, error: 'No assignments sheet' };
@@ -44087,7 +44087,7 @@ function sendMorningTaskAssignments() {
 function proactiveTaskCheck() {
   try {
     const now = new Date();
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.TASK_ASSIGNMENTS);
 
     // No sheet means no assignments yet - that's OK
@@ -44155,7 +44155,7 @@ function proactiveTaskCheck() {
 
 function getFields(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
     // FIXED 2026-01-23: Extract fields AND bed counts from REF_Beds for calendar
     // ENHANCED 2026-01-28: Also extract bed lengths for display in calendar views
@@ -44277,7 +44277,7 @@ function getFields(params) {
 
 function addField(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
     // Required parameters
     const fieldId = params.fieldId || params.name;
@@ -44384,7 +44384,7 @@ function addField(params) {
 
 function getSheetData(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheetName = params.sheetName || params.sheet;
 
     if (!sheetName) {
@@ -44439,7 +44439,7 @@ function getSheetData(params) {
 
 function listAllSheets() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheets = ss.getSheets().map(sheet => ({
       name: sheet.getName(),
       rows: sheet.getLastRow(),
@@ -44468,7 +44468,7 @@ function updateEmployeeLanguage(params) {
     const employeeId = params.employeeId;
     const lang = params.lang || 'en';
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.EMPLOYEES);
 
     if (!sheet) {
@@ -44503,7 +44503,7 @@ const PICKPACK_HEADERS = {
 
 function getPickListForToday(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const date = params && params.date ? params.date : new Date().toISOString().split('T')[0];
 
     // Get pending orders for the date
@@ -44597,7 +44597,7 @@ function updatePickItemStatus(params) {
     const lotNumber = params.lotNumber || '';
     const qualityCheck = params.qualityCheck || 'Pass';
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName('PICK_LIST');
 
     if (!sheet) {
@@ -44637,7 +44637,7 @@ function getPackingList(params) {
   try {
     const orderId = params.orderId;
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const ordersSheet = ss.getSheetByName('SALES_ORDERS');
 
     if (!ordersSheet) {
@@ -44683,7 +44683,7 @@ function completePackingOrder(params) {
     const boxCount = params.boxCount || 1;
     const notes = params.notes || '';
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const ordersSheet = ss.getSheetByName('SALES_ORDERS');
 
     if (!ordersSheet) {
@@ -44737,7 +44737,7 @@ const WILDLIFE_HEADERS = {
 
 function logWildlifeSighting(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName('WILDLIFE_SIGHTINGS');
 
     if (!sheet) {
@@ -44780,7 +44780,7 @@ function logWildlifeSighting(params) {
 
 function logGroundhogDen(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName('GROUNDHOG_DENS');
 
     if (!sheet) {
@@ -44823,7 +44823,7 @@ function logGroundhogDen(params) {
 
 function getGroundhogDens(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('GROUNDHOG_DENS');
 
     if (!sheet) {
@@ -44860,7 +44860,7 @@ function updateDenStatus(params) {
     const status = params.status || 'Active';
     const treatment = params.treatment || '';
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('GROUNDHOG_DENS');
 
     if (!sheet) {
@@ -44891,7 +44891,7 @@ function updateDenStatus(params) {
 
 function logDamageReport(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName('DAMAGE_REPORTS');
 
     if (!sheet) {
@@ -44934,7 +44934,7 @@ function logDamageReport(params) {
 
 function getDamageReports(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('DAMAGE_REPORTS');
 
     if (!sheet) {
@@ -44987,7 +44987,7 @@ function getDamageReports(params) {
 
 function getWildlifeMap(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const mapData = {
       sightings: [],
       dens: [],
@@ -45078,7 +45078,7 @@ function sendOrderConfirmation(params) {
     }
 
     // Get order details
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const ordersSheet = ss.getSheetByName('SALES_ORDERS');
 
     if (!ordersSheet) {
@@ -55335,7 +55335,7 @@ function testMarketingModule() {
  */
 function initializeSEOModule() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
     // SEO Rankings Tracker
     createSheetIfNotExists(ss, 'SEO_Rankings', [
@@ -55375,7 +55375,7 @@ function initializeSEOModule() {
  */
 function logSEORanking(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName('SEO_Rankings');
     if (!sheet) { initializeSEOModule(); sheet = ss.getSheetByName('SEO_Rankings'); }
 
@@ -55396,7 +55396,7 @@ function logSEORanking(params) {
  */
 function getSEORankings(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('SEO_Rankings');
     if (!sheet) return { success: true, rankings: [], latest: [] };
 
@@ -55429,7 +55429,7 @@ function getSEORankings(params) {
  */
 function logReview(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName('SEO_Reviews');
     if (!sheet) { initializeSEOModule(); sheet = ss.getSheetByName('SEO_Reviews'); }
 
@@ -55461,7 +55461,7 @@ function logReview(params) {
  */
 function getReviewMetrics(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('SEO_Reviews');
 
     const metrics = {
@@ -55502,7 +55502,7 @@ function getReviewMetrics(params) {
  */
 function createReviewRequest(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName('SEO_ReviewRequests');
     if (!sheet) { initializeSEOModule(); sheet = ss.getSheetByName('SEO_ReviewRequests'); }
 
@@ -55523,7 +55523,7 @@ function createReviewRequest(params) {
  */
 function getReviewRequestCandidates(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const csaSheet = ss.getSheetByName('CSA_Members');
     const requestSheet = ss.getSheetByName('SEO_ReviewRequests');
 
@@ -55570,7 +55570,7 @@ function getReviewRequestCandidates(params) {
  */
 function logCitation(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName('SEO_Citations');
     if (!sheet) { initializeSEOModule(); sheet = ss.getSheetByName('SEO_Citations'); }
 
@@ -55591,7 +55591,7 @@ function logCitation(params) {
  */
 function getCitationStatus(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('SEO_Citations');
 
     const summary = { total: 0, verified: 0, pending: 0, withLinks: 0, napIssues: 0 };
@@ -55688,7 +55688,7 @@ function testSEOModule() {
  */
 function initializeSEOIntelligence() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
     // AI/LLM Visibility Tracker
     createSheetIfNotExists(ss, 'SEO_AI_Visibility', [
@@ -55726,7 +55726,7 @@ function initializeSEOIntelligence() {
  */
 function logAIVisibility(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName('SEO_AI_Visibility');
     if (!sheet) { initializeSEOIntelligence(); sheet = ss.getSheetByName('SEO_AI_Visibility'); }
 
@@ -55753,7 +55753,7 @@ function logAIVisibility(params) {
  */
 function getAIVisibilityMetrics(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('SEO_AI_Visibility');
 
     const metrics = {
@@ -55813,7 +55813,7 @@ function getAIVisibilityMetrics(params) {
  */
 function logGeoGridSnapshot(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName('SEO_GeoGrid');
     if (!sheet) { initializeSEOIntelligence(); sheet = ss.getSheetByName('SEO_GeoGrid'); }
 
@@ -55867,7 +55867,7 @@ function logGeoGridSnapshot(params) {
  */
 function getGeoGridAnalysis(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('SEO_GeoGrid');
 
     if (!sheet) return { success: true, analysis: null, recommendations: [] };
@@ -55933,7 +55933,7 @@ function getGeoGridAnalysis(params) {
  */
 function createSEOAlert(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName('SEO_Alerts');
     if (!sheet) { initializeSEOIntelligence(); sheet = ss.getSheetByName('SEO_Alerts'); }
 
@@ -55962,7 +55962,7 @@ function createSEOAlert(params) {
  */
 function getActiveAlerts(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('SEO_Alerts');
 
     const alerts = [];
@@ -56006,7 +56006,7 @@ function getActiveAlerts(params) {
  */
 function acknowledgeAlert(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('SEO_Alerts');
     if (!sheet) return { success: false, error: 'Alerts sheet not found' };
 
@@ -56201,7 +56201,7 @@ function runDailySEOCheck() {
     }
 
     // Check for unresponded reviews (older than 24 hours)
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const reviewSheet = ss.getSheetByName('SEO_Reviews');
     if (reviewSheet) {
       const reviewData = reviewSheet.getDataRange().getValues();
@@ -56267,7 +56267,7 @@ function setupDailySEOTrigger() {
  */
 function logVoicePlatformStatus(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName('SEO_VoicePlatforms');
     if (!sheet) { initializeSEOIntelligence(); sheet = ss.getSheetByName('SEO_VoicePlatforms'); }
 
@@ -56312,7 +56312,7 @@ function logVoicePlatformStatus(params) {
  */
 function getVoicePlatformChecklist(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('SEO_VoicePlatforms');
 
     // Default platforms
@@ -56504,7 +56504,7 @@ function testSEOIntelligence() {
  * Initialize SEO v3 Enhancement sheets
  */
 function initializeSEOv3() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
   createSheetIfNotExists(ss, 'SEO_Competitors', [
     'Competitor_ID', 'Name', 'Website', 'GBP_URL', 'Place_ID',
@@ -56544,7 +56544,7 @@ function initializeSEOv3() {
 
 function addSEOCompetitor(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName('SEO_Competitors');
     if (!sheet) { initializeSEOv3(); sheet = ss.getSheetByName('SEO_Competitors'); }
 
@@ -56564,7 +56564,7 @@ function addSEOCompetitor(params) {
 
 function getSEOCompetitors(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('SEO_Competitors');
     if (!sheet) return { success: true, competitors: [] };
 
@@ -56587,7 +56587,7 @@ function getSEOCompetitors(params) {
 
 function logAIShareOfVoice(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName('SEO_AI_ShareOfVoice');
     if (!sheet) { initializeSEOv3(); sheet = ss.getSheetByName('SEO_AI_ShareOfVoice'); }
 
@@ -56622,7 +56622,7 @@ function logAIShareOfVoice(params) {
 
 function getAIShareOfVoiceMetrics(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('SEO_AI_ShareOfVoice');
     if (!sheet) return { success: true, metrics: { avgSOV: 0, checks: 0 } };
 
@@ -56664,7 +56664,7 @@ function getAIShareOfVoiceMetrics(params) {
 
 function generateReviewQRCode(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName('SEO_ReviewQRCodes');
     if (!sheet) { initializeSEOv3(); sheet = ss.getSheetByName('SEO_ReviewQRCodes'); }
 
@@ -56699,7 +56699,7 @@ function setGooglePlaceId(placeId) {
 
 function logVideoContent(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName('SEO_VideoContent');
     if (!sheet) { initializeSEOv3(); sheet = ss.getSheetByName('SEO_VideoContent'); }
 
@@ -56725,7 +56725,7 @@ function logVideoContent(params) {
 
 function getVideoAnalytics(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('SEO_VideoContent');
     if (!sheet) return { success: true, analytics: { totalVideos: 0 } };
 
@@ -56770,7 +56770,7 @@ function getVideoContentStrategy() {
 
 function scoreContentForAEO(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName('SEO_AEO_Scores');
     if (!sheet) { initializeSEOv3(); sheet = ss.getSheetByName('SEO_AEO_Scores'); }
 
@@ -56866,7 +56866,7 @@ function getSEOMasterDashboard(params) {
     const videoAnalytics = getVideoAnalytics({});
     const competitors = getSEOCompetitors({});
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const aeoSheet = ss.getSheetByName('SEO_AEO_Scores');
     let avgAEOScore = 0;
     if (aeoSheet && aeoSheet.getLastRow() > 1) {
@@ -59736,7 +59736,7 @@ function handleShopifyProductWebhook(product) {
  * Initialize the Flower Module - creates all required sheets
  */
 function initializeFlowerModule() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
   // Create FLOWER_TASKS sheet
   createTabIfNotExists(ss, "FLOWER_TASKS", [
@@ -59919,7 +59919,7 @@ function updateCropProfilesWithFlowers(ss) {
  * Get all flower tasks with optional filtering
  */
 function getFlowerTasks(params) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('FLOWER_TASKS');
 
   if (!sheet || sheet.getLastRow() < 2) {
@@ -59961,7 +59961,7 @@ function getFlowerTasks(params) {
  * Get a single flower task by ID
  */
 function getFlowerTaskById(params) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('FLOWER_TASKS');
 
   if (!sheet || !params.taskId) {
@@ -59987,7 +59987,7 @@ function getFlowerTaskById(params) {
  * Save a new flower task
  */
 function saveFlowerTask(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let sheet = ss.getSheetByName('FLOWER_TASKS');
 
   if (!sheet) {
@@ -60026,7 +60026,7 @@ function saveFlowerTask(data) {
  * Update an existing flower task
  */
 function updateFlowerTask(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('FLOWER_TASKS');
 
   if (!sheet || !data.taskId) {
@@ -60060,7 +60060,7 @@ function updateFlowerTask(data) {
  * Complete a flower task
  */
 function completeFlowerTask(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('FLOWER_TASKS');
 
   if (!sheet || !data.taskId) {
@@ -60104,7 +60104,7 @@ function completeFlowerTask(data) {
  * Delete a flower task (soft delete)
  */
 function deleteFlowerTask(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('FLOWER_TASKS');
 
   if (!sheet || !data.taskId) {
@@ -60133,7 +60133,7 @@ function deleteFlowerTask(data) {
  * Get flower planning data
  */
 function getFlowerPlanning(params) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('FLOWER_PLANNING_2026');
 
   if (!sheet || sheet.getLastRow() < 2) {
@@ -60156,7 +60156,7 @@ function getFlowerPlanning(params) {
  * Save a new flower planning entry
  */
 function saveFlowerPlanning(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let sheet = ss.getSheetByName('FLOWER_PLANNING_2026');
 
   if (!sheet) {
@@ -60195,7 +60195,7 @@ function saveFlowerPlanning(data) {
  * Update a flower planning entry
  */
 function updateFlowerPlanning(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('FLOWER_PLANNING_2026');
 
   if (!sheet || !data.planId) {
@@ -60233,7 +60233,7 @@ function updateFlowerPlanning(data) {
  * Get flower inventory (tubers, bulbs, corms)
  */
 function getFlowerInventory(params) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('FLOWER_INVENTORY');
 
   if (!sheet || sheet.getLastRow() < 2) {
@@ -60267,7 +60267,7 @@ function getFlowerInventory(params) {
  * Get a single flower inventory item
  */
 function getFlowerInventoryItem(params) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('FLOWER_INVENTORY');
 
   if (!sheet || !params.itemId) {
@@ -60293,7 +60293,7 @@ function getFlowerInventoryItem(params) {
  * Save a new flower inventory item
  */
 function saveFlowerInventoryItem(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let sheet = ss.getSheetByName('FLOWER_INVENTORY');
 
   if (!sheet) {
@@ -60331,7 +60331,7 @@ function saveFlowerInventoryItem(data) {
  * Update a flower inventory item
  */
 function updateFlowerInventoryItem(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('FLOWER_INVENTORY');
 
   if (!sheet || !data.itemId) {
@@ -60377,7 +60377,7 @@ function updateFlowerInventoryItem(data) {
  * Get flower critical dates
  */
 function getFlowerCriticalDates(params) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('FLOWER_CRITICAL_DATES');
 
   if (!sheet || sheet.getLastRow() < 2) {
@@ -60409,7 +60409,7 @@ function getFlowerCriticalDates(params) {
  * Add a critical date
  */
 function addFlowerCriticalDate(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let sheet = ss.getSheetByName('FLOWER_CRITICAL_DATES');
 
   if (!sheet) {
@@ -60443,7 +60443,7 @@ function addFlowerCriticalDate(data) {
  * Get flower dashboard data
  */
 function getFlowerDashboard() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
   // Tasks stats
   const tasksSheet = ss.getSheetByName('FLOWER_TASKS');
@@ -60531,7 +60531,7 @@ function getFlowerDashboard() {
  * Get the flower database reference data
  */
 function getFlowerDatabase() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('REF_FlowerDatabase');
 
   if (!sheet || sheet.getLastRow() < 2) {
@@ -60553,7 +60553,7 @@ function getFlowerDatabase() {
  * Bulk update flower crop profiles from new data
  */
 function bulkUpdateFlowerCropProfiles(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
   if (!data.flowers || !Array.isArray(data.flowers)) {
     return { success: false, error: 'Invalid data format' };
@@ -60636,7 +60636,7 @@ const COMPLIANCE_COLORS = {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function initComplianceSheets() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
   // Water Tests
   createComplianceSheet(ss, COMPLIANCE_SHEETS.WATER_TESTS, [
@@ -60701,7 +60701,7 @@ function createComplianceSheet(ss, sheetName, headers, color) {
 
 function getComplianceWaterTests(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(COMPLIANCE_SHEETS.WATER_TESTS);
     if (!sheet) return { success: true, tests: [] };
 
@@ -60734,7 +60734,7 @@ function getComplianceWaterTests(params) {
 
 function addComplianceWaterTest(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName(COMPLIANCE_SHEETS.WATER_TESTS);
     if (!sheet) initComplianceSheets();
     sheet = ss.getSheetByName(COMPLIANCE_SHEETS.WATER_TESTS);
@@ -60784,7 +60784,7 @@ function addComplianceWaterTest(data) {
 
 function getComplianceTraining(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(COMPLIANCE_SHEETS.TRAINING);
     if (!sheet) return { success: true, trainings: [] };
 
@@ -60819,7 +60819,7 @@ function getComplianceTraining(params) {
 
 function addComplianceTraining(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName(COMPLIANCE_SHEETS.TRAINING);
     if (!sheet) initComplianceSheets();
     sheet = ss.getSheetByName(COMPLIANCE_SHEETS.TRAINING);
@@ -60855,7 +60855,7 @@ function addComplianceTraining(data) {
 
 function getComplianceCleaning(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(COMPLIANCE_SHEETS.CLEANING);
     if (!sheet) return { success: true, logs: [] };
 
@@ -60886,7 +60886,7 @@ function getComplianceCleaning(params) {
 
 function addComplianceCleaning(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName(COMPLIANCE_SHEETS.CLEANING);
     if (!sheet) initComplianceSheets();
     sheet = ss.getSheetByName(COMPLIANCE_SHEETS.CLEANING);
@@ -60921,7 +60921,7 @@ function addComplianceCleaning(data) {
 
 function getComplianceTemperature(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(COMPLIANCE_SHEETS.TEMPERATURE);
     if (!sheet) return { success: true, readings: [] };
 
@@ -60952,7 +60952,7 @@ function getComplianceTemperature(params) {
 
 function addComplianceTemperature(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName(COMPLIANCE_SHEETS.TEMPERATURE);
     if (!sheet) initComplianceSheets();
     sheet = ss.getSheetByName(COMPLIANCE_SHEETS.TEMPERATURE);
@@ -61002,7 +61002,7 @@ function addComplianceTemperature(data) {
 
 function getCompliancePreharvest(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(COMPLIANCE_SHEETS.PREHARVEST);
     if (!sheet) return { success: true, inspections: [] };
 
@@ -61033,7 +61033,7 @@ function getCompliancePreharvest(params) {
 
 function addCompliancePreharvest(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName(COMPLIANCE_SHEETS.PREHARVEST);
     if (!sheet) initComplianceSheets();
     sheet = ss.getSheetByName(COMPLIANCE_SHEETS.PREHARVEST);
@@ -61097,7 +61097,7 @@ function addCompliancePreharvest(data) {
 
 function getCorrectiveActions(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(COMPLIANCE_SHEETS.CORRECTIVE_ACTIONS);
     if (!sheet) return { success: true, actions: [] };
 
@@ -61128,7 +61128,7 @@ function getCorrectiveActions(params) {
 
 function addCorrectiveAction(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName(COMPLIANCE_SHEETS.CORRECTIVE_ACTIONS);
     if (!sheet) initComplianceSheets();
     sheet = ss.getSheetByName(COMPLIANCE_SHEETS.CORRECTIVE_ACTIONS);
@@ -61163,7 +61163,7 @@ function addCorrectiveAction(data) {
 
 function updateCorrectiveAction(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(COMPLIANCE_SHEETS.CORRECTIVE_ACTIONS);
     if (!sheet) return { success: false, error: 'Sheet not found' };
 
@@ -61381,7 +61381,7 @@ function generateComplianceReport(params) {
 
 function generateTracebackReport(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const lotNumber = params.lotNumber;
 
     if (!lotNumber) {
@@ -61534,7 +61534,7 @@ const COMPLIANCE_WEIGHTS = {
 
 function initSmartComplianceSheets() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
     // Compliance Tasks
     createComplianceSheet(ss, SMART_COMPLIANCE_SHEETS.TASKS, [
@@ -61597,7 +61597,7 @@ function getComplianceScore() {
 }
 
 function calculateComplianceScores() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const today = new Date();
   const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
 
@@ -61928,7 +61928,7 @@ function calculateOverallScore(scores) {
 
 function getScoreTrend() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SMART_COMPLIANCE_SHEETS.SCORES);
     if (!sheet) return { direction: 'stable', change: 0 };
 
@@ -62091,7 +62091,7 @@ function suggestAction(category, issue) {
 
 function getComplianceTasks(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SMART_COMPLIANCE_SHEETS.TASKS);
     if (!sheet) return { success: true, tasks: [] };
 
@@ -62139,7 +62139,7 @@ function getComplianceTasks(params) {
 
 function createComplianceTask(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName(SMART_COMPLIANCE_SHEETS.TASKS);
     if (!sheet) {
       initSmartComplianceSheets();
@@ -62175,7 +62175,7 @@ function createComplianceTask(data) {
 
 function updateComplianceTask(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SMART_COMPLIANCE_SHEETS.TASKS);
     if (!sheet) return { success: false, error: 'Tasks sheet not found' };
 
@@ -62217,7 +62217,7 @@ function updateComplianceTask(params) {
 
 function getComplianceAlerts(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SMART_COMPLIANCE_SHEETS.ALERTS);
     if (!sheet) return { success: true, alerts: [] };
 
@@ -62262,7 +62262,7 @@ function getComplianceAlerts(params) {
 
 function createComplianceAlert(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName(SMART_COMPLIANCE_SHEETS.ALERTS);
     if (!sheet) {
       initSmartComplianceSheets();
@@ -62302,7 +62302,7 @@ function createComplianceAlert(data) {
 
 function acknowledgeAlert_compliance(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SMART_COMPLIANCE_SHEETS.ALERTS);
     if (!sheet) return { success: false, error: 'Alerts sheet not found' };
 
@@ -62333,7 +62333,7 @@ function acknowledgeAlert_compliance(params) {
 function sendComplianceNotification(data) {
   // Use existing Twilio SMS integration if available
   try {
-    const configSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('CONFIG');
+    const configSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('CONFIG');
     if (!configSheet) return;
 
     // Get owner phone number from config
@@ -62518,7 +62518,7 @@ function generateWeekPriorities(scores, gaps) {
 }
 
 function checkUpcomingHarvests(today) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const harvests = [];
 
   // Check PLANTING sheet for expected harvests
@@ -62691,7 +62691,7 @@ function runComplianceEngine() {
 
 function recordDailyScore(overall, scores) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName(SMART_COMPLIANCE_SHEETS.SCORES);
     if (!sheet) {
       initSmartComplianceSheets();
@@ -62808,7 +62808,7 @@ function getAuditReadiness() {
 
 function getWaterSources() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     return { success: true, sources: getWaterSourcesData(ss) };
   } catch (error) {
     return { success: false, error: error.toString() };
@@ -62836,7 +62836,7 @@ function getWaterSourcesData(ss) {
 
 function addWaterSource(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName(SMART_COMPLIANCE_SHEETS.WATER_SOURCES);
     if (!sheet) {
       initSmartComplianceSheets();
@@ -62937,7 +62937,7 @@ const CROP_DTM_DEFAULTS = {
  * This is what makes the system "know what to do before you"
  */
 function getGDDPredictedHarvests() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const plantingSheet = ss.getSheetByName('PLANTINGS');
 
   if (!plantingSheet) {
@@ -63091,7 +63091,7 @@ function getPreHarvestChecklist(crop) {
 }
 
 function checkExistingComplianceTask(taskId) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const taskSheet = ss.getSheetByName('COMPLIANCE_TASKS');
   if (!taskSheet) return null;
 
@@ -63187,7 +63187,7 @@ function getFoodSafetyEquipmentStatus() {
 }
 
 function getCoolerTemperatureStatus() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const tempSheet = ss.getSheetByName('COMPLIANCE_Temperature');
 
   if (!tempSheet) {
@@ -63356,7 +63356,7 @@ function getWeatherFoodSafetyRisks() {
  * Logs compliance activities with labor tracking for Activity-Based Costing
  */
 function logComplianceActivity(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const timelogSheet = ss.getSheetByName('TIMELOG');
 
   if (!timelogSheet) {
@@ -63404,7 +63404,7 @@ function logComplianceActivity(data) {
 }
 
 function calculateComplianceLaborCost(employee, hours) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const laborSheet = ss.getSheetByName('LABOR') || ss.getSheetByName('EMPLOYEES');
 
   let hourlyRate = 15;
@@ -63431,7 +63431,7 @@ function calculateComplianceLaborCost(employee, hours) {
  * Creates complete seed-to-sale chain for FSMA 204 compliance
  */
 function getFullTraceabilityReport(lotNumber) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const traceability = {
     lotNumber: lotNumber,
     chain: [],
@@ -63676,7 +63676,7 @@ function getUnifiedComplianceDashboard() {
  */
 function getComplianceLeaderboard() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('COMPLIANCE_LOG');
     if (!sheet || sheet.getLastRow() < 2) {
       return { success: true, leaderboard: [], period: '7 days', message: 'No compliance data yet' };
@@ -67880,7 +67880,7 @@ function getMLEmailStatus() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function insertSampleCustomers() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let sheet = ss.getSheetByName('SALES_Customers');
   
   if (!sheet) {
@@ -67903,7 +67903,7 @@ function insertSampleCustomers() {
 }
 
 function insertSampleDeliveries() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const today = Utilities.formatDate(new Date(), 'America/New_York', 'yyyy-MM-dd');
 
   // Delete wrongly-named sheets if they exist
@@ -69096,7 +69096,7 @@ function generatePlantingTasks(params) {
     return { success: false, error: 'batchId and crop are required' };
   }
 
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let taskSheet = ss.getSheetByName('TASKS_2026');
 
   // Create sheet if doesn't exist
@@ -69263,7 +69263,7 @@ function calculateGDD(params) {
  * @returns {Object} Harvest predictions sorted by days to harvest
  */
 function getHarvestPredictions(params) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const planningSheet = ss.getSheetByName('PLANNING_2026');
   if (!planningSheet) return { success: false, error: 'PLANNING_2026 sheet not found' };
 
@@ -73195,7 +73195,7 @@ const PRE_HARVEST_CONFIG = {
  */
 function getRequiredPreHarvestInspections(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const daysAhead = params && params.daysAhead ? Number(params.daysAhead) : 7;
 
     // Get harvest predictions from GDD system
@@ -73355,7 +73355,7 @@ function validatePreHarvestInspection(batchId, fieldBlock, crop) {
       return { success: true, valid: true, message: 'Pre-harvest inspection not required (disabled in config)' };
     }
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('COMPLIANCE_PREHARVEST');
 
     if (!sheet || sheet.getLastRow() <= 1) {
@@ -73448,7 +73448,7 @@ function validatePreHarvestInspection(batchId, fieldBlock, crop) {
  */
 function addLinkedPreHarvestInspection(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName('COMPLIANCE_PREHARVEST');
 
     if (!sheet) {
@@ -73650,7 +73650,7 @@ function getPreHarvestInspectionTasks() {
  */
 function linkHarvestToInspection(harvestId, batchId, fieldBlock, crop) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('COMPLIANCE_PREHARVEST');
 
     if (!sheet || sheet.getLastRow() <= 1) return { success: false, error: 'No inspection sheet' };
@@ -73748,7 +73748,7 @@ function generateFSMALotCode(crop, fieldBlock) {
   const yearCode = year.toString().slice(-2);
   const cropCode = (crop || 'UNK').substring(0, 3).toUpperCase();
 
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('HARVEST_LOG') || ss.getSheetByName('EMPLOYEE_HARVEST_LOG');
 
   let sequence = 1;
@@ -73818,7 +73818,7 @@ function checkHarvestWeatherRisk() {
  */
 function createHarvestComplianceAlert(alertType, details) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName('COMPLIANCE_ALERTS');
     if (!sheet) {
       sheet = ss.insertSheet('COMPLIANCE_ALERTS');
@@ -73842,7 +73842,7 @@ function createHarvestComplianceAlert(alertType, details) {
  */
 function logHarvestWithValidation(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = getOrCreateEmployeeSheet(EMPLOYEE_SHEETS.HARVEST_LOG);
     const harvestId = generateId('HRV');
     const now = new Date();
@@ -73965,7 +73965,7 @@ function getWeatherAwareHarvestTasks() {
  * Initialize FIELD_SAFETY_LOG sheet
  */
 function initFieldSafetyLog() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let sheet = ss.getSheetByName('FIELD_SAFETY_LOG');
 
   if (!sheet) {
@@ -74002,7 +74002,7 @@ function initFieldSafetyLog() {
  */
 function logFieldSafetyObservation(data) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName('FIELD_SAFETY_LOG');
 
     if (!sheet) {
@@ -74085,7 +74085,7 @@ function logFieldSafetyObservation(data) {
  */
 function getFieldSafetyObservations(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('FIELD_SAFETY_LOG');
 
     if (!sheet || sheet.getLastRow() <= 1) {
@@ -74132,7 +74132,7 @@ function getFieldSafetyObservations(params) {
  */
 function resolveFieldSafetyObservation(logId, resolution) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('FIELD_SAFETY_LOG');
 
     if (!sheet || sheet.getLastRow() <= 1) {
@@ -74316,7 +74316,7 @@ function generateFrostProtectionTasks(params) {
     }
 
     // Get active plantings
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const planSheet = ss.getSheetByName('PLANNING_2026');
 
     if (!planSheet || planSheet.getLastRow() <= 1) {
@@ -75789,7 +75789,7 @@ function parseShopifyShareTypeEnhanced(itemName) {
  */
 function calculateMemberHealthScoreSmart(memberId) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const memberSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
     if (!memberSheet) return { success: false, error: 'CSA_Members sheet not found' };
 
@@ -75895,7 +75895,7 @@ function calculateMemberHealthScoreSmart(memberId) {
 function getAtRiskCSAMembers(threshold) {
   threshold = threshold || 50;
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const memberSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
     if (!memberSheet) return { success: false, error: 'Sheet not found' };
 
@@ -75932,7 +75932,7 @@ function getAtRiskCSAMembers(threshold) {
  */
 function getCSARetentionDashboard() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const memberSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
     if (!memberSheet) return { success: false, error: 'Sheet not found' };
 
@@ -75988,7 +75988,7 @@ function saveCSAMemberPreference(data) {
       return { success: false, error: 'Missing required fields' };
     }
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let prefSheet = ss.getSheetByName('CSA_Preferences');
 
     if (!prefSheet) {
@@ -76011,7 +76011,7 @@ function saveCSAMemberPreference(data) {
  */
 function getCSAMemberPreferences(memberId) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const prefSheet = ss.getSheetByName('CSA_Preferences');
     if (!prefSheet) return { success: true, preferences: [], count: 0 };
 
@@ -76084,7 +76084,7 @@ function calculateCSABoxSatisfaction(memberId, boxItems) {
  */
 function getCSAOnboardingStatus(memberId) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const onboardingSheet = ss.getSheetByName('CSA_Onboarding_Tracker');
 
     if (!onboardingSheet) {
@@ -76222,7 +76222,7 @@ function recordCSAImplicitSignal(data) {
  */
 function triggerCSAOnboardingEmail(memberId, dayNumber) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const memberSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
     const customerSheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
     if (!memberSheet || !customerSheet) return { success: false, error: 'Required sheets not found' };
@@ -76289,7 +76289,7 @@ function triggerCSAOnboardingEmail(memberId, dayNumber) {
  */
 function recordCSAPickupAttendance(memberId, weekDate, attended) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let attendanceSheet = ss.getSheetByName('CSA_Pickup_Attendance');
 
     if (!attendanceSheet) {
@@ -76328,7 +76328,7 @@ function logCSASupportInteraction(data) {
     const { memberId, interactionType, resolution, notes } = data;
     if (!memberId || !interactionType) return { success: false, error: 'Missing required fields: memberId, interactionType' };
 
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let supportSheet = ss.getSheetByName('CSA_Support_Log');
 
     if (!supportSheet) {
@@ -76356,7 +76356,7 @@ function logCSASupportInteraction(data) {
  */
 function recalculateAllMemberHealth() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const memberSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
     if (!memberSheet) return { success: false, error: 'CSA_Members sheet not found' };
 
@@ -76854,7 +76854,7 @@ function getPlanningFast(params) {
  */
 function getPlanningDataInternal(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('PLANNING_2026');
 
     if (!sheet) {
@@ -76932,7 +76932,7 @@ function getPlanningDataInternal(params) {
  */
 function getDashboardStatsData() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const planSheet = ss.getSheetByName('PLANNING_2026');
 
     if (!planSheet) {
@@ -79624,7 +79624,7 @@ function generateInventoryBriefSummary(alerts) {
  */
 function populateSampleBoxContents(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let sheet = ss.getSheetByName(SALES_SHEETS.CSA_BOX_CONTENTS);
 
     // Create sheet if it doesn't exist
@@ -79755,7 +79755,7 @@ function populateSampleBoxContents(params) {
  */
 function fixBoxContentsData(params) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.CSA_BOX_CONTENTS);
 
     if (!sheet) {
@@ -79970,7 +79970,7 @@ function sendOvernightSummary() {
  */
 function debugBoxContents() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(SALES_SHEETS.CSA_BOX_CONTENTS);
 
     if (!sheet) {
@@ -80281,7 +80281,7 @@ const AVAILABILITY_CONFIG = {
  * Initialize availability tracking sheets
  */
 function initializeAvailabilityModule() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
   // Create WHOLESALE_CUSTOMERS if it doesn't exist
   createSheetIfNotExists(ss, AVAILABILITY_CONFIG.SHEETS.CUSTOMERS, [
@@ -81337,7 +81337,7 @@ const CHEF_COMM_CONFIG = {
  * Initialize chef communications sheets
  */
 function initializeChefCommunications() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
   // Communication log
   createSheetIfNotExists(ss, CHEF_COMM_CONFIG.SHEETS.COMM_LOG, [

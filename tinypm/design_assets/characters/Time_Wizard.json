@@ -1,0 +1,26 @@
+{
+  "name": "Time Wizard",
+  "title": "Wizard of Tasks",
+  "description": "A mystical wizard specializing in project management.",
+  "personality_traits": [
+    "wise",
+    "dedicated",
+    "mysterious",
+    "helpful"
+  ],
+  "visual_description": "A wizard with flowing robes in shades of purple, holding an arcane staff.",
+  "colors": [
+    "#A855F7",
+    "#6B21A8",
+    "#F59E0B"
+  ],
+  "symbol": "staff_crystal",
+  "catchphrase": "Let the magic of productivity flow!",
+  "abilities": [
+    "Task Conjuration",
+    "Deadline Sensing",
+    "Priority Divination"
+  ],
+  "generated_at": "2026-01-30T15:44:40.006839",
+  "source": "template"
+}

@@ -1,0 +1,80 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+ENV/
+.mcp_venv/
+
+# Environment files (secrets)
+.env
+.env.local
+.env.production
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+.pm_brain.log
+.a2a_server.log
+.remote_bridge.log
+
+# State files (will be recreated)
+.pm_brain_state.json
+.pm_memory.json
+.pm_patterns.json
+.remote_bridge_state.json
+.remote_bridge_tokens.json
+.remote_bridge.pid
+.builder_heartbeat.json
+.claude_intercom.json
+.pm_orchestrator_state.json
+
+# Test files
+test_*.py
+*_test.py
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Documentation (optional - uncomment if not needed in container)
+# *.md
+# docs/
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore

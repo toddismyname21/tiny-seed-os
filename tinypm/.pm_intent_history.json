@@ -1,0 +1,885 @@
+{
+  "events": [
+    {
+      "id": "0768a35052e1",
+      "timestamp": "2026-01-31T09:00:11.649842",
+      "category": "deep_work",
+      "action_type": "write_code",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "ec5e41247fd0",
+      "timestamp": "2026-01-31T10:00:11.649842",
+      "category": "deep_work",
+      "action_type": "write_code",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "4e9a20b48acb",
+      "timestamp": "2026-01-31T11:00:11.649842",
+      "category": "calendar",
+      "action_type": "view_calendar",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "40a2a4902587",
+      "timestamp": "2026-01-31T14:00:11.649842",
+      "category": "communication",
+      "action_type": "check_email",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "403f1e40737f",
+      "timestamp": "2026-01-31T15:00:11.649842",
+      "category": "calendar",
+      "action_type": "view_calendar",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "1225988d290a",
+      "timestamp": "2026-01-31T16:00:11.649842",
+      "category": "calendar",
+      "action_type": "view_calendar",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "cd93a40eebdc",
+      "timestamp": "2026-01-30T09:00:11.649842",
+      "category": "communication",
+      "action_type": "check_email",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "e6f7ed5175cb",
+      "timestamp": "2026-01-30T10:00:11.649842",
+      "category": "review",
+      "action_type": "review_pr",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "28cac1c726f0",
+      "timestamp": "2026-01-30T11:00:11.649842",
+      "category": "deep_work",
+      "action_type": "write_code",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "548b9f2d333a",
+      "timestamp": "2026-01-30T14:00:11.649842",
+      "category": "review",
+      "action_type": "review_pr",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "b4dc598d85e6",
+      "timestamp": "2026-01-30T15:00:11.649842",
+      "category": "communication",
+      "action_type": "send_email",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "b1055c5df21f",
+      "timestamp": "2026-01-30T16:00:11.649842",
+      "category": "review",
+      "action_type": "review_pr",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "6ac16ca7e28f",
+      "timestamp": "2026-01-29T09:00:11.649842",
+      "category": "communication",
+      "action_type": "check_email",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "bf606bfd86ef",
+      "timestamp": "2026-01-29T10:00:11.649842",
+      "category": "task_management",
+      "action_type": "create_task",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "9533f23db928",
+      "timestamp": "2026-01-29T11:00:11.649842",
+      "category": "review",
+      "action_type": "review_pr",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "efb42f7ddccb",
+      "timestamp": "2026-01-29T14:00:11.649842",
+      "category": "communication",
+      "action_type": "check_email",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "792f3e6cecd3",
+      "timestamp": "2026-01-29T15:00:11.649842",
+      "category": "task_management",
+      "action_type": "create_task",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "e149954a6b0e",
+      "timestamp": "2026-01-29T16:00:11.649842",
+      "category": "deep_work",
+      "action_type": "write_code",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "d60d901eb43a",
+      "timestamp": "2026-01-28T09:00:11.649842",
+      "category": "review",
+      "action_type": "review_pr",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "727f6bf381b5",
+      "timestamp": "2026-01-28T10:00:11.649842",
+      "category": "communication",
+      "action_type": "check_email",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "564922dc3c87",
+      "timestamp": "2026-01-28T11:00:11.649842",
+      "category": "review",
+      "action_type": "review_pr",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "3ee91f1cfd5d",
+      "timestamp": "2026-01-28T14:00:11.649842",
+      "category": "deep_work",
+      "action_type": "write_code",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "c59009cfed26",
+      "timestamp": "2026-01-28T15:00:11.649842",
+      "category": "deep_work",
+      "action_type": "write_code",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "998f8afd4506",
+      "timestamp": "2026-01-28T16:00:11.649842",
+      "category": "communication",
+      "action_type": "check_email",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "51f3b4f00df5",
+      "timestamp": "2026-01-27T09:00:11.649842",
+      "category": "review",
+      "action_type": "review_pr",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "6d0b8d696961",
+      "timestamp": "2026-01-27T10:00:11.649842",
+      "category": "deep_work",
+      "action_type": "write_code",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "b6ec77739817",
+      "timestamp": "2026-01-27T11:00:11.649842",
+      "category": "task_management",
+      "action_type": "create_task",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "0700f4560829",
+      "timestamp": "2026-01-27T14:00:11.649842",
+      "category": "task_management",
+      "action_type": "complete_task",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "a2dc8c298892",
+      "timestamp": "2026-01-27T15:00:11.649842",
+      "category": "communication",
+      "action_type": "send_email",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "878051cafb95",
+      "timestamp": "2026-01-27T16:00:11.649842",
+      "category": "review",
+      "action_type": "review_pr",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "3ef99a5c0c1e",
+      "timestamp": "2026-01-26T09:00:11.649842",
+      "category": "task_management",
+      "action_type": "create_task",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "96d1c90bb03e",
+      "timestamp": "2026-01-26T10:00:11.649842",
+      "category": "task_management",
+      "action_type": "create_task",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "43c3b5a715ee",
+      "timestamp": "2026-01-26T11:00:11.649842",
+      "category": "communication",
+      "action_type": "send_email",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "caa829817e98",
+      "timestamp": "2026-01-26T14:00:11.649842",
+      "category": "communication",
+      "action_type": "check_email",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "8b2fe73c1e95",
+      "timestamp": "2026-01-26T15:00:11.649842",
+      "category": "calendar",
+      "action_type": "view_calendar",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "f04d9dcdf640",
+      "timestamp": "2026-01-26T16:00:11.649842",
+      "category": "review",
+      "action_type": "review_pr",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "449374e4613c",
+      "timestamp": "2026-01-25T09:00:11.649842",
+      "category": "task_management",
+      "action_type": "create_task",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "a2e869795c49",
+      "timestamp": "2026-01-25T10:00:11.649842",
+      "category": "task_management",
+      "action_type": "complete_task",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "f662c6176edd",
+      "timestamp": "2026-01-25T11:00:11.649842",
+      "category": "task_management",
+      "action_type": "complete_task",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "773acddbebd3",
+      "timestamp": "2026-01-25T14:00:11.649842",
+      "category": "task_management",
+      "action_type": "complete_task",
+      "context": {
+        "simulated": true
+      },
+      "metadata": {}
+    },
+    {
+      "id": "2b89c016b5c6",
+      "timestamp": "2026-01-31T09:25:56.796436",
+      "category": "calendar",
+      "action_type": "view_calendar",
+      "context": {
+        "simulated": true,
+        "day": 0,
+        "hour": 9
+      },
+      "metadata": {}
+    },
+    {
+      "id": "c75e476912a9",
+      "timestamp": "2026-01-31T09:25:56.796447",
+      "category": "task_management",
+      "action_type": "complete_task",
+      "context": {
+        "simulated": true,
+        "day": 0,
+        "hour": 10
+      },
+      "metadata": {}
+    },
+    {
+      "id": "c51c935eb559",
+      "timestamp": "2026-01-31T09:25:56.796455",
+      "category": "task_management",
+      "action_type": "complete_task",
+      "context": {
+        "simulated": true,
+        "day": 0,
+        "hour": 11
+      },
+      "metadata": {}
+    },
+    {
+      "id": "3d4462be8f93",
+      "timestamp": "2026-01-31T09:25:56.796461",
+      "category": "deep_work",
+      "action_type": "write_code",
+      "context": {
+        "simulated": true,
+        "day": 0,
+        "hour": 14
+      },
+      "metadata": {}
+    },
+    {
+      "id": "7af68987c05e",
+      "timestamp": "2026-01-31T09:25:56.796467",
+      "category": "calendar",
+      "action_type": "view_calendar",
+      "context": {
+        "simulated": true,
+        "day": 0,
+        "hour": 15
+      },
+      "metadata": {}
+    },
+    {
+      "id": "18731829bdf8",
+      "timestamp": "2026-01-31T09:25:56.796473",
+      "category": "task_management",
+      "action_type": "complete_task",
+      "context": {
+        "simulated": true,
+        "day": 0,
+        "hour": 16
+      },
+      "metadata": {}
+    },
+    {
+      "id": "d1b128c9d9e7",
+      "timestamp": "2026-01-31T09:25:56.796479",
+      "category": "calendar",
+      "action_type": "view_calendar",
+      "context": {
+        "simulated": true,
+        "day": 1,
+        "hour": 9
+      },
+      "metadata": {}
+    },
+    {
+      "id": "541db5b4d175",
+      "timestamp": "2026-01-31T09:25:56.796484",
+      "category": "calendar",
+      "action_type": "view_calendar",
+      "context": {
+        "simulated": true,
+        "day": 1,
+        "hour": 10
+      },
+      "metadata": {}
+    },
+    {
+      "id": "34016f8d0c32",
+      "timestamp": "2026-01-31T09:25:56.796489",
+      "category": "task_management",
+      "action_type": "create_task",
+      "context": {
+        "simulated": true,
+        "day": 1,
+        "hour": 11
+      },
+      "metadata": {}
+    },
+    {
+      "id": "04001ccd2f5b",
+      "timestamp": "2026-01-31T09:25:56.796495",
+      "category": "deep_work",
+      "action_type": "write_code",
+      "context": {
+        "simulated": true,
+        "day": 1,
+        "hour": 14
+      },
+      "metadata": {}
+    },
+    {
+      "id": "16cf5895f638",
+      "timestamp": "2026-01-31T09:25:56.797641",
+      "category": "calendar",
+      "action_type": "view_calendar",
+      "context": {
+        "simulated": true,
+        "day": 1,
+        "hour": 15
+      },
+      "metadata": {}
+    },
+    {
+      "id": "c2e716c54c68",
+      "timestamp": "2026-01-31T09:25:56.797651",
+      "category": "communication",
+      "action_type": "check_email",
+      "context": {
+        "simulated": true,
+        "day": 1,
+        "hour": 16
+      },
+      "metadata": {}
+    },
+    {
+      "id": "ccf2d6bf7e3a",
+      "timestamp": "2026-01-31T09:25:56.797660",
+      "category": "communication",
+      "action_type": "send_email",
+      "context": {
+        "simulated": true,
+        "day": 2,
+        "hour": 9
+      },
+      "metadata": {}
+    },
+    {
+      "id": "787624beeb88",
+      "timestamp": "2026-01-31T09:25:56.797667",
+      "category": "communication",
+      "action_type": "send_email",
+      "context": {
+        "simulated": true,
+        "day": 2,
+        "hour": 10
+      },
+      "metadata": {}
+    },
+    {
+      "id": "166a9b42eb1d",
+      "timestamp": "2026-01-31T09:25:56.797674",
+      "category": "communication",
+      "action_type": "send_email",
+      "context": {
+        "simulated": true,
+        "day": 2,
+        "hour": 11
+      },
+      "metadata": {}
+    },
+    {
+      "id": "56597128fd8d",
+      "timestamp": "2026-01-31T09:25:56.797680",
+      "category": "communication",
+      "action_type": "send_email",
+      "context": {
+        "simulated": true,
+        "day": 2,
+        "hour": 14
+      },
+      "metadata": {}
+    },
+    {
+      "id": "7b29419fafdb",
+      "timestamp": "2026-01-31T09:25:56.797685",
+      "category": "task_management",
+      "action_type": "complete_task",
+      "context": {
+        "simulated": true,
+        "day": 2,
+        "hour": 15
+      },
+      "metadata": {}
+    },
+    {
+      "id": "c26a5d9a1ec8",
+      "timestamp": "2026-01-31T09:25:56.797690",
+      "category": "review",
+      "action_type": "review_pr",
+      "context": {
+        "simulated": true,
+        "day": 2,
+        "hour": 16
+      },
+      "metadata": {}
+    },
+    {
+      "id": "689d47402bfd",
+      "timestamp": "2026-01-31T09:25:56.797696",
+      "category": "deep_work",
+      "action_type": "write_code",
+      "context": {
+        "simulated": true,
+        "day": 3,
+        "hour": 9
+      },
+      "metadata": {}
+    },
+    {
+      "id": "4fc508bd3cea",
+      "timestamp": "2026-01-31T09:25:56.797701",
+      "category": "calendar",
+      "action_type": "view_calendar",
+      "context": {
+        "simulated": true,
+        "day": 3,
+        "hour": 10
+      },
+      "metadata": {}
+    },
+    {
+      "id": "7db3702341eb",
+      "timestamp": "2026-01-31T09:25:56.798436",
+      "category": "communication",
+      "action_type": "send_email",
+      "context": {
+        "simulated": true,
+        "day": 3,
+        "hour": 11
+      },
+      "metadata": {}
+    },
+    {
+      "id": "acdfd92b0a6a",
+      "timestamp": "2026-01-31T09:25:56.798443",
+      "category": "review",
+      "action_type": "review_pr",
+      "context": {
+        "simulated": true,
+        "day": 3,
+        "hour": 14
+      },
+      "metadata": {}
+    },
+    {
+      "id": "7431b6540757",
+      "timestamp": "2026-01-31T09:25:56.798449",
+      "category": "deep_work",
+      "action_type": "write_code",
+      "context": {
+        "simulated": true,
+        "day": 3,
+        "hour": 15
+      },
+      "metadata": {}
+    },
+    {
+      "id": "3f5cff151518",
+      "timestamp": "2026-01-31T09:25:56.798454",
+      "category": "review",
+      "action_type": "review_pr",
+      "context": {
+        "simulated": true,
+        "day": 3,
+        "hour": 16
+      },
+      "metadata": {}
+    },
+    {
+      "id": "4b923bfe69d5",
+      "timestamp": "2026-01-31T09:25:56.798460",
+      "category": "deep_work",
+      "action_type": "write_code",
+      "context": {
+        "simulated": true,
+        "day": 4,
+        "hour": 9
+      },
+      "metadata": {}
+    },
+    {
+      "id": "440761f22505",
+      "timestamp": "2026-01-31T09:25:56.798465",
+      "category": "task_management",
+      "action_type": "complete_task",
+      "context": {
+        "simulated": true,
+        "day": 4,
+        "hour": 10
+      },
+      "metadata": {}
+    },
+    {
+      "id": "595d148e9c1e",
+      "timestamp": "2026-01-31T09:25:56.798470",
+      "category": "task_management",
+      "action_type": "create_task",
+      "context": {
+        "simulated": true,
+        "day": 4,
+        "hour": 11
+      },
+      "metadata": {}
+    },
+    {
+      "id": "a595ada90552",
+      "timestamp": "2026-01-31T09:25:56.798475",
+      "category": "task_management",
+      "action_type": "create_task",
+      "context": {
+        "simulated": true,
+        "day": 4,
+        "hour": 14
+      },
+      "metadata": {}
+    },
+    {
+      "id": "4df7ef9b6aa1",
+      "timestamp": "2026-01-31T09:25:56.798480",
+      "category": "review",
+      "action_type": "review_pr",
+      "context": {
+        "simulated": true,
+        "day": 4,
+        "hour": 15
+      },
+      "metadata": {}
+    },
+    {
+      "id": "8a13be4c19b9",
+      "timestamp": "2026-01-31T09:25:56.798485",
+      "category": "communication",
+      "action_type": "check_email",
+      "context": {
+        "simulated": true,
+        "day": 4,
+        "hour": 16
+      },
+      "metadata": {}
+    },
+    {
+      "id": "b907fe092b1b",
+      "timestamp": "2026-01-31T09:25:56.799203",
+      "category": "calendar",
+      "action_type": "view_calendar",
+      "context": {
+        "simulated": true,
+        "day": 5,
+        "hour": 9
+      },
+      "metadata": {}
+    },
+    {
+      "id": "3f0756b2f712",
+      "timestamp": "2026-01-31T09:25:56.799211",
+      "category": "task_management",
+      "action_type": "complete_task",
+      "context": {
+        "simulated": true,
+        "day": 5,
+        "hour": 10
+      },
+      "metadata": {}
+    },
+    {
+      "id": "0cc367b7f2d6",
+      "timestamp": "2026-01-31T09:25:56.799216",
+      "category": "communication",
+      "action_type": "check_email",
+      "context": {
+        "simulated": true,
+        "day": 5,
+        "hour": 11
+      },
+      "metadata": {}
+    },
+    {
+      "id": "245bcad2dc69",
+      "timestamp": "2026-01-31T09:25:56.799221",
+      "category": "review",
+      "action_type": "review_pr",
+      "context": {
+        "simulated": true,
+        "day": 5,
+        "hour": 14
+      },
+      "metadata": {}
+    },
+    {
+      "id": "04f000f2e714",
+      "timestamp": "2026-01-31T09:25:56.799227",
+      "category": "communication",
+      "action_type": "check_email",
+      "context": {
+        "simulated": true,
+        "day": 5,
+        "hour": 15
+      },
+      "metadata": {}
+    },
+    {
+      "id": "2e79bf59d240",
+      "timestamp": "2026-01-31T09:25:56.799232",
+      "category": "review",
+      "action_type": "review_pr",
+      "context": {
+        "simulated": true,
+        "day": 5,
+        "hour": 16
+      },
+      "metadata": {}
+    },
+    {
+      "id": "1daaa2d555f6",
+      "timestamp": "2026-01-31T09:25:56.799237",
+      "category": "deep_work",
+      "action_type": "write_code",
+      "context": {
+        "simulated": true,
+        "day": 6,
+        "hour": 9
+      },
+      "metadata": {}
+    },
+    {
+      "id": "09e8fd1f7d52",
+      "timestamp": "2026-01-31T09:25:56.799242",
+      "category": "communication",
+      "action_type": "check_email",
+      "context": {
+        "simulated": true,
+        "day": 6,
+        "hour": 10
+      },
+      "metadata": {}
+    },
+    {
+      "id": "c4101236a896",
+      "timestamp": "2026-01-31T09:25:56.799247",
+      "category": "task_management",
+      "action_type": "create_task",
+      "context": {
+        "simulated": true,
+        "day": 6,
+        "hour": 11
+      },
+      "metadata": {}
+    },
+    {
+      "id": "fe942d90d949",
+      "timestamp": "2026-01-31T09:25:56.799252",
+      "category": "review",
+      "action_type": "review_pr",
+      "context": {
+        "simulated": true,
+        "day": 6,
+        "hour": 14
+      },
+      "metadata": {}
+    }
+  ],
+  "updated_at": "2026-01-31T09:25:56.799314"
+}

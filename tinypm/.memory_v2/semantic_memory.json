@@ -1,0 +1,36 @@
+{
+  "tier": "semantic",
+  "count": 1,
+  "updated_at": "2026-02-01T01:29:33.093951",
+  "items": [
+    {
+      "id": "498335c2-bb43-4590-be46-adfe36a24458",
+      "content": "User Sam prefers morning meetings and likes concise updates",
+      "memory_type": "semantic",
+      "created_at": "2026-02-01T01:29:33.090923",
+      "last_accessed": "2026-02-01T01:29:33.090931",
+      "access_count": 0,
+      "importance_score": 0.5,
+      "surprise_score": 0.5,
+      "emotional_valence": 0.0,
+      "memory_strength": 1.0,
+      "state": "active",
+      "ttl": null,
+      "entities": [
+        "person_ee11cbb1",
+        "person_332532dc",
+        "person_ee11cbb1",
+        "person_25cf8d47",
+        "person_3602a3ef",
+        "person_4ffdd070"
+      ],
+      "relationships": [],
+      "source_conversation_id": "6fc2e697-1170-4067-85d0-f379dbc4318c",
+      "source_message_ids": [],
+      "merged_into": null,
+      "embedding_id": null,
+      "tags": [],
+      "metadata": {}
+    }
+  ]
+}

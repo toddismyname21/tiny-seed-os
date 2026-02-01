@@ -1,0 +1,28 @@
+# TinyPM MCP Integration Requirements
+# Install with: pip install -r requirements_mcp.txt
+
+# Model Context Protocol SDK (Official Python SDK)
+# https://github.com/modelcontextprotocol/python-sdk
+mcp>=1.26.0
+
+# Required for MCP SDK
+pydantic>=2.0.0
+httpx>=0.25.0
+anyio>=4.0.0
+
+# For async support
+aiofiles>=23.0.0
+
+# Optional: For HTTP transport with OAuth
+# authlib>=1.0.0
+# python-jose>=3.3.0
+
+# For type checking
+typing-extensions>=4.5.0
+
+# Development/Testing
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+
+# Note: The MCP SDK can also be installed with CLI tools:
+# pip install "mcp[cli]"

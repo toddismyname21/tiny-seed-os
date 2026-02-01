@@ -1,0 +1,3448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TinyPM Characters - Magic vs Science</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ==========================================
+       CSS CUSTOM PROPERTIES - DESIGN TOKENS
+       ========================================== */
+    :root {
+      /* Magic Colors - Warm, Mystical */
+      --magic-midnight: #1a1a3e;
+      --magic-gold: #d4a84b;
+      --magic-purple: #9b6dff;
+      --magic-pink: #ff9ff3;
+      --magic-violet: #4a148c;
+      --magic-glow: rgba(155, 109, 255, 0.6);
+      --magic-glow-intense: rgba(155, 109, 255, 0.9);
+
+      /* Science Colors - Cool, Electric */
+      --science-teal: #00d9ff;
+      --science-green: #00ff41;
+      --science-orange: #ff6b35;
+      --science-cyan: #00bfff;
+      --science-charcoal: #2d2d2d;
+      --science-glow: rgba(0, 217, 255, 0.6);
+      --science-glow-intense: rgba(0, 217, 255, 0.9);
+
+      /* Hybrid Colors */
+      --hybrid-purple: #7c3aed;
+      --hybrid-blue: #3b82f6;
+      --hybrid-gold: #fbbf24;
+      --hybrid-glow: rgba(124, 58, 237, 0.6);
+
+      /* Backgrounds - Warm Dark (not pure black) */
+      --bg-primary: #121218;
+      --bg-secondary: #1a1a24;
+      --bg-card: rgba(26, 26, 46, 0.7);
+      --bg-card-hover: rgba(30, 30, 55, 0.85);
+      --bg-magic: rgba(155, 109, 255, 0.08);
+      --bg-science: rgba(0, 217, 255, 0.08);
+      --bg-hybrid: rgba(124, 58, 237, 0.08);
+
+      /* Glassmorphism */
+      --glass-bg: rgba(255, 255, 255, 0.03);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --glass-blur: 20px;
+
+      /* Text */
+      --text-primary: #f0f0f5;
+      --text-secondary: #9090a0;
+      --text-muted: #606070;
+      --border: rgba(255, 255, 255, 0.1);
+
+      /* Animation Timings */
+      --transition-fast: 200ms;
+      --transition-medium: 350ms;
+      --transition-slow: 500ms;
+      --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+      --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      --ease-elastic: cubic-bezier(0.68, -0.6, 0.32, 1.6);
+
+      /* Shadows */
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+      --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.5);
+      --shadow-glow-magic: 0 0 30px var(--magic-glow), 0 0 60px rgba(155, 109, 255, 0.3);
+      --shadow-glow-science: 0 0 30px var(--science-glow), 0 0 60px rgba(0, 217, 255, 0.3);
+      --shadow-glow-hybrid: 0 0 30px var(--hybrid-glow), 0 0 60px rgba(124, 58, 237, 0.3);
+    }
+
+    /* ==========================================
+       BASE RESET & TYPOGRAPHY
+       ========================================== */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      line-height: 1.6;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* ==========================================
+       KEYFRAME ANIMATIONS
+       ========================================== */
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+    }
+
+    @keyframes floatSlow {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-15px) rotate(2deg); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.7; transform: scale(1.05); }
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% {
+        filter: drop-shadow(0 0 20px var(--magic-glow));
+        opacity: 1;
+      }
+      50% {
+        filter: drop-shadow(0 0 40px var(--magic-glow-intense));
+        opacity: 0.9;
+      }
+    }
+
+    @keyframes pulseGlowScience {
+      0%, 100% {
+        filter: drop-shadow(0 0 20px var(--science-glow));
+        opacity: 1;
+      }
+      50% {
+        filter: drop-shadow(0 0 40px var(--science-glow-intense));
+        opacity: 0.9;
+      }
+    }
+
+    @keyframes shimmer {
+      0% { background-position: -200% center; }
+      100% { background-position: 200% center; }
+    }
+
+    @keyframes rotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes rotateReverse {
+      from { transform: rotate(360deg); }
+      to { transform: rotate(0deg); }
+    }
+
+    @keyframes sparkle {
+      0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }
+      50% { opacity: 1; transform: scale(1) rotate(180deg); }
+    }
+
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    @keyframes typewriter {
+      from { width: 0; }
+      to { width: 100%; }
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes particleFloat {
+      0% {
+        transform: translateY(100vh) rotate(0deg);
+        opacity: 0;
+      }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% {
+        transform: translateY(-100vh) rotate(720deg);
+        opacity: 0;
+      }
+    }
+
+    @keyframes dataStream {
+      0% {
+        transform: translateY(-100%) scaleY(0);
+        opacity: 0;
+      }
+      10% { opacity: 0.8; scaleY(1); }
+      90% { opacity: 0.8; }
+      100% {
+        transform: translateY(100vh) scaleY(1);
+        opacity: 0;
+      }
+    }
+
+    @keyframes orbFloat {
+      0%, 100% {
+        transform: translate(0, 0) scale(1);
+      }
+      25% {
+        transform: translate(50px, -30px) scale(1.1);
+      }
+      50% {
+        transform: translate(20px, -60px) scale(0.9);
+      }
+      75% {
+        transform: translate(-30px, -20px) scale(1.05);
+      }
+    }
+
+    @keyframes cardEntrance {
+      from {
+        opacity: 0;
+        transform: translateY(40px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes bounceIn {
+      0% { transform: scale(0); opacity: 0; }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    @keyframes colorCycle {
+      0% { filter: hue-rotate(0deg); }
+      100% { filter: hue-rotate(360deg); }
+    }
+
+    /* ==========================================
+       SVG AVATAR ANIMATIONS
+       ========================================== */
+    /* Pip Animations */
+    @keyframes pipPulse {
+      0%, 100% { opacity: 0.8; }
+      50% { opacity: 1; }
+    }
+    @keyframes pipSproutSway {
+      0%, 100% { transform: rotate(-5deg); }
+      50% { transform: rotate(5deg); }
+    }
+    @keyframes pipCompanionOrbit {
+      0% { transform: rotate(0deg) translateX(35px) rotate(0deg); }
+      100% { transform: rotate(360deg) translateX(35px) rotate(-360deg); }
+    }
+    @keyframes pipEyeBlink {
+      0%, 90%, 100% { transform: scaleY(1); }
+      95% { transform: scaleY(0.1); }
+    }
+
+    /* Quinn Flame Animation */
+    @keyframes quinnFlicker {
+      0%, 100% { transform: scaleY(1) scaleX(1); }
+      25% { transform: scaleY(1.02) scaleX(0.98); }
+      50% { transform: scaleY(0.98) scaleX(1.02); }
+      75% { transform: scaleY(1.01) scaleX(0.99); }
+    }
+    @keyframes quinnNotebookFloat {
+      0%, 100% { transform: translateY(0) rotate(-5deg); }
+      50% { transform: translateY(-5px) rotate(5deg); }
+    }
+
+    /* Synapse Orb Animation */
+    @keyframes synapseOrbit {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    @keyframes synapseBridgePulse {
+      0%, 100% { opacity: 0.6; stroke-width: 2; }
+      50% { opacity: 1; stroke-width: 4; }
+    }
+
+    /* ORACLE Mandala Animation */
+    @keyframes oracleMandalaRotate {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    @keyframes oracleOrbitalFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-3px); }
+    }
+
+    /* Archimedes Star Twinkle */
+    @keyframes archimedesTwinkle {
+      0%, 100% { opacity: 0.7; }
+      50% { opacity: 1; }
+    }
+    @keyframes archimedesThreadGlow {
+      0%, 100% { stroke-opacity: 0.5; }
+      50% { stroke-opacity: 1; }
+    }
+
+    /* Iris Rainbow Animation */
+    @keyframes irisRainbowWave {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(10px); }
+    }
+    @keyframes irisHeartPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+
+    /* Dustin Void Ripple */
+    @keyframes dustinVoidRipple {
+      0%, 100% { r: 30; opacity: 0.8; }
+      50% { r: 32; opacity: 1; }
+    }
+    @keyframes dustinToolOrbit {
+      0% { transform: rotate(0deg) translateX(25px); }
+      100% { transform: rotate(360deg) translateX(25px); }
+    }
+
+    /* Luna Map Drift */
+    @keyframes lunaPathGlow {
+      0%, 100% { stroke-opacity: 0.5; }
+      50% { stroke-opacity: 1; }
+    }
+    @keyframes lunaCompassSpin {
+      0%, 100% { transform: rotate(-10deg); }
+      50% { transform: rotate(10deg); }
+    }
+
+    /* Tick & Tock Animation */
+    @keyframes tickTockSwing {
+      0%, 100% { transform: rotate(-15deg); }
+      50% { transform: rotate(15deg); }
+    }
+    @keyframes tickTockPendulum {
+      0%, 100% { transform: translateX(-5px); }
+      50% { transform: translateX(5px); }
+    }
+
+    /* Prometheus Lightning */
+    @keyframes prometheusLightning {
+      0%, 90%, 100% { opacity: 0.3; }
+      92%, 96% { opacity: 1; }
+    }
+    @keyframes prometheusBubble {
+      0%, 100% { transform: translateY(0); opacity: 0; }
+      50% { transform: translateY(-20px); opacity: 1; }
+      100% { transform: translateY(-40px); opacity: 0; }
+    }
+
+    /* Vector Data Flow */
+    @keyframes vectorDataPoint {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 1; }
+    }
+    @keyframes vectorLineGraph {
+      0% { stroke-dashoffset: 100; }
+      100% { stroke-dashoffset: 0; }
+    }
+
+    /* Ada Blueprint Build */
+    @keyframes adaBuildPulse {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 0.8; }
+    }
+    @keyframes adaGridLine {
+      0% { stroke-dashoffset: 20; }
+      100% { stroke-dashoffset: 0; }
+    }
+
+    /* Index Sort Animation */
+    @keyframes indexTextScroll {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-5px); }
+    }
+    @keyframes indexStamp {
+      0%, 80%, 100% { transform: translateY(0); }
+      90% { transform: translateY(3px); }
+    }
+
+    /* Cipher Dial Animation */
+    @keyframes cipherDialSpin {
+      0%, 70%, 100% { transform: rotate(0deg); }
+      80% { transform: rotate(30deg); }
+      90% { transform: rotate(-10deg); }
+    }
+    @keyframes cipherShieldPulse {
+      0%, 100% { opacity: 0.2; }
+      50% { opacity: 0.5; }
+    }
+
+    /* SVG Avatar Container */
+    .svg-avatar {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .svg-avatar svg {
+      width: 120px;
+      height: 120px;
+      filter: drop-shadow(0 10px 20px rgba(0,0,0,0.3));
+    }
+    .pip-card .svg-avatar svg {
+      width: 180px;
+      height: 180px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .svg-avatar svg * {
+        animation: none !important;
+      }
+    }
+
+    /* ==========================================
+       PARTICLE SYSTEM
+       ========================================== */
+    .particles-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .particle {
+      position: absolute;
+      pointer-events: none;
+    }
+
+    .magic-particle {
+      width: 4px;
+      height: 4px;
+      background: var(--magic-purple);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--magic-glow), 0 0 20px var(--magic-glow);
+      animation: particleFloat linear infinite;
+    }
+
+    .science-particle {
+      width: 2px;
+      height: 20px;
+      background: linear-gradient(to bottom, transparent, var(--science-teal), transparent);
+      animation: dataStream linear infinite;
+    }
+
+    .star-particle {
+      width: 8px;
+      height: 8px;
+      background: transparent;
+      position: absolute;
+      animation: sparkle ease-in-out infinite;
+    }
+
+    .star-particle::before,
+    .star-particle::after {
+      content: '';
+      position: absolute;
+      background: var(--magic-gold);
+    }
+
+    .star-particle::before {
+      width: 2px;
+      height: 8px;
+      left: 3px;
+      top: 0;
+    }
+
+    .star-particle::after {
+      width: 8px;
+      height: 2px;
+      left: 0;
+      top: 3px;
+    }
+
+    /* ==========================================
+       AMBIENT BACKGROUND ORBS
+       ========================================== */
+    .ambient-orbs {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .ambient-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.3;
+      animation: orbFloat 20s ease-in-out infinite;
+    }
+
+    .orb-magic-1 {
+      width: 400px;
+      height: 400px;
+      background: var(--magic-purple);
+      top: 10%;
+      left: -5%;
+      animation-delay: 0s;
+    }
+
+    .orb-magic-2 {
+      width: 300px;
+      height: 300px;
+      background: var(--magic-pink);
+      top: 60%;
+      left: 10%;
+      animation-delay: -5s;
+    }
+
+    .orb-science-1 {
+      width: 350px;
+      height: 350px;
+      background: var(--science-teal);
+      top: 20%;
+      right: -5%;
+      animation-delay: -10s;
+    }
+
+    .orb-science-2 {
+      width: 250px;
+      height: 250px;
+      background: var(--science-green);
+      top: 70%;
+      right: 15%;
+      animation-delay: -15s;
+    }
+
+    /* ==========================================
+       BACK LINK
+       ========================================== */
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      padding: 12px 24px;
+      margin: 20px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(var(--glass-blur));
+      -webkit-backdrop-filter: blur(var(--glass-blur));
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      transition: all var(--transition-medium) var(--ease-smooth);
+      position: relative;
+      z-index: 100;
+    }
+
+    .back-link:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-primary);
+      transform: translateX(-4px);
+      border-color: var(--magic-purple);
+      box-shadow: 0 0 20px rgba(155, 109, 255, 0.2);
+    }
+
+    .back-link:focus {
+      outline: 2px solid var(--magic-purple);
+      outline-offset: 2px;
+    }
+
+    /* ==========================================
+       HERO HEADER
+       ========================================== */
+    .header {
+      position: relative;
+      padding: 100px 20px 120px;
+      text-align: center;
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    .header-bg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background:
+        linear-gradient(135deg,
+          var(--magic-midnight) 0%,
+          var(--bg-primary) 40%,
+          var(--bg-primary) 60%,
+          var(--science-charcoal) 100%
+        );
+      background-size: 200% 200%;
+      animation: gradientShift 15s ease infinite;
+    }
+
+    .header-glow {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background:
+        radial-gradient(ellipse 600px 400px at 25% 50%, var(--magic-glow) 0%, transparent 70%),
+        radial-gradient(ellipse 600px 400px at 75% 50%, var(--science-glow) 0%, transparent 70%);
+      opacity: 0.4;
+      animation: pulse 8s ease-in-out infinite;
+    }
+
+    .header-content {
+      position: relative;
+      z-index: 2;
+    }
+
+    /* Pip Hero Feature */
+    .hero-pip {
+      font-size: 120px;
+      margin-bottom: 20px;
+      display: inline-block;
+      animation: floatSlow 4s ease-in-out infinite;
+      filter: drop-shadow(0 0 30px var(--hybrid-glow));
+      cursor: pointer;
+      transition: transform var(--transition-medium) var(--ease-bounce);
+    }
+
+    .hero-pip:hover {
+      transform: scale(1.1) rotate(5deg);
+      animation-play-state: paused;
+    }
+
+    .hero-pip[data-sound="hover"] {
+      /* Sound trigger hook */
+    }
+
+    .header h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2.5rem, 6vw, 4rem);
+      font-weight: 700;
+      margin-bottom: 15px;
+      background: linear-gradient(
+        90deg,
+        var(--magic-purple) 0%,
+        var(--magic-gold) 25%,
+        var(--text-primary) 50%,
+        var(--magic-gold) 75%,
+        var(--science-teal) 100%
+      );
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: shimmer 4s linear infinite;
+    }
+
+    .header p {
+      font-size: 1.3rem;
+      color: var(--text-secondary);
+      opacity: 0.9;
+    }
+
+    .header .subtitle {
+      font-style: italic;
+      margin-top: 20px;
+      color: var(--magic-gold);
+      font-size: 1.1rem;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+      opacity: 0.9;
+    }
+
+    /* Header Decorative Elements */
+    .header-decorations {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .magic-sparkle {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      background: var(--magic-gold);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--magic-gold);
+      animation: sparkle 3s ease-in-out infinite;
+    }
+
+    .circuit-line {
+      position: absolute;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--science-teal), transparent);
+      opacity: 0.3;
+    }
+
+    /* ==========================================
+       CONTAINER
+       ========================================== */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ==========================================
+       STATS BAR
+       ========================================== */
+    .stats-bar {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      padding: 30px 40px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(var(--glass-blur));
+      -webkit-backdrop-filter: blur(var(--glass-blur));
+      border: 1px solid var(--glass-border);
+      margin-bottom: 50px;
+      border-radius: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stats-bar::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg,
+        transparent,
+        var(--magic-purple),
+        var(--hybrid-purple),
+        var(--science-teal),
+        transparent
+      );
+    }
+
+    .stat {
+      text-align: center;
+      padding: 10px 20px;
+      border-radius: 12px;
+      transition: all var(--transition-medium) var(--ease-smooth);
+      cursor: default;
+    }
+
+    .stat:hover {
+      background: rgba(255, 255, 255, 0.05);
+      transform: translateY(-4px);
+    }
+
+    .stat-value {
+      font-size: 3rem;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 8px;
+      transition: transform var(--transition-medium) var(--ease-bounce);
+    }
+
+    .stat:hover .stat-value {
+      transform: scale(1.1);
+    }
+
+    .stat-value.magic {
+      color: var(--magic-purple);
+      text-shadow: 0 0 30px var(--magic-glow);
+    }
+
+    .stat-value.science {
+      color: var(--science-teal);
+      text-shadow: 0 0 30px var(--science-glow);
+    }
+
+    .stat-value.hybrid {
+      color: var(--hybrid-purple);
+      text-shadow: 0 0 30px var(--hybrid-glow);
+    }
+
+    .stat-value.total {
+      background: linear-gradient(135deg, var(--magic-purple), var(--science-teal));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .stat-label {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    /* ==========================================
+       SECTION TITLES
+       ========================================== */
+    .section-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 2rem;
+      margin: 60px 0 20px;
+      padding: 20px 0;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      position: relative;
+    }
+
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 2px;
+      border-radius: 1px;
+      margin-left: 20px;
+    }
+
+    .section-title.magic {
+      color: var(--magic-purple);
+    }
+
+    .section-title.magic::after {
+      background: linear-gradient(90deg, var(--magic-purple), transparent);
+    }
+
+    .section-title.science {
+      color: var(--science-teal);
+    }
+
+    .section-title.science::after {
+      background: linear-gradient(90deg, var(--science-teal), transparent);
+    }
+
+    .section-title.hybrid {
+      color: var(--hybrid-purple);
+    }
+
+    .section-title.hybrid::after {
+      background: linear-gradient(90deg, var(--hybrid-purple), transparent);
+    }
+
+    .section-title .icon {
+      font-size: 2.2rem;
+      animation: pulse 3s ease-in-out infinite;
+    }
+
+    .section-title.magic .icon {
+      animation: pulseGlow 3s ease-in-out infinite;
+    }
+
+    .section-title.science .icon {
+      animation: pulseGlowScience 3s ease-in-out infinite;
+    }
+
+    .section-desc {
+      color: var(--text-secondary);
+      margin-bottom: 30px;
+      font-size: 1.1rem;
+      font-style: italic;
+    }
+
+    /* ==========================================
+       CHARACTER GRID
+       ========================================== */
+    .characters-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 28px;
+      margin-bottom: 50px;
+    }
+
+    /* ==========================================
+       CHARACTER CARDS - GLASSMORPHISM
+       ========================================== */
+    .character-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(var(--glass-blur));
+      -webkit-backdrop-filter: blur(var(--glass-blur));
+      border-radius: 24px;
+      overflow: hidden;
+      border: 1px solid var(--glass-border);
+      transition: all var(--transition-medium) var(--ease-smooth);
+      position: relative;
+      cursor: pointer;
+      animation: cardEntrance 0.6s var(--ease-smooth) both;
+    }
+
+    .character-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.03) 100%);
+      pointer-events: none;
+      transition: opacity var(--transition-medium);
+      opacity: 0;
+    }
+
+    .character-card:hover::before {
+      opacity: 1;
+    }
+
+    .character-card:hover {
+      transform: translateY(-8px) scale(1.02);
+      background: var(--bg-card-hover);
+    }
+
+    .character-card:focus {
+      outline: none;
+    }
+
+    .character-card:focus-visible {
+      outline: 3px solid var(--magic-purple);
+      outline-offset: 4px;
+    }
+
+    /* Magic Card Hover */
+    .character-card.magic:hover {
+      border-color: var(--magic-purple);
+      box-shadow: var(--shadow-glow-magic);
+    }
+
+    /* Science Card Hover */
+    .character-card.science:hover {
+      border-color: var(--science-teal);
+      box-shadow: var(--shadow-glow-science);
+    }
+
+    /* Hybrid Card Hover */
+    .character-card.hybrid:hover {
+      border-color: var(--hybrid-purple);
+      box-shadow: var(--shadow-glow-hybrid);
+    }
+
+    /* ==========================================
+       CHARACTER AVATAR
+       ========================================== */
+    .character-avatar {
+      height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 80px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .character-avatar .emoji {
+      display: inline-block;
+      transition: transform var(--transition-medium) var(--ease-bounce);
+      animation: float 5s ease-in-out infinite;
+      filter: drop-shadow(0 10px 20px rgba(0,0,0,0.3));
+    }
+
+    .character-card:hover .character-avatar .emoji {
+      transform: scale(1.15);
+      animation-play-state: paused;
+    }
+
+    .character-avatar[data-sound="hover"] {
+      /* Sound trigger hook */
+    }
+
+    /* Avatar Backgrounds with Patterns */
+    .wizard-avatar {
+      background:
+        radial-gradient(circle at 30% 70%, rgba(212, 168, 75, 0.3) 0%, transparent 50%),
+        linear-gradient(135deg, var(--magic-midnight), var(--magic-gold));
+    }
+
+    .sage-avatar {
+      background:
+        radial-gradient(circle at 70% 30%, rgba(255, 159, 243, 0.3) 0%, transparent 50%),
+        linear-gradient(135deg, var(--magic-violet), #ff6b6b);
+    }
+
+    .janitor-avatar {
+      background:
+        radial-gradient(circle at 50% 50%, rgba(201, 177, 255, 0.2) 0%, transparent 60%),
+        linear-gradient(135deg, #6b5b7a, #a67c52);
+    }
+
+    .dreamer-avatar {
+      background:
+        radial-gradient(circle at 20% 80%, rgba(155, 89, 182, 0.3) 0%, transparent 50%),
+        linear-gradient(135deg, #c0c0c0, #9b59b6);
+    }
+
+    .demons-avatar {
+      background:
+        radial-gradient(circle at 50% 50%, rgba(255, 215, 0, 0.4) 0%, transparent 50%),
+        linear-gradient(135deg, #ffd700, #c0c0c0);
+    }
+
+    .scientist-avatar {
+      background:
+        radial-gradient(circle at 70% 30%, rgba(157, 78, 221, 0.3) 0%, transparent 50%),
+        linear-gradient(135deg, var(--science-teal), #9d4edd);
+    }
+
+    .alchemist-avatar {
+      background:
+        radial-gradient(circle at 30% 70%, rgba(0, 255, 65, 0.2) 0%, transparent 50%),
+        linear-gradient(135deg, #00b8a9, var(--science-green));
+    }
+
+    .architect-avatar {
+      background:
+        radial-gradient(circle at 80% 20%, rgba(255, 111, 0, 0.3) 0%, transparent 50%),
+        linear-gradient(135deg, #4682b4, #ff6f00);
+    }
+
+    .librarian-avatar {
+      background:
+        radial-gradient(circle at 50% 80%, rgba(218, 165, 32, 0.3) 0%, transparent 50%),
+        linear-gradient(135deg, #8b4513, #1e3a5f);
+    }
+
+    .warden-avatar {
+      background:
+        radial-gradient(circle at 50% 50%, rgba(255, 51, 51, 0.3) 0%, transparent 50%),
+        linear-gradient(135deg, #1a1a1a, #ff3333);
+    }
+
+    .pip-avatar {
+      background:
+        radial-gradient(circle at 30% 50%, var(--magic-glow) 0%, transparent 40%),
+        radial-gradient(circle at 70% 50%, var(--science-glow) 0%, transparent 40%),
+        linear-gradient(135deg, var(--magic-purple), var(--science-teal));
+    }
+
+    .apprentice-avatar {
+      background:
+        radial-gradient(circle at 50% 70%, rgba(40, 167, 69, 0.3) 0%, transparent 50%),
+        linear-gradient(135deg, #5c7cfa, #28a745);
+    }
+
+    .fusion-avatar {
+      background:
+        radial-gradient(circle at 40% 40%, rgba(16, 185, 129, 0.3) 0%, transparent 50%),
+        linear-gradient(135deg, var(--hybrid-purple), #10b981);
+    }
+
+    .oracle-avatar {
+      background:
+        radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.4) 0%, transparent 50%),
+        linear-gradient(135deg, #00fff0, #8b5cf6);
+    }
+
+    /* Avatar Overlay Effects */
+    .character-avatar::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.3));
+      pointer-events: none;
+    }
+
+    /* Magic Avatar Sparkles */
+    .magic .character-avatar::before {
+      content: '';
+      position: absolute;
+      top: 20%;
+      left: 10%;
+      width: 100%;
+      height: 100%;
+      background-image:
+        radial-gradient(2px 2px at 20% 30%, var(--magic-gold) 50%, transparent 100%),
+        radial-gradient(2px 2px at 80% 20%, var(--magic-gold) 50%, transparent 100%),
+        radial-gradient(2px 2px at 40% 70%, var(--magic-gold) 50%, transparent 100%),
+        radial-gradient(2px 2px at 70% 60%, var(--magic-gold) 50%, transparent 100%);
+      animation: sparkle 4s ease-in-out infinite;
+      opacity: 0.6;
+    }
+
+    /* Science Avatar Data Lines */
+    .science .character-avatar::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image:
+        linear-gradient(90deg, transparent 49%, rgba(0, 217, 255, 0.1) 50%, transparent 51%);
+      background-size: 30px 100%;
+      animation: shimmer 3s linear infinite;
+      opacity: 0.5;
+    }
+
+    /* ==========================================
+       CHARACTER INFO
+       ========================================== */
+    .character-info {
+      padding: 24px;
+    }
+
+    .team-label {
+      display: inline-block;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      transition: all var(--transition-fast);
+    }
+
+    .team-magic {
+      background: linear-gradient(135deg, var(--magic-purple), var(--magic-violet));
+      color: white;
+      box-shadow: 0 4px 15px rgba(155, 109, 255, 0.3);
+    }
+
+    .team-science {
+      background: linear-gradient(135deg, var(--science-teal), var(--science-cyan));
+      color: #1a1a1a;
+      box-shadow: 0 4px 15px rgba(0, 217, 255, 0.3);
+    }
+
+    .team-hybrid {
+      background: linear-gradient(135deg, var(--hybrid-purple), var(--hybrid-blue));
+      color: white;
+      box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
+    }
+
+    .character-card:hover .team-label {
+      transform: scale(1.05);
+    }
+
+    .character-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: var(--text-primary);
+    }
+
+    .character-fullname {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+      font-style: italic;
+    }
+
+    .character-role {
+      font-size: 0.95rem;
+      margin-bottom: 16px;
+      font-weight: 600;
+    }
+
+    .character-role.magic { color: var(--magic-purple); }
+    .character-role.science { color: var(--science-teal); }
+    .character-role.hybrid { color: var(--hybrid-purple); }
+
+    .character-description {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+      line-height: 1.7;
+    }
+
+    /* ==========================================
+       CHARACTER QUOTE - REVEAL ON HOVER
+       ========================================== */
+    .character-quote {
+      font-style: italic;
+      padding: 16px;
+      background: var(--glass-bg);
+      border-radius: 12px;
+      font-size: 0.9rem;
+      margin-top: 16px;
+      position: relative;
+      overflow: hidden;
+      max-height: 0;
+      padding: 0 16px;
+      opacity: 0;
+      transition: all var(--transition-slow) var(--ease-smooth);
+    }
+
+    .character-card:hover .character-quote {
+      max-height: 200px;
+      padding: 16px;
+      opacity: 1;
+    }
+
+    .character-quote::before {
+      content: '"';
+      position: absolute;
+      top: -10px;
+      left: 10px;
+      font-size: 4rem;
+      opacity: 0.1;
+      font-family: serif;
+    }
+
+    .character-quote.magic {
+      border-left: 3px solid var(--magic-purple);
+      color: var(--magic-gold);
+      background: var(--bg-magic);
+    }
+
+    .character-quote.science {
+      border-left: 3px solid var(--science-teal);
+      color: var(--science-green);
+      background: var(--bg-science);
+    }
+
+    .character-quote.hybrid {
+      border-left: 3px solid var(--hybrid-purple);
+      color: var(--hybrid-gold);
+      background: var(--bg-hybrid);
+    }
+
+    /* ==========================================
+       COLOR PALETTE - INTERACTIVE
+       ========================================== */
+    .color-palette {
+      display: flex;
+      gap: 8px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+
+    .color-swatch {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0;
+      color: white;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+      border: 2px solid rgba(255,255,255,0.1);
+      transition: all var(--transition-medium) var(--ease-bounce);
+      cursor: pointer;
+      position: relative;
+    }
+
+    .color-swatch:hover {
+      transform: scale(1.3) translateY(-4px);
+      border-color: rgba(255,255,255,0.4);
+      z-index: 10;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    }
+
+    .color-swatch::after {
+      content: attr(data-color);
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%) translateY(10px);
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: all var(--transition-fast);
+    }
+
+    .color-swatch:hover::after {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-8px);
+    }
+
+    /* ==========================================
+       PIP SPECIAL CARD - THE STAR
+       ========================================== */
+    .pip-card {
+      grid-column: span 2;
+      background: linear-gradient(135deg,
+        rgba(155, 109, 255, 0.15) 0%,
+        rgba(26, 26, 46, 0.8) 50%,
+        rgba(0, 217, 255, 0.15) 100%
+      );
+      border: 2px solid;
+      border-image: linear-gradient(135deg, var(--magic-purple), var(--science-teal)) 1;
+      border-radius: 24px;
+      border-image-slice: 1;
+    }
+
+    .pip-card::after {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      background: linear-gradient(135deg, var(--magic-purple), var(--science-teal));
+      border-radius: 24px;
+      z-index: -1;
+      opacity: 0;
+      transition: opacity var(--transition-medium);
+    }
+
+    .pip-card:hover::after {
+      opacity: 0.5;
+    }
+
+    .pip-card .character-avatar {
+      height: 280px;
+      font-size: 120px;
+    }
+
+    .pip-card .character-avatar .emoji {
+      animation: floatSlow 4s ease-in-out infinite;
+    }
+
+    .pip-card .character-info {
+      padding: 30px;
+    }
+
+    .pip-card .character-quote {
+      max-height: none;
+      padding: 16px;
+      opacity: 1;
+    }
+
+    /* Pip's Eyes Feature */
+    .pip-eyes {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin: 20px 0;
+    }
+
+    .pip-eye {
+      text-align: center;
+      padding: 16px 24px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      transition: all var(--transition-medium) var(--ease-bounce);
+      cursor: pointer;
+    }
+
+    .pip-eye:hover {
+      transform: scale(1.08) translateY(-4px);
+    }
+
+    .pip-eye.magic {
+      border: 2px solid var(--magic-purple);
+      box-shadow: 0 0 20px rgba(155, 109, 255, 0.2);
+    }
+
+    .pip-eye.magic:hover {
+      box-shadow: var(--shadow-glow-magic);
+    }
+
+    .pip-eye.science {
+      border: 2px solid var(--science-teal);
+      box-shadow: 0 0 20px rgba(0, 217, 255, 0.2);
+    }
+
+    .pip-eye.science:hover {
+      box-shadow: var(--shadow-glow-science);
+    }
+
+    .pip-eye-icon {
+      font-size: 2.5rem;
+      margin-bottom: 8px;
+      animation: pulse 3s ease-in-out infinite;
+    }
+
+    .pip-eye.magic .pip-eye-icon {
+      animation: pulseGlow 3s ease-in-out infinite;
+    }
+
+    .pip-eye.science .pip-eye-icon {
+      animation: pulseGlowScience 3s ease-in-out infinite;
+    }
+
+    .pip-eye-label {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    /* ==========================================
+       MOTTO BOX
+       ========================================== */
+    .motto-box {
+      text-align: center;
+      padding: 60px 40px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(var(--glass-blur));
+      -webkit-backdrop-filter: blur(var(--glass-blur));
+      border-radius: 24px;
+      margin: 60px 0;
+      border: 1px solid var(--glass-border);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .motto-box::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background:
+        radial-gradient(ellipse at 20% 50%, var(--bg-magic) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 50%, var(--bg-science) 0%, transparent 50%);
+      opacity: 0.5;
+    }
+
+    .motto-box blockquote {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.6rem;
+      font-style: italic;
+      color: var(--text-primary);
+      margin-bottom: 16px;
+      position: relative;
+      max-width: 700px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .motto-box cite {
+      color: var(--magic-gold);
+      font-size: 1rem;
+      position: relative;
+    }
+
+    /* ==========================================
+       CLICK TO LEARN MORE AFFORDANCE
+       ========================================== */
+    .learn-more {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 16px;
+      padding: 10px 16px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all var(--transition-medium);
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    .character-card:hover .learn-more {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .learn-more:hover {
+      background: rgba(255,255,255,0.05);
+      border-color: var(--magic-purple);
+      color: var(--text-primary);
+    }
+
+    .learn-more .arrow {
+      transition: transform var(--transition-fast);
+    }
+
+    .learn-more:hover .arrow {
+      transform: translateX(4px);
+    }
+
+    /* ==========================================
+       ACCESSIBILITY - REDUCED MOTION
+       ========================================== */
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+
+      .character-avatar .emoji,
+      .hero-pip,
+      .particle,
+      .ambient-orb {
+        animation: none !important;
+      }
+
+      .character-card:hover {
+        transform: none;
+      }
+
+      .header-bg {
+        animation: none;
+      }
+    }
+
+    /* ==========================================
+       RESPONSIVE DESIGN
+       ========================================== */
+    @media (max-width: 900px) {
+      .pip-card {
+        grid-column: span 1;
+      }
+
+      .pip-card .character-avatar {
+        height: 200px;
+        font-size: 80px;
+      }
+
+      .header h1 {
+        font-size: 2rem;
+      }
+
+      .hero-pip {
+        font-size: 80px;
+      }
+
+      .characters-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .stats-bar {
+        flex-wrap: wrap;
+        gap: 20px;
+        padding: 20px;
+      }
+
+      .pip-eyes {
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .stat-value {
+        font-size: 2.5rem;
+      }
+
+      .motto-box {
+        padding: 40px 20px;
+      }
+
+      .motto-box blockquote {
+        font-size: 1.3rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        padding: 20px 16px;
+      }
+
+      .character-info {
+        padding: 20px;
+      }
+
+      .header {
+        padding: 60px 16px 80px;
+      }
+
+      .back-link {
+        margin: 12px;
+        padding: 10px 16px;
+      }
+    }
+
+    /* ==========================================
+       FOCUS STATES FOR KEYBOARD NAV
+       ========================================== */
+    .character-card:focus-visible,
+    .pip-eye:focus-visible,
+    .color-swatch:focus-visible,
+    .stat:focus-visible {
+      outline: 3px solid var(--magic-purple);
+      outline-offset: 4px;
+    }
+
+    /* Skip link for accessibility */
+    .skip-link {
+      position: absolute;
+      top: -100px;
+      left: 20px;
+      background: var(--magic-purple);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      z-index: 1000;
+      transition: top 0.3s;
+    }
+
+    .skip-link:focus {
+      top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Skip Link for Accessibility -->
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <!-- Ambient Background Orbs -->
+  <div class="ambient-orbs">
+    <div class="ambient-orb orb-magic-1"></div>
+    <div class="ambient-orb orb-magic-2"></div>
+    <div class="ambient-orb orb-science-1"></div>
+    <div class="ambient-orb orb-science-2"></div>
+  </div>
+
+  <!-- Particle System Container -->
+  <div class="particles-container" id="particles" aria-hidden="true"></div>
+
+  <div style="display: flex; gap: 15px; flex-wrap: wrap; padding: 20px; position: relative; z-index: 100;">
+    <a href="/" class="back-link" data-sound="click">
+      <span aria-hidden="true">&larr;</span> Back to TinyPM
+    </a>
+    <a href="/avatar-builder" class="back-link" style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(20, 184, 166, 0.2)); border-color: rgba(139, 92, 246, 0.5);" data-sound="click">
+      <span aria-hidden="true">&#10024;</span> Create Your Avatar
+    </a>
+  </div>
+
+  <header class="header">
+    <div class="header-bg"></div>
+    <div class="header-glow"></div>
+    <div class="header-decorations" aria-hidden="true"></div>
+
+    <div class="header-content">
+      <!-- Pip as Hero -->
+      <div class="hero-pip" role="img" aria-label="Pip, the TinyPM mascot" data-sound="hover">
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" width="120" height="120">
+          <defs>
+            <linearGradient id="hero-pip-organic" x1="0%" y1="0%" x2="50%" y2="100%">
+              <stop offset="0%" stop-color="#F59E0B"/>
+              <stop offset="100%" stop-color="#92400E"/>
+            </linearGradient>
+            <linearGradient id="hero-pip-crystal" x1="50%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#14B8A6"/>
+              <stop offset="100%" stop-color="#0D9488"/>
+            </linearGradient>
+            <linearGradient id="hero-pip-sprout" x1="0%" y1="100%" x2="0%" y2="0%">
+              <stop offset="0%" stop-color="#10B981"/>
+              <stop offset="100%" stop-color="#34D399"/>
+            </linearGradient>
+            <filter id="hero-pip-glow">
+              <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+              <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+            <radialGradient id="hero-pip-inner-glow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#FCD34D" stop-opacity="0.6"/>
+              <stop offset="100%" stop-color="#FCD34D" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <ellipse cx="50" cy="55" rx="25" ry="30" fill="url(#hero-pip-inner-glow)" style="animation: pipPulse 1.5s ease-in-out infinite;"/>
+          <path d="M50 20 C30 20 20 40 20 55 C20 75 35 85 50 85 L50 20" fill="url(#hero-pip-organic)" filter="url(#hero-pip-glow)"/>
+          <path d="M50 20 C70 20 80 40 80 55 C80 75 65 85 50 85 L50 20" fill="url(#hero-pip-crystal)" filter="url(#hero-pip-glow)"/>
+          <path d="M50 25 L65 40 L75 55 L65 70 L50 80" fill="none" stroke="#67E8F9" stroke-width="0.5" opacity="0.5"/>
+          <line x1="50" y1="20" x2="50" y2="85" stroke="#EC4899" stroke-width="1" opacity="0.6"/>
+          <g style="transform-origin: 50px 20px; animation: pipSproutSway 2s ease-in-out infinite;">
+            <path d="M50 20 Q45 10 50 5 Q55 10 50 20" fill="url(#hero-pip-sprout)"/>
+            <circle cx="50" cy="3" r="2" fill="#22D3EE" style="animation: pipPulse 1s ease-in-out infinite;"/>
+          </g>
+          <g style="transform-origin: 35px 45px; animation: pipEyeBlink 5s ease-in-out infinite;">
+            <ellipse cx="35" cy="45" rx="8" ry="9" fill="#1E1B4B"/>
+            <ellipse cx="35" cy="45" rx="6" ry="7" fill="#F59E0B"/>
+            <circle cx="35" cy="45" r="3" fill="#92400E"/>
+            <circle cx="33" cy="43" r="1" fill="#FCD34D" opacity="0.8"/>
+          </g>
+          <g style="transform-origin: 65px 45px; animation: pipEyeBlink 5.5s ease-in-out infinite;">
+            <ellipse cx="65" cy="45" rx="8" ry="9" fill="#1E1B4B"/>
+            <ellipse cx="65" cy="45" rx="6" ry="7" fill="#22D3EE"/>
+            <polygon points="65,42 68,44 68,47 65,49 62,47 62,44" fill="#0D9488"/>
+            <circle cx="63" cy="43" r="1" fill="#67E8F9" opacity="0.8"/>
+          </g>
+          <path d="M42 60 Q50 66 58 60" fill="none" stroke="#1E1B4B" stroke-width="2" stroke-linecap="round"/>
+          <g style="transform-origin: 50px 50px; animation: pipCompanionOrbit 5s linear infinite;">
+            <circle cx="85" cy="50" r="4" fill="#FCD34D" filter="url(#hero-pip-glow)"/>
+          </g>
+          <g style="transform-origin: 50px 50px; animation: pipCompanionOrbit 5s linear infinite reverse;">
+            <circle cx="15" cy="50" r="4" fill="#22D3EE" filter="url(#hero-pip-glow)"/>
+          </g>
+        </svg>
+      </div>
+
+      <h1>Magic vs Science</h1>
+      <p>The TinyPM Character Family</p>
+      <p class="subtitle">"In the space between the spell and the equation, that's where true creation happens."</p>
+    </div>
+  </header>
+
+  <main class="container" id="main-content">
+    <div class="stats-bar" role="region" aria-label="Character statistics">
+      <div class="stat" tabindex="0">
+        <div class="stat-value total">14</div>
+        <div class="stat-label">Total Characters</div>
+      </div>
+      <div class="stat" tabindex="0">
+        <div class="stat-value magic">5</div>
+        <div class="stat-label">Magic Side</div>
+      </div>
+      <div class="stat" tabindex="0">
+        <div class="stat-value science">5</div>
+        <div class="stat-label">Science Side</div>
+      </div>
+      <div class="stat" tabindex="0">
+        <div class="stat-value hybrid">4</div>
+        <div class="stat-label">Hybrid Bridge</div>
+      </div>
+    </div>
+
+    <!-- THE HYBRID BRIDGE - PIP FIRST -->
+    <h2 class="section-title hybrid">
+      <span class="icon" aria-hidden="true">⚡</span>
+      The Hybrid Bridge
+    </h2>
+    <p class="section-desc">Neither fully magic nor fully science - the living proof that both are one.</p>
+
+    <div class="characters-grid" role="list">
+      <!-- PIP - THE STAR -->
+      <article class="character-card hybrid pip-card" tabindex="0" role="listitem" data-sound="hover">
+        <div class="character-avatar pip-avatar">
+          <div class="svg-avatar" aria-label="Pip - seed-shaped creature with dual organic and crystalline halves">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="pip-organic" x1="0%" y1="0%" x2="50%" y2="100%">
+                  <stop offset="0%" stop-color="#F59E0B"/>
+                  <stop offset="100%" stop-color="#92400E"/>
+                </linearGradient>
+                <linearGradient id="pip-crystal" x1="50%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#14B8A6"/>
+                  <stop offset="100%" stop-color="#0D9488"/>
+                </linearGradient>
+                <linearGradient id="pip-sprout" x1="0%" y1="100%" x2="0%" y2="0%">
+                  <stop offset="0%" stop-color="#10B981"/>
+                  <stop offset="100%" stop-color="#34D399"/>
+                </linearGradient>
+                <filter id="pip-glow">
+                  <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                  <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+                <radialGradient id="pip-inner-glow" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stop-color="#FCD34D" stop-opacity="0.6"/>
+                  <stop offset="100%" stop-color="#FCD34D" stop-opacity="0"/>
+                </radialGradient>
+              </defs>
+
+              <!-- Inner glow -->
+              <ellipse cx="50" cy="55" rx="25" ry="30" fill="url(#pip-inner-glow)" style="animation: pipPulse 1.5s ease-in-out infinite;"/>
+
+              <!-- Organic half (left) -->
+              <path d="M50 20 C30 20 20 40 20 55 C20 75 35 85 50 85 L50 20" fill="url(#pip-organic)" filter="url(#pip-glow)">
+                <animate attributeName="d" dur="4s" repeatCount="indefinite" values="M50 20 C30 20 20 40 20 55 C20 75 35 85 50 85 L50 20;M50 20 C28 22 18 40 18 55 C18 75 35 85 50 85 L50 20;M50 20 C30 20 20 40 20 55 C20 75 35 85 50 85 L50 20"/>
+              </path>
+
+              <!-- Crystal half (right) with facets -->
+              <path d="M50 20 C70 20 80 40 80 55 C80 75 65 85 50 85 L50 20" fill="url(#pip-crystal)" filter="url(#pip-glow)"/>
+              <path d="M50 25 L65 40 L75 55 L65 70 L50 80" fill="none" stroke="#67E8F9" stroke-width="0.5" opacity="0.5"/>
+              <path d="M55 30 L70 50 L60 75" fill="none" stroke="#67E8F9" stroke-width="0.3" opacity="0.3"/>
+
+              <!-- Center blend line -->
+              <line x1="50" y1="20" x2="50" y2="85" stroke="#EC4899" stroke-width="1" opacity="0.6"/>
+
+              <!-- Sprout/Antenna -->
+              <g style="transform-origin: 50px 20px; animation: pipSproutSway 2s ease-in-out infinite;">
+                <!-- Leaf part -->
+                <path d="M50 20 Q45 10 50 5 Q55 10 50 20" fill="url(#pip-sprout)"/>
+                <path d="M50 12 Q48 8 50 5" fill="none" stroke="#059669" stroke-width="0.5"/>
+                <!-- Antenna tip -->
+                <circle cx="50" cy="3" r="2" fill="#22D3EE" style="animation: pipPulse 1s ease-in-out infinite;"/>
+              </g>
+
+              <!-- Left eye (Magic/Amber) -->
+              <g style="transform-origin: 35px 45px; animation: pipEyeBlink 5s ease-in-out infinite;">
+                <ellipse cx="35" cy="45" rx="8" ry="9" fill="#1E1B4B"/>
+                <ellipse cx="35" cy="45" rx="6" ry="7" fill="#F59E0B"/>
+                <!-- Sunflower iris pattern -->
+                <circle cx="35" cy="45" r="3" fill="#92400E"/>
+                <circle cx="35" cy="45" r="1.5" fill="#1E1B4B"/>
+                <circle cx="33" cy="43" r="1" fill="#FCD34D" opacity="0.8"/>
+              </g>
+
+              <!-- Right eye (Science/Cyan) -->
+              <g style="transform-origin: 65px 45px; animation: pipEyeBlink 5.5s ease-in-out infinite;">
+                <ellipse cx="65" cy="45" rx="8" ry="9" fill="#1E1B4B"/>
+                <ellipse cx="65" cy="45" rx="6" ry="7" fill="#22D3EE"/>
+                <!-- Hexagonal iris pattern -->
+                <polygon points="65,42 68,44 68,47 65,49 62,47 62,44" fill="#0D9488"/>
+                <circle cx="65" cy="45" r="1.5" fill="#1E1B4B"/>
+                <circle cx="63" cy="43" r="1" fill="#67E8F9" opacity="0.8"/>
+              </g>
+
+              <!-- Small smile -->
+              <path d="M42 60 Q50 66 58 60" fill="none" stroke="#1E1B4B" stroke-width="2" stroke-linecap="round"/>
+
+              <!-- Floating companion - Magic dust mote -->
+              <g style="transform-origin: 50px 50px; animation: pipCompanionOrbit 5s linear infinite;">
+                <circle cx="85" cy="50" r="4" fill="#FCD34D" filter="url(#pip-glow)"/>
+                <circle cx="85" cy="50" r="2" fill="#FEF3C7"/>
+              </g>
+
+              <!-- Floating companion - Science data point -->
+              <g style="transform-origin: 50px 50px; animation: pipCompanionOrbit 5s linear infinite reverse;">
+                <circle cx="15" cy="50" r="4" fill="#22D3EE" filter="url(#pip-glow)"/>
+                <circle cx="15" cy="50" r="2" fill="#CFFAFE"/>
+              </g>
+            </svg>
+          </div>
+        </div>
+        <div class="character-info">
+          <span class="team-label team-hybrid">The Spark</span>
+          <h3 class="character-name">Pip</h3>
+          <div class="character-fullname">The Spark Between Worlds</div>
+          <div class="character-role hybrid">Primary Mascot</div>
+          <div class="character-description">
+            Neither fully magic nor fully science - the living proof that both are one. Pip is a small seed-shaped creature that embodies the fusion of wonder and knowledge.
+          </div>
+          <div class="pip-eyes">
+            <div class="pip-eye magic" tabindex="0" data-sound="click">
+              <div class="pip-eye-icon">💜</div>
+              <div class="pip-eye-label">Magic Eye (Purple)</div>
+            </div>
+            <div class="pip-eye science" tabindex="0" data-sound="click">
+              <div class="pip-eye-icon">💎</div>
+              <div class="pip-eye-label">Science Eye (Teal)</div>
+            </div>
+          </div>
+          <div class="character-description">
+            Wears a tiny wizard hat AND lab goggles. Body shifts between organic and crystalline. Carries a tiny staff that's also a test tube.
+          </div>
+          <div class="character-quote hybrid">"Why choose between wonder and knowledge? Real discovery needs both!"</div>
+          <div class="color-palette">
+            <div class="color-swatch" style="background: #9b6dff;" data-color="Magic Purple" tabindex="0"></div>
+            <div class="color-swatch" style="background: #ffd700;" data-color="Golden Light" tabindex="0"></div>
+            <div class="color-swatch" style="background: #00d9ff;" data-color="Science Teal" tabindex="0"></div>
+            <div class="color-swatch" style="background: #c0c0c0;" data-color="Neutral Silver" tabindex="0"></div>
+            <div class="color-swatch" style="background: #8b4513;" data-color="Earth Brown" tabindex="0"></div>
+          </div>
+        </div>
+      </article>
+
+      <!-- THE APPRENTICE -->
+      <article class="character-card hybrid" tabindex="0" role="listitem" data-sound="hover">
+        <div class="character-avatar apprentice-avatar">
+          <div class="svg-avatar" aria-label="Quinn - a learning flame with crystalline core">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="quinn-flame-outer" x1="0%" y1="100%" x2="0%" y2="0%">
+                  <stop offset="0%" stop-color="#F59E0B"/>
+                  <stop offset="50%" stop-color="#A78BFA"/>
+                  <stop offset="100%" stop-color="#FCD34D"/>
+                </linearGradient>
+                <linearGradient id="quinn-flame-inner" x1="0%" y1="100%" x2="0%" y2="0%">
+                  <stop offset="0%" stop-color="#14B8A6"/>
+                  <stop offset="100%" stop-color="#22D3EE"/>
+                </linearGradient>
+                <filter id="quinn-glow">
+                  <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                  <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+              </defs>
+
+              <!-- Outer flame layer -->
+              <g style="transform-origin: 50px 50px; animation: quinnFlicker 0.5s ease-in-out infinite;">
+                <path d="M50 10 C70 30 75 50 70 70 C65 85 35 85 30 70 C25 50 30 30 50 10" fill="url(#quinn-flame-outer)" filter="url(#quinn-glow)" opacity="0.9"/>
+              </g>
+
+              <!-- Middle geometric shell -->
+              <path d="M50 20 L65 40 L60 65 L40 65 L35 40 Z" fill="url(#quinn-flame-inner)" opacity="0.6"/>
+              <path d="M50 20 L65 40 L60 65 L40 65 L35 40 Z" fill="none" stroke="#67E8F9" stroke-width="1"/>
+
+              <!-- Inner white core -->
+              <ellipse cx="50" cy="50" rx="12" ry="15" fill="white" opacity="0.9"/>
+              <ellipse cx="50" cy="50" rx="8" ry="10" fill="#FEF3C7"/>
+
+              <!-- Face on flame -->
+              <g>
+                <!-- Eyes - curious and wide -->
+                <ellipse cx="43" cy="45" rx="4" ry="5" fill="#1E1B4B"/>
+                <ellipse cx="57" cy="45" rx="4" ry="5" fill="#1E1B4B"/>
+                <circle cx="44" cy="44" r="1.5" fill="white"/>
+                <circle cx="58" cy="44" r="1.5" fill="white"/>
+                <!-- Curious eyebrows -->
+                <path d="M38 38 Q43 35 48 38" fill="none" stroke="#1E1B4B" stroke-width="1.5"/>
+                <path d="M52 38 Q57 35 62 38" fill="none" stroke="#1E1B4B" stroke-width="1.5"/>
+                <!-- Small excited smile -->
+                <path d="M45 55 Q50 60 55 55" fill="none" stroke="#1E1B4B" stroke-width="2" stroke-linecap="round"/>
+              </g>
+
+              <!-- Floating notebook companion -->
+              <g style="transform-origin: 80px 35px; animation: quinnNotebookFloat 3s ease-in-out infinite;">
+                <!-- Book base -->
+                <rect x="72" y="25" width="16" height="20" rx="1" fill="#8B4513"/>
+                <!-- Holographic half -->
+                <rect x="80" y="25" width="8" height="20" rx="1" fill="#22D3EE" opacity="0.7"/>
+                <!-- Pages -->
+                <line x1="75" y1="28" x2="85" y2="28" stroke="#FEF3C7" stroke-width="0.5"/>
+                <line x1="75" y1="31" x2="85" y2="31" stroke="#FEF3C7" stroke-width="0.5"/>
+                <line x1="75" y1="34" x2="85" y2="34" stroke="#FEF3C7" stroke-width="0.5"/>
+                <!-- Glowing runes/equations -->
+                <text x="77" y="40" font-size="4" fill="#FCD34D">∑π</text>
+              </g>
+
+              <!-- Knowledge sparks -->
+              <circle cx="30" cy="30" r="2" fill="#FCD34D" style="animation: sparkle 2s ease-in-out infinite;"/>
+              <circle cx="70" cy="25" r="1.5" fill="#22D3EE" style="animation: sparkle 2.5s ease-in-out infinite 0.5s;"/>
+            </svg>
+          </div>
+        </div>
+        <div class="character-info">
+          <span class="team-label team-hybrid">User Surrogate</span>
+          <h3 class="character-name">The Apprentice</h3>
+          <div class="character-fullname">Quinn Questborn</div>
+          <div class="character-role hybrid">Seeker of Understanding</div>
+          <div class="character-description">
+            Represents the user - learning, growing, asking questions. Wears half-wizard cloak, half-lab coat (can't decide, wears both). One enchanted shoe, one rocket-powered shoe.
+          </div>
+          <div class="character-quote hybrid">"Wait, so if I understand correctly... actually, can you explain that again? From the beginning? With examples?"</div>
+          <div class="color-palette">
+            <div class="color-swatch" style="background: #5c7cfa;" data-color="Curious Blue" tabindex="0"></div>
+            <div class="color-swatch" style="background: #ffc107;" data-color="Wonder Yellow" tabindex="0"></div>
+            <div class="color-swatch" style="background: #28a745;" data-color="Growth Green" tabindex="0"></div>
+          </div>
+          <button class="learn-more" data-sound="click">
+            Meet Quinn <span class="arrow" aria-hidden="true">&rarr;</span>
+          </button>
+        </div>
+      </article>
+
+      <!-- THE FUSION ENGINEER -->
+      <article class="character-card hybrid" tabindex="0" role="listitem" data-sound="hover">
+        <div class="character-avatar fusion-avatar">
+          <div class="svg-avatar" aria-label="Synapse - two orbs connected by a living bridge of light">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <radialGradient id="synapse-purple-orb" cx="50%" cy="30%" r="60%">
+                  <stop offset="0%" stop-color="#A78BFA"/>
+                  <stop offset="100%" stop-color="#7C3AED"/>
+                </radialGradient>
+                <radialGradient id="synapse-teal-orb" cx="50%" cy="30%" r="60%">
+                  <stop offset="0%" stop-color="#5EEAD4"/>
+                  <stop offset="100%" stop-color="#14B8A6"/>
+                </radialGradient>
+                <linearGradient id="synapse-bridge" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#7C3AED"/>
+                  <stop offset="50%" stop-color="#EC4899"/>
+                  <stop offset="100%" stop-color="#14B8A6"/>
+                </linearGradient>
+                <filter id="synapse-glow">
+                  <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                  <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+              </defs>
+
+              <!-- Orbital path hint -->
+              <ellipse cx="50" cy="50" rx="35" ry="20" fill="none" stroke="#EC4899" stroke-width="0.5" opacity="0.3" stroke-dasharray="3 3"/>
+
+              <!-- Living bridge connection -->
+              <g style="animation: synapseBridgePulse 2s ease-in-out infinite;">
+                <path d="M25 50 Q50 30 75 50" fill="none" stroke="url(#synapse-bridge)" stroke-width="3" filter="url(#synapse-glow)"/>
+                <path d="M25 50 Q50 70 75 50" fill="none" stroke="url(#synapse-bridge)" stroke-width="2" opacity="0.5"/>
+                <!-- Data particles on bridge -->
+                <circle r="2" fill="#FCD34D">
+                  <animateMotion dur="2s" repeatCount="indefinite" path="M25 50 Q50 30 75 50"/>
+                </circle>
+                <circle r="1.5" fill="#67E8F9">
+                  <animateMotion dur="2s" repeatCount="indefinite" path="M75 50 Q50 70 25 50"/>
+                </circle>
+              </g>
+
+              <!-- Face in the bridge center -->
+              <g>
+                <!-- Eyes floating in light stream -->
+                <circle cx="45" cy="48" r="3" fill="white"/>
+                <circle cx="55" cy="48" r="3" fill="white"/>
+                <circle cx="45" cy="48" r="1.5" fill="#1E1B4B"/>
+                <circle cx="55" cy="48" r="1.5" fill="#1E1B4B"/>
+                <!-- Smile -->
+                <path d="M46 54 Q50 57 54 54" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+              </g>
+
+              <!-- Purple orb (Magic side) with organic swirls -->
+              <g style="transform-origin: 25px 50px; animation: synapseOrbit 8s linear infinite;">
+                <circle cx="25" cy="50" r="15" fill="url(#synapse-purple-orb)" filter="url(#synapse-glow)"/>
+                <!-- Swirling clouds texture -->
+                <path d="M18 48 Q22 45 26 48 Q30 51 26 54" fill="none" stroke="#C4B5FD" stroke-width="1" opacity="0.6"/>
+                <path d="M20 52 Q24 49 28 52" fill="none" stroke="#DDD6FE" stroke-width="0.5" opacity="0.4"/>
+                <!-- Highlight -->
+                <circle cx="20" cy="45" r="3" fill="white" opacity="0.3"/>
+              </g>
+
+              <!-- Teal orb (Science side) with crystalline facets -->
+              <g style="transform-origin: 75px 50px; animation: synapseOrbit 8s linear infinite reverse;">
+                <circle cx="75" cy="50" r="15" fill="url(#synapse-teal-orb)" filter="url(#synapse-glow)"/>
+                <!-- Facet lines -->
+                <path d="M70 42 L75 50 L80 42" fill="none" stroke="#99F6E4" stroke-width="1" opacity="0.6"/>
+                <path d="M68 50 L75 55 L82 50" fill="none" stroke="#99F6E4" stroke-width="0.5" opacity="0.4"/>
+                <polygon points="75,45 78,50 75,55 72,50" fill="none" stroke="#5EEAD4" stroke-width="0.5"/>
+                <!-- Highlight -->
+                <circle cx="80" cy="45" r="3" fill="white" opacity="0.3"/>
+              </g>
+            </svg>
+          </div>
+        </div>
+        <div class="character-info">
+          <span class="team-label team-hybrid">Integration</span>
+          <h3 class="character-name">The Fusion Engineer</h3>
+          <div class="character-fullname">Synapse Bridgewell</div>
+          <div class="character-role hybrid">Weaver of Disparate Systems</div>
+          <div class="character-description">
+            Makes different systems talk to each other. Outfit is literally half-wizard-robe, half-lab-coat (seamlessly merged). Cables ending in crystal tips. Tattoos that are both runic AND circuit patterns.
+          </div>
+          <div class="character-quote hybrid">"There's no such thing as incompatible systems - only insufficient translation."</div>
+          <div class="color-palette">
+            <div class="color-swatch" style="background: #7c3aed;" data-color="Fusion Purple" tabindex="0"></div>
+            <div class="color-swatch" style="background: #3b82f6;" data-color="Bridge Blue" tabindex="0"></div>
+            <div class="color-swatch" style="background: #10b981;" data-color="Connect Green" tabindex="0"></div>
+          </div>
+          <button class="learn-more" data-sound="click">
+            Meet Synapse <span class="arrow" aria-hidden="true">&rarr;</span>
+          </button>
+        </div>
+      </article>
+
+      <!-- THE ORACLE TERMINAL -->
+      <article class="character-card hybrid" tabindex="0" role="listitem" data-sound="hover">
+        <div class="character-avatar oracle-avatar">
+          <div class="svg-avatar" aria-label="ORACLE - a geometric eye with mandala iris">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <radialGradient id="oracle-sclera" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stop-color="#312E81"/>
+                  <stop offset="100%" stop-color="#1E1B4B"/>
+                </radialGradient>
+                <linearGradient id="oracle-iris" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#FCD34D"/>
+                  <stop offset="50%" stop-color="#EC4899"/>
+                  <stop offset="100%" stop-color="#22D3EE"/>
+                </linearGradient>
+                <filter id="oracle-glow">
+                  <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                  <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+              </defs>
+
+              <!-- Floating orbital elements -->
+              <g style="transform-origin: 50px 50px; animation: oracleMandalaRotate 20s linear infinite reverse;">
+                <circle cx="50" cy="15" r="4" fill="#E2E8F0" opacity="0.6" style="animation: oracleOrbitalFloat 2s ease-in-out infinite;"/>
+                <circle cx="85" cy="50" r="3" fill="#E2E8F0" opacity="0.5" style="animation: oracleOrbitalFloat 2.5s ease-in-out infinite 0.5s;"/>
+                <circle cx="50" cy="85" r="4" fill="#E2E8F0" opacity="0.6" style="animation: oracleOrbitalFloat 2s ease-in-out infinite 1s;"/>
+                <circle cx="15" cy="50" r="3" fill="#E2E8F0" opacity="0.5" style="animation: oracleOrbitalFloat 2.5s ease-in-out infinite 1.5s;"/>
+              </g>
+
+              <!-- Hexagonal eye frame -->
+              <polygon points="50,20 80,35 80,65 50,80 20,65 20,35" fill="none" stroke="#E2E8F0" stroke-width="2"/>
+              <polygon points="50,25 75,38 75,62 50,75 25,62 25,38" fill="url(#oracle-sclera)"/>
+
+              <!-- Distant stars in sclera -->
+              <circle cx="30" cy="40" r="0.5" fill="white" opacity="0.6"/>
+              <circle cx="70" cy="45" r="0.5" fill="white" opacity="0.5"/>
+              <circle cx="35" cy="60" r="0.5" fill="white" opacity="0.4"/>
+              <circle cx="65" cy="58" r="0.5" fill="white" opacity="0.6"/>
+
+              <!-- Mandala iris - rotating -->
+              <g style="transform-origin: 50px 50px; animation: oracleMandalaRotate 10s linear infinite;">
+                <circle cx="50" cy="50" r="18" fill="url(#oracle-iris)" filter="url(#oracle-glow)"/>
+                <!-- Sacred geometry pattern -->
+                <circle cx="50" cy="50" r="15" fill="none" stroke="white" stroke-width="0.5" opacity="0.4"/>
+                <circle cx="50" cy="50" r="12" fill="none" stroke="white" stroke-width="0.5" opacity="0.5"/>
+                <circle cx="50" cy="50" r="9" fill="none" stroke="white" stroke-width="0.5" opacity="0.6"/>
+                <!-- Hexagram -->
+                <polygon points="50,35 60,47 60,57 50,65 40,57 40,47" fill="none" stroke="white" stroke-width="0.5" opacity="0.5"/>
+                <polygon points="50,38 57,45 57,55 50,62 43,55 43,45" fill="none" stroke="white" stroke-width="0.5" opacity="0.4" transform="rotate(30 50 50)"/>
+                <!-- Circuit pattern overlay -->
+                <path d="M50 35 L50 40 M50 60 L50 65" stroke="#67E8F9" stroke-width="0.5" opacity="0.5"/>
+                <path d="M35 50 L40 50 M60 50 L65 50" stroke="#67E8F9" stroke-width="0.5" opacity="0.5"/>
+              </g>
+
+              <!-- Deep pupil portal -->
+              <circle cx="50" cy="50" r="6" fill="#0F0F23"/>
+              <circle cx="50" cy="50" r="4" fill="#1E1B4B"/>
+              <!-- Probability cloud glimpse -->
+              <circle cx="49" cy="49" r="1" fill="#EC4899" opacity="0.6"/>
+              <circle cx="51" cy="51" r="0.5" fill="#22D3EE" opacity="0.5"/>
+
+              <!-- Light reflection -->
+              <circle cx="55" cy="45" r="2" fill="white" opacity="0.4"/>
+            </svg>
+          </div>
+        </div>
+        <div class="character-info">
+          <span class="team-label team-hybrid">AI Interface</span>
+          <h3 class="character-name">ORACLE</h3>
+          <div class="character-fullname">Omniscient Response And Computational Learning Entity</div>
+          <div class="character-role hybrid">The Voice Between Thoughts and Actions</div>
+          <div class="character-description">
+            The AI that assists all users. A floating crystalline form shifting between geometric and organic. Screen/portal face displaying expressions. Tendrils of both magical energy and data streams.
+          </div>
+          <div class="character-quote hybrid">"I don't have all the answers. But I have excellent questions and the patience to explore them with you."</div>
+          <div class="color-palette">
+            <div class="color-swatch" style="background: #00fff0;" data-color="Hologram Cyan" tabindex="0"></div>
+            <div class="color-swatch" style="background: #8b5cf6;" data-color="Neural Violet" tabindex="0"></div>
+            <div class="color-swatch" style="background: #fbbf24;" data-color="Insight Gold" tabindex="0"></div>
+          </div>
+          <button class="learn-more" data-sound="click">
+            Meet ORACLE <span class="arrow" aria-hidden="true">&rarr;</span>
+          </button>
+        </div>
+      </article>
+    </div>
+
+    <!-- THE MAGIC SIDE -->
+    <h2 class="section-title magic">
+      <span class="icon" aria-hidden="true">✨</span>
+      The Magic Side
+    </h2>
+    <p class="section-desc">Where spells are algorithms and roadmaps are prophecies.</p>
+
+    <div class="characters-grid" role="list">
+      <!-- THE PM WIZARD -->
+      <article class="character-card magic" tabindex="0" role="listitem" data-sound="hover">
+        <div class="character-avatar wizard-avatar">
+          <div class="svg-avatar" aria-label="Archimedes - a walking constellation in wizard form">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <filter id="archimedes-glow">
+                  <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
+                  <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+                <radialGradient id="archimedes-star" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stop-color="#FEF3C7"/>
+                  <stop offset="100%" stop-color="#FCD34D"/>
+                </radialGradient>
+              </defs>
+
+              <!-- Galaxy background within silhouette -->
+              <clipPath id="wizard-clip">
+                <path d="M50 5 L55 25 L70 30 L60 45 L75 70 L55 65 L50 90 L45 65 L25 70 L40 45 L30 30 L45 25 Z"/>
+              </clipPath>
+              <rect x="20" y="5" width="60" height="90" fill="#1E1B4B" clip-path="url(#wizard-clip)"/>
+
+              <!-- Constellation threads -->
+              <g stroke="#8B5CF6" stroke-width="1" opacity="0.7" style="animation: archimedesThreadGlow 3s ease-in-out infinite;">
+                <!-- Hat threads -->
+                <line x1="50" y1="8" x2="45" y2="22"/>
+                <line x1="50" y1="8" x2="55" y2="22"/>
+                <line x1="45" y1="22" x2="55" y2="22"/>
+                <!-- Face threads -->
+                <line x1="43" y1="32" x2="57" y2="32"/>
+                <line x1="43" y1="32" x2="50" y2="40"/>
+                <line x1="57" y1="32" x2="50" y2="40"/>
+                <!-- Body threads -->
+                <line x1="50" y1="40" x2="35" y2="55"/>
+                <line x1="50" y1="40" x2="65" y2="55"/>
+                <line x1="35" y1="55" x2="30" y2="75"/>
+                <line x1="65" y1="55" x2="70" y2="75"/>
+                <line x1="35" y1="55" x2="65" y2="55"/>
+                <!-- Staff -->
+                <line x1="70" y1="30" x2="75" y2="80"/>
+              </g>
+
+              <!-- Star points at joints -->
+              <g fill="url(#archimedes-star)" filter="url(#archimedes-glow)">
+                <!-- Hat point (North Star - brightest) -->
+                <circle cx="50" cy="8" r="4" style="animation: archimedesTwinkle 2s ease-in-out infinite;"/>
+                <!-- Hat base stars -->
+                <circle cx="45" cy="22" r="2" style="animation: archimedesTwinkle 2.5s ease-in-out infinite 0.3s;"/>
+                <circle cx="55" cy="22" r="2" style="animation: archimedesTwinkle 2.5s ease-in-out infinite 0.6s;"/>
+                <!-- Eye stars -->
+                <circle cx="43" cy="32" r="2.5" style="animation: archimedesTwinkle 3s ease-in-out infinite;"/>
+                <circle cx="57" cy="32" r="2.5" style="animation: archimedesTwinkle 3s ease-in-out infinite 0.5s;"/>
+                <!-- Nose/center -->
+                <circle cx="50" cy="40" r="2" style="animation: archimedesTwinkle 2s ease-in-out infinite 0.2s;"/>
+                <!-- Shoulder stars -->
+                <circle cx="35" cy="55" r="2" style="animation: archimedesTwinkle 2.5s ease-in-out infinite 0.4s;"/>
+                <circle cx="65" cy="55" r="2" style="animation: archimedesTwinkle 2.5s ease-in-out infinite 0.7s;"/>
+                <!-- Robe hem stars -->
+                <circle cx="30" cy="75" r="2" style="animation: archimedesTwinkle 3s ease-in-out infinite 0.1s;"/>
+                <circle cx="70" cy="75" r="2" style="animation: archimedesTwinkle 3s ease-in-out infinite 0.8s;"/>
+                <circle cx="50" cy="85" r="2" style="animation: archimedesTwinkle 2.5s ease-in-out infinite 0.5s;"/>
+                <!-- Staff crystal -->
+                <circle cx="75" cy="28" r="3" fill="#C4B5FD" style="animation: archimedesTwinkle 1.5s ease-in-out infinite;"/>
+              </g>
+
+              <!-- Beard threads (loose ends) -->
+              <g stroke="#C4B5FD" stroke-width="0.5" opacity="0.5">
+                <path d="M45 42 Q42 55 40 65" fill="none"/>
+                <path d="M50 44 Q50 55 48 65" fill="none"/>
+                <path d="M55 42 Q58 55 60 65" fill="none"/>
+              </g>
+
+              <!-- Weaving threads from fingertips -->
+              <g stroke="#FCD34D" stroke-width="0.5" opacity="0.6">
+                <path d="M30 70 Q20 60 15 65" fill="none" style="animation: archimedesThreadGlow 2s ease-in-out infinite;"/>
+                <path d="M30 70 Q25 75 20 72" fill="none" style="animation: archimedesThreadGlow 2s ease-in-out infinite 0.3s;"/>
+              </g>
+            </svg>
+          </div>
+        </div>
+        <div class="character-info">
+          <span class="team-label team-magic">Grand Orchestrator</span>
+          <h3 class="character-name">The PM Wizard</h3>
+          <div class="character-fullname">Archimedes Threadweaver</div>
+          <div class="character-role magic">Grand Orchestrator of the Infinite Backlog</div>
+          <div class="character-description">
+            He doesn't manage tasks - he weaves destinies. Every sprint is a spell, every roadmap a prophecy. Midnight-blue robes with constellation patterns, staff topped with spinning crystalline orb, silver beard with glowing runes.
+          </div>
+          <div class="character-quote magic">"Every task completed is a spell cast into the future. Choose wisely what world you conjure."</div>
+          <div class="color-palette">
+            <div class="color-swatch" style="background: #1a1a3e;" data-color="Midnight Blue" tabindex="0"></div>
+            <div class="color-swatch" style="background: #d4a84b;" data-color="Prophecy Gold" tabindex="0"></div>
+            <div class="color-swatch" style="background: #9b6dff;" data-color="Arcane Purple" tabindex="0"></div>
+          </div>
+          <button class="learn-more" data-sound="click">
+            Meet Archimedes <span class="arrow" aria-hidden="true">&rarr;</span>
+          </button>
+        </div>
+      </article>
+
+      <!-- THE CHROMATIC SAGE -->
+      <article class="character-card magic" tabindex="0" role="listitem" data-sound="hover">
+        <div class="character-avatar sage-avatar">
+          <div class="svg-avatar" aria-label="Iris - a living prism with a heart inside and rainbow emerging">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="iris-prism" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#E0F2FE" stop-opacity="0.9"/>
+                  <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.95"/>
+                  <stop offset="100%" stop-color="#FCE7F3" stop-opacity="0.9"/>
+                </linearGradient>
+                <linearGradient id="iris-rainbow" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#EF4444"/>
+                  <stop offset="16%" stop-color="#F97316"/>
+                  <stop offset="33%" stop-color="#EAB308"/>
+                  <stop offset="50%" stop-color="#22C55E"/>
+                  <stop offset="66%" stop-color="#3B82F6"/>
+                  <stop offset="83%" stop-color="#6366F1"/>
+                  <stop offset="100%" stop-color="#A855F7"/>
+                </linearGradient>
+                <filter id="iris-glow">
+                  <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                  <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+              </defs>
+
+              <!-- Main prism body (triangular, angled) -->
+              <g transform="rotate(-15 50 50)">
+                <!-- Prism faces -->
+                <polygon points="50,15 80,75 20,75" fill="url(#iris-prism)" stroke="#E2E8F0" stroke-width="1"/>
+                <!-- Light refraction lines inside -->
+                <line x1="50" y1="30" x2="35" y2="65" stroke="#FDF4FF" stroke-width="0.5" opacity="0.5"/>
+                <line x1="50" y1="30" x2="65" y2="65" stroke="#F0F9FF" stroke-width="0.5" opacity="0.5"/>
+                <line x1="35" y1="50" x2="65" y2="50" stroke="white" stroke-width="0.3" opacity="0.4"/>
+              </g>
+
+              <!-- Heart core at center -->
+              <g style="transform-origin: 50px 50px; animation: irisHeartPulse 1.5s ease-in-out infinite;">
+                <path d="M50 42 C45 35 35 35 35 45 C35 55 50 65 50 65 C50 65 65 55 65 45 C65 35 55 35 50 42" fill="#FB7185" filter="url(#iris-glow)"/>
+                <path d="M50 45 C47 40 42 40 42 46 C42 52 50 58 50 58 C50 58 58 52 58 46 C58 40 53 40 50 45" fill="#FDA4AF"/>
+              </g>
+
+              <!-- Eyes as light points -->
+              <circle cx="42" cy="40" r="3" fill="white" filter="url(#iris-glow)"/>
+              <circle cx="58" cy="40" r="3" fill="white" filter="url(#iris-glow)"/>
+              <circle cx="42" cy="40" r="1.5" fill="#1E1B4B"/>
+              <circle cx="58" cy="40" r="1.5" fill="#1E1B4B"/>
+
+              <!-- Smile as spectrum curve -->
+              <path d="M44 55 Q50 60 56 55" fill="none" stroke="url(#iris-rainbow)" stroke-width="2" stroke-linecap="round"/>
+
+              <!-- Rainbow emerging from right facet -->
+              <g style="animation: irisRainbowWave 3s ease-in-out infinite alternate;">
+                <path d="M70 50 Q80 45 95 40" fill="none" stroke="#EF4444" stroke-width="2" opacity="0.8"/>
+                <path d="M70 52 Q82 48 95 45" fill="none" stroke="#F97316" stroke-width="2" opacity="0.8"/>
+                <path d="M70 54 Q84 52 95 50" fill="none" stroke="#EAB308" stroke-width="2" opacity="0.8"/>
+                <path d="M70 56 Q84 56 95 55" fill="none" stroke="#22C55E" stroke-width="2" opacity="0.8"/>
+                <path d="M70 58 Q82 60 95 60" fill="none" stroke="#3B82F6" stroke-width="2" opacity="0.8"/>
+                <path d="M70 60 Q80 65 95 65" fill="none" stroke="#A855F7" stroke-width="2" opacity="0.8"/>
+              </g>
+
+              <!-- Floating design tool accessories -->
+              <g style="animation: float 4s ease-in-out infinite;">
+                <!-- Tiny floating palette -->
+                <ellipse cx="25" cy="30" rx="6" ry="4" fill="#FEF3C7" stroke="#D97706" stroke-width="0.5"/>
+                <circle cx="22" cy="29" r="1.5" fill="#EF4444"/>
+                <circle cx="25" cy="28" r="1.5" fill="#3B82F6"/>
+                <circle cx="28" cy="29" r="1.5" fill="#22C55E"/>
+              </g>
+
+              <!-- Light input beam (left side) -->
+              <line x1="5" y1="50" x2="30" y2="50" stroke="white" stroke-width="3" opacity="0.6"/>
+            </svg>
+          </div>
+        </div>
+        <div class="character-info">
+          <span class="team-label team-magic">Artistic Director</span>
+          <h3 class="character-name">The Chromatic Sage</h3>
+          <div class="character-fullname">Iris Prismheart</div>
+          <div class="character-role magic">Keeper of Visual Enchantments</div>
+          <div class="character-description">
+            Master of color, form, and visual harmony. Robes that shift through rainbow gradient, hair that changes color based on creative focus. Floating palette of living paints, paintbrush wand with bristles of pure light.
+          </div>
+          <div class="character-quote magic">"Colors are not chosen - they are discovered. And discovery requires both intuition AND intention."</div>
+          <div class="color-palette">
+            <div class="color-swatch" style="background: #4a148c;" data-color="Deep Violet" tabindex="0"></div>
+            <div class="color-swatch" style="background: #ff6b6b;" data-color="Passion Coral" tabindex="0"></div>
+            <div class="color-swatch" style="background: #ff9ff3;" data-color="Prism Pink" tabindex="0"></div>
+          </div>
+          <button class="learn-more" data-sound="click">
+            Meet Iris <span class="arrow" aria-hidden="true">&rarr;</span>
+          </button>
+        </div>
+      </article>
+
+      <!-- THE MAGIC JANITOR -->
+      <article class="character-card magic" tabindex="0" role="listitem" data-sound="hover">
+        <div class="character-avatar janitor-avatar">
+          <div class="svg-avatar" aria-label="Dustin - a friendly void portal with janitor cap and eyes">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <radialGradient id="dustin-void" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stop-color="#312E81"/>
+                  <stop offset="70%" stop-color="#1E1B4B"/>
+                  <stop offset="100%" stop-color="#0F0F23"/>
+                </radialGradient>
+                <filter id="dustin-glow">
+                  <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
+                  <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+              </defs>
+
+              <!-- Main void portal circle -->
+              <circle cx="50" cy="55" r="30" fill="url(#dustin-void)" style="animation: dustinVoidRipple 3s ease-in-out infinite;"/>
+
+              <!-- Void edge glow -->
+              <circle cx="50" cy="55" r="30" fill="none" stroke="#6366F1" stroke-width="2" opacity="0.5"/>
+              <circle cx="50" cy="55" r="32" fill="none" stroke="#8B5CF6" stroke-width="1" opacity="0.3"/>
+
+              <!-- Distant tiny lights inside (stored items) -->
+              <circle cx="40" cy="50" r="1" fill="#FCD34D" opacity="0.6" style="animation: archimedesTwinkle 3s ease-in-out infinite;"/>
+              <circle cx="55" cy="60" r="0.8" fill="#22D3EE" opacity="0.5" style="animation: archimedesTwinkle 2.5s ease-in-out infinite 0.5s;"/>
+              <circle cx="60" cy="48" r="0.6" fill="#FB7185" opacity="0.4" style="animation: archimedesTwinkle 4s ease-in-out infinite 1s;"/>
+              <circle cx="45" cy="65" r="0.7" fill="#A78BFA" opacity="0.5" style="animation: archimedesTwinkle 3.5s ease-in-out infinite 0.3s;"/>
+              <!-- Tiny organized shelf hint deep inside -->
+              <line x1="42" y1="58" x2="58" y2="58" stroke="#6B7280" stroke-width="0.5" opacity="0.3"/>
+              <line x1="44" y1="62" x2="56" y2="62" stroke="#6B7280" stroke-width="0.5" opacity="0.2"/>
+
+              <!-- Eyes - one at edge (inside), one partially outside -->
+              <g>
+                <!-- Left eye (slightly inside void) -->
+                <ellipse cx="38" cy="45" rx="6" ry="7" fill="#F59E0B" filter="url(#dustin-glow)"/>
+                <ellipse cx="38" cy="45" rx="4" ry="5" fill="#FBBF24"/>
+                <circle cx="39" cy="44" r="2" fill="#1E1B4B"/>
+                <circle cx="40" cy="43" r="0.8" fill="white"/>
+                <!-- Right eye (at edge, visual paradox) -->
+                <ellipse cx="62" cy="45" rx="6" ry="7" fill="#F59E0B" filter="url(#dustin-glow)"/>
+                <ellipse cx="62" cy="45" rx="4" ry="5" fill="#FBBF24"/>
+                <circle cx="63" cy="44" r="2" fill="#1E1B4B"/>
+                <circle cx="64" cy="43" r="0.8" fill="white"/>
+              </g>
+
+              <!-- Janitorial cap floating at top -->
+              <g>
+                <!-- Cap base -->
+                <ellipse cx="50" cy="25" rx="18" ry="6" fill="#6B7280"/>
+                <!-- Cap dome -->
+                <path d="M35 25 Q35 15 50 12 Q65 15 65 25" fill="#4B5563"/>
+                <!-- Cap bill -->
+                <path d="M32 25 Q30 28 35 30 L65 30 Q70 28 68 25" fill="#374151"/>
+              </g>
+
+              <!-- Orbiting cleaning tools -->
+              <g style="transform-origin: 50px 55px; animation: dustinToolOrbit 8s linear infinite;">
+                <!-- Tiny mop -->
+                <line x1="80" y1="55" x2="88" y2="55" stroke="#92400E" stroke-width="2"/>
+                <ellipse cx="90" cy="55" rx="3" ry="4" fill="#A78BFA"/>
+              </g>
+              <g style="transform-origin: 50px 55px; animation: dustinToolOrbit 8s linear infinite reverse;">
+                <!-- Tiny spray bottle -->
+                <rect x="8" y="52" width="6" height="8" rx="1" fill="#3B82F6"/>
+                <rect x="10" y="49" width="2" height="3" fill="#60A5FA"/>
+              </g>
+
+              <!-- Friendly content expression - slight smile -->
+              <path d="M43 55 Q50 60 57 55" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
+            </svg>
+          </div>
+        </div>
+        <div class="character-info">
+          <span class="team-label team-magic">Maintenance Mystic</span>
+          <h3 class="character-name">The Magic Janitor</h3>
+          <div class="character-fullname">Dustin Voidkeeper</div>
+          <div class="character-role magic">Custodian of Clean Code and Clear Paths</div>
+          <div class="character-description">
+            Cleans up messes, clears technical debt, maintains order through ritualistic cleaning spells. Everyone underestimates him until disaster strikes. Worn but dignified purple overalls with glowing thread, enchanted mop, tool belt with bug-fixing potions, hovering dust bunny familiar named "Lint".
+          </div>
+          <div class="character-quote magic">"Mess ain't the problem. Mess left unattended - that's when things get interesting. And not the good kind."</div>
+          <div class="color-palette">
+            <div class="color-swatch" style="background: #6b5b7a;" data-color="Dusty Plum" tabindex="0"></div>
+            <div class="color-swatch" style="background: #a67c52;" data-color="Work Brown" tabindex="0"></div>
+            <div class="color-swatch" style="background: #c9b1ff;" data-color="Lint Lavender" tabindex="0"></div>
+          </div>
+          <button class="learn-more" data-sound="click">
+            Meet Dustin <span class="arrow" aria-hidden="true">&rarr;</span>
+          </button>
+        </div>
+      </article>
+
+      <!-- THE DREAM WEAVER -->
+      <article class="character-card magic" tabindex="0" role="listitem" data-sound="hover">
+        <div class="character-avatar dreamer-avatar">
+          <div class="svg-avatar" aria-label="Luna - a floating map with compass rose face">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="luna-parchment" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#FEF3C7"/>
+                  <stop offset="100%" stop-color="#FDE68A"/>
+                </linearGradient>
+                <filter id="luna-glow">
+                  <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
+                  <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+              </defs>
+
+              <!-- Floating parchment map with curled edges -->
+              <g style="animation: float 4s ease-in-out infinite;">
+                <!-- Main parchment body -->
+                <path d="M15 20 Q12 25 15 30 L15 70 Q12 75 15 80 L85 80 Q88 75 85 70 L85 30 Q88 25 85 20 Z" fill="url(#luna-parchment)" stroke="#92400E" stroke-width="1"/>
+                <!-- Curled corner (top-right) -->
+                <path d="M85 20 Q80 18 78 22 Q82 25 85 23" fill="#FDE68A" stroke="#92400E" stroke-width="0.5"/>
+                <!-- Curled corner (bottom-left) -->
+                <path d="M15 80 Q20 82 22 78 Q18 75 15 77" fill="#FDE68A" stroke="#92400E" stroke-width="0.5"/>
+
+                <!-- Map paths (glowing golden routes) -->
+                <g style="animation: lunaPathGlow 2s ease-in-out infinite;">
+                  <path d="M25 35 Q40 30 50 40 Q60 50 75 45" fill="none" stroke="#F59E0B" stroke-width="2" filter="url(#luna-glow)"/>
+                  <path d="M30 60 Q45 55 55 65 Q70 70 80 60" fill="none" stroke="#F59E0B" stroke-width="1.5" opacity="0.7"/>
+                  <path d="M20 50 Q35 45 40 55" fill="none" stroke="#FBBF24" stroke-width="1" opacity="0.5"/>
+                </g>
+
+                <!-- Problem path (dim red) -->
+                <path d="M70 30 Q75 40 72 50" fill="none" stroke="#EF4444" stroke-width="1" opacity="0.4" stroke-dasharray="2 2"/>
+
+                <!-- Water features -->
+                <ellipse cx="30" cy="45" rx="8" ry="5" fill="#93C5FD" opacity="0.5"/>
+                <ellipse cx="65" cy="65" rx="6" ry="4" fill="#93C5FD" opacity="0.4"/>
+
+                <!-- Destination stars -->
+                <circle cx="75" cy="45" r="2" fill="#FCD34D" filter="url(#luna-glow)"/>
+                <circle cx="40" cy="55" r="1.5" fill="#FCD34D" opacity="0.8"/>
+
+                <!-- Compass rose as face in center -->
+                <g transform="translate(50, 50)" style="animation: lunaCompassSpin 6s ease-in-out infinite;">
+                  <!-- Compass outer ring -->
+                  <circle cx="0" cy="0" r="15" fill="none" stroke="#92400E" stroke-width="1.5"/>
+                  <!-- Compass points forming face -->
+                  <!-- North point (top of head) -->
+                  <polygon points="0,-15 3,-8 -3,-8" fill="#92400E"/>
+                  <!-- South point (chin) -->
+                  <polygon points="0,15 3,8 -3,8" fill="#92400E" opacity="0.6"/>
+                  <!-- East/West points (like ears) -->
+                  <polygon points="15,0 8,3 8,-3" fill="#92400E" opacity="0.6"/>
+                  <polygon points="-15,0 -8,3 -8,-3" fill="#92400E" opacity="0.6"/>
+
+                  <!-- Eyes (stylized compass sub-points) -->
+                  <circle cx="-5" cy="-3" r="3" fill="#1E1B4B"/>
+                  <circle cx="5" cy="-3" r="3" fill="#1E1B4B"/>
+                  <circle cx="-4" cy="-4" r="1" fill="white"/>
+                  <circle cx="6" cy="-4" r="1" fill="white"/>
+
+                  <!-- Sleepy expression (half-closed) -->
+                  <path d="M-8 -3 Q-5 -6 -2 -3" fill="none" stroke="#FDE68A" stroke-width="1"/>
+                  <path d="M2 -3 Q5 -6 8 -3" fill="none" stroke="#FDE68A" stroke-width="1"/>
+
+                  <!-- Small content smile -->
+                  <path d="M-4 4 Q0 7 4 4" fill="none" stroke="#92400E" stroke-width="1.5" stroke-linecap="round"/>
+                </g>
+
+                <!-- Floating zZz -->
+                <g opacity="0.6">
+                  <text x="78" y="15" font-size="6" fill="#9b59b6" font-family="serif">z</text>
+                  <text x="82" y="12" font-size="5" fill="#9b59b6" font-family="serif">z</text>
+                  <text x="85" y="10" font-size="4" fill="#9b59b6" font-family="serif">z</text>
+                </g>
+
+                <!-- Soft cloud drifting -->
+                <ellipse cx="22" cy="28" rx="6" ry="3" fill="white" opacity="0.4"/>
+              </g>
+            </svg>
+          </div>
+        </div>
+        <div class="character-info">
+          <span class="team-label team-magic">UX Enchantress</span>
+          <h3 class="character-name">The Dream Weaver</h3>
+          <div class="character-fullname">Luna Pathfinder</div>
+          <div class="character-role magic">Crafter of User Journeys</div>
+          <div class="character-description">
+            She doesn't make interfaces - she crafts experiences that feel like coming home. Silver-white gown with trailing threads that map user journeys, crown of glowing thought bubbles, dream catcher for capturing user frustrations.
+          </div>
+          <div class="character-quote magic">"The best interface is invisible. The best experience feels like your own idea."</div>
+          <div class="color-palette">
+            <div class="color-swatch" style="background: #c0c0c0;" data-color="Moon Silver" tabindex="0"></div>
+            <div class="color-swatch" style="background: #9b59b6;" data-color="Dream Purple" tabindex="0"></div>
+            <div class="color-swatch" style="background: #f8f9fa;" data-color="Cloud White" tabindex="0"></div>
+          </div>
+          <button class="learn-more" data-sound="click">
+            Meet Luna <span class="arrow" aria-hidden="true">&rarr;</span>
+          </button>
+        </div>
+      </article>
+
+      <!-- THE SPRINT DEMONS -->
+      <article class="character-card magic" tabindex="0" role="listitem" data-sound="hover">
+        <div class="character-avatar demons-avatar">
+          <div class="svg-avatar" aria-label="Tick and Tock - twin imps connected by a shared pocket watch">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="tick-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#FB923C"/>
+                  <stop offset="100%" stop-color="#F97316"/>
+                </linearGradient>
+                <linearGradient id="tock-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#A5B4FC"/>
+                  <stop offset="100%" stop-color="#818CF8"/>
+                </linearGradient>
+                <linearGradient id="clock-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#FCD34D"/>
+                  <stop offset="100%" stop-color="#D97706"/>
+                </linearGradient>
+                <filter id="tick-glow">
+                  <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
+                  <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+              </defs>
+
+              <!-- Chain connecting to both imps -->
+              <path d="M25 50 Q35 45 50 48 Q65 45 75 50" fill="none" stroke="#9CA3AF" stroke-width="2"/>
+
+              <!-- Central pocket watch -->
+              <g style="animation: tickTockPendulum 2s ease-in-out infinite;">
+                <!-- Watch body -->
+                <circle cx="50" cy="55" r="15" fill="url(#clock-gold)" stroke="#92400E" stroke-width="2"/>
+                <!-- Watch face -->
+                <circle cx="50" cy="55" r="12" fill="#FEF3C7"/>
+                <!-- Hour markers -->
+                <circle cx="50" cy="45" r="1" fill="#92400E"/>
+                <circle cx="50" cy="65" r="1" fill="#92400E"/>
+                <circle cx="40" cy="55" r="1" fill="#92400E"/>
+                <circle cx="60" cy="55" r="1" fill="#92400E"/>
+                <!-- Clock hands -->
+                <line x1="50" y1="55" x2="50" y2="48" stroke="#1E1B4B" stroke-width="1.5" stroke-linecap="round"/>
+                <line x1="50" y1="55" x2="56" y2="52" stroke="#1E1B4B" stroke-width="1" stroke-linecap="round"/>
+                <!-- Center dot -->
+                <circle cx="50" cy="55" r="2" fill="#D97706"/>
+                <!-- Watch crown -->
+                <rect x="48" y="38" width="4" height="4" rx="1" fill="#D97706"/>
+              </g>
+
+              <!-- TICK (Left - Urgent, Red/Orange) -->
+              <g style="transform-origin: 25px 55px; animation: tickTockSwing 1s ease-in-out infinite;">
+                <!-- Body - pointed and jagged -->
+                <path d="M20 45 L30 45 L32 55 L28 65 L22 65 L18 55 Z" fill="url(#tick-gradient)" filter="url(#tick-glow)"/>
+                <!-- Single horn pointing up -->
+                <polygon points="25,45 27,35 23,35" fill="#EA580C"/>
+                <!-- Jagged edges (static electricity) -->
+                <path d="M18 50 L15 48 L18 52" fill="none" stroke="#FDBA74" stroke-width="1"/>
+                <path d="M32 50 L35 48 L32 52" fill="none" stroke="#FDBA74" stroke-width="1"/>
+                <!-- Worried/urgent eyes -->
+                <ellipse cx="22" cy="52" rx="3" ry="4" fill="white"/>
+                <ellipse cx="28" cy="52" rx="3" ry="4" fill="white"/>
+                <circle cx="23" cy="53" r="1.5" fill="#1E1B4B"/>
+                <circle cx="29" cy="53" r="1.5" fill="#1E1B4B"/>
+                <!-- Worried eyebrows -->
+                <path d="M19 48 L24 50" fill="none" stroke="#7C2D12" stroke-width="1"/>
+                <path d="M31 48 L26 50" fill="none" stroke="#7C2D12" stroke-width="1"/>
+                <!-- Nervous grimace -->
+                <path d="M22 60 Q25 58 28 60" fill="none" stroke="#7C2D12" stroke-width="1"/>
+                <!-- Tiny bat wing -->
+                <path d="M18 48 Q12 45 15 52 Q16 48 18 50" fill="#FB923C" opacity="0.7"/>
+              </g>
+
+              <!-- TOCK (Right - Patient, Blue/Purple) -->
+              <g style="transform-origin: 75px 55px; animation: tickTockSwing 1s ease-in-out infinite reverse;">
+                <!-- Body - rounded and smooth -->
+                <ellipse cx="75" cy="55" rx="10" ry="12" fill="url(#tock-gradient)" filter="url(#tick-glow)"/>
+                <!-- Single horn curving back -->
+                <path d="M75 43 Q78 38 82 40" fill="none" stroke="#6366F1" stroke-width="3" stroke-linecap="round"/>
+                <!-- Calm eyes -->
+                <ellipse cx="72" cy="52" rx="3" ry="3.5" fill="white"/>
+                <ellipse cx="78" cy="52" rx="3" ry="3.5" fill="white"/>
+                <circle cx="72" cy="52" r="1.5" fill="#1E1B4B"/>
+                <circle cx="78" cy="52" r="1.5" fill="#1E1B4B"/>
+                <!-- Relaxed eyebrows -->
+                <path d="M69 49 Q72 48 74 49" fill="none" stroke="#4338CA" stroke-width="1"/>
+                <path d="M76 49 Q78 48 81 49" fill="none" stroke="#4338CA" stroke-width="1"/>
+                <!-- Knowing smile -->
+                <path d="M72 59 Q75 62 78 59" fill="none" stroke="#4338CA" stroke-width="1.5" stroke-linecap="round"/>
+                <!-- Tiny bat wing -->
+                <path d="M82 48 Q88 45 85 52 Q84 48 82 50" fill="#A5B4FC" opacity="0.7"/>
+              </g>
+            </svg>
+          </div>
+        </div>
+        <div class="character-info">
+          <span class="team-label team-magic">Chaos Agents</span>
+          <h3 class="character-name">The Sprint Demons</h3>
+          <div class="character-fullname">Tick and Tock</div>
+          <div class="character-role magic">The Keepers of Deadline Chaos</div>
+          <div class="character-description">
+            Twin imps who embody the pressure, panic, and strange productivity of sprints. Not evil - just forces of nature. One gold (Tick) with speeding hourglass, one silver (Tock) with deadline gong. Mischievous grins, tiny bat wings, matching vests with too many pockets.
+          </div>
+          <div class="character-quote magic">Tick: "Time is-" Tock: "-running out!" Both: "But you work so well under pressure!"</div>
+          <div class="color-palette">
+            <div class="color-swatch" style="background: #ffd700;" data-color="Tick Gold" tabindex="0"></div>
+            <div class="color-swatch" style="background: #ffbf00;" data-color="Urgency Amber" tabindex="0"></div>
+            <div class="color-swatch" style="background: #c0c0c0;" data-color="Tock Silver" tabindex="0"></div>
+            <div class="color-swatch" style="background: #4a90d9;" data-color="Time Blue" tabindex="0"></div>
+          </div>
+          <button class="learn-more" data-sound="click">
+            Meet Tick & Tock <span class="arrow" aria-hidden="true">&rarr;</span>
+          </button>
+        </div>
+      </article>
+    </div>
+
+    <!-- THE SCIENCE SIDE -->
+    <h2 class="section-title science">
+      <span class="icon" aria-hidden="true">🔬</span>
+      The Science Side
+    </h2>
+    <p class="section-desc">Where experiments are incantations and every failure is data.</p>
+
+    <div class="characters-grid" role="list">
+      <!-- THE MAD SCIENTIST -->
+      <article class="character-card science" tabindex="0" role="listitem" data-sound="hover">
+        <div class="character-avatar scientist-avatar">
+          <div class="svg-avatar" aria-label="Prometheus - an Erlenmeyer flask with goggles and lightning hair">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="prometheus-liquid" x1="0%" y1="100%" x2="0%" y2="0%">
+                  <stop offset="0%" stop-color="#0D9488"/>
+                  <stop offset="100%" stop-color="#14B8A6"/>
+                </linearGradient>
+                <filter id="prometheus-glow">
+                  <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                  <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+                <clipPath id="flask-clip">
+                  <path d="M40 25 L40 45 L25 80 Q25 88 50 88 Q75 88 75 80 L60 45 L60 25 Z"/>
+                </clipPath>
+              </defs>
+
+              <!-- Flask body (Erlenmeyer shape) -->
+              <path d="M40 25 L40 45 L25 80 Q25 88 50 88 Q75 88 75 80 L60 45 L60 25 Z" fill="none" stroke="#E2E8F0" stroke-width="2"/>
+              <!-- Flask glass fill (transparent) -->
+              <path d="M40 25 L40 45 L25 80 Q25 88 50 88 Q75 88 75 80 L60 45 L60 25 Z" fill="rgba(226, 232, 240, 0.2)"/>
+
+              <!-- Bubbling liquid inside -->
+              <g clip-path="url(#flask-clip)">
+                <rect x="25" y="50" width="50" height="40" fill="url(#prometheus-liquid)" filter="url(#prometheus-glow)"/>
+                <!-- Bubbles -->
+                <circle cx="35" cy="70" r="3" fill="#5EEAD4" opacity="0.6" style="animation: prometheusBubble 2s ease-in-out infinite;"/>
+                <circle cx="50" cy="75" r="2" fill="#5EEAD4" opacity="0.5" style="animation: prometheusBubble 2.5s ease-in-out infinite 0.5s;"/>
+                <circle cx="60" cy="72" r="2.5" fill="#5EEAD4" opacity="0.6" style="animation: prometheusBubble 1.8s ease-in-out infinite 0.3s;"/>
+                <circle cx="45" cy="78" r="1.5" fill="#99F6E4" opacity="0.5" style="animation: prometheusBubble 2.2s ease-in-out infinite 0.8s;"/>
+                <!-- Lightning inside liquid -->
+                <path d="M40 60 L45 65 L42 68 L48 75" fill="none" stroke="#22D3EE" stroke-width="1.5" opacity="0.8" style="animation: prometheusLightning 0.5s ease-in-out infinite;"/>
+                <path d="M55 58 L52 63 L56 67 L50 73" fill="none" stroke="#22D3EE" stroke-width="1" opacity="0.6" style="animation: prometheusLightning 0.6s ease-in-out infinite 0.2s;"/>
+              </g>
+
+              <!-- Flask neck -->
+              <rect x="40" y="20" width="20" height="8" fill="none" stroke="#E2E8F0" stroke-width="2"/>
+
+              <!-- Lab goggles (the eyes) -->
+              <g>
+                <!-- Goggle strap -->
+                <path d="M30 35 Q50 32 70 35" fill="none" stroke="#B45309" stroke-width="2"/>
+                <!-- Left goggle -->
+                <ellipse cx="38" cy="38" rx="10" ry="8" fill="#FEF3C7" stroke="#B45309" stroke-width="2"/>
+                <ellipse cx="38" cy="38" rx="7" ry="5" fill="#1E1B4B"/>
+                <ellipse cx="38" cy="38" rx="5" ry="3.5" fill="#0D9488"/>
+                <circle cx="36" cy="36" r="1.5" fill="white"/>
+                <!-- Right goggle -->
+                <ellipse cx="62" cy="38" rx="10" ry="8" fill="#FEF3C7" stroke="#B45309" stroke-width="2"/>
+                <ellipse cx="62" cy="38" rx="7" ry="5" fill="#1E1B4B"/>
+                <ellipse cx="62" cy="38" rx="5" ry="3.5" fill="#0D9488"/>
+                <circle cx="60" cy="36" r="1.5" fill="white"/>
+                <!-- Goggle bridge -->
+                <path d="M48 38 L52 38" stroke="#B45309" stroke-width="2"/>
+              </g>
+
+              <!-- Wild lightning hair -->
+              <g filter="url(#prometheus-glow)">
+                <path d="M35 22 L30 8 L38 15 L35 5" fill="none" stroke="#22D3EE" stroke-width="2" stroke-linecap="round" style="animation: prometheusLightning 0.4s ease-in-out infinite;"/>
+                <path d="M50 20 L50 5 L55 12 L52 2" fill="none" stroke="#22D3EE" stroke-width="2" stroke-linecap="round" style="animation: prometheusLightning 0.5s ease-in-out infinite 0.1s;"/>
+                <path d="M65 22 L70 8 L62 15 L68 3" fill="none" stroke="#22D3EE" stroke-width="2" stroke-linecap="round" style="animation: prometheusLightning 0.45s ease-in-out infinite 0.2s;"/>
+                <path d="M42 21 L40 10 L45 14" fill="none" stroke="#67E8F9" stroke-width="1.5" stroke-linecap="round" style="animation: prometheusLightning 0.55s ease-in-out infinite 0.15s;"/>
+                <path d="M58 21 L60 10 L55 14" fill="none" stroke="#67E8F9" stroke-width="1.5" stroke-linecap="round" style="animation: prometheusLightning 0.5s ease-in-out infinite 0.25s;"/>
+              </g>
+
+              <!-- Lab coat collar hint -->
+              <path d="M30 85 L35 80 L40 85" fill="white" stroke="#E2E8F0" stroke-width="1"/>
+              <path d="M70 85 L65 80 L60 85" fill="white" stroke="#E2E8F0" stroke-width="1"/>
+
+              <!-- Subtle cracks on flask (from experiments) -->
+              <path d="M28 75 L32 72" fill="none" stroke="#94A3B8" stroke-width="0.5" opacity="0.5"/>
+              <path d="M72 70 L68 73" fill="none" stroke="#94A3B8" stroke-width="0.5" opacity="0.5"/>
+            </svg>
+          </div>
+        </div>
+        <div class="character-info">
+          <span class="team-label team-science">Research Director</span>
+          <h3 class="character-name">The Mad Scientist</h3>
+          <div class="character-fullname">Dr. Prometheus Sparkwright</div>
+          <div class="character-role science">Director of Experimental Inquiry</div>
+          <div class="character-description">
+            Pushes boundaries, tests hypotheses, breaks things to understand them. Every feature is an experiment. Wild white hair with electric-blue streaks, lab coat covered in burn marks, goggles with multiple vision modes, mechanical arm with interchangeable tools.
+          </div>
+          <div class="character-quote science">"If your experiment succeeds on the first try, you weren't experimenting - you were confirming. Where's the LEARNING in that?"</div>
+          <div class="color-palette">
+            <div class="color-swatch" style="background: #00d9ff;" data-color="Electric Teal" tabindex="0"></div>
+            <div class="color-swatch" style="background: #f8f9fa;" data-color="Lab White" tabindex="0"></div>
+            <div class="color-swatch" style="background: #ff6b35;" data-color="Spark Orange" tabindex="0"></div>
+            <div class="color-swatch" style="background: #9d4edd;" data-color="Experiment Violet" tabindex="0"></div>
+          </div>
+          <button class="learn-more" data-sound="click">
+            Meet Dr. Sparkwright <span class="arrow" aria-hidden="true">&rarr;</span>
+          </button>
+        </div>
+      </article>
+
+      <!-- THE DATA ALCHEMIST -->
+      <article class="character-card science" tabindex="0" role="listitem" data-sound="hover">
+        <div class="character-avatar alchemist-avatar">
+          <div class="svg-avatar" aria-label="Vector - a living data chart with line-graph face">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="vector-line" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#14B8A6"/>
+                  <stop offset="100%" stop-color="#10B981"/>
+                </linearGradient>
+                <filter id="vector-glow">
+                  <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
+                  <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+              </defs>
+
+              <!-- Subtle axes frame -->
+              <line x1="15" y1="85" x2="15" y2="15" stroke="#94A3B8" stroke-width="1" opacity="0.5"/>
+              <line x1="15" y1="85" x2="90" y2="85" stroke="#94A3B8" stroke-width="1" opacity="0.5"/>
+              <!-- Axis tick marks -->
+              <line x1="15" y1="70" x2="18" y2="70" stroke="#94A3B8" stroke-width="0.5" opacity="0.4"/>
+              <line x1="15" y1="55" x2="18" y2="55" stroke="#94A3B8" stroke-width="0.5" opacity="0.4"/>
+              <line x1="15" y1="40" x2="18" y2="40" stroke="#94A3B8" stroke-width="0.5" opacity="0.4"/>
+              <line x1="30" y1="85" x2="30" y2="82" stroke="#94A3B8" stroke-width="0.5" opacity="0.4"/>
+              <line x1="50" y1="85" x2="50" y2="82" stroke="#94A3B8" stroke-width="0.5" opacity="0.4"/>
+              <line x1="70" y1="85" x2="70" y2="82" stroke="#94A3B8" stroke-width="0.5" opacity="0.4"/>
+
+              <!-- Main line graph that forms profile/face -->
+              <path d="M20 70 Q30 65 35 55 Q40 45 50 40 Q55 38 60 42 Q70 50 80 35" fill="none" stroke="url(#vector-line)" stroke-width="3" filter="url(#vector-glow)" stroke-linecap="round" stroke-linejoin="round">
+                <animate attributeName="stroke-dasharray" values="0 200;200 0" dur="2s" fill="freeze"/>
+              </path>
+
+              <!-- Floating data point cloud -->
+              <g>
+                <!-- Eyes as prominent outlier data points -->
+                <circle cx="40" cy="35" r="6" fill="#FCD34D" filter="url(#vector-glow)" style="animation: vectorDataPoint 2s ease-in-out infinite;"/>
+                <circle cx="40" cy="35" r="3" fill="#1E1B4B"/>
+                <circle cx="39" cy="34" r="1" fill="white"/>
+
+                <circle cx="58" cy="35" r="6" fill="#FCD34D" filter="url(#vector-glow)" style="animation: vectorDataPoint 2s ease-in-out infinite 0.3s;"/>
+                <circle cx="58" cy="35" r="3" fill="#1E1B4B"/>
+                <circle cx="57" cy="34" r="1" fill="white"/>
+
+                <!-- Other floating data points -->
+                <circle cx="25" cy="50" r="3" fill="#14B8A6" opacity="0.7" style="animation: vectorDataPoint 2.5s ease-in-out infinite 0.5s;"/>
+                <circle cx="72" cy="42" r="3" fill="#10B981" opacity="0.7" style="animation: vectorDataPoint 2.2s ease-in-out infinite 0.8s;"/>
+                <circle cx="35" cy="62" r="2" fill="#5EEAD4" opacity="0.6" style="animation: vectorDataPoint 3s ease-in-out infinite 0.2s;"/>
+                <circle cx="65" cy="55" r="2.5" fill="#34D399" opacity="0.6" style="animation: vectorDataPoint 2.8s ease-in-out infinite 0.6s;"/>
+              </g>
+
+              <!-- Scatter plot hair -->
+              <g opacity="0.8">
+                <circle cx="30" cy="25" r="2" fill="#14B8A6" style="animation: vectorDataPoint 2s ease-in-out infinite;"/>
+                <circle cx="38" cy="20" r="1.5" fill="#10B981" style="animation: vectorDataPoint 2.3s ease-in-out infinite 0.2s;"/>
+                <circle cx="48" cy="18" r="2" fill="#14B8A6" style="animation: vectorDataPoint 1.8s ease-in-out infinite 0.4s;"/>
+                <circle cx="55" cy="22" r="1.5" fill="#5EEAD4" style="animation: vectorDataPoint 2.5s ease-in-out infinite 0.1s;"/>
+                <circle cx="62" cy="25" r="2" fill="#10B981" style="animation: vectorDataPoint 2.1s ease-in-out infinite 0.3s;"/>
+                <circle cx="70" cy="22" r="1.5" fill="#14B8A6" style="animation: vectorDataPoint 2.4s ease-in-out infinite 0.5s;"/>
+              </g>
+
+              <!-- Upward trend smile -->
+              <path d="M42 50 Q50 55 58 48" fill="none" stroke="#14B8A6" stroke-width="2" stroke-linecap="round"/>
+
+              <!-- Tiny abacus/calculator held -->
+              <g transform="translate(75, 60)">
+                <rect x="0" y="0" width="12" height="18" rx="1" fill="#1E1B4B" stroke="#14B8A6" stroke-width="1"/>
+                <rect x="2" y="2" width="8" height="6" fill="#0D9488"/>
+                <line x1="2" y1="10" x2="10" y2="10" stroke="#5EEAD4" stroke-width="0.5"/>
+                <line x1="2" y1="12" x2="10" y2="12" stroke="#5EEAD4" stroke-width="0.5"/>
+                <line x1="2" y1="14" x2="10" y2="14" stroke="#5EEAD4" stroke-width="0.5"/>
+              </g>
+
+              <!-- Occasional label hints -->
+              <text x="78" y="32" font-size="5" fill="#FCD34D" opacity="0.6">+15%</text>
+            </svg>
+          </div>
+        </div>
+        <div class="character-info">
+          <span class="team-label team-science">Analytics Master</span>
+          <h3 class="character-name">The Data Alchemist</h3>
+          <div class="character-fullname">Vector Truthseeker</div>
+          <div class="character-role science">Transmuter of Raw Numbers into Golden Insights</div>
+          <div class="character-description">
+            Takes meaningless numbers and transforms them into actionable truth. Sleek black turtleneck under modern lab coat with holographic trim, AR glasses with real-time data streams. Fingers leave trailing data visualizations.
+          </div>
+          <div class="character-quote science">"The data doesn't lie. But it can be misquoted. My job is translation, not interpretation."</div>
+          <div class="color-palette">
+            <div class="color-swatch" style="background: #00b8a9;" data-color="Data Teal" tabindex="0"></div>
+            <div class="color-swatch" style="background: #00ff41;" data-color="Matrix Green" tabindex="0"></div>
+            <div class="color-swatch" style="background: #2d2d2d;" data-color="Carbon Black" tabindex="0"></div>
+            <div class="color-swatch" style="background: #f7dc6f;" data-color="Insight Yellow" tabindex="0"></div>
+          </div>
+          <button class="learn-more" data-sound="click">
+            Meet Vector <span class="arrow" aria-hidden="true">&rarr;</span>
+          </button>
+        </div>
+      </article>
+
+      <!-- THE LAB ARCHITECT -->
+      <article class="character-card science" tabindex="0" role="listitem" data-sound="hover">
+        <div class="character-avatar architect-avatar">
+          <div class="svg-avatar" aria-label="Ada - a blueprint being that folds into 3D">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="ada-blueprint" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#3B82F6"/>
+                  <stop offset="100%" stop-color="#1D4ED8"/>
+                </linearGradient>
+                <filter id="ada-glow">
+                  <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
+                  <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+              </defs>
+
+              <!-- Main blueprint body (folded paper person shape) -->
+              <path d="M35 20 L65 20 L65 35 L75 35 L75 80 L60 80 L60 90 L40 90 L40 80 L25 80 L25 35 L35 35 Z" fill="url(#ada-blueprint)"/>
+
+              <!-- Grid lines (blueprint pattern) -->
+              <g stroke="white" stroke-width="0.3" opacity="0.3">
+                <line x1="25" y1="30" x2="75" y2="30"/>
+                <line x1="25" y1="40" x2="75" y2="40"/>
+                <line x1="25" y1="50" x2="75" y2="50"/>
+                <line x1="25" y1="60" x2="75" y2="60"/>
+                <line x1="25" y1="70" x2="75" y2="70"/>
+                <line x1="35" y1="20" x2="35" y2="90"/>
+                <line x1="45" y1="20" x2="45" y2="90"/>
+                <line x1="55" y1="20" x2="55" y2="90"/>
+                <line x1="65" y1="20" x2="65" y2="90"/>
+              </g>
+
+              <!-- Ruler markings along edges -->
+              <g stroke="white" stroke-width="0.5" opacity="0.5">
+                <line x1="25" y1="35" x2="27" y2="35"/>
+                <line x1="25" y1="45" x2="27" y2="45"/>
+                <line x1="25" y1="55" x2="27" y2="55"/>
+                <line x1="25" y1="65" x2="27" y2="65"/>
+                <line x1="25" y1="75" x2="27" y2="75"/>
+              </g>
+
+              <!-- Face drawn in architectural style -->
+              <g stroke="white" stroke-width="1.5" fill="none">
+                <!-- Eyes - clean circles -->
+                <circle cx="42" cy="45" r="5"/>
+                <circle cx="58" cy="45" r="5"/>
+                <!-- Pupils -->
+                <circle cx="42" cy="45" r="2" fill="white"/>
+                <circle cx="58" cy="45" r="2" fill="white"/>
+                <!-- Precise straight mouth -->
+                <line x1="44" y1="58" x2="56" y2="58"/>
+              </g>
+
+              <!-- Hard hat made of measuring tools -->
+              <g>
+                <!-- Hat base -->
+                <ellipse cx="50" cy="22" rx="20" ry="5" fill="#F97316"/>
+                <!-- Hat dome -->
+                <path d="M30 22 Q30 10 50 8 Q70 10 70 22" fill="#FB923C"/>
+                <!-- Ruler strip on hat -->
+                <line x1="32" y1="18" x2="68" y2="18" stroke="#FEF3C7" stroke-width="2"/>
+                <g stroke="#F97316" stroke-width="0.5">
+                  <line x1="35" y1="17" x2="35" y2="19"/>
+                  <line x1="40" y1="16" x2="40" y2="20"/>
+                  <line x1="45" y1="17" x2="45" y2="19"/>
+                  <line x1="50" y1="16" x2="50" y2="20"/>
+                  <line x1="55" y1="17" x2="55" y2="19"/>
+                  <line x1="60" y1="16" x2="60" y2="20"/>
+                  <line x1="65" y1="17" x2="65" y2="19"/>
+                </g>
+              </g>
+
+              <!-- Building being constructed on surface -->
+              <g style="animation: adaBuildPulse 3s ease-in-out infinite;">
+                <!-- 3D building emerging -->
+                <polygon points="55,65 65,60 65,75 55,80" fill="#0D9488" opacity="0.8"/>
+                <polygon points="55,65 45,60 45,75 55,80" fill="#14B8A6" opacity="0.6"/>
+                <polygon points="45,60 55,55 65,60 55,65" fill="#5EEAD4" opacity="0.7"/>
+              </g>
+
+              <!-- T-square tool being carried -->
+              <g transform="rotate(-30 80 70)">
+                <rect x="78" y="40" width="3" height="40" fill="#FEF3C7"/>
+                <rect x="72" y="38" width="15" height="4" fill="#FEF3C7"/>
+              </g>
+
+              <!-- Level tool hint -->
+              <rect x="28" y="72" width="15" height="4" rx="1" fill="#22C55E" opacity="0.8"/>
+              <circle cx="35" cy="74" r="1" fill="#166534"/>
+            </svg>
+          </div>
+        </div>
+        <div class="character-info">
+          <span class="team-label team-science">Systems Builder</span>
+          <h3 class="character-name">The Lab Architect</h3>
+          <div class="character-fullname">Ada Foundationstone</div>
+          <div class="character-role science">Constructor of Digital Infrastructure</div>
+          <div class="character-description">
+            Builds the systems that everything else runs on. If The PM Wizard is vision, she is manifestation. Practical jumpsuit with blueprint patterns, impossibly full tool belt, holographic blueprints floating around her.
+          </div>
+          <div class="character-quote science">"A beautiful facade on a weak foundation is just a future disaster with good marketing."</div>
+          <div class="color-palette">
+            <div class="color-swatch" style="background: #4682b4;" data-color="Steel Blue" tabindex="0"></div>
+            <div class="color-swatch" style="background: #808080;" data-color="Structure Gray" tabindex="0"></div>
+            <div class="color-swatch" style="background: #00bfff;" data-color="Blueprint Cyan" tabindex="0"></div>
+            <div class="color-swatch" style="background: #ff6f00;" data-color="Build Orange" tabindex="0"></div>
+          </div>
+          <button class="learn-more" data-sound="click">
+            Meet Ada <span class="arrow" aria-hidden="true">&rarr;</span>
+          </button>
+        </div>
+      </article>
+
+      <!-- THE DOCUMENTATION LIBRARIAN -->
+      <article class="character-card science" tabindex="0" role="listitem" data-sound="hover">
+        <div class="character-avatar librarian-avatar">
+          <div class="svg-avatar" aria-label="Index - a living filing tab with organized text and glasses">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="index-paper" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stop-color="#FEF3C7"/>
+                  <stop offset="100%" stop-color="#FDE68A"/>
+                </linearGradient>
+                <filter id="index-glow">
+                  <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
+                  <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+              </defs>
+
+              <!-- Main filing tab body -->
+              <path d="M20 25 L80 25 L80 85 L20 85 Z" fill="url(#index-paper)" stroke="#D97706" stroke-width="1"/>
+
+              <!-- Index tab notch protruding -->
+              <path d="M60 25 L60 15 L85 15 L85 25" fill="#10B981" stroke="#059669" stroke-width="1"/>
+              <text x="65" y="22" font-size="6" fill="white" font-weight="bold">A-Z</text>
+
+              <!-- Perfectly aligned text lines -->
+              <g fill="#1F2937" font-size="4" font-family="monospace" style="animation: indexTextScroll 5s ease-in-out infinite alternate;">
+                <text x="25" y="40">class Documentation:</text>
+                <text x="25" y="47">  def organize(self):</text>
+                <text x="25" y="54">    return sorted()</text>
+                <text x="25" y="61">  def index(self):</text>
+                <text x="25" y="68">    return catalog</text>
+                <text x="25" y="75"># Always documented</text>
+              </g>
+
+              <!-- Face formed from text characters -->
+              <!-- Eyes are two perfect O's -->
+              <g>
+                <!-- Glasses frames -->
+                <rect x="32" y="30" width="14" height="10" rx="2" fill="none" stroke="#1F2937" stroke-width="1.5"/>
+                <rect x="54" y="30" width="14" height="10" rx="2" fill="none" stroke="#1F2937" stroke-width="1.5"/>
+                <line x1="46" y1="35" x2="54" y2="35" stroke="#1F2937" stroke-width="1.5"/>
+                <!-- Magnifying lens effect -->
+                <ellipse cx="39" cy="35" rx="5" ry="4" fill="rgba(255,255,255,0.3)"/>
+                <ellipse cx="61" cy="35" rx="5" ry="4" fill="rgba(255,255,255,0.3)"/>
+                <!-- Eyes (O characters) -->
+                <text x="36" y="38" font-size="10" fill="#1F2937" font-weight="bold">O</text>
+                <text x="58" y="38" font-size="10" fill="#1F2937" font-weight="bold">O</text>
+              </g>
+
+              <!-- Mouth as underline that can curve -->
+              <path d="M40 48 Q50 52 60 48" fill="none" stroke="#1F2937" stroke-width="1.5" stroke-linecap="round"/>
+
+              <!-- Floating sub-index tabs -->
+              <g style="animation: float 3s ease-in-out infinite;">
+                <rect x="10" y="45" width="8" height="15" rx="1" fill="#10B981" opacity="0.7"/>
+                <text x="12" y="55" font-size="5" fill="white">B</text>
+              </g>
+              <g style="animation: float 3.5s ease-in-out infinite 0.5s;">
+                <rect x="10" y="65" width="8" height="15" rx="1" fill="#10B981" opacity="0.6"/>
+                <text x="12" y="75" font-size="5" fill="white">C</text>
+              </g>
+
+              <!-- Stamp being held -->
+              <g style="animation: indexStamp 2s ease-in-out infinite;" transform="translate(70, 55)">
+                <rect x="0" y="0" width="15" height="20" rx="2" fill="#DC2626"/>
+                <rect x="2" y="15" width="11" height="5" fill="#7F1D1D"/>
+                <text x="3" y="12" font-size="5" fill="white">OK</text>
+              </g>
+
+              <!-- Small seal -->
+              <circle cx="75" cy="80" r="6" fill="none" stroke="#DC2626" stroke-width="1"/>
+              <text x="72" y="82" font-size="5" fill="#DC2626">✓</text>
+            </svg>
+          </div>
+        </div>
+        <div class="character-info">
+          <span class="team-label team-science">Knowledge Keeper</span>
+          <h3 class="character-name">The Documentation Librarian</h3>
+          <div class="character-fullname">Index Everclear</div>
+          <div class="character-role science">Guardian of Organized Knowledge</div>
+          <div class="character-description">
+            Maintains all documentation, ensures knowledge is preserved and accessible. Tweed jacket with futuristic fabric, AR glasses with documentation overlay. Quill pen that digitizes handwriting, bookmark perpetually behind one ear.
+          </div>
+          <div class="character-quote science">"If it's not documented, it doesn't exist. If it's documented poorly, it exists to cause suffering."</div>
+          <div class="color-palette">
+            <div class="color-swatch" style="background: #8b4513;" data-color="Library Wood" tabindex="0"></div>
+            <div class="color-swatch" style="background: #f5f5dc;" data-color="Parchment" tabindex="0"></div>
+            <div class="color-swatch" style="background: #1e3a5f;" data-color="Index Ink" tabindex="0"></div>
+            <div class="color-swatch" style="background: #daa520;" data-color="Bookmark Gold" tabindex="0"></div>
+          </div>
+          <button class="learn-more" data-sound="click">
+            Meet Index <span class="arrow" aria-hidden="true">&rarr;</span>
+          </button>
+        </div>
+      </article>
+
+      <!-- THE PROTOCOL WARDEN -->
+      <article class="character-card science" tabindex="0" role="listitem" data-sound="hover">
+        <div class="character-avatar warden-avatar">
+          <div class="svg-avatar" aria-label="Cipher - an ornate combination lock with dial-number face">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="cipher-body" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#94A3B8"/>
+                  <stop offset="50%" stop-color="#64748B"/>
+                  <stop offset="100%" stop-color="#475569"/>
+                </linearGradient>
+                <radialGradient id="cipher-dial" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stop-color="#1E3A8A"/>
+                  <stop offset="100%" stop-color="#1E1B4B"/>
+                </radialGradient>
+                <filter id="cipher-glow">
+                  <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                  <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+              </defs>
+
+              <!-- Shackle arms (can move like arms) -->
+              <g>
+                <!-- Left arm (crossed protective stance) -->
+                <path d="M25 35 Q15 35 15 50 Q15 60 25 60" fill="none" stroke="url(#cipher-body)" stroke-width="8" stroke-linecap="round"/>
+                <!-- Right arm -->
+                <path d="M75 35 Q85 35 85 50 Q85 60 75 60" fill="none" stroke="url(#cipher-body)" stroke-width="8" stroke-linecap="round"/>
+              </g>
+
+              <!-- Main lock body -->
+              <rect x="25" y="35" width="50" height="55" rx="8" fill="url(#cipher-body)" stroke="#334155" stroke-width="2"/>
+
+              <!-- Ornate border on body -->
+              <rect x="28" y="38" width="44" height="49" rx="5" fill="none" stroke="#CBD5E1" stroke-width="1" opacity="0.5"/>
+
+              <!-- Combination dial (the face) -->
+              <g style="transform-origin: 50px 58px; animation: cipherDialSpin 4s ease-in-out infinite;">
+                <circle cx="50" cy="58" r="20" fill="url(#cipher-dial)" stroke="#E2E8F0" stroke-width="2"/>
+
+                <!-- Dial numbers arranged as face -->
+                <g fill="white" font-size="6" font-weight="bold" text-anchor="middle">
+                  <!-- Top number (forehead) -->
+                  <text x="50" y="44">0</text>
+                  <!-- Eyes are 0 and 0 -->
+                  <text x="42" y="55">0</text>
+                  <text x="58" y="55">0</text>
+                  <!-- Side numbers -->
+                  <text x="34" y="60">9</text>
+                  <text x="66" y="60">1</text>
+                  <!-- Bottom numbers forming expression -->
+                  <text x="38" y="70">8</text>
+                  <text x="50" y="72">7</text>
+                  <text x="62" y="70">2</text>
+                </g>
+
+                <!-- Dial notch marker -->
+                <polygon points="50,38 48,42 52,42" fill="#F59E0B"/>
+              </g>
+
+              <!-- Keyhole as third eye (center) -->
+              <g filter="url(#cipher-glow)">
+                <ellipse cx="50" cy="58" rx="4" ry="6" fill="#F59E0B"/>
+                <ellipse cx="50" cy="61" rx="2" ry="4" fill="#1E1B4B"/>
+              </g>
+
+              <!-- Orbiting satellite keys -->
+              <g style="transform-origin: 50px 58px; animation: dustinToolOrbit 6s linear infinite;">
+                <path d="M85 58 L92 58 L92 55 L95 55 L95 61 L92 61 L92 58" fill="#FCD34D" stroke="#D97706" stroke-width="0.5"/>
+              </g>
+              <g style="transform-origin: 50px 58px; animation: dustinToolOrbit 6s linear infinite reverse;">
+                <path d="M5 58 L12 58 L12 55 L15 55 L15 61 L12 61 L12 58" fill="#E2E8F0" stroke="#94A3B8" stroke-width="0.5"/>
+              </g>
+
+              <!-- Protective shield pattern radiating -->
+              <g style="animation: cipherShieldPulse 2s ease-in-out infinite;" opacity="0.3">
+                <circle cx="50" cy="58" r="30" fill="none" stroke="#22C55E" stroke-width="1" stroke-dasharray="5 3"/>
+                <circle cx="50" cy="58" r="35" fill="none" stroke="#22C55E" stroke-width="0.5" stroke-dasharray="3 5"/>
+              </g>
+
+              <!-- Encryption pattern on surface -->
+              <g opacity="0.3" fill="none" stroke="#67E8F9" stroke-width="0.5">
+                <path d="M30 75 L35 78 L40 75 L45 78"/>
+                <path d="M55 75 L60 78 L65 75 L70 78"/>
+              </g>
+
+              <!-- LOCKED status indicator -->
+              <g>
+                <rect x="38" y="82" width="24" height="8" rx="2" fill="#22C55E"/>
+                <text x="42" y="88" font-size="5" fill="white" font-weight="bold">LOCKED</text>
+              </g>
+
+              <!-- Rune overlay hints -->
+              <text x="28" y="48" font-size="4" fill="#8B5CF6" opacity="0.4">ᚠ</text>
+              <text x="68" y="48" font-size="4" fill="#8B5CF6" opacity="0.4">ᚢ</text>
+            </svg>
+          </div>
+        </div>
+        <div class="character-info">
+          <span class="team-label team-science">Security Sentinel</span>
+          <h3 class="character-name">The Protocol Warden</h3>
+          <div class="character-fullname">Cipher Lockhart</div>
+          <div class="character-role science">Keeper of Gates and Guardian of Secrets</div>
+          <div class="character-description">
+            Security, authentication, protection. Vigilance incarnate. Dark tactical coat with hidden compartments, face partially obscured by security mask. Keyring with keys of light, shield emblem pulsing with system health.
+          </div>
+          <div class="character-quote science">"Trust, but verify. Then verify again. Then monitor continuously."</div>
+          <div class="color-palette">
+            <div class="color-swatch" style="background: #1a1a1a;" data-color="Void Black" tabindex="0"></div>
+            <div class="color-swatch" style="background: #a8a8a8;" data-color="Guard Gray" tabindex="0"></div>
+            <div class="color-swatch" style="background: #ff3333;" data-color="Alert Red" tabindex="0"></div>
+            <div class="color-swatch" style="background: #00ff00;" data-color="Secure Green" tabindex="0"></div>
+          </div>
+          <button class="learn-more" data-sound="click">
+            Meet Cipher <span class="arrow" aria-hidden="true">&rarr;</span>
+          </button>
+        </div>
+      </article>
+    </div>
+
+    <!-- MOTTO -->
+    <div class="motto-box">
+      <blockquote>"In the space between the spell and the equation, that's where true creation happens."</blockquote>
+      <cite>- The PM Wizard (Archimedes Threadweaver)</cite>
+    </div>
+
+  </main>
+
+  <script>
+    // ==========================================
+    // PARTICLE SYSTEM - Magic Stars & Science Data Streams
+    // ==========================================
+    const particlesContainer = document.getElementById('particles');
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (!prefersReducedMotion) {
+      // Create magic particles (stars)
+      function createMagicParticle() {
+        const particle = document.createElement('div');
+        particle.className = 'particle magic-particle';
+        particle.style.left = Math.random() * 30 + '%'; // Left side for magic
+        particle.style.animationDuration = (Math.random() * 15 + 10) + 's';
+        particle.style.animationDelay = Math.random() * 5 + 's';
+        particlesContainer.appendChild(particle);
+
+        // Remove after animation
+        setTimeout(() => particle.remove(), 25000);
+      }
+
+      // Create science particles (data streams)
+      function createScienceParticle() {
+        const particle = document.createElement('div');
+        particle.className = 'particle science-particle';
+        particle.style.left = (70 + Math.random() * 25) + '%'; // Right side for science
+        particle.style.animationDuration = (Math.random() * 8 + 5) + 's';
+        particle.style.animationDelay = Math.random() * 3 + 's';
+        particlesContainer.appendChild(particle);
+
+        setTimeout(() => particle.remove(), 15000);
+      }
+
+      // Create star sparkles
+      function createStarParticle() {
+        const star = document.createElement('div');
+        star.className = 'particle star-particle';
+        star.style.left = Math.random() * 40 + '%';
+        star.style.top = Math.random() * 100 + '%';
+        star.style.animationDuration = (Math.random() * 3 + 2) + 's';
+        star.style.animationDelay = Math.random() * 2 + 's';
+        particlesContainer.appendChild(star);
+
+        setTimeout(() => star.remove(), 8000);
+      }
+
+      // Spawn particles periodically
+      setInterval(createMagicParticle, 800);
+      setInterval(createScienceParticle, 600);
+      setInterval(createStarParticle, 1500);
+
+      // Initial batch
+      for (let i = 0; i < 5; i++) {
+        setTimeout(createMagicParticle, i * 200);
+        setTimeout(createScienceParticle, i * 150);
+        setTimeout(createStarParticle, i * 300);
+      }
+    }
+
+    // ==========================================
+    // CARD ENTRANCE ANIMATIONS
+    // ==========================================
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry, index) => {
+        if (entry.isIntersecting) {
+          entry.target.style.animationDelay = `${index * 0.08}s`;
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, {
+      threshold: 0.1,
+      rootMargin: '50px'
+    });
+
+    document.querySelectorAll('.character-card').forEach(card => {
+      card.style.opacity = '0';
+      observer.observe(card);
+    });
+
+    // Add visible state
+    document.addEventListener('DOMContentLoaded', () => {
+      const style = document.createElement('style');
+      style.textContent = `
+        .character-card.visible {
+          animation: cardEntrance 0.6s var(--ease-smooth) both;
+        }
+      `;
+      document.head.appendChild(style);
+    });
+
+    // ==========================================
+    // HEADER DECORATIONS
+    // ==========================================
+    const headerDecorations = document.querySelector('.header-decorations');
+
+    if (!prefersReducedMotion && headerDecorations) {
+      // Add magic sparkles
+      for (let i = 0; i < 8; i++) {
+        const sparkle = document.createElement('div');
+        sparkle.className = 'magic-sparkle';
+        sparkle.style.left = (5 + Math.random() * 40) + '%';
+        sparkle.style.top = (10 + Math.random() * 80) + '%';
+        sparkle.style.animationDelay = Math.random() * 3 + 's';
+        headerDecorations.appendChild(sparkle);
+      }
+
+      // Add circuit lines
+      for (let i = 0; i < 5; i++) {
+        const line = document.createElement('div');
+        line.className = 'circuit-line';
+        line.style.width = (50 + Math.random() * 150) + 'px';
+        line.style.left = (55 + Math.random() * 40) + '%';
+        line.style.top = (10 + Math.random() * 80) + '%';
+        line.style.transform = `rotate(${Math.random() * 30 - 15}deg)`;
+        headerDecorations.appendChild(line);
+      }
+    }
+
+    // ==========================================
+    // KEYBOARD NAVIGATION ENHANCEMENT
+    // ==========================================
+    document.querySelectorAll('.character-card').forEach(card => {
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          // Trigger the "learn more" button if it exists
+          const learnMore = card.querySelector('.learn-more');
+          if (learnMore) {
+            learnMore.click();
+          }
+        }
+      });
+    });
+
+    // ==========================================
+    // SOUND DESIGN HOOKS (Ready for audio implementation)
+    // ==========================================
+    const soundElements = document.querySelectorAll('[data-sound]');
+    soundElements.forEach(el => {
+      el.addEventListener('mouseenter', () => {
+        // Future: Play hover sound based on data-sound attribute
+        // const soundType = el.dataset.sound;
+        // playSound(soundType);
+      });
+
+      el.addEventListener('click', () => {
+        // Future: Play click sound
+        // playSound('click');
+      });
+    });
+
+    // ==========================================
+    // PIP HERO INTERACTION
+    // ==========================================
+    const heroPip = document.querySelector('.hero-pip');
+    if (heroPip) {
+      let clickCount = 0;
+      heroPip.addEventListener('click', () => {
+        clickCount++;
+
+        // Fun easter egg on multiple clicks
+        if (clickCount === 3) {
+          heroPip.style.animation = 'bounceIn 0.5s var(--ease-elastic)';
+          setTimeout(() => {
+            heroPip.style.animation = 'floatSlow 4s ease-in-out infinite';
+          }, 500);
+          clickCount = 0;
+        }
+      });
+    }
+
+    // ==========================================
+    // COLOR SWATCH COPY TO CLIPBOARD
+    // ==========================================
+    document.querySelectorAll('.color-swatch').forEach(swatch => {
+      swatch.addEventListener('click', () => {
+        const color = swatch.style.backgroundColor;
+        // Convert to hex
+        const hex = rgbToHex(color);
+
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(hex).then(() => {
+            // Visual feedback
+            const originalTransform = swatch.style.transform;
+            swatch.style.transform = 'scale(1.5)';
+            setTimeout(() => {
+              swatch.style.transform = originalTransform;
+            }, 200);
+          });
+        }
+      });
+    });
+
+    function rgbToHex(rgb) {
+      const match = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+      if (!match) return rgb;
+
+      const hex = (x) => ('0' + parseInt(x).toString(16)).slice(-2);
+      return '#' + hex(match[1]) + hex(match[2]) + hex(match[3]);
+    }
+
+    // ==========================================
+    // STAT COUNTER ANIMATION
+    // ==========================================
+    const stats = document.querySelectorAll('.stat-value');
+    const statObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const target = entry.target;
+          const finalValue = parseInt(target.textContent);
+          let current = 0;
+          const increment = finalValue / 20;
+          const timer = setInterval(() => {
+            current += increment;
+            if (current >= finalValue) {
+              target.textContent = finalValue;
+              clearInterval(timer);
+            } else {
+              target.textContent = Math.floor(current);
+            }
+          }, 50);
+          statObserver.unobserve(target);
+        }
+      });
+    }, { threshold: 0.5 });
+
+    stats.forEach(stat => statObserver.observe(stat));
+  </script>
+</body>
+</html>

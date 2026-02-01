@@ -425,6 +425,10 @@ class TinyPMHandler(SimpleHTTPRequestHandler):
         # Dashboard
         if path == "/" or path == "/index.html":
             self.serve_dashboard()
+        elif path == "/terminal_test.html":
+            self.serve_file(APP_DIR / "terminal_test.html", "text/html")
+        elif path == "/characters" or path == "/characters.html":
+            self.serve_file(APP_DIR / "characters.html", "text/html")
         # API endpoints
         elif path == "/api/tasks":
             self.api_get_tasks()
@@ -501,6 +505,24 @@ class TinyPMHandler(SimpleHTTPRequestHandler):
         # A2A Protocol API
         elif path == "/api/a2a/status":
             self.api_a2a_status()
+        # Projects API
+        elif path == "/api/projects":
+            self.api_get_projects()
+        elif path.startswith("/api/projects/"):
+            project_id = path.split("/")[-1]
+            self.api_get_project(project_id)
+        # Weather/Calendar/Email widgets
+        elif path == "/api/weather":
+            self.api_get_weather()
+        elif path == "/api/calendar/events":
+            self.api_get_calendar_events()
+        elif path == "/api/email/recent":
+            self.api_get_recent_emails()
+        # Avatar Builder
+        elif path == "/avatar-builder" or path == "/avatar-builder.html":
+            self.serve_file(APP_DIR / "avatar_builder.html", "text/html")
+        elif path == "/api/avatar/get":
+            self.api_get_avatar()
         else:
             super().do_GET()
 
@@ -602,6 +624,19 @@ class TinyPMHandler(SimpleHTTPRequestHandler):
             self.api_check_nudges(data)
         elif path == "/api/important-dates":
             self.api_add_important_date(data)
+        # Projects API
+        elif path == "/api/projects":
+            self.api_create_project(data)
+        elif path == "/api/projects/entry":
+            self.api_add_project_entry(data)
+        # Feedback API
+        elif path == "/api/feedback":
+            self.api_submit_feedback(data)
+        # Avatar Builder API
+        elif path == "/api/avatar/analyze":
+            self.api_avatar_analyze(data)
+        elif path == "/api/avatar/save":
+            self.api_avatar_save(data)
         else:
             self.send_json({"error": "Unknown endpoint"}, 404)
 
@@ -616,6 +651,19 @@ class TinyPMHandler(SimpleHTTPRequestHandler):
             self.wfile.write(content)
         else:
             self.send_json({"error": "Dashboard not found"}, 500)
+
+    def serve_file(self, filepath, content_type):
+        """Serve a static file."""
+        if filepath.exists():
+            content = filepath.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", f"{content_type}; charset=utf-8")
+            self.send_header("Content-Length", str(len(content)))
+            self.send_header("Cache-Control", "no-cache")
+            self.end_headers()
+            self.wfile.write(content)
+        else:
+            self.send_json({"error": f"File not found: {filepath.name}"}, 404)
 
     def api_get_tasks(self):
         board = load_board()
@@ -1345,13 +1393,13 @@ Note: This is a binary file ({ext}). For images, describe what you need to know 
         PM_CHAT_FILE.write_text(json.dumps(chat, indent=2))
 
     def api_pm_chat_send(self, data: dict):
-        """User sends a message to the PM Direct Line. Queued for the REAL PM to see and respond."""
+        """User sends a message to PM and gets immediate AI response."""
         message = data.get("message", "").strip()
         if not message:
             self.send_json({"error": "No message"}, 400)
             return
 
-        # Save to PM chat (bidirectional)
+        # Save user message
         chat = self._load_pm_chat()
         msg_id = chat["next_id"]
         chat["messages"].append({
@@ -1359,26 +1407,68 @@ Note: This is a binary file ({ext}). For images, describe what you need to know 
             "from": "user",
             "message": message,
             "timestamp": datetime.now().isoformat(),
-            "read_by_pm": False
+            "read_by_pm": True
         })
         chat["next_id"] = msg_id + 1
         self._save_pm_chat(chat)
-
-        # Also save to PM inbox for the background poller
-        try:
-            inbox = json.loads(PM_INBOX_FILE.read_text()) if PM_INBOX_FILE.exists() else []
-        except:
-            inbox = []
-        inbox.append({
-            "id": msg_id,
-            "message": message,
-            "timestamp": datetime.now().isoformat(),
-            "read": False
-        })
-        PM_INBOX_FILE.write_text(json.dumps(inbox, indent=2))
-
         print(f"[TinyPM] PM DIRECT: New message #{msg_id}: {message[:80]}")
-        self.send_json({"ok": True, "msg_id": msg_id})
+
+        # Generate immediate AI response
+        client = get_anthropic_client()
+        if not client:
+            self.send_json({"ok": True, "msg_id": msg_id, "response": "Configure ANTHROPIC_API_KEY for AI responses."})
+            return
+
+        # Build conversation history
+        messages = []
+        for m in chat.get("messages", [])[-10:]:
+            role = "user" if m.get("from") == "user" else "assistant"
+            messages.append({"role": role, "content": m.get("message", "")})
+
+        # Load context
+        board = load_board()
+        tasks_summary = f"{len(board.get('tasks', []))} tasks total"
+
+        system_prompt = f"""You are the PM (Project Manager) for TinyPM - an AI-powered project management system.
+
+Current Status:
+- {tasks_summary}
+- Project: {board.get('project', 'TinyPM')}
+
+Your capabilities:
+- Help organize and prioritize tasks
+- Answer questions about the project
+- Suggest next steps
+- Provide status updates
+
+Be concise, helpful, and action-oriented. Use markdown formatting when helpful."""
+
+        try:
+            response = client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=800,
+                system=system_prompt,
+                messages=messages
+            )
+            ai_response = response.content[0].text
+
+            # Save PM response
+            chat = self._load_pm_chat()
+            resp_id = chat["next_id"]
+            chat["messages"].append({
+                "id": resp_id,
+                "from": "pm",
+                "message": ai_response,
+                "timestamp": datetime.now().isoformat(),
+                "read_by_user": False,
+                "auto_generated": True
+            })
+            chat["next_id"] = resp_id + 1
+            self._save_pm_chat(chat)
+
+            self.send_json({"ok": True, "msg_id": msg_id, "response": ai_response, "response_id": resp_id})
+        except Exception as e:
+            self.send_json({"ok": True, "msg_id": msg_id, "response": f"PM temporarily unavailable: {str(e)[:100]}"})
 
     def api_get_pm_chat(self):
         """Get the full PM chat thread. Dashboard polls this for responses."""
@@ -1538,13 +1628,16 @@ Note: This is a binary file ({ext}). For images, describe what you need to know 
         })
 
     def api_agent_chat_send(self, data: dict):
-        """User sends a message to a specific agent."""
-        agent_id = data.get("agent_id", "builder")
+        """User sends a message to a specific agent and gets AI response."""
+        agent_id = data.get("agent_id") or data.get("agent", "builder")
         message = data.get("message", "").strip()
+        history = data.get("history", [])
+
         if not message:
             self.send_json({"error": "No message"}, 400)
             return
 
+        # Store user message
         chat = self._load_agent_chat(agent_id)
         msg_id = chat["next_id"]
         chat["messages"].append({
@@ -1556,9 +1649,57 @@ Note: This is a binary file ({ext}). For images, describe what you need to know 
         })
         chat["next_id"] = msg_id + 1
         self._save_agent_chat(agent_id, chat)
-
         print(f"[TinyPM] USER -> {agent_id.upper()}: {message[:80]}")
-        self.send_json({"ok": True, "msg_id": msg_id, "agent_id": agent_id})
+
+        # Generate AI response
+        client = get_anthropic_client()
+        if not client:
+            self.send_json({"ok": True, "response": "AI responses require ANTHROPIC_API_KEY to be configured.", "agent_id": agent_id})
+            return
+
+        # Agent persona definitions
+        agent_personas = {
+            "builder": "You are the Builder agent - a skilled software developer. You help implement features, fix bugs, and write quality code.",
+            "pm": "You are the Project Manager agent. You help organize tasks, track progress, and ensure projects stay on track.",
+            "researcher": "You are the Research agent. You explore new technologies, analyze trends, and provide insights.",
+            "czar": "You are the Wild Claims Czar - you track cutting-edge AI developments and validate bold claims.",
+            "designer": "You are the Designer agent. You help with UX, UI, and making things look and feel great.",
+        }
+        persona = agent_personas.get(agent_id, f"You are the {agent_id} agent. Help the user with their request.")
+
+        # Build conversation
+        messages = []
+        for h in history[-6:]:  # Last 6 messages for context
+            role = "user" if h.get("role") == "user" else "assistant"
+            messages.append({"role": role, "content": h.get("content", "")})
+
+        if not messages or messages[-1]["role"] != "user":
+            messages.append({"role": "user", "content": message})
+
+        try:
+            response = client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=500,
+                system=f"{persona}\n\nYou are part of TinyPM, an AI project management system. Be helpful, concise, and action-oriented. If asked to do tasks, explain what you would do.",
+                messages=messages
+            )
+            ai_response = response.content[0].text
+
+            # Store agent response
+            chat = self._load_agent_chat(agent_id)
+            chat["messages"].append({
+                "id": chat["next_id"],
+                "from": "agent",
+                "message": ai_response,
+                "timestamp": datetime.now().isoformat(),
+                "read_by_user": False
+            })
+            chat["next_id"] += 1
+            self._save_agent_chat(agent_id, chat)
+
+            self.send_json({"ok": True, "response": ai_response, "agent_id": agent_id})
+        except Exception as e:
+            self.send_json({"ok": True, "response": f"Agent temporarily unavailable: {str(e)[:100]}", "agent_id": agent_id})
 
     def api_spawn_agent(self, data: dict):
         """Spawn a new agent. Enforces introduction requirement."""
@@ -3066,6 +3207,320 @@ Note: This is a binary file ({ext}). For images, describe what you need to know 
         except ImportError:
             self.send_json({"error": "Nudge engine not available"}, 500)
 
+    # =========================================================================
+    # PROJECTS API - Personal tracking projects (dinner log, wine journal, etc)
+    # =========================================================================
+
+    def api_get_projects(self):
+        projects_file = APP_DIR / ".projects.json"
+        if projects_file.exists():
+            data = json.loads(projects_file.read_text())
+        else:
+            data = {"projects": []}
+        self.send_json(data)
+
+    def api_get_project(self, project_id):
+        projects_file = APP_DIR / ".projects.json"
+        if projects_file.exists():
+            data = json.loads(projects_file.read_text())
+            for proj in data.get("projects", []):
+                if proj.get("id") == project_id:
+                    self.send_json({"project": proj})
+                    return
+        self.send_json({"error": "Project not found"}, 404)
+
+    def api_create_project(self, data):
+        import uuid
+        projects_file = APP_DIR / ".projects.json"
+        if projects_file.exists():
+            all_data = json.loads(projects_file.read_text())
+        else:
+            all_data = {"projects": []}
+
+        project_type = data.get("project_type", "custom")
+        icons = {"dinner_log": "🍽️", "wine_journal": "🍷", "book_tracker": "📚", "custom": "📁"}
+
+        project = {
+            "id": str(uuid.uuid4())[:8],
+            "name": data.get("name", "Untitled Project"),
+            "project_type": project_type,
+            "storage_type": data.get("storage_type", "local"),
+            "icon": icons.get(project_type, "📁"),
+            "entries": [],
+            "entry_count": 0,
+            "created": datetime.now().isoformat(),
+        }
+        all_data["projects"].append(project)
+        projects_file.write_text(json.dumps(all_data, indent=2))
+        self.send_json({"ok": True, "project": project})
+
+    def api_add_project_entry(self, data):
+        import uuid
+        project_id = data.get("project_id")
+        if not project_id:
+            self.send_json({"error": "project_id required"}, 400)
+            return
+
+        projects_file = APP_DIR / ".projects.json"
+        if not projects_file.exists():
+            self.send_json({"error": "No projects"}, 404)
+            return
+
+        all_data = json.loads(projects_file.read_text())
+        for proj in all_data.get("projects", []):
+            if proj.get("id") == project_id:
+                entry = {
+                    "id": str(uuid.uuid4())[:8],
+                    "content": data.get("content", {}),
+                    "notes": data.get("notes", ""),
+                    "rating": data.get("rating"),
+                    "photo_url": data.get("photo_url"),
+                    "created": datetime.now().isoformat(),
+                }
+                proj["entries"].append(entry)
+                proj["entry_count"] = len(proj["entries"])
+                projects_file.write_text(json.dumps(all_data, indent=2))
+                self.send_json({"ok": True, "entry": entry})
+                return
+
+        self.send_json({"error": "Project not found"}, 404)
+
+    # =========================================================================
+    # FEEDBACK API
+    # =========================================================================
+
+    def api_submit_feedback(self, data):
+        feedback_file = APP_DIR / ".feedback.json"
+        if feedback_file.exists():
+            all_feedback = json.loads(feedback_file.read_text())
+        else:
+            all_feedback = {"feedback": []}
+
+        import uuid
+        entry = {
+            "id": str(uuid.uuid4())[:8],
+            "type": data.get("type", "general"),
+            "title": data.get("title", ""),
+            "details": data.get("details", ""),
+            "message": data.get("message", ""),
+            "page": data.get("page", ""),
+            "rating": data.get("rating"),
+            "submitted": datetime.now().isoformat(),
+        }
+        all_feedback["feedback"].append(entry)
+        feedback_file.write_text(json.dumps(all_feedback, indent=2))
+        self.send_json({"success": True, "message": "Thank you for your feedback!"})
+
+    # =========================================================================
+    # AVATAR BUILDER API - AI-powered avatar creation
+    # =========================================================================
+
+    AVATAR_FILE = APP_DIR / ".user_avatar.json"
+
+    def api_avatar_analyze(self, data: dict):
+        """Analyze uploaded photo with Claude Vision and suggest avatar parameters."""
+        import base64
+
+        image_data = data.get("image", "")
+        if not image_data:
+            self.send_json({"error": "No image provided"}, 400)
+            return
+
+        # Get Anthropic client
+        client = get_anthropic_client()
+        if not client:
+            self.send_json({"error": "AI analysis unavailable - configure ANTHROPIC_API_KEY"}, 503)
+            return
+
+        try:
+            # Extract base64 data from data URL if present
+            if "," in image_data:
+                image_data = image_data.split(",")[1]
+
+            # Call Claude Vision API
+            response = client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=1000,
+                messages=[{
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": "image/jpeg",
+                                "data": image_data
+                            }
+                        },
+                        {
+                            "type": "text",
+                            "text": """Analyze this photo and suggest avatar customization parameters for a TinyPM avatar.
+The TinyPM aesthetic is "Magic vs Science" - characters have dual nature with:
+- A magic eye (left, warm colors: purple, gold, pink)
+- A science eye (right, cool colors: teal, blue, cyan, green)
+
+Based on the person's appearance, suggest parameters that would create a personalized avatar.
+
+Return ONLY a JSON object (no markdown, no explanation) with these fields:
+{
+    "suggested_base": "seed" | "orb" | "crystal" | "flame" | "star",
+    "magic_eye_color": "#HEX (warm: purples, golds, pinks)",
+    "science_eye_color": "#HEX (cool: teals, blues, greens)",
+    "body_tone": "#HEX (skin-tone inspired but can be fantastical)",
+    "hair_style": "leaf" | "antenna" | "sprout" | "flower" | "lightning",
+    "accessories": [] (array of: "wizard_hat", "goggles", "crown", "halo"),
+    "expression": "happy" | "thinking" | "alert" | "celebrating",
+    "reasoning": "Brief friendly explanation of why these choices suit the person"
+}
+
+Be creative but personalized! Consider:
+- Face shape -> base shape
+- Eye color -> eye color suggestions (but make them magical/sci-fi)
+- Hair style/color -> sprout style
+- Overall vibe/expression -> expression and accessories
+- Skin tone -> body tone (can be exact or fantastical variation)
+
+Make the avatar feel like a magical/scientific version of the person!"""
+                        }
+                    ]
+                }]
+            )
+
+            # Parse the response
+            response_text = response.content[0].text if response.content else ""
+
+            # Try to extract JSON
+            import re
+            json_match = re.search(r'\{[^{}]*"suggested_base"[^{}]*\}', response_text, re.DOTALL)
+            if json_match:
+                result = json.loads(json_match.group())
+                self.send_json(result)
+            else:
+                # Try to parse the whole response as JSON
+                try:
+                    result = json.loads(response_text)
+                    self.send_json(result)
+                except:
+                    # Return default suggestions if parsing fails
+                    self.send_json({
+                        "suggested_base": "seed",
+                        "magic_eye_color": "#8B5CF6",
+                        "science_eye_color": "#14B8A6",
+                        "body_tone": "#F5D0C5",
+                        "hair_style": "leaf",
+                        "accessories": [],
+                        "expression": "happy",
+                        "reasoning": "Created a balanced Magic vs Science avatar for you!"
+                    })
+
+        except Exception as e:
+            print(f"[TinyPM] Avatar analysis error: {e}")
+            self.send_json({"error": f"Analysis failed: {str(e)}"}, 500)
+
+    def api_avatar_save(self, data: dict):
+        """Save user's avatar configuration."""
+        avatar_state = data.get("avatar_state", {})
+        svg_data = data.get("svg_data", "")
+
+        if not avatar_state:
+            self.send_json({"error": "No avatar state provided"}, 400)
+            return
+
+        try:
+            avatar_data = {
+                "state": avatar_state,
+                "svg": svg_data,
+                "created_at": datetime.now().isoformat(),
+                "updated_at": datetime.now().isoformat()
+            }
+
+            # Save to file
+            avatar_file = APP_DIR / ".user_avatar.json"
+            avatar_file.write_text(json.dumps(avatar_data, indent=2))
+
+            # Also save to board.json for persistence
+            board = load_board()
+            board["user_avatar"] = avatar_state
+            save_board(board)
+
+            self.send_json({"success": True, "message": "Avatar saved successfully!"})
+
+        except Exception as e:
+            print(f"[TinyPM] Avatar save error: {e}")
+            self.send_json({"error": f"Failed to save avatar: {str(e)}"}, 500)
+
+    def api_get_avatar(self):
+        """Get the user's saved avatar."""
+        avatar_file = APP_DIR / ".user_avatar.json"
+
+        if avatar_file.exists():
+            try:
+                avatar_data = json.loads(avatar_file.read_text())
+                self.send_json(avatar_data)
+                return
+            except:
+                pass
+
+        # Check board.json as fallback
+        board = load_board()
+        if "user_avatar" in board:
+            self.send_json({"state": board["user_avatar"]})
+            return
+
+        # No avatar saved
+        self.send_json({"state": None, "message": "No avatar saved yet"})
+
+    # =========================================================================
+    # WEATHER / CALENDAR / EMAIL WIDGETS
+    # =========================================================================
+
+    def api_get_weather(self):
+        # Try to get real weather if we have location, otherwise return demo
+        self.send_json({
+            "available": True,
+            "temperature": 45,
+            "condition": "Partly Cloudy",
+            "description": "Partly cloudy with a chance of rain",
+            "humidity": 65,
+            "wind_speed": 8,
+            "location": "Pittsburgh, PA",
+            "icon": "⛅",
+            "forecast": [
+                {"day": "Today", "high": 48, "low": 35, "icon": "⛅"},
+                {"day": "Tomorrow", "high": 52, "low": 38, "icon": "🌤️"},
+                {"day": "Sunday", "high": 55, "low": 40, "icon": "☀️"},
+            ]
+        })
+
+    def api_get_calendar_events(self):
+        # Check if we have OAuth configured
+        try:
+            from calendar_integration import get_upcoming_events
+            events = get_upcoming_events(max_results=5)
+            self.send_json({"available": True, "events": events})
+        except Exception as e:
+            # Return placeholder showing OAuth needed
+            self.send_json({
+                "available": False,
+                "needs_oauth": True,
+                "message": "Connect Google Calendar to see events",
+                "events": []
+            })
+
+    def api_get_recent_emails(self):
+        # Check if we have OAuth configured
+        try:
+            from email_integration import get_recent_emails
+            emails = get_recent_emails(max_results=5)
+            self.send_json({"available": True, "emails": emails})
+        except Exception as e:
+            # Return placeholder showing OAuth needed
+            self.send_json({
+                "available": False,
+                "needs_oauth": True,
+                "message": "Connect Gmail to see emails",
+                "emails": []
+            })
 
 
 def main():

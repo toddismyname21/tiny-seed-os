@@ -1,0 +1,89 @@
+# TinyPM Production Requirements
+# ============================================
+# Install with: pip install -r requirements.txt
+#
+# Pinned versions for production stability
+# Last updated: 2026-01-30
+
+# ============================================
+# CORE - Required for basic operation
+# ============================================
+anthropic>=0.34.0,<1.0.0        # Claude API for PM Brain
+python-dotenv>=1.0.0,<2.0.0     # Environment variable loading
+
+# ============================================
+# HTTP/WEB SERVER
+# ============================================
+httpx>=0.25.0,<1.0.0            # Async HTTP client
+websockets>=12.0,<14.0          # WebSocket support for remote terminal bridge
+uvicorn>=0.24.0,<1.0.0          # ASGI server (for A2A server)
+starlette>=0.32.0,<1.0.0        # Web framework (for A2A)
+
+# ============================================
+# GOOGLE API INTEGRATION (Calendar/Email)
+# ============================================
+google-api-python-client>=2.0.0,<3.0.0
+google-auth-httplib2>=0.1.0,<1.0.0
+google-auth-oauthlib>=1.0.0,<2.0.0
+
+# ============================================
+# SUPABASE INTEGRATION (Cloud Sync)
+# ============================================
+supabase>=2.0.0,<3.0.0
+
+# ============================================
+# TUI FRAMEWORK (Terminal Dashboard)
+# ============================================
+textual>=0.47.0,<1.0.0
+
+# ============================================
+# DESIGN & VISUALIZATION (Artistic Director)
+# ============================================
+pillow>=10.0.0,<12.0.0          # Image processing
+colorthief>=0.2.1               # Color extraction from images
+
+# ============================================
+# MCP PROTOCOL SUPPORT
+# ============================================
+mcp>=1.26.0,<2.0.0              # Model Context Protocol SDK
+pydantic>=2.0.0,<3.0.0          # Data validation
+anyio>=4.0.0,<5.0.0             # Async primitives
+aiofiles>=23.0.0,<25.0.0        # Async file operations
+typing-extensions>=4.5.0        # Extended type hints
+
+# ============================================
+# LANGGRAPH (Optional - Durable Execution)
+# ============================================
+# Uncomment if using LangGraph features:
+# langgraph>=0.2.0
+# langchain-core>=0.2.0
+# psycopg[binary]>=3.1.0
+# psycopg-pool>=3.1.0
+
+# ============================================
+# A2A PROTOCOL (Optional - Agent Communication)
+# ============================================
+# Uncomment for full A2A support:
+# a2a-sdk[all]>=0.3.0
+
+# ============================================
+# PRODUCTION SERVER
+# ============================================
+gunicorn>=21.0.0,<23.0.0        # Production WSGI server (fallback)
+
+# ============================================
+# DEVELOPMENT/TESTING
+# ============================================
+pytest>=7.0.0,<9.0.0
+pytest-asyncio>=0.21.0,<1.0.0
+
+# ============================================
+# NOTES
+# ============================================
+#
+# For Playwright (browser automation), run after install:
+#   pip install playwright
+#   playwright install chromium
+#
+# For OpenAI (DALL-E image generation), run:
+#   pip install openai>=1.0.0

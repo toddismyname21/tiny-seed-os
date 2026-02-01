@@ -1,0 +1,197 @@
+[
+  {
+    "title": "s1: Simple test-time scaling",
+    "content": "Open-source model that beats OpenAI o1-preview on competition math by up to 27% using budget forcing technique. s1-32B model achieves 50-57% on AIME24 through test-time compute scaling. Uses curated s1K dataset of 1000 reasoning traces and 'budget forcing' to extend reasoning by appending 'Wait' tokens. Model, data, and code are fully open-source.",
+    "author": "Niklas Muennighoff, Zitong Yang et al. (Stanford, UW, Contextual AI)",
+    "url": "https://arxiv.org/abs/2501.19393",
+    "extracted_claims": [
+      "Exceeds o1-preview on MATH and AIME24 by up to 27%",
+      "Budget forcing improves AIME24 from 50% to 57%",
+      "Open-source 32B model competitive with closed-source reasoning models",
+      "Wait tokens enable model to reconsider and correct reasoning"
+    ],
+    "wildness_score": 9.0,
+    "claim_type": "research"
+  },
+  {
+    "title": "Revisiting the Test-Time Scaling of o1-like Models: Do they Truly Possess Test-Time Scaling Capabilities?",
+    "content": "CONTROVERSIAL: Paper challenges the fundamental assumption that o1-like models (QwQ, DeepSeek-R1, LIMO) improve through extended reasoning. Finds that CORRECT solutions are consistently SHORTER than incorrect ones across all model sizes. Sequential scaling (self-revision) fails with <10% successful correction rates. Proposes that parallel scaling beats sequential by a wide margin. Introduces 'Shortest Majority Vote' strategy.",
+    "author": "Zhiyuan Zeng, Qinyuan Cheng, Xipeng Qiu (Fudan University, Shanghai AI Laboratory)",
+    "url": "https://arxiv.org/html/2502.12215v1",
+    "extracted_claims": [
+      "Correct solutions are consistently shorter than incorrect ones in o1-like models",
+      "Extended reasoning DEGRADES performance in sequential settings",
+      "Self-revision success rate below 10%",
+      "Parallel scaling >>> sequential scaling for test-time compute",
+      "Challenges the core premise of o1/R1 style reasoning"
+    ],
+    "wildness_score": 9.5,
+    "claim_type": "research"
+  },
+  {
+    "title": "LLMOrbit: From Scaling Walls to Agentic AI Systems",
+    "content": "Comprehensive analysis of 50+ LLMs identifying THREE CRITICAL CRISES: training data depletion by 2026-2028, costs escalating from $3M to $300M+, and 22x energy consumption increases. Proposes six paradigm solutions including 10x inference compute, 4-8x compression, 10x cost reduction through distributed edge computing. Claims GPT-4-level performance now achievable at <$0.30/M tokens. Major shift: post-training gains > pre-training scale, efficiency breakthroughs democratizing AI.",
+    "author": "Badri N. Patro, Vijay S. Agneeswaran",
+    "url": "https://arxiv.org/abs/2601.14053",
+    "extracted_claims": [
+      "Training data will be depleted by 2026-2028",
+      "Training costs increased from $3M to $300M+ over 5 years",
+      "Energy consumption increased 22-fold creating unsustainable scaling walls",
+      "GPT-4-level performance now under $0.30/M tokens",
+      "Test-time compute enables 10x inference compute",
+      "Small specialized models can match larger alternatives"
+    ],
+    "wildness_score": 8.5,
+    "claim_type": "research"
+  },
+  {
+    "title": "Toward Efficient Agents: Memory, Tool learning, and Planning",
+    "content": "First comprehensive systematization of agent efficiency (not just effectiveness). Analyzes 200+ papers to identify converging principles: memory via compression/management, tool learning via RL rewards minimizing invocations, planning via controlled search. Introduces Pareto frontier analysis for cost-effectiveness tradeoffs. Critical gap: prior work focused on effectiveness, overlooked efficiency crucial for real-world deployment. Meta-contribution synthesizing scattered research into production-grade guidelines.",
+    "author": "Xiaofang Yang, Lijun Li, Heng Zhou et al. (16 authors)",
+    "url": "https://arxiv.org/abs/2601.14192",
+    "extracted_claims": [
+      "First comprehensive efficiency framework for agent systems",
+      "Converging principles across memory, tool learning, and planning",
+      "Dual evaluation: fixed budget effectiveness vs. cost at fixed effectiveness",
+      "Pareto frontier analysis for cost-effectiveness",
+      "200+ references synthesized into coherent framework"
+    ],
+    "wildness_score": 7.0,
+    "claim_type": "research"
+  },
+  {
+    "title": "Memory in the Age of AI Agents",
+    "content": "47-author comprehensive survey establishing memory as 'first-class primitive' in agentic AI. Proposes 3D framework: Forms (token-level, parametric, latent), Functions (factual, experiential, working), Dynamics (formation, evolution, retrieval). Distinguishes agent memory from LLM memory, RAG, and context engineering. Claims traditional long/short-term taxonomies are insufficient. Identifies future frontiers: memory automation, RL integration, multimodal memory, multi-agent systems, trustworthiness.",
+    "author": "Yuyang Hu, Shichun Liu, Yanwei Yue, Guibin Zhang et al. (47 authors)",
+    "url": "https://arxiv.org/abs/2512.13564",
+    "extracted_claims": [
+      "Memory will remain core capability of foundation model-based agents",
+      "Traditional long/short-term memory taxonomies are insufficient",
+      "Three-dimensional framework for understanding agent memory",
+      "Agent memory distinct from LLM memory, RAG, and context engineering",
+      "Memory as first-class primitive in future agentic intelligence"
+    ],
+    "wildness_score": 7.5,
+    "claim_type": "research"
+  },
+  {
+    "title": "AI Agent Systems: Architectures, Applications, and Evaluation",
+    "content": "Bold claim: capability gains increasingly from SYSTEM DESIGN rather than bigger models. Reframes agents as 'risk-aware, budgeted controllers' not just language generators. Traces (ReAct-style) are valuable for governance, not just performance. LLMs 'not inherently grounded' and must be 'orchestrators over trusted tools' via strict schemas. Evaluation must be end-to-end and realistic, measuring tool correctness and robustness, not just plausibility.",
+    "author": "Bin Xu (Arizona State University)",
+    "url": "https://arxiv.org/html/2601.01743v1",
+    "extracted_claims": [
+      "System design > model scale for capability gains",
+      "Agents are risk-aware controllers, not just generators",
+      "Execution traces critical for governance",
+      "LLMs require structural constraints to prevent hallucinations",
+      "End-to-end realistic evaluation needed beyond static benchmarks"
+    ],
+    "wildness_score": 7.5,
+    "claim_type": "research"
+  },
+  {
+    "title": "From RLHF to Direct Alignment: A Theoretical Unification of Preference Learning",
+    "content": "Unifies diverse preference learning methods (RLHF, DPO, IPO, KTO, SimPO) into three orthogonal axes: preference model, regularization mechanism, data distribution. Claims to transform preference learning 'from empirical art into theoretically grounded discipline'. Establishes formal theorems for failure modes (length hacking, mode collapse, likelihood displacement) and when direct alignment methods fail. Provides systematic method selection guidance.",
+    "author": "Tarun Raheja, Nilay Pochhi",
+    "url": "https://arxiv.org/abs/2601.06108",
+    "extracted_claims": [
+      "Apparent diversity in preference learning reduces to principled choices across 3 axes",
+      "Formal theorems for coverage gaps and reward overoptimization",
+      "Failure modes emerge from predictable design choice combinations",
+      "Transforms preference learning from art to theoretical discipline",
+      "Systematic guidance for practitioners vs. trial-and-error"
+    ],
+    "wildness_score": 8.0,
+    "claim_type": "research"
+  },
+  {
+    "title": "Conformal Feedback Alignment: Quantifying Answer-Level Reliability for Robust LLM Alignment",
+    "content": "Novel framework addressing noisy/inconsistent labels in RLHF by quantifying answer-level reliability using Conformal Prediction. Constructs conformal prediction sets with controllable coverage, converts to weights for DPO/PPO. Claims improved alignment robustness and data efficiency. Complements preference-level weighting with answer-level uncertainty modeling. More robust and data-efficient alignment across datasets.",
+    "author": "Tiejin Chen, Xiaoou Liu, Vishnu Nandam, Kuan-Ru Liou, Hua Wei",
+    "url": "https://arxiv.org/abs/2601.17329",
+    "extracted_claims": [
+      "Answer-level reliability quantification via Conformal Prediction",
+      "Controllable coverage conformal prediction sets",
+      "Improved robustness and data efficiency in alignment",
+      "Complements preference-level weighting",
+      "Works with both DPO and PPO"
+    ],
+    "wildness_score": 7.0,
+    "claim_type": "research"
+  },
+  {
+    "title": "A Survey of Test-Time Compute: From Intuitive Inference to Deliberate Reasoning",
+    "content": "Comprehensive survey establishing test-time compute as critical bridge from System-1 (intuitive) to System-2 (deliberate) reasoning. Covers o1, o3, DeepSeek-R1, Gemini 2.5 as 'large reasoning models' (LRMs). Central claim: greater inference compute = better performance (test-time compute scaling effect). Challenges training-only scaling paradigm. System-1 uses implicit test-time compute (parameter updates, input modification), System-2 uses explicit reasoning (sampling, self-correction, tree search).",
+    "author": "Yixin Ji, Juntao Li, Yang Xiang, Hai Ye et al.",
+    "url": "https://arxiv.org/html/2501.02497v3",
+    "extracted_claims": [
+      "Test-time compute enables transition from intuitive to deliberate reasoning",
+      "Greater inference compute = better performance (scaling effect)",
+      "Challenges traditional training-only scaling paradigm",
+      "Two paradigms: System-1 (implicit) and System-2 (explicit) test-time compute",
+      "o1/o3/DeepSeek-R1 demonstrate System-2 capabilities"
+    ],
+    "wildness_score": 8.0,
+    "claim_type": "research"
+  },
+  {
+    "title": "The End of Transformers? On Challenging Attention and the Rise of Sub-Quadratic Architectures",
+    "content": "NUANCED TAKE: Despite provocative title, paper finds transformers remain dominant at frontier. No pure sub-quadratic models competitive at mid-to-large scale, only hybrids like Jamba. Sub-quadratic architectures excel in edge computing/resource-constrained settings. Predicts architectural diversity shift, not replacement. Both transformers and alternatives face fundamental theoretical limits - sub-quadratic cannot fundamentally surpass transformers in expressivity. Transformers will remain central for foreseeable future.",
+    "author": "Alexander M. Fichtl, Jeremias Bohn, Josefin Kelber, Edoardo Mosca, Georg Groh (TU Munich)",
+    "url": "https://arxiv.org/html/2510.05364v1",
+    "extracted_claims": [
+      "No pure sub-quadratic models at frontier (only hybrids)",
+      "Sub-quadratic excel in resource-constrained settings",
+      "Shift toward architectural diversity, not replacement",
+      "Fundamental expressivity limits prevent sub-quadratic from surpassing transformers",
+      "Transformers remain central for foreseeable future"
+    ],
+    "wildness_score": 6.0,
+    "claim_type": "research"
+  },
+  {
+    "title": "AutoFormer-TS: Learning Novel Transformer Architecture for Time-series Forecasting",
+    "content": "Neural architecture search discovers task-specific Transformer variants outperforming manual designs. Search space of 1.56e+10 combinations exploring alternative attention mechanisms, activations, encoding operations. Introduces AB-DARTS improving on existing DNAS by directly measuring operation contribution via masking (vs. architecture parameters). Achieves SOTA on long-term and short-term forecasting benchmarks. Only ~3x training time of baseline PatchTST. Task-specific architectures > one-size-fits-all.",
+    "author": "Juyuan Zhang, Wei Zhu, Jiechao Gao (NTU, HKU, UVA)",
+    "url": "https://arxiv.org/html/2502.13721",
+    "extracted_claims": [
+      "1.56e+10 architecture combinations explored",
+      "SOTA performance on time-series forecasting benchmarks",
+      "AB-DARTS improves operation identification vs. standard DARTS",
+      "Only 3x training time overhead",
+      "Different tasks benefit from different architectures"
+    ],
+    "wildness_score": 7.0,
+    "claim_type": "research"
+  },
+  {
+    "title": "Emulating Retrieval Augmented Generation via Prompt Engineering for Enhanced Long Context Comprehension",
+    "content": "Treats LLM as both retriever and reasoner in single forward pass. No external retrieval systems needed. Method: (1) tag relevant segments, (2) summarize localized info, (3) CoT reasoning across segments, (4) generate answer. 'Lightweight alternative to traditional retrieval pipelines' avoiding repeated calls or external indexing. MIXED RESULTS: QA2 (Two Supporting Facts) - 0.44 accuracy at 64k tokens vs. 0.04 for RAG. QA7 (Counting) - 0.44-0.64 accuracy. QA10 varies significantly. Prompt ordering substantially influences outcomes.",
+    "author": "Joon Park, Kyohei Atarashi, Koh Takeuchi, Hisashi Kashima (Kyoto University)",
+    "url": "https://arxiv.org/html/2502.12462v1",
+    "extracted_claims": [
+      "Emulates RAG within single LLM forward pass",
+      "No external retrieval system required",
+      "0.44 vs 0.04 accuracy improvement on QA2 at 64k tokens",
+      "Lightweight alternative avoiding repeated model calls",
+      "Prompt ordering significantly impacts results"
+    ],
+    "wildness_score": 6.5,
+    "claim_type": "research"
+  },
+  {
+    "title": "Conversation Routines: A Prompt Engineering Framework for Task-Oriented Dialog Systems",
+    "content": "Enables embedding business logic directly in LLM system prompts using natural language. Domain experts design conversational workflows without coding. Structures prompts with roles, functions, workflow patterns, error handling for autonomous agents. Contrasts with LangGraph: LangGraph offers modularity and deterministic execution but requires coding and 'hardcoding logic reduces flexibility'. CR more accessible to non-programmers. Future vision: CR as 'source code' compiled to LangGraph-compatible workflows, combining natural language accessibility with deterministic execution.",
+    "author": "Giorgio Robino",
+    "url": "https://arxiv.org/html/2501.11613v2",
+    "extracted_claims": [
+      "Business logic embedded in natural language system prompts",
+      "Domain experts design workflows without coding",
+      "More accessible than LangGraph for non-programmers",
+      "Future: CR compiled to LangGraph workflows",
+      "Combines natural language accessibility with deterministic execution"
+    ],
+    "wildness_score": 6.0,
+    "claim_type": "research"
+  }
+]

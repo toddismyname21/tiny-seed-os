@@ -1,0 +1,9 @@
+{
+  "facts": {
+    "test_key": {
+      "value": "test_value_from_mcp",
+      "stored_at": "2026-01-30T16:59:13.699982"
+    }
+  },
+  "updated_at": "2026-01-30T16:59:13.699984"
+}

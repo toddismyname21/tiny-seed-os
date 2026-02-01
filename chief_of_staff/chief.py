@@ -36,6 +36,7 @@ Author: Chief_of_Staff_Claude
 
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta
+from dataclasses import dataclass
 
 
 class ChiefOfStaff:
@@ -47,6 +48,7 @@ class ChiefOfStaff:
     - Google Calendar (via OAuth)
     - Gmail (via OAuth)
     - AI chat interface
+    - Work Diary & Retrospectives
 
     This is the ONE interface you need for full farm management.
     """
@@ -56,6 +58,7 @@ class ChiefOfStaff:
         self._api = None
         self._calendar = None
         self._email = None
+        self._diary = None
 
     @property
     def api(self):
@@ -80,6 +83,14 @@ class ChiefOfStaff:
             from email_integration import get_email_integration
             self._email = get_email_integration()
         return self._email
+
+    @property
+    def diary(self):
+        """Access to Work Diary & Retrospectives."""
+        if self._diary is None:
+            from diary_manager import get_diary_manager
+            self._diary = get_diary_manager()
+        return self._diary
 
     # =========================================================================
     # QUICK ACCESS METHODS
@@ -213,6 +224,161 @@ class ChiefOfStaff:
         return self.api.get_morning_brief()
 
     # =========================================================================
+    # WORK DIARY & RETROSPECTIVES
+    # =========================================================================
+
+    def get_work_diary(self, date: str = None) -> Dict:
+        """
+        Get work diary for a specific date.
+
+        Args:
+            date: Date string YYYY-MM-DD (default: today)
+
+        Returns:
+            Diary view with timeline, summary, and navigation
+        """
+        from datetime import datetime
+        if date:
+            dt = datetime.strptime(date, '%Y-%m-%d')
+        else:
+            dt = None
+        return self.diary.get_diary_view(dt)
+
+    def add_diary_note(self, note: str, significant: bool = False) -> Dict:
+        """
+        Add a personal note to today's diary.
+
+        Args:
+            note: The note content
+            significant: Mark as significant accomplishment
+
+        Returns:
+            Created entry details
+        """
+        entry = self.diary.add_user_note(note, mark_significant=significant)
+        return entry.to_dict()
+
+    def log_focus_session(self, title: str, duration_minutes: int,
+                          files_touched: int = 0) -> Dict:
+        """
+        Log a focus/deep work session.
+
+        Args:
+            title: What was worked on
+            duration_minutes: Session length in minutes
+            files_touched: Optional count of files modified
+
+        Returns:
+            Created entry details
+        """
+        entry = self.diary.capture_focus_session(title, duration_minutes, files_touched)
+        return entry.to_dict()
+
+    def get_weekly_retrospective(self, week_start: str = None) -> Dict:
+        """
+        Get weekly AI retrospective.
+
+        Args:
+            week_start: Monday of the week (YYYY-MM-DD), default current week
+
+        Returns:
+            Retrospective with overview, wins, challenges, patterns, recommendations
+        """
+        from datetime import datetime
+        if week_start:
+            dt = datetime.strptime(week_start, '%Y-%m-%d')
+        else:
+            dt = None
+        return self.diary.get_retrospective_view(dt)
+
+    def add_accomplishment(self, title: str, description: str,
+                           category: str, impact: str,
+                           user_role: str = "") -> Dict:
+        """
+        Add a significant accomplishment for performance reviews.
+
+        Args:
+            title: Accomplishment title
+            description: What was accomplished
+            category: One of: ship, team, fix, process, planning, learning
+            impact: Business impact description
+            user_role: Your role in the accomplishment
+
+        Returns:
+            Created accomplishment details
+        """
+        from diary_manager import AccomplishmentCategory
+        cat = AccomplishmentCategory(category)
+        acc = self.diary.add_accomplishment(
+            title=title,
+            description=description,
+            category=cat,
+            impact=impact,
+            user_role=user_role
+        )
+        return acc.to_dict()
+
+    def get_accomplishments(self, days: int = 90) -> List[Dict]:
+        """
+        Get accomplishments for the last N days.
+
+        Args:
+            days: Number of days to look back (default 90)
+
+        Returns:
+            List of accomplishments
+        """
+        from datetime import datetime, timedelta
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days)
+        accs = self.diary.get_accomplishments(start_date, end_date)
+        return [a.to_dict() for a in accs]
+
+    def export_for_review(self, days: int = 90, format: str = "text") -> str:
+        """
+        Export accomplishments for performance review.
+
+        Args:
+            days: Number of days to include
+            format: "text", "markdown", or "pdf"
+
+        Returns:
+            Formatted export string
+        """
+        from datetime import datetime, timedelta
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days)
+        return self.diary.export_for_review(start_date, end_date, format)
+
+    def sync_calendar_to_diary(self) -> Dict:
+        """
+        Sync calendar events to work diary.
+
+        Captures meetings attended and updates diary entries.
+
+        Returns:
+            Sync results with count of entries created
+        """
+        try:
+            if not self.calendar.is_connected():
+                return {'success': False, 'error': 'Calendar not connected'}
+
+            # Get today's events
+            events = self.calendar.get_events_today()
+            event_dicts = [e.to_dict() for e in events]
+
+            # Capture to diary
+            count = self.diary.capture_from_calendar(event_dicts)
+
+            return {
+                'success': True,
+                'entries_created': count,
+                'events_processed': len(events)
+            }
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+
+    # =========================================================================
     # STATUS
     # =========================================================================
 
@@ -270,6 +436,17 @@ class ChiefOfStaff:
 ║    chief.get_inventory()           - Current inventory            ║
 ║    chief.get_employees()           - Employee list                ║
 ║    chief.status()                  - System status                ║
+║                                                                   ║
+║  WORK DIARY & RETROSPECTIVES:                                     ║
+║    chief.get_work_diary()          - Today's work diary           ║
+║    chief.get_work_diary('2026-02-01') - Diary for specific date   ║
+║    chief.add_diary_note('note')    - Add personal note            ║
+║    chief.log_focus_session(title, mins) - Log focus time          ║
+║    chief.get_weekly_retrospective()    - AI weekly retrospective  ║
+║    chief.add_accomplishment(...)   - Add accomplishment           ║
+║    chief.get_accomplishments(90)   - Get last 90 days             ║
+║    chief.export_for_review(90)     - Export for performance review║
+║    chief.sync_calendar_to_diary()  - Sync calendar to diary       ║
 ║                                                                   ║
 ║  PLANTING & SCHEDULING:                                           ║
 ║    chief.add_planting(crop, dates) - Add with auto greenhouse     ║
@@ -337,6 +514,13 @@ if __name__ == "__main__":
         print("  python chief.py inventory       - Show inventory")
         print("  python chief.py emails          - Unread emails")
         print("  python chief.py calendar        - Today's events")
+        print("")
+        print("  WORK DIARY & RETROSPECTIVES:")
+        print("  python chief.py diary           - Today's work diary")
+        print("  python chief.py retro           - Weekly retrospective")
+        print("  python chief.py focus <title> <mins> - Log focus session")
+        print("  python chief.py note '<note>'   - Add diary note")
+        print("  python chief.py export [days]   - Export for review")
         sys.exit(0)
 
     command = sys.argv[1]
@@ -435,6 +619,63 @@ if __name__ == "__main__":
                 print("  No events in the next 24 hours")
         except Exception as e:
             print(f"Error: {e}")
+
+    elif command == "diary":
+        print("\nWork Diary - Today:")
+        print("-" * 40)
+        diary_view = chief.get_work_diary()
+        print(f"Date: {diary_view['date']}")
+
+        if diary_view['timeline']:
+            for item in diary_view['timeline']:
+                print(f"\n  {item['time']} - {item['title']}")
+                if item.get('duration'):
+                    print(f"    Duration: {item['duration']}")
+        else:
+            print("\n  No entries yet today.")
+
+        print(f"\nSummary: {diary_view['summary']['ai_summary']}")
+
+    elif command == "retro":
+        print("\nWeekly Retrospective:")
+        print("-" * 40)
+        retro = chief.get_weekly_retrospective()
+        print(f"Week: {retro['week']}")
+
+        overview = retro['tabs']['overview']
+        print(f"\nMetrics:")
+        print(f"  Tasks: {overview['metrics']['tasks']}")
+        print(f"  Meetings: {overview['metrics']['meetings']}")
+        print(f"  Focus: {overview['focus_time']['hours']:.1f}h")
+
+        print(f"\nWins:")
+        for win in retro['tabs']['wins'][:3]:
+            print(f"  - {win['title']}")
+
+        print(f"\nRecommendations:")
+        for rec in retro['tabs']['recommendations'][:3]:
+            print(f"  - {rec}")
+
+    elif command == "focus":
+        if len(sys.argv) < 4:
+            print("Usage: python chief.py focus '<title>' <minutes>")
+            sys.exit(1)
+        title = sys.argv[2]
+        minutes = int(sys.argv[3])
+        result = chief.log_focus_session(title, minutes)
+        print(f"Logged focus session: {result['title']} ({minutes} min)")
+
+    elif command == "note":
+        if len(sys.argv) < 3:
+            print("Usage: python chief.py note '<your note>'")
+            sys.exit(1)
+        note = ' '.join(sys.argv[2:])
+        result = chief.add_diary_note(note)
+        print(f"Added note: {result['title']}")
+
+    elif command == "export":
+        days = int(sys.argv[2]) if len(sys.argv) > 2 else 90
+        print(chief.export_for_review(days, "text"))
 
     else:
         print(f"Unknown command: {command}")

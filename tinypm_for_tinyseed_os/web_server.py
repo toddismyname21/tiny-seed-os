@@ -1,0 +1,3406 @@
+#!/usr/bin/env python3
+"""
+TinyPM Web Server
+═════════════════════════════════════════════════════════════════
+A proper web server for TinyPM - serves the dashboard and provides
+a REST API for task management.
+
+No external dependencies - uses Python's built-in http.server.
+
+Usage:
+    python3 web_server.py                  # Start on port 8000
+    python3 web_server.py --port 9000      # Custom port
+
+Remote access:
+    ngrok http 8000                        # Tunnel for anywhere access
+"""
+from __future__ import annotations
+
+import json
+import os
+import subprocess
+import sys
+import threading
+from datetime import datetime
+from http.server import HTTPServer, SimpleHTTPRequestHandler
+from pathlib import Path
+from typing import Optional
+from urllib.parse import parse_qs, urlparse
+
+APP_DIR = Path(__file__).parent
+
+
+# =============================================================================
+# SKILLS SYSTEM INTEGRATION (January 2026 SOTA - Modular Skill Architecture)
+# =============================================================================
+try:
+    from skills_api import SkillsAPI, SKILLS_AVAILABLE, get_skill_orchestrator
+    _skills_api = None
+
+    def get_skills_api() -> SkillsAPI:
+        """Lazy initialization of SkillsAPI."""
+        global _skills_api
+        if _skills_api is None:
+            _skills_api = SkillsAPI("dashboard_user")
+        return _skills_api
+except ImportError as e:
+    print(f"[TinyPM] Skills System not available: {e}")
+    SKILLS_AVAILABLE = False
+
+    def get_skills_api():
+        return None
+
+# =============================================================================
+# WILD CLAIMS CZAR INTEGRATION (Multi-Agent Research System)
+# =============================================================================
+try:
+    from wild_claims_czar import (
+        WildClaimsCzar,
+        ClaimsDatabase,
+        ClaimStatus,
+        get_db as get_claims_db,
+    )
+    _wild_claims_czar = None
+
+    def get_claims_czar() -> WildClaimsCzar:
+        """Lazy initialization of WildClaimsCzar."""
+        global _wild_claims_czar
+        if _wild_claims_czar is None:
+            _wild_claims_czar = WildClaimsCzar()
+        return _wild_claims_czar
+
+    WILD_CLAIMS_AVAILABLE = True
+    print("[TinyPM] Wild Claims Czar ENABLED - research scanner active")
+except ImportError as e:
+    print(f"[TinyPM] Wild Claims Czar not available: {e}")
+    WILD_CLAIMS_AVAILABLE = False
+
+    def get_claims_czar():
+        return None
+
+    def get_claims_db():
+        return None
+
+# Load .env file if present
+_env_file = APP_DIR / ".env"
+if _env_file.exists():
+    for line in _env_file.read_text().splitlines():
+        line = line.strip()
+        if line and not line.startswith("#") and "=" in line:
+            key, val = line.split("=", 1)
+            os.environ.setdefault(key.strip(), val.strip())
+
+BOARD_FILE = APP_DIR / "board.json"
+PERSONAS_DIR = APP_DIR / "personas"
+DASHBOARD_FILE = APP_DIR / "web_dashboard.html"
+CLAUDE_BIN = Path.home() / ".local" / "bin" / "claude"
+PM_INBOX_FILE = APP_DIR / ".pm_inbox.json"
+PM_CHAT_FILE = APP_DIR / ".pm_chat.json"
+AGENT_QUESTIONS_FILE = APP_DIR / ".agent_questions.json"
+LAUNCH_CHECKLIST_FILE = APP_DIR / ".launch_checklist.json"
+UPLOADS_DIR = APP_DIR / "uploads"
+UPLOADS_MANIFEST = APP_DIR / ".uploads.json"
+PROJECT_ROOT = APP_DIR.parent  # /Users/samanthapollack/Documents/TIny_Seed_OS/
+INTERCOM_FILE = APP_DIR / ".claude_intercom.json"
+PM_MEMORY_FILE = APP_DIR / ".pm_memory.json"
+AGENT_REGISTRY_FILE = APP_DIR / ".agent_registry.json"
+BUILDER_CHAT_FILE = APP_DIR / ".builder_chat.json"
+
+# Ensure uploads directory exists
+UPLOADS_DIR.mkdir(exist_ok=True)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# INTELLIGENT PM AUTO-RESPONDER
+# Production-grade autonomous response system with context awareness and memory
+# ═══════════════════════════════════════════════════════════════════════════════
+
+AUTO_RESPONDER_ENABLED = True
+AUTO_RESPONDER_INTERVAL = 5  # seconds between checks
+AUTO_RESPONDER_LOG = []  # In-memory log for debugging
+
+def pm_log(msg: str):
+    """Log auto-responder activity."""
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    log_entry = f"[{timestamp}] {msg}"
+    AUTO_RESPONDER_LOG.append(log_entry)
+    if len(AUTO_RESPONDER_LOG) > 100:
+        AUTO_RESPONDER_LOG.pop(0)
+    print(f"[PM-Auto] {msg}")
+
+def pm_load_memory() -> dict:
+    """Load PM's persistent memory - facts learned about the user and project."""
+    if PM_MEMORY_FILE.exists():
+        try:
+            return json.loads(PM_MEMORY_FILE.read_text())
+        except:
+            pass
+    return {
+        "user_facts": [],
+        "project_facts": [],
+        "preferences": {},
+        "last_topics": [],
+        "pending_followups": []
+    }
+
+def pm_save_memory(memory: dict):
+    """Save PM's persistent memory."""
+    PM_MEMORY_FILE.write_text(json.dumps(memory, indent=2))
+
+def pm_gather_context() -> str:
+    """Gather comprehensive context about the current project state."""
+    context_parts = []
+
+    # 1. Task Board Status
+    try:
+        if BOARD_FILE.exists():
+            board = json.loads(BOARD_FILE.read_text())
+            tasks = board.get("tasks", [])
+            pending = [t for t in tasks if t.get("status") == "pending"]
+            in_progress = [t for t in tasks if t.get("status") == "in_progress"]
+            context_parts.append(f"TASKS: {len(pending)} pending, {len(in_progress)} in progress, {len(tasks)} total")
+            if in_progress:
+                context_parts.append(f"ACTIVE: {', '.join(t.get('title', 'Untitled')[:30] for t in in_progress[:3])}")
+    except Exception as e:
+        pm_log(f"Context error (board): {e}")
+
+    # 2. Builder Status (from intercom)
+    try:
+        if INTERCOM_FILE.exists():
+            intercom = json.loads(INTERCOM_FILE.read_text())
+            builder_msgs = intercom.get("builder_to_pm", [])
+            if builder_msgs:
+                latest = builder_msgs[-1]
+                context_parts.append(f"BUILDER LAST: [{latest.get('type')}] {latest.get('message', '')[:100]}...")
+            pm_tasks = [t for t in intercom.get("pm_to_builder", []) if not t.get("read")]
+            if pm_tasks:
+                context_parts.append(f"BUILDER QUEUE: {len(pm_tasks)} tasks waiting")
+    except Exception as e:
+        pm_log(f"Context error (intercom): {e}")
+
+    # 3. Agent Questions waiting for answers
+    try:
+        if AGENT_QUESTIONS_FILE.exists():
+            questions = json.loads(AGENT_QUESTIONS_FILE.read_text())
+            unanswered = [q for q in questions.get("questions", []) if not q.get("answered")]
+            if unanswered:
+                context_parts.append(f"WAITING FOR USER: {len(unanswered)} agent questions unanswered")
+    except Exception as e:
+        pm_log(f"Context error (questions): {e}")
+
+    # 4. Launch Readiness Progress
+    try:
+        if LAUNCH_CHECKLIST_FILE.exists():
+            checklist = json.loads(LAUNCH_CHECKLIST_FILE.read_text())
+            items = checklist.get("items", [])
+            done = len([i for i in items if i.get("status") == "done"])
+            total = len(items)
+            pct = int((done / total) * 100) if total > 0 else 0
+            context_parts.append(f"LAUNCH READINESS: {pct}% ({done}/{total} items done)")
+    except Exception as e:
+        pm_log(f"Context error (checklist): {e}")
+
+    # 5. PM Memory - learned facts
+    try:
+        memory = pm_load_memory()
+        if memory.get("user_facts"):
+            context_parts.append(f"KNOWN ABOUT USER: {'; '.join(memory['user_facts'][-5:])}")
+        if memory.get("pending_followups"):
+            context_parts.append(f"PENDING FOLLOWUPS: {'; '.join(memory['pending_followups'][-3:])}")
+    except Exception as e:
+        pm_log(f"Context error (memory): {e}")
+
+    return "\n".join(context_parts) if context_parts else "No context available"
+
+def pm_build_system_prompt(context: str, memory: dict) -> str:
+    """Build the intelligent PM system prompt with full context."""
+    return f"""You are the PM (Project Manager) for TinyPM and Tiny Seed Farm OS.
+
+CRITICAL BEHAVIORS:
+1. You are PROACTIVE - suggest next actions, anticipate needs, don't just answer questions
+2. You are SMART - use the context below to give informed, specific responses
+3. You are CONCISE - dashboard messages should be brief but actionable
+4. You REMEMBER - reference past conversations and follow up on pending items
+5. You COORDINATE - you manage Builder (coding Claude) and research agents
+
+CURRENT PROJECT STATE:
+{context}
+
+USER PREFERENCES & LEARNED FACTS:
+{json.dumps(memory.get('preferences', {}), indent=2) if memory.get('preferences') else 'None learned yet'}
+
+THINGS TO FOLLOW UP ON:
+{chr(10).join('- ' + f for f in memory.get('pending_followups', [])) if memory.get('pending_followups') else 'None pending'}
+
+RESPONSE GUIDELINES:
+- Keep responses under 200 words unless detail is requested
+- Use clear formatting: bullet points, bold for emphasis
+- Always end with a clear next action or question if appropriate
+- If the user asks about status, be specific with numbers and names
+- If the user gives you information (names, dates, facts), acknowledge you'll remember it
+- Be direct and action-oriented, not flowery or overly polite
+
+PROACTIVE BEHAVIORS:
+- If agent questions are waiting, remind the user
+- If Builder completed a task, mention it
+- If launch readiness items need attention, flag them
+- If you notice patterns (user always asks about X), anticipate it
+
+You are a trusted partner, not a servant. Speak as an equal working toward shared goals."""
+
+def pm_extract_learnings(user_message: str, pm_response: str, memory: dict) -> dict:
+    """Extract facts to remember from the conversation."""
+    # Simple heuristic extraction - in production, could use another LLM call
+    updated = False
+
+    # Check for user facts (names, dates, preferences)
+    lower_msg = user_message.lower()
+    if "my name is" in lower_msg or "i am " in lower_msg or "i'm " in lower_msg:
+        memory.setdefault("user_facts", []).append(f"User mentioned: {user_message[:100]}")
+        updated = True
+
+    # Track topics discussed
+    memory.setdefault("last_topics", []).append({
+        "timestamp": datetime.now().isoformat(),
+        "user_msg": user_message[:200],
+        "pm_response": pm_response[:200]
+    })
+    if len(memory["last_topics"]) > 20:
+        memory["last_topics"] = memory["last_topics"][-20:]
+
+    if updated:
+        pm_save_memory(memory)
+
+    return memory
+
+def pm_auto_responder():
+    """Background thread: watches for user messages and auto-responds with intelligence."""
+    import time
+
+    client = get_anthropic_client()
+    if not client:
+        pm_log("DISABLED: No ANTHROPIC_API_KEY found")
+        return
+
+    pm_log("Starting intelligent auto-responder...")
+
+    # Initialize: find the last processed message ID
+    last_processed_id = 0
+    if PM_CHAT_FILE.exists():
+        try:
+            chat = json.loads(PM_CHAT_FILE.read_text())
+            if chat.get("messages"):
+                last_processed_id = max(m["id"] for m in chat["messages"])
+                pm_log(f"Initialized. Last message ID: {last_processed_id}")
+        except Exception as e:
+            pm_log(f"Init error: {e}")
+
+    while AUTO_RESPONDER_ENABLED:
+        try:
+            if PM_CHAT_FILE.exists():
+                chat = json.loads(PM_CHAT_FILE.read_text())
+
+                # Find new unprocessed user messages
+                new_user_msgs = [
+                    m for m in chat.get("messages", [])
+                    if m["id"] > last_processed_id
+                    and m.get("from") == "user"
+                    and not m.get("auto_responded")
+                ]
+
+                if new_user_msgs:
+                    latest = new_user_msgs[-1]
+                    user_message = latest["message"]
+
+                    pm_log(f"New message #{latest['id']}: {user_message[:50]}...")
+
+                    # Gather fresh context
+                    context = pm_gather_context()
+                    memory = pm_load_memory()
+                    system_prompt = pm_build_system_prompt(context, memory)
+
+                    # Build conversation history (last 10 messages)
+                    history = []
+                    for m in chat.get("messages", [])[-10:]:
+                        role = "user" if m.get("from") == "user" else "assistant"
+                        history.append({"role": role, "content": m["message"]})
+
+                    # Call Claude API
+                    pm_log("Calling Claude API...")
+                    response = client.messages.create(
+                        model="claude-sonnet-4-20250514",
+                        max_tokens=1000,
+                        system=system_prompt,
+                        messages=history
+                    )
+
+                    reply_text = response.content[0].text if response.content else "I received your message but couldn't generate a response."
+
+                    pm_log(f"Response generated: {reply_text[:50]}...")
+
+                    # Extract learnings from conversation
+                    memory = pm_extract_learnings(user_message, reply_text, memory)
+
+                    # Write response to chat (re-read file for safety)
+                    chat = json.loads(PM_CHAT_FILE.read_text())
+                    msg_id = chat.get("next_id", 1)
+                    chat["messages"].append({
+                        "id": msg_id,
+                        "from": "pm",
+                        "message": reply_text,
+                        "timestamp": datetime.now().isoformat(),
+                        "read_by_user": False,
+                        "auto_generated": True
+                    })
+                    chat["next_id"] = msg_id + 1
+
+                    # Mark original message as auto-responded
+                    for m in chat["messages"]:
+                        if m["id"] == latest["id"]:
+                            m["auto_responded"] = True
+
+                    PM_CHAT_FILE.write_text(json.dumps(chat, indent=2))
+                    pm_log(f"Response saved as message #{msg_id}")
+
+                    last_processed_id = latest["id"]
+
+        except Exception as e:
+            pm_log(f"Error: {e}")
+            import traceback
+            traceback.print_exc()
+
+        time.sleep(AUTO_RESPONDER_INTERVAL)
+
+    pm_log("Auto-responder stopped")
+
+def start_pm_auto_responder():
+    """Start the PM auto-responder in a background thread."""
+    thread = threading.Thread(target=pm_auto_responder, daemon=True, name="PM-AutoResponder")
+    thread.start()
+    pm_log("Background thread started")
+    return thread
+
+# ═══ Anthropic API (fast chat) ═══
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+_anthropic_client = None
+
+def get_anthropic_client():
+    """Lazy-init Anthropic client. Returns None if not available."""
+    global _anthropic_client
+    if _anthropic_client is not None:
+        return _anthropic_client
+    if not ANTHROPIC_API_KEY:
+        return None
+    try:
+        import anthropic
+        _anthropic_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+        return _anthropic_client
+    except ImportError:
+        return None
+
+def load_board() -> dict:
+    if BOARD_FILE.exists():
+        with open(BOARD_FILE, "r") as f:
+            return json.load(f)
+    return {"version": "1.0", "project": "Tiny Seed Farm OS", "tasks": [], "next_id": 1}
+
+def save_board(board: dict):
+    with open(BOARD_FILE, "w") as f:
+        json.dump(board, f, indent=2)
+
+def list_personas() -> list:
+    personas = []
+    if PERSONAS_DIR.exists():
+        for f in sorted(PERSONAS_DIR.glob("*.md")):
+            personas.append(f.stem)
+    return personas
+
+class TinyPMHandler(SimpleHTTPRequestHandler):
+    """Custom HTTP handler for TinyPM web dashboard."""
+
+    def do_GET(self):
+        parsed = urlparse(self.path)
+        path = parsed.path
+        params = parse_qs(parsed.query)
+
+        # Dashboard
+        if path == "/" or path == "/index.html":
+            self.serve_dashboard()
+        elif path == "/terminal_test.html":
+            self.serve_file(APP_DIR / "terminal_test.html", "text/html")
+        elif path == "/characters" or path == "/characters.html":
+            self.serve_file(APP_DIR / "characters.html", "text/html")
+        # API endpoints
+        elif path == "/api/tasks":
+            self.api_get_tasks()
+        elif path == "/api/personas":
+            self.api_get_personas()
+        elif path == "/api/persona":
+            name = params.get("name", [None])[0]
+            self.api_get_persona(name)
+        elif path == "/api/stats":
+            self.api_get_stats()
+        elif path == "/api/activity":
+            self.api_get_activity()
+        elif path == "/api/pm/inbox":
+            self.api_get_pm_inbox()
+        elif path == "/api/pm/chat":
+            self.api_get_pm_chat()
+        elif path == "/api/builder/chat":
+            self.api_get_builder_chat()
+        elif path == "/api/builder/status":
+            self.api_get_builder_status()
+        elif path == "/api/agent/questions":
+            self.api_get_agent_questions()
+        elif path == "/api/launch-checklist":
+            self.api_get_launch_checklist()
+        elif path == "/api/uploads":
+            self.api_get_uploads()
+        elif path.startswith("/uploads/"):
+            self.serve_upload(path)
+        elif path == "/api/agents":
+            self.api_get_agents()
+        elif path == "/api/agents/chat":
+            params = parse_qs(parsed.query)
+            agent_id = params.get("agent", ["builder"])[0]
+            self.api_get_agent_chat(agent_id)
+        elif path == "/api/intercom":
+            self.api_get_intercom()
+        elif path == "/api/intercom/user":
+            self.api_get_user_intercom()
+        # OAuth Status API
+        elif path == "/api/oauth/status":
+            self.api_oauth_status()
+        # Wild Claims Czar API
+        elif path == "/api/claims":
+            self.api_get_claims()
+        elif path == "/api/claims/validated":
+            self.api_get_validated_claims()
+        elif path == "/api/claims/stats":
+            self.api_get_claims_stats()
+        elif path == "/api/claims/recent":
+            self.api_get_recent_claims()
+        # Skills System API (January 2026 SOTA)
+        elif path == "/api/skills":
+            self.api_get_skills()
+        elif path == "/api/skills/pending-approvals":
+            self.api_get_pending_approvals()
+        elif path == "/api/skills/history":
+            self.api_get_skill_history()
+        # Nudge / Life Organizer API
+        elif path == "/api/nudges":
+            self.api_get_nudges()
+        elif path == "/api/nudges/pending":
+            self.api_get_pending_nudges()
+        elif path == "/api/contacts":
+            self.api_get_contacts()
+        elif path == "/api/goals":
+            self.api_get_goals()
+        elif path == "/api/important-dates":
+            self.api_get_important_dates()
+        # LangGraph Durable Execution API (SOTA 2026)
+        elif path == "/api/langgraph/status":
+            self.api_get_langgraph_status()
+        elif path == "/api/langgraph/threads":
+            self.api_get_langgraph_threads()
+        # A2A Protocol API
+        elif path == "/api/a2a/status":
+            self.api_a2a_status()
+        # Projects API
+        elif path == "/api/projects":
+            self.api_get_projects()
+        elif path.startswith("/api/projects/"):
+            project_id = path.split("/")[-1]
+            self.api_get_project(project_id)
+        # Weather/Calendar/Email widgets
+        elif path == "/api/weather":
+            self.api_get_weather()
+        elif path == "/api/calendar/events":
+            self.api_get_calendar_events()
+        elif path == "/api/email/recent":
+            self.api_get_recent_emails()
+        else:
+            super().do_GET()
+
+    def do_POST(self):
+        parsed = urlparse(self.path)
+        path = parsed.path
+        content_length = int(self.headers.get('Content-Length', 0))
+
+        # For upload endpoint, don't read body here - let the handler do it
+        if path == "/api/upload":
+            self.api_upload_file(content_length)
+            return
+
+        body = self.rfile.read(content_length).decode('utf-8') if content_length else '{}'
+
+        try:
+            data = json.loads(body) if body else {}
+        except json.JSONDecodeError:
+            data = {}
+
+        if path == "/api/tasks":
+            self.api_create_task(data)
+        elif path == "/api/tasks/update":
+            self.api_update_task(data)
+        elif path == "/api/tasks/delete":
+            self.api_delete_task(data)
+        elif path == "/api/launch":
+            self.api_launch_agent(data)
+        elif path == "/api/chat":
+            self.api_chat(data)
+        elif path == "/api/braindump":
+            self.api_braindump(data)
+        elif path == "/api/activity":
+            self.api_post_activity(data)
+        elif path == "/api/activity/read":
+            self.api_mark_activity_read(data)
+        elif path == "/api/tasks/context":
+            self.api_add_context(data)
+        elif path == "/api/pm/inbox":
+            self.api_pm_inbox(data)
+        elif path == "/api/pm/chat":
+            self.api_pm_chat_send(data)
+        elif path == "/api/builder/chat":
+            self.api_builder_chat_send(data)
+        elif path == "/api/agent/question":
+            self.api_agent_post_question(data)
+        elif path == "/api/agent/answer":
+            self.api_agent_answer(data)
+        elif path == "/api/launch-checklist/update":
+            self.api_update_launch_checklist(data)
+        # Note: /api/upload is handled earlier in do_POST to preserve raw body
+        elif path == "/api/uploads/delete":
+            self.api_delete_upload(data)
+        elif path == "/api/agents/spawn":
+            self.api_spawn_agent(data)
+        elif path == "/api/agents/chat":
+            self.api_agent_chat_send(data)
+        elif path == "/api/agents/introduce":
+            self.api_agent_introduce(data)
+        elif path == "/api/intercom/send":
+            self.api_intercom_send(data)
+        elif path == "/api/intercom/broadcast":
+            self.api_intercom_broadcast(data)
+        # Wild Claims Czar POST endpoints
+        elif path == "/api/claims/scan":
+            self.api_trigger_claims_scan(data)
+        elif path == "/api/claims/validate":
+            self.api_trigger_claims_validate(data)
+        # Skills System POST endpoints (January 2026 SOTA)
+        elif path == "/api/skills/execute":
+            self.api_execute_skill(data)
+        elif path == "/api/skills/approve":
+            self.api_approve_skill(data)
+        elif path == "/api/skills/deny":
+            self.api_deny_skill(data)
+        elif path == "/api/skills/parse-intent":
+            self.api_parse_intent(data)
+        # LangGraph Durable Execution POST endpoints (SOTA 2026)
+        elif path == "/api/langgraph/run":
+            self.api_langgraph_run(data)
+        elif path == "/api/langgraph/recover":
+            self.api_langgraph_recover(data)
+        # Nudge / Life Organizer POST endpoints
+        elif path == "/api/contacts":
+            self.api_add_contact(data)
+        elif path == "/api/contacts/update":
+            self.api_update_contact(data)
+        elif path == "/api/contacts/record":
+            self.api_record_contact(data)
+        elif path == "/api/goals":
+            self.api_add_goal(data)
+        elif path == "/api/goals/update":
+            self.api_update_goal(data)
+        elif path == "/api/nudges/dismiss":
+            self.api_dismiss_nudge(data)
+        elif path == "/api/nudges/helpful":
+            self.api_mark_nudge_helpful(data)
+        elif path == "/api/nudges/check":
+            self.api_check_nudges(data)
+        elif path == "/api/important-dates":
+            self.api_add_important_date(data)
+        # Projects API
+        elif path == "/api/projects":
+            self.api_create_project(data)
+        elif path == "/api/projects/entry":
+            self.api_add_project_entry(data)
+        # Feedback API
+        elif path == "/api/feedback":
+            self.api_submit_feedback(data)
+        else:
+            self.send_json({"error": "Unknown endpoint"}, 404)
+
+    def serve_dashboard(self):
+        if DASHBOARD_FILE.exists():
+            content = DASHBOARD_FILE.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(content)))
+            self.send_header("Cache-Control", "no-cache")
+            self.end_headers()
+            self.wfile.write(content)
+        else:
+            self.send_json({"error": "Dashboard not found"}, 500)
+
+    def serve_file(self, filepath, content_type):
+        """Serve a static file."""
+        if filepath.exists():
+            content = filepath.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", f"{content_type}; charset=utf-8")
+            self.send_header("Content-Length", str(len(content)))
+            self.send_header("Cache-Control", "no-cache")
+            self.end_headers()
+            self.wfile.write(content)
+        else:
+            self.send_json({"error": f"File not found: {filepath.name}"}, 404)
+
+    def api_get_tasks(self):
+        board = load_board()
+        self.send_json(board)
+
+    def api_get_personas(self):
+        self.send_json({"personas": list_personas()})
+
+    def api_get_persona(self, name: Optional[str]):
+        if not name:
+            self.send_json({"error": "No persona name"}, 400)
+            return
+        filepath = PERSONAS_DIR / f"{name}.md"
+        if filepath.exists():
+            self.send_json({"name": name, "content": filepath.read_text()})
+        else:
+            self.send_json({"error": f"Persona '{name}' not found"}, 404)
+
+    def api_get_stats(self):
+        board = load_board()
+        tasks = board.get("tasks", [])
+        stats = {
+            "total": len(tasks),
+            "pending": sum(1 for t in tasks if t.get("status") == "pending"),
+            "in_progress": sum(1 for t in tasks if t.get("status") == "in_progress"),
+            "done": sum(1 for t in tasks if t.get("status") == "done"),
+            "personas": list_personas(),
+            "project": board.get("project", "Tiny Seed Farm OS"),
+        }
+        self.send_json(stats)
+
+    def api_create_task(self, data: dict):
+        board = load_board()
+        task_id = board.get("next_id", 1)
+        now = datetime.now().strftime("%Y-%m-%d")
+
+        task = {
+            "id": f"TASK-{task_id:03d}",
+            "title": data.get("title", "Untitled"),
+            "description": data.get("description", ""),
+            "role": data.get("role", "builder"),
+            "priority": data.get("priority", "medium"),
+            "status": "pending",
+            "context": data.get("context", []),
+            "created": now,
+            "updated": now,
+        }
+
+        board["tasks"].append(task)
+        board["next_id"] = task_id + 1
+        save_board(board)
+        self.send_json({"success": True, "task": task})
+
+    def api_update_task(self, data: dict):
+        task_id = data.get("id")
+        if not task_id:
+            self.send_json({"error": "No task ID"}, 400)
+            return
+
+        board = load_board()
+        for task in board.get("tasks", []):
+            if task.get("id") == task_id:
+                for key in ["title", "description", "role", "priority", "status",
+                             "progress", "progress_label", "agent_id"]:
+                    if key in data:
+                        task[key] = data[key]
+                task["updated"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                save_board(board)
+                self.send_json({"success": True, "task": task})
+                return
+
+        self.send_json({"error": f"Task {task_id} not found"}, 404)
+
+    def api_delete_task(self, data: dict):
+        task_id = data.get("id")
+        if not task_id:
+            self.send_json({"error": "No task ID"}, 400)
+            return
+
+        board = load_board()
+        original_len = len(board.get("tasks", []))
+        board["tasks"] = [t for t in board.get("tasks", []) if t.get("id") != task_id]
+
+        if len(board["tasks"]) < original_len:
+            save_board(board)
+            self.send_json({"success": True})
+        else:
+            self.send_json({"error": f"Task {task_id} not found"}, 404)
+
+    # ═══ ACTIVITY FEED ═══
+
+    def api_get_activity(self):
+        board = load_board()
+        activity = board.get("activity", [])
+        unread = sum(1 for a in activity if not a.get("read"))
+        self.send_json({"activity": activity, "unread": unread})
+
+    def api_post_activity(self, data: dict):
+        board = load_board()
+        act_id = board.get("next_activity_id", 1)
+        now = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+
+        entry = {
+            "id": f"ACT-{act_id:03d}",
+            "type": data.get("type", "update"),  # completion, question, update, context
+            "task_id": data.get("task_id", ""),
+            "title": data.get("title", ""),
+            "summary": data.get("summary", ""),
+            "files_changed": data.get("files_changed", []),
+            "read": False,
+            "timestamp": now,
+        }
+
+        if "activity" not in board:
+            board["activity"] = []
+        board["activity"].insert(0, entry)  # newest first
+        board["next_activity_id"] = act_id + 1
+        save_board(board)
+        self.send_json({"success": True, "entry": entry})
+
+    def api_mark_activity_read(self, data: dict):
+        act_id = data.get("id")
+        mark_all = data.get("all", False)
+
+        board = load_board()
+        for entry in board.get("activity", []):
+            if mark_all or entry.get("id") == act_id:
+                entry["read"] = True
+        save_board(board)
+        self.send_json({"success": True})
+
+    # ═══ TASK CONTEXT INJECTION ═══
+
+    def api_add_context(self, data: dict):
+        """Add a context note to a task. Agents can read these."""
+        task_id = data.get("id")
+        note = data.get("note", "").strip()
+        if not task_id or not note:
+            self.send_json({"error": "Need task ID and note"}, 400)
+            return
+
+        board = load_board()
+        for task in board.get("tasks", []):
+            if task.get("id") == task_id:
+                if "notes" not in task:
+                    task["notes"] = []
+                task["notes"].append({
+                    "text": note,
+                    "timestamp": datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+                })
+                task["updated"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                save_board(board)
+                self.send_json({"success": True, "task": task})
+                return
+
+        self.send_json({"error": f"Task {task_id} not found"}, 404)
+
+    # ═══ AGENT LAUNCHER ═══
+
+    def api_launch_agent(self, data: dict):
+        task_id = data.get("task_id")
+        if not task_id:
+            self.send_json({"error": "No task ID"}, 400)
+            return
+
+        board = load_board()
+        task = None
+        for t in board.get("tasks", []):
+            if t.get("id") == task_id:
+                task = t
+                break
+
+        if not task:
+            self.send_json({"error": f"Task {task_id} not found"}, 404)
+            return
+
+        # Load persona
+        role = task.get("role", "builder")
+        persona_path = PERSONAS_DIR / f"{role}.md"
+        persona_content = persona_path.read_text() if persona_path.exists() else ""
+
+        # Build the mega-prompt
+        project_root = APP_DIR.parent
+        prompt = f"""{persona_content}
+
+## YOUR TASK
+
+**ID:** {task['id']}
+**Title:** {task['title']}
+**Priority:** {task.get('priority', 'medium').upper()}
+
+**Description:**
+{task.get('description', 'No description')}
+
+**Context Files:**
+{chr(10).join(f'- {c}' for c in task.get('context', [])) or 'None specified'}
+
+**Project Root:** {project_root}
+
+## RULES
+- Read CLAUDE.md before starting
+- Check SYSTEM_MANIFEST.md before creating files
+- Update CHANGE_LOG.md when done
+- NO SHORTCUTS. BEST POSSIBLE. PRODUCTION-READY.
+"""
+
+        # Save prompt for reference
+        prompt_file = APP_DIR / ".last-prompt.md"
+        prompt_file.write_text(prompt)
+
+        # Try to launch Claude in background
+        launched = False
+        try:
+            subprocess.Popen(
+                [str(CLAUDE_BIN), "--system-prompt", prompt, "--cwd", str(project_root)],
+                start_new_session=True
+            )
+            launched = True
+        except FileNotFoundError:
+            pass
+
+        # Update task status
+        task["status"] = "in_progress"
+        task["updated"] = datetime.now().strftime("%Y-%m-%d")
+        save_board(board)
+
+        self.send_json({
+            "success": True,
+            "launched": launched,
+            "prompt_saved": str(prompt_file),
+            "message": "Claude agent launched" if launched else "Prompt saved - launch Claude manually"
+        })
+
+    def api_braindump(self, data: dict):
+        """Parse a brain dump into structured tasks using Claude API or CLI."""
+        text = data.get("text", "").strip()
+        if not text:
+            self.send_json({"error": "No text"}, 400)
+            return
+
+        personas = list_personas()
+        prompt = f"""Parse the following brain dump into structured tasks.
+Return ONLY valid JSON - no markdown, no explanation, just the JSON array.
+
+Available roles: {', '.join(personas)}
+Priority levels: high, medium, low
+
+Brain dump:
+---
+{text}
+---
+
+Return a JSON array of tasks, each with: title, description, role, priority
+Example: [{{"title":"Fix login page","description":"The login button is broken on mobile","role":"builder","priority":"high"}}]
+
+JSON array:"""
+
+        import re
+
+        # Try Anthropic API first
+        client = get_anthropic_client()
+        if client:
+            try:
+                response = client.messages.create(
+                    model="claude-sonnet-4-20250514",
+                    max_tokens=1000,
+                    messages=[{"role": "user", "content": prompt}]
+                )
+                raw = response.content[0].text if response.content else ""
+                json_match = re.search(r'\[.*\]', raw, re.DOTALL)
+                if json_match:
+                    tasks = json.loads(json_match.group())
+                    self.send_json({"tasks": tasks})
+                else:
+                    self.send_json({"tasks": [], "error": "Could not parse tasks"})
+                return
+            except Exception as e:
+                print(f"[TinyPM] Anthropic API braindump error: {e}")
+
+        # Fallback: Claude CLI
+        try:
+            result = subprocess.run(
+                [str(CLAUDE_BIN), "-p", prompt],
+                capture_output=True,
+                text=True,
+                timeout=120,
+                cwd=str(APP_DIR.parent)
+            )
+
+            if result.returncode == 0 and result.stdout.strip():
+                response = result.stdout.strip()
+                json_match = re.search(r'\[.*\]', response, re.DOTALL)
+                if json_match:
+                    tasks = json.loads(json_match.group())
+                    self.send_json({"tasks": tasks})
+                else:
+                    self.send_json({"tasks": [], "error": "Could not parse tasks"})
+            else:
+                self.send_json({"tasks": [], "error": "Set ANTHROPIC_API_KEY for fast brain dump processing"})
+
+        except subprocess.TimeoutExpired:
+            self.send_json({"tasks": [], "error": "Timed out. Set ANTHROPIC_API_KEY for faster processing."})
+        except Exception as e:
+            self.send_json({"tasks": [], "error": str(e)})
+
+    def api_chat(self, data: dict):
+        """Chat with The Great Overseer via Anthropic API with tool_use for real file access."""
+        message = data.get("message", "").strip()
+        if not message:
+            self.send_json({"error": "No message"}, 400)
+            return
+
+        history = data.get("history", [])
+
+        # Build compact board state
+        board = load_board()
+        tasks_summary = "\n".join(
+            f"[{t.get('status')}] {t.get('id')}: {t.get('title')}"
+            for t in board.get("tasks", [])
+        )
+
+        # Load overseer persona if available
+        overseer_path = PERSONAS_DIR / "overseer.md"
+        overseer_context = ""
+        if overseer_path.exists():
+            try:
+                overseer_context = overseer_path.read_text()[:3000]
+            except:
+                pass
+
+        system_prompt = f"""You are The Great Overseer - an all-knowing project wizard for Tiny Seed Farm OS.
+You have REAL access to the project files. You can read any file and list any directory.
+The project lives at: {PROJECT_ROOT}
+
+{overseer_context}
+
+Current task board:
+{tasks_summary}
+
+IMPORTANT RULES:
+- Use your read_file and list_directory tools to look up REAL information when asked
+- Use list_uploads and read_upload to see files the user has uploaded (images, PDFs, specs, references)
+- Be concise but accurate. Under 200 words unless the user asks for detail.
+- Reference specific files and line numbers when relevant.
+- You see everything. Speak with quiet confidence.
+- If the user asks about a file, READ IT before answering.
+- Check uploads for context when working on tasks - they may contain reference materials."""
+
+        # Define tools for file access
+        tools = [
+            {
+                "name": "read_file",
+                "description": "Read the contents of a file in the Tiny Seed OS project. Returns file content.",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {
+                        "path": {
+                            "type": "string",
+                            "description": "Relative path from the project root (e.g., 'web_app/index.html' or 'apps_script/ChiefOfStaff_Master.js'). Can also be absolute."
+                        },
+                        "max_lines": {
+                            "type": "integer",
+                            "description": "Max lines to return (default 200). Use for large files.",
+                            "default": 200
+                        }
+                    },
+                    "required": ["path"]
+                }
+            },
+            {
+                "name": "list_directory",
+                "description": "List files and folders in a directory of the Tiny Seed OS project.",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {
+                        "path": {
+                            "type": "string",
+                            "description": "Relative path from the project root (e.g., '.' for root, 'web_app/', 'apps_script/'). Can also be absolute."
+                        }
+                    },
+                    "required": ["path"]
+                }
+            },
+            {
+                "name": "search_files",
+                "description": "Search for a text pattern across project files. Returns matching lines with file paths.",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {
+                        "pattern": {
+                            "type": "string",
+                            "description": "Text or regex pattern to search for"
+                        },
+                        "file_glob": {
+                            "type": "string",
+                            "description": "Optional glob pattern to filter files (e.g., '*.js', '*.html')",
+                            "default": "*"
+                        }
+                    },
+                    "required": ["pattern"]
+                }
+            },
+            {
+                "name": "list_uploads",
+                "description": "List all files uploaded by the user. These may contain important context like reference images, documents, or specifications.",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {},
+                    "required": []
+                }
+            },
+            {
+                "name": "read_upload",
+                "description": "Read an uploaded file by filename. For text files, returns content. For images/PDFs, returns metadata.",
+                "input_schema": {
+                    "type": "object",
+                    "properties": {
+                        "filename": {
+                            "type": "string",
+                            "description": "The filename of the uploaded file to read"
+                        }
+                    },
+                    "required": ["filename"]
+                }
+            }
+        ]
+
+        client = get_anthropic_client()
+        if not client:
+            self.send_json({"response": "Set ANTHROPIC_API_KEY and restart the server to enable chat."})
+            return
+
+        try:
+            # Build messages from history
+            messages = []
+            for h in history[-8:]:
+                role = h.get("role", "user")
+                if role in ("user", "assistant"):
+                    messages.append({"role": role, "content": h.get("content", "")})
+            messages.append({"role": "user", "content": message})
+
+            # Tool-use loop: keep calling until we get a text response
+            max_rounds = 6  # Safety limit
+            for _ in range(max_rounds):
+                response = client.messages.create(
+                    model="claude-sonnet-4-20250514",
+                    max_tokens=1500,
+                    system=system_prompt,
+                    messages=messages,
+                    tools=tools
+                )
+
+                # Check if Claude wants to use a tool
+                if response.stop_reason == "tool_use":
+                    # Process all tool calls in this response
+                    assistant_content = response.content
+                    messages.append({"role": "assistant", "content": assistant_content})
+
+                    tool_results = []
+                    for block in assistant_content:
+                        if block.type == "tool_use":
+                            result = self._execute_overseer_tool(block.name, block.input)
+                            tool_results.append({
+                                "type": "tool_result",
+                                "tool_use_id": block.id,
+                                "content": result
+                            })
+
+                    messages.append({"role": "user", "content": tool_results})
+                else:
+                    # Extract final text response
+                    text_parts = [b.text for b in response.content if hasattr(b, 'text')]
+                    text = "\n".join(text_parts) if text_parts else "No response"
+                    self.send_json({"response": text})
+                    return
+
+            # If we hit the loop limit, return whatever we have
+            self.send_json({"response": "The Overseer got deep into the files. Try a more specific question."})
+
+        except Exception as e:
+            print(f"[TinyPM] Overseer chat error: {e}")
+            self.send_json({"response": f"Error: {str(e)}"})
+
+    def _execute_overseer_tool(self, tool_name: str, tool_input: dict) -> str:
+        """Execute a tool call from The Great Overseer. Returns result string."""
+        try:
+            if tool_name == "read_file":
+                return self._tool_read_file(tool_input)
+            elif tool_name == "list_directory":
+                return self._tool_list_directory(tool_input)
+            elif tool_name == "search_files":
+                return self._tool_search_files(tool_input)
+            elif tool_name == "list_uploads":
+                return self._tool_list_uploads(tool_input)
+            elif tool_name == "read_upload":
+                return self._tool_read_upload(tool_input)
+            else:
+                return f"Unknown tool: {tool_name}"
+        except Exception as e:
+            return f"Error: {str(e)}"
+
+    def _tool_read_file(self, params: dict) -> str:
+        """Read a file, bounded to project root for security."""
+        raw_path = params.get("path", "")
+        max_lines = params.get("max_lines", 200)
+
+        # Resolve path relative to project root
+        if os.path.isabs(raw_path):
+            filepath = Path(raw_path)
+        else:
+            filepath = PROJECT_ROOT / raw_path
+
+        # Security: must be within project root
+        try:
+            filepath = filepath.resolve()
+            if not str(filepath).startswith(str(PROJECT_ROOT.resolve())):
+                return "Access denied: path outside project root."
+        except:
+            return "Invalid path."
+
+        if not filepath.exists():
+            return f"File not found: {raw_path}"
+        if filepath.is_dir():
+            return f"That's a directory, not a file. Use list_directory instead."
+
+        try:
+            content = filepath.read_text(errors="replace")
+            lines = content.splitlines()
+            if len(lines) > max_lines:
+                return f"[Showing first {max_lines} of {len(lines)} lines]\n" + "\n".join(lines[:max_lines])
+            return content
+        except Exception as e:
+            return f"Error reading file: {e}"
+
+    def _tool_list_directory(self, params: dict) -> str:
+        """List contents of a directory."""
+        raw_path = params.get("path", ".")
+
+        if os.path.isabs(raw_path):
+            dirpath = Path(raw_path)
+        else:
+            dirpath = PROJECT_ROOT / raw_path
+
+        # Security: must be within project root
+        try:
+            dirpath = dirpath.resolve()
+            if not str(dirpath).startswith(str(PROJECT_ROOT.resolve())):
+                return "Access denied: path outside project root."
+        except:
+            return "Invalid path."
+
+        if not dirpath.exists():
+            return f"Directory not found: {raw_path}"
+        if not dirpath.is_dir():
+            return f"That's a file, not a directory. Use read_file instead."
+
+        try:
+            entries = sorted(dirpath.iterdir(), key=lambda p: (not p.is_dir(), p.name.lower()))
+            lines = []
+            for e in entries[:100]:  # Cap at 100 entries
+                prefix = "[DIR] " if e.is_dir() else "      "
+                size = ""
+                if e.is_file():
+                    sz = e.stat().st_size
+                    if sz > 1_000_000:
+                        size = f" ({sz // 1_000_000}MB)"
+                    elif sz > 1000:
+                        size = f" ({sz // 1000}KB)"
+                lines.append(f"{prefix}{e.name}{size}")
+            if len(list(dirpath.iterdir())) > 100:
+                lines.append(f"... and {len(list(dirpath.iterdir())) - 100} more")
+            return "\n".join(lines) if lines else "(empty directory)"
+        except Exception as e:
+            return f"Error listing directory: {e}"
+
+    def _tool_search_files(self, params: dict) -> str:
+        """Search for a pattern across project files."""
+        import re as _re
+        pattern = params.get("pattern", "")
+        file_glob = params.get("file_glob", "*")
+
+        if not pattern:
+            return "No search pattern provided."
+
+        results = []
+        try:
+            regex = _re.compile(pattern, _re.IGNORECASE)
+        except _re.error:
+            # Fall back to literal search
+            regex = _re.compile(_re.escape(pattern), _re.IGNORECASE)
+
+        try:
+            for filepath in PROJECT_ROOT.rglob(file_glob):
+                if not filepath.is_file():
+                    continue
+                # Skip binary, node_modules, .git, etc
+                rel = str(filepath.relative_to(PROJECT_ROOT))
+                if any(skip in rel for skip in ['.git/', 'node_modules/', '__pycache__/', '.DS_Store']):
+                    continue
+                if filepath.stat().st_size > 500_000:  # Skip files > 500KB
+                    continue
+                try:
+                    content = filepath.read_text(errors="replace")
+                    for i, line in enumerate(content.splitlines(), 1):
+                        if regex.search(line):
+                            results.append(f"{rel}:{i}: {line.strip()[:120]}")
+                            if len(results) >= 30:
+                                return "\n".join(results) + "\n... (truncated at 30 matches)"
+                except:
+                    continue
+        except Exception as e:
+            return f"Search error: {e}"
+
+        return "\n".join(results) if results else f"No matches found for '{pattern}'"
+
+    def _tool_list_uploads(self, params: dict) -> str:
+        """List all user-uploaded files with metadata."""
+        try:
+            if UPLOADS_MANIFEST.exists():
+                manifest = json.loads(UPLOADS_MANIFEST.read_text())
+            else:
+                return "No files have been uploaded yet."
+
+            files = manifest.get("files", [])
+            if not files:
+                return "No files have been uploaded yet."
+
+            result = f"UPLOADED FILES ({len(files)} total):\n"
+            result += "=" * 50 + "\n"
+
+            for f in files:
+                ftype = f.get("type", "unknown")
+                fname = f.get("filename", "unknown")
+                desc = f.get("description", "")
+                size = f.get("size", 0)
+                task = f.get("task_id", "")
+                date = f.get("uploaded_at", "")[:10]
+
+                size_str = f"{size // 1024}KB" if size > 1024 else f"{size}B"
+                result += f"\n📄 {fname} [{ftype}] ({size_str})\n"
+                if desc:
+                    result += f"   Description: {desc}\n"
+                if task:
+                    result += f"   Task: {task}\n"
+                result += f"   Uploaded: {date}\n"
+
+            return result
+
+        except Exception as e:
+            return f"Error listing uploads: {e}"
+
+    def _tool_read_upload(self, params: dict) -> str:
+        """Read an uploaded file's content (for text) or metadata (for binary)."""
+        filename = params.get("filename", "")
+        if not filename:
+            return "No filename provided."
+
+        filepath = UPLOADS_DIR / filename
+
+        # Security check
+        try:
+            filepath = filepath.resolve()
+            if not str(filepath).startswith(str(UPLOADS_DIR.resolve())):
+                return "Access denied: invalid upload path."
+        except:
+            return "Invalid filename."
+
+        if not filepath.exists():
+            return f"Upload not found: {filename}"
+
+        # Determine file type
+        ext = filepath.suffix.lower()
+        text_extensions = ['.txt', '.md', '.json', '.csv', '.py', '.js', '.html', '.css', '.xml', '.yaml', '.yml']
+
+        if ext in text_extensions:
+            try:
+                content = filepath.read_text(errors="replace")
+                lines = content.splitlines()
+                if len(lines) > 300:
+                    return f"[Showing first 300 of {len(lines)} lines]\n" + "\n".join(lines[:300])
+                return content
+            except Exception as e:
+                return f"Error reading file: {e}"
+        else:
+            # For binary files (images, PDFs), return metadata
+            try:
+                size = filepath.stat().st_size
+                size_str = f"{size // 1024}KB" if size > 1024 else f"{size}B"
+
+                # Get info from manifest
+                if UPLOADS_MANIFEST.exists():
+                    manifest = json.loads(UPLOADS_MANIFEST.read_text())
+                    for f in manifest.get("files", []):
+                        if f.get("filename") == filename:
+                            return f"""BINARY FILE: {filename}
+Type: {f.get('type', ext[1:])}
+Size: {size_str}
+Description: {f.get('description', 'None')}
+Uploaded: {f.get('uploaded_at', 'Unknown')}
+Task: {f.get('task_id', 'None')}
+
+Note: This is a binary file ({ext}). For images, describe what you need to know and the user can provide details. For PDFs, suggest the user extract relevant text."""
+
+                return f"BINARY FILE: {filename} ({size_str})\nCannot read binary content directly."
+            except Exception as e:
+                return f"Error reading file metadata: {e}"
+
+    # ═══ PM Inbox - Direct messages to the orchestrator (legacy) ═══
+    def api_pm_inbox(self, data: dict):
+        """Legacy inbox - redirects to pm_chat_send."""
+        self.api_pm_chat_send(data)
+
+    def api_get_pm_inbox(self):
+        """Legacy inbox GET - redirects to pm_chat GET."""
+        self.api_get_pm_chat()
+
+    # ═══ PM Direct Chat - Full bidirectional messaging ═══
+    def _load_pm_chat(self):
+        if PM_CHAT_FILE.exists():
+            try:
+                return json.loads(PM_CHAT_FILE.read_text())
+            except:
+                pass
+        return {"messages": [], "next_id": 1}
+
+    def _save_pm_chat(self, chat):
+        PM_CHAT_FILE.write_text(json.dumps(chat, indent=2))
+
+    def api_pm_chat_send(self, data: dict):
+        """User sends a message to PM and gets immediate AI response."""
+        message = data.get("message", "").strip()
+        if not message:
+            self.send_json({"error": "No message"}, 400)
+            return
+
+        # Save user message
+        chat = self._load_pm_chat()
+        msg_id = chat["next_id"]
+        chat["messages"].append({
+            "id": msg_id,
+            "from": "user",
+            "message": message,
+            "timestamp": datetime.now().isoformat(),
+            "read_by_pm": True
+        })
+        chat["next_id"] = msg_id + 1
+        self._save_pm_chat(chat)
+        print(f"[TinyPM] PM DIRECT: New message #{msg_id}: {message[:80]}")
+
+        # Generate immediate AI response
+        client = get_anthropic_client()
+        if not client:
+            self.send_json({"ok": True, "msg_id": msg_id, "response": "Configure ANTHROPIC_API_KEY for AI responses."})
+            return
+
+        # Build conversation history
+        messages = []
+        for m in chat.get("messages", [])[-10:]:
+            role = "user" if m.get("from") == "user" else "assistant"
+            messages.append({"role": role, "content": m.get("message", "")})
+
+        # Load context
+        board = load_board()
+        tasks_summary = f"{len(board.get('tasks', []))} tasks total"
+
+        system_prompt = f"""You are the PM (Project Manager) for TinyPM - an AI-powered project management system.
+
+Current Status:
+- {tasks_summary}
+- Project: {board.get('project', 'TinyPM')}
+
+Your capabilities:
+- Help organize and prioritize tasks
+- Answer questions about the project
+- Suggest next steps
+- Provide status updates
+
+Be concise, helpful, and action-oriented. Use markdown formatting when helpful."""
+
+        try:
+            response = client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=800,
+                system=system_prompt,
+                messages=messages
+            )
+            ai_response = response.content[0].text
+
+            # Save PM response
+            chat = self._load_pm_chat()
+            resp_id = chat["next_id"]
+            chat["messages"].append({
+                "id": resp_id,
+                "from": "pm",
+                "message": ai_response,
+                "timestamp": datetime.now().isoformat(),
+                "read_by_user": False,
+                "auto_generated": True
+            })
+            chat["next_id"] = resp_id + 1
+            self._save_pm_chat(chat)
+
+            self.send_json({"ok": True, "msg_id": msg_id, "response": ai_response, "response_id": resp_id})
+        except Exception as e:
+            self.send_json({"ok": True, "msg_id": msg_id, "response": f"PM temporarily unavailable: {str(e)[:100]}"})
+
+    def api_get_pm_chat(self):
+        """Get the full PM chat thread. Dashboard polls this for responses."""
+        chat = self._load_pm_chat()
+        # Count unread PM responses (messages from PM that user hasn't seen)
+        unread_responses = sum(
+            1 for m in chat["messages"]
+            if m.get("from") == "pm" and not m.get("read_by_user")
+        )
+        self.send_json({
+            "messages": chat["messages"],
+            "unread": unread_responses
+        })
+
+    # ═══════════════════════════════════════════════════════
+    # BUILDER DIRECT CHAT (mirrors PM Direct Line)
+    # ═══════════════════════════════════════════════════════
+
+    def _load_builder_chat(self):
+        """Load Builder chat file."""
+        if BUILDER_CHAT_FILE.exists():
+            try:
+                return json.loads(BUILDER_CHAT_FILE.read_text())
+            except:
+                pass
+        return {"messages": [], "next_id": 1}
+
+    def _save_builder_chat(self, chat):
+        """Save Builder chat file."""
+        BUILDER_CHAT_FILE.write_text(json.dumps(chat, indent=2))
+
+    def api_get_builder_chat(self):
+        """Get the full Builder chat thread. Dashboard polls this for responses."""
+        chat = self._load_builder_chat()
+        # Count unread Builder responses
+        unread_responses = sum(
+            1 for m in chat["messages"]
+            if m.get("from") == "builder" and not m.get("read_by_user")
+        )
+        self.send_json({
+            "messages": chat["messages"],
+            "unread": unread_responses
+        })
+
+    def api_get_builder_status(self):
+        """Get Builder heartbeat status."""
+        heartbeat_file = APP_DIR / ".builder_heartbeat.json"
+        if heartbeat_file.exists():
+            try:
+                hb = json.loads(heartbeat_file.read_text())
+                # Check if heartbeat is recent (within 2 minutes)
+                last_hb = hb.get("last_heartbeat", "")
+                if last_hb:
+                    try:
+                        hb_time = datetime.fromisoformat(last_hb.replace("Z", "+00:00"))
+                        age = (datetime.now(hb_time.tzinfo) - hb_time).total_seconds() if hb_time.tzinfo else (datetime.now() - datetime.fromisoformat(last_hb)).total_seconds()
+                        hb["online"] = age < 120
+                        hb["age_seconds"] = int(age)
+                    except:
+                        hb["online"] = False
+                self.send_json(hb)
+                return
+            except:
+                pass
+        self.send_json({"online": False, "status": "unknown"})
+
+    def api_builder_chat_send(self, data: dict):
+        """User sends a message directly to Builder."""
+        message = data.get("message", "").strip()
+        if not message:
+            self.send_json({"error": "No message"}, 400)
+            return
+
+        chat = self._load_builder_chat()
+        msg_id = chat["next_id"]
+
+        chat["messages"].append({
+            "id": msg_id,
+            "from": "user",
+            "message": message,
+            "timestamp": datetime.now().isoformat(),
+            "read_by_builder": False
+        })
+        chat["next_id"] = msg_id + 1
+        self._save_builder_chat(chat)
+
+        print(f"[TinyPM] USER -> BUILDER DIRECT: {message[:80]}")
+        self.send_json({"ok": True, "msg_id": msg_id})
+
+    # ═══════════════════════════════════════════════════════
+    # MULTI-AGENT REGISTRY & COMMUNICATION SYSTEM
+    # ═══════════════════════════════════════════════════════
+
+    def _load_agent_registry(self):
+        """Load the agent registry."""
+        if AGENT_REGISTRY_FILE.exists():
+            try:
+                return json.loads(AGENT_REGISTRY_FILE.read_text())
+            except:
+                pass
+        return {
+            "agents": {},
+            "spawn_rules": {"require_introduction": True, "notify_user_on_spawn": True},
+            "next_agent_id": 1
+        }
+
+    def _save_agent_registry(self, registry):
+        """Save the agent registry."""
+        AGENT_REGISTRY_FILE.write_text(json.dumps(registry, indent=2))
+
+    def _load_agent_chat(self, agent_id: str):
+        """Load chat for a specific agent."""
+        chat_file = APP_DIR / f".{agent_id}_chat.json"
+        if chat_file.exists():
+            try:
+                return json.loads(chat_file.read_text())
+            except:
+                pass
+        return {"messages": [], "next_id": 1, "agent_info": {"id": agent_id}}
+
+    def _save_agent_chat(self, agent_id: str, chat):
+        """Save chat for a specific agent."""
+        chat_file = APP_DIR / f".{agent_id}_chat.json"
+        chat_file.write_text(json.dumps(chat, indent=2))
+
+    def api_get_agents(self):
+        """Get all registered agents and their status."""
+        registry = self._load_agent_registry()
+        agents = []
+        for agent_id, agent in registry.get("agents", {}).items():
+            # Check heartbeat freshness
+            last_hb = agent.get("last_heartbeat")
+            if last_hb:
+                try:
+                    hb_time = datetime.fromisoformat(last_hb)
+                    age_seconds = (datetime.now() - hb_time).total_seconds()
+                    agent["status"] = "online" if age_seconds < 120 else "offline"
+                except:
+                    pass
+            agents.append(agent)
+        self.send_json({
+            "agents": agents,
+            "spawn_rules": registry.get("spawn_rules", {})
+        })
+
+    def api_get_agent_chat(self, agent_id: str):
+        """Get chat messages for a specific agent."""
+        chat = self._load_agent_chat(agent_id)
+        unread = sum(
+            1 for m in chat["messages"]
+            if m.get("from") == "agent" and not m.get("read_by_user")
+        )
+        self.send_json({
+            "messages": chat["messages"],
+            "unread": unread,
+            "agent_id": agent_id
+        })
+
+    def api_agent_chat_send(self, data: dict):
+        """User sends a message to a specific agent and gets AI response."""
+        agent_id = data.get("agent_id") or data.get("agent", "builder")
+        message = data.get("message", "").strip()
+        history = data.get("history", [])
+
+        if not message:
+            self.send_json({"error": "No message"}, 400)
+            return
+
+        # Store user message
+        chat = self._load_agent_chat(agent_id)
+        msg_id = chat["next_id"]
+        chat["messages"].append({
+            "id": msg_id,
+            "from": "user",
+            "message": message,
+            "timestamp": datetime.now().isoformat(),
+            "read_by_agent": False
+        })
+        chat["next_id"] = msg_id + 1
+        self._save_agent_chat(agent_id, chat)
+        print(f"[TinyPM] USER -> {agent_id.upper()}: {message[:80]}")
+
+        # Generate AI response
+        client = get_anthropic_client()
+        if not client:
+            self.send_json({"ok": True, "response": "AI responses require ANTHROPIC_API_KEY to be configured.", "agent_id": agent_id})
+            return
+
+        # Agent persona definitions
+        agent_personas = {
+            "builder": "You are the Builder agent - a skilled software developer. You help implement features, fix bugs, and write quality code.",
+            "pm": "You are the Project Manager agent. You help organize tasks, track progress, and ensure projects stay on track.",
+            "researcher": "You are the Research agent. You explore new technologies, analyze trends, and provide insights.",
+            "czar": "You are the Wild Claims Czar - you track cutting-edge AI developments and validate bold claims.",
+            "designer": "You are the Designer agent. You help with UX, UI, and making things look and feel great.",
+        }
+        persona = agent_personas.get(agent_id, f"You are the {agent_id} agent. Help the user with their request.")
+
+        # Build conversation
+        messages = []
+        for h in history[-6:]:  # Last 6 messages for context
+            role = "user" if h.get("role") == "user" else "assistant"
+            messages.append({"role": role, "content": h.get("content", "")})
+
+        if not messages or messages[-1]["role"] != "user":
+            messages.append({"role": "user", "content": message})
+
+        try:
+            response = client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=500,
+                system=f"{persona}\n\nYou are part of TinyPM, an AI project management system. Be helpful, concise, and action-oriented. If asked to do tasks, explain what you would do.",
+                messages=messages
+            )
+            ai_response = response.content[0].text
+
+            # Store agent response
+            chat = self._load_agent_chat(agent_id)
+            chat["messages"].append({
+                "id": chat["next_id"],
+                "from": "agent",
+                "message": ai_response,
+                "timestamp": datetime.now().isoformat(),
+                "read_by_user": False
+            })
+            chat["next_id"] += 1
+            self._save_agent_chat(agent_id, chat)
+
+            self.send_json({"ok": True, "response": ai_response, "agent_id": agent_id})
+        except Exception as e:
+            self.send_json({"ok": True, "response": f"Agent temporarily unavailable: {str(e)[:100]}", "agent_id": agent_id})
+
+    def api_spawn_agent(self, data: dict):
+        """Spawn a new agent. Enforces introduction requirement."""
+        agent_name = data.get("name", "").strip()
+        agent_type = data.get("type", "executor")
+        description = data.get("description", "")
+        capabilities = data.get("capabilities", "general tasks")
+        spawner = data.get("spawner", "pm")
+
+        if not agent_name:
+            self.send_json({"error": "Agent name required"}, 400)
+            return
+
+        registry = self._load_agent_registry()
+        agent_id = agent_name.lower().replace(" ", "_")
+
+        # Check if already exists
+        if agent_id in registry.get("agents", {}):
+            self.send_json({"error": f"Agent '{agent_id}' already exists"}, 400)
+            return
+
+        # Create agent entry
+        new_agent = {
+            "id": agent_id,
+            "name": agent_name,
+            "type": agent_type,
+            "status": "spawning",
+            "chat_file": f".{agent_id}_chat.json",
+            "description": description,
+            "capabilities": capabilities,
+            "spawn_time": datetime.now().isoformat(),
+            "spawner": spawner,
+            "last_heartbeat": None,
+            "can_spawn": False,
+            "introduced": False  # MUST introduce before fully active
+        }
+
+        registry["agents"][agent_id] = new_agent
+        self._save_agent_registry(registry)
+
+        # Create agent's chat file
+        self._save_agent_chat(agent_id, {
+            "messages": [],
+            "next_id": 1,
+            "agent_info": {"id": agent_id, "name": agent_name}
+        })
+
+        # Notify user if required
+        if registry.get("spawn_rules", {}).get("notify_user_on_spawn", True):
+            activity_file = APP_DIR / "activity.json"
+            try:
+                activity = json.loads(activity_file.read_text()) if activity_file.exists() else []
+            except:
+                activity = []
+            activity.insert(0, {
+                "id": f"spawn-{agent_id}",
+                "type": "agent_spawn",
+                "message": f"New agent spawned: {agent_name} ({agent_type}) by {spawner}. Waiting for introduction...",
+                "timestamp": datetime.now().isoformat(),
+                "read": False
+            })
+            activity_file.write_text(json.dumps(activity[:200], indent=2))
+
+        print(f"[TinyPM] AGENT SPAWNED: {agent_name} (by {spawner})")
+        self.send_json({
+            "ok": True,
+            "agent": new_agent,
+            "next_step": "Agent must call /api/agents/introduce to greet the user"
+        })
+
+    def api_agent_introduce(self, data: dict):
+        """Agent introduces itself to the user - REQUIRED after spawn."""
+        agent_id = data.get("agent_id", "").strip()
+        greeting = data.get("greeting", "").strip()
+
+        if not agent_id or not greeting:
+            self.send_json({"error": "agent_id and greeting required"}, 400)
+            return
+
+        registry = self._load_agent_registry()
+        if agent_id not in registry.get("agents", {}):
+            self.send_json({"error": f"Agent '{agent_id}' not found"}, 404)
+            return
+
+        # Mark as introduced and online
+        registry["agents"][agent_id]["introduced"] = True
+        registry["agents"][agent_id]["status"] = "online"
+        registry["agents"][agent_id]["last_heartbeat"] = datetime.now().isoformat()
+        self._save_agent_registry(registry)
+
+        # Add greeting to agent's chat
+        chat = self._load_agent_chat(agent_id)
+        msg_id = chat["next_id"]
+        chat["messages"].append({
+            "id": msg_id,
+            "from": "agent",
+            "message": greeting,
+            "timestamp": datetime.now().isoformat(),
+            "read_by_user": False,
+            "is_introduction": True
+        })
+        chat["next_id"] = msg_id + 1
+        self._save_agent_chat(agent_id, chat)
+
+        # Also notify in activity feed
+        activity_file = APP_DIR / "activity.json"
+        try:
+            activity = json.loads(activity_file.read_text()) if activity_file.exists() else []
+        except:
+            activity = []
+        activity.insert(0, {
+            "id": f"intro-{agent_id}",
+            "type": "agent_introduction",
+            "message": f"Agent {registry['agents'][agent_id]['name']} introduced: {greeting[:100]}...",
+            "timestamp": datetime.now().isoformat(),
+            "read": False
+        })
+        activity_file.write_text(json.dumps(activity[:200], indent=2))
+
+        print(f"[TinyPM] AGENT INTRODUCED: {agent_id}: {greeting[:80]}")
+        self.send_json({"ok": True, "agent_id": agent_id, "status": "fully_active"})
+
+    # ═══════════════════════════════════════════════════════
+    # UNIFIED INTERCOM — User can talk to ALL agents directly
+    # ═══════════════════════════════════════════════════════
+
+    def _load_intercom(self):
+        """Load the unified intercom file."""
+        if INTERCOM_FILE.exists():
+            try:
+                return json.loads(INTERCOM_FILE.read_text())
+            except:
+                pass
+        return {"pm_to_builder": [], "builder_to_pm": [], "user_to_agents": [], "agents_to_user": [], "next_id": 1}
+
+    def _save_intercom(self, intercom):
+        """Save the unified intercom file."""
+        INTERCOM_FILE.write_text(json.dumps(intercom, indent=2))
+
+    def api_get_intercom(self):
+        """Get the full intercom state — all agent communications."""
+        intercom = self._load_intercom()
+
+        # Also get all agents from registry
+        registry = self._load_agent_registry()
+
+        # Calculate unread counts for user
+        user_unread = sum(1 for m in intercom.get("agents_to_user", []) if not m.get("read_by_user", False))
+
+        self.send_json({
+            "pm_to_builder": intercom.get("pm_to_builder", [])[-50:],  # Last 50 messages
+            "builder_to_pm": intercom.get("builder_to_pm", [])[-50:],
+            "user_to_agents": intercom.get("user_to_agents", [])[-100:],  # User's messages
+            "agents_to_user": intercom.get("agents_to_user", [])[-100:],  # Agent responses to user
+            "agents": list(registry.get("agents", {}).values()),
+            "user_unread": user_unread
+        })
+
+    def api_get_user_intercom(self):
+        """Get just the user-to-agent and agent-to-user messages."""
+        intercom = self._load_intercom()
+
+        # Messages from agents to user
+        agent_messages = intercom.get("agents_to_user", [])
+
+        # Unread count
+        unread = sum(1 for m in agent_messages if not m.get("read_by_user", False))
+
+        self.send_json({
+            "messages": agent_messages[-100:],
+            "unread": unread
+        })
+
+    def api_intercom_send(self, data: dict):
+        """User sends a message to a specific agent via the intercom."""
+        target_agent = data.get("agent", "").strip().lower()
+        message = data.get("message", "").strip()
+        priority = data.get("priority", "normal")
+
+        if not target_agent or not message:
+            self.send_json({"error": "Need 'agent' and 'message'"}, 400)
+            return
+
+        intercom = self._load_intercom()
+        msg_id = intercom.get("next_id", 1)
+
+        # Create the user message entry
+        user_msg = {
+            "id": msg_id,
+            "from": "user",
+            "to": target_agent,
+            "type": "user_message",
+            "message": message,
+            "priority": priority,
+            "timestamp": datetime.now().isoformat(),
+            "read_by_agent": False
+        }
+
+        # Add to user_to_agents array
+        if "user_to_agents" not in intercom:
+            intercom["user_to_agents"] = []
+        intercom["user_to_agents"].append(user_msg)
+
+        # ALSO route to the appropriate agent channel
+        if target_agent == "builder":
+            # Send to PM-to-Builder channel (Builder polls this)
+            pm_msg = {
+                "id": msg_id,
+                "type": "task",
+                "message": f"User request: {message}\n\nPM acknowledged. Please implement.",
+                "priority": "high" if priority == "urgent" else "normal",
+                "timestamp": datetime.now().isoformat(),
+                "status": "pending",
+                "read": False
+            }
+            intercom["pm_to_builder"].append(pm_msg)
+        elif target_agent == "pm":
+            # PM gets it via their chat system — also add to PM inbox
+            try:
+                inbox = json.loads(PM_INBOX_FILE.read_text()) if PM_INBOX_FILE.exists() else []
+            except:
+                inbox = []
+            inbox.append({
+                "id": msg_id,
+                "message": message,
+                "timestamp": datetime.now().isoformat(),
+                "read": False,
+                "from_intercom": True
+            })
+            PM_INBOX_FILE.write_text(json.dumps(inbox, indent=2))
+        else:
+            # For any other agent, create their intercom channel
+            agent_channel = f"user_to_{target_agent}"
+            if agent_channel not in intercom:
+                intercom[agent_channel] = []
+            intercom[agent_channel].append(user_msg)
+
+        intercom["next_id"] = msg_id + 1
+        self._save_intercom(intercom)
+
+        print(f"[TinyPM] INTERCOM: User -> {target_agent.upper()}: {message[:80]}")
+        self.send_json({"ok": True, "msg_id": msg_id, "target": target_agent})
+
+    def api_intercom_broadcast(self, data: dict):
+        """User broadcasts a message to ALL agents."""
+        message = data.get("message", "").strip()
+        priority = data.get("priority", "high")
+
+        if not message:
+            self.send_json({"error": "Need 'message'"}, 400)
+            return
+
+        intercom = self._load_intercom()
+        registry = self._load_agent_registry()
+        msg_id = intercom.get("next_id", 1)
+
+        # Broadcast to all agents
+        broadcast_msg = {
+            "id": msg_id,
+            "from": "user",
+            "to": "ALL",
+            "type": "broadcast",
+            "message": message,
+            "priority": priority,
+            "timestamp": datetime.now().isoformat(),
+            "read_by_agents": []
+        }
+
+        if "user_to_agents" not in intercom:
+            intercom["user_to_agents"] = []
+        intercom["user_to_agents"].append(broadcast_msg)
+
+        # Also route to PM and Builder specifically
+        pm_msg = {
+            "id": msg_id,
+            "type": "urgent",
+            "message": f"🔊 BROADCAST FROM USER: {message}",
+            "priority": "critical",
+            "timestamp": datetime.now().isoformat(),
+            "status": "pending",
+            "read": False
+        }
+        intercom["pm_to_builder"].append(pm_msg)
+
+        # PM inbox
+        try:
+            inbox = json.loads(PM_INBOX_FILE.read_text()) if PM_INBOX_FILE.exists() else []
+        except:
+            inbox = []
+        inbox.append({
+            "id": msg_id,
+            "message": f"🔊 BROADCAST: {message}",
+            "timestamp": datetime.now().isoformat(),
+            "read": False,
+            "is_broadcast": True
+        })
+        PM_INBOX_FILE.write_text(json.dumps(inbox, indent=2))
+
+        intercom["next_id"] = msg_id + 1
+        self._save_intercom(intercom)
+
+        agent_count = len(registry.get("agents", {}))
+        print(f"[TinyPM] BROADCAST to {agent_count} agents: {message[:80]}")
+        self.send_json({"ok": True, "msg_id": msg_id, "agents_notified": agent_count})
+
+    # ═══════════════════════════════════════════════════════
+    # AGENT QUESTION SYSTEM — agents ask, owner answers
+    # ═══════════════════════════════════════════════════════
+
+    def _load_agent_questions(self):
+        if AGENT_QUESTIONS_FILE.exists():
+            try:
+                return json.loads(AGENT_QUESTIONS_FILE.read_text())
+            except:
+                pass
+        return {"questions": [], "next_id": 1}
+
+    def _save_agent_questions(self, data):
+        AGENT_QUESTIONS_FILE.write_text(json.dumps(data, indent=2))
+
+    def api_get_agent_questions(self):
+        """Dashboard polls this to see pending questions from agents."""
+        data = self._load_agent_questions()
+        # Return unanswered questions first, then answered
+        pending = [q for q in data["questions"] if not q.get("answered")]
+        answered = [q for q in data["questions"] if q.get("answered")]
+        self.send_json({
+            "pending": pending,
+            "answered": answered[-20:],  # Last 20 answered
+            "pending_count": len(pending)
+        })
+
+    def api_agent_post_question(self, data: dict):
+        """An agent posts a question it needs answered by the owner."""
+        agent_name = data.get("agent", "Unknown Agent")
+        task_id = data.get("task_id", "")
+        question = data.get("question", "").strip()
+        options = data.get("options", [])  # Optional multiple-choice
+        context = data.get("context", "")  # Why the agent needs this
+
+        if not question:
+            self.send_json({"error": "No question provided"}, 400)
+            return
+
+        store = self._load_agent_questions()
+        qid = store["next_id"]
+        entry = {
+            "id": qid,
+            "agent": agent_name,
+            "task_id": task_id,
+            "question": question,
+            "options": options,
+            "context": context,
+            "timestamp": datetime.now().isoformat(),
+            "answered": False,
+            "answer": None,
+            "answer_timestamp": None
+        }
+        store["questions"].append(entry)
+        store["next_id"] = qid + 1
+        self._save_agent_questions(store)
+
+        # Also post to activity feed
+        activity_file = APP_DIR / "activity.json"
+        try:
+            activity = json.loads(activity_file.read_text()) if activity_file.exists() else []
+        except:
+            activity = []
+        activity.insert(0, {
+            "id": f"aq-{qid}",
+            "type": "agent_question",
+            "message": f"[{agent_name}] needs your input: {question[:100]}",
+            "timestamp": datetime.now().isoformat(),
+            "read": False
+        })
+        activity_file.write_text(json.dumps(activity[:200], indent=2))
+
+        print(f"[TinyPM] AGENT QUESTION #{qid} from {agent_name}: {question[:80]}")
+        self.send_json({"ok": True, "question_id": qid})
+
+    def api_agent_answer(self, data: dict):
+        """Owner answers an agent's question from the dashboard."""
+        qid = data.get("question_id")
+        answer = data.get("answer", "").strip()
+
+        if not qid or not answer:
+            self.send_json({"error": "Need question_id and answer"}, 400)
+            return
+
+        store = self._load_agent_questions()
+        for q in store["questions"]:
+            if q["id"] == qid:
+                q["answered"] = True
+                q["answer"] = answer
+                q["answer_timestamp"] = datetime.now().isoformat()
+
+                # Save the answer to a file agents can poll
+                answer_file = APP_DIR / f".agent_answer_{qid}.json"
+                answer_file.write_text(json.dumps({
+                    "question_id": qid,
+                    "agent": q["agent"],
+                    "question": q["question"],
+                    "answer": answer,
+                    "timestamp": datetime.now().isoformat()
+                }, indent=2))
+
+                self._save_agent_questions(store)
+                print(f"[TinyPM] ANSWERED question #{qid}: {answer[:80]}")
+                self.send_json({"ok": True, "question_id": qid})
+                return
+
+        self.send_json({"error": f"Question {qid} not found"}, 404)
+
+    # ═══ LAUNCH CHECKLIST (Idea-to-Market) ═══
+
+    def api_get_launch_checklist(self):
+        """Get the full launch readiness checklist."""
+        if LAUNCH_CHECKLIST_FILE.exists():
+            try:
+                data = json.loads(LAUNCH_CHECKLIST_FILE.read_text())
+            except:
+                data = self._init_launch_checklist()
+        else:
+            data = self._init_launch_checklist()
+        # Calculate stats
+        total = len(data.get("items", []))
+        done = sum(1 for i in data["items"] if i.get("status") == "done")
+        in_prog = sum(1 for i in data["items"] if i.get("status") == "in_progress")
+        data["stats"] = {"total": total, "done": done, "in_progress": in_prog, "pct": round(done / total * 100) if total else 0}
+        self.send_json(data)
+
+    def api_update_launch_checklist(self, req: dict):
+        """Update a checklist item's status."""
+        item_id = req.get("id")
+        new_status = req.get("status", "not_started")  # not_started, in_progress, done
+        note = req.get("note", "")
+
+        if LAUNCH_CHECKLIST_FILE.exists():
+            data = json.loads(LAUNCH_CHECKLIST_FILE.read_text())
+        else:
+            data = self._init_launch_checklist()
+
+        for item in data.get("items", []):
+            if item["id"] == item_id:
+                item["status"] = new_status
+                if note:
+                    item["note"] = note
+                if new_status == "done":
+                    item["completed_at"] = datetime.now().isoformat()
+                break
+
+        LAUNCH_CHECKLIST_FILE.write_text(json.dumps(data, indent=2))
+        self.send_json({"ok": True})
+
+    def _init_launch_checklist(self):
+        """Initialize the full launch checklist with all items."""
+        data = {"items": [
+            # ─── BUSINESS FORMATION ───
+            {"id": "biz-1", "cat": "Business Formation", "title": "Form LLC or Corporation", "desc": "Register business entity. LLC recommended for liability protection + tax flexibility. File in your state or Delaware/Wyoming.", "cost": "$50-500", "timeline": "1-7 days", "status": "not_started", "priority": "critical", "order": 1},
+            {"id": "biz-2", "cat": "Business Formation", "title": "Get EIN (Employer Identification Number)", "desc": "Apply at IRS.gov — instant online. Needed for bank accounts, taxes, Apple Developer.", "cost": "Free", "timeline": "Instant online", "status": "not_started", "priority": "critical", "order": 2, "depends": "biz-1"},
+            {"id": "biz-3", "cat": "Business Formation", "title": "Open business bank account", "desc": "Separate personal and business finances. Needed before accepting payments.", "cost": "Free-$25/mo", "timeline": "1-3 days", "status": "not_started", "priority": "critical", "order": 3, "depends": "biz-2"},
+            {"id": "biz-4", "cat": "Business Formation", "title": "Get DUNS Number", "desc": "Required for Apple Developer enrollment. Apply at dnb.com — free but slow.", "cost": "Free", "timeline": "5-30 business days", "status": "not_started", "priority": "critical", "order": 4, "depends": "biz-1"},
+            {"id": "biz-5", "cat": "Business Formation", "title": "Business Insurance (E&O + General Liability)", "desc": "Protects against lawsuits from AI output, data breaches, etc. E&O especially important for AI products.", "cost": "$500-2000/yr", "timeline": "1-5 days", "status": "not_started", "priority": "high", "order": 5},
+
+            # ─── LEGAL DOCUMENTS ───
+            {"id": "legal-1", "cat": "Legal", "title": "Draft Privacy Policy", "desc": "MUST name Anthropic as AI data processor. Must cover GDPR, CCPA, data collection, usage, sharing, retention, user rights.", "cost": "$500-2000 (attorney) or $0 (template)", "timeline": "3-14 days", "status": "not_started", "priority": "critical", "order": 10},
+            {"id": "legal-2", "cat": "Legal", "title": "Draft Terms of Service", "desc": "Include AI output disclaimer, liability limitation, acceptable use, DMCA, dispute resolution, arbitration clause.", "cost": "$500-2000 (attorney) or $0 (template)", "timeline": "3-14 days", "status": "not_started", "priority": "critical", "order": 11},
+            {"id": "legal-3", "cat": "Legal", "title": "Draft Acceptable Use Policy", "desc": "What users can/cannot do with AI agents. Important for Anthropic compliance and App Store.", "cost": "$0-500", "timeline": "1-3 days", "status": "not_started", "priority": "high", "order": 12},
+            {"id": "legal-4", "cat": "Legal", "title": "AI Output Disclaimer", "desc": "Clear disclosure that AI can make mistakes. Required by CA AI Transparency Act SB 942 (Jan 2026).", "cost": "$0", "timeline": "1 day", "status": "not_started", "priority": "critical", "order": 13},
+            {"id": "legal-5", "cat": "Legal", "title": "EULA (End User License Agreement)", "desc": "Required for App Store. Covers software licensing, restrictions, warranty disclaimer.", "cost": "$0-500", "timeline": "1-5 days", "status": "not_started", "priority": "high", "order": 14},
+            {"id": "legal-6", "cat": "Legal", "title": "Refund Policy", "desc": "App Store/Play Store handle refunds for IAP. For direct: Stripe handles disputes. Document your policy.", "cost": "$0", "timeline": "1 day", "status": "not_started", "priority": "medium", "order": 15},
+
+            # ─── APPLE APP STORE ───
+            {"id": "apple-1", "cat": "Apple App Store", "title": "Apple Developer Program enrollment", "desc": "Requires DUNS number for organizations. $99/yr. Gives access to App Store Connect, TestFlight.", "cost": "$99/yr", "timeline": "1-14 days (org verification can take 2 weeks)", "status": "not_started", "priority": "critical", "order": 20, "depends": "biz-4"},
+            {"id": "apple-2", "cat": "Apple App Store", "title": "Build Guideline 5.1.2(i) consent flow", "desc": "CRITICAL for AI apps. Must: name Anthropic explicitly, explain what data is sent and why, get EXPLICIT opt-in consent BEFORE first API call. Build this BEFORE submitting.", "cost": "$0 (dev time)", "timeline": "2-5 days", "status": "not_started", "priority": "critical", "order": 21},
+            {"id": "apple-3", "cat": "Apple App Store", "title": "Complete Privacy Nutrition Labels", "desc": "Declare all data collected, linked, and tracked. AI apps typically: usage data, identifiers, user content. Must be accurate or face rejection.", "cost": "$0", "timeline": "1-2 days", "status": "not_started", "priority": "critical", "order": 22},
+            {"id": "apple-4", "cat": "Apple App Store", "title": "Implement App Tracking Transparency (ATT)", "desc": "If using any third-party analytics/ads that track: must show ATT prompt. If no tracking, declare in privacy labels.", "cost": "$0 (dev time)", "timeline": "1 day", "status": "not_started", "priority": "high", "order": 23},
+            {"id": "apple-5", "cat": "Apple App Store", "title": "Set up App Store Connect listing", "desc": "Screenshots (6.5\" + 5.5\"), app description, keywords, categories, age rating, pricing.", "cost": "$0", "timeline": "2-5 days", "status": "not_started", "priority": "high", "order": 24, "depends": "apple-1"},
+            {"id": "apple-6", "cat": "Apple App Store", "title": "TestFlight beta testing", "desc": "Internal (25 testers, no review) + External (10K testers, requires Beta App Review). Test for 2-4 weeks minimum.", "cost": "$0", "timeline": "2-4 weeks", "status": "not_started", "priority": "high", "order": 25, "depends": "apple-1"},
+            {"id": "apple-7", "cat": "Apple App Store", "title": "App Review submission", "desc": "Average review: 24-48 hours. First submission can take longer. Common rejections: missing privacy policy link, incomplete functionality, guideline 5.1.2(i) issues.", "cost": "$0", "timeline": "1-7 days", "status": "not_started", "priority": "critical", "order": 26, "depends": "apple-6"},
+            {"id": "apple-8", "cat": "Apple App Store", "title": "In-App Purchase setup (if using Apple IAP)", "desc": "REQUIRED for digital goods/subscriptions consumed in-app. Can use Stripe for SaaS accessed via web. Apple takes 30% (15% for Small Business Program < $1M).", "cost": "30% commission (or 15%)", "timeline": "3-7 days", "status": "not_started", "priority": "high", "order": 27},
+            {"id": "apple-9", "cat": "Apple App Store", "title": "Apply for Small Business Program", "desc": "If revenue under $1M/yr: commission drops from 30% to 15%. Apply in App Store Connect.", "cost": "$0", "timeline": "1-3 days", "status": "not_started", "priority": "medium", "order": 28, "depends": "apple-1"},
+
+            # ─── GOOGLE PLAY STORE ───
+            {"id": "google-1", "cat": "Google Play Store", "title": "Google Play Developer Account", "desc": "$25 one-time fee. Requires Google account. As of 2026, identity verification is required globally.", "cost": "$25", "timeline": "1-7 days (verification)", "status": "not_started", "priority": "critical", "order": 30},
+            {"id": "google-2", "cat": "Google Play Store", "title": "Developer identity verification", "desc": "Google requires D-U-N-S for orgs, government ID for individuals. Global rollout by Sept 2026.", "cost": "$0", "timeline": "2-14 days", "status": "not_started", "priority": "critical", "order": 31, "depends": "google-1"},
+            {"id": "google-3", "cat": "Google Play Store", "title": "Complete Data Safety section", "desc": "Declare all data collected, shared, security practices. Must be accurate. Google reviews and can suspend.", "cost": "$0", "timeline": "1-2 days", "status": "not_started", "priority": "critical", "order": 32},
+            {"id": "google-4", "cat": "Google Play Store", "title": "AI-generated content disclosure", "desc": "Google Play requires apps to disclose AI-generated content clearly. Must label AI outputs.", "cost": "$0 (dev time)", "timeline": "1-2 days", "status": "not_started", "priority": "critical", "order": 33},
+            {"id": "google-5", "cat": "Google Play Store", "title": "Implement in-app account deletion", "desc": "REQUIRED by Google Play policy. Users must be able to delete their account from within the app.", "cost": "$0 (dev time)", "timeline": "1-3 days", "status": "not_started", "priority": "critical", "order": 34},
+            {"id": "google-6", "cat": "Google Play Store", "title": "Content rating (IARC questionnaire)", "desc": "Complete IARC questionnaire in Play Console. Determines age rating. Required before publishing.", "cost": "$0", "timeline": "30 minutes", "status": "not_started", "priority": "high", "order": 35},
+            {"id": "google-7", "cat": "Google Play Store", "title": "Closed + Open testing tracks", "desc": "Closed testing (invite-only), then open testing (public beta). Minimum 20 testers for 14 days before production.", "cost": "$0", "timeline": "2-4 weeks", "status": "not_started", "priority": "high", "order": 36, "depends": "google-1"},
+
+            # ─── DESKTOP DISTRIBUTION ───
+            {"id": "desktop-1", "cat": "Desktop Distribution", "title": "macOS: Code signing certificate (Developer ID)", "desc": "Part of Apple Developer Program ($99/yr). Required for notarization. Without it: Gatekeeper blocks app.", "cost": "Included in $99/yr", "timeline": "Same as Apple Developer enrollment", "status": "not_started", "priority": "high", "order": 40, "depends": "apple-1"},
+            {"id": "desktop-2", "cat": "Desktop Distribution", "title": "macOS: Notarization", "desc": "Submit app to Apple for malware scan. Required for Gatekeeper to allow opening. Automated via xcrun notarytool.", "cost": "$0", "timeline": "Minutes per build (automated)", "status": "not_started", "priority": "high", "order": 41, "depends": "desktop-1"},
+            {"id": "desktop-3", "cat": "Desktop Distribution", "title": "Windows: Code signing certificate", "desc": "Azure Trusted Signing or third-party CA. Without it: SmartScreen warning blocks most users from installing.", "cost": "$120/yr (Azure) or $200-500/yr (other CA)", "timeline": "1-7 days", "status": "not_started", "priority": "high", "order": 42},
+            {"id": "desktop-4", "cat": "Desktop Distribution", "title": "Build auto-update mechanism", "desc": "Tauri has built-in updater. Electron-builder has autoUpdater. Critical for security patches.", "cost": "$0 (dev time)", "timeline": "2-5 days", "status": "not_started", "priority": "high", "order": 43},
+            {"id": "desktop-5", "cat": "Desktop Distribution", "title": "Create installers (DMG + MSI/NSIS)", "desc": "macOS: DMG with app drag-to-Applications. Windows: NSIS or MSI installer. Tauri generates both.", "cost": "$0 (dev time)", "timeline": "1-3 days", "status": "not_started", "priority": "high", "order": 44},
+
+            # ─── COMPLIANCE & REGULATIONS ───
+            {"id": "comply-1", "cat": "Compliance", "title": "GDPR compliance (EU)", "desc": "If serving EU users: lawful basis, data processing agreements, right to erasure, data portability, DPO if needed. Fines up to 4% global revenue.", "cost": "$0-5000 (depends on attorney)", "timeline": "1-4 weeks", "status": "not_started", "priority": "critical", "order": 50},
+            {"id": "comply-2", "cat": "Compliance", "title": "CCPA/CPRA compliance (California)", "desc": "If serving CA users: right to know, delete, opt-out of sale. Must respond within 45 days. Privacy policy must disclose.", "cost": "$0-2000", "timeline": "1-2 weeks", "status": "not_started", "priority": "critical", "order": 51},
+            {"id": "comply-3", "cat": "Compliance", "title": "California AI Transparency Act (SB 942)", "desc": "Effective Jan 2026. AI systems must: clearly disclose AI-generated content, provide opt-out mechanisms, maintain transparency. ALREADY IN EFFECT.", "cost": "$0 (dev time)", "timeline": "1-3 days", "status": "not_started", "priority": "critical", "order": 52},
+            {"id": "comply-4", "cat": "Compliance", "title": "EU AI Act transparency obligations", "desc": "Effective Aug 2026. AI systems must: disclose AI nature, provide human oversight option, document training data. TinyPM likely 'limited risk' category.", "cost": "$0-5000", "timeline": "Plan now, implement by Aug 2026", "status": "not_started", "priority": "high", "order": 53},
+            {"id": "comply-5", "cat": "Compliance", "title": "COPPA compliance (children's data)", "desc": "If ANY users might be under 13: must get verifiable parental consent or block children. Safest: restrict to 13+ in App Store age rating.", "cost": "$0", "timeline": "1 day", "status": "not_started", "priority": "high", "order": 54},
+            {"id": "comply-6", "cat": "Compliance", "title": "Anthropic API Terms compliance", "desc": "Review and comply with Anthropic's Acceptable Use Policy. Ensure TinyPM doesn't violate any prohibited uses.", "cost": "$0", "timeline": "1 day", "status": "not_started", "priority": "critical", "order": 55},
+
+            # ─── PAYMENTS & BILLING ───
+            {"id": "pay-1", "cat": "Payments", "title": "Stripe account setup", "desc": "For web/desktop payments (not in-app mobile). Requires business info, bank account, tax ID.", "cost": "2.9% + $0.30 per transaction", "timeline": "1-3 days", "status": "not_started", "priority": "critical", "order": 60, "depends": "biz-3"},
+            {"id": "pay-2", "cat": "Payments", "title": "Stripe Tax setup", "desc": "Auto-calculate and collect sales tax. Required in states where you have nexus. Alternative: Avalara.", "cost": "$0.50 per transaction (Stripe Tax)", "timeline": "1-2 days", "status": "not_started", "priority": "high", "order": 61, "depends": "pay-1"},
+            {"id": "pay-3", "cat": "Payments", "title": "Subscription billing implementation", "desc": "Stripe Billing for recurring subscriptions. Set up products, prices, customer portal, webhooks.", "cost": "$0 (dev time) + Stripe fees", "timeline": "3-7 days", "status": "not_started", "priority": "critical", "order": 62, "depends": "pay-1"},
+            {"id": "pay-4", "cat": "Payments", "title": "Apple IAP integration (if mobile)", "desc": "Required for digital goods in iOS app. Apple handles billing, you handle entitlements. StoreKit 2 framework.", "cost": "15-30% Apple commission", "timeline": "5-10 days", "status": "not_started", "priority": "high", "order": 63},
+            {"id": "pay-5", "cat": "Payments", "title": "Google Play Billing (if mobile)", "desc": "Required for digital goods in Android app. Google handles billing. Uses Google Play Billing Library.", "cost": "15-30% Google commission", "timeline": "5-10 days", "status": "not_started", "priority": "high", "order": 64},
+
+            # ─── INTELLECTUAL PROPERTY ───
+            {"id": "ip-1", "cat": "Intellectual Property", "title": "Trademark search for 'TinyPM'", "desc": "Search USPTO TESS database for conflicts. Also search internationally if selling globally.", "cost": "$0 (self-search) or $300-600 (attorney)", "timeline": "1-3 days", "status": "not_started", "priority": "critical", "order": 70},
+            {"id": "ip-2", "cat": "Intellectual Property", "title": "File trademark application", "desc": "File with USPTO. Classes 9 (software) and 42 (SaaS). Takes 8-12 months to register.", "cost": "$250-350 per class (filing) + $500-1500 (attorney)", "timeline": "8-12 months to register", "status": "not_started", "priority": "high", "order": 71, "depends": "ip-1"},
+            {"id": "ip-3", "cat": "Intellectual Property", "title": "Open source license audit", "desc": "Check all dependencies for GPL/AGPL (viral) licenses that could require open-sourcing your code.", "cost": "$0 (self) or $500-2000 (audit service)", "timeline": "1-3 days", "status": "not_started", "priority": "high", "order": 72},
+
+            # ─── INFRASTRUCTURE & SECURITY ───
+            {"id": "sec-1", "cat": "Security", "title": "SSL/TLS certificates", "desc": "Let's Encrypt (free) or paid CA. Required for HTTPS. Supabase includes SSL.", "cost": "Free (Let's Encrypt)", "timeline": "1 hour", "status": "not_started", "priority": "critical", "order": 80},
+            {"id": "sec-2", "cat": "Security", "title": "Data encryption at rest and in transit", "desc": "TLS 1.3 for transit. AES-256 for stored data. Supabase handles database encryption.", "cost": "$0 (built-in to Supabase)", "timeline": "Included in infra setup", "status": "not_started", "priority": "critical", "order": 81},
+            {"id": "sec-3", "cat": "Security", "title": "Authentication system (OAuth 2.0)", "desc": "Supabase Auth built-in. Google/Apple/Email sign-in. Required for App Store (Sign in with Apple mandate).", "cost": "$0 (Supabase Auth)", "timeline": "2-5 days", "status": "not_started", "priority": "critical", "order": 82},
+            {"id": "sec-4", "cat": "Security", "title": "Rate limiting", "desc": "Protect API from abuse. Especially important for AI endpoints (each call costs money).", "cost": "$0 (dev time)", "timeline": "1-2 days", "status": "not_started", "priority": "high", "order": 83},
+            {"id": "sec-5", "cat": "Security", "title": "Incident response plan", "desc": "Document: who to contact, how to respond, notification timelines. GDPR requires 72-hour breach notification.", "cost": "$0", "timeline": "1-2 days", "status": "not_started", "priority": "high", "order": 84},
+            {"id": "sec-6", "cat": "Security", "title": "Backup strategy", "desc": "Supabase includes daily backups on Pro plan. Set up additional backups for critical data.", "cost": "Included in Supabase Pro ($25/mo)", "timeline": "1 day", "status": "not_started", "priority": "high", "order": 85},
+
+            # ─── MARKETING COMPLIANCE ───
+            {"id": "mktg-1", "cat": "Marketing", "title": "CAN-SPAM compliance for email marketing", "desc": "Every marketing email must: include physical address, unsubscribe link, honor opt-outs within 10 days.", "cost": "$0", "timeline": "Built into email tool setup", "status": "not_started", "priority": "high", "order": 90},
+            {"id": "mktg-2", "cat": "Marketing", "title": "FTC endorsement/testimonial guidelines", "desc": "Disclose material connections with reviewers. Don't fake testimonials. AI-generated reviews must be disclosed.", "cost": "$0", "timeline": "Ongoing", "status": "not_started", "priority": "medium", "order": 91},
+
+            # ─── ACCESSIBILITY ───
+            {"id": "a11y-1", "cat": "Accessibility", "title": "WCAG 2.1 AA compliance", "desc": "Color contrast, keyboard navigation, screen reader support, alt text. Required for government/enterprise sales. ADA lawsuits increasing.", "cost": "$0 (dev time) or $2000-10000 (audit)", "timeline": "2-4 weeks", "status": "not_started", "priority": "high", "order": 95},
+
+            # ─── ACCOUNTING & TAX ───
+            {"id": "tax-1", "cat": "Accounting", "title": "Bookkeeping setup (QuickBooks/Xero)", "desc": "Track revenue, expenses, app store commissions. Needed for taxes and investor reporting.", "cost": "$25-50/mo", "timeline": "1-2 days", "status": "not_started", "priority": "high", "order": 100, "depends": "biz-3"},
+            {"id": "tax-2", "cat": "Accounting", "title": "Quarterly estimated tax payments", "desc": "IRS requires quarterly payments if you'll owe $1000+. Form 1040-ES. Penalties for underpayment.", "cost": "Varies", "timeline": "Quarterly: Apr 15, Jun 15, Sep 15, Jan 15", "status": "not_started", "priority": "high", "order": 101},
+            {"id": "tax-3", "cat": "Accounting", "title": "Sales tax registration + filing", "desc": "Register in states where you have nexus. File monthly/quarterly. Stripe Tax automates collection.", "cost": "$0-50/state", "timeline": "1-2 weeks", "status": "not_started", "priority": "high", "order": 102, "depends": "pay-2"},
+        ]}
+        LAUNCH_CHECKLIST_FILE.write_text(json.dumps(data, indent=2))
+        return data
+
+    # ═══════════════════════════════════════════════════════
+    # FILE UPLOADS
+    # ═══════════════════════════════════════════════════════
+
+    def _load_uploads_manifest(self):
+        if UPLOADS_MANIFEST.exists():
+            try:
+                return json.loads(UPLOADS_MANIFEST.read_text())
+            except:
+                pass
+        return {"files": [], "next_id": 1}
+
+    def _save_uploads_manifest(self, data):
+        UPLOADS_MANIFEST.write_text(json.dumps(data, indent=2))
+
+    def api_get_uploads(self):
+        """Get list of all uploaded files."""
+        manifest = self._load_uploads_manifest()
+        # Verify files still exist and calculate stats
+        valid_files = []
+        total_size = 0
+        for f in manifest.get("files", []):
+            filepath = UPLOADS_DIR / f["filename"]
+            if filepath.exists():
+                f["size"] = filepath.stat().st_size
+                total_size += f["size"]
+                valid_files.append(f)
+        manifest["files"] = valid_files
+        manifest["stats"] = {
+            "count": len(valid_files),
+            "total_size": total_size,
+            "total_size_mb": round(total_size / 1_000_000, 2)
+        }
+        self.send_json(manifest)
+
+    def api_upload_file(self, content_length: int = None):
+        """Handle file upload via multipart form data."""
+        import re
+        import base64
+
+        content_type = self.headers.get('Content-Type', '')
+        if content_length is None:
+            content_length = int(self.headers.get('Content-Length', 0))
+
+        # Handle multipart/form-data
+        if 'multipart/form-data' in content_type:
+            # Parse boundary
+            boundary_match = re.search(r'boundary=(.+)', content_type)
+            if not boundary_match:
+                self.send_json({"error": "No boundary in multipart"}, 400)
+                return
+
+            boundary = boundary_match.group(1).strip()
+            if boundary.startswith('"') and boundary.endswith('"'):
+                boundary = boundary[1:-1]
+
+            body = self.rfile.read(content_length)
+
+            # Parse multipart data
+            boundary_bytes = boundary.encode()
+            parts = body.split(b'--' + boundary_bytes)
+
+            filename = None
+            file_content = None
+            task_id = None
+            description = ""
+
+            for part in parts:
+                if b'Content-Disposition' not in part:
+                    continue
+
+                # Extract headers and content
+                header_end = part.find(b'\r\n\r\n')
+                if header_end == -1:
+                    continue
+
+                headers_raw = part[:header_end].decode('utf-8', errors='replace')
+                content = part[header_end + 4:]
+
+                # Remove trailing boundary markers
+                if content.endswith(b'\r\n'):
+                    content = content[:-2]
+                if content.endswith(b'--'):
+                    content = content[:-2]
+                if content.endswith(b'\r\n'):
+                    content = content[:-2]
+
+                # Check what type of field this is
+                if 'name="file"' in headers_raw or 'name="upload"' in headers_raw:
+                    # Extract filename
+                    fn_match = re.search(r'filename="([^"]+)"', headers_raw)
+                    if fn_match:
+                        filename = fn_match.group(1)
+                        # Sanitize filename
+                        filename = re.sub(r'[^\w\-_\.]', '_', filename)
+                        file_content = content
+                elif 'name="task_id"' in headers_raw:
+                    task_id = content.decode('utf-8', errors='replace').strip()
+                elif 'name="description"' in headers_raw:
+                    description = content.decode('utf-8', errors='replace').strip()
+
+            if not filename or not file_content:
+                self.send_json({"error": "No file in upload"}, 400)
+                return
+
+            # Save the file
+            self._save_uploaded_file(filename, file_content, task_id, description)
+
+        # Handle JSON with base64 encoded file
+        elif 'application/json' in content_type:
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            try:
+                data = json.loads(body)
+            except:
+                self.send_json({"error": "Invalid JSON"}, 400)
+                return
+
+            filename = data.get("filename", "")
+            file_data = data.get("data", "")  # base64 encoded
+            task_id = data.get("task_id")
+            description = data.get("description", "")
+
+            if not filename or not file_data:
+                self.send_json({"error": "Need filename and data"}, 400)
+                return
+
+            # Sanitize filename
+            filename = re.sub(r'[^\w\-_\.]', '_', filename)
+
+            # Decode base64
+            try:
+                # Handle data URLs (data:image/png;base64,...)
+                if ',' in file_data:
+                    file_data = file_data.split(',')[1]
+                file_content = base64.b64decode(file_data)
+            except Exception as e:
+                self.send_json({"error": f"Invalid base64 data: {e}"}, 400)
+                return
+
+            self._save_uploaded_file(filename, file_content, task_id, description)
+        else:
+            self.send_json({"error": "Unsupported content type"}, 400)
+
+    def _save_uploaded_file(self, filename: str, content: bytes, task_id: str = None, description: str = ""):
+        """Save file to disk and update manifest."""
+        manifest = self._load_uploads_manifest()
+        file_id = manifest["next_id"]
+
+        # Generate unique filename if collision
+        base, ext = os.path.splitext(filename)
+        final_filename = filename
+        counter = 1
+        while (UPLOADS_DIR / final_filename).exists():
+            final_filename = f"{base}_{counter}{ext}"
+            counter += 1
+
+        # Save file
+        filepath = UPLOADS_DIR / final_filename
+        filepath.write_bytes(content)
+
+        # Determine file type
+        ext_lower = ext.lower()
+        file_type = "document"
+        if ext_lower in ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg']:
+            file_type = "image"
+        elif ext_lower == '.pdf':
+            file_type = "pdf"
+        elif ext_lower in ['.doc', '.docx']:
+            file_type = "word"
+        elif ext_lower in ['.xls', '.xlsx']:
+            file_type = "excel"
+        elif ext_lower in ['.txt', '.md', '.json', '.csv']:
+            file_type = "text"
+
+        # Add to manifest
+        entry = {
+            "id": file_id,
+            "filename": final_filename,
+            "original_name": filename,
+            "type": file_type,
+            "size": len(content),
+            "task_id": task_id,
+            "description": description,
+            "uploaded_at": datetime.now().isoformat(),
+            "url": f"/uploads/{final_filename}"
+        }
+        manifest["files"].insert(0, entry)  # Newest first
+        manifest["next_id"] = file_id + 1
+        self._save_uploads_manifest(manifest)
+
+        print(f"[TinyPM] UPLOAD: {final_filename} ({len(content)} bytes)")
+        self.send_json({"ok": True, "file": entry})
+
+    def api_delete_upload(self, data: dict):
+        """Delete an uploaded file."""
+        file_id = data.get("id")
+        if not file_id:
+            self.send_json({"error": "No file ID"}, 400)
+            return
+
+        manifest = self._load_uploads_manifest()
+        for i, f in enumerate(manifest.get("files", [])):
+            if f["id"] == file_id:
+                # Delete physical file
+                filepath = UPLOADS_DIR / f["filename"]
+                if filepath.exists():
+                    filepath.unlink()
+                # Remove from manifest
+                manifest["files"].pop(i)
+                self._save_uploads_manifest(manifest)
+                print(f"[TinyPM] DELETED upload: {f['filename']}")
+                self.send_json({"ok": True})
+                return
+
+        self.send_json({"error": f"File {file_id} not found"}, 404)
+
+    def serve_upload(self, path: str):
+        """Serve an uploaded file."""
+        import mimetypes
+        filename = path.replace("/uploads/", "")
+        filepath = UPLOADS_DIR / filename
+
+        # Security: prevent directory traversal
+        try:
+            filepath = filepath.resolve()
+            if not str(filepath).startswith(str(UPLOADS_DIR.resolve())):
+                self.send_json({"error": "Access denied"}, 403)
+                return
+        except:
+            self.send_json({"error": "Invalid path"}, 400)
+            return
+
+        if not filepath.exists():
+            self.send_json({"error": "File not found"}, 404)
+            return
+
+        # Determine content type
+        content_type, _ = mimetypes.guess_type(str(filepath))
+        if not content_type:
+            content_type = "application/octet-stream"
+
+        content = filepath.read_bytes()
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(content)))
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Cache-Control", "max-age=3600")
+        self.end_headers()
+        self.wfile.write(content)
+
+    # =========================================================================
+    # OAUTH STATUS API
+    # =========================================================================
+
+    def api_oauth_status(self):
+        """
+        GET /api/oauth/status
+        Returns the OAuth configuration status for TinyPM.
+
+        This endpoint helps users verify their Google OAuth setup is correct.
+
+        Response:
+        {
+            "configured": true/false,          # Are all credentials set?
+            "client_id_set": true/false,       # Is GOOGLE_CLIENT_ID set?
+            "client_secret_set": true/false,   # Is GOOGLE_CLIENT_SECRET set?
+            "redirect_uri": "...",             # Current redirect URI
+            "allowed_scopes": [...],           # Scopes TinyPM requests
+            "forbidden_scopes": [...],         # Scopes TinyPM blocks (security)
+            "setup_guide": "..."               # Link to setup documentation
+        }
+        """
+        try:
+            # Try to import the OAuth manager
+            try:
+                from oauth_manager import get_oauth_manager, TINYPM_ALLOWED_SCOPES, FORBIDDEN_SCOPES
+                oauth = get_oauth_manager()
+                status = oauth.get_status()
+
+                # Add helpful information
+                status["setup_guide"] = "See GOOGLE_OAUTH_SETUP.md for detailed instructions"
+                status["help"] = {
+                    "check_credentials": "Ensure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set in .env",
+                    "redirect_uri_format": "http://localhost:8000/oauth/callback (development)",
+                    "google_console": "https://console.cloud.google.com/apis/credentials"
+                }
+
+                self.send_json(status)
+
+            except ImportError:
+                # Fall back to google_oauth module
+                try:
+                    from google_oauth import is_configured, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI, GOOGLE_SCOPES, FORBIDDEN_SCOPE_PATTERNS
+
+                    self.send_json({
+                        "configured": is_configured(),
+                        "client_id_set": bool(GOOGLE_CLIENT_ID),
+                        "client_secret_set": bool(GOOGLE_CLIENT_SECRET),
+                        "redirect_uri": GOOGLE_REDIRECT_URI,
+                        "allowed_scopes": GOOGLE_SCOPES,
+                        "forbidden_scope_patterns": FORBIDDEN_SCOPE_PATTERNS,
+                        "setup_guide": "See GOOGLE_OAUTH_SETUP.md for detailed instructions",
+                        "help": {
+                            "check_credentials": "Ensure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set in .env",
+                            "redirect_uri_format": "http://localhost:8000/oauth/callback (development)",
+                            "google_console": "https://console.cloud.google.com/apis/credentials"
+                        }
+                    })
+
+                except ImportError:
+                    # Neither OAuth module available
+                    self.send_json({
+                        "configured": False,
+                        "error": "OAuth modules not available",
+                        "client_id_set": False,
+                        "client_secret_set": False,
+                        "redirect_uri": None,
+                        "setup_guide": "See GOOGLE_OAUTH_SETUP.md for detailed instructions"
+                    })
+
+        except Exception as e:
+            self.send_json({
+                "configured": False,
+                "error": str(e),
+                "setup_guide": "See GOOGLE_OAUTH_SETUP.md for detailed instructions"
+            }, 500)
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # A2A PROTOCOL STATUS API (Google's Agent-to-Agent Protocol)
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    def api_a2a_status(self):
+        """GET /api/a2a/status - Returns A2A Protocol server status."""
+        import socket
+        A2A_PORT = int(os.environ.get("A2A_PORT", "9000"))
+        def check_port(port):
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            result = sock.connect_ex(('localhost', port))
+            sock.close()
+            return result == 0
+        server_running = check_port(A2A_PORT)
+        try:
+            from a2a_server import A2A_SDK_AVAILABLE, A2A_AUTH_AVAILABLE, LANGGRAPH_AVAILABLE, PREDICTIVE_AVAILABLE
+            sdk_available = A2A_SDK_AVAILABLE
+            auth_available = A2A_AUTH_AVAILABLE
+            langgraph_available = LANGGRAPH_AVAILABLE
+            predictive_available = PREDICTIVE_AVAILABLE
+        except ImportError:
+            sdk_available = auth_available = langgraph_available = predictive_available = False
+        skills = [
+            {"id": "task_management", "name": "Task Management", "available": True},
+            {"id": "predictive_intent", "name": "Predictive Intelligence", "available": predictive_available},
+            {"id": "agent_delegation", "name": "Agent Delegation", "available": True},
+            {"id": "status_reporting", "name": "Status Reporting", "available": True},
+            {"id": "wizard_council", "name": "Wizard Council Decision", "available": langgraph_available},
+        ]
+        self.send_json({
+            "enabled": sdk_available, "server_running": server_running, "port": A2A_PORT,
+            "agent_card_url": f"http://localhost:{A2A_PORT}/.well-known/agent.json" if server_running else None,
+            "rpc_endpoint": f"http://localhost:{A2A_PORT}/a2a" if server_running else None,
+            "skills": skills,
+            "capabilities": {"sdk_available": sdk_available, "auth_available": auth_available,
+                "langgraph": langgraph_available, "predictive": predictive_available,
+                "streaming": True, "push_notifications": True},
+            "start_command": "python3 a2a_server.py --port 9000" if not server_running else None,
+            "protocol_version": "0.3.0", "governance": "Linux Foundation"
+        })
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # LANGGRAPH DURABLE EXECUTION API (SOTA 2026)
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    def api_get_langgraph_status(self):
+        """
+        GET /api/langgraph/status
+        Check if LangGraph durable execution is available and get status.
+        """
+        try:
+            from langgraph_wrapper import TinyPMGraph
+            LANGGRAPH_INSTALLED = True
+        except ImportError:
+            LANGGRAPH_INSTALLED = False
+
+        if not LANGGRAPH_INSTALLED:
+            self.send_json({
+                "enabled": False,
+                "available": False,
+                "error": "LangGraph not installed. Run: pip install langgraph langchain-core"
+            })
+            return
+
+        try:
+            # Get status from a LangGraph instance
+            graph = TinyPMGraph()
+            status = graph.get_status()
+            self.send_json({
+                "enabled": True,
+                "available": True,
+                "graph_available": status.get("graph_available", False),
+                "checkpointer_type": status.get("checkpointer_type", "unknown"),
+                "total_threads": status.get("total_threads", 0),
+                "successful_threads": status.get("successful_threads", 0),
+                "failed_threads": status.get("failed_threads", 0),
+                "anthropic_configured": status.get("anthropic_configured", False),
+                "supabase_configured": status.get("supabase_configured", False)
+            })
+        except Exception as e:
+            self.send_json({
+                "enabled": False,
+                "available": True,
+                "error": str(e)
+            }, 500)
+
+    def api_get_langgraph_threads(self):
+        """
+        GET /api/langgraph/threads
+        List all active LangGraph conversation threads.
+        """
+        try:
+            from langgraph_wrapper import TinyPMGraph
+        except ImportError:
+            self.send_json({"threads": [], "error": "LangGraph not available"})
+            return
+
+        try:
+            graph = TinyPMGraph()
+            threads = graph.list_threads(limit=50)
+            self.send_json({"threads": threads, "count": len(threads)})
+        except Exception as e:
+            self.send_json({"threads": [], "error": str(e)}, 500)
+
+    def api_langgraph_run(self, data: dict):
+        """
+        POST /api/langgraph/run
+        Execute a conversation through the LangGraph durable execution system.
+
+        Request body:
+        {
+            "message": "User message to process",
+            "thread_id": "optional-thread-id-for-continuity"
+        }
+        """
+        try:
+            from langgraph_wrapper import TinyPMGraph
+        except ImportError:
+            self.send_json({
+                "success": False,
+                "error": "LangGraph not available. Install with: pip install langgraph langchain-core"
+            }, 500)
+            return
+
+        message = data.get("message", "").strip()
+        if not message:
+            self.send_json({"success": False, "error": "No message provided"}, 400)
+            return
+
+        thread_id = data.get("thread_id")
+
+        try:
+            graph = TinyPMGraph()
+            result = graph.process_message(message, thread_id)
+
+            self.send_json({
+                "success": result.get("success", False),
+                "thread_id": result.get("thread_id"),
+                "response": result.get("response", ""),
+                "intent": result.get("intent"),
+                "confidence": result.get("confidence"),
+                "proactive_items": result.get("proactive_items", []),
+                "duration_ms": result.get("duration_ms", 0),
+                "nodes_executed": result.get("nodes_executed", []),
+                "errors": result.get("errors", [])
+            })
+        except Exception as e:
+            self.send_json({
+                "success": False,
+                "error": str(e)
+            }, 500)
+
+    def api_langgraph_recover(self, data: dict):
+        """
+        POST /api/langgraph/recover
+        Recover a LangGraph thread from its last checkpoint.
+
+        Request body:
+        {
+            "thread_id": "thread-id-to-recover"
+        }
+        """
+        try:
+            from langgraph_wrapper import TinyPMGraph
+        except ImportError:
+            self.send_json({"success": False, "error": "LangGraph not available"}, 500)
+            return
+
+        thread_id = data.get("thread_id", "").strip()
+        if not thread_id:
+            self.send_json({"success": False, "error": "No thread_id provided"}, 400)
+            return
+
+        try:
+            graph = TinyPMGraph()
+            state = graph.recover_thread(thread_id)
+
+            if state:
+                self.send_json({
+                    "success": True,
+                    "thread_id": thread_id,
+                    "current_node": state.get("current_node"),
+                    "nodes_executed": state.get("nodes_executed", []),
+                    "last_response": state.get("response", "")[:500],
+                    "recovered": True
+                })
+            else:
+                self.send_json({
+                    "success": False,
+                    "error": f"Thread {thread_id} not found in checkpoints"
+                }, 404)
+        except Exception as e:
+            self.send_json({"success": False, "error": str(e)}, 500)
+
+    # =========================================================================
+    # SKILLS SYSTEM API (January 2026 SOTA - Modular Skill Architecture)
+    # =========================================================================
+
+    def api_get_skills(self):
+        """GET /api/skills - List all available skills."""
+        api = get_skills_api()
+        if not api:
+            self.send_json({"success": False, "error": "Skills system not available"})
+            return
+        self.send_json(api.get_skills())
+
+    def api_get_pending_approvals(self):
+        """GET /api/skills/pending-approvals - Get pending approval requests."""
+        api = get_skills_api()
+        if not api:
+            self.send_json({"success": False, "error": "Skills system not available"})
+            return
+        self.send_json(api.get_pending_approvals())
+
+    def api_get_skill_history(self):
+        """GET /api/skills/history - Get execution history."""
+        api = get_skills_api()
+        if not api:
+            self.send_json({"success": False, "error": "Skills system not available"})
+            return
+        self.send_json(api.get_history())
+
+    def api_execute_skill(self, data: dict):
+        """POST /api/skills/execute - Execute a skill by name."""
+        api = get_skills_api()
+        if not api:
+            self.send_json({"success": False, "error": "Skills system not available"})
+            return
+
+        skill_name = data.get("skill_name")
+        if not skill_name:
+            self.send_json({"success": False, "error": "skill_name required"}, 400)
+            return
+
+        result = api.execute_skill(
+            skill_name,
+            data.get("parameters", {}),
+            data.get("context", {}),
+        )
+        self.send_json(result)
+
+    def api_approve_skill(self, data: dict):
+        """POST /api/skills/approve - Approve a pending action."""
+        api = get_skills_api()
+        if not api:
+            self.send_json({"success": False, "error": "Skills system not available"})
+            return
+
+        approval_id = data.get("approval_id")
+        if not approval_id:
+            self.send_json({"success": False, "error": "approval_id required"}, 400)
+            return
+
+        result = api.approve(approval_id, data.get("approver_id"))
+        self.send_json(result)
+
+    def api_deny_skill(self, data: dict):
+        """POST /api/skills/deny - Deny a pending action."""
+        api = get_skills_api()
+        if not api:
+            self.send_json({"success": False, "error": "Skills system not available"})
+            return
+
+        approval_id = data.get("approval_id")
+        if not approval_id:
+            self.send_json({"success": False, "error": "approval_id required"}, 400)
+            return
+
+        result = api.deny(approval_id, data.get("reason", "Denied by user"))
+        self.send_json(result)
+
+    def api_parse_intent(self, data: dict):
+        """POST /api/skills/parse-intent - Parse natural language to skills."""
+        api = get_skills_api()
+        if not api:
+            self.send_json({"success": False, "error": "Skills system not available"})
+            return
+
+        text = data.get("text")
+        if not text:
+            self.send_json({"success": False, "error": "text required"}, 400)
+            return
+
+        result = api.parse_intent(text)
+        self.send_json(result)
+
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # WILD CLAIMS CZAR API - Research Scanner Endpoints
+    # ═══════════════════════════════════════════════════════════════════════════════
+
+    def api_get_claims(self):
+        """GET /api/claims - Returns all claims sorted by discovery time."""
+        if not WILD_CLAIMS_AVAILABLE:
+            self.send_json({"available": False, "claims": [], "error": "Wild Claims Czar not available"})
+            return
+        try:
+            db = get_claims_db()
+            if db:
+                all_claims = list(db.claims.values())
+                all_claims.sort(key=lambda c: c.discovered_at, reverse=True)
+                self.send_json({"available": True, "claims": [c.to_dict() for c in all_claims[:50]], "total": len(all_claims)})
+            else:
+                self.send_json({"available": False, "claims": [], "error": "Database not initialized"})
+        except Exception as e:
+            self.send_json({"available": False, "claims": [], "error": str(e)}, 500)
+
+    def api_get_validated_claims(self):
+        """GET /api/claims/validated - Returns validated claims sorted by wildness."""
+        if not WILD_CLAIMS_AVAILABLE:
+            self.send_json({"available": False, "claims": [], "error": "Wild Claims Czar not available"})
+            return
+        try:
+            db = get_claims_db()
+            if db:
+                validated = db.get_top_claims(limit=20)
+                self.send_json({"available": True, "claims": [c.to_dict() for c in validated], "total": len(validated)})
+            else:
+                self.send_json({"available": False, "claims": [], "error": "Database not initialized"})
+        except Exception as e:
+            self.send_json({"available": False, "claims": [], "error": str(e)}, 500)
+
+    def api_get_claims_stats(self):
+        """GET /api/claims/stats - Returns claims database statistics."""
+        if not WILD_CLAIMS_AVAILABLE:
+            self.send_json({"available": False, "stats": {}, "error": "Wild Claims Czar not available"})
+            return
+        try:
+            db = get_claims_db()
+            if db:
+                stats = db.get_stats()
+                self.send_json({"available": True, "stats": stats})
+            else:
+                self.send_json({"available": False, "stats": {}, "error": "Database not initialized"})
+        except Exception as e:
+            self.send_json({"available": False, "stats": {}, "error": str(e)}, 500)
+
+    def api_get_recent_claims(self):
+        """GET /api/claims/recent - Returns claims from last 24 hours."""
+        if not WILD_CLAIMS_AVAILABLE:
+            self.send_json({"available": False, "claims": [], "error": "Wild Claims Czar not available"})
+            return
+        try:
+            db = get_claims_db()
+            if db:
+                recent = db.get_recent_discoveries(hours=24)
+                self.send_json({"available": True, "claims": [c.to_dict() for c in recent], "total": len(recent), "hours": 24})
+            else:
+                self.send_json({"available": False, "claims": [], "error": "Database not initialized"})
+        except Exception as e:
+            self.send_json({"available": False, "claims": [], "error": str(e)}, 500)
+
+    def api_trigger_claims_scan(self, data: dict):
+        """POST /api/claims/scan - Triggers scan for wild claims."""
+        if not WILD_CLAIMS_AVAILABLE:
+            self.send_json({"success": False, "error": "Wild Claims Czar not available"})
+            return
+        try:
+            import asyncio
+            def run_scan():
+                try:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    czar = get_claims_czar()
+                    loop.run_until_complete(czar.scan_all_sources())
+                    loop.close()
+                    print("[WildClaims] Scan completed successfully")
+                except Exception as e:
+                    print(f"[WildClaims] Scan error: {e}")
+            scan_thread = threading.Thread(target=run_scan, daemon=True, name="WildClaims-Scanner")
+            scan_thread.start()
+            self.send_json({"success": True, "message": "Scan started in background", "status": "scanning"})
+        except Exception as e:
+            self.send_json({"success": False, "error": str(e)}, 500)
+
+    def api_trigger_claims_validate(self, data: dict):
+        """POST /api/claims/validate - Triggers validation of pending claims."""
+        if not WILD_CLAIMS_AVAILABLE:
+            self.send_json({"success": False, "error": "Wild Claims Czar not available"})
+            return
+        try:
+            import asyncio
+            def run_validation():
+                try:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    czar = get_claims_czar()
+                    loop.run_until_complete(czar.validate_pending_claims())
+                    loop.close()
+                    print("[WildClaims] Validation completed successfully")
+                except Exception as e:
+                    print(f"[WildClaims] Validation error: {e}")
+            validate_thread = threading.Thread(target=run_validation, daemon=True, name="WildClaims-Validator")
+            validate_thread.start()
+            self.send_json({"success": True, "message": "Validation started in background", "status": "validating"})
+        except Exception as e:
+            self.send_json({"success": False, "error": str(e)}, 500)
+
+
+    def send_json(self, data: dict, status: int = 200):
+        body = json.dumps(data).encode('utf-8')
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Cache-Control", "no-cache")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.end_headers()
+
+    def log_message(self, format, *args):
+        # Cleaner logging
+        sys.stderr.write(f"[TinyPM] {args[0]} {args[1]}\n")
+
+
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # NUDGE / LIFE ORGANIZER API HANDLERS
+    # ═══════════════════════════════════════════════════════════════════════════════
+
+    def api_get_nudges(self):
+        try:
+            from nudge_engine import get_nudge_engine
+            engine = get_nudge_engine()
+            nudges = engine.nudges
+            self.send_json({"nudges": [n.to_dict() for n in nudges], "count": len(nudges)})
+        except ImportError:
+            self.send_json({"nudges": [], "count": 0, "error": "Nudge engine not available"})
+
+    def api_get_pending_nudges(self):
+        try:
+            from nudge_engine import get_nudge_engine
+            engine = get_nudge_engine()
+            pending = engine.get_pending_nudges()
+            self.send_json({"nudges": [n.to_dict() for n in pending], "count": len(pending)})
+        except ImportError:
+            self.send_json({"nudges": [], "count": 0, "error": "Nudge engine not available"})
+
+    def api_get_contacts(self):
+        try:
+            from nudge_engine import get_nudge_engine
+            engine = get_nudge_engine()
+            contacts = engine.contact_analyzer.contacts
+            overdue = engine.contact_analyzer.get_overdue_contacts()
+            overdue_ids = {c["contact"].id for c in overdue}
+            contact_list = []
+            for contact in contacts:
+                c_dict = contact.to_dict()
+                c_dict["is_overdue"] = contact.id in overdue_ids
+                for o in overdue:
+                    if o["contact"].id == contact.id:
+                        c_dict["days_since_contact"] = o.get("days_since_contact")
+                        c_dict["days_overdue"] = o.get("days_overdue", 0)
+                        break
+                contact_list.append(c_dict)
+            self.send_json({"contacts": contact_list, "count": len(contacts), "overdue_count": len(overdue)})
+        except ImportError:
+            self.send_json({"contacts": [], "count": 0, "error": "Nudge engine not available"})
+
+    def api_get_goals(self):
+        try:
+            from nudge_engine import get_nudge_engine
+            engine = get_nudge_engine()
+            goals = engine.goal_tracker.goals
+            self.send_json({"goals": [g.to_dict() for g in goals], "count": len(goals)})
+        except ImportError:
+            self.send_json({"goals": [], "count": 0, "error": "Nudge engine not available"})
+
+    def api_get_important_dates(self):
+        try:
+            from nudge_engine import get_nudge_engine
+            engine = get_nudge_engine()
+            upcoming = engine.date_detector.get_upcoming_dates(days=30)
+            self.send_json({"dates": [{"id": d["date"].id, "title": d["date"].title, "date": d["date"].date, "category": d["date"].category, "next_occurrence": d["next_occurrence"], "days_until": d["days_until"]} for d in upcoming], "count": len(upcoming)})
+        except ImportError:
+            self.send_json({"dates": [], "count": 0, "error": "Nudge engine not available"})
+
+    def api_add_contact(self, data):
+        name = data.get("name", "").strip()
+        if not name:
+            self.send_json({"error": "Name required"}, 400)
+            return
+        try:
+            from nudge_engine import get_nudge_engine, Contact
+            import uuid
+            engine = get_nudge_engine()
+            contact = Contact(id=str(uuid.uuid4()), name=name, email=data.get("email"), phone=data.get("phone"), relationship_type=data.get("relationship_type", "default"), birthday=data.get("birthday"), notes=data.get("notes", ""))
+            engine.contact_analyzer.add_contact(contact)
+            self.send_json({"ok": True, "contact": contact.to_dict()})
+        except ImportError:
+            self.send_json({"error": "Nudge engine not available"}, 500)
+
+    def api_update_contact(self, data):
+        contact_id = data.get("id")
+        if not contact_id:
+            self.send_json({"error": "No contact ID"}, 400)
+            return
+        try:
+            from nudge_engine import get_nudge_engine
+            from datetime import datetime
+            engine = get_nudge_engine()
+            updates = {}
+            for key in ["name", "email", "phone", "relationship_type", "birthday", "notes", "active"]:
+                if key in data:
+                    updates[key] = data[key]
+            if "last_contact" in data:
+                updates["last_contact"] = datetime.fromisoformat(data["last_contact"])
+            if engine.contact_analyzer.update_contact(contact_id, updates):
+                self.send_json({"ok": True, "updated": contact_id})
+            else:
+                self.send_json({"error": f"Contact {contact_id} not found"}, 404)
+        except ImportError:
+            self.send_json({"error": "Nudge engine not available"}, 500)
+
+    def api_record_contact(self, data):
+        contact_id = data.get("id")
+        if not contact_id:
+            self.send_json({"error": "No contact ID"}, 400)
+            return
+        try:
+            from nudge_engine import get_nudge_engine
+            from datetime import datetime
+            engine = get_nudge_engine()
+            when = datetime.fromisoformat(data["when"]) if data.get("when") else None
+            if engine.contact_analyzer.record_contact(contact_id, when):
+                self.send_json({"ok": True, "contact_id": contact_id})
+            else:
+                self.send_json({"error": f"Contact {contact_id} not found"}, 404)
+        except ImportError:
+            self.send_json({"error": "Nudge engine not available"}, 500)
+
+    def api_add_goal(self, data):
+        title = data.get("title", "").strip()
+        if not title:
+            self.send_json({"error": "Title required"}, 400)
+            return
+        try:
+            from nudge_engine import get_nudge_engine, Goal
+            import uuid
+            from datetime import datetime
+            engine = get_nudge_engine()
+            target_date = datetime.fromisoformat(data["target_date"]) if data.get("target_date") else None
+            goal = Goal(id=str(uuid.uuid4()), title=title, description=data.get("description", ""), target_date=target_date, progress=data.get("progress", 0), category=data.get("category", "general"))
+            engine.goal_tracker.add_goal(goal)
+            self.send_json({"ok": True, "goal": goal.to_dict()})
+        except ImportError:
+            self.send_json({"error": "Nudge engine not available"}, 500)
+
+    def api_update_goal(self, data):
+        goal_id = data.get("id")
+        if not goal_id:
+            self.send_json({"error": "No goal ID"}, 400)
+            return
+        progress = data.get("progress")
+        if progress is None:
+            self.send_json({"error": "No progress value"}, 400)
+            return
+        try:
+            from nudge_engine import get_nudge_engine
+            engine = get_nudge_engine()
+            if engine.goal_tracker.update_goal_progress(goal_id, progress):
+                self.send_json({"ok": True, "goal_id": goal_id, "progress": progress})
+            else:
+                self.send_json({"error": f"Goal {goal_id} not found"}, 404)
+        except ImportError:
+            self.send_json({"error": "Nudge engine not available"}, 500)
+
+    def api_dismiss_nudge(self, data):
+        nudge_id = data.get("id")
+        if not nudge_id:
+            self.send_json({"error": "No nudge ID"}, 400)
+            return
+        try:
+            from nudge_engine import get_nudge_engine
+            engine = get_nudge_engine()
+            if engine.dismiss_nudge(nudge_id):
+                self.send_json({"ok": True, "dismissed": nudge_id})
+            else:
+                self.send_json({"error": f"Nudge {nudge_id} not found"}, 404)
+        except ImportError:
+            self.send_json({"error": "Nudge engine not available"}, 500)
+
+    def api_mark_nudge_helpful(self, data):
+        nudge_id = data.get("id")
+        helpful = data.get("helpful")
+        if not nudge_id:
+            self.send_json({"error": "No nudge ID"}, 400)
+            return
+        if helpful is None:
+            self.send_json({"error": "No helpful value"}, 400)
+            return
+        try:
+            from nudge_engine import get_nudge_engine
+            engine = get_nudge_engine()
+            if engine.mark_helpful(nudge_id, helpful):
+                self.send_json({"ok": True, "nudge_id": nudge_id, "helpful": helpful})
+            else:
+                self.send_json({"error": f"Nudge {nudge_id} not found"}, 404)
+        except ImportError:
+            self.send_json({"error": "Nudge engine not available"}, 500)
+
+    def api_check_nudges(self, data):
+        try:
+            from nudge_engine import get_nudge_engine
+            engine = get_nudge_engine()
+            results = {"contact_nudges": [], "date_nudges": [], "goal_nudges": []}
+            contact_nudges = engine.analyze_contact_frequency()
+            results["contact_nudges"] = [n.to_dict() for n in contact_nudges]
+            date_nudges = engine.check_important_dates()
+            results["date_nudges"] = [n.to_dict() for n in date_nudges]
+            goal_nudges = engine.check_goal_progress()
+            results["goal_nudges"] = [n.to_dict() for n in goal_nudges]
+            total_created = len(contact_nudges) + len(date_nudges) + len(goal_nudges)
+            self.send_json({"ok": True, "nudges_created": total_created, "results": results})
+        except ImportError:
+            self.send_json({"error": "Nudge engine not available"}, 500)
+
+    def api_add_important_date(self, data):
+        title = data.get("title", "").strip()
+        date = data.get("date", "").strip()
+        if not title or not date:
+            self.send_json({"error": "Title and date required"}, 400)
+            return
+        try:
+            from nudge_engine import get_nudge_engine, ImportantDate
+            import uuid
+            engine = get_nudge_engine()
+            imp_date = ImportantDate(id=str(uuid.uuid4()), title=title, date=date, recurring=data.get("recurring", True), reminder_days_before=data.get("reminder_days_before", [3, 1]), category=data.get("category", "custom"), contact_id=data.get("contact_id"), notes=data.get("notes", ""))
+            engine.date_detector.add_important_date(imp_date)
+            self.send_json({"ok": True, "date": imp_date.to_dict()})
+        except ImportError:
+            self.send_json({"error": "Nudge engine not available"}, 500)
+
+    # =========================================================================
+    # PROJECTS API - Personal tracking projects (dinner log, wine journal, etc)
+    # =========================================================================
+
+    def api_get_projects(self):
+        projects_file = APP_DIR / ".projects.json"
+        if projects_file.exists():
+            data = json.loads(projects_file.read_text())
+        else:
+            data = {"projects": []}
+        self.send_json(data)
+
+    def api_get_project(self, project_id):
+        projects_file = APP_DIR / ".projects.json"
+        if projects_file.exists():
+            data = json.loads(projects_file.read_text())
+            for proj in data.get("projects", []):
+                if proj.get("id") == project_id:
+                    self.send_json({"project": proj})
+                    return
+        self.send_json({"error": "Project not found"}, 404)
+
+    def api_create_project(self, data):
+        import uuid
+        projects_file = APP_DIR / ".projects.json"
+        if projects_file.exists():
+            all_data = json.loads(projects_file.read_text())
+        else:
+            all_data = {"projects": []}
+
+        project_type = data.get("project_type", "custom")
+        icons = {"dinner_log": "🍽️", "wine_journal": "🍷", "book_tracker": "📚", "custom": "📁"}
+
+        project = {
+            "id": str(uuid.uuid4())[:8],
+            "name": data.get("name", "Untitled Project"),
+            "project_type": project_type,
+            "storage_type": data.get("storage_type", "local"),
+            "icon": icons.get(project_type, "📁"),
+            "entries": [],
+            "entry_count": 0,
+            "created": datetime.now().isoformat(),
+        }
+        all_data["projects"].append(project)
+        projects_file.write_text(json.dumps(all_data, indent=2))
+        self.send_json({"ok": True, "project": project})
+
+    def api_add_project_entry(self, data):
+        import uuid
+        project_id = data.get("project_id")
+        if not project_id:
+            self.send_json({"error": "project_id required"}, 400)
+            return
+
+        projects_file = APP_DIR / ".projects.json"
+        if not projects_file.exists():
+            self.send_json({"error": "No projects"}, 404)
+            return
+
+        all_data = json.loads(projects_file.read_text())
+        for proj in all_data.get("projects", []):
+            if proj.get("id") == project_id:
+                entry = {
+                    "id": str(uuid.uuid4())[:8],
+                    "content": data.get("content", {}),
+                    "notes": data.get("notes", ""),
+                    "rating": data.get("rating"),
+                    "photo_url": data.get("photo_url"),
+                    "created": datetime.now().isoformat(),
+                }
+                proj["entries"].append(entry)
+                proj["entry_count"] = len(proj["entries"])
+                projects_file.write_text(json.dumps(all_data, indent=2))
+                self.send_json({"ok": True, "entry": entry})
+                return
+
+        self.send_json({"error": "Project not found"}, 404)
+
+    # =========================================================================
+    # FEEDBACK API
+    # =========================================================================
+
+    def api_submit_feedback(self, data):
+        feedback_file = APP_DIR / ".feedback.json"
+        if feedback_file.exists():
+            all_feedback = json.loads(feedback_file.read_text())
+        else:
+            all_feedback = {"feedback": []}
+
+        import uuid
+        entry = {
+            "id": str(uuid.uuid4())[:8],
+            "type": data.get("type", "general"),
+            "title": data.get("title", ""),
+            "details": data.get("details", ""),
+            "message": data.get("message", ""),
+            "page": data.get("page", ""),
+            "rating": data.get("rating"),
+            "submitted": datetime.now().isoformat(),
+        }
+        all_feedback["feedback"].append(entry)
+        feedback_file.write_text(json.dumps(all_feedback, indent=2))
+        self.send_json({"success": True, "message": "Thank you for your feedback!"})
+
+    # =========================================================================
+    # WEATHER / CALENDAR / EMAIL WIDGETS
+    # =========================================================================
+
+    def api_get_weather(self):
+        # Try to get real weather if we have location, otherwise return demo
+        self.send_json({
+            "available": True,
+            "temperature": 45,
+            "condition": "Partly Cloudy",
+            "description": "Partly cloudy with a chance of rain",
+            "humidity": 65,
+            "wind_speed": 8,
+            "location": "Pittsburgh, PA",
+            "icon": "⛅",
+            "forecast": [
+                {"day": "Today", "high": 48, "low": 35, "icon": "⛅"},
+                {"day": "Tomorrow", "high": 52, "low": 38, "icon": "🌤️"},
+                {"day": "Sunday", "high": 55, "low": 40, "icon": "☀️"},
+            ]
+        })
+
+    def api_get_calendar_events(self):
+        # Check if we have OAuth configured
+        try:
+            from calendar_integration import get_upcoming_events
+            events = get_upcoming_events(max_results=5)
+            self.send_json({"available": True, "events": events})
+        except Exception as e:
+            # Return placeholder showing OAuth needed
+            self.send_json({
+                "available": False,
+                "needs_oauth": True,
+                "message": "Connect Google Calendar to see events",
+                "events": []
+            })
+
+    def api_get_recent_emails(self):
+        # Check if we have OAuth configured
+        try:
+            from email_integration import get_recent_emails
+            emails = get_recent_emails(max_results=5)
+            self.send_json({"available": True, "emails": emails})
+        except Exception as e:
+            # Return placeholder showing OAuth needed
+            self.send_json({
+                "available": False,
+                "needs_oauth": True,
+                "message": "Connect Gmail to see emails",
+                "emails": []
+            })
+
+
+def main():
+    port = 8000
+    if "--port" in sys.argv:
+        idx = sys.argv.index("--port")
+        if idx + 1 < len(sys.argv):
+            port = int(sys.argv[idx + 1])
+
+    # Start the intelligent PM auto-responder
+    start_pm_auto_responder()
+
+    server = HTTPServer(("0.0.0.0", port), TinyPMHandler)
+
+    local_ip = "localhost"
+    try:
+        import socket
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        local_ip = s.getsockname()[0]
+        s.close()
+    except:
+        pass
+
+    auto_status = "ACTIVE" if ANTHROPIC_API_KEY else "DISABLED (no API key)"
+    print(f"""
+{'=' * 60}
+  TinyPM Web Dashboard
+{'=' * 60}
+
+  Local:    http://localhost:{port}
+  Network:  http://{local_ip}:{port}
+
+  For remote access from anywhere:
+    ngrok http {port}
+
+  PM Auto-Responder: {auto_status}
+  (Responds to dashboard messages in ~5 seconds)
+
+  Press Ctrl+C to stop
+{'=' * 60}
+""")
+
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print("\nShutting down...")
+        server.shutdown()
+
+
+if __name__ == "__main__":
+    main()

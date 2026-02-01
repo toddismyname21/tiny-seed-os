@@ -1,0 +1,20 @@
+{
+  "tasks": {
+    "test-1": {
+      "task_id": "test-1",
+      "title": "Review quarterly budget",
+      "difficulty": 3,
+      "difficulty_score": 0.49,
+      "difficulty_factors": {
+        "base_complexity": 0.54,
+        "duration": 0.5,
+        "deadline_pressure": 0.7,
+        "stakeholder_impact": 0.0
+      },
+      "best_energy_level": 3,
+      "estimated_duration_minutes": 60,
+      "cognitive_load_type": "routine"
+    }
+  },
+  "overrides": {}
+}
