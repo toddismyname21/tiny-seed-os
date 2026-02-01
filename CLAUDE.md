@@ -106,6 +106,22 @@ After completing ANY work, you MUST:
 9. **NEVER** run `clasp deploy` without the `-i` flag (creates NEW deployment)
 10. **NEVER** use any API URL other than the one in api-config.js
 11. **NEVER** remove HTML elements without also removing/updating the JavaScript that references them
+12. **NEVER** change the frontend without checking/updating the associated backend (Apps Script)
+
+---
+
+## CRITICAL: FRONTEND + BACKEND SYNC RULE
+
+**When you change the face, you MUST check the associated script.**
+
+| If you change... | You MUST also check... |
+|------------------|------------------------|
+| HTML elements | Frontend JavaScript that references them |
+| Frontend features | Apps Script functions that serve them |
+| API response format | Frontend code that consumes it |
+| Apps Script endpoints | Frontend code that calls them |
+
+**Full audit scheduled: 2026-02-03**
 
 ---
 
