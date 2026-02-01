@@ -957,6 +957,67 @@
       line-height: 1.5;
     }
 
+    /* Clickable task cards */
+    .commitment-card.clickable,
+    .action-card.clickable {
+      cursor: pointer;
+    }
+
+    .commitment-card.clickable:hover,
+    .action-card.clickable:hover {
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 0 1px var(--accent-blue);
+    }
+
+    .commitment-card.clickable.overdue:hover {
+      border-color: var(--critical);
+      box-shadow: 0 0 0 1px var(--critical);
+    }
+
+    .action-card.clickable.critical:hover,
+    .action-card.clickable.high:hover {
+      border-color: var(--high);
+      box-shadow: 0 0 0 1px var(--high);
+    }
+
+    /* Task Action Modal Tabs */
+    .task-action-tab {
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      cursor: pointer;
+      color: var(--text-secondary);
+      transition: all 0.2s ease;
+    }
+
+    .task-action-tab:hover {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+    }
+
+    .task-action-tab.active {
+      background: var(--accent-green);
+      color: #0a1628;
+      border-color: var(--accent-green);
+    }
+
+    .task-action-tab[data-action="delete"].active {
+      background: var(--accent-red);
+      border-color: var(--accent-red);
+    }
+
+    .task-action-tab[data-action="assign"].active {
+      background: var(--accent-blue);
+      border-color: var(--accent-blue);
+    }
+
+    .task-action-content {
+      animation: fadeIn 0.2s ease;
+    }
+
     /* Loading */
     .loading {
       display: flex;
@@ -1657,6 +1718,252 @@
     }
 
     /* ═══════════════════════════════════════════════════════════════════════════
+       FARM STAT WIDGETS - Clickable stat tiles for farm operations
+       ═══════════════════════════════════════════════════════════════════════════ */
+    .farm-stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    @media (max-width: 1200px) {
+      .farm-stats-row {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    @media (max-width: 600px) {
+      .farm-stats-row {
+        grid-template-columns: 1fr;
+      }
+    }
+    .farm-stat-widget {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 18px;
+      text-decoration: none;
+      color: inherit;
+      transition: all 0.2s ease;
+      display: block;
+      cursor: pointer;
+    }
+    .farm-stat-widget:hover {
+      border-color: var(--accent-green);
+      background: var(--bg-card-hover);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-sm);
+    }
+    .farm-stat-widget .stat-icon {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+    .farm-stat-widget .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--accent-green);
+      margin-bottom: 4px;
+      line-height: 1;
+    }
+    .farm-stat-widget .stat-value.warn {
+      color: var(--accent-amber);
+    }
+    .farm-stat-widget .stat-value.danger {
+      color: var(--accent-red);
+    }
+    .farm-stat-widget .stat-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    .farm-stat-widget .stat-trend {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-top: 6px;
+    }
+
+    /* Disease Risk Widget - Clickable when elevated */
+    .disease-risk-widget {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 20px;
+      transition: all 0.2s ease;
+    }
+    .disease-risk-widget.clickable {
+      cursor: pointer;
+    }
+    .disease-risk-widget.clickable:hover {
+      border-color: var(--accent-amber);
+      background: var(--bg-card-hover);
+    }
+    .disease-risk-widget.risk-medium {
+      border-left: 4px solid var(--accent-amber);
+    }
+    .disease-risk-widget.risk-high {
+      border-left: 4px solid var(--high);
+    }
+    .disease-risk-widget.risk-critical {
+      border-left: 4px solid var(--critical);
+    }
+    .disease-risk-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .disease-risk-title {
+      font-size: 14px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .disease-risk-level {
+      font-size: 13px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 12px;
+    }
+    .disease-risk-level.low {
+      background: var(--low-bg);
+      color: var(--accent-green);
+    }
+    .disease-risk-level.medium {
+      background: var(--medium-bg);
+      color: var(--accent-amber);
+    }
+    .disease-risk-level.high {
+      background: var(--high-bg);
+      color: var(--high);
+    }
+    .disease-risk-level.critical {
+      background: var(--critical-bg);
+      color: var(--critical);
+    }
+    .disease-risk-body {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    /* Disease Risk Modal */
+    .disease-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.75);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      backdrop-filter: blur(4px);
+    }
+    .disease-modal-overlay.show {
+      display: flex;
+    }
+    .disease-modal {
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: 16px;
+      width: 90%;
+      max-width: 600px;
+      max-height: 80vh;
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+    }
+    .disease-modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .disease-modal-header h3 {
+      font-size: 18px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .disease-modal-body {
+      padding: 24px;
+      overflow-y: auto;
+      max-height: calc(80vh - 140px);
+    }
+    .disease-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .disease-card:last-child {
+      margin-bottom: 0;
+    }
+    .disease-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .disease-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .disease-likelihood {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 10px;
+    }
+    .disease-likelihood.high {
+      background: var(--critical-bg);
+      color: var(--critical);
+    }
+    .disease-likelihood.medium {
+      background: var(--medium-bg);
+      color: var(--accent-amber);
+    }
+    .disease-conditions {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+    .disease-mitigation {
+      background: var(--bg-elevated);
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .disease-mitigation-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--accent-green);
+      margin-bottom: 8px;
+    }
+    .disease-mitigation ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+    .disease-mitigation li {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+      line-height: 1.5;
+    }
+    .disease-modal-footer {
+      padding: 16px 24px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
        KEYBOARD SHORTCUTS CHEAT SHEET (? key)
        ═══════════════════════════════════════════════════════════════════════════ */
     .shortcuts-overlay {
@@ -2232,6 +2539,64 @@
           </div>
         </div>
 
+        <!--
+          AGENT 3 NOTE: ORDER DUPLICATION ASSESSMENT
+          ============================================
+          After reviewing the dashboard, NO orders are currently displayed in the main area
+          or in recommendations. The task mentioned orders being shown twice, but this
+          Chief of Staff dashboard focuses on communications, tasks, and commitments - not orders.
+
+          RECOMMENDATION: If orders need to be displayed, consider adding an "Orders" widget
+          to the farm-stats-row below. Orders would likely come from the Shopify integration
+          or chef-order.html system. Only show orders in ONE location to avoid duplication.
+
+          If orders ARE added in the future, they should:
+          1. Only appear in one primary location (either dashboard OR recommendations, not both)
+          2. Link to the appropriate order management page (chef-order.html or sales.html)
+          3. Show order status, customer name, and delivery date
+        -->
+
+        <!-- Farm Operations Stats - Clickable widgets linking to relevant pages -->
+        <div class="farm-stats-row" id="farm-stats-row">
+          <a href="../planning.html" class="farm-stat-widget" title="View crop planning">
+            <div class="stat-icon">🌱</div>
+            <div class="stat-value" id="active-plantings-count">--</div>
+            <div class="stat-label">Active Plantings</div>
+            <div class="stat-trend">Click to view planning</div>
+          </a>
+          <a href="task-assignment.html" class="farm-stat-widget" title="View task assignments">
+            <div class="stat-icon">📋</div>
+            <div class="stat-value" id="tasks-this-week-count">--</div>
+            <div class="stat-label">Tasks This Week</div>
+            <div class="stat-trend">Click to manage tasks</div>
+          </a>
+          <a href="field-planner.html#harvest" class="farm-stat-widget" title="View harvest schedule">
+            <div class="stat-icon">🥬</div>
+            <div class="stat-value" id="harvest-ready-count">--</div>
+            <div class="stat-label">Harvest Ready</div>
+            <div class="stat-trend">Click to view harvest</div>
+          </a>
+          <a href="field-planner.html" class="farm-stat-widget" title="View field planner">
+            <div class="stat-icon">🗺️</div>
+            <div class="stat-value" id="bed-utilization-pct">--%</div>
+            <div class="stat-label">Bed Utilization</div>
+            <div class="stat-trend">Click to view field planner</div>
+          </a>
+        </div>
+
+        <!-- Disease Risk Widget - Clickable when MEDIUM or above -->
+        <div class="disease-risk-widget" id="disease-risk-widget">
+          <div class="disease-risk-header">
+            <div class="disease-risk-title">
+              <span>🦠</span> Disease Risk
+            </div>
+            <span class="disease-risk-level low" id="disease-risk-level">LOW</span>
+          </div>
+          <div class="disease-risk-body" id="disease-risk-body">
+            Conditions are favorable. No immediate disease concerns.
+          </div>
+        </div>
+
         <!-- Filter Bar -->
         <div class="filter-bar">
           <button class="filter-chip active" data-filter="all" onclick="setFilter('all')">All</button>
@@ -2737,6 +3102,73 @@
         <button class="btn btn-secondary" onclick="closeEmailDetail()">Close</button>
         <button class="btn btn-secondary" onclick="archiveCurrentEmail()">📥 Archive</button>
         <button class="btn btn-primary" onclick="replyToCurrentEmail()">✉️ Draft Reply</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Task Action Modal -->
+  <div class="modal-overlay" id="task-action-modal" style="display:none;">
+    <div class="modal" style="max-width:500px;">
+      <div class="modal-header">
+        <h3>Task Actions</h3>
+        <button class="modal-close" onclick="closeTaskActionModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="task-action-item-name" style="color:var(--text-primary);margin-bottom:20px;font-size:16px;font-weight:600;"></p>
+
+        <!-- Action Tabs -->
+        <div class="task-action-tabs" style="display:flex;gap:8px;margin-bottom:20px;">
+          <button class="task-action-tab active" data-action="complete" onclick="switchTaskActionTab('complete')">Mark as Done</button>
+          <button class="task-action-tab" data-action="assign" onclick="switchTaskActionTab('assign')">Assign</button>
+          <button class="task-action-tab" data-action="delete" onclick="switchTaskActionTab('delete')">Delete</button>
+        </div>
+
+        <!-- Complete Tab Content -->
+        <div id="task-action-complete" class="task-action-content">
+          <p style="color:var(--text-secondary);font-size:14px;margin-bottom:16px;">Mark this task as completed. Optionally add completion notes.</p>
+          <textarea id="task-complete-notes" placeholder="Completion notes (optional)..." rows="3" style="width:100%;background:var(--bg-input);border:2px solid var(--border-color);border-radius:10px;padding:14px;color:var(--text-primary);resize:vertical;font-size:15px;font-family:inherit;"></textarea>
+        </div>
+
+        <!-- Assign Tab Content -->
+        <div id="task-action-assign" class="task-action-content" style="display:none;">
+          <p style="color:var(--text-secondary);font-size:14px;margin-bottom:16px;">Assign this task to a team member.</p>
+          <select id="task-assign-employee" style="width:100%;background:var(--bg-input);border:2px solid var(--border-color);border-radius:10px;padding:14px;color:var(--text-primary);font-size:15px;font-family:inherit;cursor:pointer;">
+            <option value="">Select team member...</option>
+            <option value="todd">Todd Wilson</option>
+            <option value="samantha">Samantha Pollack</option>
+            <option value="farmhand1">Farm Hand 1</option>
+            <option value="farmhand2">Farm Hand 2</option>
+          </select>
+          <textarea id="task-assign-notes" placeholder="Assignment notes (optional)..." rows="2" style="width:100%;background:var(--bg-input);border:2px solid var(--border-color);border-radius:10px;padding:14px;color:var(--text-primary);resize:vertical;font-size:15px;font-family:inherit;margin-top:12px;"></textarea>
+        </div>
+
+        <!-- Delete Tab Content -->
+        <div id="task-action-delete" class="task-action-content" style="display:none;">
+          <p style="color:var(--text-secondary);font-size:14px;margin-bottom:16px;">Delete this task. Please provide a reason for deletion.</p>
+          <textarea id="task-delete-explanation" placeholder="Reason for deletion (required)..." rows="3" style="width:100%;background:var(--bg-input);border:2px solid var(--border-color);border-radius:10px;padding:14px;color:var(--text-primary);resize:vertical;font-size:15px;font-family:inherit;" required></textarea>
+          <p style="color:var(--accent-amber);font-size:12px;margin-top:8px;">Note: Deletion explanations are stored for record-keeping.</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeTaskActionModal()">Cancel</button>
+        <button class="btn btn-primary" id="task-action-submit" onclick="submitTaskAction()">Complete Task</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Disease Risk Modal - Shows when disease risk is MEDIUM or above -->
+  <div class="disease-modal-overlay" id="disease-modal-overlay" onclick="if(event.target===this)closeDiseaseModal()">
+    <div class="disease-modal">
+      <div class="disease-modal-header">
+        <h3><span>🦠</span> Disease Risk Assessment</h3>
+        <button class="modal-close" onclick="closeDiseaseModal()">&times;</button>
+      </div>
+      <div class="disease-modal-body" id="disease-modal-body">
+        <!-- Disease cards will be populated dynamically -->
+      </div>
+      <div class="disease-modal-footer">
+        <button class="btn btn-secondary" onclick="closeDiseaseModal()">Close</button>
+        <button class="btn btn-primary" onclick="askQuestion('What preventive measures should I take for current disease risks?');closeDiseaseModal()">Ask Chief of Staff</button>
       </div>
     </div>
   </div>
@@ -3279,18 +3711,21 @@ Please help with this email. Be concise and actionable.`;
       for (const action of actions) {
         const priorityClass = action.queuePosition === 'CRITICAL' ? 'critical' :
                               action.queuePosition === 'HIGH' ? 'high' : '';
+        const isCritical = action.queuePosition === 'CRITICAL' || action.queuePosition === 'HIGH';
+        const escapedAction = escapeHtml(action.action || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        const escapedContact = escapeHtml(action.contactName || 'Unknown').replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
         html += `
-          <div class="action-card ${priorityClass}">
+          <div class="action-card clickable ${priorityClass}" onclick="openTaskActionModal('${action.id}', '${escapedAction}', '${escapedContact}', ${isCritical}, 'action')">
             <div class="action-header">
               <span class="action-contact">${escapeHtml(action.contactName || 'Unknown')}</span>
               <span class="action-score">Score: ${action.priorityScore || 0}</span>
             </div>
             <div class="action-description">${escapeHtml(action.action || '')}</div>
             <div class="action-rationale">${escapeHtml(action.rationale || '')}</div>
-            <div class="action-buttons">
-              <button class="action-btn complete" onclick="completeAction('${action.id}')">Mark Done</button>
-              <button class="action-btn dismiss" onclick="dismissAction('${action.id}')">Dismiss</button>
+            <div class="action-buttons" onclick="event.stopPropagation()">
+              <button class="action-btn complete" onclick="event.stopPropagation(); completeAction('${action.id}')">Mark Done</button>
+              <button class="action-btn dismiss" onclick="event.stopPropagation(); dismissAction('${action.id}')">Dismiss</button>
             </div>
           </div>
         `;
@@ -3364,9 +3799,11 @@ Please help with this email. Be concise and actionable.`;
       for (const c of filtered) {
         const typeClass = c.type === 'OUTBOUND' ? 'mine' : 'theirs';
         const typeLabel = c.type === 'OUTBOUND' ? 'My Promise' : 'Their Promise';
+        const escapedText = escapeHtml(c.text || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        const escapedContact = escapeHtml(c.contactName || 'Unknown').replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
         html += `
-          <div class="commitment-card ${c.isOverdue ? 'overdue' : ''}">
+          <div class="commitment-card clickable ${c.isOverdue ? 'overdue' : ''}" onclick="openTaskActionModal('${c.id}', '${escapedText}', '${escapedContact}', ${c.isOverdue}, 'commitment')">
             <div class="commitment-header">
               <span class="commitment-type ${typeClass}">${typeLabel}</span>
               <span class="commitment-deadline ${c.isOverdue ? 'overdue' : ''}">
@@ -3375,8 +3812,8 @@ Please help with this email. Be concise and actionable.`;
             </div>
             <div class="commitment-contact">${escapeHtml(c.contactName || 'Unknown')}</div>
             <div class="commitment-text">${escapeHtml(c.text || '')}</div>
-            <div class="action-buttons">
-              <button class="action-btn complete" onclick="completeCommitmentWithLog('${c.id}', '${escapeHtml(c.text || '').replace(/'/g, "\\'")}')">Complete</button>
+            <div class="action-buttons" onclick="event.stopPropagation()">
+              <button class="action-btn complete" onclick="event.stopPropagation(); completeCommitmentWithLog('${c.id}', '${escapeHtml(c.text || '').replace(/'/g, "\\'")}')">Complete</button>
             </div>
           </div>
         `;
@@ -3887,6 +4324,172 @@ Please help with this email. Be concise and actionable.`;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
+    // TASK ACTION MODAL
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    let pendingTaskAction = null;
+    let currentTaskActionTab = 'complete';
+    let deletedTaskExplanations = []; // Store delete explanations for data retention
+
+    function openTaskActionModal(taskId, taskText, contactName, isOverdue, taskType) {
+      pendingTaskAction = {
+        id: taskId,
+        text: taskText,
+        contact: contactName,
+        isOverdue: isOverdue,
+        type: taskType
+      };
+
+      // Reset modal state
+      currentTaskActionTab = 'complete';
+      document.getElementById('task-action-item-name').textContent = taskText || 'Task';
+      document.getElementById('task-complete-notes').value = '';
+      document.getElementById('task-assign-employee').value = '';
+      document.getElementById('task-assign-notes').value = '';
+      document.getElementById('task-delete-explanation').value = '';
+
+      // Reset tabs
+      switchTaskActionTab('complete');
+
+      // Show modal
+      document.getElementById('task-action-modal').style.display = 'flex';
+    }
+
+    function closeTaskActionModal() {
+      document.getElementById('task-action-modal').style.display = 'none';
+      pendingTaskAction = null;
+    }
+
+    function switchTaskActionTab(action) {
+      currentTaskActionTab = action;
+
+      // Update tab buttons
+      document.querySelectorAll('.task-action-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.action === action);
+      });
+
+      // Show/hide content
+      document.getElementById('task-action-complete').style.display = action === 'complete' ? 'block' : 'none';
+      document.getElementById('task-action-assign').style.display = action === 'assign' ? 'block' : 'none';
+      document.getElementById('task-action-delete').style.display = action === 'delete' ? 'block' : 'none';
+
+      // Update submit button text
+      const submitBtn = document.getElementById('task-action-submit');
+      if (action === 'complete') {
+        submitBtn.textContent = 'Complete Task';
+        submitBtn.className = 'btn btn-primary';
+      } else if (action === 'assign') {
+        submitBtn.textContent = 'Assign Task';
+        submitBtn.className = 'btn btn-primary';
+        submitBtn.style.background = 'linear-gradient(135deg, var(--accent-blue) 0%, #3b82f6 100%)';
+      } else if (action === 'delete') {
+        submitBtn.textContent = 'Delete Task';
+        submitBtn.className = 'btn btn-primary';
+        submitBtn.style.background = 'linear-gradient(135deg, var(--accent-red) 0%, #ef4444 100%)';
+      }
+    }
+
+    async function submitTaskAction() {
+      if (!pendingTaskAction) return;
+
+      const { id, text, contact, type } = pendingTaskAction;
+
+      try {
+        if (currentTaskActionTab === 'complete') {
+          await completeTaskAction(id, type);
+        } else if (currentTaskActionTab === 'assign') {
+          await assignTaskAction(id, type);
+        } else if (currentTaskActionTab === 'delete') {
+          await deleteTaskAction(id, type);
+        }
+      } catch (error) {
+        console.error('Task action error:', error);
+        showToast('Failed to process task action', 'error');
+      }
+    }
+
+    async function completeTaskAction(taskId, taskType) {
+      const notes = document.getElementById('task-complete-notes').value.trim();
+
+      // Optimistic UI update
+      if (taskType === 'commitment') {
+        commitments = commitments.filter(c => c.id !== taskId);
+        renderCommitments();
+      } else if (taskType === 'action') {
+        actions = actions.filter(a => a.id !== taskId);
+        renderActions();
+      }
+
+      closeTaskActionModal();
+      showToast('Task completed!', 'success');
+
+      // API call
+      const action = taskType === 'action' ? 'completeAction' : 'completeSMSCommitment';
+      const idParam = taskType === 'action' ? 'actionId' : 'commitmentId';
+      await fetch(`${API_BASE}?action=${action}&${idParam}=${taskId}&notes=${encodeURIComponent(notes)}`);
+
+      // Log activity
+      await fetch(`${API_BASE}?action=logActivity&type=COMPLETION&itemType=${taskType}&itemId=${taskId}&notes=${encodeURIComponent(notes)}`);
+    }
+
+    async function assignTaskAction(taskId, taskType) {
+      const employeeId = document.getElementById('task-assign-employee').value;
+      const notes = document.getElementById('task-assign-notes').value.trim();
+
+      if (!employeeId) {
+        showToast('Please select a team member', 'error');
+        return;
+      }
+
+      closeTaskActionModal();
+      showToast('Task assigned!', 'success');
+
+      // API call to assign task
+      await fetch(`${API_BASE}?action=assignTask&taskId=${taskId}&taskType=${taskType}&assignee=${encodeURIComponent(employeeId)}&notes=${encodeURIComponent(notes)}`);
+
+      // Log activity
+      await fetch(`${API_BASE}?action=logActivity&type=ASSIGNMENT&itemType=${taskType}&itemId=${taskId}&assignee=${encodeURIComponent(employeeId)}&notes=${encodeURIComponent(notes)}`);
+    }
+
+    async function deleteTaskAction(taskId, taskType) {
+      const explanation = document.getElementById('task-delete-explanation').value.trim();
+
+      if (!explanation) {
+        showToast('Please provide a reason for deletion', 'error');
+        return;
+      }
+
+      // Store the explanation locally for data retention
+      const deletionRecord = {
+        taskId: taskId,
+        taskType: taskType,
+        taskText: pendingTaskAction.text,
+        contact: pendingTaskAction.contact,
+        explanation: explanation,
+        deletedAt: new Date().toISOString()
+      };
+      deletedTaskExplanations.push(deletionRecord);
+
+      // Optimistic UI update
+      if (taskType === 'commitment') {
+        commitments = commitments.filter(c => c.id !== taskId);
+        renderCommitments();
+      } else if (taskType === 'action') {
+        actions = actions.filter(a => a.id !== taskId);
+        renderActions();
+      }
+
+      closeTaskActionModal();
+      showToast('Task deleted with explanation logged', 'success');
+
+      // API call to delete task with explanation
+      await fetch(`${API_BASE}?action=deleteTask&taskId=${taskId}&taskType=${taskType}&explanation=${encodeURIComponent(explanation)}`);
+
+      // Log activity with deletion reason
+      await fetch(`${API_BASE}?action=logActivity&type=DELETION&itemType=${taskType}&itemId=${taskId}&reason=${encodeURIComponent(explanation)}`);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // BRAIN DUMP
     // ═══════════════════════════════════════════════════════════════════════════
 
@@ -4019,6 +4622,7 @@ Please help with this email. Be concise and actionable.`;
       if (e.key === 'Escape') {
         closeCompletionModal();
         closeBrainDump();
+        closeTaskActionModal();
       }
     });
 
@@ -4028,6 +4632,7 @@ Please help with this email. Be concise and actionable.`;
         if (e.target === overlay) {
           closeCompletionModal();
           closeBrainDump();
+          closeTaskActionModal();
         }
       });
     });
@@ -5346,6 +5951,291 @@ Please help with this email. Be concise and actionable.`;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
+    // FARM STATS WIDGETS - Loads farm operation metrics
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    async function loadFarmStats() {
+      try {
+        // Try to load from API, fall back to demo data if unavailable
+        const res = await cachedFetch('getFarmStats').catch(() => null);
+
+        if (res && res.success && res.data) {
+          updateFarmStatsDisplay(res.data);
+        } else {
+          // Load from individual endpoints or use placeholder
+          await loadFarmStatsFromMultipleSources();
+        }
+      } catch (error) {
+        console.log('Farm stats loading:', error.message);
+        // Show placeholder values
+        document.getElementById('active-plantings-count').textContent = '--';
+        document.getElementById('tasks-this-week-count').textContent = '--';
+        document.getElementById('harvest-ready-count').textContent = '--';
+        document.getElementById('bed-utilization-pct').textContent = '--%';
+      }
+    }
+
+    async function loadFarmStatsFromMultipleSources() {
+      // Try to load tasks count
+      try {
+        const taskRes = await cachedFetch('getTasks').catch(() => ({ tasks: [] }));
+        const tasks = taskRes.tasks || taskRes.data || [];
+        const thisWeekTasks = tasks.filter(t => {
+          if (!t.dueDate) return false;
+          const due = new Date(t.dueDate);
+          const now = new Date();
+          const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+          return due >= now && due <= weekFromNow && t.status !== 'completed';
+        });
+        document.getElementById('tasks-this-week-count').textContent = thisWeekTasks.length || '0';
+
+        // Add warn class if many tasks
+        const taskEl = document.getElementById('tasks-this-week-count');
+        if (thisWeekTasks.length > 20) {
+          taskEl.classList.add('warn');
+        } else if (thisWeekTasks.length > 30) {
+          taskEl.classList.add('danger');
+        }
+      } catch (e) {
+        document.getElementById('tasks-this-week-count').textContent = '--';
+      }
+
+      // Other stats would come from field planner API - show placeholders for now
+      document.getElementById('active-plantings-count').textContent = '--';
+      document.getElementById('harvest-ready-count').textContent = '--';
+      document.getElementById('bed-utilization-pct').textContent = '--%';
+    }
+
+    function updateFarmStatsDisplay(data) {
+      if (data.activePlantings !== undefined) {
+        document.getElementById('active-plantings-count').textContent = data.activePlantings;
+      }
+      if (data.tasksThisWeek !== undefined) {
+        const taskEl = document.getElementById('tasks-this-week-count');
+        taskEl.textContent = data.tasksThisWeek;
+        if (data.tasksThisWeek > 20) taskEl.classList.add('warn');
+        if (data.tasksThisWeek > 30) taskEl.classList.add('danger');
+      }
+      if (data.harvestReady !== undefined) {
+        document.getElementById('harvest-ready-count').textContent = data.harvestReady;
+      }
+      if (data.bedUtilization !== undefined) {
+        const utilEl = document.getElementById('bed-utilization-pct');
+        utilEl.textContent = data.bedUtilization + '%';
+        if (data.bedUtilization < 50) utilEl.classList.add('warn');
+        if (data.bedUtilization < 25) utilEl.classList.add('danger');
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // DISEASE RISK ASSESSMENT - Weather-based disease prediction
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    // Disease database with conditions and mitigation strategies
+    const FARM_DISEASES = {
+      lateBlight: {
+        name: 'Late Blight (Phytophthora infestans)',
+        conditions: 'High humidity (>90%) with temperatures 50-80F, especially after rain',
+        affectedCrops: ['Tomatoes', 'Potatoes', 'Peppers'],
+        likelihood: 'high',
+        mitigation: [
+          'Apply copper-based fungicide preventively',
+          'Improve air circulation between plants',
+          'Remove and destroy infected plant material immediately',
+          'Avoid overhead watering; use drip irrigation',
+          'Scout daily during wet weather'
+        ]
+      },
+      powderyMildew: {
+        name: 'Powdery Mildew',
+        conditions: 'Moderate temperatures (60-80F) with high humidity, dry leaf surfaces',
+        affectedCrops: ['Squash', 'Cucumbers', 'Melons', 'Peas'],
+        likelihood: 'medium',
+        mitigation: [
+          'Apply sulfur or potassium bicarbonate spray',
+          'Ensure adequate plant spacing for airflow',
+          'Water at base of plants, not leaves',
+          'Remove heavily infected leaves',
+          'Plant resistant varieties next season'
+        ]
+      },
+      downyMildew: {
+        name: 'Downy Mildew',
+        conditions: 'Cool nights (50-60F), humid mornings, wet foliage',
+        affectedCrops: ['Lettuce', 'Spinach', 'Basil', 'Cucurbits'],
+        likelihood: 'medium',
+        mitigation: [
+          'Improve air circulation and reduce humidity',
+          'Apply copper hydroxide or mancozeb',
+          'Harvest crops before disease spreads',
+          'Remove crop debris after harvest',
+          'Rotate crops for 2-3 years'
+        ]
+      },
+      botrytis: {
+        name: 'Botrytis (Gray Mold)',
+        conditions: 'Cool, wet conditions (55-75F), high humidity, poor air circulation',
+        affectedCrops: ['Strawberries', 'Lettuce', 'Beans', 'Tomatoes'],
+        likelihood: 'high',
+        mitigation: [
+          'Remove dead or decaying plant material',
+          'Increase plant spacing for air flow',
+          'Avoid injuring plants during harvest',
+          'Apply biological controls (Bacillus subtilis)',
+          'Reduce nitrogen fertilization'
+        ]
+      },
+      bacterialLeafSpot: {
+        name: 'Bacterial Leaf Spot',
+        conditions: 'Warm temperatures (75-86F) with rain or overhead irrigation',
+        affectedCrops: ['Peppers', 'Tomatoes', 'Lettuce'],
+        likelihood: 'medium',
+        mitigation: [
+          'Use drip irrigation instead of overhead',
+          'Apply copper-based bactericides',
+          'Remove and destroy infected plants',
+          'Sanitize tools between plants',
+          'Use certified disease-free transplants'
+        ]
+      }
+    };
+
+    let currentDiseaseRisk = {
+      level: 'low',
+      diseases: []
+    };
+
+    async function loadDiseaseRisk() {
+      const widget = document.getElementById('disease-risk-widget');
+      const levelEl = document.getElementById('disease-risk-level');
+      const bodyEl = document.getElementById('disease-risk-body');
+
+      if (!widget || !levelEl || !bodyEl) return;
+
+      try {
+        // Try to get weather data from API
+        const weatherRes = await cachedFetch('getWeatherAwareScheduling').catch(() => null);
+
+        // Simulate disease risk based on conditions or use API data
+        const riskData = assessDiseaseRisk(weatherRes);
+        currentDiseaseRisk = riskData;
+
+        // Update widget display
+        levelEl.textContent = riskData.level.toUpperCase();
+        levelEl.className = 'disease-risk-level ' + riskData.level;
+
+        // Update widget styling based on risk
+        widget.className = 'disease-risk-widget';
+        if (riskData.level === 'medium' || riskData.level === 'high' || riskData.level === 'critical') {
+          widget.classList.add('clickable', 'risk-' + riskData.level);
+          widget.onclick = openDiseaseModal;
+          bodyEl.innerHTML = `<strong>${riskData.diseases.length} potential disease${riskData.diseases.length > 1 ? 's' : ''} detected.</strong> Click for details and mitigation steps.`;
+        } else {
+          widget.classList.remove('clickable');
+          widget.onclick = null;
+          bodyEl.textContent = 'Conditions are favorable. No immediate disease concerns.';
+        }
+
+      } catch (error) {
+        console.log('Disease risk assessment error:', error.message);
+        levelEl.textContent = 'UNKNOWN';
+        bodyEl.textContent = 'Unable to assess disease risk. Check weather data.';
+      }
+    }
+
+    function assessDiseaseRisk(weatherData) {
+      // Default assessment based on general conditions
+      // In production, this would use actual weather API data
+      const diseases = [];
+      let maxRisk = 'low';
+
+      // Simulate conditions - in production, use actual weather data
+      const humidity = weatherData?.data?.humidity || 70;
+      const temp = weatherData?.data?.temperature || 65;
+      const recentRain = weatherData?.data?.recentRain || false;
+
+      // Check each disease condition
+      if (humidity > 85 && temp >= 50 && temp <= 80) {
+        diseases.push(FARM_DISEASES.lateBlight);
+        maxRisk = 'high';
+      }
+
+      if (humidity > 70 && temp >= 60 && temp <= 80) {
+        diseases.push(FARM_DISEASES.powderyMildew);
+        if (maxRisk === 'low') maxRisk = 'medium';
+      }
+
+      if (humidity > 80 && temp >= 50 && temp <= 65) {
+        diseases.push(FARM_DISEASES.downyMildew);
+        if (maxRisk === 'low') maxRisk = 'medium';
+      }
+
+      if (humidity > 75 && temp >= 55 && temp <= 75) {
+        diseases.push(FARM_DISEASES.botrytis);
+        maxRisk = 'high';
+      }
+
+      if (recentRain && temp >= 75 && temp <= 86) {
+        diseases.push(FARM_DISEASES.bacterialLeafSpot);
+        if (maxRisk === 'low') maxRisk = 'medium';
+      }
+
+      // Adjust risk level based on number of diseases
+      if (diseases.length >= 3) {
+        maxRisk = 'critical';
+      }
+
+      return {
+        level: maxRisk,
+        diseases: diseases
+      };
+    }
+
+    function openDiseaseModal() {
+      const overlay = document.getElementById('disease-modal-overlay');
+      const body = document.getElementById('disease-modal-body');
+
+      if (!overlay || !body) return;
+
+      let html = '';
+
+      if (currentDiseaseRisk.diseases.length === 0) {
+        html = '<p style="color:var(--text-muted);text-align:center;padding:20px;">No disease risks currently identified.</p>';
+      } else {
+        for (const disease of currentDiseaseRisk.diseases) {
+          html += `
+            <div class="disease-card">
+              <div class="disease-card-header">
+                <span class="disease-name">${escapeHtml(disease.name)}</span>
+                <span class="disease-likelihood ${disease.likelihood}">${disease.likelihood.toUpperCase()}</span>
+              </div>
+              <div class="disease-conditions">
+                <strong>Favorable conditions:</strong> ${escapeHtml(disease.conditions)}<br>
+                <strong>Crops at risk:</strong> ${disease.affectedCrops.join(', ')}
+              </div>
+              <div class="disease-mitigation">
+                <div class="disease-mitigation-title">Mitigation Steps</div>
+                <ul>
+                  ${disease.mitigation.map(m => `<li>${escapeHtml(m)}</li>`).join('')}
+                </ul>
+              </div>
+            </div>
+          `;
+        }
+      }
+
+      body.innerHTML = html;
+      overlay.classList.add('show');
+    }
+
+    function closeDiseaseModal() {
+      const overlay = document.getElementById('disease-modal-overlay');
+      if (overlay) {
+        overlay.classList.remove('show');
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // CHIEF OF STAFF 2.0 - SMART PRIORITY & DECISION SUPPORT
     // ═══════════════════════════════════════════════════════════════════════════
 
@@ -5492,6 +6382,12 @@ Please help with this email. Be concise and actionable.`;
 
       // Load dashboard schedule
       loadDashboardSchedule();
+
+      // Load farm operation stats
+      loadFarmStats();
+
+      // Load disease risk assessment
+      loadDiseaseRisk();
 
       // Update dashboard metrics
       updateDashboard();
