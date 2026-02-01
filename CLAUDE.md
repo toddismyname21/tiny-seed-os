@@ -105,6 +105,33 @@ After completing ANY work, you MUST:
 8. **NEVER** create a new Approval system (2 already exist)
 9. **NEVER** run `clasp deploy` without the `-i` flag (creates NEW deployment)
 10. **NEVER** use any API URL other than the one in api-config.js
+11. **NEVER** remove HTML elements without also removing/updating the JavaScript that references them
+
+---
+
+## CRITICAL: HTML + JAVASCRIPT SYNC RULE
+
+**When you remove HTML, you MUST also update the JavaScript.**
+
+A pre-commit hook will BLOCK commits with orphaned references. Run this to check:
+
+```bash
+./scripts/validate-element-refs.sh index.html
+```
+
+### Example of the Bug This Prevents:
+
+```html
+<!-- REMOVED this HTML element -->
+<!-- <div id="briefTemp">Loading...</div> -->
+
+<script>
+// But LEFT this JavaScript - CRASH!
+document.getElementById('briefTemp').textContent = 'Hello';
+</script>
+```
+
+**This caused a site-breaking bug on 2026-02-01. The pre-commit hook now blocks this.**
 
 ---
 

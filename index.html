@@ -5480,40 +5480,7 @@
             document.getElementById('statUtilization').textContent = utilization + '%';
         }
 
-        // ========================================
-        // LOAN READINESS WIDGET
-        // ========================================
-        async function loadLoanReadiness() {
-            try {
-                // Get readiness data from localStorage or set defaults
-                const readinessScore = localStorage.getItem('loanReadinessScore') || '0';
-                const documentsReady = localStorage.getItem('loanDocumentsReady') || '0';
-
-                // Calculate days to next action (estimate: 7 days if not completed)
-                const isCompleted = parseInt(readinessScore) >= 80;
-                const daysToAction = isCompleted ? 'Ready' : '7';
-
-                // Update widget display
-                const scoreEl = document.getElementById('loanReadinessScore');
-                const docsEl = document.getElementById('loanDocumentsReady');
-                const deadlineEl = document.getElementById('loanNextDeadline');
-
-                if (scoreEl) scoreEl.textContent = readinessScore + '%';
-                if (docsEl) docsEl.textContent = documentsReady;
-                if (deadlineEl) deadlineEl.textContent = daysToAction;
-
-            } catch (error) {
-                console.error('Error loading loan readiness:', error);
-                // Show default values on error
-                const scoreEl = document.getElementById('loanReadinessScore');
-                const docsEl = document.getElementById('loanDocumentsReady');
-                const deadlineEl = document.getElementById('loanNextDeadline');
-
-                if (scoreEl) scoreEl.textContent = '--';
-                if (docsEl) docsEl.textContent = '--';
-                if (deadlineEl) deadlineEl.textContent = '--';
-            }
-        }
+        // Loan Readiness widget removed - function removed with it
 
         // ========================================
         // TODAY'S WORK - Frictionless Task Completion
