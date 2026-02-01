@@ -96,7 +96,7 @@ const BrainAPI = {
     async healthCheck() {
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 3000);
+            const timeoutId = setTimeout(() => controller.abort(), 500); // Fast fail - don't block UI
 
             const response = await fetch(`${this.baseUrl}/api/health`, {
                 method: 'GET',

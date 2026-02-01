@@ -4209,21 +4209,65 @@
     let conversationHistory = [];
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // PERFORMANCE: API Response Cache (60 second TTL)
+    // PERFORMANCE: Two-tier cache (localStorage + memory) for instant repeat loads
     // ═══════════════════════════════════════════════════════════════════════════
     const apiCache = new Map();
-    const CACHE_TTL = 60000; // 60 seconds
+    const CACHE_TTL = 60000; // 60 seconds for memory cache
+    const STORAGE_TTL = 300000; // 5 minutes for localStorage (show stale while revalidating)
+
+    // Load cached data from localStorage on startup
+    function loadStorageCache() {
+      try {
+        const stored = localStorage.getItem('cos_api_cache');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          Object.entries(parsed).forEach(([key, value]) => {
+            apiCache.set(key, value);
+          });
+          console.log('[Cache] Loaded', apiCache.size, 'cached responses from localStorage');
+        }
+      } catch (e) { console.warn('[Cache] Failed to load localStorage cache'); }
+    }
+
+    // Save cache to localStorage
+    function saveStorageCache() {
+      try {
+        const obj = {};
+        apiCache.forEach((value, key) => { obj[key] = value; });
+        localStorage.setItem('cos_api_cache', JSON.stringify(obj));
+      } catch (e) { console.warn('[Cache] Failed to save localStorage cache'); }
+    }
+
+    // Initialize cache from storage immediately
+    loadStorageCache();
 
     async function cachedFetch(action, params = {}) {
       const cacheKey = action + JSON.stringify(params);
       const cached = apiCache.get(cacheKey);
-      if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      const now = Date.now();
+
+      // Return cached data immediately if fresh
+      if (cached && now - cached.timestamp < CACHE_TTL) {
         return cached.data;
       }
+
+      // If we have stale data, return it immediately but refresh in background
+      if (cached && now - cached.timestamp < STORAGE_TTL) {
+        // Stale-while-revalidate pattern
+        fetchAndCache(action, params, cacheKey).catch(console.error);
+        return cached.data;
+      }
+
+      // No cache - must fetch
+      return fetchAndCache(action, params, cacheKey);
+    }
+
+    async function fetchAndCache(action, params, cacheKey) {
       const queryParams = new URLSearchParams({ action, ...params });
       const response = await fetch(`${API_BASE}?${queryParams}`);
       const data = await response.json();
       apiCache.set(cacheKey, { data, timestamp: Date.now() });
+      saveStorageCache(); // Persist to localStorage
       return data;
     }
 
@@ -4231,6 +4275,7 @@
       for (const key of apiCache.keys()) {
         if (key.startsWith(action)) apiCache.delete(key);
       }
+      saveStorageCache();
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -8500,7 +8545,8 @@ Please help with this email. Be concise and actionable.`;
   </script>
 
   <!-- TinyPM Brain Integration - Proactive Intelligence Layer -->
-  <script src="brain-integration.js"></script>
+  <!-- async + defer = load in background, don't block main content -->
+  <script src="brain-integration.js" async defer></script>
 
   <!-- Brain UI Containers -->
   <div id="brain-suggestions-container" aria-live="polite" aria-label="AI Suggestions"></div>
@@ -8510,12 +8556,13 @@ Please help with this email. Be concise and actionable.`;
     // =========================================================================
     // BRAIN INTEGRATION WIRING
     // Wire up the brain to existing Chief of Staff functions
+    // NON-BLOCKING: Only initialize after main content is loaded
     // =========================================================================
 
-    // Wait for both DOM and brain to be ready
+    // Defer brain wiring until after main UI is ready
     document.addEventListener('DOMContentLoaded', function() {
-      // Give brain time to initialize
-      setTimeout(wireBrainIntegration, 1000);
+      // Wait 3 seconds - let main content load first
+      setTimeout(wireBrainIntegration, 3000);
     });
 
     function wireBrainIntegration() {
