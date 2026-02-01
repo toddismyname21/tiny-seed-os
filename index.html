@@ -1817,6 +1817,53 @@
             border-radius: 6px;
         }
 
+        .overdue-actions {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .overdue-action-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: none;
+            color: white;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .overdue-action-btn.done {
+            background: var(--success);
+        }
+
+        .overdue-action-btn.done:hover {
+            background: #1a9f6b;
+            transform: scale(1.05);
+        }
+
+        .overdue-action-btn.delegate {
+            background: var(--warning);
+        }
+
+        .overdue-action-btn.delegate:hover {
+            background: #d97706;
+            transform: scale(1.05);
+        }
+
+        .overdue-action-btn.delete {
+            background: var(--danger);
+        }
+
+        .overdue-action-btn.delete:hover {
+            background: #c92a36;
+            transform: scale(1.05);
+        }
+
         .overdue-complete-single {
             width: 44px;
             height: 44px;
@@ -4825,18 +4872,7 @@
                 // Update time - new format uses 'date', old format may differ
                 document.getElementById('briefTime').textContent = apiData.date || new Date().toLocaleDateString();
 
-                // Update weather from API format (new format: sections.weather)
-                const weather = apiData.weather_summary || apiData.sections?.weather;
-                if (weather && weather.high) {
-                    document.getElementById('briefTemp').textContent = weather.high + '°F';
-                    document.getElementById('briefCondition').textContent = (weather.precip_chance || 0) > 50 ? 'Rainy' : 'Clear';
-                    document.getElementById('briefHigh').textContent = weather.high;
-                    document.getElementById('briefLow').textContent = weather.low || '--';
-                    document.getElementById('briefRain').textContent = (weather.precip_chance || 0) + '%';
-                } else {
-                    document.getElementById('briefTemp').textContent = '--';
-                    document.getElementById('briefCondition').textContent = 'N/A';
-                }
+                // Weather section removed from HTML - skip weather updates
 
                 // Render alerts from API format (new format: tips array)
                 const alertsContainer = document.getElementById('briefAlerts');
@@ -5621,9 +5657,17 @@
                         </div>
                         <div class="overdue-days-badge">${daysText} overdue</div>
                         <div class="overdue-quantity">${task.quantity}</div>
-                        <button class="overdue-complete-single" onclick="completeOverdueTask('${task.batchId}', '${task.type}', event)">
-                            <i class="fas fa-check"></i>
-                        </button>
+                        <div class="overdue-actions">
+                            <button class="overdue-action-btn done" onclick="completeOverdueTask('${task.batchId}', '${task.type}', event)" title="Mark Done">
+                                <i class="fas fa-check"></i>
+                            </button>
+                            <button class="overdue-action-btn delegate" onclick="delegateOverdueTask('${task.batchId}', '${task.type}', event)" title="Delegate">
+                                <i class="fas fa-user-plus"></i>
+                            </button>
+                            <button class="overdue-action-btn delete" onclick="deleteOverdueTask('${task.batchId}', '${task.type}', event)" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
                     </div>
                 `;
             }).join('');
@@ -5745,7 +5789,7 @@
             if (event) event.stopPropagation();
 
             const taskItem = document.querySelector(`.overdue-item[data-task-id="${batchId}-${taskType}"]`);
-            const btn = taskItem?.querySelector('.overdue-complete-single');
+            const btn = taskItem?.querySelector('.overdue-action-btn.done');
 
             if (btn) {
                 btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
@@ -5788,10 +5832,93 @@
                 }
             } catch (error) {
                 console.error('Error completing overdue task:', error);
-                if (btn) {
-                    btn.innerHTML = '<i class="fas fa-check"></i>';
-                }
+                if (btn) btn.innerHTML = '<i class="fas fa-check"></i>';
                 showToast('Error completing task', 'error');
+            }
+        }
+
+        async function delegateOverdueTask(batchId, taskType, event) {
+            if (event) event.stopPropagation();
+
+            const task = overdueTasks.find(t => t.batchId === batchId && t.type === taskType);
+            if (!task) return;
+
+            // Show delegate modal
+            const assignee = prompt(`Delegate "${task.crop} - ${task.variety}" to:`);
+            if (!assignee) return;
+
+            const taskItem = document.querySelector(`.overdue-item[data-task-id="${batchId}-${taskType}"]`);
+            const btn = taskItem?.querySelector('.overdue-action-btn.delegate');
+            if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+            try {
+                const params = new URLSearchParams({
+                    action: 'updatePlanting',
+                    batchId: batchId,
+                    Assigned_To: assignee
+                });
+
+                const response = await fetch(`${API_URL}?${params}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    const planting = allPlantings.find(p => p.Batch_ID === batchId);
+                    if (planting) planting.Assigned_To = assignee;
+
+                    loadTodaysTasks();
+                    showToast(`Task delegated to ${assignee}`, 'success');
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                console.error('Error delegating task:', error);
+                if (btn) btn.innerHTML = '<i class="fas fa-user-plus"></i>';
+                showToast('Error delegating task', 'error');
+            }
+        }
+
+        async function deleteOverdueTask(batchId, taskType, event) {
+            if (event) event.stopPropagation();
+
+            const task = overdueTasks.find(t => t.batchId === batchId && t.type === taskType);
+            if (!task) return;
+
+            if (!confirm(`Delete overdue ${taskType} task for "${task.crop} - ${task.variety}"? This will skip this scheduled task.`)) {
+                return;
+            }
+
+            const taskItem = document.querySelector(`.overdue-item[data-task-id="${batchId}-${taskType}"]`);
+            const btn = taskItem?.querySelector('.overdue-action-btn.delete');
+            if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+            try {
+                // Mark as skipped by setting status
+                let updateField = '';
+                if (taskType === 'ghSow') updateField = 'GH_Sow_Status';
+                else if (taskType === 'directSeed') updateField = 'Direct_Sow_Status';
+                else if (taskType === 'transplant') updateField = 'Transplant_Status';
+
+                const params = new URLSearchParams({
+                    action: 'updatePlanting',
+                    batchId: batchId,
+                    [updateField]: 'Skipped'
+                });
+
+                const response = await fetch(`${API_URL}?${params}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    selectedOverdueTasks.delete(`${batchId}-${taskType}`);
+                    loadTodaysTasks();
+                    updateStats();
+                    showToast('Task removed from schedule', 'success');
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                console.error('Error deleting overdue task:', error);
+                if (btn) btn.innerHTML = '<i class="fas fa-trash"></i>';
+                showToast('Error removing task', 'error');
             }
         }
 
