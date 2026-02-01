@@ -3636,19 +3636,6 @@
                 <span class="brief-time" id="briefTime">Loading...</span>
             </div>
 
-            <!-- Weather Summary -->
-            <div class="brief-weather" id="briefWeather">
-                <div class="weather-main">
-                    <span class="weather-temp" id="briefTemp">--F</span>
-                    <span class="weather-condition" id="briefCondition">Loading...</span>
-                </div>
-                <div class="weather-details">
-                    <span>High: <span id="briefHigh">--</span></span>
-                    <span>Low: <span id="briefLow">--</span></span>
-                    <span>Rain: <span id="briefRain">--</span>%</span>
-                </div>
-            </div>
-
             <!-- Critical Alerts -->
             <div class="brief-alerts" id="briefAlerts">
                 <!-- Alerts will be inserted here -->
@@ -3682,7 +3669,7 @@
         <div class="content-area">
             <!-- Stats Grid -->
             <div class="stats-grid">
-                <div class="stat-card">
+                <a href="planning.html" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer;">
                     <div class="stat-icon green">
                         <i class="fas fa-seedling"></i>
                     </div>
@@ -3690,8 +3677,8 @@
                         <div class="stat-value" id="statActive">--</div>
                         <div class="stat-label">Active Plantings</div>
                     </div>
-                </div>
-                <div class="stat-card">
+                </a>
+                <a href="web_app/task-assignment.html" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer;">
                     <div class="stat-icon orange">
                         <i class="fas fa-tasks"></i>
                     </div>
@@ -3699,8 +3686,8 @@
                         <div class="stat-value" id="statTasks">--</div>
                         <div class="stat-label">Tasks This Week</div>
                     </div>
-                </div>
-                <div class="stat-card">
+                </a>
+                <a href="web_app/field-planner.html#harvest" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer;">
                     <div class="stat-icon blue">
                         <i class="fas fa-basket-shopping"></i>
                     </div>
@@ -3708,8 +3695,8 @@
                         <div class="stat-value" id="statHarvest">--</div>
                         <div class="stat-label">Harvest Ready</div>
                     </div>
-                </div>
-                <div class="stat-card">
+                </a>
+                <a href="web_app/field-planner.html" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer;">
                     <div class="stat-icon purple">
                         <i class="fas fa-chart-pie"></i>
                     </div>
@@ -3717,38 +3704,7 @@
                         <div class="stat-value" id="statUtilization">--%</div>
                         <div class="stat-label">Bed Utilization</div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Loan Readiness Widget -->
-            <div class="loan-readiness-widget" onclick="window.location.href='web_app/loan-readiness.html'" data-role="Admin">
-                <div class="loan-header">
-                    <div class="loan-icon">
-                        <i class="fas fa-landmark"></i>
-                    </div>
-                    <div class="loan-info">
-                        <h3>Loan Readiness</h3>
-                        <p>Track your farm financing progress</p>
-                    </div>
-                </div>
-                <div class="loan-metrics">
-                    <div class="loan-metric">
-                        <div class="loan-metric-value" id="loanReadinessScore">--</div>
-                        <div class="loan-metric-label">Readiness Score</div>
-                    </div>
-                    <div class="loan-metric">
-                        <div class="loan-metric-value" id="loanDocumentsReady">--</div>
-                        <div class="loan-metric-label">Documents Ready</div>
-                    </div>
-                    <div class="loan-metric">
-                        <div class="loan-metric-value" id="loanNextDeadline">--</div>
-                        <div class="loan-metric-label">Days to Action</div>
-                    </div>
-                </div>
-                <button class="loan-action">
-                    <i class="fas fa-arrow-right"></i>
-                    View Dashboard
-                </button>
+                </a>
             </div>
 
             <!-- Invite Team Members Section -->
@@ -4790,7 +4746,6 @@
             initKeyboardShortcuts();
             loadRecentCrops();
             loadMorningBrief();
-            loadLoanReadiness();
         });
 
         async function checkConnection() {
