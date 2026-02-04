@@ -34,21 +34,31 @@
 (function() {
   'use strict';
 
-  // CSA Pickup Locations Data
+  // CSA Pickup Locations Data - All Community Stops
   const PICKUP_LOCATIONS = [
-    { id: 'lawrenceville', name: 'Lawrenceville - Bay 41', address: '115 41st Street, Pittsburgh', lat: 40.4677, lng: -79.9568, type: 'market', schedule: 'Tue 4-7pm' },
-    { id: 'bloomfield', name: 'Bloomfield', address: '5050 Liberty Ave, Pittsburgh', lat: 40.4614, lng: -79.9479, type: 'market', schedule: 'Sat 9am-2pm' },
-    { id: 'sewickley', name: 'Sewickley - St. James', address: '200 Walnut St, Sewickley', lat: 40.5363, lng: -80.1848, type: 'market', schedule: 'Sat 9am-1pm' },
-    { id: 'rochester', name: 'Rochester - Kretschmann Farm', address: 'Kretschmann Family Organic Farm', lat: 40.7020, lng: -80.2887, type: 'farm', schedule: 'Farm Hours' },
+    // Farm Location
+    { id: 'rochester', name: 'Rochester - Kretschmann Farm', address: '257 Zeigler Rd, Rochester, PA 15074', lat: 40.7020, lng: -80.2887, type: 'farm', schedule: 'Farm Hours' },
+    // Farmer's Markets
+    { id: 'lawrenceville', name: 'Lawrenceville - Tuesday Market', address: '115 41st Street, Pittsburgh', lat: 40.4677, lng: -79.9568, type: 'market', schedule: 'Tue 4-7pm' },
+    { id: 'bloomfield', name: 'Bloomfield - Saturday Market', address: '5050 Liberty Ave, Pittsburgh', lat: 40.4614, lng: -79.9479, type: 'market', schedule: 'Sat 9am-2pm' },
+    { id: 'sewickley', name: 'Sewickley - Saturday Market', address: '200 Walnut St, Sewickley', lat: 40.5363, lng: -80.1848, type: 'market', schedule: 'Sat 9am-1pm' },
+    // Partner Stores
     { id: 'allison-stpauls', name: "Allison Park - St. Paul's", address: "St. Paul's Church, Allison Park", lat: 40.5592, lng: -79.9578, type: 'market', schedule: 'Wed 4-6pm' },
     { id: 'allison-simons', name: "Allison Park - Simon's", address: "Simon's Produce Stand", lat: 40.5545, lng: -79.9502, type: 'market', schedule: 'Daily' },
     { id: 'oakmont', name: "Oakmont - Today's Organic", address: "Today's Organic Market, Oakmont", lat: 40.5202, lng: -79.8424, type: 'market', schedule: 'Market Hours' },
     { id: 'highland-park', name: 'Highland Park - Bryant St.', address: 'Bryant St. Market, Pittsburgh', lat: 40.4789, lng: -79.9192, type: 'market', schedule: 'Market Hours' },
-    { id: 'north-side', name: 'North Side - Mayfly Market', address: 'Mayfly Market, Pittsburgh', lat: 40.4545, lng: -80.0158, type: 'market', schedule: 'Market Hours' }
+    { id: 'north-side', name: 'North Side - Mayfly Market', address: 'Mayfly Market, Pittsburgh', lat: 40.4545, lng: -80.0158, type: 'market', schedule: 'Market Hours' },
+    // CSA Member Community Stops (pickup from member's porch)
+    { id: 'mt-lebanon', name: 'Mt. Lebanon - Community Stop', address: 'Mt. Lebanon, Pittsburgh', lat: 40.3898, lng: -80.0312, type: 'community', schedule: 'Weekly Pickup' },
+    { id: 'squirrel-hill', name: 'Squirrel Hill - Community Stop', address: 'Squirrel Hill, Pittsburgh', lat: 40.4316, lng: -79.9269, type: 'community', schedule: 'Weekly Pickup' },
+    { id: 'fox-chapel', name: 'Fox Chapel - Community Stop', address: 'Fox Chapel, Pittsburgh', lat: 40.5106, lng: -79.9006, type: 'community', schedule: 'Weekly Pickup' },
+    { id: 'cranberry', name: 'Cranberry - Community Stop', address: 'Cranberry Township', lat: 40.6864, lng: -80.1018, type: 'community', schedule: 'Weekly Pickup' },
+    { id: 'north-park', name: 'North Park - Community Stop', address: 'North Park Area', lat: 40.5789, lng: -80.0148, type: 'community', schedule: 'Weekly Pickup' },
+    { id: 'zelienople', name: 'Zelienople - Community Stop', address: 'Zelienople, PA', lat: 40.7948, lng: -80.1398, type: 'community', schedule: 'Weekly Pickup' }
   ];
 
-  // Delivery zone ZIP codes
-  const DELIVERY_ZIPS = {
+  // Community Stop areas (CSA member porches - NOT home delivery)
+  const COMMUNITY_STOP_ZIPS = {
     '15228': 'Mt. Lebanon', '15234': 'Mt. Lebanon', '15216': 'Mt. Lebanon', '15243': 'Mt. Lebanon',
     '15217': 'Squirrel Hill', '15218': 'Squirrel Hill', '15221': 'Squirrel Hill',
     '15238': 'Fox Chapel', '15044': 'Fox Chapel',
@@ -104,9 +114,9 @@
     })).sort((a, b) => a.distance - b.distance);
   }
 
-  // Check if ZIP is in delivery zone
-  function isDeliveryZone(zip) {
-    return DELIVERY_ZIPS[zip] || null;
+  // Check if ZIP has a community stop nearby
+  function hasCommunityStop(zip) {
+    return COMMUNITY_STOP_ZIPS[zip] || null;
   }
 
   // Widget class
@@ -163,6 +173,7 @@
           .tsf-location:hover { background: #e8f5e9; }
           .tsf-icon { width: 36px; height: 36px; background: ${primaryColor}; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; flex-shrink: 0; }
           .tsf-icon.farm { background: #ea580c; }
+          .tsf-icon.community { background: #8b5cf6; }
           .tsf-info { flex: 1; }
           .tsf-name { font-weight: 600; font-size: 0.9rem; }
           .tsf-details { font-size: 0.8rem; color: #666; }
@@ -214,7 +225,7 @@
               <span class="tsf-zone-tag">Zelienople</span>
             </div>
             <p style="text-align: center; font-size: 0.75rem; color: #666;">
-              Home delivery available in these areas
+              Neighborhood community stops available
             </p>
           </div>
 
@@ -274,7 +285,7 @@
 
       setTimeout(() => {
         const coords = ZIP_COORDS[zip];
-        const deliveryZone = isDeliveryZone(zip);
+        const deliveryZone = hasCommunityStop(zip);
 
         if (coords) {
           this.displayResults(coords.lat, coords.lng, deliveryZone);
@@ -305,7 +316,7 @@
       );
     }
 
-    displayResults(lat, lng, deliveryZone) {
+    displayResults(lat, lng, communityStop) {
       this.hideLoading();
 
       const searchEl = document.getElementById('tsf-search');
@@ -317,11 +328,11 @@
       resultsEl.classList.add('show');
 
       // Update banner
-      if (deliveryZone) {
+      if (communityStop) {
         bannerEl.className = 'tsf-banner delivery';
         bannerEl.innerHTML = `
-          <h4>You're in Our Delivery Zone!</h4>
-          <p>We deliver right to your door in ${deliveryZone}.</p>
+          <h4>Community Stop in ${communityStop}!</h4>
+          <p>Pick up your share from a neighbor's porch weekly.</p>
         `;
       } else {
         bannerEl.className = 'tsf-banner pickup';
