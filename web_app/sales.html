@@ -2033,12 +2033,36 @@
                     <div class="tab-header">
                         <h2 class="tab-title">CSA Members</h2>
                         <div class="tab-actions">
+                            <button class="btn btn-secondary" onclick="openBulkSMSModal('csa')" title="Send SMS to selected members">
+                                <span>💬</span> Bulk SMS
+                            </button>
+                            <button class="btn btn-secondary" onclick="openBulkEmailModal('csa')" title="Send email to selected members">
+                                <span>📧</span> Bulk Email
+                            </button>
                             <button class="btn btn-secondary" onclick="generateWeeklyBoxes()">
-                                <span>📦</span> Generate Weekly Boxes
+                                <span>📦</span> Generate Boxes
                             </button>
                             <button class="btn btn-primary" onclick="openNewMemberModal()">
                                 <span>+</span> Add Member
                             </button>
+                        </div>
+                    </div>
+
+                    <!-- Segment Filters -->
+                    <div class="filters-bar" style="margin-bottom: 16px;">
+                        <div class="filter-tabs" id="csaFilterTabs">
+                            <div class="filter-tab active" data-csa-filter="all">All</div>
+                            <div class="filter-tab" data-csa-filter="active">Active</div>
+                            <div class="filter-tab" data-csa-filter="paused">On Hold</div>
+                            <div class="filter-tab" data-csa-filter="vegetable">Vegetable</div>
+                            <div class="filter-tab" data-csa-filter="flower">Flower</div>
+                        </div>
+                        <div style="margin-left: auto; display: flex; gap: 8px; align-items: center;">
+                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                <input type="checkbox" id="csaSelectAll" onchange="toggleSelectAllCSA(this.checked)">
+                                Select All
+                            </label>
+                            <span id="csaSelectedCount" style="color: var(--text-secondary); font-size: 13px;">(0 selected)</span>
                         </div>
                     </div>
 
@@ -2065,6 +2089,7 @@
                         <table class="full-table">
                             <thead>
                                 <tr>
+                                    <th style="width: 40px;"><input type="checkbox" id="csaHeaderCheckbox" onchange="toggleSelectAllCSA(this.checked)"></th>
                                     <th>Member</th>
                                     <th>Share Type</th>
                                     <th>Start Date</th>
@@ -2670,6 +2695,75 @@
         </div>
     </div>
 
+    <!-- Bulk SMS Modal -->
+    <div class="modal-overlay" id="bulkSMSModal">
+        <div class="modal" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3 class="modal-title">💬 Send Bulk SMS</h3>
+                <button class="modal-close" onclick="closeModal('bulkSMSModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 16px; color: var(--text-secondary);">
+                    Sending to <strong id="bulkSMSCount">0</strong> members
+                </p>
+                <div class="form-group">
+                    <label class="form-label">Message (160 chars max)</label>
+                    <textarea class="form-textarea" id="bulkSMSMessage" maxlength="160" rows="4" placeholder="Type your message..."></textarea>
+                    <div style="text-align: right; font-size: 12px; color: var(--text-secondary); margin-top: 4px;">
+                        <span id="bulkSMSCharCount">0</span>/160
+                    </div>
+                </div>
+                <div style="background: #f0fdf4; padding: 12px; border-radius: 8px; margin-top: 12px;">
+                    <strong style="color: #166534;">Quick Templates:</strong>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
+                        <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 10px;" onclick="document.getElementById('bulkSMSMessage').value='Reminder: Your CSA box is ready for pickup today! Check your email for this week\'s contents.'">Pickup Reminder</button>
+                        <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 10px;" onclick="document.getElementById('bulkSMSMessage').value='Weather alert: Due to conditions, pickup times have changed. Check your email for details.'">Weather Alert</button>
+                        <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 10px;" onclick="document.getElementById('bulkSMSMessage').value='This week\'s box is loaded with fresh harvest! Don\'t forget to pick up by [TIME].'">Fresh Harvest</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('bulkSMSModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="sendBulkSMS()">Send SMS</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Email Modal -->
+    <div class="modal-overlay" id="bulkEmailModal">
+        <div class="modal" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3 class="modal-title">📧 Send Bulk Email</h3>
+                <button class="modal-close" onclick="closeModal('bulkEmailModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 16px; color: var(--text-secondary);">
+                    Sending to <strong id="bulkEmailCount">0</strong> members
+                </p>
+                <div class="form-group">
+                    <label class="form-label">Subject</label>
+                    <input type="text" class="form-input" id="bulkEmailSubject" placeholder="Email subject...">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Message</label>
+                    <textarea class="form-textarea" id="bulkEmailBody" rows="8" placeholder="Type your message..."></textarea>
+                </div>
+                <div style="background: #eff6ff; padding: 12px; border-radius: 8px; margin-top: 12px;">
+                    <strong style="color: #1e40af;">Quick Templates:</strong>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
+                        <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 10px;" onclick="setEmailTemplate('weekly')">Weekly Update</button>
+                        <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 10px;" onclick="setEmailTemplate('pickup')">Pickup Reminder</button>
+                        <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 10px;" onclick="setEmailTemplate('renewal')">Renewal Notice</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('bulkEmailModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="sendBulkEmail()">Send Email</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
 
@@ -3252,14 +3346,30 @@
 
         function renderCSAMembers(members) {
             const tbody = document.getElementById('csaTableBody');
-            tbody.innerHTML = members.map(member => {
+
+            // Apply CSA filter if set
+            const activeFilter = document.querySelector('#csaFilterTabs .filter-tab.active')?.dataset.csaFilter || 'all';
+            let filteredMembers = members;
+
+            if (activeFilter !== 'all') {
+                filteredMembers = members.filter(m => {
+                    if (activeFilter === 'active') return (m.status || '').toLowerCase() === 'active';
+                    if (activeFilter === 'paused') return (m.status || '').toLowerCase() === 'paused';
+                    if (activeFilter === 'vegetable') return (m.share || '').toLowerCase().includes('vegetable');
+                    if (activeFilter === 'flower') return (m.share || '').toLowerCase().includes('flower');
+                    return true;
+                });
+            }
+
+            tbody.innerHTML = filteredMembers.map(member => {
                 const name = member.name || member.email || 'Unknown Member';
                 const initial = name.charAt(0).toUpperCase();
                 const status = member.status || 'Active';
                 const balance = member.balance || 0;
                 const shareDisplay = member.share + (member.shareSize ? ' (' + member.shareSize + ')' : '');
                 return `
-                <tr>
+                <tr data-member-id="${member.id}" data-email="${member.email || ''}" data-phone="${member.phone || ''}">
+                    <td><input type="checkbox" class="csa-member-checkbox" onchange="updateCSASelectedCount()"></td>
                     <td>
                         <div class="customer-info">
                             <div class="customer-avatar">${initial}</div>
@@ -3295,11 +3405,162 @@
                     </td>
                 </tr>
             `}).join('');
+
+            updateCSASelectedCount();
         }
+
+        // CSA Filter tab click handlers
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('#csaFilterTabs .filter-tab').forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    document.querySelectorAll('#csaFilterTabs .filter-tab').forEach(t => t.classList.remove('active'));
+                    e.target.classList.add('active');
+                    renderCSAMembers(AppState.csaMembers);
+                });
+            });
+        });
+
+        function toggleSelectAllCSA(checked) {
+            document.querySelectorAll('.csa-member-checkbox').forEach(cb => cb.checked = checked);
+            document.getElementById('csaHeaderCheckbox').checked = checked;
+            document.getElementById('csaSelectAll').checked = checked;
+            updateCSASelectedCount();
+        }
+
+        function updateCSASelectedCount() {
+            const selected = document.querySelectorAll('.csa-member-checkbox:checked').length;
+            document.getElementById('csaSelectedCount').textContent = `(${selected} selected)`;
+        }
+
+        function getSelectedCSAMembers() {
+            const selected = [];
+            document.querySelectorAll('.csa-member-checkbox:checked').forEach(cb => {
+                const row = cb.closest('tr');
+                selected.push({
+                    id: row.dataset.memberId,
+                    email: row.dataset.email,
+                    phone: row.dataset.phone
+                });
+            });
+            return selected;
+        }
+
+        function openBulkSMSModal(group) {
+            const selected = getSelectedCSAMembers();
+            if (selected.length === 0) {
+                showToast('Please select at least one member', 'warning');
+                return;
+            }
+            const phones = selected.filter(m => m.phone).map(m => m.phone);
+            if (phones.length === 0) {
+                showToast('No phone numbers available for selected members', 'warning');
+                return;
+            }
+            // Store for sending
+            AppState.bulkSMSRecipients = phones;
+            document.getElementById('bulkSMSCount').textContent = phones.length;
+            openModal('bulkSMSModal');
+        }
+
+        function openBulkEmailModal(group) {
+            const selected = getSelectedCSAMembers();
+            if (selected.length === 0) {
+                showToast('Please select at least one member', 'warning');
+                return;
+            }
+            const emails = selected.filter(m => m.email).map(m => m.email);
+            if (emails.length === 0) {
+                showToast('No email addresses available for selected members', 'warning');
+                return;
+            }
+            AppState.bulkEmailRecipients = emails;
+            document.getElementById('bulkEmailCount').textContent = emails.length;
+            openModal('bulkEmailModal');
+        }
+
+        async function sendBulkSMS() {
+            const message = document.getElementById('bulkSMSMessage').value;
+            if (!message) {
+                showToast('Please enter a message', 'warning');
+                return;
+            }
+            try {
+                showToast(`Sending SMS to ${AppState.bulkSMSRecipients.length} members...`, 'info');
+                const result = await api.request('sendBulkSMS', {
+                    phones: AppState.bulkSMSRecipients,
+                    message: message
+                });
+                if (result.success) {
+                    showToast(`SMS sent to ${result.sent || AppState.bulkSMSRecipients.length} members!`, 'success');
+                    closeModal('bulkSMSModal');
+                } else {
+                    showToast(result.error || 'Failed to send SMS', 'error');
+                }
+            } catch (error) {
+                showToast('Failed to send SMS', 'error');
+            }
+        }
+
+        async function sendBulkEmail() {
+            const subject = document.getElementById('bulkEmailSubject').value;
+            const body = document.getElementById('bulkEmailBody').value;
+            if (!subject || !body) {
+                showToast('Please enter subject and message', 'warning');
+                return;
+            }
+            try {
+                showToast(`Sending email to ${AppState.bulkEmailRecipients.length} members...`, 'info');
+                const result = await api.request('sendBulkEmail', {
+                    emails: AppState.bulkEmailRecipients,
+                    subject: subject,
+                    body: body
+                });
+                if (result.success) {
+                    showToast(`Email sent to ${result.sent || AppState.bulkEmailRecipients.length} members!`, 'success');
+                    closeModal('bulkEmailModal');
+                } else {
+                    showToast(result.error || 'Failed to send email', 'error');
+                }
+            } catch (error) {
+                showToast('Failed to send email', 'error');
+            }
+        }
+
+        function setEmailTemplate(type) {
+            const templates = {
+                weekly: {
+                    subject: "This Week's CSA Box Contents 🥬",
+                    body: "Hi there!\n\nYour CSA box is ready for pickup this week!\n\nThis week's harvest includes:\n• [List items]\n\nPickup times: [Day] from [Time]\nLocation: [Location]\n\nThank you for supporting local farming!\n\n- Tiny Seed Farm"
+                },
+                pickup: {
+                    subject: "Reminder: Your CSA Pickup is Today!",
+                    body: "Hi!\n\nJust a friendly reminder that your CSA box is ready for pickup today.\n\nPickup window: [Time]\nLocation: [Location]\n\nPlease don't forget to bring your own bag!\n\nSee you soon,\nTiny Seed Farm"
+                },
+                renewal: {
+                    subject: "Time to Renew Your CSA Share! 🌱",
+                    body: "Hi!\n\nYour current CSA share is coming to an end soon. We hope you've enjoyed the fresh produce!\n\nWe'd love to have you back next season. Early bird renewal pricing is available until [Date].\n\nRenew here: https://tinyseedfarm.com/csa\n\nThank you for being part of our farm family!\n\n- Todd & the Tiny Seed Farm Team"
+                }
+            };
+            const tpl = templates[type];
+            if (tpl) {
+                document.getElementById('bulkEmailSubject').value = tpl.subject;
+                document.getElementById('bulkEmailBody').value = tpl.body;
+            }
+        }
+
+        // SMS character counter
+        document.addEventListener('DOMContentLoaded', () => {
+            const smsInput = document.getElementById('bulkSMSMessage');
+            if (smsInput) {
+                smsInput.addEventListener('input', () => {
+                    document.getElementById('bulkSMSCharCount').textContent = smsInput.value.length;
+                });
+            }
+        });
 
         function renderCSAMembersEmpty() {
             const tbody = document.getElementById('csaTableBody');
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 60px;"><div style="font-size: 48px; margin-bottom: 16px;">🥬</div><div style="font-size: 18px; font-weight: 500;">No CSA members yet</div><div style="font-size: 14px; margin-top: 8px;">CSA members will appear here after they sign up</div></td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-secondary); padding: 60px;"><div style="font-size: 48px; margin-bottom: 16px;">🥬</div><div style="font-size: 18px; font-weight: 500;">No CSA members yet</div><div style="font-size: 14px; margin-top: 8px;">CSA members will appear here after they sign up</div></td></tr>';
         }
 
         async function loadWholesale() {
