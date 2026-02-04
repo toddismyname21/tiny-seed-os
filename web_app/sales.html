@@ -3035,14 +3035,29 @@
                 if (result.success && result.customers && result.customers.length > 0) {
                     AppState.customers = result.customers.map(c => ({
                         id: c.Customer_ID,
-                        name: c.Customer_Name,
+                        name: c.Contact_Name || c.Customer_Name || c.Company_Name,
                         type: c.Customer_Type,
                         email: c.Email,
                         phone: c.Phone,
-                        orders: c.Total_Orders || 0,
-                        revenue: parseFloat(c.Total_Revenue) || 0
+                        orders: parseInt(c.Total_Orders) || 0,
+                        revenue: parseFloat(c.Total_Spent || c.Total_Revenue) || 0
                     }));
-                    renderCustomers(AppState.customers);
+
+                    // Apply type filter
+                    const activeFilter = document.querySelector('#tab-customers .filter-tab.active')?.dataset.filter || 'all';
+                    let filteredCustomers = AppState.customers;
+
+                    if (activeFilter !== 'all') {
+                        filteredCustomers = AppState.customers.filter(c =>
+                            (c.type || '').toLowerCase() === activeFilter.toLowerCase()
+                        );
+                    }
+
+                    if (filteredCustomers.length > 0) {
+                        renderCustomers(filteredCustomers);
+                    } else {
+                        renderCustomersEmpty();
+                    }
                 } else {
                     // Empty state - NO DEMO DATA
                     AppState.customers = [];
@@ -3179,13 +3194,19 @@
 
                 if (result.success && result.members && result.members.length > 0) {
                     const members = result.members.map(m => ({
-                        id: m.Member_ID || m.Customer_ID,
-                        name: m.Member_Name || m.Customer_Name,
-                        share: m.Share_Type || 'Standard',
-                        day: m.Delivery_Day || 'Tuesday',
+                        id: m.Member_ID || m.Customer_ID || '',
+                        name: m.Customer_Name || m.Member_Name || m.Email || 'CSA Member',
+                        email: m.Email || '',
+                        share: m.Share_Type || 'Vegetable',
+                        shareSize: m.Share_Size || 'Regular',
+                        day: m.Pickup_Day || m.Delivery_Day || 'TBD',
+                        location: m.Pickup_Location || 'TBD',
                         status: m.Status || 'Active',
-                        balance: parseFloat(m.Balance) || 0,
-                        renewal: m.Renewal_Date || ''
+                        balance: parseFloat(m.Balance || m.Amount_Due || 0) - parseFloat(m.Amount_Paid || 0),
+                        renewal: m.End_Date || m.Renewal_Date || '',
+                        weeksRemaining: m.Weeks_Remaining || 0,
+                        startDate: m.Start_Date || '',
+                        shopifyOrderId: m.Shopify_Order_ID || ''
                     }));
 
                     AppState.csaMembers = members;
@@ -3231,29 +3252,34 @@
 
         function renderCSAMembers(members) {
             const tbody = document.getElementById('csaTableBody');
-            tbody.innerHTML = members.map(member => `
+            tbody.innerHTML = members.map(member => {
+                const name = member.name || member.email || 'Unknown Member';
+                const initial = name.charAt(0).toUpperCase();
+                const status = member.status || 'Active';
+                const balance = member.balance || 0;
+                return `
                 <tr>
                     <td>
                         <div class="customer-info">
-                            <div class="customer-avatar">${member.name.charAt(0)}</div>
+                            <div class="customer-avatar">${initial}</div>
                             <div>
-                                <div class="customer-name">${member.name}</div>
-                                <div class="customer-email">${member.id}</div>
+                                <div class="customer-name">${name}</div>
+                                <div class="customer-email">${member.id || ''}</div>
                             </div>
                         </div>
                     </td>
-                    <td><strong>${member.share}</strong></td>
-                    <td>${member.day}</td>
+                    <td><strong>${member.share || 'Standard'}</strong></td>
+                    <td>${member.day || 'TBD'}</td>
                     <td>
                         <div class="member-status">
-                            <span class="status-dot ${member.status.toLowerCase()}"></span>
-                            ${member.status}
+                            <span class="status-dot ${status.toLowerCase()}"></span>
+                            ${status}
                         </div>
                     </td>
-                    <td style="color: ${member.balance > 0 ? 'var(--warning)' : 'var(--success)'};">
-                        ${member.balance > 0 ? `$${member.balance.toFixed(2)}` : 'Paid'}
+                    <td style="color: ${balance > 0 ? 'var(--warning)' : 'var(--success)'};">
+                        ${balance > 0 ? '$' + balance.toFixed(2) : 'Paid'}
                     </td>
-                    <td>${formatDate(member.renewal)}</td>
+                    <td>${member.renewal ? formatDate(member.renewal) : '--'}</td>
                     <td>
                         <div class="action-btns">
                             <button class="action-btn" onclick="viewMember('${member.id}')" title="View">👁</button>
@@ -3262,7 +3288,7 @@
                         </div>
                     </td>
                 </tr>
-            `).join('');
+            `}).join('');
         }
 
         function renderCSAMembersEmpty() {
