@@ -2051,15 +2051,38 @@
                         </div>
                     </div>
 
+                    <!-- Search and Sort Bar -->
+                    <div class="filters-bar" style="margin-bottom: 12px;">
+                        <div class="search-box" style="flex: 1; max-width: 300px;">
+                            <span>🔍</span>
+                            <input type="text" placeholder="Search by name or email..." id="csaSearch" oninput="filterCSAMembers()">
+                        </div>
+                        <div style="display: flex; gap: 12px; align-items: center;">
+                            <label style="display: flex; align-items: center; gap: 6px; font-size: 13px;">
+                                Sort:
+                                <select id="csaSortBy" onchange="filterCSAMembers()" style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border);">
+                                    <option value="name">Name (A-Z)</option>
+                                    <option value="name-desc">Name (Z-A)</option>
+                                    <option value="share">Share Type</option>
+                                    <option value="location">Pickup Location</option>
+                                    <option value="week">Week (A/B)</option>
+                                    <option value="status">Status</option>
+                                </select>
+                            </label>
+                        </div>
+                    </div>
+
                     <!-- Segment Filters -->
                     <div class="filters-bar" style="margin-bottom: 16px;">
                         <div class="filter-tabs" id="csaFilterTabs">
                             <div class="filter-tab active" data-csa-filter="all">All</div>
                             <div class="filter-tab" data-csa-filter="active">Active</div>
                             <div class="filter-tab" data-csa-filter="unconfirmed" style="color: var(--warning);">Unconfirmed</div>
-                            <div class="filter-tab" data-csa-filter="paused">On Hold</div>
+                            <div class="filter-tab" data-csa-filter="week-a" style="background: #e3f2fd;">Week A</div>
+                            <div class="filter-tab" data-csa-filter="week-b" style="background: #fce4ec;">Week B</div>
                             <div class="filter-tab" data-csa-filter="vegetable">Vegetable</div>
                             <div class="filter-tab" data-csa-filter="flower">Flower</div>
+                            <div class="filter-tab" data-csa-filter="paused">On Hold</div>
                         </div>
                         <div style="margin-left: auto; display: flex; gap: 8px; align-items: center;">
                             <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
@@ -2096,7 +2119,7 @@
                                     <th style="width: 40px;"><input type="checkbox" id="csaHeaderCheckbox" onchange="toggleSelectAllCSA(this.checked)"></th>
                                     <th>Member</th>
                                     <th>Share Type</th>
-                                    <th>Start Date</th>
+                                    <th>Frequency</th>
                                     <th>Pickup</th>
                                     <th>Status</th>
                                     <th>Confirmed</th>
@@ -3294,11 +3317,14 @@
                 if (result.success && result.members && result.members.length > 0) {
                     const members = result.members.map(m => ({
                         id: m.Member_ID || m.Customer_ID || '',
+                        customerId: m.Customer_ID || '',
                         name: m.Customer_Name || m.Member_Name || m.Email || 'CSA Member',
                         email: m.Email || '',
                         phone: m.Phone || '',
                         share: m.Share_Type || 'Vegetable',
                         shareSize: m.Share_Size || 'Regular',
+                        frequency: m.Frequency || 'Weekly',
+                        biweeklyWeek: m.Biweekly_Week || '', // 'A' or 'B' for biweekly members
                         day: m.Pickup_Day || m.Delivery_Day || 'TBD',
                         location: m.Pickup_Location || 'TBD',
                         status: m.Status || 'Active',
@@ -3310,6 +3336,22 @@
                         participationConfirmed: m.Participation_Confirmed || m.Is_Onboarded || false,
                         confirmedAt: m.Confirmed_At || ''
                     }));
+
+                    // Group members by customer to identify multi-order customers
+                    const customerOrders = {};
+                    members.forEach(m => {
+                        if (m.customerId) {
+                            if (!customerOrders[m.customerId]) customerOrders[m.customerId] = [];
+                            customerOrders[m.customerId].push(m.id);
+                        }
+                    });
+                    // Mark members with multiple orders
+                    members.forEach(m => {
+                        if (m.customerId && customerOrders[m.customerId]?.length > 1) {
+                            m.linkedOrders = customerOrders[m.customerId].filter(id => id !== m.id);
+                            m.hasMultipleOrders = true;
+                        }
+                    });
 
                     AppState.csaMembers = members;
 
@@ -3352,29 +3394,80 @@
             }
         }
 
+        function filterCSAMembers() {
+            renderCSAMembers(AppState.csaMembers);
+        }
+
         function renderCSAMembers(members) {
             const tbody = document.getElementById('csaTableBody');
 
-            // Apply CSA filter if set
-            const activeFilter = document.querySelector('#csaFilterTabs .filter-tab.active')?.dataset.csaFilter || 'all';
+            // Apply search filter
+            const searchTerm = (document.getElementById('csaSearch')?.value || '').toLowerCase().trim();
             let filteredMembers = members;
 
+            if (searchTerm) {
+                filteredMembers = filteredMembers.filter(m =>
+                    (m.name || '').toLowerCase().includes(searchTerm) ||
+                    (m.email || '').toLowerCase().includes(searchTerm) ||
+                    (m.location || '').toLowerCase().includes(searchTerm)
+                );
+            }
+
+            // Apply tab filter
+            const activeFilter = document.querySelector('#csaFilterTabs .filter-tab.active')?.dataset.csaFilter || 'all';
+
             if (activeFilter !== 'all') {
-                filteredMembers = members.filter(m => {
+                filteredMembers = filteredMembers.filter(m => {
                     if (activeFilter === 'active') return (m.status || '').toLowerCase() === 'active';
                     if (activeFilter === 'paused') return (m.status || '').toLowerCase() === 'paused';
                     if (activeFilter === 'unconfirmed') return !m.participationConfirmed;
+                    if (activeFilter === 'week-a') return m.biweeklyWeek === 'A';
+                    if (activeFilter === 'week-b') return m.biweeklyWeek === 'B';
                     if (activeFilter === 'vegetable') return (m.share || '').toLowerCase().includes('vegetable');
                     if (activeFilter === 'flower') return (m.share || '').toLowerCase().includes('flower');
                     return true;
                 });
             }
 
-            // Count unconfirmed for badge
+            // Apply sorting
+            const sortBy = document.getElementById('csaSortBy')?.value || 'name';
+            filteredMembers.sort((a, b) => {
+                switch (sortBy) {
+                    case 'name':
+                        return (a.name || '').localeCompare(b.name || '');
+                    case 'name-desc':
+                        return (b.name || '').localeCompare(a.name || '');
+                    case 'share':
+                        return (a.share || '').localeCompare(b.share || '');
+                    case 'location':
+                        return (a.location || '').localeCompare(b.location || '');
+                    case 'week':
+                        const weekA = a.biweeklyWeek || 'Z';
+                        const weekB = b.biweeklyWeek || 'Z';
+                        return weekA.localeCompare(weekB);
+                    case 'status':
+                        return (a.status || '').localeCompare(b.status || '');
+                    default:
+                        return 0;
+                }
+            });
+
+            // Update filter badges
             const unconfirmedCount = members.filter(m => !m.participationConfirmed).length;
+            const weekACount = members.filter(m => m.biweeklyWeek === 'A').length;
+            const weekBCount = members.filter(m => m.biweeklyWeek === 'B').length;
+
             const unconfirmedTab = document.querySelector('[data-csa-filter="unconfirmed"]');
             if (unconfirmedTab) {
                 unconfirmedTab.innerHTML = `Unconfirmed ${unconfirmedCount > 0 ? '<span style="background: var(--warning); color: white; padding: 2px 6px; border-radius: 10px; font-size: 11px; margin-left: 4px;">' + unconfirmedCount + '</span>' : ''}`;
+            }
+            const weekATab = document.querySelector('[data-csa-filter="week-a"]');
+            if (weekATab) {
+                weekATab.innerHTML = `Week A ${weekACount > 0 ? '<span style="background: #1976d2; color: white; padding: 2px 6px; border-radius: 10px; font-size: 11px; margin-left: 4px;">' + weekACount + '</span>' : ''}`;
+            }
+            const weekBTab = document.querySelector('[data-csa-filter="week-b"]');
+            if (weekBTab) {
+                weekBTab.innerHTML = `Week B ${weekBCount > 0 ? '<span style="background: #c2185b; color: white; padding: 2px 6px; border-radius: 10px; font-size: 11px; margin-left: 4px;">' + weekBCount + '</span>' : ''}`;
             }
 
             tbody.innerHTML = filteredMembers.map(member => {
@@ -3388,20 +3481,32 @@
                     ? '<span style="background: #d4edda; color: #155724; padding: 2px 8px; border-radius: 4px; font-size: 11px;">Confirmed</span>'
                     : '<span style="background: #fff3cd; color: #856404; padding: 2px 8px; border-radius: 4px; font-size: 11px;">Pending</span>';
 
+                // Frequency display with Week A/B badge
+                let frequencyDisplay = member.frequency || 'Weekly';
+                if (member.frequency === 'Biweekly' && member.biweeklyWeek) {
+                    const weekColor = member.biweeklyWeek === 'A' ? '#1976d2' : '#c2185b';
+                    frequencyDisplay = `Biweekly <span style="background: ${weekColor}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 4px;">Week ${member.biweeklyWeek}</span>`;
+                }
+
+                // Linked orders indicator
+                const linkedBadge = member.hasMultipleOrders
+                    ? `<span title="${member.linkedOrders.length} linked order(s)" style="background: #e3f2fd; color: #1565c0; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 6px;">🔗 ${member.linkedOrders.length + 1}</span>`
+                    : '';
+
                 return `
-                <tr data-member-id="${member.id}" data-email="${member.email || ''}" data-phone="${member.phone || ''}">
+                <tr data-member-id="${member.id}" data-email="${member.email || ''}" data-phone="${member.phone || ''}" data-customer-id="${member.customerId || ''}">
                     <td><input type="checkbox" class="csa-member-checkbox" onchange="updateCSASelectedCount()"></td>
                     <td>
                         <div class="customer-info">
                             <div class="customer-avatar">${initial}</div>
                             <div>
-                                <div class="customer-name">${name}</div>
+                                <div class="customer-name">${name}${linkedBadge}</div>
                                 <div class="customer-email">${member.email || ''}</div>
                             </div>
                         </div>
                     </td>
                     <td><strong>${shareDisplay}</strong></td>
-                    <td>${member.startDate ? formatDate(member.startDate) : '--'}</td>
+                    <td>${frequencyDisplay}</td>
                     <td>
                         <div style="font-size: 13px;">
                             <div>${member.day || 'TBD'}</div>
