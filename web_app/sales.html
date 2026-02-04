@@ -644,6 +644,67 @@
             color: white;
         }
 
+        /* Sync Button Styles */
+        .sync-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn-sync {
+            background: var(--success);
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .btn-sync:hover {
+            background: #1db954;
+            transform: translateY(-1px);
+        }
+
+        .btn-sync:disabled {
+            background: var(--bg-elevated);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-sync .sync-icon {
+            display: inline-block;
+            transition: transform 0.3s ease;
+        }
+
+        .btn-sync.syncing .sync-icon {
+            animation: spin 1s linear infinite;
+        }
+
+        .last-sync-indicator {
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .last-sync-indicator .sync-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--success);
+        }
+
+        .last-sync-indicator.stale .sync-dot {
+            background: var(--warning);
+        }
+
         /* Filters */
         .filters-bar {
             display: flex;
@@ -1666,6 +1727,16 @@
                     <h1 class="page-title" id="pageTitle">Dashboard</h1>
                 </div>
                 <div class="header-right">
+                    <div class="sync-container">
+                        <button class="btn-sync" id="syncShopifyBtn" onclick="syncFromShopify()">
+                            <span class="sync-icon">🔄</span>
+                            <span class="sync-text">Sync from Shopify</span>
+                        </button>
+                        <div class="last-sync-indicator" id="lastSyncIndicator">
+                            <span class="sync-dot"></span>
+                            <span id="lastSyncTime">Never synced</span>
+                        </div>
+                    </div>
                     <div class="search-box">
                         <span>🔍</span>
                         <input type="text" placeholder="Search orders, customers..." id="globalSearch">
@@ -2633,6 +2704,7 @@
             initSMSForm();
             loadDashboardData();
             setDefaultDates();
+            updateLastSyncDisplay();
         });
 
         function initNavigation() {
@@ -2827,55 +2899,67 @@
                     document.getElementById('activeCSA').textContent = result.stats.activeCSAMembers || '0';
                     document.getElementById('pendingOrdersBadge').textContent = result.stats.pendingOrders || '0';
                 } else {
-                    // Fallback to sample data
-                    document.getElementById('todayOrders').textContent = '24';
-                    document.getElementById('todayRevenue').textContent = '$1,847';
-                    document.getElementById('pendingDeliveries').textContent = '12';
-                    document.getElementById('activeCSA').textContent = '45';
-                    document.getElementById('pendingOrdersBadge').textContent = '8';
+                    // Show empty state - NO DEMO DATA
+                    document.getElementById('todayOrders').textContent = '0';
+                    document.getElementById('todayRevenue').textContent = '$0';
+                    document.getElementById('pendingDeliveries').textContent = '0';
+                    document.getElementById('activeCSA').textContent = '0';
+                    document.getElementById('pendingOrdersBadge').textContent = '0';
                 }
 
                 // Load recent orders
                 loadRecentOrders();
             } catch (error) {
                 console.error('Error loading dashboard:', error);
-                // Fallback to sample data
-                document.getElementById('todayOrders').textContent = '24';
-                document.getElementById('todayRevenue').textContent = '$1,847';
-                document.getElementById('pendingDeliveries').textContent = '12';
-                document.getElementById('activeCSA').textContent = '45';
-                document.getElementById('pendingOrdersBadge').textContent = '8';
-                loadRecentOrders();
+                // Show error state - NO DEMO DATA
+                document.getElementById('todayOrders').textContent = '--';
+                document.getElementById('todayRevenue').textContent = '--';
+                document.getElementById('pendingDeliveries').textContent = '--';
+                document.getElementById('activeCSA').textContent = '--';
+                document.getElementById('pendingOrdersBadge').textContent = '0';
+                showToast('Failed to load dashboard data', 'error');
             }
         }
 
-        function loadRecentOrders() {
-            // Sample data - will be replaced with API
-            const orders = [
-                { id: 'ORD-20260114-001', customer: 'Green Valley Restaurant', email: 'orders@greenvalley.com', total: 284.50, status: 'pending' },
-                { id: 'ORD-20260114-002', customer: 'Sarah Johnson', email: 'sarah@email.com', total: 42.00, status: 'confirmed' },
-                { id: 'ORD-20260114-003', customer: 'Pittsburgh Food Co-op', email: 'buyer@pghfood.org', total: 567.00, status: 'picking' },
-                { id: 'ORD-20260114-004', customer: 'Chef Michael', email: 'michael@bistro.com', total: 198.75, status: 'packed' },
-                { id: 'ORD-20260114-005', customer: 'Farm Table Cafe', email: 'orders@farmtable.com', total: 425.00, status: 'delivered' }
-            ];
-
+        async function loadRecentOrders() {
+            // Load recent orders from API - NO DEMO DATA
             const tbody = document.getElementById('recentOrdersTable');
-            tbody.innerHTML = orders.map(order => `
-                <tr>
-                    <td><span class="order-id">${order.id}</span></td>
-                    <td>
-                        <div class="customer-info">
-                            <div class="customer-avatar">${order.customer.charAt(0)}</div>
-                            <div>
-                                <div class="customer-name">${order.customer}</div>
-                                <div class="customer-email">${order.email}</div>
-                            </div>
-                        </div>
-                    </td>
-                    <td><strong>$${order.total.toFixed(2)}</strong></td>
-                    <td><span class="status-badge ${order.status}">${capitalizeFirst(order.status)}</span></td>
-                </tr>
-            `).join('');
+
+            try {
+                const result = await api.getOrders({ limit: 5 });
+
+                if (result.success && result.orders && result.orders.length > 0) {
+                    const orders = result.orders.slice(0, 5).map(o => ({
+                        id: o.Order_ID || '--',
+                        customer: o.Customer_Name || 'Unknown',
+                        email: o.Email || '',
+                        total: parseFloat(o.Order_Total) || 0,
+                        status: (o.Status || 'pending').toLowerCase()
+                    }));
+
+                    tbody.innerHTML = orders.map(order => `
+                        <tr>
+                            <td><span class="order-id">${order.id}</span></td>
+                            <td>
+                                <div class="customer-info">
+                                    <div class="customer-avatar">${order.customer.charAt(0)}</div>
+                                    <div>
+                                        <div class="customer-name">${order.customer}</div>
+                                        <div class="customer-email">${order.email}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><strong>$${order.total.toFixed(2)}</strong></td>
+                            <td><span class="status-badge ${order.status}">${capitalizeFirst(order.status)}</span></td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-secondary); padding: 40px;">No recent orders. Orders will appear here once customers place them.</td></tr>';
+                }
+            } catch (error) {
+                console.error('Error loading recent orders:', error);
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-secondary); padding: 40px;">Unable to load orders. Please try again.</td></tr>';
+            }
         }
 
         async function loadOrders() {
@@ -2883,7 +2967,7 @@
                 // Load orders from API
                 const result = await api.getOrders();
 
-                if (result.success && result.orders) {
+                if (result.success && result.orders && result.orders.length > 0) {
                     AppState.orders = result.orders.map(o => ({
                         id: o.Order_ID,
                         customer: o.Customer_Name,
@@ -2895,26 +2979,15 @@
                     }));
                     renderOrders(AppState.orders);
                 } else {
-                    // Fallback to sample data
-                    const orders = [
-                        { id: 'ORD-20260114-001', customer: 'Green Valley Restaurant', type: 'Restaurant', items: 8, total: 284.50, date: '2026-01-14', status: 'pending' },
-                        { id: 'ORD-20260114-002', customer: 'Sarah Johnson', type: 'CSA', items: 1, total: 42.00, date: '2026-01-14', status: 'confirmed' },
-                        { id: 'ORD-20260114-003', customer: 'Pittsburgh Food Co-op', type: 'Wholesale', items: 15, total: 567.00, date: '2026-01-14', status: 'picking' },
-                        { id: 'ORD-20260114-004', customer: 'Chef Michael', type: 'Restaurant', items: 6, total: 198.75, date: '2026-01-14', status: 'packed' },
-                        { id: 'ORD-20260114-005', customer: 'Farm Table Cafe', type: 'Wholesale', items: 12, total: 425.00, date: '2026-01-14', status: 'delivered' }
-                    ];
-                    AppState.orders = orders;
-                    renderOrders(orders);
+                    // Empty state - NO DEMO DATA
+                    AppState.orders = [];
+                    renderOrdersEmpty();
                 }
             } catch (error) {
                 console.error('Error loading orders:', error);
-                // Fallback to sample data
-                const orders = [
-                    { id: 'ORD-20260114-001', customer: 'Green Valley Restaurant', type: 'Restaurant', items: 8, total: 284.50, date: '2026-01-14', status: 'pending' },
-                    { id: 'ORD-20260114-002', customer: 'Sarah Johnson', type: 'CSA', items: 1, total: 42.00, date: '2026-01-14', status: 'confirmed' }
-                ];
-                AppState.orders = orders;
-                renderOrders(orders);
+                // Error state - NO DEMO DATA
+                AppState.orders = [];
+                renderOrdersError();
             }
         }
 
@@ -2944,12 +3017,22 @@
             `).join('');
         }
 
+        function renderOrdersEmpty() {
+            const tbody = document.getElementById('ordersTableBody');
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 60px;"><div style="font-size: 40px; margin-bottom: 16px;">📋</div><div style="font-size: 16px; font-weight: 500;">No orders yet</div><div style="font-size: 13px; margin-top: 8px;">Orders from customers will appear here</div></td></tr>';
+        }
+
+        function renderOrdersError() {
+            const tbody = document.getElementById('ordersTableBody');
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--danger); padding: 60px;"><div style="font-size: 40px; margin-bottom: 16px;">⚠️</div><div style="font-size: 16px; font-weight: 500;">Unable to load orders</div><div style="font-size: 13px; margin-top: 8px;">Please try refreshing the page</div></td></tr>';
+        }
+
         async function loadCustomers() {
             try {
                 // Load customers from API
                 const result = await api.getCustomers();
 
-                if (result.success && result.customers) {
+                if (result.success && result.customers && result.customers.length > 0) {
                     AppState.customers = result.customers.map(c => ({
                         id: c.Customer_ID,
                         name: c.Customer_Name,
@@ -2961,62 +3044,66 @@
                     }));
                     renderCustomers(AppState.customers);
                 } else {
-                    // Fallback to sample data
-                    const customers = [
-                        { id: 'CUST-001', name: 'Green Valley Restaurant', type: 'Restaurant', email: 'orders@greenvalley.com', phone: '412-555-0101', orders: 45, revenue: 12450.00 },
-                        { id: 'CUST-002', name: 'Pittsburgh Food Co-op', type: 'Wholesale', email: 'buyer@pghfood.org', phone: '412-555-0102', orders: 52, revenue: 28900.00 },
-                        { id: 'CUST-003', name: 'Sarah Johnson', type: 'CSA', email: 'sarah@email.com', phone: '412-555-0103', orders: 24, revenue: 1008.00 }
-                    ];
-                    AppState.customers = customers;
-                    renderCustomers(customers);
+                    // Empty state - NO DEMO DATA
+                    AppState.customers = [];
+                    renderCustomersEmpty();
                 }
             } catch (error) {
                 console.error('Error loading customers:', error);
-                // Fallback to sample data
-                const customers = [
-                    { id: 'CUST-001', name: 'Green Valley Restaurant', type: 'Restaurant', email: 'orders@greenvalley.com', phone: '412-555-0101', orders: 45, revenue: 12450.00 },
-                    { id: 'CUST-002', name: 'Pittsburgh Food Co-op', type: 'Wholesale', email: 'buyer@pghfood.org', phone: '412-555-0102', orders: 52, revenue: 28900.00 }
-                ];
-                AppState.customers = customers;
-                renderCustomers(customers);
+                // Error state - NO DEMO DATA
+                AppState.customers = [];
+                renderCustomersError();
             }
         }
 
         function renderCustomers(customers) {
             const grid = document.getElementById('customersGrid');
-            grid.innerHTML = customers.map(customer => `
+            grid.innerHTML = customers.map(customer => {
+                const name = customer.name || customer.email || 'Unknown';
+                const initial = name.charAt(0).toUpperCase();
+                return `
                 <div class="customer-card">
                     <div class="customer-card-header">
-                        <div class="customer-card-avatar">${customer.name.charAt(0)}</div>
+                        <div class="customer-card-avatar">${initial}</div>
                         <div class="customer-card-info">
-                            <h3>${customer.name}</h3>
-                            <span class="customer-type-badge ${customer.type.toLowerCase()}">${customer.type}</span>
+                            <h3>${name}</h3>
+                            <span class="customer-type-badge ${(customer.type || 'direct').toLowerCase()}">${customer.type || 'Direct'}</span>
                         </div>
                     </div>
                     <div class="customer-card-stats">
                         <div class="customer-stat">
-                            <div class="customer-stat-value">${customer.orders}</div>
+                            <div class="customer-stat-value">${customer.orders || 0}</div>
                             <div class="customer-stat-label">Orders</div>
                         </div>
                         <div class="customer-stat">
-                            <div class="customer-stat-value">$${(customer.revenue / 1000).toFixed(1)}k</div>
+                            <div class="customer-stat-value">$${(customer.revenue || 0) >= 1000 ? ((customer.revenue || 0) / 1000).toFixed(1) + 'k' : (customer.revenue || 0).toFixed(0)}</div>
                             <div class="customer-stat-label">Revenue</div>
                         </div>
                         <div class="customer-stat">
-                            <div class="customer-stat-value">$${Math.round(customer.revenue / customer.orders)}</div>
+                            <div class="customer-stat-value">$${(customer.orders || 0) > 0 ? Math.round((customer.revenue || 0) / customer.orders) : 0}</div>
                             <div class="customer-stat-label">Avg Order</div>
                         </div>
                     </div>
                     <div class="customer-card-contact">
-                        <p>📧 ${customer.email}</p>
-                        <p>📱 ${customer.phone}</p>
+                        <p>📧 ${customer.email || 'No email'}</p>
+                        <p>📱 ${customer.phone || 'No phone'}</p>
                     </div>
                     <div class="customer-card-actions">
                         <button class="btn btn-secondary" onclick="viewCustomer('${customer.id}')">View</button>
                         <button class="btn btn-primary" onclick="newOrderForCustomer('${customer.id}')">New Order</button>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
+        }
+
+        function renderCustomersEmpty() {
+            const grid = document.getElementById('customersGrid');
+            grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 60px; color: var(--text-secondary);"><div style="font-size: 48px; margin-bottom: 16px;">👥</div><div style="font-size: 18px; font-weight: 500;">No customers yet</div><div style="font-size: 14px; margin-top: 8px;">When chefs sign up or CSA members register, they will appear here</div><button class="btn btn-primary" style="margin-top: 20px;" onclick="openNewCustomerModal()">Add First Customer</button></div>';
+        }
+
+        function renderCustomersError() {
+            const grid = document.getElementById('customersGrid');
+            grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 60px; color: var(--danger);"><div style="font-size: 48px; margin-bottom: 16px;">⚠️</div><div style="font-size: 18px; font-weight: 500;">Unable to load customers</div><div style="font-size: 14px; margin-top: 8px;">Please try refreshing the page</div></div>';
         }
 
         async function loadInventory() {
@@ -3024,7 +3111,7 @@
                 // Load inventory from API - uses REF_Crops for unified crop data
                 const result = await api.getInventory();
 
-                if (result.success && result.inventory) {
+                if (result.success && result.inventory && result.inventory.length > 0) {
                     AppState.inventory = result.inventory.map(i => ({
                         id: i.Product_ID || i.Crop_ID,
                         name: i.Crop_Name || i.Product_Name,
@@ -3037,24 +3124,15 @@
                     }));
                     renderInventory(AppState.inventory);
                 } else {
-                    // Fallback to sample data
-                    const inventory = [
-                        { id: 'TSF-BASI-BN-001', name: 'Basil', variety: 'Genovese', unit: 'bunch', available: 45, reserved: 12, retail: 4.00, wholesale: 2.50 },
-                        { id: 'TSF-TOMA-LB-001', name: 'Tomatoes', variety: 'Cherokee Purple', unit: 'lb', available: 120, reserved: 35, retail: 6.00, wholesale: 4.00 },
-                        { id: 'TSF-KALE-BN-001', name: 'Kale', variety: 'Lacinato', unit: 'bunch', available: 60, reserved: 8, retail: 4.00, wholesale: 2.50 }
-                    ];
-                    AppState.inventory = inventory;
-                    renderInventory(inventory);
+                    // Empty state - NO DEMO DATA
+                    AppState.inventory = [];
+                    renderInventoryEmpty();
                 }
             } catch (error) {
                 console.error('Error loading inventory:', error);
-                // Fallback to sample data
-                const inventory = [
-                    { id: 'TSF-BASI-BN-001', name: 'Basil', variety: 'Genovese', unit: 'bunch', available: 45, reserved: 12, retail: 4.00, wholesale: 2.50 },
-                    { id: 'TSF-TOMA-LB-001', name: 'Tomatoes', variety: 'Cherokee Purple', unit: 'lb', available: 120, reserved: 35, retail: 6.00, wholesale: 4.00 }
-                ];
-                AppState.inventory = inventory;
-                renderInventory(inventory);
+                // Error state - NO DEMO DATA
+                AppState.inventory = [];
+                renderInventoryError();
             }
         }
 
@@ -3084,30 +3162,70 @@
             }).join('');
         }
 
+        function renderInventoryEmpty() {
+            const tbody = document.getElementById('inventoryTableBody');
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-secondary); padding: 60px;"><div style="font-size: 48px; margin-bottom: 16px;">📦</div><div style="font-size: 18px; font-weight: 500;">No inventory data</div><div style="font-size: 14px; margin-top: 8px;">Inventory will be populated from your crop data</div></td></tr>';
+        }
+
+        function renderInventoryError() {
+            const tbody = document.getElementById('inventoryTableBody');
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--danger); padding: 60px;"><div style="font-size: 48px; margin-bottom: 16px;">⚠️</div><div style="font-size: 18px; font-weight: 500;">Unable to load inventory</div><div style="font-size: 14px; margin-top: 8px;">Please try refreshing the page</div></td></tr>';
+        }
+
         async function loadCSAMembers() {
             try {
-                // Sample CSA data
-                const members = [
-                    { id: 'CSA-001', name: 'Sarah Johnson', share: 'Medium', day: 'Tuesday', status: 'Active', balance: 0, renewal: '2026-06-01' },
-                    { id: 'CSA-002', name: 'Mary Williams', share: 'Small', day: 'Friday', status: 'Active', balance: 0, renewal: '2026-06-01' },
-                    { id: 'CSA-003', name: 'John Smith', share: 'Large', day: 'Tuesday', status: 'Paused', balance: 150.00, renewal: '2026-04-15' },
-                    { id: 'CSA-004', name: 'Emily Davis', share: 'Family', day: 'Tuesday', status: 'Active', balance: 0, renewal: '2026-08-01' },
-                    { id: 'CSA-005', name: 'Robert Brown', share: 'Medium', day: 'Friday', status: 'Active', balance: 75.00, renewal: '2026-05-15' }
-                ];
+                // Load CSA members from API - NO DEMO DATA
+                const result = await api.getCSAMembers();
 
-                AppState.csaMembers = members;
+                if (result.success && result.members && result.members.length > 0) {
+                    const members = result.members.map(m => ({
+                        id: m.Member_ID || m.Customer_ID,
+                        name: m.Member_Name || m.Customer_Name,
+                        share: m.Share_Type || 'Standard',
+                        day: m.Delivery_Day || 'Tuesday',
+                        status: m.Status || 'Active',
+                        balance: parseFloat(m.Balance) || 0,
+                        renewal: m.Renewal_Date || ''
+                    }));
 
-                // Update stats
-                const active = members.filter(m => m.status === 'Active').length;
-                const paused = members.filter(m => m.status === 'Paused').length;
-                document.getElementById('csaActive').textContent = active;
-                document.getElementById('csaPaused').textContent = paused;
-                document.getElementById('csaRevenue').textContent = '$1,890';
-                document.getElementById('csaRenewal').textContent = '3';
+                    AppState.csaMembers = members;
 
-                renderCSAMembers(members);
+                    // Update stats
+                    const active = members.filter(m => m.status === 'Active').length;
+                    const paused = members.filter(m => m.status === 'Paused').length;
+                    const totalRevenue = members.reduce((sum, m) => sum + (parseFloat(m.paidAmount) || 0), 0);
+                    const renewingCount = members.filter(m => {
+                        if (!m.renewal) return false;
+                        const renewDate = new Date(m.renewal);
+                        const thirtyDaysOut = new Date();
+                        thirtyDaysOut.setDate(thirtyDaysOut.getDate() + 30);
+                        return renewDate <= thirtyDaysOut && renewDate >= new Date();
+                    }).length;
+
+                    document.getElementById('csaActive').textContent = active;
+                    document.getElementById('csaPaused').textContent = paused;
+                    document.getElementById('csaRevenue').textContent = '$' + totalRevenue.toLocaleString();
+                    document.getElementById('csaRenewal').textContent = renewingCount;
+
+                    renderCSAMembers(members);
+                } else {
+                    // Empty state - NO DEMO DATA
+                    AppState.csaMembers = [];
+                    document.getElementById('csaActive').textContent = '0';
+                    document.getElementById('csaPaused').textContent = '0';
+                    document.getElementById('csaRevenue').textContent = '$0';
+                    document.getElementById('csaRenewal').textContent = '0';
+                    renderCSAMembersEmpty();
+                }
             } catch (error) {
                 console.error('Error loading CSA members:', error);
+                // Error state - NO DEMO DATA
+                AppState.csaMembers = [];
+                document.getElementById('csaActive').textContent = '--';
+                document.getElementById('csaPaused').textContent = '--';
+                document.getElementById('csaRevenue').textContent = '--';
+                document.getElementById('csaRenewal').textContent = '--';
+                showToast('Failed to load CSA members', 'error');
             }
         }
 
@@ -3147,6 +3265,11 @@
             `).join('');
         }
 
+        function renderCSAMembersEmpty() {
+            const tbody = document.getElementById('csaTableBody');
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 60px;"><div style="font-size: 48px; margin-bottom: 16px;">🥬</div><div style="font-size: 18px; font-weight: 500;">No CSA members yet</div><div style="font-size: 14px; margin-top: 8px;">CSA members will appear here after they sign up</div></td></tr>';
+        }
+
         async function loadWholesale() {
             const customers = AppState.customers.filter(c =>
                 c.type === 'Wholesale' || c.type === 'Restaurant'
@@ -3175,139 +3298,209 @@
         async function loadPickList() {
             const fieldPickList = document.getElementById('fieldPickList');
             const packByOrder = document.getElementById('packByOrder');
+            const selectedDate = document.getElementById('pickDate')?.value || new Date().toISOString().split('T')[0];
 
-            // Sample pick list data
-            const picks = [
-                { name: 'Basil', variety: 'Genovese', qty: 24, unit: 'bunches', location: 'Greenhouse 1, Row A' },
-                { name: 'Tomatoes', variety: 'Cherokee Purple', qty: 45, unit: 'lbs', location: 'Field 2, Beds 5-8' },
-                { name: 'Lettuce', variety: 'Butterhead', qty: 30, unit: 'heads', location: 'Field 1, Beds 1-3' },
-                { name: 'Kale', variety: 'Lacinato', qty: 18, unit: 'bunches', location: 'Field 1, Bed 4' },
-                { name: 'Carrots', variety: 'Nantes', qty: 60, unit: 'lbs', location: 'Field 3, Beds 1-2' }
-            ];
+            try {
+                // Load pick list from API - NO DEMO DATA
+                const result = await api.getPickPackList(selectedDate);
 
-            const orders = [
-                { customer: 'Green Valley Restaurant', items: '8 items - $284.50' },
-                { customer: 'Pittsburgh Food Co-op', items: '15 items - $567.00' },
-                { customer: 'Chef Michael', items: '6 items - $198.75' },
-                { customer: 'Farm Table Cafe', items: '12 items - $425.00' }
-            ];
+                if (result.success && result.pickList) {
+                    const picks = result.pickList.map(p => ({
+                        name: p.Crop_Name || p.crop,
+                        variety: p.Variety || '',
+                        qty: p.Quantity || 0,
+                        unit: p.Unit || 'each',
+                        location: p.Location || 'TBD'
+                    }));
 
-            // Update stats
-            document.getElementById('totalOrders').textContent = orders.length;
-            document.getElementById('totalItems').textContent = picks.reduce((sum, p) => sum + p.qty, 0);
-            document.getElementById('pickedItems').textContent = '0';
+                    const orders = (result.orders || []).map(o => ({
+                        customer: o.Customer_Name,
+                        items: `${o.Item_Count || 0} items - $${(o.Order_Total || 0).toFixed(2)}`
+                    }));
 
-            fieldPickList.innerHTML = picks.map(pick => `
-                <div class="pick-item">
-                    <div class="pick-checkbox" onclick="togglePicked(this)"></div>
-                    <div class="pick-item-info">
-                        <div class="pick-item-name">${pick.name} - ${pick.variety}</div>
-                        <div class="pick-item-location">📍 ${pick.location}</div>
-                    </div>
-                    <div class="pick-item-qty">${pick.qty} ${pick.unit}</div>
-                </div>
-            `).join('');
+                    // Update stats
+                    document.getElementById('totalOrders').textContent = orders.length;
+                    document.getElementById('totalItems').textContent = picks.reduce((sum, p) => sum + p.qty, 0);
+                    document.getElementById('pickedItems').textContent = '0';
 
-            packByOrder.innerHTML = orders.map(order => `
-                <div class="pick-item">
-                    <div class="pick-checkbox" onclick="togglePicked(this)"></div>
-                    <div class="pick-item-info">
-                        <div class="pick-item-name">${order.customer}</div>
-                        <div class="pick-item-location">${order.items}</div>
-                    </div>
-                    <div class="pick-item-qty">📦</div>
-                </div>
-            `).join('');
+                    if (picks.length > 0) {
+                        fieldPickList.innerHTML = picks.map(pick => `
+                            <div class="pick-item">
+                                <div class="pick-checkbox" onclick="togglePicked(this)"></div>
+                                <div class="pick-item-info">
+                                    <div class="pick-item-name">${pick.name}${pick.variety ? ' - ' + pick.variety : ''}</div>
+                                    <div class="pick-item-location">📍 ${pick.location}</div>
+                                </div>
+                                <div class="pick-item-qty">${pick.qty} ${pick.unit}</div>
+                            </div>
+                        `).join('');
+                    } else {
+                        fieldPickList.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-secondary);">No picks scheduled for this date</div>';
+                    }
+
+                    if (orders.length > 0) {
+                        packByOrder.innerHTML = orders.map(order => `
+                            <div class="pick-item">
+                                <div class="pick-checkbox" onclick="togglePicked(this)"></div>
+                                <div class="pick-item-info">
+                                    <div class="pick-item-name">${order.customer}</div>
+                                    <div class="pick-item-location">${order.items}</div>
+                                </div>
+                                <div class="pick-item-qty">📦</div>
+                            </div>
+                        `).join('');
+                    } else {
+                        packByOrder.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-secondary);">No orders to pack for this date</div>';
+                    }
+                } else {
+                    // Empty state - NO DEMO DATA
+                    document.getElementById('totalOrders').textContent = '0';
+                    document.getElementById('totalItems').textContent = '0';
+                    document.getElementById('pickedItems').textContent = '0';
+                    fieldPickList.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-secondary);">No picks scheduled for this date</div>';
+                    packByOrder.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-secondary);">No orders to pack for this date</div>';
+                }
+            } catch (error) {
+                console.error('Error loading pick list:', error);
+                document.getElementById('totalOrders').textContent = '--';
+                document.getElementById('totalItems').textContent = '--';
+                document.getElementById('pickedItems').textContent = '0';
+                fieldPickList.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--danger);">Unable to load pick list</div>';
+                packByOrder.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--danger);">Unable to load orders</div>';
+            }
         }
 
         async function loadCampaigns() {
-            const campaigns = [
-                { id: 1, type: 'sms', title: 'Tuesday Order Reminder', preview: 'Order deadline tonight at 5pm! Fresh tomatoes, basil, and more available...', sent: 45, opened: 38, clicked: 12 },
-                { id: 2, type: 'email', title: 'This Week\'s Harvest', preview: 'See what\'s fresh from the farm this week. Cherokee Purple tomatoes are back!', sent: 120, opened: 85, clicked: 34 },
-                { id: 3, type: 'sms', title: 'Flash Sale - Excess Zucchini', preview: '50% off zucchini today only! Order before noon.', sent: 45, opened: 42, clicked: 28 }
-            ];
-
             const grid = document.getElementById('campaignsGrid');
-            grid.innerHTML = campaigns.map(campaign => `
-                <div class="campaign-card">
-                    <div class="campaign-card-header">
-                        <span class="campaign-type ${campaign.type}">
-                            ${campaign.type === 'sms' ? '📱 SMS' : '📧 Email'}
-                        </span>
-                        <span style="color: var(--text-muted); font-size: 12px;">2 days ago</span>
-                    </div>
-                    <div class="campaign-card-body">
-                        <h4 class="campaign-title">${campaign.title}</h4>
-                        <p class="campaign-preview">${campaign.preview}</p>
-                        <div class="campaign-stats">
-                            <div class="campaign-stat">
-                                <div class="campaign-stat-value">${campaign.sent}</div>
-                                <div class="campaign-stat-label">Sent</div>
+
+            try {
+                // Load campaigns from API - NO DEMO DATA
+                const result = await api.getCampaigns();
+
+                if (result.success && result.campaigns && result.campaigns.length > 0) {
+                    const campaigns = result.campaigns.map(c => ({
+                        id: c.Campaign_ID,
+                        type: c.Type || 'sms',
+                        title: c.Title || 'Untitled Campaign',
+                        preview: c.Preview || c.Message || '',
+                        sent: c.Sent_Count || 0,
+                        opened: c.Opened_Count || 0,
+                        clicked: c.Clicked_Count || 0,
+                        date: c.Sent_Date || ''
+                    }));
+
+                    grid.innerHTML = campaigns.map(campaign => `
+                        <div class="campaign-card">
+                            <div class="campaign-card-header">
+                                <span class="campaign-type ${campaign.type}">
+                                    ${campaign.type === 'sms' ? '📱 SMS' : '📧 Email'}
+                                </span>
+                                <span style="color: var(--text-muted); font-size: 12px;">${campaign.date ? formatDate(campaign.date) : ''}</span>
                             </div>
-                            <div class="campaign-stat">
-                                <div class="campaign-stat-value">${campaign.opened}</div>
-                                <div class="campaign-stat-label">Opened</div>
-                            </div>
-                            <div class="campaign-stat">
-                                <div class="campaign-stat-value">${campaign.clicked}</div>
-                                <div class="campaign-stat-label">Clicked</div>
-                            </div>
-                            <div class="campaign-stat">
-                                <div class="campaign-stat-value">${Math.round(campaign.opened / campaign.sent * 100)}%</div>
-                                <div class="campaign-stat-label">Open Rate</div>
+                            <div class="campaign-card-body">
+                                <h4 class="campaign-title">${campaign.title}</h4>
+                                <p class="campaign-preview">${campaign.preview}</p>
+                                <div class="campaign-stats">
+                                    <div class="campaign-stat">
+                                        <div class="campaign-stat-value">${campaign.sent}</div>
+                                        <div class="campaign-stat-label">Sent</div>
+                                    </div>
+                                    <div class="campaign-stat">
+                                        <div class="campaign-stat-value">${campaign.opened}</div>
+                                        <div class="campaign-stat-label">Opened</div>
+                                    </div>
+                                    <div class="campaign-stat">
+                                        <div class="campaign-stat-value">${campaign.clicked}</div>
+                                        <div class="campaign-stat-label">Clicked</div>
+                                    </div>
+                                    <div class="campaign-stat">
+                                        <div class="campaign-stat-value">${campaign.sent > 0 ? Math.round(campaign.opened / campaign.sent * 100) : 0}%</div>
+                                        <div class="campaign-stat-label">Open Rate</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-            `).join('');
+                    `).join('');
+                } else {
+                    // Empty state - NO DEMO DATA
+                    grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 60px; color: var(--text-secondary);"><div style="font-size: 48px; margin-bottom: 16px;">📨</div><div style="font-size: 18px; font-weight: 500;">No campaigns yet</div><div style="font-size: 14px; margin-top: 8px;">Create your first SMS or email campaign to engage customers</div><button class="btn btn-primary" style="margin-top: 20px;" onclick="openNewCampaignModal()">Create Campaign</button></div>';
+                }
+            } catch (error) {
+                console.error('Error loading campaigns:', error);
+                grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 60px; color: var(--danger);"><div style="font-size: 48px; margin-bottom: 16px;">⚠️</div><div style="font-size: 18px; font-weight: 500;">Unable to load campaigns</div><div style="font-size: 14px; margin-top: 8px;">Please try refreshing the page</div></div>';
+            }
         }
 
         async function loadReports() {
-            // Sample report data
-            document.getElementById('reportRevenue').textContent = '$24,560';
-            document.getElementById('reportOrders').textContent = '187';
-            document.getElementById('reportAOV').textContent = '$131';
-            document.getElementById('reportNewCustomers').textContent = '8';
+            try {
+                // Load reports from API - NO DEMO DATA
+                const startDate = document.getElementById('reportStartDate')?.value || getMonthStart();
+                const endDate = document.getElementById('reportEndDate')?.value || new Date().toISOString().split('T')[0];
 
-            // Top crops
-            const topCrops = [
-                { name: 'Tomatoes', detail: '450 lbs sold', value: '$2,700' },
-                { name: 'Basil', detail: '180 bunches', value: '$720' },
-                { name: 'Lettuce Mix', detail: '120 bags', value: '$600' },
-                { name: 'Kale', detail: '95 bunches', value: '$380' },
-                { name: 'Carrots', detail: '200 lbs', value: '$800' }
-            ];
+                const result = await api.getReports(startDate, endDate);
 
-            document.getElementById('topCropsList').innerHTML = topCrops.map((crop, i) => `
-                <li class="top-item">
-                    <span class="top-item-rank">${i + 1}</span>
-                    <div class="top-item-info">
-                        <div class="top-item-name">${crop.name}</div>
-                        <div class="top-item-detail">${crop.detail}</div>
-                    </div>
-                    <div class="top-item-value">${crop.value}</div>
-                </li>
-            `).join('');
+                if (result.success && result.stats) {
+                    document.getElementById('reportRevenue').textContent = '$' + (result.stats.totalRevenue || 0).toLocaleString();
+                    document.getElementById('reportOrders').textContent = result.stats.totalOrders || '0';
+                    document.getElementById('reportAOV').textContent = '$' + Math.round(result.stats.averageOrderValue || 0);
+                    document.getElementById('reportNewCustomers').textContent = result.stats.newCustomers || '0';
 
-            // Top customers
-            const topCustomers = [
-                { name: 'Pittsburgh Food Co-op', detail: '52 orders', value: '$28,900' },
-                { name: 'Farm Table Cafe', detail: '61 orders', value: '$15,230' },
-                { name: 'Green Valley Restaurant', detail: '45 orders', value: '$12,450' },
-                { name: 'Chef Michael', detail: '38 orders', value: '$8,540' },
-                { name: 'The Local Pub', detail: '28 orders', value: '$5,600' }
-            ];
+                    // Top crops
+                    const topCrops = result.topCrops || [];
+                    if (topCrops.length > 0) {
+                        document.getElementById('topCropsList').innerHTML = topCrops.slice(0, 5).map((crop, i) => `
+                            <li class="top-item">
+                                <span class="top-item-rank">${i + 1}</span>
+                                <div class="top-item-info">
+                                    <div class="top-item-name">${crop.name || 'Unknown'}</div>
+                                    <div class="top-item-detail">${crop.quantity || 0} ${crop.unit || 'units'} sold</div>
+                                </div>
+                                <div class="top-item-value">$${(crop.revenue || 0).toLocaleString()}</div>
+                            </li>
+                        `).join('');
+                    } else {
+                        document.getElementById('topCropsList').innerHTML = '<li style="padding: 20px; text-align: center; color: var(--text-secondary);">No sales data for this period</li>';
+                    }
 
-            document.getElementById('topCustomersList').innerHTML = topCustomers.map((customer, i) => `
-                <li class="top-item">
-                    <span class="top-item-rank">${i + 1}</span>
-                    <div class="top-item-info">
-                        <div class="top-item-name">${customer.name}</div>
-                        <div class="top-item-detail">${customer.detail}</div>
-                    </div>
-                    <div class="top-item-value">${customer.value}</div>
-                </li>
-            `).join('');
+                    // Top customers
+                    const topCustomers = result.topCustomers || [];
+                    if (topCustomers.length > 0) {
+                        document.getElementById('topCustomersList').innerHTML = topCustomers.slice(0, 5).map((customer, i) => `
+                            <li class="top-item">
+                                <span class="top-item-rank">${i + 1}</span>
+                                <div class="top-item-info">
+                                    <div class="top-item-name">${customer.name || 'Unknown'}</div>
+                                    <div class="top-item-detail">${customer.orders || 0} orders</div>
+                                </div>
+                                <div class="top-item-value">$${(customer.revenue || 0).toLocaleString()}</div>
+                            </li>
+                        `).join('');
+                    } else {
+                        document.getElementById('topCustomersList').innerHTML = '<li style="padding: 20px; text-align: center; color: var(--text-secondary);">No customer data for this period</li>';
+                    }
+                } else {
+                    // Empty state - NO DEMO DATA
+                    document.getElementById('reportRevenue').textContent = '$0';
+                    document.getElementById('reportOrders').textContent = '0';
+                    document.getElementById('reportAOV').textContent = '$0';
+                    document.getElementById('reportNewCustomers').textContent = '0';
+                    document.getElementById('topCropsList').innerHTML = '<li style="padding: 20px; text-align: center; color: var(--text-secondary);">No sales data yet</li>';
+                    document.getElementById('topCustomersList').innerHTML = '<li style="padding: 20px; text-align: center; color: var(--text-secondary);">No customer data yet</li>';
+                }
+            } catch (error) {
+                console.error('Error loading reports:', error);
+                document.getElementById('reportRevenue').textContent = '--';
+                document.getElementById('reportOrders').textContent = '--';
+                document.getElementById('reportAOV').textContent = '--';
+                document.getElementById('reportNewCustomers').textContent = '--';
+                document.getElementById('topCropsList').innerHTML = '<li style="padding: 20px; text-align: center; color: var(--danger);">Unable to load data</li>';
+                document.getElementById('topCustomersList').innerHTML = '<li style="padding: 20px; text-align: center; color: var(--danger);">Unable to load data</li>';
+            }
+        }
+
+        function getMonthStart() {
+            const now = new Date();
+            return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
         }
 
         // ========================================
@@ -3317,6 +3510,89 @@
         function refreshData() {
             loadTabData(AppState.currentTab);
             showToast('Data refreshed', 'success');
+        }
+
+        // ========================================
+        // SHOPIFY SYNC FUNCTION
+        // ========================================
+
+        async function syncFromShopify() {
+            const btn = document.getElementById('syncShopifyBtn');
+            const syncText = btn.querySelector('.sync-text');
+            const originalText = syncText.textContent;
+
+            // Show loading state
+            btn.classList.add('syncing');
+            btn.disabled = true;
+            syncText.textContent = 'Syncing...';
+
+            try {
+                // Call API endpoint
+                const result = await api.syncFromShopify();
+
+                if (result.success) {
+                    // Update last sync time in localStorage
+                    const syncTime = new Date().toISOString();
+                    localStorage.setItem('shopifyLastSync', syncTime);
+                    updateLastSyncDisplay();
+
+                    // Show success message with details
+                    const ordersCount = result.data?.orders?.synced || 0;
+                    const customersCount = result.data?.customers?.synced || 0;
+                    showToast(`Sync complete! ${ordersCount} orders, ${customersCount} customers synced`, 'success');
+
+                    // Reload dashboard data
+                    loadTabData(AppState.currentTab);
+                } else {
+                    showToast(result.message || 'Sync failed - please try again', 'error');
+                }
+            } catch (error) {
+                console.error('Shopify sync error:', error);
+                showToast('Unable to sync from Shopify. Check connection and try again.', 'error');
+            } finally {
+                // Reset button state
+                btn.classList.remove('syncing');
+                btn.disabled = false;
+                syncText.textContent = originalText;
+            }
+        }
+
+        function updateLastSyncDisplay() {
+            const lastSync = localStorage.getItem('shopifyLastSync');
+            const indicator = document.getElementById('lastSyncIndicator');
+            const timeElement = document.getElementById('lastSyncTime');
+
+            if (!lastSync) {
+                timeElement.textContent = 'Never synced';
+                indicator.classList.add('stale');
+                return;
+            }
+
+            const syncDate = new Date(lastSync);
+            const now = new Date();
+            const diffMinutes = Math.floor((now - syncDate) / (1000 * 60));
+            const diffHours = Math.floor(diffMinutes / 60);
+            const diffDays = Math.floor(diffHours / 24);
+
+            let timeText;
+            if (diffMinutes < 1) {
+                timeText = 'Just now';
+            } else if (diffMinutes < 60) {
+                timeText = `${diffMinutes}m ago`;
+            } else if (diffHours < 24) {
+                timeText = `${diffHours}h ago`;
+            } else {
+                timeText = `${diffDays}d ago`;
+            }
+
+            timeElement.textContent = `Last sync: ${timeText}`;
+
+            // Mark as stale if over 24 hours
+            if (diffHours >= 24) {
+                indicator.classList.add('stale');
+            } else {
+                indicator.classList.remove('stale');
+            }
         }
 
         function applyFilters() {
