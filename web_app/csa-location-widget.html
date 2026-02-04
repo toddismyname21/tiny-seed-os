@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSA Location Finder Widget | Tiny Seed Farm</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --primary: #22c55e;
+      --primary-dark: #16a34a;
+      --primary-light: #4ade80;
+      --bg-light: #f8faf7;
+      --bg-white: #ffffff;
+      --text-dark: #1a1a1a;
+      --text-muted: #666666;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --info: #3b82f6;
+      --border: #e5e7eb;
+      --farm-green: #2d5a27;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-white);
+      color: var(--text-dark);
+      line-height: 1.5;
+      padding: 0;
+      margin: 0;
+    }
+
+    .widget-container {
+      max-width: 100%;
+      padding: 20px;
+    }
+
+    /* Header */
+    .widget-header {
+      text-align: center;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid #e8f5e9;
+    }
+
+    .widget-header h2 {
+      font-size: 1.25rem;
+      color: var(--farm-green);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .widget-header p {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    /* Form */
+    .search-form {
+      margin-bottom: 20px;
+    }
+
+    .input-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .input-group input {
+      flex: 1;
+      padding: 12px 14px;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      font-size: 15px;
+      font-family: inherit;
+    }
+
+    .input-group input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .btn {
+      padding: 12px 20px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.2s;
+    }
+
+    .btn:hover {
+      background: var(--primary-dark);
+    }
+
+    .btn-full {
+      width: 100%;
+    }
+
+    .btn-secondary {
+      background: var(--info);
+    }
+
+    .btn-secondary:hover {
+      background: #2563eb;
+    }
+
+    .btn-small {
+      padding: 8px 14px;
+      font-size: 0.85rem;
+    }
+
+    /* Results */
+    .results-container {
+      display: none;
+    }
+
+    .results-container.show {
+      display: block;
+    }
+
+    /* Result Banner */
+    .result-banner {
+      padding: 16px;
+      border-radius: 10px;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .result-banner.delivery {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: white;
+    }
+
+    .result-banner.pickup {
+      background: linear-gradient(135deg, var(--info), #1d4ed8);
+      color: white;
+    }
+
+    .result-banner i {
+      font-size: 1.8rem;
+      margin-bottom: 8px;
+    }
+
+    .result-banner h3 {
+      font-size: 1.1rem;
+      margin-bottom: 4px;
+    }
+
+    .result-banner p {
+      font-size: 0.9rem;
+      opacity: 0.95;
+    }
+
+    /* Location List */
+    .location-list {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .location-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px;
+      background: var(--bg-light);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+      border: 2px solid transparent;
+    }
+
+    .location-item:hover {
+      background: #e8f5e9;
+    }
+
+    .location-item.selected {
+      border-color: var(--primary);
+      background: #dcfce7;
+    }
+
+    .location-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--primary);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    .location-icon.farm { background: #ea580c; }
+    .location-icon.market { background: #2563eb; }
+
+    .location-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .location-name {
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 2px;
+    }
+
+    .location-details {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .location-distance {
+      font-size: 0.85rem;
+      color: var(--primary-dark);
+      font-weight: 600;
+      margin-top: 4px;
+    }
+
+    /* CTA */
+    .cta-box {
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      border-radius: 8px;
+      padding: 14px;
+      text-align: center;
+      margin-top: 16px;
+    }
+
+    .cta-box p {
+      font-size: 0.85rem;
+      color: #9a3412;
+      margin-bottom: 8px;
+    }
+
+    .cta-box a {
+      color: #ea580c;
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .cta-box a:hover {
+      text-decoration: underline;
+    }
+
+    /* Delivery Zones List */
+    .delivery-zones {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+      margin-top: 12px;
+    }
+
+    .zone-tag {
+      background: #e8f5e9;
+      color: var(--farm-green);
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    /* Actions */
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .actions .btn {
+      flex: 1;
+    }
+
+    /* Loading */
+    .loading {
+      text-align: center;
+      padding: 30px;
+      display: none;
+    }
+
+    .loading.show {
+      display: block;
+    }
+
+    .loading i {
+      font-size: 1.5rem;
+      color: var(--primary);
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* Hidden */
+    .hidden {
+      display: none !important;
+    }
+
+    /* Link to full page */
+    .view-full {
+      text-align: center;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .view-full a {
+      color: var(--primary);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .view-full a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="widget-container">
+    <div class="widget-header">
+      <h2><i class="fas fa-seedling"></i> Find Your CSA Pickup</h2>
+      <p>Enter your ZIP code to find the closest location</p>
+    </div>
+
+    <!-- Search Form -->
+    <div id="search-section" class="search-form">
+      <div class="input-group">
+        <input type="text" id="zip-input" placeholder="Enter ZIP code" maxlength="5" pattern="[0-9]{5}">
+        <button type="button" class="btn" onclick="searchByZip()">
+          <i class="fas fa-search"></i>
+        </button>
+      </div>
+
+      <button type="button" class="btn btn-secondary btn-full" onclick="useLocation()">
+        <i class="fas fa-location-arrow"></i> Use My Location
+      </button>
+
+      <div class="delivery-zones">
+        <span class="zone-tag">Mt. Lebanon</span>
+        <span class="zone-tag">Squirrel Hill</span>
+        <span class="zone-tag">Fox Chapel</span>
+        <span class="zone-tag">Cranberry</span>
+        <span class="zone-tag">North Park</span>
+        <span class="zone-tag">Zelienople</span>
+      </div>
+      <p style="text-align: center; font-size: 0.75rem; color: #666; margin-top: 8px;">
+        <i class="fas fa-truck"></i> Home delivery available in these areas
+      </p>
+    </div>
+
+    <!-- Loading -->
+    <div id="loading" class="loading">
+      <i class="fas fa-spinner"></i>
+      <p style="margin-top: 8px; color: #666;">Finding locations...</p>
+    </div>
+
+    <!-- Results -->
+    <div id="results" class="results-container">
+      <div id="result-banner" class="result-banner delivery">
+        <i class="fas fa-truck"></i>
+        <h3>You're in Our Delivery Zone!</h3>
+        <p id="banner-message">We deliver right to your door.</p>
+      </div>
+
+      <div id="location-list" class="location-list"></div>
+
+      <div class="cta-box">
+        <p><strong>Not near you?</strong> Gather 15 neighbors and we can start a new location!</p>
+        <a href="mailto:todd@tinyseedfarmpgh.com">Email todd@tinyseedfarmpgh.com</a>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-secondary" onclick="resetWidget()">
+          <i class="fas fa-redo"></i> New Search
+        </button>
+        <a href="csa-location-finder.html" target="_blank" class="btn" style="text-decoration: none;">
+          <i class="fas fa-map"></i> View Map
+        </a>
+      </div>
+    </div>
+
+    <div class="view-full">
+      <a href="csa-location-finder.html" target="_blank">
+        <i class="fas fa-external-link-alt"></i> View Full Interactive Map
+      </a>
+    </div>
+  </div>
+
+  <script>
+    // ========================================
+    // CSA PICKUP LOCATIONS DATA
+    // ========================================
+    const PICKUP_LOCATIONS = [
+      { id: 'lawrenceville', name: 'Lawrenceville - Bay 41', address: '115 41st Street, Pittsburgh', lat: 40.4677, lng: -79.9568, type: 'market', icon: 'fa-store', schedule: 'Tue 4-7pm' },
+      { id: 'bloomfield', name: 'Bloomfield', address: '5050 Liberty Ave, Pittsburgh', lat: 40.4614, lng: -79.9479, type: 'market', icon: 'fa-store', schedule: 'Sat 9am-2pm' },
+      { id: 'sewickley', name: 'Sewickley - St. James', address: '200 Walnut St, Sewickley', lat: 40.5363, lng: -80.1848, type: 'market', icon: 'fa-church', schedule: 'Sat 9am-1pm' },
+      { id: 'rochester', name: 'Rochester - Kretschmann Farm', address: 'Kretschmann Family Organic Farm', lat: 40.7020, lng: -80.2887, type: 'farm', icon: 'fa-tractor', schedule: 'Farm Hours' },
+      { id: 'allison-stpauls', name: "Allison Park - St. Paul's", address: "St. Paul's Church, Allison Park", lat: 40.5592, lng: -79.9578, type: 'market', icon: 'fa-church', schedule: 'Wed 4-6pm' },
+      { id: 'allison-simons', name: "Allison Park - Simon's", address: "Simon's Produce Stand", lat: 40.5545, lng: -79.9502, type: 'market', icon: 'fa-carrot', schedule: 'Daily' },
+      { id: 'oakmont', name: "Oakmont - Today's Organic", address: "Today's Organic Market, Oakmont", lat: 40.5202, lng: -79.8424, type: 'market', icon: 'fa-leaf', schedule: 'Market Hours' },
+      { id: 'highland-park', name: 'Highland Park - Bryant St.', address: 'Bryant St. Market, Pittsburgh', lat: 40.4789, lng: -79.9192, type: 'market', icon: 'fa-store', schedule: 'Market Hours' },
+      { id: 'north-side', name: 'North Side - Mayfly Market', address: 'Mayfly Market, Pittsburgh', lat: 40.4545, lng: -80.0158, type: 'market', icon: 'fa-store', schedule: 'Market Hours' }
+    ];
+
+    // ZIP to approximate coordinates
+    const ZIP_COORDS = {
+      '15074': { lat: 40.7020, lng: -80.2887, name: 'Rochester' },
+      '15143': { lat: 40.5363, lng: -80.1848, name: 'Sewickley' },
+      '15139': { lat: 40.5202, lng: -79.8424, name: 'Oakmont' },
+      '15228': { lat: 40.3898, lng: -80.0312, name: 'Mt. Lebanon', delivery: true },
+      '15234': { lat: 40.3756, lng: -80.0234, name: 'Mt. Lebanon', delivery: true },
+      '15216': { lat: 40.3912, lng: -80.0445, name: 'Mt. Lebanon', delivery: true },
+      '15243': { lat: 40.3734, lng: -80.0567, name: 'Mt. Lebanon', delivery: true },
+      '15217': { lat: 40.4316, lng: -79.9269, name: 'Squirrel Hill', delivery: true },
+      '15218': { lat: 40.4234, lng: -79.8956, name: 'Squirrel Hill', delivery: true },
+      '15221': { lat: 40.4378, lng: -79.8623, name: 'Squirrel Hill Area', delivery: true },
+      '15238': { lat: 40.5106, lng: -79.9006, name: 'Fox Chapel', delivery: true },
+      '15044': { lat: 40.5234, lng: -79.8845, name: 'Fox Chapel', delivery: true },
+      '16066': { lat: 40.6864, lng: -80.1018, name: 'Cranberry', delivery: true },
+      '16046': { lat: 40.6756, lng: -80.0878, name: 'Cranberry', delivery: true },
+      '15237': { lat: 40.5789, lng: -80.0148, name: 'North Park', delivery: true },
+      '15090': { lat: 40.5912, lng: -80.0345, name: 'North Park', delivery: true },
+      '16063': { lat: 40.7948, lng: -80.1398, name: 'Zelienople', delivery: true },
+      '16053': { lat: 40.7823, lng: -80.1256, name: 'Zelienople', delivery: true },
+      '15212': { lat: 40.4545, lng: -80.0158, name: 'North Side' },
+      '15201': { lat: 40.4677, lng: -79.9568, name: 'Lawrenceville' },
+      '15206': { lat: 40.4789, lng: -79.9192, name: 'Highland Park' },
+      '15224': { lat: 40.4614, lng: -79.9479, name: 'Bloomfield' },
+      '15101': { lat: 40.5545, lng: -79.9502, name: 'Allison Park' }
+    };
+
+    // ========================================
+    // HAVERSINE DISTANCE
+    // ========================================
+    function calculateDistance(lat1, lng1, lat2, lng2) {
+      const R = 3959;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLng = (lng2 - lng1) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLng/2) * Math.sin(dLng/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
+
+    // ========================================
+    // SEARCH BY ZIP
+    // ========================================
+    function searchByZip() {
+      const zip = document.getElementById('zip-input').value.trim();
+      if (!zip || zip.length !== 5) {
+        alert('Please enter a valid 5-digit ZIP code');
+        return;
+      }
+
+      showLoading();
+
+      setTimeout(() => {
+        const zipData = ZIP_COORDS[zip];
+
+        if (zipData) {
+          displayResults(zipData.lat, zipData.lng, zipData.delivery, zipData.name);
+        } else {
+          // Default to Pittsburgh center for unknown ZIPs
+          displayResults(40.4406, -79.9959, false, 'your area');
+        }
+      }, 500);
+    }
+
+    // ========================================
+    // USE GEOLOCATION
+    // ========================================
+    function useLocation() {
+      if (!navigator.geolocation) {
+        alert('Geolocation not supported. Please enter your ZIP code.');
+        return;
+      }
+
+      showLoading();
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          displayResults(pos.coords.latitude, pos.coords.longitude, false, 'your location');
+        },
+        (err) => {
+          hideLoading();
+          alert('Could not get your location. Please enter your ZIP code.');
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
+
+    // ========================================
+    // DISPLAY RESULTS
+    // ========================================
+    function displayResults(lat, lng, isDeliveryZone, areaName) {
+      hideLoading();
+
+      const searchSection = document.getElementById('search-section');
+      const resultsContainer = document.getElementById('results');
+      const banner = document.getElementById('result-banner');
+      const bannerMessage = document.getElementById('banner-message');
+      const locationList = document.getElementById('location-list');
+
+      searchSection.classList.add('hidden');
+      resultsContainer.classList.add('show');
+
+      // Update banner
+      if (isDeliveryZone) {
+        banner.className = 'result-banner delivery';
+        banner.innerHTML = `
+          <i class="fas fa-truck"></i>
+          <h3>You're in Our Delivery Zone!</h3>
+          <p>We deliver right to your door in ${areaName}.</p>
+        `;
+      } else {
+        banner.className = 'result-banner pickup';
+        banner.innerHTML = `
+          <i class="fas fa-store"></i>
+          <h3>Pickup Locations Near You</h3>
+          <p>Choose from these convenient spots:</p>
+        `;
+      }
+
+      // Calculate distances and sort
+      const locationsWithDistance = PICKUP_LOCATIONS.map(loc => ({
+        ...loc,
+        distance: calculateDistance(lat, lng, loc.lat, loc.lng)
+      })).sort((a, b) => a.distance - b.distance);
+
+      // Build list (top 5)
+      locationList.innerHTML = '';
+      locationsWithDistance.slice(0, 5).forEach(loc => {
+        const item = document.createElement('div');
+        item.className = 'location-item';
+        item.innerHTML = `
+          <div class="location-icon ${loc.type}">
+            <i class="fas ${loc.icon}"></i>
+          </div>
+          <div class="location-info">
+            <div class="location-name">${loc.name}</div>
+            <div class="location-details">${loc.address} | ${loc.schedule}</div>
+            <div class="location-distance">${loc.distance.toFixed(1)} miles</div>
+          </div>
+        `;
+        locationList.appendChild(item);
+      });
+    }
+
+    // ========================================
+    // HELPERS
+    // ========================================
+    function showLoading() {
+      document.getElementById('search-section').classList.add('hidden');
+      document.getElementById('results').classList.remove('show');
+      document.getElementById('loading').classList.add('show');
+    }
+
+    function hideLoading() {
+      document.getElementById('loading').classList.remove('show');
+    }
+
+    function resetWidget() {
+      document.getElementById('search-section').classList.remove('hidden');
+      document.getElementById('results').classList.remove('show');
+      document.getElementById('zip-input').value = '';
+    }
+
+    // Enter key on ZIP input
+    document.getElementById('zip-input').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        searchByZip();
+      }
+    });
+  </script>
+</body>
+</html>
