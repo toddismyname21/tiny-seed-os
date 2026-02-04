@@ -43,7 +43,7 @@
     { id: 'bloomfield', name: 'Bloomfield - Saturday Market', address: '5050 Liberty Ave, Pittsburgh', lat: 40.4614, lng: -79.9479, type: 'market', schedule: 'Sat 9am-2pm' },
     { id: 'sewickley', name: 'Sewickley - Saturday Market', address: '200 Walnut St, Sewickley', lat: 40.5363, lng: -80.1848, type: 'market', schedule: 'Sat 9am-1pm' },
     // Partner Stores
-    { id: 'allison-stpauls', name: "Allison Park - St. Paul's", address: "St. Paul's Church, Allison Park", lat: 40.5592, lng: -79.9578, type: 'market', schedule: 'Wed 4-6pm' },
+    { id: 'allison-stpauls', name: "Allison Park - St. Paul's UMC", address: "1965 Ferguson Road, Allison Park, PA 15101", lat: 40.5592, lng: -79.9578, type: 'church', schedule: 'Wed 4-6pm' },
     { id: 'allison-simons', name: "Allison Park - Simon's", address: "Simon's Produce Stand", lat: 40.5545, lng: -79.9502, type: 'market', schedule: 'Daily' },
     { id: 'oakmont', name: "Oakmont - Today's Organic", address: "Today's Organic Market, Oakmont", lat: 40.5202, lng: -79.8424, type: 'market', schedule: 'Market Hours' },
     { id: 'highland-park', name: 'Highland Park - Bryant St.', address: 'Bryant St. Market, Pittsburgh', lat: 40.4789, lng: -79.9192, type: 'market', schedule: 'Market Hours' },
@@ -173,7 +173,8 @@
           .tsf-location:hover { background: #e8f5e9; }
           .tsf-icon { width: 36px; height: 36px; background: ${primaryColor}; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; flex-shrink: 0; }
           .tsf-icon.farm { background: #ea580c; }
-          .tsf-icon.community { background: #8b5cf6; }
+          .tsf-icon.church { background: #8b5cf6; }
+          .tsf-icon.community { background: #a855f7; }
           .tsf-info { flex: 1; }
           .tsf-name { font-weight: 600; font-size: 0.9rem; }
           .tsf-details { font-size: 0.8rem; color: #666; }
