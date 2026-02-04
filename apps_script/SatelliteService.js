@@ -962,6 +962,28 @@ function detectProblems(fieldId) {
       });
     }
 
+    // Check for tillage/harvest events if we see a large drop (>40%)
+    // This integrates with the tillage/harvest detection system
+    let tillageHarvestEvent = null;
+    for (const problem of problems) {
+      if (problem.type === 'NDVI_DROP' && parseFloat(problem.dropPercent) >= 40) {
+        // Large drop detected - run tillage/harvest detection
+        try {
+          tillageHarvestEvent = detectTillageOrHarvest(fieldId);
+          if (tillageHarvestEvent && tillageHarvestEvent.detected) {
+            // Update the problem with tillage/harvest info
+            problem.tillageHarvestDetection = tillageHarvestEvent;
+            problem.possibleCauses = [tillageHarvestEvent.type.replace(/_/g, ' ')];
+            problem.recommendation = tillageHarvestEvent.recommendation;
+          }
+        } catch (e) {
+          // Tillage/harvest detection not critical - continue with normal detection
+          console.log('Tillage/harvest detection skipped: ' + e.message);
+        }
+        break; // Only check the first large drop
+      }
+    }
+
     return {
       success: true,
       fieldId: fieldId,
@@ -969,6 +991,7 @@ function detectProblems(fieldId) {
       readingsAnalyzed: readings.length,
       problemsFound: problems.length,
       problems: problems,
+      tillageHarvestEvent: tillageHarvestEvent,
       status: problems.length > 0 ? 'ALERT' : 'HEALTHY'
     };
 
@@ -1378,12 +1401,872 @@ function handleSatelliteAPI(action, params, postData) {
     case 'setAgromonitoringApiKey':
       return setAgromonitoringApiKey(postData.apiKey);
 
+    // Tillage & Harvest Detection endpoints
+    case 'detectTillageOrHarvest':
+      return detectTillageOrHarvest(params.fieldId);
+
+    case 'runTillageHarvestScan':
+      return runTillageHarvestScan();
+
+    case 'getCropGrowthStage':
+      return getCropGrowthStage(params.fieldId);
+
+    case 'checkForStormEvent':
+      return checkForStormEvent(
+        params.fieldId,
+        params.days ? parseInt(params.days) : 5
+      );
+
+    case 'setupTillageHarvestTrigger':
+      return setupTillageHarvestTrigger();
+
+    case 'removeTillageHarvestTrigger':
+      return removeTillageHarvestTrigger();
+
     default:
       return {
         success: false,
         error: `Unknown satellite action: ${action}`
       };
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TILLAGE & HARVEST DETECTION
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Configuration for tillage/harvest detection
+ */
+const TILLAGE_HARVEST_CONFIG = {
+  NDVI_DROP_THRESHOLD: 0.40,  // 40% drop triggers detection
+  LOOKBACK_DAYS: 5,           // Compare current to 5 days ago
+  HARVEST_GDD_THRESHOLD: 0.90, // 90% of GDD = likely harvest vs tillage
+  STORM_SEVERITY_THRESHOLD: 0.6, // Normalized storm severity (0-1)
+  SHEETS: {
+    TILLAGE_EVENTS: 'TILLAGE_EVENTS',
+    SATELLITE_ALERTS: 'SATELLITE_ALERTS'
+  }
+};
+
+/**
+ * Get the latest satellite reading for a field
+ * @param {string} fieldId - Field ID
+ * @returns {Object|null} Latest reading or null
+ */
+function getLatestReading(fieldId) {
+  try {
+    const readings = getFieldReadings(fieldId, 14);
+    if (!readings.success || readings.readings.length === 0) {
+      return null;
+    }
+    // Readings are already sorted by date descending
+    const latest = readings.readings[0];
+    return {
+      date: latest.date,
+      ndvi: latest.ndvi.mean,
+      ndmi: latest.ndmi,
+      quality: latest.quality
+    };
+  } catch (error) {
+    console.error('Error getting latest reading:', error);
+    return null;
+  }
+}
+
+/**
+ * Get a satellite reading from X days ago
+ * @param {string} fieldId - Field ID
+ * @param {number} daysAgo - Number of days to look back
+ * @returns {Object|null} Reading from daysAgo or closest available
+ */
+function getReadingDaysAgo(fieldId, daysAgo) {
+  try {
+    const readings = getFieldReadings(fieldId, daysAgo + 10);
+    if (!readings.success || readings.readings.length < 2) {
+      return null;
+    }
+
+    // Calculate target date
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() - daysAgo);
+    const targetStr = targetDate.toISOString().split('T')[0];
+
+    // Find the reading closest to target date (but not newer)
+    for (const reading of readings.readings) {
+      if (reading.date <= targetStr) {
+        return {
+          date: reading.date,
+          ndvi: reading.ndvi.mean,
+          ndmi: reading.ndmi,
+          quality: reading.quality
+        };
+      }
+    }
+
+    // If no older reading found, return the oldest we have
+    const oldest = readings.readings[readings.readings.length - 1];
+    return {
+      date: oldest.date,
+      ndvi: oldest.ndvi.mean,
+      ndmi: oldest.ndmi,
+      quality: oldest.quality
+    };
+  } catch (error) {
+    console.error('Error getting reading days ago:', error);
+    return null;
+  }
+}
+
+/**
+ * Check for storm/weather events that could explain NDVI drops
+ * Uses Open-Meteo historical weather API
+ * @param {string} fieldId - Field ID
+ * @param {number} days - Number of days to check
+ * @returns {Object|null} Weather event info or null if no severe weather
+ */
+function checkForStormEvent(fieldId, days) {
+  try {
+    // Get farm coordinates (fallback to Pittsburgh default)
+    const lat = typeof FARM_CONFIG !== 'undefined' ? FARM_CONFIG.LAT : 40.4406;
+    const lon = typeof FARM_CONFIG !== 'undefined' ? FARM_CONFIG.LONG : -79.9959;
+
+    // Calculate date range
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    const start = Utilities.formatDate(startDate, 'America/New_York', 'yyyy-MM-dd');
+    const end = Utilities.formatDate(endDate, 'America/New_York', 'yyyy-MM-dd');
+
+    // Fetch historical weather from Open-Meteo
+    const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${start}&end_date=${end}&daily=precipitation_sum,rain_sum,windspeed_10m_max,weathercode&timezone=America/New_York`;
+
+    const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    const responseCode = response.getResponseCode();
+
+    if (responseCode !== 200) {
+      console.log('Weather API error, skipping storm check');
+      return null;
+    }
+
+    const data = JSON.parse(response.getContentText());
+
+    if (!data.daily || !data.daily.time) {
+      return null;
+    }
+
+    // Analyze for severe weather events
+    const events = [];
+    for (let i = 0; i < data.daily.time.length; i++) {
+      const date = data.daily.time[i];
+      const precip = data.daily.precipitation_sum ? data.daily.precipitation_sum[i] : 0;
+      const wind = data.daily.windspeed_10m_max ? data.daily.windspeed_10m_max[i] : 0;
+      const weatherCode = data.daily.weathercode ? data.daily.weathercode[i] : 0;
+
+      // Weather codes for severe weather:
+      // 95-99: Thunderstorm (95=slight, 96=moderate hail, 99=heavy hail)
+      // 85-86: Snow showers
+      // 80-82: Rain showers (80=slight, 82=violent)
+      // 65-67: Heavy rain
+
+      let severity = 0;
+      let eventType = null;
+
+      // Check for hail (most damaging)
+      if (weatherCode >= 96 && weatherCode <= 99) {
+        severity = 0.9;
+        eventType = 'HAIL';
+      }
+      // Check for thunderstorm
+      else if (weatherCode >= 95) {
+        severity = 0.7;
+        eventType = 'THUNDERSTORM';
+      }
+      // Check for heavy precipitation (>25mm)
+      else if (precip > 25) {
+        severity = 0.65;
+        eventType = 'HEAVY_RAIN';
+      }
+      // Check for high winds (>50 km/h)
+      else if (wind > 50) {
+        severity = 0.6;
+        eventType = 'HIGH_WIND';
+      }
+      // Check for violent rain showers
+      else if (weatherCode === 82) {
+        severity = 0.6;
+        eventType = 'VIOLENT_RAIN';
+      }
+
+      if (severity >= TILLAGE_HARVEST_CONFIG.STORM_SEVERITY_THRESHOLD) {
+        events.push({
+          date: date,
+          type: eventType,
+          severity: severity,
+          precipitation_mm: precip,
+          wind_kmh: wind,
+          weatherCode: weatherCode
+        });
+      }
+    }
+
+    // Return the most severe event if any
+    if (events.length > 0) {
+      events.sort((a, b) => b.severity - a.severity);
+      return events[0];
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error checking for storm event:', error);
+    return null;
+  }
+}
+
+/**
+ * Get crop growth stage as percentage of GDD to maturity
+ * Integrates with PLANNING_2026 and GDD system
+ * @param {string} fieldId - Field ID
+ * @returns {Object} Growth stage info with percentage
+ */
+function getCropGrowthStage(fieldId) {
+  try {
+    const ss = SpreadsheetApp.openById(SATELLITE_CONFIG.SPREADSHEET_ID);
+
+    // First, find what's planted in this field from PLANNING_2026
+    const planSheet = ss.getSheetByName('PLANNING_2026');
+    if (!planSheet) {
+      return { success: false, error: 'PLANNING_2026 not found', percentage: null };
+    }
+
+    const planData = planSheet.getDataRange().getValues();
+    const headers = planData[0];
+
+    // Find relevant columns
+    const bedCol = headers.indexOf('Target_Bed_ID') !== -1 ? headers.indexOf('Target_Bed_ID') : headers.indexOf('Bed_ID');
+    const cropCol = headers.indexOf('Crop');
+    const batchCol = headers.indexOf('Batch_ID');
+    const dtmCol = headers.indexOf('DTM') !== -1 ? headers.indexOf('DTM') : headers.indexOf('DTM_Average');
+
+    // Get planting date columns
+    const actTransplantCol = headers.indexOf('Act_Transplant');
+    const planTransplantCol = headers.indexOf('Plan_Transplant');
+    const actFieldSowCol = headers.indexOf('Act_Field_Sow');
+    const planFieldSowCol = headers.indexOf('Plan_Field_Sow');
+
+    // Find active plantings for this field
+    let activePlanting = null;
+    const today = new Date();
+
+    for (let i = 1; i < planData.length; i++) {
+      const row = planData[i];
+      const bedId = row[bedCol];
+
+      // Check if this bed/field matches
+      if (!bedId || !String(bedId).includes(fieldId.replace('FIELD_', ''))) {
+        continue;
+      }
+
+      // Get planting date (actual preferred over planned)
+      let plantDate = null;
+      if (actTransplantCol !== -1 && row[actTransplantCol]) {
+        plantDate = new Date(row[actTransplantCol]);
+      } else if (planTransplantCol !== -1 && row[planTransplantCol]) {
+        plantDate = new Date(row[planTransplantCol]);
+      } else if (actFieldSowCol !== -1 && row[actFieldSowCol]) {
+        plantDate = new Date(row[actFieldSowCol]);
+      } else if (planFieldSowCol !== -1 && row[planFieldSowCol]) {
+        plantDate = new Date(row[planFieldSowCol]);
+      }
+
+      if (!plantDate || isNaN(plantDate.getTime())) {
+        continue;
+      }
+
+      // Skip if planting is in the future
+      if (plantDate > today) {
+        continue;
+      }
+
+      // Get DTM (days to maturity)
+      const dtm = row[dtmCol] ? parseInt(row[dtmCol]) : 60;
+
+      // Calculate expected harvest date
+      const expectedHarvest = new Date(plantDate);
+      expectedHarvest.setDate(expectedHarvest.getDate() + dtm);
+
+      // If we're past expected harvest, this might not be active
+      const daysPastExpected = Math.floor((today - expectedHarvest) / (1000 * 60 * 60 * 24));
+      if (daysPastExpected > 30) {
+        continue; // Skip if more than 30 days past expected harvest
+      }
+
+      activePlanting = {
+        batchId: row[batchCol],
+        crop: row[cropCol],
+        plantDate: plantDate,
+        dtm: dtm,
+        expectedHarvest: expectedHarvest
+      };
+      break;
+    }
+
+    if (!activePlanting) {
+      return {
+        success: true,
+        percentage: null,
+        message: 'No active planting found for field',
+        fieldId: fieldId
+      };
+    }
+
+    // Calculate growth percentage based on days elapsed vs DTM
+    const daysElapsed = Math.floor((today - activePlanting.plantDate) / (1000 * 60 * 60 * 24));
+    const percentage = Math.min(1.0, daysElapsed / activePlanting.dtm);
+
+    // Also try to get GDD-based percentage if available
+    let gddPercentage = null;
+    if (typeof getGDDProgress === 'function') {
+      try {
+        const gddResult = getGDDProgress({});
+        if (gddResult.success && gddResult.data) {
+          const batchGDD = gddResult.data.find(b => b.batch_id === activePlanting.batchId);
+          if (batchGDD && batchGDD.gdd_percent) {
+            gddPercentage = batchGDD.gdd_percent / 100;
+          }
+        }
+      } catch (e) {
+        // GDD not available, use DTM-based calculation
+      }
+    }
+
+    return {
+      success: true,
+      fieldId: fieldId,
+      batchId: activePlanting.batchId,
+      crop: activePlanting.crop,
+      plantDate: activePlanting.plantDate.toISOString().split('T')[0],
+      dtm: activePlanting.dtm,
+      daysElapsed: daysElapsed,
+      percentage: gddPercentage || percentage,
+      gddBased: gddPercentage !== null,
+      expectedHarvest: activePlanting.expectedHarvest.toISOString().split('T')[0]
+    };
+
+  } catch (error) {
+    console.error('Error getting crop growth stage:', error);
+    return { success: false, error: error.message, percentage: null };
+  }
+}
+
+/**
+ * Main detection function for tillage or harvest events
+ * Triggers when NDVI drops >40% in 5 days
+ * @param {string} fieldId - Field ID to check
+ * @returns {Object|null} Detection result or null if no event detected
+ */
+function detectTillageOrHarvest(fieldId) {
+  try {
+    // Get current and previous readings
+    const current = getLatestReading(fieldId);
+    const previous = getReadingDaysAgo(fieldId, TILLAGE_HARVEST_CONFIG.LOOKBACK_DAYS);
+
+    if (!current || !previous) {
+      return {
+        success: true,
+        fieldId: fieldId,
+        detected: false,
+        message: 'Insufficient satellite data for detection',
+        current: current,
+        previous: previous
+      };
+    }
+
+    // Skip if previous NDVI is too low (already bare)
+    if (previous.ndvi < 0.1) {
+      return {
+        success: true,
+        fieldId: fieldId,
+        detected: false,
+        message: 'Previous NDVI too low for meaningful comparison',
+        currentNDVI: current.ndvi,
+        previousNDVI: previous.ndvi
+      };
+    }
+
+    // Calculate NDVI drop percentage
+    const ndviDrop = (previous.ndvi - current.ndvi) / previous.ndvi;
+
+    // Check if drop exceeds threshold
+    if (ndviDrop <= TILLAGE_HARVEST_CONFIG.NDVI_DROP_THRESHOLD) {
+      return {
+        success: true,
+        fieldId: fieldId,
+        detected: false,
+        message: 'No significant NDVI drop detected',
+        ndviDropPercent: (ndviDrop * 100).toFixed(1),
+        threshold: (TILLAGE_HARVEST_CONFIG.NDVI_DROP_THRESHOLD * 100).toFixed(0),
+        currentNDVI: current.ndvi,
+        previousNDVI: previous.ndvi,
+        currentDate: current.date,
+        previousDate: previous.date
+      };
+    }
+
+    // Significant drop detected - determine cause
+
+    // Step 1: Check for weather event
+    const weatherEvent = checkForStormEvent(fieldId, TILLAGE_HARVEST_CONFIG.LOOKBACK_DAYS);
+    if (weatherEvent) {
+      // Weather damage detected
+      const result = {
+        success: true,
+        fieldId: fieldId,
+        detected: true,
+        type: 'WEATHER_DAMAGE',
+        confidence: weatherEvent.severity > 0.8 ? 'high' : 'medium',
+        event: weatherEvent,
+        ndviDropPercent: (ndviDrop * 100).toFixed(1),
+        currentNDVI: current.ndvi,
+        previousNDVI: previous.ndvi,
+        currentDate: current.date,
+        previousDate: previous.date,
+        recommendation: `Weather damage detected (${weatherEvent.type} on ${weatherEvent.date}). Scout field to assess damage extent and consider insurance claim if applicable.`
+      };
+
+      // Log as proactive alert
+      logTillageHarvestAlert(fieldId, result);
+
+      return result;
+    }
+
+    // Step 2: Check crop growth stage
+    const cropStage = getCropGrowthStage(fieldId);
+
+    if (cropStage.success && cropStage.percentage !== null) {
+      if (cropStage.percentage >= TILLAGE_HARVEST_CONFIG.HARVEST_GDD_THRESHOLD) {
+        // Likely harvest - crop is near maturity
+        const result = {
+          success: true,
+          fieldId: fieldId,
+          detected: true,
+          type: 'HARVEST_DETECTED',
+          confidence: cropStage.percentage >= 0.95 ? 'high' : 'medium',
+          crop: cropStage.crop,
+          batchId: cropStage.batchId,
+          growthStage: (cropStage.percentage * 100).toFixed(0) + '%',
+          ndviDropPercent: (ndviDrop * 100).toFixed(1),
+          currentNDVI: current.ndvi,
+          previousNDVI: previous.ndvi,
+          currentDate: current.date,
+          previousDate: previous.date,
+          recommendation: `Harvest activity detected for ${cropStage.crop}. Verify and log harvest in HARVEST_LOG if not already recorded.`
+        };
+
+        // Auto-log harvest detection
+        logHarvestFromSatellite(fieldId, current.date, cropStage);
+
+        // Log as proactive alert
+        logTillageHarvestAlert(fieldId, result);
+
+        return result;
+      } else {
+        // Crop not mature - likely tillage
+        const result = {
+          success: true,
+          fieldId: fieldId,
+          detected: true,
+          type: 'TILLAGE_DETECTED',
+          confidence: 'medium',
+          crop: cropStage.crop,
+          growthStage: (cropStage.percentage * 100).toFixed(0) + '%',
+          ndviDropPercent: (ndviDrop * 100).toFixed(1),
+          currentNDVI: current.ndvi,
+          previousNDVI: previous.ndvi,
+          currentDate: current.date,
+          previousDate: previous.date,
+          recommendation: `Tillage activity detected. ${cropStage.crop} was at ${(cropStage.percentage * 100).toFixed(0)}% maturity. Verify field activity and update records.`
+        };
+
+        // Log tillage event
+        logTillageEvent(fieldId, current.date, cropStage);
+
+        // Log as proactive alert
+        logTillageHarvestAlert(fieldId, result);
+
+        return result;
+      }
+    } else {
+      // No planting data - unknown activity
+      const result = {
+        success: true,
+        fieldId: fieldId,
+        detected: true,
+        type: 'FIELD_ACTIVITY_DETECTED',
+        confidence: 'low',
+        ndviDropPercent: (ndviDrop * 100).toFixed(1),
+        currentNDVI: current.ndvi,
+        previousNDVI: previous.ndvi,
+        currentDate: current.date,
+        previousDate: previous.date,
+        recommendation: 'Significant vegetation change detected. No planting records found. Scout field to determine cause (tillage, harvest, or other activity).'
+      };
+
+      // Log as proactive alert
+      logTillageHarvestAlert(fieldId, result);
+
+      return result;
+    }
+
+  } catch (error) {
+    console.error('Error detecting tillage/harvest:', error);
+    return {
+      success: false,
+      fieldId: fieldId,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * Auto-log harvest detection from satellite data
+ * @param {string} fieldId - Field ID
+ * @param {string} date - Detection date
+ * @param {Object} cropStage - Crop stage info
+ */
+function logHarvestFromSatellite(fieldId, date, cropStage) {
+  try {
+    const ss = SpreadsheetApp.openById(SATELLITE_CONFIG.SPREADSHEET_ID);
+    let harvestSheet = ss.getSheetByName('HARVEST_LOG');
+
+    if (!harvestSheet) {
+      // HARVEST_LOG doesn't exist, skip logging
+      console.log('HARVEST_LOG sheet not found, skipping auto-log');
+      return { success: false, error: 'HARVEST_LOG sheet not found' };
+    }
+
+    // Check if this harvest is already logged (within 3 days)
+    const data = harvestSheet.getDataRange().getValues();
+    const headers = data[0];
+    const batchCol = headers.indexOf('Batch_ID');
+    const dateCol = headers.indexOf('Timestamp');
+
+    const detectionDate = new Date(date);
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][batchCol] === cropStage.batchId) {
+        const existingDate = new Date(data[i][dateCol]);
+        const daysDiff = Math.abs((detectionDate - existingDate) / (1000 * 60 * 60 * 24));
+        if (daysDiff <= 3) {
+          console.log('Harvest already logged for this batch within 3 days');
+          return { success: true, alreadyLogged: true };
+        }
+      }
+    }
+
+    // Use existing harvest logging if available
+    if (typeof logHarvestWithDetails === 'function') {
+      return logHarvestWithDetails({
+        batchId: cropStage.batchId,
+        crop: cropStage.crop,
+        bedId: fieldId,
+        quantity: 0, // Unknown from satellite
+        unit: 'lbs',
+        quality: 'PENDING_VERIFICATION',
+        notes: `Auto-detected via satellite on ${date}. VERIFY: Quantity and quality need manual entry.`
+      });
+    }
+
+    // Manual logging as fallback
+    const harvestId = 'SAT_HRV_' + Date.now();
+    const now = new Date().toISOString();
+
+    // Find column count from headers
+    const expectedCols = headers.length;
+
+    const newRow = new Array(expectedCols).fill('');
+    newRow[0] = harvestId;
+    newRow[1] = now;
+    if (batchCol !== -1) newRow[batchCol] = cropStage.batchId;
+    if (headers.indexOf('Crop') !== -1) newRow[headers.indexOf('Crop')] = cropStage.crop;
+    if (headers.indexOf('Notes') !== -1) newRow[headers.indexOf('Notes')] = `Auto-detected via satellite on ${date}. VERIFY quantities.`;
+
+    harvestSheet.appendRow(newRow);
+
+    return { success: true, harvestId: harvestId, source: 'satellite' };
+
+  } catch (error) {
+    console.error('Error logging harvest from satellite:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Log tillage event to field history
+ * @param {string} fieldId - Field ID
+ * @param {string} date - Tillage date
+ * @param {Object} cropStage - Crop stage info (if available)
+ */
+function logTillageEvent(fieldId, date, cropStage) {
+  try {
+    const ss = SpreadsheetApp.openById(SATELLITE_CONFIG.SPREADSHEET_ID);
+
+    // Get or create TILLAGE_EVENTS sheet
+    let tillageSheet = ss.getSheetByName(TILLAGE_HARVEST_CONFIG.SHEETS.TILLAGE_EVENTS);
+
+    if (!tillageSheet) {
+      tillageSheet = ss.insertSheet(TILLAGE_HARVEST_CONFIG.SHEETS.TILLAGE_EVENTS);
+      tillageSheet.appendRow([
+        'Event_ID',
+        'Field_ID',
+        'Event_Date',
+        'Detection_Date',
+        'Event_Type',
+        'Previous_Crop',
+        'Growth_Stage_Pct',
+        'NDVI_Before',
+        'NDVI_After',
+        'Verified',
+        'Verified_By',
+        'Notes',
+        'Source'
+      ]);
+      tillageSheet.getRange(1, 1, 1, 13).setFontWeight('bold');
+      tillageSheet.setFrozenRows(1);
+    }
+
+    const eventId = 'TILL_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4).toUpperCase();
+    const now = new Date().toISOString();
+
+    const newRow = [
+      eventId,
+      fieldId,
+      date,
+      now,
+      'TILLAGE',
+      cropStage?.crop || '',
+      cropStage?.percentage ? (cropStage.percentage * 100).toFixed(0) : '',
+      '', // NDVI before - could add from detection
+      '', // NDVI after - could add from detection
+      'NO',
+      '',
+      cropStage?.crop
+        ? `Satellite detected tillage. ${cropStage.crop} was at ${(cropStage.percentage * 100).toFixed(0)}% maturity.`
+        : 'Satellite detected tillage/field activity.',
+      'SATELLITE'
+    ];
+
+    tillageSheet.appendRow(newRow);
+
+    return { success: true, eventId: eventId };
+
+  } catch (error) {
+    console.error('Error logging tillage event:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Log detection as a proactive alert
+ * @param {string} fieldId - Field ID
+ * @param {Object} detection - Detection result
+ */
+function logTillageHarvestAlert(fieldId, detection) {
+  try {
+    // Use existing proactive alert system if available
+    if (typeof createProactiveAlert === 'function') {
+      const priorityMap = {
+        'WEATHER_DAMAGE': 'HIGH',
+        'HARVEST_DETECTED': 'MEDIUM',
+        'TILLAGE_DETECTED': 'LOW',
+        'FIELD_ACTIVITY_DETECTED': 'MEDIUM'
+      };
+
+      return createProactiveAlert({
+        type: 'SATELLITE_DETECTION',
+        priority: priorityMap[detection.type] || 'MEDIUM',
+        title: `${detection.type.replace(/_/g, ' ')}: ${fieldId}`,
+        message: detection.recommendation,
+        actionSuggested: detection.type === 'HARVEST_DETECTED'
+          ? 'Verify harvest in HARVEST_LOG'
+          : 'Scout field and update records',
+        data: {
+          fieldId: fieldId,
+          detectionType: detection.type,
+          confidence: detection.confidence,
+          ndviDrop: detection.ndviDropPercent,
+          crop: detection.crop,
+          batchId: detection.batchId
+        }
+      });
+    }
+
+    // Fallback: store in SATELLITE_ALERTS
+    const ss = SpreadsheetApp.openById(SATELLITE_CONFIG.SPREADSHEET_ID);
+    let alertSheet = ss.getSheetByName(TILLAGE_HARVEST_CONFIG.SHEETS.SATELLITE_ALERTS);
+
+    if (!alertSheet) {
+      alertSheet = ss.insertSheet(TILLAGE_HARVEST_CONFIG.SHEETS.SATELLITE_ALERTS);
+      alertSheet.appendRow([
+        'Alert_ID', 'Field_ID', 'Alert_Type', 'Severity',
+        'Message', 'Created_At', 'Status', 'Resolved_At', 'Resolved_By'
+      ]);
+      alertSheet.getRange(1, 1, 1, 9).setFontWeight('bold');
+      alertSheet.setFrozenRows(1);
+    }
+
+    const alertId = 'SAT_ALERT_' + Date.now();
+    alertSheet.appendRow([
+      alertId,
+      fieldId,
+      detection.type,
+      detection.confidence === 'high' ? 'HIGH' : 'MEDIUM',
+      detection.recommendation,
+      new Date().toISOString(),
+      'OPEN',
+      '',
+      ''
+    ]);
+
+    return { success: true, alertId: alertId };
+
+  } catch (error) {
+    console.error('Error logging alert:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Batch scan all fields for tillage/harvest events
+ * @returns {Object} Scan results for all fields
+ */
+function runTillageHarvestScan() {
+  try {
+    const ss = SpreadsheetApp.openById(SATELLITE_CONFIG.SPREADSHEET_ID);
+    const fieldsSheet = ss.getSheetByName(SATELLITE_CONFIG.SHEETS.SATELLITE_FIELDS);
+
+    if (!fieldsSheet) {
+      return {
+        success: false,
+        error: 'SATELLITE_FIELDS sheet not found. Run initializeSatelliteSheets() first.'
+      };
+    }
+
+    const data = fieldsSheet.getDataRange().getValues();
+    const headers = data[0];
+    const fieldIdIdx = headers.indexOf('Field_ID');
+    const statusIdx = headers.indexOf('Status');
+
+    const results = {
+      scanned: 0,
+      detections: [],
+      noData: [],
+      errors: []
+    };
+
+    for (let i = 1; i < data.length; i++) {
+      const fieldId = data[i][fieldIdIdx];
+      const status = data[i][statusIdx];
+
+      if (!fieldId || status !== 'ACTIVE') {
+        continue;
+      }
+
+      try {
+        const detection = detectTillageOrHarvest(fieldId);
+        results.scanned++;
+
+        if (detection.success) {
+          if (detection.detected) {
+            results.detections.push({
+              fieldId: fieldId,
+              type: detection.type,
+              confidence: detection.confidence,
+              ndviDrop: detection.ndviDropPercent,
+              recommendation: detection.recommendation
+            });
+          }
+        } else if (detection.message && detection.message.includes('Insufficient')) {
+          results.noData.push(fieldId);
+        }
+      } catch (e) {
+        results.errors.push({
+          fieldId: fieldId,
+          error: e.message
+        });
+      }
+
+      // Rate limiting
+      Utilities.sleep(200);
+    }
+
+    return {
+      success: true,
+      timestamp: new Date().toISOString(),
+      summary: {
+        fieldsScanned: results.scanned,
+        detectionsFound: results.detections.length,
+        insufficientData: results.noData.length,
+        errors: results.errors.length
+      },
+      detections: results.detections,
+      fieldsWithNoData: results.noData,
+      errors: results.errors
+    };
+
+  } catch (error) {
+    console.error('Error running tillage/harvest scan:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * Schedule daily tillage/harvest scan
+ */
+function setupTillageHarvestTrigger() {
+  // Delete existing triggers
+  const triggers = ScriptApp.getProjectTriggers();
+  triggers.forEach(trigger => {
+    if (trigger.getHandlerFunction() === 'runTillageHarvestScan') {
+      ScriptApp.deleteTrigger(trigger);
+    }
+  });
+
+  // Create new trigger at 7 AM daily (after satellite data fetch at 6 AM)
+  ScriptApp.newTrigger('runTillageHarvestScan')
+    .timeBased()
+    .everyDays(1)
+    .atHour(7)
+    .create();
+
+  return {
+    success: true,
+    message: 'Daily tillage/harvest scan trigger created (7 AM daily, after satellite fetch)'
+  };
+}
+
+/**
+ * Remove tillage/harvest scan trigger
+ */
+function removeTillageHarvestTrigger() {
+  const triggers = ScriptApp.getProjectTriggers();
+  let removed = 0;
+
+  triggers.forEach(trigger => {
+    if (trigger.getHandlerFunction() === 'runTillageHarvestScan') {
+      ScriptApp.deleteTrigger(trigger);
+      removed++;
+    }
+  });
+
+  return {
+    success: true,
+    message: `Removed ${removed} tillage/harvest scan trigger(s)`
+  };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1406,6 +2289,13 @@ function handleSatelliteAPI(action, params, postData) {
 //   case 'generateScoutingWaypoints':
 //   case 'setupSatelliteTrigger':
 //   case 'removeSatelliteTrigger':
+//   // NEW: Tillage & Harvest Detection endpoints
+//   case 'detectTillageOrHarvest':
+//   case 'runTillageHarvestScan':
+//   case 'getCropGrowthStage':
+//   case 'checkForStormEvent':
+//   case 'setupTillageHarvestTrigger':
+//   case 'removeTillageHarvestTrigger':
 //     return jsonResponse(handleSatelliteAPI(action, e.parameter, null));
 //
 // In doPost switch:

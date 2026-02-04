@@ -14795,6 +14795,56 @@ function doGet(e) {
       case 'setupSatelliteScoutingTrigger':
         return jsonResponse(typeof setupSatelliteScoutingTrigger === 'function' ? setupSatelliteScoutingTrigger() : { success: false, error: 'Not available' });
 
+      // ============ WEED OUTBREAK DETECTION SYSTEM (2026-02-04) ============
+      // Detects vegetation growth on fallow/harvested fields indicating weed pressure
+      case 'detectWeedOutbreak':
+        return jsonResponse(typeof detectWeedOutbreak === 'function' ? detectWeedOutbreak(e.parameter.fieldId) : { success: false, error: 'Not available' });
+      case 'runWeedOutbreakScan':
+        return jsonResponse(typeof runWeedOutbreakScan === 'function' ? runWeedOutbreakScan() : { success: false, error: 'Not available' });
+      case 'getFieldPlantingStatus':
+        return jsonResponse(typeof getFieldPlantingStatus === 'function' ? getFieldPlantingStatus(e.parameter.fieldId) : { success: false, error: 'Not available' });
+      case 'getWeedOutbreakAlerts':
+        return jsonResponse(typeof getWeedOutbreakAlerts === 'function' ? getWeedOutbreakAlerts(e.parameter) : { success: false, error: 'Not available' });
+
+      // ============ SATELLITE SMS ALERT SYSTEM (2026-02-04) ============
+      // SMS notifications for critical satellite-detected crop issues
+      case 'sendSatelliteAlertSMS':
+        return jsonResponse(typeof sendSatelliteAlertSMS === 'function' ?
+          sendSatelliteAlertSMS(
+            e.parameter.alertType,
+            e.parameter.fieldId,
+            {
+              fieldName: e.parameter.fieldName,
+              ndvi: e.parameter.ndvi,
+              ndmi: e.parameter.ndmi,
+              ratePerDay: e.parameter.ratePerDay
+            }
+          ) : { success: false, error: 'Not available' });
+      case 'processSatelliteAlertQueue':
+        return jsonResponse(typeof processSatelliteAlertQueue === 'function' ? processSatelliteAlertQueue() : { success: false, error: 'Not available' });
+      case 'getSatelliteSMSRecipients':
+        return jsonResponse(typeof getSatelliteSMSRecipients === 'function' ?
+          { success: true, recipients: getSatelliteSMSRecipients(e.parameter.fieldId) } : { success: false, error: 'Not available' });
+      case 'shouldSendSatelliteSMS':
+        return jsonResponse(typeof shouldSendSatelliteSMS === 'function' ?
+          shouldSendSatelliteSMS(e.parameter.fieldId, e.parameter.alertType) : { success: false, error: 'Not available' });
+      case 'setupSatelliteSMSTrigger':
+        return jsonResponse(typeof setupSatelliteSMSTrigger === 'function' ? setupSatelliteSMSTrigger() : { success: false, error: 'Not available' });
+      case 'removeSatelliteSMSTrigger':
+        return jsonResponse(typeof removeSatelliteSMSTrigger === 'function' ? removeSatelliteSMSTrigger() : { success: false, error: 'Not available' });
+      case 'queueSatelliteNotification':
+        return jsonResponse(typeof queueSatelliteNotification === 'function' ?
+          queueSatelliteNotification(
+            e.parameter.alertType,
+            e.parameter.fieldId,
+            {
+              fieldName: e.parameter.fieldName,
+              ndvi: e.parameter.ndvi,
+              ndmi: e.parameter.ndmi,
+              ratePerDay: e.parameter.ratePerDay
+            }
+          ) : { success: false, error: 'Not available' });
+
       // ============ NOTIFICATION BATCHING SYSTEM (2026-02-03) ============
       // Intelligent notification batching with priority levels: IMMEDIATE, HIGH, MEDIUM, LOW
       case 'initializeNotificationSheets':
@@ -15604,6 +15654,14 @@ function doPost(e) {
         return jsonResponse(typeof resolveSatelliteAlert === 'function' ? resolveSatelliteAlert(data) : { success: false, error: 'Not available' });
       case 'dailyScoutingCheck':
         return jsonResponse(typeof dailyScoutingCheck === 'function' ? dailyScoutingCheck() : { success: false, error: 'Not available' });
+
+      // ============ WEED OUTBREAK DETECTION POST ENDPOINTS (2026-02-04) ============
+      case 'setupWeedOutbreakTrigger':
+        return jsonResponse(typeof setupWeedOutbreakTrigger === 'function' ? setupWeedOutbreakTrigger() : { success: false, error: 'Not available' });
+      case 'dailyWeedOutbreakCheck':
+        return jsonResponse(typeof dailyWeedOutbreakCheck === 'function' ? dailyWeedOutbreakCheck() : { success: false, error: 'Not available' });
+      case 'createWeedingTask':
+        return jsonResponse(typeof createWeedingTask === 'function' ? createWeedingTask(data.fieldId, data.severity, data.outbreak || {}) : { success: false, error: 'Not available' });
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
@@ -88807,6 +88865,17 @@ function generateProactiveAlerts() {
       Logger.log('Overdue alerts error: ' + e.message);
     }
 
+    // ═══════════════════════════════════════════════════
+    // 6. WEED OUTBREAK ALERTS (2026-02-04)
+    // ═══════════════════════════════════════════════════
+    try {
+      if (typeof addWeedOutbreakAlertsToProactive === 'function') {
+        addWeedOutbreakAlertsToProactive(alerts);
+      }
+    } catch (e) {
+      Logger.log('Weed outbreak alerts error: ' + e.message);
+    }
+
     // Sort by priority and limit
     const priorityOrder = { 'CRITICAL': 0, 'HIGH': 1, 'MEDIUM': 2, 'LOW': 3 };
     alerts.sort((a, b) => (priorityOrder[a.priority] || 4) - (priorityOrder[b.priority] || 4));
@@ -90365,4 +90434,1410 @@ function addSatelliteAlertsToProactive(existingAlerts) {
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════
 // END: SATELLITE SMART SCOUTING INTEGRATION
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+// WEED OUTBREAK DETECTION SYSTEM (2026-02-04)
+// Detects weed outbreaks on fallow/harvested fields using satellite NDVI data
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * WEED OUTBREAK THRESHOLDS
+ * NDVI > 0.25 on bare/fallow field indicates vegetation growth (likely weeds)
+ * NDVI > 0.40 indicates critical weed infestation
+ */
+const WEED_OUTBREAK_CONFIG = {
+  WARNING_THRESHOLD: 0.25,    // NDVI above this on fallow = warning
+  CRITICAL_THRESHOLD: 0.40,   // NDVI above this on fallow = critical
+  GRACE_DAYS_POST_HARVEST: 14, // Days after harvest before checking for weeds
+  FALLOW_STATUSES: ['fallow', 'harvested', 'bare', 'empty', 'between_crops', 'post-harvest']
+};
+
+/**
+ * GET FIELD PLANTING STATUS
+ * Determines if a field is currently planted, fallow, or harvested
+ * Uses PLANNING_2026 to check for active crops
+ *
+ * @param {string} fieldId - Field ID to check
+ * @returns {Object} Status object with fieldStatus, lastHarvest, and activeCrop info
+ */
+function getFieldPlantingStatus(fieldId) {
+  try {
+    if (!fieldId) {
+      return { success: false, error: 'Field ID is required' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const planningSheet = ss.getSheetByName('PLANNING_2026');
+    const fieldsSheet = ss.getSheetByName('REF_Fields');
+
+    if (!planningSheet) {
+      return { success: false, error: 'PLANNING_2026 sheet not found' };
+    }
+
+    const now = new Date();
+    const planningData = planningSheet.getDataRange().getValues();
+    const planningHeaders = planningData[0].map(h => String(h).toLowerCase());
+
+    // Find relevant column indices
+    const fieldIdxPlan = findColumnIndex(planningHeaders, ['field_id', 'field', 'fieldid']);
+    const bedIdxPlan = findColumnIndex(planningHeaders, ['bed', 'bed_id', 'bedid', 'bed_assignment']);
+    const cropIdx = findColumnIndex(planningHeaders, ['crop', 'crop_name', 'cropname']);
+    const plantDateIdx = findColumnIndex(planningHeaders, ['plant_date', 'transplant_date', 'seed_date']);
+    const firstHarvestIdx = findColumnIndex(planningHeaders, ['first_harvest', 'harvest_start']);
+    const lastHarvestIdx = findColumnIndex(planningHeaders, ['last_harvest', 'harvest_end', 'est_harvest_end']);
+    const statusIdx = findColumnIndex(planningHeaders, ['status', 'crop_status']);
+
+    // Find active and recent crops for this field
+    let activeCrops = [];
+    let lastHarvestDate = null;
+    let lastHarvestedCrop = null;
+    let hasActiveCrop = false;
+    let hasCoverCrop = false;
+
+    for (let i = 1; i < planningData.length; i++) {
+      const row = planningData[i];
+      const rowFieldId = row[fieldIdxPlan >= 0 ? fieldIdxPlan : 0];
+      const rowBedId = row[bedIdxPlan >= 0 ? bedIdxPlan : 1];
+
+      // Match by field ID or bed ID containing field
+      if (rowFieldId !== fieldId && (!rowBedId || !String(rowBedId).includes(fieldId))) {
+        continue;
+      }
+
+      const cropName = row[cropIdx >= 0 ? cropIdx : 2];
+      if (!cropName) continue;
+
+      // Check for cover crop
+      const cropNameLower = String(cropName).toLowerCase();
+      if (cropNameLower.includes('cover') || cropNameLower.includes('clover') ||
+          cropNameLower.includes('rye') || cropNameLower.includes('vetch')) {
+        hasCoverCrop = true;
+        continue; // Don't count cover crops as "active" for weed detection
+      }
+
+      const plantDate = plantDateIdx >= 0 ? parseDate(row[plantDateIdx]) : null;
+      const harvestStart = firstHarvestIdx >= 0 ? parseDate(row[firstHarvestIdx]) : null;
+      const harvestEnd = lastHarvestIdx >= 0 ? parseDate(row[lastHarvestIdx]) : null;
+      const cropStatus = statusIdx >= 0 ? String(row[statusIdx]).toLowerCase() : '';
+
+      // Skip completed/terminated crops
+      if (cropStatus === 'complete' || cropStatus === 'terminated' || cropStatus === 'done') {
+        // But track last harvest date
+        if (harvestEnd && (!lastHarvestDate || harvestEnd > lastHarvestDate)) {
+          lastHarvestDate = harvestEnd;
+          lastHarvestedCrop = cropName;
+        }
+        continue;
+      }
+
+      // Determine if crop is currently active
+      const isPlanted = plantDate && plantDate <= now;
+      const isBeforeHarvest = !harvestEnd || now < harvestEnd;
+      const isStillGrowing = isPlanted && isBeforeHarvest;
+
+      if (isStillGrowing) {
+        hasActiveCrop = true;
+        activeCrops.push({
+          crop: cropName,
+          plantDate: plantDate ? Utilities.formatDate(plantDate, 'America/New_York', 'yyyy-MM-dd') : null,
+          harvestStart: harvestStart ? Utilities.formatDate(harvestStart, 'America/New_York', 'yyyy-MM-dd') : null,
+          harvestEnd: harvestEnd ? Utilities.formatDate(harvestEnd, 'America/New_York', 'yyyy-MM-dd') : null
+        });
+      } else if (harvestEnd && (!lastHarvestDate || harvestEnd > lastHarvestDate)) {
+        lastHarvestDate = harvestEnd;
+        lastHarvestedCrop = cropName;
+      }
+    }
+
+    // Determine field status
+    let fieldStatus = 'unknown';
+    let daysPostHarvest = null;
+
+    if (hasCoverCrop) {
+      fieldStatus = 'cover_crop';
+    } else if (hasActiveCrop) {
+      fieldStatus = 'planted';
+    } else if (lastHarvestDate) {
+      daysPostHarvest = Math.floor((now - lastHarvestDate) / (1000 * 60 * 60 * 24));
+      if (daysPostHarvest <= WEED_OUTBREAK_CONFIG.GRACE_DAYS_POST_HARVEST) {
+        fieldStatus = 'recently_harvested';
+      } else {
+        fieldStatus = 'harvested';
+      }
+    } else {
+      fieldStatus = 'fallow';
+    }
+
+    return {
+      success: true,
+      fieldId: fieldId,
+      fieldStatus: fieldStatus,
+      hasActiveCrop: hasActiveCrop,
+      hasCoverCrop: hasCoverCrop,
+      activeCrops: activeCrops,
+      lastHarvestDate: lastHarvestDate ? Utilities.formatDate(lastHarvestDate, 'America/New_York', 'yyyy-MM-dd') : null,
+      lastHarvestedCrop: lastHarvestedCrop,
+      daysPostHarvest: daysPostHarvest,
+      shouldCheckForWeeds: WEED_OUTBREAK_CONFIG.FALLOW_STATUSES.includes(fieldStatus) && !hasCoverCrop,
+      checkedAt: new Date().toISOString()
+    };
+
+  } catch (error) {
+    Logger.log('getFieldPlantingStatus error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Helper to find column index from possible header names
+ */
+function findColumnIndex(headers, possibleNames) {
+  for (const name of possibleNames) {
+    const idx = headers.findIndex(h => h === name || h.includes(name));
+    if (idx >= 0) return idx;
+  }
+  return -1;
+}
+
+/**
+ * Helper to parse various date formats
+ */
+function parseDate(value) {
+  if (!value) return null;
+  if (value instanceof Date) return value;
+  try {
+    const parsed = new Date(value);
+    return isNaN(parsed.getTime()) ? null : parsed;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * DETECT WEED OUTBREAK
+ * Main detection function for a single field
+ * Checks if NDVI is unexpectedly high on a fallow/harvested field
+ *
+ * @param {string} fieldId - Field ID to check
+ * @returns {Object} Detection result with outbreak status and recommendations
+ */
+function detectWeedOutbreak(fieldId) {
+  try {
+    if (!fieldId) {
+      return { success: false, error: 'Field ID is required' };
+    }
+
+    // 1. Get field planting status
+    const statusResult = getFieldPlantingStatus(fieldId);
+    if (!statusResult.success) {
+      return statusResult;
+    }
+
+    // 2. Check if we should monitor this field for weeds
+    if (!statusResult.shouldCheckForWeeds) {
+      return {
+        success: true,
+        fieldId: fieldId,
+        outbreak: null,
+        reason: statusResult.hasCoverCrop
+          ? 'Field has cover crop - excluded from weed detection'
+          : 'Field has active crop - not applicable for weed outbreak detection',
+        fieldStatus: statusResult
+      };
+    }
+
+    // 3. Get latest NDVI reading
+    const latestReading = getLatestReading(fieldId);
+    if (!latestReading || !latestReading.ndvi) {
+      return {
+        success: true,
+        fieldId: fieldId,
+        outbreak: null,
+        reason: 'No satellite data available for this field',
+        fieldStatus: statusResult
+      };
+    }
+
+    const currentNDVI = latestReading.ndvi;
+
+    // 4. Check for weed outbreak
+    if (currentNDVI > WEED_OUTBREAK_CONFIG.WARNING_THRESHOLD) {
+      const severity = currentNDVI > WEED_OUTBREAK_CONFIG.CRITICAL_THRESHOLD ? 'critical' : 'warning';
+
+      const outbreak = {
+        type: 'WEED_OUTBREAK',
+        severity: severity,
+        ndvi: currentNDVI,
+        fieldStatus: statusResult.fieldStatus,
+        daysPostHarvest: statusResult.daysPostHarvest,
+        message: 'Vegetation detected on ' + statusResult.fieldStatus + ' field (NDVI: ' + currentNDVI.toFixed(2) + ')',
+        recommendation: severity === 'critical'
+          ? 'URGENT: Scout immediately for weed pressure. Consider cultivation, mowing, or herbicide application.'
+          : 'Scout for weed pressure. Consider cultivation or cover crop.',
+        detectedAt: new Date().toISOString(),
+        readingDate: latestReading.date
+      };
+
+      return {
+        success: true,
+        fieldId: fieldId,
+        outbreak: outbreak,
+        fieldStatus: statusResult
+      };
+    }
+
+    // No outbreak detected
+    return {
+      success: true,
+      fieldId: fieldId,
+      outbreak: null,
+      currentNDVI: currentNDVI,
+      threshold: WEED_OUTBREAK_CONFIG.WARNING_THRESHOLD,
+      reason: 'NDVI (' + currentNDVI.toFixed(2) + ') is below threshold (' + WEED_OUTBREAK_CONFIG.WARNING_THRESHOLD + ') - field appears clear',
+      fieldStatus: statusResult
+    };
+
+  } catch (error) {
+    Logger.log('detectWeedOutbreak error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * RUN WEED OUTBREAK SCAN
+ * Batch scans all fallow/harvested fields for weed outbreaks
+ * Creates weeding tasks and alerts for detected outbreaks
+ *
+ * @returns {Object} Scan results with all outbreaks found
+ */
+function runWeedOutbreakScan() {
+  const startTime = Date.now();
+  const results = {
+    success: true,
+    fieldsScanned: 0,
+    outbreaksFound: 0,
+    tasksCreated: 0,
+    alertsSent: 0,
+    outbreaks: [],
+    skipped: [],
+    errors: []
+  };
+
+  try {
+    // 1. Get all fields with satellite data
+    const fieldsResult = getFieldsWithSatelliteData();
+    if (!fieldsResult.success) {
+      return { success: false, error: fieldsResult.error };
+    }
+
+    // 2. Also get fields from REF_Fields that might not have satellite data yet
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const fieldsSheet = ss.getSheetByName('REF_Fields');
+    const allFieldIds = new Set();
+
+    if (fieldsResult.fields) {
+      fieldsResult.fields.forEach(f => allFieldIds.add(f.id));
+    }
+
+    if (fieldsSheet) {
+      const fieldData = fieldsSheet.getDataRange().getValues();
+      const headers = fieldData[0].map(h => String(h).toLowerCase());
+      const idCol = headers.findIndex(h => h.includes('field') && h.includes('id'));
+
+      for (let i = 1; i < fieldData.length; i++) {
+        const fieldId = fieldData[i][idCol >= 0 ? idCol : 0];
+        if (fieldId) allFieldIds.add(String(fieldId));
+      }
+    }
+
+    // 3. Check each field for weed outbreak
+    for (const fieldId of allFieldIds) {
+      results.fieldsScanned++;
+
+      try {
+        const outbreakResult = detectWeedOutbreak(fieldId);
+
+        if (!outbreakResult.success) {
+          results.errors.push({
+            fieldId: fieldId,
+            error: outbreakResult.error
+          });
+          continue;
+        }
+
+        if (outbreakResult.outbreak) {
+          const outbreak = outbreakResult.outbreak;
+          results.outbreaksFound++;
+          results.outbreaks.push({
+            fieldId: fieldId,
+            ...outbreak
+          });
+
+          // 4. Create weeding task
+          const taskResult = createWeedingTask(fieldId, outbreak.severity, outbreak);
+          if (taskResult.success) {
+            results.tasksCreated++;
+          }
+
+          // 5. Send SMS for critical outbreaks
+          if (outbreak.severity === 'critical') {
+            const smsResult = sendWeedOutbreakSMS(fieldId, outbreak);
+            if (smsResult.success) {
+              results.alertsSent++;
+            }
+          }
+
+          // 6. Create satellite alert record
+          createWeedOutbreakAlert(fieldId, outbreak, taskResult.taskId);
+
+        } else if (outbreakResult.reason) {
+          results.skipped.push({
+            fieldId: fieldId,
+            reason: outbreakResult.reason
+          });
+        }
+
+      } catch (fieldError) {
+        results.errors.push({
+          fieldId: fieldId,
+          error: fieldError.toString()
+        });
+      }
+    }
+
+    results.responseTimeMs = Date.now() - startTime;
+    results.message = 'Scanned ' + results.fieldsScanned + ' fields. Found ' + results.outbreaksFound + ' outbreaks. Created ' + results.tasksCreated + ' tasks.';
+
+    return results;
+
+  } catch (error) {
+    Logger.log('runWeedOutbreakScan error: ' + error.toString());
+    return {
+      success: false,
+      error: error.toString(),
+      responseTimeMs: Date.now() - startTime
+    };
+  }
+}
+
+/**
+ * CREATE WEEDING TASK
+ * Creates a unified task for addressing weed outbreak
+ *
+ * @param {string} fieldId - Field ID
+ * @param {string} severity - 'warning' or 'critical'
+ * @param {Object} outbreak - Outbreak detection details
+ * @returns {Object} Task creation result
+ */
+function createWeedingTask(fieldId, severity, outbreak) {
+  try {
+    // Get field name
+    let fieldName = fieldId;
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const fieldsSheet = ss.getSheetByName('REF_Fields');
+
+    if (fieldsSheet) {
+      const data = fieldsSheet.getDataRange().getValues();
+      const headers = data[0].map(h => String(h).toLowerCase());
+      const idCol = headers.findIndex(h => h.includes('field') && h.includes('id'));
+      const nameCol = headers.findIndex(h => h.includes('name'));
+
+      for (let i = 1; i < data.length; i++) {
+        if (data[i][idCol >= 0 ? idCol : 0] === fieldId) {
+          fieldName = nameCol >= 0 ? data[i][nameCol] : fieldId;
+          break;
+        }
+      }
+    }
+
+    // Build task description
+    const description = [
+      'WEED OUTBREAK DETECTED - ' + severity.toUpperCase(),
+      '',
+      'Field: ' + fieldName,
+      'Status: ' + outbreak.fieldStatus,
+      'NDVI Reading: ' + outbreak.ndvi.toFixed(2),
+      'Detection: ' + outbreak.message,
+      '',
+      'RECOMMENDED ACTIONS:',
+      severity === 'critical'
+        ? '1. Scout field IMMEDIATELY to assess weed species and coverage'
+        : '1. Scout field within 48 hours',
+      '2. Identify weed species present',
+      '3. Determine appropriate control method:',
+      '   - Mechanical cultivation',
+      '   - Mowing/flail',
+      '   - Flame weeding',
+      '   - Targeted herbicide (if applicable)',
+      '   - Plant cover crop to outcompete',
+      '4. Document findings in task notes',
+      '5. Schedule follow-up satellite check',
+      '',
+      'This task was auto-generated by the Weed Outbreak Detection System.'
+    ].join('\n');
+
+    // Set due date based on severity
+    const dueDate = new Date();
+    if (severity === 'critical') {
+      dueDate.setDate(dueDate.getDate() + 1); // Tomorrow
+    } else {
+      dueDate.setDate(dueDate.getDate() + 3); // 3 days out
+    }
+
+    // Create unified task
+    const taskData = {
+      title: severity === 'critical'
+        ? 'URGENT: Weed Outbreak - ' + fieldName
+        : 'Weed Pressure Detected - ' + fieldName,
+      description: description,
+      taskType: 'cultivation',
+      fieldId: fieldId,
+      priority: severity === 'critical' ? 'high' : 'medium',
+      dueDate: Utilities.formatDate(dueDate, 'America/New_York', 'yyyy-MM-dd'),
+      source: 'weed_outbreak_auto',
+      weatherDependent: true, // Cultivation requires dry conditions
+      tags: ['weeds', 'satellite', 'auto-generated', severity],
+      notes: JSON.stringify({
+        weed_outbreak: true,
+        severity: severity,
+        ndvi: outbreak.ndvi,
+        field_status: outbreak.fieldStatus,
+        detected_at: outbreak.detectedAt
+      })
+    };
+
+    const result = createUnifiedTask(taskData);
+
+    if (result.success) {
+      Logger.log('Created weeding task ' + result.taskId + ' for field ' + fieldId);
+    }
+
+    return result;
+
+  } catch (error) {
+    Logger.log('createWeedingTask error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * SEND WEED OUTBREAK SMS
+ * Sends SMS alert for critical weed outbreaks
+ *
+ * @param {string} fieldId - Field ID
+ * @param {Object} outbreak - Outbreak details
+ * @returns {Object} SMS send result
+ */
+function sendWeedOutbreakSMS(fieldId, outbreak) {
+  try {
+    // Get farm owner phone number
+    const ownerPhone = PropertiesService.getScriptProperties().getProperty('OWNER_PHONE');
+    if (!ownerPhone) {
+      Logger.log('sendWeedOutbreakSMS: No OWNER_PHONE configured');
+      return { success: false, error: 'Owner phone not configured' };
+    }
+
+    // Get field name
+    let fieldName = fieldId;
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const fieldsSheet = ss.getSheetByName('REF_Fields');
+
+    if (fieldsSheet) {
+      const data = fieldsSheet.getDataRange().getValues();
+      const headers = data[0].map(h => String(h).toLowerCase());
+      const idCol = headers.findIndex(h => h.includes('field') && h.includes('id'));
+      const nameCol = headers.findIndex(h => h.includes('name'));
+
+      for (let i = 1; i < data.length; i++) {
+        if (data[i][idCol >= 0 ? idCol : 0] === fieldId) {
+          fieldName = nameCol >= 0 ? data[i][nameCol] : fieldId;
+          break;
+        }
+      }
+    }
+
+    // Build SMS message
+    const message = [
+      'WEED ALERT: ' + fieldName,
+      'NDVI: ' + outbreak.ndvi.toFixed(2) + ' (threshold: 0.25)',
+      'Status: ' + outbreak.fieldStatus,
+      '',
+      outbreak.recommendation,
+      '',
+      '- Tiny Seed Farm OS'
+    ].join('\n');
+
+    // Send SMS
+    return sendSMS({ to: ownerPhone, message: message });
+
+  } catch (error) {
+    Logger.log('sendWeedOutbreakSMS error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * CREATE WEED OUTBREAK ALERT
+ * Records weed outbreak alert in SATELLITE_ALERTS sheet
+ *
+ * @param {string} fieldId - Field ID
+ * @param {Object} outbreak - Outbreak details
+ * @param {string} taskId - Associated task ID
+ */
+function createWeedOutbreakAlert(fieldId, outbreak, taskId) {
+  try {
+    const sheet = getSatelliteAlertsSheet();
+    const alertId = 'WEED_' + Date.now();
+    const now = new Date().toISOString();
+
+    const row = [
+      alertId,
+      fieldId,
+      now,
+      'WEED_OUTBREAK',
+      outbreak.severity.toUpperCase(),
+      JSON.stringify(outbreak),
+      'OPEN',
+      taskId || '',
+      '',
+      ''
+    ];
+
+    sheet.appendRow(row);
+
+    return { success: true, alertId: alertId };
+
+  } catch (error) {
+    Logger.log('createWeedOutbreakAlert error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * GET WEED OUTBREAK ALERTS
+ * Retrieves weed outbreak alerts with optional filtering
+ *
+ * @param {Object} params - Query parameters (status, fieldId)
+ * @returns {Object} List of weed outbreak alerts
+ */
+function getWeedOutbreakAlerts(params) {
+  try {
+    const sheet = getSatelliteAlertsSheet();
+    const data = sheet.getDataRange().getValues();
+
+    if (data.length <= 1) {
+      return { success: true, alerts: [], count: 0 };
+    }
+
+    const headers = data[0];
+    const alerts = [];
+
+    const filterStatus = params && params.status ? String(params.status).toUpperCase() : null;
+    const filterFieldId = params && params.fieldId ? params.fieldId : null;
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const alertType = row[3]; // Type column
+
+      // Only include weed outbreak alerts
+      if (alertType !== 'WEED_OUTBREAK') continue;
+
+      const alert = {
+        alertId: row[0],
+        fieldId: row[1],
+        timestamp: row[2],
+        type: row[3],
+        severity: row[4],
+        details: row[5] ? JSON.parse(row[5]) : {},
+        status: row[6],
+        taskId: row[7],
+        resolvedAt: row[8],
+        resolvedBy: row[9]
+      };
+
+      // Apply filters
+      if (filterStatus && alert.status !== filterStatus) continue;
+      if (filterFieldId && alert.fieldId !== filterFieldId) continue;
+
+      alerts.push(alert);
+    }
+
+    // Sort by timestamp descending
+    alerts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    return {
+      success: true,
+      alerts: alerts,
+      count: alerts.length
+    };
+
+  } catch (error) {
+    Logger.log('getWeedOutbreakAlerts error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * DAILY WEED OUTBREAK CHECK
+ * Scheduled trigger function to run daily weed outbreak scan
+ */
+function dailyWeedOutbreakCheck() {
+  Logger.log('Running daily weed outbreak check...');
+
+  try {
+    const results = runWeedOutbreakScan();
+
+    Logger.log('Weed outbreak check complete: ' + results.message);
+
+    if (results.outbreaksFound > 0) {
+      Logger.log('Outbreaks found: ' + JSON.stringify(results.outbreaks));
+    }
+
+    return results;
+
+  } catch (error) {
+    Logger.log('dailyWeedOutbreakCheck error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * SETUP WEED OUTBREAK TRIGGER
+ * Creates daily scheduled trigger for weed outbreak detection
+ */
+function setupWeedOutbreakTrigger() {
+  // Delete existing triggers for this function
+  ScriptApp.getProjectTriggers().forEach(trigger => {
+    if (trigger.getHandlerFunction() === 'dailyWeedOutbreakCheck') {
+      ScriptApp.deleteTrigger(trigger);
+    }
+  });
+
+  // Create new trigger at 8 AM daily (after satellite scouting check at 7 AM)
+  ScriptApp.newTrigger('dailyWeedOutbreakCheck')
+    .timeBased()
+    .everyDays(1)
+    .atHour(8)
+    .create();
+
+  return {
+    success: true,
+    message: 'Weed outbreak detection trigger created for 8 AM daily'
+  };
+}
+
+/**
+ * ADD WEED OUTBREAKS TO PROACTIVE ALERTS
+ * Integrates weed outbreak detection with the main proactive alerts system
+ *
+ * @param {Array} existingAlerts - Existing proactive alerts array
+ * @returns {Array} Updated alerts array with weed outbreaks added
+ */
+function addWeedOutbreakAlertsToProactive(existingAlerts) {
+  try {
+    const weedAlertsResult = getWeedOutbreakAlerts({ status: 'OPEN' });
+
+    if (!weedAlertsResult.success || !weedAlertsResult.alerts) {
+      return existingAlerts;
+    }
+
+    weedAlertsResult.alerts.forEach(alert => {
+      existingAlerts.push({
+        type: 'WARNING',
+        icon: 'grass',
+        title: 'Weed Outbreak: ' + alert.fieldId,
+        message: alert.details.message || 'Vegetation detected on fallow field',
+        priority: alert.severity === 'CRITICAL' ? 'CRITICAL' : 'HIGH',
+        action: {
+          type: 'viewTask',
+          taskId: alert.taskId
+        },
+        source: 'weed_outbreak',
+        data: {
+          ndvi: alert.details.ndvi,
+          fieldStatus: alert.details.fieldStatus,
+          detectedAt: alert.timestamp
+        }
+      });
+    });
+
+    return existingAlerts;
+
+  } catch (error) {
+    Logger.log('addWeedOutbreakAlertsToProactive error: ' + error.toString());
+    return existingAlerts;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+// END: WEED OUTBREAK DETECTION SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+// SATELLITE SMS ALERT SYSTEM (2026-02-04)
+// Sends SMS notifications for critical satellite-detected issues
+// Integrates with existing sendSMS(), NotificationBatchingSystem, and SATELLITE_ALERTS sheet
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * SMS Templates for satellite-detected alerts
+ * These templates are used by sendSatelliteAlertSMS to format messages
+ */
+const SATELLITE_SMS_TEMPLATES = {
+  CRITICAL_NDVI: {
+    emoji: '\uD83D\uDEF0\uFE0F',  // Satellite emoji
+    template: 'SATELLITE ALERT: {field} showing critical stress (NDVI: {ndvi}). Scout immediately.',
+    priority: 'IMMEDIATE'
+  },
+  WATER_STRESS: {
+    emoji: '\uD83D\uDCA7',  // Water droplet emoji
+    template: 'WATER STRESS: {field} needs irrigation (NDMI: {ndmi}). Check soil moisture.',
+    priority: 'HIGH'
+  },
+  WEED_OUTBREAK: {
+    emoji: '\uD83C\uDF3F',  // Herb/plant emoji
+    template: 'WEED ALERT: {field} showing vegetation on fallow ground. Scout for weeds.',
+    priority: 'HIGH'
+  },
+  HARVEST_DETECTED: {
+    emoji: '\uD83C\uDF3E',  // Rice/grain emoji
+    template: 'HARVEST DETECTED: {field} appears harvested. Confirm and log in system.',
+    priority: 'MEDIUM'
+  },
+  RAPID_DECLINE: {
+    emoji: '\u26A0\uFE0F',  // Warning emoji
+    template: 'URGENT: {field} rapid vegetation decline ({rate}%/day). Possible pest/disease - scout now!',
+    priority: 'IMMEDIATE'
+  },
+  LOW_NDVI: {
+    emoji: '\uD83D\uDEF0\uFE0F',  // Satellite emoji
+    template: 'LOW VEGETATION: {field} showing poor health (NDVI: {ndvi}). Investigation needed.',
+    priority: 'HIGH'
+  }
+};
+
+/**
+ * SMS Deduplication cache key prefix
+ */
+const SATELLITE_SMS_CACHE_PREFIX = 'SAT_SMS_';
+
+/**
+ * Get SMS recipients for a field
+ * Returns manager(s) responsible for the field and the owner
+ *
+ * @param {string} fieldId - The field ID to get managers for
+ * @returns {Array} Array of recipient objects with {id, name, phone}
+ */
+function getSatelliteSMSRecipients(fieldId) {
+  const recipients = [];
+
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const props = PropertiesService.getScriptProperties();
+
+    // 1. Always include owner phone
+    const ownerPhone = props.getProperty('OWNER_PHONE');
+    if (ownerPhone) {
+      recipients.push({
+        id: 'OWNER',
+        name: 'Todd',
+        phone: ownerPhone,
+        role: 'owner'
+      });
+    }
+
+    // 2. Try to get field manager from REF_Fields
+    const fieldsSheet = ss.getSheetByName('REF_Fields');
+    if (fieldsSheet) {
+      const fieldData = fieldsSheet.getDataRange().getValues();
+      const fieldHeaders = fieldData[0].map(h => String(h).toLowerCase());
+
+      const idCol = fieldHeaders.findIndex(h => h.includes('field') && h.includes('id'));
+      const managerCol = fieldHeaders.findIndex(h => h.includes('manager') || h.includes('assigned'));
+
+      for (let i = 1; i < fieldData.length; i++) {
+        if (fieldData[i][idCol >= 0 ? idCol : 0] === fieldId && managerCol >= 0) {
+          const managerId = fieldData[i][managerCol];
+          if (managerId) {
+            const managerPhone = getRecipientPhone(managerId);
+            if (managerPhone && !recipients.some(r => r.phone === managerPhone)) {
+              recipients.push({
+                id: managerId,
+                name: managerId,
+                phone: managerPhone,
+                role: 'field_manager'
+              });
+            }
+          }
+          break;
+        }
+      }
+    }
+
+    // 3. If no field-specific manager, get all managers/admins
+    if (recipients.length <= 1) {
+      const usersSheet = ss.getSheetByName('USERS') || ss.getSheetByName('EMPLOYEES');
+      if (usersSheet) {
+        const userData = usersSheet.getDataRange().getValues();
+        const userHeaders = userData[0].map(h => String(h).toLowerCase());
+
+        const roleCol = userHeaders.findIndex(h => h.includes('role') || h.includes('type'));
+        const phoneCol = userHeaders.findIndex(h => h.includes('phone'));
+        const idCol = userHeaders.findIndex(h => h.includes('id'));
+        const nameCol = userHeaders.findIndex(h => h.includes('name'));
+
+        for (let i = 1; i < userData.length; i++) {
+          const role = String(userData[i][roleCol] || '').toLowerCase();
+          const phone = userData[i][phoneCol];
+
+          // Include managers and admins
+          if (phone && (role.includes('manager') || role.includes('admin') || role.includes('supervisor'))) {
+            if (!recipients.some(r => r.phone === phone)) {
+              recipients.push({
+                id: userData[i][idCol] || '',
+                name: userData[i][nameCol] || 'Manager',
+                phone: phone,
+                role: role
+              });
+            }
+          }
+        }
+      }
+    }
+
+    return recipients;
+
+  } catch (error) {
+    Logger.log('getSatelliteSMSRecipients error: ' + error.toString());
+
+    // Fallback: return owner phone if available
+    const ownerPhone = PropertiesService.getScriptProperties().getProperty('OWNER_PHONE');
+    if (ownerPhone) {
+      return [{
+        id: 'OWNER',
+        name: 'Todd',
+        phone: ownerPhone,
+        role: 'owner'
+      }];
+    }
+    return [];
+  }
+}
+
+/**
+ * Check if SMS should be sent for a satellite alert
+ * Implements 24-hour deduplication to prevent alert fatigue
+ *
+ * @param {string} fieldId - The field ID
+ * @param {string} alertType - The type of satellite alert
+ * @returns {Object} {shouldSend: boolean, reason: string, lastSent: Date|null}
+ */
+function shouldSendSatelliteSMS(fieldId, alertType) {
+  try {
+    const cacheKey = SATELLITE_SMS_CACHE_PREFIX + fieldId + '_' + alertType;
+    const cache = CacheService.getScriptCache();
+
+    // Check cache first (faster than sheet lookup)
+    const cachedSent = cache.get(cacheKey);
+    if (cachedSent) {
+      const lastSent = new Date(cachedSent);
+      const hoursSince = (Date.now() - lastSent.getTime()) / (1000 * 60 * 60);
+
+      if (hoursSince < 24) {
+        return {
+          shouldSend: false,
+          reason: 'SMS sent ' + Math.round(hoursSince) + ' hours ago. Waiting for 24-hour cooldown.',
+          lastSent: lastSent
+        };
+      }
+    }
+
+    // Check SATELLITE_ALERTS sheet for Last_SMS_Sent column
+    const sheet = getSatelliteAlertsSheet();
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const fieldIdCol = 1;  // Field_ID column index
+    const typeCol = 3;     // Type column index
+    const lastSmsCol = headers.indexOf('Last_SMS_Sent');
+
+    if (lastSmsCol >= 0) {
+      for (let i = data.length - 1; i >= 1; i--) {
+        if (data[i][fieldIdCol] === fieldId && data[i][typeCol] === alertType) {
+          const lastSmsDate = data[i][lastSmsCol];
+          if (lastSmsDate) {
+            const lastSent = new Date(lastSmsDate);
+            const hoursSince = (Date.now() - lastSent.getTime()) / (1000 * 60 * 60);
+
+            if (hoursSince < 24) {
+              // Update cache
+              cache.put(cacheKey, lastSent.toISOString(), 86400);
+
+              return {
+                shouldSend: false,
+                reason: 'SMS sent ' + Math.round(hoursSince) + ' hours ago. Waiting for 24-hour cooldown.',
+                lastSent: lastSent
+              };
+            }
+          }
+        }
+      }
+    }
+
+    return {
+      shouldSend: true,
+      reason: 'No recent SMS for this alert type',
+      lastSent: null
+    };
+
+  } catch (error) {
+    Logger.log('shouldSendSatelliteSMS error: ' + error.toString());
+    // On error, allow sending (fail open for alerts)
+    return {
+      shouldSend: true,
+      reason: 'Error checking deduplication: ' + error.toString(),
+      lastSent: null
+    };
+  }
+}
+
+/**
+ * Send SMS for a satellite-detected alert
+ *
+ * @param {string} alertType - Type of alert (CRITICAL_NDVI, WATER_STRESS, etc.)
+ * @param {string} fieldId - The field ID with the issue
+ * @param {Object} data - Alert data including field name, NDVI, NDMI values
+ * @returns {Object} Result with success, messagesSent, errors
+ */
+function sendSatelliteAlertSMS(alertType, fieldId, data) {
+  const startTime = Date.now();
+  const results = {
+    success: true,
+    messagesSent: 0,
+    recipients: [],
+    errors: [],
+    alertType: alertType,
+    fieldId: fieldId
+  };
+
+  try {
+    // 1. Get template for this alert type
+    const template = SATELLITE_SMS_TEMPLATES[alertType];
+    if (!template) {
+      return {
+        success: false,
+        error: 'Unknown alert type: ' + alertType + '. Valid types: ' + Object.keys(SATELLITE_SMS_TEMPLATES).join(', ')
+      };
+    }
+
+    // 2. Check deduplication
+    const dedupeCheck = shouldSendSatelliteSMS(fieldId, alertType);
+    if (!dedupeCheck.shouldSend) {
+      return {
+        success: true,
+        skipped: true,
+        reason: dedupeCheck.reason,
+        lastSent: dedupeCheck.lastSent
+      };
+    }
+
+    // 3. Get recipients
+    const recipients = getSatelliteSMSRecipients(fieldId);
+    if (recipients.length === 0) {
+      return {
+        success: false,
+        error: 'No SMS recipients found for field: ' + fieldId
+      };
+    }
+
+    // 4. Build message from template
+    let message = template.emoji + ' ' + template.template;
+    message = message.replace('{field}', data.fieldName || fieldId);
+    message = message.replace('{ndvi}', data.ndvi !== undefined ? parseFloat(data.ndvi).toFixed(2) : 'N/A');
+    message = message.replace('{ndmi}', data.ndmi !== undefined ? parseFloat(data.ndmi).toFixed(2) : 'N/A');
+    message = message.replace('{rate}', data.ratePerDay !== undefined ? Math.round(data.ratePerDay * 100) : 'N/A');
+
+    // 5. Send to each recipient
+    for (const recipient of recipients) {
+      try {
+        const smsResult = sendSMS({ to: recipient.phone, message: message });
+
+        if (smsResult.success) {
+          results.messagesSent++;
+          results.recipients.push({
+            id: recipient.id,
+            name: recipient.name,
+            phone: recipient.phone,
+            success: true
+          });
+        } else {
+          results.errors.push({
+            recipient: recipient.id,
+            error: smsResult.error
+          });
+        }
+      } catch (smsError) {
+        results.errors.push({
+          recipient: recipient.id,
+          error: smsError.toString()
+        });
+      }
+    }
+
+    // 6. Update Last_SMS_Sent in SATELLITE_ALERTS sheet
+    if (results.messagesSent > 0) {
+      updateSatelliteAlertSMSSent(fieldId, alertType);
+
+      // Update cache
+      const cacheKey = SATELLITE_SMS_CACHE_PREFIX + fieldId + '_' + alertType;
+      CacheService.getScriptCache().put(cacheKey, new Date().toISOString(), 86400);
+
+      // Log to SMS_LOG
+      logSatelliteSMSToSheet({
+        alertType: alertType,
+        fieldId: fieldId,
+        message: message,
+        recipientCount: results.messagesSent,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    results.success = results.messagesSent > 0 || results.errors.length === 0;
+    results.responseTimeMs = Date.now() - startTime;
+
+    return results;
+
+  } catch (error) {
+    Logger.log('sendSatelliteAlertSMS error: ' + error.toString());
+    return {
+      success: false,
+      error: error.toString(),
+      responseTimeMs: Date.now() - startTime
+    };
+  }
+}
+
+/**
+ * Update Last_SMS_Sent column in SATELLITE_ALERTS sheet
+ */
+function updateSatelliteAlertSMSSent(fieldId, alertType) {
+  try {
+    const sheet = getSatelliteAlertsSheet();
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    // Check if Last_SMS_Sent column exists, if not add it
+    let lastSmsCol = headers.indexOf('Last_SMS_Sent');
+    if (lastSmsCol === -1) {
+      // Add the column
+      const lastCol = sheet.getLastColumn();
+      sheet.getRange(1, lastCol + 1).setValue('Last_SMS_Sent');
+      sheet.getRange(1, lastCol + 1).setFontWeight('bold');
+      lastSmsCol = lastCol; // 0-indexed for new column
+    }
+
+    const now = new Date().toISOString();
+
+    // Update all matching alerts
+    for (let i = data.length - 1; i >= 1; i--) {
+      if (data[i][1] === fieldId && data[i][3] === alertType && data[i][6] === 'OPEN') {
+        sheet.getRange(i + 1, lastSmsCol + 1).setValue(now);
+      }
+    }
+
+    return { success: true };
+
+  } catch (error) {
+    Logger.log('updateSatelliteAlertSMSSent error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Log satellite SMS to SMS_LOG sheet
+ */
+function logSatelliteSMSToSheet(data) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('SMS_LOG');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('SMS_LOG');
+      sheet.appendRow(['Timestamp', 'Type', 'To', 'Message', 'Status', 'Twilio_SID']);
+      sheet.getRange(1, 1, 1, 6).setFontWeight('bold');
+    }
+
+    sheet.appendRow([
+      data.timestamp,
+      'SATELLITE_' + data.alertType,
+      data.recipientCount + ' recipients',
+      data.message,
+      'SENT',
+      ''
+    ]);
+
+    return { success: true };
+
+  } catch (error) {
+    Logger.log('logSatelliteSMSToSheet error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Process all pending satellite alerts and send SMS for critical ones
+ * This function is called by a scheduled trigger or manually
+ *
+ * @returns {Object} Results with counts and details
+ */
+function processSatelliteAlertQueue() {
+  const startTime = Date.now();
+  const results = {
+    success: true,
+    alertsProcessed: 0,
+    smsSent: 0,
+    skipped: 0,
+    errors: [],
+    details: []
+  };
+
+  try {
+    // 1. Get all OPEN satellite alerts
+    const alertsResult = getSatelliteAlerts({ status: 'OPEN' });
+    if (!alertsResult.success) {
+      return {
+        success: false,
+        error: alertsResult.error
+      };
+    }
+
+    const alerts = alertsResult.alerts;
+    results.totalAlerts = alerts.length;
+
+    // 2. Group alerts by field to avoid spam
+    const alertsByField = {};
+    alerts.forEach(alert => {
+      if (!alertsByField[alert.fieldId]) {
+        alertsByField[alert.fieldId] = [];
+      }
+      alertsByField[alert.fieldId].push(alert);
+    });
+
+    // 3. Process each field's alerts
+    for (const fieldId in alertsByField) {
+      const fieldAlerts = alertsByField[fieldId];
+
+      // Get field name
+      let fieldName = fieldId;
+      try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        const fieldsSheet = ss.getSheetByName('REF_Fields');
+        if (fieldsSheet) {
+          const fieldData = fieldsSheet.getDataRange().getValues();
+          for (let i = 1; i < fieldData.length; i++) {
+            if (fieldData[i][0] === fieldId || fieldData[i][1] === fieldId) {
+              fieldName = fieldData[i][1] || fieldData[i][0] || fieldId;
+              break;
+            }
+          }
+        }
+      } catch (e) {}
+
+      // Find the most severe alert to send
+      let mostSevereAlert = fieldAlerts[0];
+      for (const alert of fieldAlerts) {
+        if (alert.severity === 'CRITICAL' ||
+            (alert.severity === 'WARNING' && mostSevereAlert.severity !== 'CRITICAL')) {
+          mostSevereAlert = alert;
+        }
+      }
+
+      // Map alert type to template type
+      let templateType = mostSevereAlert.type;
+      if (templateType === 'NDVI_DROP') templateType = 'CRITICAL_NDVI';
+      if (!SATELLITE_SMS_TEMPLATES[templateType]) {
+        templateType = mostSevereAlert.severity === 'CRITICAL' ? 'CRITICAL_NDVI' : 'LOW_NDVI';
+      }
+
+      // Parse details for NDVI/NDMI values
+      let details = {};
+      try {
+        details = typeof mostSevereAlert.details === 'string' ?
+          JSON.parse(mostSevereAlert.details) : mostSevereAlert.details;
+      } catch (e) {
+        details = {};
+      }
+
+      // Check if we should send SMS (priority-based)
+      const template = SATELLITE_SMS_TEMPLATES[templateType];
+      const shouldSendForPriority = template.priority === 'IMMEDIATE' ||
+        (template.priority === 'HIGH' && mostSevereAlert.severity === 'CRITICAL');
+
+      if (!shouldSendForPriority) {
+        results.skipped++;
+        results.details.push({
+          fieldId: fieldId,
+          action: 'skipped',
+          reason: 'Alert priority not high enough for SMS: ' + template.priority
+        });
+        continue;
+      }
+
+      // Send SMS
+      results.alertsProcessed++;
+      const smsResult = sendSatelliteAlertSMS(templateType, fieldId, {
+        fieldName: fieldName,
+        ndvi: details.ndvi,
+        ndmi: details.ndmi,
+        ratePerDay: details.ratePerDay
+      });
+
+      if (smsResult.success) {
+        if (smsResult.skipped) {
+          results.skipped++;
+          results.details.push({
+            fieldId: fieldId,
+            action: 'skipped',
+            reason: smsResult.reason
+          });
+        } else {
+          results.smsSent += smsResult.messagesSent;
+          results.details.push({
+            fieldId: fieldId,
+            action: 'sent',
+            recipients: smsResult.recipients,
+            alertType: templateType
+          });
+        }
+      } else {
+        results.errors.push({
+          fieldId: fieldId,
+          error: smsResult.error
+        });
+      }
+    }
+
+    results.responseTimeMs = Date.now() - startTime;
+    return results;
+
+  } catch (error) {
+    Logger.log('processSatelliteAlertQueue error: ' + error.toString());
+    return {
+      success: false,
+      error: error.toString(),
+      responseTimeMs: Date.now() - startTime
+    };
+  }
+}
+
+/**
+ * Integrate satellite SMS with NotificationBatchingSystem
+ * Queue a satellite alert as a notification
+ *
+ * @param {string} alertType - Type of satellite alert
+ * @param {string} fieldId - Field ID
+ * @param {Object} data - Alert data
+ */
+function queueSatelliteNotification(alertType, fieldId, data) {
+  try {
+    const template = SATELLITE_SMS_TEMPLATES[alertType];
+    if (!template) {
+      return { success: false, error: 'Unknown alert type: ' + alertType };
+    }
+
+    // Build message
+    let message = template.emoji + ' ' + template.template;
+    message = message.replace('{field}', data.fieldName || fieldId);
+    message = message.replace('{ndvi}', data.ndvi !== undefined ? parseFloat(data.ndvi).toFixed(2) : 'N/A');
+    message = message.replace('{ndmi}', data.ndmi !== undefined ? parseFloat(data.ndmi).toFixed(2) : 'N/A');
+    message = message.replace('{rate}', data.ratePerDay !== undefined ? Math.round(data.ratePerDay * 100) : 'N/A');
+
+    // Get recipients
+    const recipients = getSatelliteSMSRecipients(fieldId);
+
+    // Determine notification priority
+    let priority = 'MEDIUM';
+    if (template.priority === 'IMMEDIATE') priority = 'IMMEDIATE';
+    else if (template.priority === 'HIGH') priority = 'HIGH';
+
+    // Queue notification for each recipient (using NotificationBatchingSystem if available)
+    const results = [];
+    for (const recipient of recipients) {
+      if (typeof queueNotification === 'function') {
+        const result = queueNotification(
+          priority,
+          'SATELLITE_' + alertType,
+          recipient.id,
+          message,
+          {
+            fieldId: fieldId,
+            fieldName: data.fieldName,
+            alertType: alertType,
+            ndvi: data.ndvi,
+            ndmi: data.ndmi,
+            source: 'satellite'
+          }
+        );
+        results.push(result);
+      }
+    }
+
+    return {
+      success: true,
+      queued: results.length,
+      results: results
+    };
+
+  } catch (error) {
+    Logger.log('queueSatelliteNotification error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Setup satellite SMS trigger
+ * Creates a trigger to process satellite alert queue every 2 hours
+ */
+function setupSatelliteSMSTrigger() {
+  // Delete existing triggers for this function
+  ScriptApp.getProjectTriggers().forEach(trigger => {
+    if (trigger.getHandlerFunction() === 'processSatelliteAlertQueue') {
+      ScriptApp.deleteTrigger(trigger);
+    }
+  });
+
+  // Create new trigger every 2 hours
+  ScriptApp.newTrigger('processSatelliteAlertQueue')
+    .timeBased()
+    .everyHours(2)
+    .create();
+
+  return {
+    success: true,
+    message: 'Satellite SMS trigger created for every 2 hours'
+  };
+}
+
+/**
+ * Remove satellite SMS trigger
+ */
+function removeSatelliteSMSTrigger() {
+  let removed = 0;
+  ScriptApp.getProjectTriggers().forEach(trigger => {
+    if (trigger.getHandlerFunction() === 'processSatelliteAlertQueue') {
+      ScriptApp.deleteTrigger(trigger);
+      removed++;
+    }
+  });
+
+  return {
+    success: true,
+    removed: removed
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+// END: SATELLITE SMS ALERT SYSTEM
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════

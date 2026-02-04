@@ -125,6 +125,65 @@
 **SATELLITE_READINGS:**
 | Reading_ID | Field_ID | Polygon_ID | Date | NDVI_Mean | NDVI_Min | NDVI_Max | NDMI | EVI | Cloud_Pct | Image_URL | Data_Source | Quality | Created_At |
 
+## G. Weed Outbreak Detection System (NEW - Feb 4, 2026)
+
+Detects weed outbreaks on fallow/harvested fields using satellite NDVI data.
+
+### Weed Outbreak API Endpoints (in MERGED TOTAL.js)
+
+| Endpoint | Method | Purpose | Status |
+|----------|--------|---------|--------|
+| `detectWeedOutbreak?fieldId={id}` | GET | Check single field for weed outbreak | READY |
+| `runWeedOutbreakScan` | GET | Batch scan all fallow fields | READY |
+| `getFieldPlantingStatus?fieldId={id}` | GET | Get field's current planting status | READY |
+| `getWeedOutbreakAlerts` | GET | Get weed outbreak alerts | READY |
+| `setupWeedOutbreakTrigger` | POST | Setup daily 8 AM trigger | READY |
+| `dailyWeedOutbreakCheck` | POST | Manually trigger scan | READY |
+| `createWeedingTask` | POST | Create weeding task | READY |
+
+### Weed Outbreak Detection Functions (in MERGED TOTAL.js)
+
+| Function | Purpose | Status |
+|----------|---------|--------|
+| `detectWeedOutbreak(fieldId)` | Check NDVI on fallow fields for weed growth | READY |
+| `runWeedOutbreakScan()` | Batch scan all fallow/harvested fields | READY |
+| `getFieldPlantingStatus(fieldId)` | Determine field status from PLANNING_2026 | READY |
+| `createWeedingTask(fieldId, severity, outbreak)` | Auto-create weeding task | READY |
+| `sendWeedOutbreakSMS(fieldId, outbreak)` | SMS alert for critical outbreaks | READY |
+| `createWeedOutbreakAlert(fieldId, outbreak, taskId)` | Record alert in sheet | READY |
+| `getWeedOutbreakAlerts(params)` | Retrieve weed alerts with filters | READY |
+| `dailyWeedOutbreakCheck()` | Scheduled daily trigger (8 AM) | READY |
+| `setupWeedOutbreakTrigger()` | Setup trigger | READY |
+| `addWeedOutbreakAlertsToProactive(alerts)` | Integrate with proactive alerts | READY |
+
+### Detection Thresholds
+
+| Threshold | Value | Description |
+|-----------|-------|-------------|
+| WARNING | NDVI > 0.25 | Vegetation detected on fallow field |
+| CRITICAL | NDVI > 0.40 | Significant weed infestation |
+| Grace Period | 14 days | Days after harvest before checking |
+
+### Field Statuses Monitored
+
+| Status | Description | Checked |
+|--------|-------------|---------|
+| `fallow` | No crops, no activity | Yes |
+| `harvested` | >14 days since harvest | Yes |
+| `bare` | Empty field | Yes |
+| `between_crops` | Between planting cycles | Yes |
+| `cover_crop` | Has cover crop | No (excluded) |
+| `planted` | Active crop | No (excluded) |
+| `recently_harvested` | <14 days since harvest | No (grace period) |
+
+### Integration Points
+
+- Uses `getLatestReading(fieldId)` for satellite data
+- Uses `createUnifiedTask()` for task creation
+- Uses `sendSMS()` for notifications
+- Integrated with `generateProactiveAlerts()` for proactive alert display
+- Stores alerts in SATELLITE_ALERTS sheet
+
 ---
 
 # PART 2: UNIFIED TASK MANAGEMENT SYSTEM (NEW - Feb 2-3, 2026)

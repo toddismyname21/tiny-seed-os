@@ -40,6 +40,336 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-02-04 - Backend_Claude (Satellite SMS Alert System)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Added Satellite SMS Alert System for critical satellite-detected issues
+
+### Functions Added (in MERGED TOTAL.js)
+
+**SMS Templates:**
+- `SATELLITE_SMS_TEMPLATES` - Constant object defining SMS templates for 6 alert types:
+  - CRITICAL_NDVI: Immediate priority for critical vegetation stress
+  - WATER_STRESS: High priority for irrigation needs
+  - WEED_OUTBREAK: High priority for fallow field vegetation
+  - HARVEST_DETECTED: Medium priority for harvest confirmation
+  - RAPID_DECLINE: Immediate priority for pest/disease detection
+  - LOW_NDVI: High priority for general vegetation health
+
+**Core Functions:**
+- `sendSatelliteAlertSMS(alertType, fieldId, data)` - Main function to send formatted SMS
+  - Uses existing sendSMS() function (no duplication)
+  - Implements 24-hour deduplication
+  - Logs to SMS_LOG sheet
+  - Returns success/error with recipient details
+
+- `getSatelliteSMSRecipients(fieldId)` - Get manager(s) for a specific field
+  - Always includes OWNER_PHONE from script properties
+  - Checks REF_Fields for field-specific manager
+  - Falls back to all managers/admins if no field manager
+
+- `shouldSendSatelliteSMS(fieldId, alertType)` - Deduplication check
+  - Uses CacheService for fast lookup (86400 second TTL)
+  - Falls back to SATELLITE_ALERTS sheet Last_SMS_Sent column
+  - Returns shouldSend boolean with reason
+
+- `processSatelliteAlertQueue()` - Batch process pending alerts
+  - Gets all OPEN satellite alerts
+  - Groups by field to avoid spam
+  - Sends SMS for IMMEDIATE and critical HIGH priority alerts
+  - Returns detailed results with counts
+
+**Support Functions:**
+- `updateSatelliteAlertSMSSent(fieldId, alertType)` - Updates Last_SMS_Sent column
+  - Auto-creates column if missing
+- `logSatelliteSMSToSheet(data)` - Logs satellite SMS to SMS_LOG sheet
+- `queueSatelliteNotification(alertType, fieldId, data)` - Integrates with NotificationBatchingSystem
+
+**Trigger Management:**
+- `setupSatelliteSMSTrigger()` - Creates 2-hour trigger for processSatelliteAlertQueue
+- `removeSatelliteSMSTrigger()` - Removes the trigger
+
+### API Endpoints Added
+
+**GET Endpoints:**
+- `sendSatelliteAlertSMS?alertType={type}&fieldId={id}&fieldName={name}&ndvi={val}&ndmi={val}` - Send SMS for satellite alert
+- `processSatelliteAlertQueue` - Process all pending satellite alerts
+- `getSatelliteSMSRecipients?fieldId={id}` - Get SMS recipients for a field
+- `shouldSendSatelliteSMS?fieldId={id}&alertType={type}` - Check if SMS should be sent (deduplication)
+- `setupSatelliteSMSTrigger` - Setup automated SMS processing trigger
+- `removeSatelliteSMSTrigger` - Remove the trigger
+- `queueSatelliteNotification?alertType={type}&fieldId={id}&...` - Queue alert in NotificationBatchingSystem
+
+### Reason
+Implementing SMS alerts for critical satellite-detected crop issues as requested. This enables immediate notification when satellite monitoring detects critical stress, water issues, or rapid vegetation decline. Uses existing sendSMS() function (no duplication), integrates with existing NotificationBatchingSystem, and implements 24-hour deduplication to prevent alert fatigue.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md - Found existing SMS functions, using existing sendSMS()
+- [x] Searched for similar functions - Using existing getSMSTemplate, sendSMS, queueNotification
+- [x] No duplicates created - Extends existing systems, doesn't duplicate
+
+### Integration Points
+- Uses existing `sendSMS()` function from MERGED TOTAL.js line ~45493
+- Integrates with `queueNotification()` from NotificationBatchingSystem.js
+- Reads from existing SATELLITE_ALERTS sheet
+- Adds Last_SMS_Sent column for deduplication tracking
+- Uses existing `getRecipientPhone()` for phone lookup
+
+---
+
+## 2026-02-04 - Backend_Claude (Weed Outbreak Detection System)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Added complete Weed Outbreak Detection System
+
+### Functions Added (in MERGED TOTAL.js)
+
+**Core Detection:**
+- `detectWeedOutbreak(fieldId)` - Main detection function for a single field
+  - Checks if NDVI > 0.25 on fallow/harvested fields indicates weed growth
+  - Returns outbreak with severity (warning/critical), NDVI value, and recommendations
+- `runWeedOutbreakScan()` - Batch scans ALL fallow/harvested fields
+  - Auto-creates weeding tasks for detected outbreaks
+  - Sends SMS for critical outbreaks
+  - Records alerts in SATELLITE_ALERTS sheet
+
+**Field Status Detection:**
+- `getFieldPlantingStatus(fieldId)` - Determines if field is planted, fallow, or harvested
+  - Checks PLANNING_2026 for active crops
+  - Excludes cover crops from weed detection
+  - Calculates days since last harvest
+  - Returns shouldCheckForWeeds boolean
+
+**Task Creation:**
+- `createWeedingTask(fieldId, severity, outbreak)` - Creates unified task for weeding
+  - Integrates with Unified Task System
+  - Sets weather-dependent flag (cultivation needs dry conditions)
+  - Priority based on severity (critical = high, warning = medium)
+
+**Alert Management:**
+- `createWeedOutbreakAlert(fieldId, outbreak, taskId)` - Records alert in sheet
+- `getWeedOutbreakAlerts(params)` - Retrieves weed alerts with filtering
+
+**Notifications:**
+- `sendWeedOutbreakSMS(fieldId, outbreak)` - Sends SMS for critical outbreaks
+- `addWeedOutbreakAlertsToProactive(existingAlerts)` - Integrates with proactive alerts
+
+**Scheduled Triggers:**
+- `dailyWeedOutbreakCheck()` - Daily trigger function for automated scans
+- `setupWeedOutbreakTrigger()` - Setup 8 AM daily trigger (after scouting check at 7 AM)
+
+**Utility Functions:**
+- `findColumnIndex(headers, possibleNames)` - Helper to find column by possible names
+- `parseDate(value)` - Helper to parse various date formats
+
+### API Endpoints Added
+
+**GET Endpoints:**
+- `detectWeedOutbreak?fieldId={id}` - Check single field for weed outbreak
+- `runWeedOutbreakScan` - Batch scan all fallow fields (creates tasks automatically)
+- `getFieldPlantingStatus?fieldId={id}` - Get field's current planting status
+- `getWeedOutbreakAlerts?status={open|resolved}&fieldId={id}` - Get weed outbreak alerts
+
+**POST Endpoints:**
+- `setupWeedOutbreakTrigger` - Setup daily weed outbreak detection trigger
+- `dailyWeedOutbreakCheck` - Manually trigger weed outbreak scan
+- `createWeedingTask` - Manually create weeding task
+
+### Detection Logic
+
+**Thresholds:**
+- Warning: NDVI > 0.25 on fallow field
+- Critical: NDVI > 0.40 on fallow field
+- Grace period: 14 days post-harvest before checking
+
+**Field Status Types Monitored:**
+- `fallow` - No crops, no recent activity
+- `harvested` - Recently harvested (>14 days ago)
+- `bare` - Empty field
+- `empty` - No plantings
+- `between_crops` - Between planting cycles
+- `post-harvest` - Post-harvest period
+
+**Excluded from Detection:**
+- Fields with active crops
+- Fields with cover crops (clover, rye, vetch)
+- Recently harvested fields (<14 days)
+
+### Integration Points
+- Uses existing `getLatestReading(fieldId)` for satellite data
+- Uses existing `createUnifiedTask()` for task creation
+- Uses existing `sendSMS()` for notifications
+- Uses existing `getSatelliteAlertsSheet()` for alert storage
+- Integrates with `generateProactiveAlerts()` via new function call
+
+### Functions Modified
+- `generateProactiveAlerts()` - Added section 6 to include weed outbreak alerts
+
+### Reason
+Implementing Weed Outbreak Detection as specified in SATELLITE_INTEGRATION_RESEARCH.md Part 3:
+- NDVI > 0.25 on bare/fallow field = vegetation growth = likely weeds
+- Integrates with Unified Task System to auto-create weeding tasks
+- Sends SMS alerts for critical outbreaks (NDVI > 0.40)
+- Scheduled daily trigger runs at 8 AM (after satellite scouting at 7 AM)
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md - No existing weed detection
+- [x] Searched for similar functions - Confirmed no weed/fallow detection exists
+- [x] No duplicates created - This is new weed outbreak detection infrastructure
+
+---
+
+## 2026-02-04 - Backend_Claude (Tillage & Harvest Detection)
+
+### Files Modified
+- `apps_script/SatelliteService.js` - Added tillage/harvest detection system
+
+### Functions Added
+
+**Core Detection:**
+- `detectTillageOrHarvest(fieldId)` - Main detection function that triggers when NDVI drops >40% in 5 days. Distinguishes between:
+  - WEATHER_DAMAGE (storm/hail events)
+  - HARVEST_DETECTED (crop at >90% maturity)
+  - TILLAGE_DETECTED (crop not mature, field activity)
+  - FIELD_ACTIVITY_DETECTED (no planting data available)
+
+**Weather Integration:**
+- `checkForStormEvent(fieldId, days)` - Queries Open-Meteo historical weather API for severe weather events (hail, thunderstorms, high winds, heavy rain) that could explain NDVI drops
+
+**Crop Growth Stage:**
+- `getCropGrowthStage(fieldId)` - Integrates with PLANNING_2026 sheet and GDD system to determine crop maturity percentage. Uses DTM (days to maturity) as fallback when GDD data unavailable.
+
+**Data Retrieval:**
+- `getLatestReading(fieldId)` - Get most recent satellite reading for a field
+- `getReadingDaysAgo(fieldId, days)` - Get historical reading for comparison
+
+**Auto-Logging:**
+- `logHarvestFromSatellite(fieldId, date, cropStage)` - Auto-logs detected harvests to HARVEST_LOG sheet (verifies no duplicate within 3 days)
+- `logTillageEvent(fieldId, date, cropStage)` - Logs tillage events to new TILLAGE_EVENTS sheet
+
+**Alerting:**
+- `logTillageHarvestAlert(fieldId, detection)` - Creates proactive alerts for detected events (integrates with existing createProactiveAlert system)
+
+**Batch Processing:**
+- `runTillageHarvestScan()` - Batch scan all active satellite fields for tillage/harvest events
+
+**Scheduled Triggers:**
+- `setupTillageHarvestTrigger()` - Creates 7 AM daily trigger (after satellite fetch at 6 AM)
+- `removeTillageHarvestTrigger()` - Removes the scheduled trigger
+
+**Modified Functions:**
+- `detectProblems(fieldId)` - Now integrates tillage/harvest detection when NDVI drop >40% is detected
+- `handleSatelliteAPI(action, params, postData)` - Added 6 new endpoint cases
+
+### API Endpoints Added
+
+**GET Endpoints:**
+- `detectTillageOrHarvest?fieldId={id}` - Detect tillage or harvest for a specific field
+- `runTillageHarvestScan` - Batch scan all fields
+- `getCropGrowthStage?fieldId={id}` - Get crop maturity percentage
+- `checkForStormEvent?fieldId={id}&days={n}` - Check for recent severe weather
+- `setupTillageHarvestTrigger` - Setup daily scan trigger
+- `removeTillageHarvestTrigger` - Remove scan trigger
+
+### New Sheet Created
+- `TILLAGE_EVENTS` - Stores detected tillage events with columns:
+  - Event_ID, Field_ID, Event_Date, Detection_Date, Event_Type
+  - Previous_Crop, Growth_Stage_Pct, NDVI_Before, NDVI_After
+  - Verified, Verified_By, Notes, Source
+
+### Reason
+Implements satellite-based tillage/harvest detection as specified in SATELLITE_INTEGRATION_RESEARCH.md Part 3: Alert System Design. This allows the system to automatically detect when fields are tilled or harvested based on >40% NDVI drops within 5 days, distinguishing between weather damage, harvest (if crop is mature), and tillage (if crop is not mature).
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (no existing tillage/harvest detection)
+- [x] No duplicates created - integrates with existing:
+  - `getFieldReadings()` for satellite data
+  - `getGDDProgress()` for growth stage
+  - `createProactiveAlert()` for alert system
+  - `logHarvestWithDetails()` for harvest logging
+
+---
+
+## 2026-02-04 - Frontend_Claude (Push Notifications for Satellite Alerts)
+
+### Files Modified
+- `index.html` - Added push notification system for satellite alerts
+
+### CSS Added
+- `.satellite-alert-popup` - Styled in-app notification popup for satellite alerts
+- `.satellite-alert-popup.ndvi-drop` - Red border for NDVI drop alerts
+- `.satellite-alert-popup.water-stress` - Blue border for water stress alerts
+- `.satellite-alert-popup.rapid-decline` - Dark red border for rapid decline alerts
+- `.satellite-alert-popup.low-ndvi` - Orange border for low NDVI alerts
+- `@keyframes slideInRight` - Animation for notification entry
+- `@keyframes slideOutRight` - Animation for notification dismissal
+- `.push-notification-toggle` - Toggle switch styling for settings
+- `.push-permission-prompt` - Permission request prompt styling
+- Mobile responsive styles for alerts on small screens
+
+### HTML Added
+- Push notification toggle in Settings Modal with:
+  - Toggle switch for "Satellite Alerts (Push)"
+  - Permission prompt UI
+  - Status text display
+
+### Functions Added (in index.html)
+- `initPushNotifications()` - Initialize push notification system on page load
+- `handleServiceWorkerMessage(event)` - Handle messages from service worker
+- `getExistingSubscription()` - Get existing push subscription from browser
+- `urlBase64ToUint8Array(base64String)` - Convert VAPID key for subscription
+- `requestNotificationPermission()` - Request browser notification permission
+- `subscribeToPushNotifications()` - Subscribe to push manager
+- `unsubscribeFromPushNotifications()` - Unsubscribe from push
+- `togglePushNotifications()` - Toggle handler for settings checkbox
+- `sendSubscriptionToServer(subscription)` - Send subscription to backend
+- `removeSubscriptionFromServer(subscription)` - Remove subscription from backend
+- `updatePushStatusUI(permission)` - Update UI based on permission state
+- `startSatelliteAlertPolling()` - Start 5-minute interval for alert checks
+- `stopSatelliteAlertPolling()` - Stop alert polling
+- `checkForSatelliteAlerts()` - Fetch open satellite alerts from API
+- `getAlertIcon(type)` - Get appropriate icon for alert type
+- `getAlertClass(type)` - Get CSS class for alert type
+- `showSatelliteNotification(alert)` - Display in-app notification popup
+- `dismissSatelliteAlert(element)` - Dismiss notification with animation
+- `viewOnMap(fieldId)` - Navigate to satellite-map.html with field parameter
+- `testSatelliteNotification()` - Development function to test notifications
+- `savePushPreference(enabled)` - Save push preference to localStorage
+
+### Configuration Added
+- `VAPID_PUBLIC_KEY` - Public key for push subscription (demo key, replace in production)
+- `pushSubscription` - State variable for current subscription
+- `satelliteAlertCheckInterval` - Interval ID for alert polling
+- `lastAlertCheckTime` - Timestamp for filtering new alerts
+
+### Integration Points
+- Uses existing `getSatelliteAlerts` API endpoint
+- Integrates with existing service worker (`sw.js`) push handler
+- Links to `web_app/satellite-map.html` for viewing alerts on map
+- Uses existing `showToast()` function for feedback
+
+### Reason
+Implementing browser push notifications for satellite alerts as part of the Satellite Integration Initiative. This enables farmers to receive real-time notifications when satellite imagery detects crop health issues (NDVI drops, water stress, etc.) even when not actively viewing the dashboard.
+
+### Features
+1. In-app notification popups with slide-in animation
+2. Push notification subscription via browser Push API
+3. Settings toggle in Settings modal
+4. Permission prompt with clear instructions
+5. Auto-dismiss after 15 seconds
+6. "View Map" button to navigate directly to satellite map
+7. Mobile responsive design
+8. Polling fallback for browsers without push support
+9. LocalStorage persistence of user preference
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions - No existing push notification code
+- [x] No duplicates created - This is new push notification infrastructure
+
+---
+
 ## 2026-02-03 - Backend_Claude (Satellite Smart Scouting Integration)
 
 ### Files Modified
