@@ -3162,7 +3162,12 @@
                         email: c.Email,
                         phone: c.Phone,
                         orders: parseInt(c.Total_Orders) || 0,
-                        revenue: parseFloat(c.Total_Spent || c.Total_Revenue) || 0
+                        revenue: parseFloat(c.Total_Spent || c.Total_Revenue) || 0,
+                        // CSA revenue data
+                        csaRevenue: parseFloat(c.CSA_Revenue) || 0,
+                        csaOrders: parseInt(c.CSA_Orders) || 0,
+                        csaShares: c.CSA_Shares || [],
+                        lifetimeValue: parseFloat(c.Lifetime_Value) || 0
                     }));
 
                     // Apply type filter
@@ -3198,27 +3203,46 @@
             grid.innerHTML = customers.map(customer => {
                 const name = customer.name || customer.email || 'Unknown';
                 const initial = name.charAt(0).toUpperCase();
+                const csaRevenue = customer.csaRevenue || 0;
+                const regularRevenue = customer.revenue || 0;
+                const totalRevenue = regularRevenue + csaRevenue;
+                const hasCSA = csaRevenue > 0 || (customer.csaShares && customer.csaShares.length > 0);
+
+                // Format CSA share info
+                let csaBadge = '';
+                if (hasCSA) {
+                    const shareCount = customer.csaOrders || 1;
+                    csaBadge = `<span style="background: #8b5cf6; color: white; padding: 2px 8px; border-radius: 4px; font-size: 10px; margin-left: 6px;">CSA ${shareCount > 1 ? '×' + shareCount : ''}</span>`;
+                }
+
                 return `
                 <div class="customer-card">
                     <div class="customer-card-header">
                         <div class="customer-card-avatar">${initial}</div>
                         <div class="customer-card-info">
-                            <h3>${name}</h3>
+                            <h3>${name}${csaBadge}</h3>
                             <span class="customer-type-badge ${(customer.type || 'direct').toLowerCase()}">${customer.type || 'Direct'}</span>
                         </div>
                     </div>
                     <div class="customer-card-stats">
                         <div class="customer-stat">
+                            <div class="customer-stat-value">$${totalRevenue >= 1000 ? (totalRevenue / 1000).toFixed(1) + 'k' : totalRevenue.toFixed(0)}</div>
+                            <div class="customer-stat-label">Lifetime</div>
+                        </div>
+                        ${hasCSA ? `
+                        <div class="customer-stat">
+                            <div class="customer-stat-value" style="color: #8b5cf6;">$${csaRevenue >= 1000 ? (csaRevenue / 1000).toFixed(1) + 'k' : csaRevenue.toFixed(0)}</div>
+                            <div class="customer-stat-label">CSA</div>
+                        </div>
+                        ` : `
+                        <div class="customer-stat">
                             <div class="customer-stat-value">${customer.orders || 0}</div>
                             <div class="customer-stat-label">Orders</div>
                         </div>
+                        `}
                         <div class="customer-stat">
-                            <div class="customer-stat-value">$${(customer.revenue || 0) >= 1000 ? ((customer.revenue || 0) / 1000).toFixed(1) + 'k' : (customer.revenue || 0).toFixed(0)}</div>
-                            <div class="customer-stat-label">Revenue</div>
-                        </div>
-                        <div class="customer-stat">
-                            <div class="customer-stat-value">$${(customer.orders || 0) > 0 ? Math.round((customer.revenue || 0) / customer.orders) : 0}</div>
-                            <div class="customer-stat-label">Avg Order</div>
+                            <div class="customer-stat-value">$${regularRevenue >= 1000 ? (regularRevenue / 1000).toFixed(1) + 'k' : regularRevenue.toFixed(0)}</div>
+                            <div class="customer-stat-label">Other</div>
                         </div>
                     </div>
                     <div class="customer-card-contact">
@@ -3421,8 +3445,10 @@
                     if (activeFilter === 'active') return (m.status || '').toLowerCase() === 'active';
                     if (activeFilter === 'paused') return (m.status || '').toLowerCase() === 'paused';
                     if (activeFilter === 'unconfirmed') return !m.participationConfirmed;
-                    if (activeFilter === 'week-a') return m.biweeklyWeek === 'A';
-                    if (activeFilter === 'week-b') return m.biweeklyWeek === 'B';
+                    // Week A includes 'A' and 'BOTH' (weekly members appear in both weeks)
+                    if (activeFilter === 'week-a') return m.biweeklyWeek === 'A' || m.biweeklyWeek === 'BOTH';
+                    // Week B includes 'B' and 'BOTH' (weekly members appear in both weeks)
+                    if (activeFilter === 'week-b') return m.biweeklyWeek === 'B' || m.biweeklyWeek === 'BOTH';
                     if (activeFilter === 'vegetable') return (m.share || '').toLowerCase().includes('vegetable');
                     if (activeFilter === 'flower') return (m.share || '').toLowerCase().includes('flower');
                     return true;
@@ -3454,8 +3480,9 @@
 
             // Update filter badges
             const unconfirmedCount = members.filter(m => !m.participationConfirmed).length;
-            const weekACount = members.filter(m => m.biweeklyWeek === 'A').length;
-            const weekBCount = members.filter(m => m.biweeklyWeek === 'B').length;
+            // Week counts include 'BOTH' (weekly members appear in both weeks)
+            const weekACount = members.filter(m => m.biweeklyWeek === 'A' || m.biweeklyWeek === 'BOTH').length;
+            const weekBCount = members.filter(m => m.biweeklyWeek === 'B' || m.biweeklyWeek === 'BOTH').length;
 
             const unconfirmedTab = document.querySelector('[data-csa-filter="unconfirmed"]');
             if (unconfirmedTab) {
@@ -3483,9 +3510,15 @@
 
                 // Frequency display with Week A/B badge
                 let frequencyDisplay = member.frequency || 'Weekly';
-                if (member.frequency === 'Biweekly' && member.biweeklyWeek) {
-                    const weekColor = member.biweeklyWeek === 'A' ? '#1976d2' : '#c2185b';
-                    frequencyDisplay = `Biweekly <span style="background: ${weekColor}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 4px;">Week ${member.biweeklyWeek}</span>`;
+                if ((member.frequency || '').toLowerCase() === 'biweekly' || (member.frequency || '').toLowerCase() === 'bi-weekly') {
+                    if (member.biweeklyWeek === 'A' || member.biweeklyWeek === 'B') {
+                        const weekColor = member.biweeklyWeek === 'A' ? '#1976d2' : '#c2185b';
+                        frequencyDisplay = `Biweekly <span style="background: ${weekColor}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 4px;">Week ${member.biweeklyWeek}</span>`;
+                    } else {
+                        frequencyDisplay = `Biweekly <span style="background: #757575; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 4px;">Unassigned</span>`;
+                    }
+                } else if ((member.frequency || '').toLowerCase() === 'weekly' || member.biweeklyWeek === 'BOTH') {
+                    frequencyDisplay = `Weekly <span style="background: #43a047; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 4px;">A+B</span>`;
                 }
 
                 // Linked orders indicator

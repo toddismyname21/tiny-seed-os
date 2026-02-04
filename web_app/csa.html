@@ -1257,6 +1257,16 @@
         .box-status.ready { background: var(--primary-bg); color: var(--primary-darker); }
         .box-status.pending { background: #fef3c7; color: #92400e; }
 
+        /* Flex Balance Badge */
+        .flex-balance-badge {
+            background: var(--primary-bg);
+            color: var(--primary-darker);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
         .box-deadline {
             background: #fef3c7;
             padding: 12px 16px;
@@ -2239,12 +2249,37 @@
                         </div>
                     </div>
 
+                    <!-- Schedule Info (shows frequency and week for biweekly members) -->
+                    <div id="onboardingScheduleInfo" style="background: #fff3cd; padding: 16px; border-radius: var(--radius-lg); margin-bottom: 16px; display: none;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                            <i class="fas fa-calendar-alt" style="color: #856404;"></i>
+                            <span style="font-weight: 600; color: #856404;" id="onboardingScheduleTitle">Your Pickup Schedule</span>
+                        </div>
+                        <div style="font-size: 13px; color: #856404;" id="onboardingScheduleText">
+                            You're signed up for biweekly pickups.
+                        </div>
+                    </div>
+
                     <!-- First Pickup Info -->
                     <div style="background: var(--primary-bg); padding: 16px; border-radius: var(--radius-lg); text-align: center; margin-bottom: 16px;">
                         <div style="font-size: 24px; margin-bottom: 4px;">📦</div>
-                        <div style="font-size: 12px; color: var(--primary-darker); margin-bottom: 4px;">Your First Pickup</div>
+                        <div style="font-size: 12px; color: var(--primary-darker); margin-bottom: 4px;" id="firstPickupLabel">Your First Pickup</div>
                         <div style="font-weight: 700; font-size: 16px;" id="firstPickupDate">Tuesday, January 21</div>
                         <div style="color: var(--primary-darker); font-size: 13px;" id="firstPickupLocation">4-7pm at Farm Stand</div>
+                    </div>
+
+                    <!-- Last Pickup Info (for biweekly) -->
+                    <div id="lastPickupInfo" style="background: var(--bg-subtle); padding: 12px 16px; border-radius: var(--radius-lg); text-align: center; margin-bottom: 16px; display: none;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-size: 11px; color: var(--text-secondary);">Last Pickup</div>
+                                <div style="font-weight: 600; font-size: 14px;" id="lastPickupDate">--</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 11px; color: var(--text-secondary);">Total Pickups</div>
+                                <div style="font-weight: 600; font-size: 14px;" id="totalPickupsCount">--</div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Confirmation Checkbox -->
@@ -2476,6 +2511,85 @@
                 </div>
             </div>
 
+            <!-- FLEX CART SECTION (shown for Flex members instead of standard box) -->
+            <div class="section" id="flexCartSection" style="display: none;">
+                <div class="section-header">
+                    <h2 class="section-title">Your Weekly Order</h2>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="flex-balance-badge" id="flexBalanceBadge">Balance: $0.00</span>
+                    </div>
+                </div>
+
+                <!-- Flex Cart Card -->
+                <div class="box-card" id="flexCartCard">
+                    <div class="box-header" style="border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 12px;">
+                        <div>
+                            <div class="box-week" id="flexWeek">Week of Jan 21</div>
+                            <div class="box-pickup" id="flexPickup">
+                                <i class="fas fa-map-marker-alt"></i>
+                                Pickup: Tuesday, 4-7pm
+                            </div>
+                        </div>
+                        <span class="box-status" id="flexOrderStatus">Not Submitted</span>
+                    </div>
+
+                    <!-- Deadline Warning -->
+                    <div class="flex-deadline" id="flexDeadline" style="background: #fff3cd; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-clock" style="color: #856404;"></i>
+                            <span style="color: #856404; font-weight: 500;">Order by <span id="flexDeadlineTime">Wednesday 5pm</span></span>
+                        </div>
+                        <div style="color: #856404; font-size: 12px; margin-top: 4px;" id="flexDeadlineCountdown">2 days left to customize</div>
+                    </div>
+
+                    <!-- Cart Info Banner -->
+                    <div style="background: var(--primary-bg); padding: 12px; border-radius: 8px; margin-bottom: 12px;">
+                        <div style="display: flex; align-items: center; gap: 8px; color: var(--primary-darker);">
+                            <i class="fas fa-info-circle"></i>
+                            <span style="font-size: 13px;">Your cart starts with this week's farm share. Remove or add items as you like!</span>
+                        </div>
+                    </div>
+
+                    <!-- Cart Items -->
+                    <div class="flex-cart-items" id="flexCartItems">
+                        <!-- Items loaded dynamically -->
+                        <div class="flex-cart-loading">
+                            <div class="skeleton skeleton-text" style="width: 100%; height: 60px; margin-bottom: 8px;"></div>
+                            <div class="skeleton skeleton-text" style="width: 100%; height: 60px; margin-bottom: 8px;"></div>
+                            <div class="skeleton skeleton-text" style="width: 100%; height: 60px;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Add More Items Button -->
+                    <button class="btn btn-secondary" onclick="openAddItemsModal()" style="width: 100%; margin-top: 12px; margin-bottom: 16px;">
+                        <i class="fas fa-plus"></i>
+                        Add More Items
+                    </button>
+
+                    <!-- Cart Summary -->
+                    <div class="flex-cart-summary" style="border-top: 2px solid var(--border); padding-top: 12px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="color: var(--text-secondary);">Items in cart:</span>
+                            <span style="font-weight: 600;" id="flexCartItemCount">0</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="color: var(--text-secondary);">Cart total:</span>
+                            <span style="font-weight: 600;" id="flexCartTotal">$0.00</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding-top: 8px; border-top: 1px solid var(--border);">
+                            <span style="font-weight: 600;">Remaining balance:</span>
+                            <span style="font-weight: 700; color: var(--primary);" id="flexRemainingBalance">$0.00</span>
+                        </div>
+                    </div>
+
+                    <!-- Submit Order Button -->
+                    <button class="btn btn-primary" onclick="submitFlexOrder()" style="width: 100%; margin-top: 16px; padding: 16px;" id="submitFlexOrderBtn">
+                        <i class="fas fa-check-circle"></i>
+                        Submit This Week's Order
+                    </button>
+                </div>
+            </div>
+
             <!-- Farmer Updates -->
             <div class="section">
                 <div class="section-header">
@@ -2677,6 +2791,43 @@
                         <span class="settings-label">Time</span>
                         <span class="settings-value" id="accountPickupTime">--</span>
                     </div>
+                    <div class="settings-row">
+                        <span class="settings-label">Frequency</span>
+                        <span class="settings-value" id="accountFrequency">--</span>
+                    </div>
+                    <div class="settings-row" id="accountWeekRow" style="display: none;">
+                        <span class="settings-label">Week Assignment</span>
+                        <span class="settings-value" id="accountWeekAssignment">--</span>
+                    </div>
+                </div>
+
+                <!-- Pickup Schedule Card - Shows actual dates for biweekly members -->
+                <div class="settings-card" id="pickupScheduleCard" style="display: none;">
+                    <div class="settings-title">
+                        <i class="fas fa-calendar-alt" style="margin-right: 8px;"></i>
+                        Your Pickup Schedule
+                    </div>
+                    <div style="background: #fff3cd; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                            <i class="fas fa-info-circle" style="color: #856404;"></i>
+                            <strong style="color: #856404;" id="scheduleNoticeTitle">Biweekly Schedule</strong>
+                        </div>
+                        <p style="margin: 0; color: #856404; font-size: 13px;" id="scheduleNoticeText">
+                            As a biweekly member, you pick up every other week.
+                        </p>
+                    </div>
+                    <div class="settings-row">
+                        <span class="settings-label">First Pickup</span>
+                        <span class="settings-value" id="accountFirstPickup" style="font-weight: 600; color: var(--primary);">--</span>
+                    </div>
+                    <div class="settings-row">
+                        <span class="settings-label">Last Pickup</span>
+                        <span class="settings-value" id="accountLastPickup" style="font-weight: 600; color: var(--primary);">--</span>
+                    </div>
+                    <div class="settings-row">
+                        <span class="settings-label">Total Pickups</span>
+                        <span class="settings-value" id="accountTotalPickups">--</span>
+                    </div>
                 </div>
 
                 <div class="settings-card">
@@ -2857,6 +3008,106 @@
             <div class="modal-footer">
                 <button class="btn btn-primary" onclick="saveNotificationSettings()" style="width: 100%;">
                     Save Preferences
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════════
+         FLEX CSA ONBOARDING MODAL
+         ═══════════════════════════════════════════════════════════════════════════ -->
+    <div class="modal-overlay" id="flexOnboardingModal" style="display: none;">
+        <div class="modal-content" style="max-width: 480px;">
+            <div class="modal-header" style="text-align: center; border-bottom: none; padding-bottom: 0;">
+                <div style="font-size: 48px; margin-bottom: 8px;">🛒</div>
+                <h2 class="modal-title" style="margin: 0;">Welcome to Flex Ordering!</h2>
+            </div>
+            <div class="modal-body" style="padding-top: 12px;">
+                <p style="text-align: center; color: var(--text-secondary); margin-bottom: 20px;">
+                    Your Flex CSA share gives you complete control over your weekly order.
+                </p>
+
+                <div style="background: var(--bg-subtle); padding: 16px; border-radius: var(--radius-lg); margin-bottom: 16px;">
+                    <h3 style="margin: 0 0 12px 0; font-size: 15px;">How it works:</h3>
+                    <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+                        <div style="width: 28px; height: 28px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; flex-shrink: 0;">1</div>
+                        <div>
+                            <div style="font-weight: 500;">Cart Pre-Filled</div>
+                            <div style="font-size: 13px; color: var(--text-secondary);">Your cart starts with this week's farm share items</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+                        <div style="width: 28px; height: 28px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; flex-shrink: 0;">2</div>
+                        <div>
+                            <div style="font-weight: 500;">Customize Freely</div>
+                            <div style="font-size: 13px; color: var(--text-secondary);">Remove items you don't want, add items you do</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+                        <div style="width: 28px; height: 28px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; flex-shrink: 0;">3</div>
+                        <div>
+                            <div style="font-weight: 500;">Submit by Deadline</div>
+                            <div style="font-size: 13px; color: var(--text-secondary);">Order by Wednesday 5pm for that week's pickup</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 12px;">
+                        <div style="width: 28px; height: 28px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; flex-shrink: 0;">4</div>
+                        <div>
+                            <div style="font-weight: 500;">Balance Deducted</div>
+                            <div style="font-size: 13px; color: var(--text-secondary);">Your order total is deducted from your Flex balance</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background: #fff3cd; padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+                    <div style="display: flex; align-items: flex-start; gap: 8px;">
+                        <i class="fas fa-exclamation-triangle" style="color: #856404; margin-top: 2px;"></i>
+                        <div style="font-size: 13px; color: #856404;">
+                            <strong>Important:</strong> If you don't submit an order by the deadline, you won't receive items that week. Your balance carries forward.
+                        </div>
+                    </div>
+                </div>
+
+                <label style="display: flex; align-items: flex-start; gap: 12px; padding: 16px; background: var(--bg-card); border: 2px solid var(--border); border-radius: var(--radius-lg); cursor: pointer;">
+                    <input type="checkbox" id="flexOptInCheckbox" onchange="updateFlexOptInButton()" style="width: 20px; height: 20px; margin-top: 2px; accent-color: var(--primary);">
+                    <div>
+                        <div style="font-weight: 600; color: var(--text-primary);">I understand how Flex ordering works</div>
+                        <div style="font-size: 13px; color: var(--text-secondary);">I'll submit my order each week by the deadline to receive my items.</div>
+                    </div>
+                </label>
+            </div>
+            <div class="modal-footer" style="border-top: none;">
+                <button class="btn btn-primary" id="flexOptInBtn" onclick="completeFlexOptIn()" style="width: 100%; padding: 16px;" disabled>
+                    <i class="fas fa-check"></i>
+                    Start Ordering
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════════
+         ADD FLEX ITEMS MODAL
+         ═══════════════════════════════════════════════════════════════════════════ -->
+    <div class="modal-overlay" id="addFlexItemsModal" style="display: none;">
+        <div class="modal-content" style="max-width: 520px; max-height: 90vh;">
+            <div class="modal-header">
+                <h2 class="modal-title"><i class="fas fa-plus-circle"></i> Add Items</h2>
+                <button class="modal-close" onclick="closeAddItemsModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body" style="padding: 0; max-height: 60vh; overflow-y: auto;">
+                <div id="addItemsCategories">
+                    <!-- Categories loaded dynamically -->
+                    <div style="padding: 20px; text-align: center; color: var(--text-secondary);">
+                        <div class="skeleton skeleton-text" style="width: 100%; height: 60px; margin-bottom: 8px;"></div>
+                        <div class="skeleton skeleton-text" style="width: 100%; height: 60px; margin-bottom: 8px;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeAddItemsModal()" style="flex: 1;">Cancel</button>
+                <button class="btn btn-primary" onclick="addSelectedItemsToCart()" style="flex: 1;">
+                    <i class="fas fa-cart-plus"></i>
+                    Add to Cart (<span id="selectedItemCount">0</span>)
                 </button>
             </div>
         </div>
@@ -3383,6 +3634,77 @@
             document.getElementById('confirmEmail').textContent = m.Email || c.Email || 'Not provided';
             const phone = document.getElementById('phoneInput')?.value || c.Phone || '';
             document.getElementById('confirmPhone').textContent = phone || 'Not provided';
+
+            // Populate schedule info based on frequency and week assignment
+            const frequency = (m.Frequency || 'weekly').toLowerCase();
+            const biweeklyWeek = (m.Biweekly_Week || '').toUpperCase();
+            const scheduleInfo = document.getElementById('onboardingScheduleInfo');
+            const lastPickupInfo = document.getElementById('lastPickupInfo');
+            const seasonInfo = getSeasonDates(m);
+
+            if (frequency === 'biweekly' || frequency === 'bi-weekly') {
+                scheduleInfo.style.display = 'block';
+                lastPickupInfo.style.display = 'block';
+
+                let firstPickupDate, lastPickupDate, totalPickups;
+
+                if (biweeklyWeek === 'A') {
+                    document.getElementById('onboardingScheduleTitle').textContent = 'Week A - Biweekly Pickup';
+                    document.getElementById('onboardingScheduleText').innerHTML =
+                        'You\'re in <strong>Week A</strong> and pick up every other week starting with the <strong>first week</strong> of the season.';
+                    scheduleInfo.style.background = '#d4edda';
+                    scheduleInfo.querySelectorAll('*').forEach(el => { if (el.style) el.style.color = '#155724'; });
+
+                    if (seasonInfo) {
+                        firstPickupDate = new Date(seasonInfo.startDate);
+                        totalPickups = Math.ceil(seasonInfo.totalWeeks / 2);
+                        lastPickupDate = new Date(firstPickupDate);
+                        lastPickupDate.setDate(lastPickupDate.getDate() + ((totalPickups - 1) * 14));
+                    }
+
+                } else if (biweeklyWeek === 'B') {
+                    document.getElementById('onboardingScheduleTitle').textContent = '⚠️ Week B - Important Date Change';
+                    document.getElementById('onboardingScheduleText').innerHTML =
+                        '<strong>Please note:</strong> You\'re in <strong>Week B</strong> and pick up every other week starting with the <strong>SECOND week</strong> of the season. ' +
+                        'Your first pickup is one week later than the season start date.';
+                    scheduleInfo.style.background = '#fff3cd';
+                    scheduleInfo.querySelectorAll('*').forEach(el => { if (el.style) el.style.color = '#856404'; });
+
+                    if (seasonInfo) {
+                        firstPickupDate = new Date(seasonInfo.startDate);
+                        firstPickupDate.setDate(firstPickupDate.getDate() + 7); // Week 2
+                        totalPickups = Math.floor(seasonInfo.totalWeeks / 2);
+                        lastPickupDate = new Date(firstPickupDate);
+                        lastPickupDate.setDate(lastPickupDate.getDate() + ((totalPickups - 1) * 14));
+                    }
+                } else {
+                    document.getElementById('onboardingScheduleTitle').textContent = 'Biweekly Pickup';
+                    document.getElementById('onboardingScheduleText').textContent =
+                        'You\'re signed up for biweekly pickups (every other week). Your week assignment will be confirmed soon.';
+                }
+
+                // Update dates if we have them
+                if (firstPickupDate) {
+                    document.getElementById('firstPickupLabel').textContent = 'Your First Pickup';
+                    document.getElementById('firstPickupDate').textContent = formatDateNice(firstPickupDate);
+                    document.getElementById('lastPickupDate').textContent = formatDateNice(lastPickupDate);
+                    document.getElementById('totalPickupsCount').textContent = totalPickups + ' pickups';
+                }
+
+            } else {
+                // Weekly - show all weeks
+                scheduleInfo.style.display = 'none';
+                lastPickupInfo.style.display = 'none';
+
+                if (seasonInfo) {
+                    document.getElementById('firstPickupDate').textContent = formatDateNice(seasonInfo.startDate);
+                }
+            }
+
+            // Update pickup location
+            const pickupTime = m.Pickup_Time || '4-7pm';
+            const pickupLocation = m.Pickup_Location || 'Farm Stand';
+            document.getElementById('firstPickupLocation').textContent = `${pickupTime} at ${pickupLocation}`;
         }
 
         function updateConfirmButton() {
@@ -3509,7 +3831,14 @@
             updateUI();
             loadSocialPosts();
             loadFlexBalance();
-            loadBoxContents();
+
+            // Initialize Flex UI or standard box based on member type
+            if (isFlexMember()) {
+                initFlexUI();
+            } else {
+                loadBoxContents();
+            }
+
             loadOrders();
             loadVacationHolds();
             checkAlerts();
@@ -3546,8 +3875,132 @@
             document.getElementById('accountPickupLocation').textContent = m.Pickup_Location || '--';
             document.getElementById('accountPickupTime').textContent = m.Pickup_Time || '4-7pm';
 
+            // Frequency and Week Assignment display
+            updatePickupScheduleDisplay(m);
+
             // Season Status Logic
             updateSeasonStatus(m);
+        }
+
+        /**
+         * Update the pickup schedule display based on frequency and week assignment
+         * Shows clear first/last pickup dates for biweekly members
+         */
+        function updatePickupScheduleDisplay(membership) {
+            const frequency = (membership.Frequency || 'weekly').toLowerCase();
+            const biweeklyWeek = (membership.Biweekly_Week || '').toUpperCase();
+
+            // Update frequency display
+            const freqDisplay = document.getElementById('accountFrequency');
+            const weekRow = document.getElementById('accountWeekRow');
+            const weekAssignment = document.getElementById('accountWeekAssignment');
+            const scheduleCard = document.getElementById('pickupScheduleCard');
+
+            if (frequency === 'biweekly' || frequency === 'bi-weekly') {
+                freqDisplay.textContent = 'Biweekly (Every Other Week)';
+
+                // Show week assignment
+                weekRow.style.display = 'flex';
+                if (biweeklyWeek === 'A') {
+                    weekAssignment.innerHTML = '<span style="background: #1976d2; color: white; padding: 4px 12px; border-radius: 4px; font-weight: 600;">Week A</span>';
+                } else if (biweeklyWeek === 'B') {
+                    weekAssignment.innerHTML = '<span style="background: #c2185b; color: white; padding: 4px 12px; border-radius: 4px; font-weight: 600;">Week B</span>';
+                } else {
+                    weekAssignment.innerHTML = '<span style="background: #757575; color: white; padding: 4px 12px; border-radius: 4px;">Not Assigned</span>';
+                }
+
+                // Show the detailed schedule card
+                scheduleCard.style.display = 'block';
+                updateBiweeklyScheduleDates(membership, biweeklyWeek);
+
+            } else if (frequency === 'weekly' || biweeklyWeek === 'BOTH') {
+                freqDisplay.textContent = 'Weekly (Every Week)';
+                weekRow.style.display = 'flex';
+                weekAssignment.innerHTML = '<span style="background: #43a047; color: white; padding: 4px 12px; border-radius: 4px; font-weight: 600;">All Weeks</span>';
+
+                // Show schedule card for weekly too
+                scheduleCard.style.display = 'block';
+                document.getElementById('scheduleNoticeTitle').textContent = 'Weekly Schedule';
+                document.getElementById('scheduleNoticeText').textContent = 'You pick up every week during the season.';
+                document.querySelector('#pickupScheduleCard > div:first-of-type').style.background = '#d4edda';
+                document.querySelector('#pickupScheduleCard > div:first-of-type').querySelectorAll('*').forEach(el => {
+                    if (el.style) el.style.color = '#155724';
+                });
+
+                // Calculate dates for weekly
+                const seasonInfo = getSeasonDates(membership);
+                if (seasonInfo) {
+                    document.getElementById('accountFirstPickup').textContent = formatDateNice(seasonInfo.startDate);
+                    document.getElementById('accountLastPickup').textContent = formatDateNice(seasonInfo.endDate);
+                    document.getElementById('accountTotalPickups').textContent = seasonInfo.totalWeeks + ' pickups';
+                }
+            } else {
+                freqDisplay.textContent = frequency || '--';
+                weekRow.style.display = 'none';
+                scheduleCard.style.display = 'none';
+            }
+        }
+
+        /**
+         * Calculate and display actual first/last pickup dates for biweekly members
+         * Week A = odd weeks (1, 3, 5...) - starts on season start date
+         * Week B = even weeks (2, 4, 6...) - starts one week after season start
+         */
+        function updateBiweeklyScheduleDates(membership, weekAssignment) {
+            const seasonInfo = getSeasonDates(membership);
+            if (!seasonInfo) {
+                document.getElementById('accountFirstPickup').textContent = 'TBD';
+                document.getElementById('accountLastPickup').textContent = 'TBD';
+                document.getElementById('accountTotalPickups').textContent = '--';
+                return;
+            }
+
+            const { startDate, endDate, totalWeeks } = seasonInfo;
+            let firstPickup, lastPickup, totalPickups;
+
+            if (weekAssignment === 'A') {
+                // Week A: First pickup is season start, every odd week
+                firstPickup = new Date(startDate);
+                // Last pickup is the last odd week
+                const totalBiweeklyPickups = Math.ceil(totalWeeks / 2);
+                totalPickups = totalBiweeklyPickups;
+                // Calculate last pickup: start + (totalBiweeklyPickups - 1) * 2 weeks
+                lastPickup = new Date(startDate);
+                lastPickup.setDate(lastPickup.getDate() + ((totalBiweeklyPickups - 1) * 14));
+
+                document.getElementById('scheduleNoticeTitle').textContent = 'Week A Schedule';
+                document.getElementById('scheduleNoticeText').textContent =
+                    'You pick up on odd weeks (1, 3, 5...). Your first pickup is the first week of the season.';
+
+            } else if (weekAssignment === 'B') {
+                // Week B: First pickup is one week after season start, every even week
+                firstPickup = new Date(startDate);
+                firstPickup.setDate(firstPickup.getDate() + 7); // Start on week 2
+
+                // Total biweekly pickups for Week B
+                const totalBiweeklyPickups = Math.floor(totalWeeks / 2);
+                totalPickups = totalBiweeklyPickups;
+
+                // Calculate last pickup
+                lastPickup = new Date(firstPickup);
+                lastPickup.setDate(lastPickup.getDate() + ((totalBiweeklyPickups - 1) * 14));
+
+                document.getElementById('scheduleNoticeTitle').textContent = 'Week B Schedule';
+                document.getElementById('scheduleNoticeText').innerHTML =
+                    '<strong>Important:</strong> You pick up on even weeks (2, 4, 6...). ' +
+                    'Your first pickup is the <strong>second week</strong> of the season, not the first.';
+
+                // Make the notice more prominent for Week B since their start is delayed
+                document.querySelector('#pickupScheduleCard > div:first-of-type').style.background = '#fff3cd';
+            } else {
+                firstPickup = startDate;
+                lastPickup = endDate;
+                totalPickups = Math.ceil(totalWeeks / 2);
+            }
+
+            document.getElementById('accountFirstPickup').textContent = formatDateNice(firstPickup);
+            document.getElementById('accountLastPickup').textContent = formatDateNice(lastPickup);
+            document.getElementById('accountTotalPickups').textContent = totalPickups + ' pickups';
         }
 
         // Season date mappings for 2026
@@ -4267,6 +4720,403 @@
 
         function viewUpcomingBox(date) {
             showToast(`Viewing box for ${date}`, 'info');
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // FLEX CSA ORDERING SYSTEM
+        // Flex members get a pre-filled cart they can customize
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        // Flex cart state
+        let flexCart = [];
+        let flexAvailableItems = [];
+        let flexCartDefaults = null;
+        let selectedAddItems = new Set();
+
+        /**
+         * Check if current member is a Flex share type
+         */
+        function isFlexMember() {
+            const shareType = (AppState.membership?.Share_Type || '').toLowerCase();
+            const frequency = (AppState.membership?.Frequency || '').toLowerCase();
+            return shareType.includes('flex') || frequency === 'flex';
+        }
+
+        /**
+         * Check if Flex member has opted into the ordering system
+         */
+        function hasFlexOptedIn() {
+            return AppState.membership?.Flex_Opted_In === true ||
+                   AppState.membership?.Flex_Opted_In === 'true' ||
+                   AppState.membership?.Flex_Opted_In === 1;
+        }
+
+        /**
+         * Initialize Flex UI based on member status
+         */
+        function initFlexUI() {
+            if (!isFlexMember()) {
+                // Not a Flex member - show standard box view
+                document.getElementById('currentBoxSection').style.display = 'block';
+                document.getElementById('flexCartSection').style.display = 'none';
+                return;
+            }
+
+            // Is a Flex member - check if opted in
+            if (!hasFlexOptedIn()) {
+                // Show onboarding modal
+                document.getElementById('flexOnboardingModal').style.display = 'flex';
+                document.getElementById('currentBoxSection').style.display = 'none';
+                document.getElementById('flexCartSection').style.display = 'none';
+            } else {
+                // Show Flex cart
+                document.getElementById('currentBoxSection').style.display = 'none';
+                document.getElementById('flexCartSection').style.display = 'block';
+                loadFlexCart();
+            }
+        }
+
+        /**
+         * Update opt-in button state
+         */
+        function updateFlexOptInButton() {
+            const checkbox = document.getElementById('flexOptInCheckbox');
+            const btn = document.getElementById('flexOptInBtn');
+            btn.disabled = !checkbox.checked;
+        }
+
+        /**
+         * Complete Flex opt-in process
+         */
+        async function completeFlexOptIn() {
+            const btn = document.getElementById('flexOptInBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span> Setting up...';
+
+            try {
+                const response = await fetch(`${API_URL}?action=optInToFlexSystem`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        memberId: AppState.membership?.Member_ID,
+                        email: AppState.customer?.Email || AppState.membership?.Email
+                    })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    // Update local state
+                    AppState.membership.Flex_Opted_In = true;
+                    saveSession();
+
+                    // Close modal and show cart
+                    document.getElementById('flexOnboardingModal').style.display = 'none';
+                    document.getElementById('flexCartSection').style.display = 'block';
+
+                    showToast('Welcome to Flex ordering! 🎉', 'success');
+                    loadFlexCart();
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                console.error('Flex opt-in error:', error);
+                showToast('Failed to set up Flex ordering. Please try again.', 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-check"></i> Start Ordering';
+            }
+        }
+
+        /**
+         * Load Flex cart with default items
+         */
+        async function loadFlexCart() {
+            try {
+                // First check if they have an existing order for this week
+                const existingResponse = await fetch(`${API_URL}?action=getFlexWeeklyOrder&memberId=${encodeURIComponent(AppState.membership?.Member_ID || '')}&email=${encodeURIComponent(AppState.customer?.Email || '')}`);
+                const existingResult = await existingResponse.json();
+
+                if (existingResult.success && existingResult.order) {
+                    // Load existing order
+                    flexCart = existingResult.order.items;
+                    document.getElementById('flexOrderStatus').textContent = 'Submitted';
+                    document.getElementById('flexOrderStatus').className = 'box-status ready';
+                } else {
+                    // Load default cart
+                    const response = await fetch(`${API_URL}?action=getFlexCartDefaults&memberId=${encodeURIComponent(AppState.membership?.Member_ID || '')}`);
+                    const result = await response.json();
+
+                    if (result.success) {
+                        flexCartDefaults = result;
+                        flexCart = result.items.filter(item => item.inCart);
+
+                        // Update week display
+                        document.getElementById('flexWeek').textContent = result.weekDisplay || 'This Week';
+                        document.getElementById('flexDeadlineTime').textContent = result.deadlineDisplay || 'Wednesday 5pm';
+
+                        if (result.isDeadlinePassed) {
+                            document.getElementById('flexDeadline').style.background = '#f8d7da';
+                            document.getElementById('flexDeadline').innerHTML = `
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <i class="fas fa-exclamation-circle" style="color: #721c24;"></i>
+                                    <span style="color: #721c24; font-weight: 500;">Order deadline has passed</span>
+                                </div>
+                                <div style="color: #721c24; font-size: 12px; margin-top: 4px;">Orders open again next week</div>
+                            `;
+                            document.getElementById('submitFlexOrderBtn').disabled = true;
+                            document.getElementById('submitFlexOrderBtn').textContent = 'Deadline Passed';
+                        }
+
+                        document.getElementById('flexOrderStatus').textContent = 'Not Submitted';
+                        document.getElementById('flexOrderStatus').className = 'box-status';
+                    }
+                }
+
+                renderFlexCart();
+                updateFlexCartSummary();
+
+            } catch (error) {
+                console.error('Error loading Flex cart:', error);
+                showToast('Failed to load cart', 'error');
+            }
+        }
+
+        /**
+         * Render Flex cart items
+         */
+        function renderFlexCart() {
+            const container = document.getElementById('flexCartItems');
+
+            if (flexCart.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 24px; color: var(--text-secondary);">
+                        <div style="font-size: 32px; margin-bottom: 8px;">🛒</div>
+                        <div>Your cart is empty</div>
+                        <div style="font-size: 13px;">Add items to build your order</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = flexCart.map((item, index) => `
+                <div class="flex-cart-item" style="display: flex; align-items: center; padding: 12px; background: var(--bg-subtle); border-radius: 8px; margin-bottom: 8px;">
+                    <div style="flex: 1;">
+                        <div style="font-weight: 500;">${item.name}</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">
+                            ${item.variety ? item.variety + ' · ' : ''}${item.quantity} ${item.unit} · $${(item.price * item.quantity).toFixed(2)}
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <button onclick="adjustFlexItemQty(${index}, -1)" style="width: 28px; height: 28px; border: 1px solid var(--border); background: white; border-radius: 4px; cursor: pointer;">−</button>
+                        <span style="min-width: 24px; text-align: center; font-weight: 500;">${item.quantity}</span>
+                        <button onclick="adjustFlexItemQty(${index}, 1)" style="width: 28px; height: 28px; border: 1px solid var(--border); background: white; border-radius: 4px; cursor: pointer;">+</button>
+                        <button onclick="removeFlexItem(${index})" style="width: 28px; height: 28px; border: none; background: #fee2e2; color: #dc2626; border-radius: 4px; cursor: pointer; margin-left: 8px;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        /**
+         * Adjust item quantity in cart
+         */
+        function adjustFlexItemQty(index, delta) {
+            if (flexCart[index]) {
+                flexCart[index].quantity = Math.max(1, flexCart[index].quantity + delta);
+                renderFlexCart();
+                updateFlexCartSummary();
+            }
+        }
+
+        /**
+         * Remove item from cart
+         */
+        function removeFlexItem(index) {
+            flexCart.splice(index, 1);
+            renderFlexCart();
+            updateFlexCartSummary();
+            showToast('Item removed', 'info');
+        }
+
+        /**
+         * Update cart summary (totals, balance)
+         */
+        function updateFlexCartSummary() {
+            const itemCount = flexCart.reduce((sum, item) => sum + item.quantity, 0);
+            const cartTotal = flexCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const flexBalance = AppState.flexBalance || 0;
+            const remaining = flexBalance - cartTotal;
+
+            document.getElementById('flexCartItemCount').textContent = itemCount;
+            document.getElementById('flexCartTotal').textContent = '$' + cartTotal.toFixed(2);
+            document.getElementById('flexRemainingBalance').textContent = '$' + remaining.toFixed(2);
+            document.getElementById('flexBalanceBadge').textContent = 'Balance: $' + flexBalance.toFixed(2);
+
+            // Warn if over balance
+            if (remaining < 0) {
+                document.getElementById('flexRemainingBalance').style.color = '#dc2626';
+            } else {
+                document.getElementById('flexRemainingBalance').style.color = 'var(--primary)';
+            }
+        }
+
+        /**
+         * Open add items modal
+         */
+        async function openAddItemsModal() {
+            document.getElementById('addFlexItemsModal').style.display = 'flex';
+            selectedAddItems.clear();
+            updateSelectedItemCount();
+
+            try {
+                const response = await fetch(`${API_URL}?action=getAvailableFlexItems`);
+                const result = await response.json();
+
+                if (result.success) {
+                    flexAvailableItems = result.items;
+                    renderAddItemsCategories(result.categories);
+                }
+            } catch (error) {
+                console.error('Error loading available items:', error);
+            }
+        }
+
+        /**
+         * Close add items modal
+         */
+        function closeAddItemsModal() {
+            document.getElementById('addFlexItemsModal').style.display = 'none';
+        }
+
+        /**
+         * Render available items by category
+         */
+        function renderAddItemsCategories(categories) {
+            const container = document.getElementById('addItemsCategories');
+
+            container.innerHTML = Object.entries(categories).map(([category, items]) => `
+                <div style="border-bottom: 1px solid var(--border);">
+                    <div style="padding: 12px 16px; background: var(--bg-subtle); font-weight: 600; font-size: 13px; color: var(--text-secondary);">
+                        ${category}
+                    </div>
+                    ${items.map(item => `
+                        <div class="add-item-row" style="display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--border); cursor: pointer;" onclick="toggleAddItem('${item.id}')">
+                            <div style="width: 24px; height: 24px; border: 2px solid var(--border); border-radius: 4px; margin-right: 12px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" id="checkbox-${item.id}">
+                                <i class="fas fa-check" style="color: white; font-size: 12px; display: none;"></i>
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="font-weight: 500;">${item.name}</div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">${item.unit}</div>
+                            </div>
+                            <div style="font-weight: 600; color: var(--primary);">$${item.price.toFixed(2)}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `).join('');
+        }
+
+        /**
+         * Toggle item selection for adding
+         */
+        function toggleAddItem(itemId) {
+            const checkbox = document.getElementById('checkbox-' + itemId);
+            if (selectedAddItems.has(itemId)) {
+                selectedAddItems.delete(itemId);
+                checkbox.style.background = 'white';
+                checkbox.style.borderColor = 'var(--border)';
+                checkbox.querySelector('i').style.display = 'none';
+            } else {
+                selectedAddItems.add(itemId);
+                checkbox.style.background = 'var(--primary)';
+                checkbox.style.borderColor = 'var(--primary)';
+                checkbox.querySelector('i').style.display = 'block';
+            }
+            updateSelectedItemCount();
+        }
+
+        /**
+         * Update selected item count in modal
+         */
+        function updateSelectedItemCount() {
+            document.getElementById('selectedItemCount').textContent = selectedAddItems.size;
+        }
+
+        /**
+         * Add selected items to cart
+         */
+        function addSelectedItemsToCart() {
+            selectedAddItems.forEach(itemId => {
+                const item = flexAvailableItems.find(i => i.id === itemId);
+                if (item) {
+                    // Check if already in cart
+                    const existingIndex = flexCart.findIndex(c => c.id === item.id);
+                    if (existingIndex >= 0) {
+                        flexCart[existingIndex].quantity++;
+                    } else {
+                        flexCart.push({
+                            id: item.id,
+                            name: item.name,
+                            category: item.category,
+                            price: item.price,
+                            unit: item.unit,
+                            quantity: 1,
+                            isDefault: false
+                        });
+                    }
+                }
+            });
+
+            closeAddItemsModal();
+            renderFlexCart();
+            updateFlexCartSummary();
+            showToast(`Added ${selectedAddItems.size} item(s) to cart`, 'success');
+        }
+
+        /**
+         * Submit Flex weekly order
+         */
+        async function submitFlexOrder() {
+            if (flexCart.length === 0) {
+                showToast('Your cart is empty!', 'warning');
+                return;
+            }
+
+            const btn = document.getElementById('submitFlexOrderBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span> Submitting...';
+
+            try {
+                const response = await fetch(`${API_URL}?action=saveFlexWeeklyOrder`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        memberId: AppState.membership?.Member_ID,
+                        email: AppState.customer?.Email || AppState.membership?.Email,
+                        weekDate: flexCartDefaults?.weekDate,
+                        items: flexCart,
+                        pickupLocation: AppState.membership?.Pickup_Location,
+                        pickupDay: AppState.membership?.Pickup_Day
+                    })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('flexOrderStatus').textContent = 'Submitted';
+                    document.getElementById('flexOrderStatus').className = 'box-status ready';
+
+                    showToast('Order submitted! See you at pickup! 🎉', 'success');
+
+                    btn.innerHTML = '<i class="fas fa-check-circle"></i> Order Submitted';
+                    btn.style.background = 'var(--success)';
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                console.error('Error submitting Flex order:', error);
+                showToast('Failed to submit order. Please try again.', 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-check-circle"></i> Submit This Week\'s Order';
+            }
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
