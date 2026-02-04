@@ -2066,11 +2066,11 @@
                             <thead>
                                 <tr>
                                     <th>Member</th>
-                                    <th>Share Size</th>
-                                    <th>Delivery Day</th>
+                                    <th>Share Type</th>
+                                    <th>Start Date</th>
+                                    <th>Pickup</th>
                                     <th>Status</th>
                                     <th>Balance</th>
-                                    <th>Renewal Date</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -3257,6 +3257,7 @@
                 const initial = name.charAt(0).toUpperCase();
                 const status = member.status || 'Active';
                 const balance = member.balance || 0;
+                const shareDisplay = member.share + (member.shareSize ? ' (' + member.shareSize + ')' : '');
                 return `
                 <tr>
                     <td>
@@ -3264,12 +3265,18 @@
                             <div class="customer-avatar">${initial}</div>
                             <div>
                                 <div class="customer-name">${name}</div>
-                                <div class="customer-email">${member.id || ''}</div>
+                                <div class="customer-email">${member.email || ''}</div>
                             </div>
                         </div>
                     </td>
-                    <td><strong>${member.share || 'Standard'}</strong></td>
-                    <td>${member.day || 'TBD'}</td>
+                    <td><strong>${shareDisplay}</strong></td>
+                    <td>${member.startDate ? formatDate(member.startDate) : '--'}</td>
+                    <td>
+                        <div style="font-size: 13px;">
+                            <div>${member.day || 'TBD'}</div>
+                            <div style="color: var(--text-secondary); font-size: 12px;">${member.location || ''}</div>
+                        </div>
+                    </td>
                     <td>
                         <div class="member-status">
                             <span class="status-dot ${status.toLowerCase()}"></span>
@@ -3279,10 +3286,9 @@
                     <td style="color: ${balance > 0 ? 'var(--warning)' : 'var(--success)'};">
                         ${balance > 0 ? '$' + balance.toFixed(2) : 'Paid'}
                     </td>
-                    <td>${member.renewal ? formatDate(member.renewal) : '--'}</td>
                     <td>
                         <div class="action-btns">
-                            <button class="action-btn" onclick="viewMember('${member.id}')" title="View">👁</button>
+                            <button class="action-btn" onclick="viewMember('${member.id}')" title="View Details">👁</button>
                             <button class="action-btn" onclick="setVacationHold('${member.id}')" title="Vacation Hold">🏖️</button>
                             <button class="action-btn edit" onclick="editMember('${member.id}')" title="Edit">✏️</button>
                         </div>
