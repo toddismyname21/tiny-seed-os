@@ -13595,6 +13595,8 @@ function doGet(e) {
         return jsonResponse(sendCSASMSCode(e.parameter));
       case 'verifyCSASMSCode':
         return jsonResponse(verifyCSASMSCode(e.parameter));
+      case 'lookupSMSCode':
+        return jsonResponse(lookupSMSCode(e.parameter));
       case 'getWholesaleProducts':
         return jsonResponse(getWholesaleProducts(e.parameter));
 
@@ -13708,6 +13710,8 @@ function doGet(e) {
         return jsonResponse(getSalesCustomers(e.parameter));
       case 'deleteCustomer':
         return jsonResponse(deleteCustomer(data));
+      case 'updateCustomer':
+        return jsonResponse(updateCustomer(data));
       case 'getCustomerById':
         return jsonResponse(getCustomerById(e.parameter));
       case 'lookupCustomerByEmail':
@@ -32104,6 +32108,75 @@ function verifyCSASMSCode(params) {
   }
 }
 
+/**
+ * Lookup SMS code from Magic Links sheet (owner only function for debugging)
+ * @param {Object} params - { phone: string }
+ */
+function lookupSMSCode(params) {
+  try {
+    const phone = params.phone;
+    if (!phone) {
+      return { success: false, error: 'Phone number is required' };
+    }
+
+    // Format phone number
+    let formattedPhone = phone.replace(/\D/g, '');
+    if (formattedPhone.length === 10) {
+      formattedPhone = '+1' + formattedPhone;
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const linkSheet = ss.getSheetByName(SALES_SHEETS.MAGIC_LINKS);
+
+    if (!linkSheet) {
+      return { success: false, error: 'Magic Links sheet not found' };
+    }
+
+    const linkData = linkSheet.getDataRange().getValues();
+    const now = new Date();
+
+    // Find the most recent SMS code for this phone number
+    let latestCode = null;
+    let latestTime = null;
+
+    for (let i = 1; i < linkData.length; i++) {
+      const token = linkData[i][0];
+      const createdAt = linkData[i][4];
+      const expires = new Date(linkData[i][5]);
+      const used = linkData[i][6];
+      const storedPhone = linkData[i][8] || '';
+
+      // Check if this is an SMS code and matches the phone
+      const storedPhoneStr = String(storedPhone || '');
+      if (token && token.startsWith('SMS-') && storedPhoneStr.replace(/\D/g, '').slice(-10) === formattedPhone.replace(/\D/g, '').slice(-10)) {
+        const createdDate = new Date(createdAt);
+
+        // Only consider unused, non-expired codes
+        if (!used && now < expires) {
+          if (!latestTime || createdDate > latestTime) {
+            latestCode = token.replace('SMS-', '');
+            latestTime = createdDate;
+          }
+        }
+      }
+    }
+
+    if (!latestCode) {
+      return { success: false, error: 'No active SMS code found for this phone number' };
+    }
+
+    return {
+      success: true,
+      code: latestCode,
+      message: 'Code found! Use this to log in.'
+    };
+
+  } catch (error) {
+    Logger.log('lookupSMSCode error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
 function authenticateCustomer(params) {
   return verifyCustomerToken(params);
 }
@@ -32495,6 +32568,88 @@ function deleteCustomer(data) {
     return { success: false, error: 'Customer not found' };
   } catch (error) {
     Logger.log('[deleteCustomer] Error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Update customer details in SALES_Customers
+ * @param {Object} data - { customerId, contactName, email, secondaryEmail, phone, secondaryPhone, address, city }
+ */
+function updateCustomer(data) {
+  try {
+    if (!data.customerId) {
+      return { success: false, error: 'Customer ID is required' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
+
+    if (!sheet) {
+      return { success: false, error: 'Customers sheet not found' };
+    }
+
+    const values = sheet.getDataRange().getValues();
+    const headers = values[0];
+
+    // Get column indices
+    const customerIdIdx = headers.indexOf('Customer_ID');
+    const contactNameIdx = headers.indexOf('Contact_Name');
+    const emailIdx = headers.indexOf('Email');
+    const phoneIdx = headers.indexOf('Phone');
+    const addressIdx = headers.indexOf('Address');
+    const cityIdx = headers.indexOf('City');
+
+    // Handle Secondary_Email and Secondary_Phone - add columns if they don't exist
+    let secondaryEmailIdx = headers.indexOf('Secondary_Email');
+    let secondaryPhoneIdx = headers.indexOf('Secondary_Phone');
+
+    if (secondaryEmailIdx === -1) {
+      sheet.getRange(1, headers.length + 1).setValue('Secondary_Email');
+      secondaryEmailIdx = headers.length;
+    }
+    if (secondaryPhoneIdx === -1) {
+      const newColIdx = secondaryEmailIdx === headers.length ? headers.length + 1 : headers.length;
+      sheet.getRange(1, newColIdx + 1).setValue('Secondary_Phone');
+      secondaryPhoneIdx = newColIdx;
+    }
+
+    // Find and update the customer
+    for (let i = 1; i < values.length; i++) {
+      if (values[i][customerIdIdx] === data.customerId) {
+        const rowNum = i + 1;
+
+        // Update each field if provided
+        if (data.contactName !== undefined && contactNameIdx >= 0) {
+          sheet.getRange(rowNum, contactNameIdx + 1).setValue(data.contactName);
+        }
+        if (data.email !== undefined && emailIdx >= 0) {
+          sheet.getRange(rowNum, emailIdx + 1).setValue(data.email);
+        }
+        if (data.phone !== undefined && phoneIdx >= 0) {
+          sheet.getRange(rowNum, phoneIdx + 1).setValue(data.phone);
+        }
+        if (data.address !== undefined && addressIdx >= 0) {
+          sheet.getRange(rowNum, addressIdx + 1).setValue(data.address);
+        }
+        if (data.city !== undefined && cityIdx >= 0) {
+          sheet.getRange(rowNum, cityIdx + 1).setValue(data.city);
+        }
+        if (data.secondaryEmail !== undefined) {
+          sheet.getRange(rowNum, secondaryEmailIdx + 1).setValue(data.secondaryEmail);
+        }
+        if (data.secondaryPhone !== undefined) {
+          sheet.getRange(rowNum, secondaryPhoneIdx + 1).setValue(data.secondaryPhone);
+        }
+
+        Logger.log(`[updateCustomer] Updated customer ${data.customerId}`);
+        return { success: true, message: 'Customer updated successfully' };
+      }
+    }
+
+    return { success: false, error: 'Customer not found' };
+  } catch (error) {
+    Logger.log('[updateCustomer] Error: ' + error.toString());
     return { success: false, error: error.toString() };
   }
 }
