@@ -2218,18 +2218,43 @@
                     </div>
                 </div>
 
-                <!-- Step 4: Complete -->
+                <!-- Step 4: Confirm Participation -->
                 <div class="onboarding-step" id="onboarding-step-4">
-                    <div class="onboarding-illustration">🎉</div>
-                    <h2 style="text-align: center; margin-bottom: 12px;">You're All Set!</h2>
-                    <p style="text-align: center; color: var(--text-secondary); margin-bottom: 24px;">
-                        Your first box is ready for pickup:
+                    <div class="onboarding-illustration">✅</div>
+                    <h2 style="text-align: center; margin-bottom: 12px;">Confirm Your Participation</h2>
+                    <p style="text-align: center; color: var(--text-secondary); margin-bottom: 20px;">
+                        Please review your details and confirm you're ready to start!
                     </p>
-                    <div style="background: var(--primary-bg); padding: 20px; border-radius: var(--radius-lg); text-align: center;">
-                        <div style="font-size: 32px; margin-bottom: 8px;">📦</div>
-                        <div style="font-weight: 700; font-size: 18px;" id="firstPickupDate">Tuesday, January 21</div>
-                        <div style="color: var(--primary-darker); font-size: 14px;" id="firstPickupLocation">4-7pm at Farm Stand</div>
+
+                    <!-- Your Details Summary -->
+                    <div style="background: var(--bg-subtle); padding: 16px; border-radius: var(--radius-lg); margin-bottom: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <span style="font-weight: 600; color: var(--text-primary);">Your Details</span>
+                            <button onclick="openEditContactFromOnboarding()" style="background: none; border: none; color: var(--primary); font-size: 13px; cursor: pointer; text-decoration: underline;">Edit</button>
+                        </div>
+                        <div style="font-size: 14px; color: var(--text-secondary); line-height: 1.6;">
+                            <div><strong>Name:</strong> <span id="confirmName">-</span></div>
+                            <div><strong>Email:</strong> <span id="confirmEmail">-</span></div>
+                            <div><strong>Phone:</strong> <span id="confirmPhone">Not provided</span></div>
+                        </div>
                     </div>
+
+                    <!-- First Pickup Info -->
+                    <div style="background: var(--primary-bg); padding: 16px; border-radius: var(--radius-lg); text-align: center; margin-bottom: 16px;">
+                        <div style="font-size: 24px; margin-bottom: 4px;">📦</div>
+                        <div style="font-size: 12px; color: var(--primary-darker); margin-bottom: 4px;">Your First Pickup</div>
+                        <div style="font-weight: 700; font-size: 16px;" id="firstPickupDate">Tuesday, January 21</div>
+                        <div style="color: var(--primary-darker); font-size: 13px;" id="firstPickupLocation">4-7pm at Farm Stand</div>
+                    </div>
+
+                    <!-- Confirmation Checkbox -->
+                    <label style="display: flex; align-items: flex-start; gap: 12px; padding: 16px; background: var(--bg-card); border: 2px solid var(--border); border-radius: var(--radius-lg); cursor: pointer; margin-bottom: 8px;" id="confirmParticipationLabel">
+                        <input type="checkbox" id="confirmParticipationCheckbox" onchange="updateConfirmButton()" style="width: 20px; height: 20px; margin-top: 2px; accent-color: var(--primary);">
+                        <div>
+                            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">I confirm I'm participating</div>
+                            <div style="font-size: 13px; color: var(--text-secondary);">My details are correct and I'm ready to receive my CSA share this season.</div>
+                        </div>
+                    </label>
                 </div>
             </div>
         </div>
@@ -3304,14 +3329,20 @@
                 'Welcome to the Family!',
                 'Quick Preferences',
                 'Stay Connected',
-                "You're All Set!"
+                'Confirm & Get Started'
             ];
             const subtitles = [
                 "Here's what you ordered",
                 'Any veggies to skip?',
                 'Choose how we reach you',
-                'Your CSA journey begins now'
+                'Review and confirm your participation'
             ];
+
+            // On step 4, populate confirmation details and update button
+            if (AppState.onboardingStep === 4) {
+                populateConfirmationDetails();
+                updateConfirmButton();
+            }
 
             document.getElementById('onboardingTitle').textContent = titles[AppState.onboardingStep - 1];
             document.getElementById('onboardingSubtitle').textContent = subtitles[AppState.onboardingStep - 1];
@@ -3345,7 +3376,56 @@
             el.classList.toggle('selected');
         }
 
+        function populateConfirmationDetails() {
+            const c = AppState.customer || {};
+            const m = AppState.membership || {};
+            document.getElementById('confirmName').textContent = c.Contact_Name || m.Name || 'Not provided';
+            document.getElementById('confirmEmail').textContent = m.Email || c.Email || 'Not provided';
+            const phone = document.getElementById('phoneInput')?.value || c.Phone || '';
+            document.getElementById('confirmPhone').textContent = phone || 'Not provided';
+        }
+
+        function updateConfirmButton() {
+            const checkbox = document.getElementById('confirmParticipationCheckbox');
+            const nextBtn = document.getElementById('onboardingNext');
+            if (AppState.onboardingStep === 4) {
+                nextBtn.disabled = !checkbox.checked;
+                nextBtn.textContent = checkbox.checked ? 'Confirm & Get Started' : 'Please confirm above';
+                nextBtn.style.opacity = checkbox.checked ? '1' : '0.6';
+            }
+        }
+
+        function openEditContactFromOnboarding() {
+            // Pre-populate from onboarding data
+            const c = AppState.customer || {};
+            const m = AppState.membership || {};
+            document.getElementById('editName').value = c.Contact_Name || m.Name || '';
+            document.getElementById('editPrimaryEmail').value = m.Email || c.Email || '';
+            document.getElementById('editSecondaryEmail').value = c.Secondary_Email || '';
+            document.getElementById('editPhone').value = document.getElementById('phoneInput')?.value || c.Phone || '';
+            document.getElementById('editSecondaryPhone').value = c.Secondary_Phone || '';
+            document.getElementById('editAddress').value = c.Address || '';
+            document.getElementById('editCity').value = c.City || '';
+            document.getElementById('editContactModal').style.display = 'flex';
+
+            // Override save to update confirmation display
+            const originalSave = window.saveContactDetails;
+            window.saveContactDetailsFromOnboarding = async function() {
+                await originalSave();
+                // Update confirmation display after saving
+                AppState.customer.Contact_Name = document.getElementById('editName').value;
+                AppState.customer.Phone = document.getElementById('editPhone').value;
+                populateConfirmationDetails();
+            };
+        }
+
         async function completeOnboarding() {
+            // Check confirmation checkbox
+            const confirmed = document.getElementById('confirmParticipationCheckbox')?.checked;
+            if (!confirmed) {
+                showToast('Please confirm your participation first', 'warning');
+                return;
+            }
             // Collect preferences - now using free-text input
             const skipVeggiesText = document.getElementById('skipVeggiesInput').value.trim();
             // Parse comma-separated or newline-separated items
@@ -3365,7 +3445,7 @@
             // Show confetti
             createConfetti();
 
-            // Save to backend
+            // Save to backend with participation confirmation
             try {
                 await fetch(`${API_URL}?action=updateCSAMemberPreferences`, {
                     method: 'POST',
@@ -3374,7 +3454,9 @@
                         memberId: AppState.membership?.Member_ID,
                         preferences: AppState.preferences,
                         phone: phone,
-                        isOnboarded: true
+                        isOnboarded: true,
+                        participationConfirmed: true,
+                        confirmedAt: new Date().toISOString()
                     })
                 });
             } catch (e) {

@@ -2033,6 +2033,9 @@
                     <div class="tab-header">
                         <h2 class="tab-title">CSA Members</h2>
                         <div class="tab-actions">
+                            <button class="btn btn-secondary" onclick="sendBulkConfirmationReminders()" title="Send reminders to unconfirmed members" style="background: #fff3cd; color: #856404; border-color: #ffc107;">
+                                <span>🔔</span> Send Reminders
+                            </button>
                             <button class="btn btn-secondary" onclick="openBulkSMSModal('csa')" title="Send SMS to selected members">
                                 <span>💬</span> Bulk SMS
                             </button>
@@ -2053,6 +2056,7 @@
                         <div class="filter-tabs" id="csaFilterTabs">
                             <div class="filter-tab active" data-csa-filter="all">All</div>
                             <div class="filter-tab" data-csa-filter="active">Active</div>
+                            <div class="filter-tab" data-csa-filter="unconfirmed" style="color: var(--warning);">Unconfirmed</div>
                             <div class="filter-tab" data-csa-filter="paused">On Hold</div>
                             <div class="filter-tab" data-csa-filter="vegetable">Vegetable</div>
                             <div class="filter-tab" data-csa-filter="flower">Flower</div>
@@ -2095,6 +2099,7 @@
                                     <th>Start Date</th>
                                     <th>Pickup</th>
                                     <th>Status</th>
+                                    <th>Confirmed</th>
                                     <th>Balance</th>
                                     <th>Actions</th>
                                 </tr>
@@ -3291,6 +3296,7 @@
                         id: m.Member_ID || m.Customer_ID || '',
                         name: m.Customer_Name || m.Member_Name || m.Email || 'CSA Member',
                         email: m.Email || '',
+                        phone: m.Phone || '',
                         share: m.Share_Type || 'Vegetable',
                         shareSize: m.Share_Size || 'Regular',
                         day: m.Pickup_Day || m.Delivery_Day || 'TBD',
@@ -3300,7 +3306,9 @@
                         renewal: m.End_Date || m.Renewal_Date || '',
                         weeksRemaining: m.Weeks_Remaining || 0,
                         startDate: m.Start_Date || '',
-                        shopifyOrderId: m.Shopify_Order_ID || ''
+                        shopifyOrderId: m.Shopify_Order_ID || '',
+                        participationConfirmed: m.Participation_Confirmed || m.Is_Onboarded || false,
+                        confirmedAt: m.Confirmed_At || ''
                     }));
 
                     AppState.csaMembers = members;
@@ -3355,10 +3363,18 @@
                 filteredMembers = members.filter(m => {
                     if (activeFilter === 'active') return (m.status || '').toLowerCase() === 'active';
                     if (activeFilter === 'paused') return (m.status || '').toLowerCase() === 'paused';
+                    if (activeFilter === 'unconfirmed') return !m.participationConfirmed;
                     if (activeFilter === 'vegetable') return (m.share || '').toLowerCase().includes('vegetable');
                     if (activeFilter === 'flower') return (m.share || '').toLowerCase().includes('flower');
                     return true;
                 });
+            }
+
+            // Count unconfirmed for badge
+            const unconfirmedCount = members.filter(m => !m.participationConfirmed).length;
+            const unconfirmedTab = document.querySelector('[data-csa-filter="unconfirmed"]');
+            if (unconfirmedTab) {
+                unconfirmedTab.innerHTML = `Unconfirmed ${unconfirmedCount > 0 ? '<span style="background: var(--warning); color: white; padding: 2px 6px; border-radius: 10px; font-size: 11px; margin-left: 4px;">' + unconfirmedCount + '</span>' : ''}`;
             }
 
             tbody.innerHTML = filteredMembers.map(member => {
@@ -3367,6 +3383,11 @@
                 const status = member.status || 'Active';
                 const balance = member.balance || 0;
                 const shareDisplay = member.share + (member.shareSize ? ' (' + member.shareSize + ')' : '');
+                const isConfirmed = member.participationConfirmed;
+                const confirmedBadge = isConfirmed
+                    ? '<span style="background: #d4edda; color: #155724; padding: 2px 8px; border-radius: 4px; font-size: 11px;">Confirmed</span>'
+                    : '<span style="background: #fff3cd; color: #856404; padding: 2px 8px; border-radius: 4px; font-size: 11px;">Pending</span>';
+
                 return `
                 <tr data-member-id="${member.id}" data-email="${member.email || ''}" data-phone="${member.phone || ''}">
                     <td><input type="checkbox" class="csa-member-checkbox" onchange="updateCSASelectedCount()"></td>
@@ -3393,11 +3414,13 @@
                             ${status}
                         </div>
                     </td>
+                    <td>${confirmedBadge}</td>
                     <td style="color: ${balance > 0 ? 'var(--warning)' : 'var(--success)'};">
                         ${balance > 0 ? '$' + balance.toFixed(2) : 'Paid'}
                     </td>
                     <td>
                         <div class="action-btns">
+                            ${!isConfirmed ? '<button class="action-btn" onclick="sendConfirmationReminder(\'' + member.id + '\', \'' + (member.email || '') + '\')" title="Send Reminder" style="color: var(--warning);">📧</button>' : ''}
                             <button class="action-btn" onclick="viewMember('${member.id}')" title="View Details">👁</button>
                             <button class="action-btn" onclick="setVacationHold('${member.id}')" title="Vacation Hold">🏖️</button>
                             <button class="action-btn edit" onclick="editMember('${member.id}')" title="Edit">✏️</button>
@@ -3560,7 +3583,70 @@
 
         function renderCSAMembersEmpty() {
             const tbody = document.getElementById('csaTableBody');
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-secondary); padding: 60px;"><div style="font-size: 48px; margin-bottom: 16px;">🥬</div><div style="font-size: 18px; font-weight: 500;">No CSA members yet</div><div style="font-size: 14px; margin-top: 8px;">CSA members will appear here after they sign up</div></td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-secondary); padding: 60px;"><div style="font-size: 48px; margin-bottom: 16px;">🥬</div><div style="font-size: 18px; font-weight: 500;">No CSA members yet</div><div style="font-size: 14px; margin-top: 8px;">CSA members will appear here after they sign up</div></td></tr>';
+        }
+
+        async function sendConfirmationReminder(memberId, email) {
+            if (!email) {
+                showToast('No email address for this member', 'error');
+                return;
+            }
+
+            if (!confirm(`Send confirmation reminder to ${email}?`)) {
+                return;
+            }
+
+            try {
+                showToast('Sending reminder...', 'info');
+                const response = await fetch(`${API_URL}?action=sendCSAConfirmationReminder`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ memberId, email })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('Confirmation reminder sent!', 'success');
+                } else {
+                    showToast(result.error || 'Failed to send reminder', 'error');
+                }
+            } catch (error) {
+                console.error('Error sending reminder:', error);
+                showToast('Failed to send reminder', 'error');
+            }
+        }
+
+        async function sendBulkConfirmationReminders() {
+            const unconfirmed = AppState.csaMembers.filter(m => !m.participationConfirmed && m.email);
+            if (unconfirmed.length === 0) {
+                showToast('All members have confirmed their participation!', 'success');
+                return;
+            }
+
+            if (!confirm(`Send confirmation reminders to ${unconfirmed.length} unconfirmed members?`)) {
+                return;
+            }
+
+            showToast(`Sending ${unconfirmed.length} reminders...`, 'info');
+            let sent = 0;
+            let failed = 0;
+
+            for (const member of unconfirmed) {
+                try {
+                    const response = await fetch(`${API_URL}?action=sendCSAConfirmationReminder`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ memberId: member.id, email: member.email })
+                    });
+                    const result = await response.json();
+                    if (result.success) sent++;
+                    else failed++;
+                } catch (e) {
+                    failed++;
+                }
+            }
+
+            showToast(`Sent ${sent} reminders${failed > 0 ? `, ${failed} failed` : ''}`, sent > 0 ? 'success' : 'error');
         }
 
         async function loadWholesale() {
