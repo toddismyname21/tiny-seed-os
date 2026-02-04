@@ -1,0 +1,1010 @@
+/**
+ * TinyPM Micro-Animations Library
+ * ================================
+ * A comprehensive animation system that makes every interaction feel satisfying.
+ * Inspired by Asana, Linear, and Superhuman.
+ *
+ * Created: 2026-02-03
+ * Team: Micro-animations & Delight
+ */
+
+/* ============================================
+   SECTION 1: CSS CUSTOM PROPERTIES (TIMING)
+   ============================================ */
+
+:root {
+  /* Animation Timing */
+  --anim-instant: 100ms;
+  --anim-fast: 150ms;
+  --anim-normal: 250ms;
+  --anim-moderate: 350ms;
+  --anim-slow: 500ms;
+
+  /* Easing Functions */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-in-out-quint: cubic-bezier(0.83, 0, 0.17, 1);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+  /* Colors for animations */
+  --glow-success: rgba(34, 197, 94, 0.5);
+  --glow-error: rgba(239, 68, 68, 0.5);
+  --glow-accent: rgba(99, 102, 241, 0.5);
+  --glow-gold: rgba(251, 191, 36, 0.5);
+
+  /* Celebration colors */
+  --confetti-1: #22c55e;
+  --confetti-2: #6366f1;
+  --confetti-3: #a855f7;
+  --confetti-4: #eab308;
+  --confetti-5: #ef4444;
+  --confetti-6: #3b82f6;
+}
+
+
+/* ============================================
+   SECTION 2: ACCESSIBILITY - REDUCED MOTION
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+
+/* ============================================
+   SECTION 3: TASK COMPLETION ANIMATIONS
+   ============================================ */
+
+/* Checkmark Draw Animation */
+@keyframes checkmark-draw {
+  0% {
+    stroke-dashoffset: 24;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes checkmark-circle-fill {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.task-checkbox {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--border, #2a2d3e);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all var(--anim-fast) var(--ease-out-expo);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.task-checkbox:hover {
+  border-color: var(--accent, #6366f1);
+  transform: scale(1.05);
+}
+
+.task-checkbox.completing {
+  animation: checkbox-pulse 0.4s var(--ease-out-back);
+}
+
+@keyframes checkbox-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+.task-checkbox.completed {
+  background: linear-gradient(135deg, var(--green, #22c55e), #16a34a);
+  border-color: transparent;
+  animation: checkbox-complete 0.3s var(--ease-out-back);
+}
+
+@keyframes checkbox-complete {
+  0% { transform: scale(0.8); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+.task-checkbox .checkmark {
+  width: 12px;
+  height: 12px;
+  opacity: 0;
+  transform: scale(0);
+  transition: all var(--anim-fast) var(--ease-out-back);
+}
+
+.task-checkbox.completed .checkmark {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.task-checkbox .checkmark path {
+  stroke: white;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  fill: none;
+}
+
+.task-checkbox.completed .checkmark path {
+  animation: checkmark-draw 0.3s var(--ease-out-expo) 0.1s forwards;
+}
+
+/* Task Card Completion Glow */
+.task-card.completing {
+  animation: task-complete-glow 0.5s var(--ease-out-expo);
+}
+
+@keyframes task-complete-glow {
+  0% {
+    box-shadow: 0 0 0 0 var(--glow-success);
+  }
+  50% {
+    box-shadow: 0 0 20px 4px var(--glow-success);
+    border-color: var(--green, #22c55e);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+/* Task Slide Out Animation */
+.task-card.completed-exit {
+  animation: task-slide-out 0.4s var(--ease-out-expo) forwards;
+}
+
+@keyframes task-slide-out {
+  0% {
+    opacity: 1;
+    transform: translateX(0);
+    max-height: 200px;
+    margin-bottom: 8px;
+  }
+  50% {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(40px);
+    max-height: 0;
+    margin-bottom: 0;
+    padding: 0;
+    border-width: 0;
+  }
+}
+
+
+/* ============================================
+   SECTION 4: PROGRESS BAR ANIMATIONS
+   ============================================ */
+
+.progress-bar {
+  position: relative;
+  width: 100%;
+  height: 8px;
+  background: var(--bg-secondary, #1a1d27);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--accent, #6366f1), var(--purple, #a855f7));
+  position: relative;
+  transition: width var(--anim-moderate) var(--ease-out-expo);
+}
+
+.progress-bar-fill::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 20px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3));
+  animation: progress-glow 2s ease-in-out infinite;
+}
+
+@keyframes progress-glow {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.8; }
+}
+
+/* Animated progress fill on change */
+.progress-bar-fill.animate-fill {
+  animation: progress-fill-pulse 0.5s var(--ease-out-back);
+}
+
+@keyframes progress-fill-pulse {
+  0% { filter: brightness(1); }
+  50% { filter: brightness(1.3); }
+  100% { filter: brightness(1); }
+}
+
+/* 100% Completion Celebration */
+.progress-bar.complete .progress-bar-fill {
+  background: linear-gradient(90deg, var(--green, #22c55e), #4ade80);
+  animation: progress-complete-pulse 1s ease-in-out;
+}
+
+@keyframes progress-complete-pulse {
+  0% { box-shadow: 0 0 0 0 var(--glow-success); }
+  50% { box-shadow: 0 0 15px 3px var(--glow-success); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+/* Milestone Markers */
+.progress-milestone {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 12px;
+  height: 12px;
+  background: var(--bg-card, #1e2130);
+  border: 2px solid var(--border, #2a2d3e);
+  border-radius: 50%;
+  z-index: 2;
+  transition: all var(--anim-fast) var(--ease-out-back);
+}
+
+.progress-milestone.reached {
+  background: var(--green, #22c55e);
+  border-color: var(--green, #22c55e);
+  animation: milestone-pop 0.4s var(--ease-out-back);
+}
+
+@keyframes milestone-pop {
+  0% { transform: translate(-50%, -50%) scale(1); }
+  50% { transform: translate(-50%, -50%) scale(1.4); }
+  100% { transform: translate(-50%, -50%) scale(1); }
+}
+
+
+/* ============================================
+   SECTION 5: CARD & LIST MICRO-INTERACTIONS
+   ============================================ */
+
+/* Task Card Hover */
+.task-card {
+  transition:
+    transform var(--anim-fast) var(--ease-out-expo),
+    box-shadow var(--anim-fast) var(--ease-out-expo),
+    border-color var(--anim-fast) var(--ease-out-expo),
+    background var(--anim-fast) var(--ease-out-expo);
+}
+
+.task-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.15),
+    0 0 0 1px rgba(99, 102, 241, 0.1);
+}
+
+.task-card:active {
+  transform: translateY(0);
+  transition-duration: 50ms;
+}
+
+/* Card Enter Animation (New Task) */
+.task-card.entering {
+  animation: card-enter 0.4s var(--ease-out-back);
+}
+
+@keyframes card-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Card Delete Animation */
+.task-card.deleting {
+  animation: card-delete 0.3s var(--ease-out-expo) forwards;
+}
+
+@keyframes card-delete {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.9);
+    max-height: 0;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+/* Drag and Drop */
+.task-card.dragging {
+  opacity: 0.9;
+  transform: rotate(2deg) scale(1.02);
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.3),
+    0 0 0 2px var(--accent, #6366f1);
+  z-index: 1000;
+}
+
+.task-card.drag-over {
+  border-color: var(--accent, #6366f1);
+  background: rgba(99, 102, 241, 0.05);
+}
+
+/* Drop Placeholder */
+.drop-placeholder {
+  height: 0;
+  border: 2px dashed var(--accent, #6366f1);
+  border-radius: var(--radius, 10px);
+  background: rgba(99, 102, 241, 0.05);
+  transition: height var(--anim-fast) var(--ease-out-expo);
+  overflow: hidden;
+}
+
+.drop-placeholder.active {
+  height: 80px;
+  margin: 8px 0;
+}
+
+/* Card Snap on Drop */
+.task-card.just-dropped {
+  animation: card-snap 0.3s var(--ease-spring);
+}
+
+@keyframes card-snap {
+  0% {
+    transform: scale(1.05) rotate(0deg);
+  }
+  50% {
+    transform: scale(0.98);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+
+/* ============================================
+   SECTION 6: LOADING STATES
+   ============================================ */
+
+/* Logo Pulse Loader */
+.loader-logo {
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--accent, #6366f1), var(--purple, #a855f7));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: logo-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes logo-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 var(--glow-accent);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px 5px var(--glow-accent);
+  }
+}
+
+/* Skeleton Shimmer */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-secondary, #1a1d27) 0%,
+    var(--bg-hover, #252839) 50%,
+    var(--bg-secondary, #1a1d27) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-text {
+  height: 16px;
+  margin-bottom: 8px;
+}
+
+.skeleton-text.short {
+  width: 60%;
+}
+
+.skeleton-text.medium {
+  width: 80%;
+}
+
+.skeleton-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+.skeleton-card {
+  padding: 16px;
+  border-radius: var(--radius, 10px);
+  border: 1px solid var(--border, #2a2d3e);
+}
+
+/* Loading Message Rotation */
+.loading-message {
+  opacity: 0;
+  animation: message-fade 0.3s var(--ease-out-expo) forwards;
+}
+
+@keyframes message-fade {
+  0% { opacity: 0; transform: translateY(5px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Spinner with personality */
+.spinner-ring {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--bg-hover, #252839);
+  border-top-color: var(--accent, #6366f1);
+  border-radius: 50%;
+  animation: spinner-rotate 0.8s linear infinite;
+}
+
+@keyframes spinner-rotate {
+  to { transform: rotate(360deg); }
+}
+
+
+/* ============================================
+   SECTION 7: EMPTY STATE ANIMATIONS
+   ============================================ */
+
+.empty-state-icon {
+  animation: empty-float 3s ease-in-out infinite;
+}
+
+@keyframes empty-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.empty-state-cta {
+  transition: all var(--anim-fast) var(--ease-out-expo);
+}
+
+.empty-state-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px var(--glow-accent);
+}
+
+/* Illustration particles */
+.empty-particle {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  opacity: 0.3;
+  animation: particle-float 4s ease-in-out infinite;
+}
+
+@keyframes particle-float {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translate(10px, -15px) rotate(180deg);
+    opacity: 0.6;
+  }
+}
+
+
+/* ============================================
+   SECTION 8: BUTTON & INPUT FEEDBACK
+   ============================================ */
+
+/* Button base transitions */
+.btn {
+  transition:
+    transform var(--anim-fast) var(--ease-out-expo),
+    box-shadow var(--anim-fast) var(--ease-out-expo),
+    background var(--anim-fast) var(--ease-out-expo);
+}
+
+/* Hover: subtle lift */
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px) scale(1.02);
+}
+
+/* Active: press down */
+.btn:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98);
+  transition-duration: 50ms;
+}
+
+/* Success flash */
+.btn.success-flash {
+  animation: btn-success 0.5s var(--ease-out-expo);
+}
+
+@keyframes btn-success {
+  0% {
+    background: var(--green, #22c55e);
+    box-shadow: 0 0 0 0 var(--glow-success);
+  }
+  50% {
+    box-shadow: 0 0 15px 3px var(--glow-success);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+/* Error shake */
+.btn.error-shake,
+.input.error-shake {
+  animation: shake 0.5s var(--ease-out-expo);
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+  20%, 40%, 60%, 80% { transform: translateX(4px); }
+}
+
+/* Input focus ring */
+.input {
+  transition:
+    border-color var(--anim-fast) var(--ease-out-expo),
+    box-shadow var(--anim-fast) var(--ease-out-expo);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--accent, #6366f1);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+/* Focus ring animation */
+.input.focus-animate:focus {
+  animation: focus-ring-pulse 0.3s var(--ease-out-expo);
+}
+
+@keyframes focus-ring-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); }
+  100% { box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15); }
+}
+
+/* Input error state */
+.input.error {
+  border-color: var(--red, #ef4444);
+  animation: input-error 0.3s var(--ease-out-expo);
+}
+
+@keyframes input-error {
+  0% { border-color: var(--border, #2a2d3e); }
+  100% { border-color: var(--red, #ef4444); }
+}
+
+
+/* ============================================
+   SECTION 9: TAB/NAVIGATION TRANSITIONS
+   ============================================ */
+
+/* Tab content transitions */
+.tab-content {
+  opacity: 0;
+  transform: translateX(10px);
+  transition:
+    opacity var(--anim-normal) var(--ease-out-expo),
+    transform var(--anim-normal) var(--ease-out-expo);
+}
+
+.tab-content.active {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.tab-content.exit-left {
+  opacity: 0;
+  transform: translateX(-10px);
+}
+
+.tab-content.enter-right {
+  transform: translateX(10px);
+}
+
+.tab-content.enter-left {
+  transform: translateX(-10px);
+}
+
+/* Tab indicator slide */
+.tab-indicator {
+  position: absolute;
+  bottom: 0;
+  height: 2px;
+  background: var(--accent, #6366f1);
+  border-radius: 1px;
+  transition:
+    left var(--anim-normal) var(--ease-out-expo),
+    width var(--anim-normal) var(--ease-out-expo);
+}
+
+/* Tab button */
+.tab-btn {
+  transition: color var(--anim-fast) var(--ease-out-expo);
+}
+
+.tab-btn:hover {
+  color: var(--text-primary, #f0f0f5);
+}
+
+.tab-btn.active {
+  color: var(--accent, #6366f1);
+}
+
+
+/* ============================================
+   SECTION 10: TOAST NOTIFICATIONS
+   ============================================ */
+
+.toast {
+  animation: toast-enter 0.3s var(--ease-out-back);
+}
+
+@keyframes toast-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.toast.exit {
+  animation: toast-exit 0.2s var(--ease-out-expo) forwards;
+}
+
+@keyframes toast-exit {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+/* Toast progress bar */
+.toast-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: var(--accent, #6366f1);
+  border-radius: 0 0 var(--radius, 10px) var(--radius, 10px);
+  animation: toast-progress 3s linear forwards;
+}
+
+@keyframes toast-progress {
+  0% { width: 100%; }
+  100% { width: 0%; }
+}
+
+
+/* ============================================
+   SECTION 11: CONFETTI PARTICLES
+   ============================================ */
+
+.confetti-particle {
+  position: fixed;
+  pointer-events: none;
+  z-index: 10001;
+  animation: confetti-fall var(--fall-duration, 3s) linear forwards;
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-100vh) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(var(--rotation, 720deg));
+    opacity: 0;
+  }
+}
+
+.confetti-particle.square {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.confetti-particle.circle {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.confetti-particle.strip {
+  width: 4px;
+  height: 16px;
+  border-radius: 2px;
+}
+
+
+/* ============================================
+   SECTION 12: MODAL ANIMATIONS
+   ============================================ */
+
+.modal-overlay {
+  opacity: 0;
+  transition: opacity var(--anim-normal) var(--ease-out-expo);
+}
+
+.modal-overlay.open {
+  opacity: 1;
+}
+
+.modal-content {
+  opacity: 0;
+  transform: scale(0.95) translateY(10px);
+  transition:
+    opacity var(--anim-normal) var(--ease-out-expo),
+    transform var(--anim-normal) var(--ease-out-back);
+}
+
+.modal-overlay.open .modal-content {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+
+/* ============================================
+   SECTION 13: BADGE ANIMATIONS
+   ============================================ */
+
+.badge-count {
+  transition: transform var(--anim-fast) var(--ease-spring);
+}
+
+.badge-count.updated {
+  animation: badge-bump 0.3s var(--ease-out-back);
+}
+
+@keyframes badge-bump {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+/* New notification dot */
+.notification-dot {
+  animation: dot-pulse 2s ease-in-out infinite;
+}
+
+@keyframes dot-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 var(--glow-error);
+  }
+  50% {
+    transform: scale(1.1);
+    box-shadow: 0 0 8px 2px var(--glow-error);
+  }
+}
+
+
+/* ============================================
+   SECTION 14: RIPPLE EFFECT
+   ============================================ */
+
+.ripple-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(0);
+  animation: ripple-effect 0.6s linear;
+  pointer-events: none;
+}
+
+@keyframes ripple-effect {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+
+/* ============================================
+   SECTION 15: CELEBRATION OVERLAY
+   ============================================ */
+
+.celebration-overlay {
+  animation: celebration-fade-in 0.4s var(--ease-out-expo);
+}
+
+@keyframes celebration-fade-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.celebration-content {
+  animation: celebration-scale-up 0.5s var(--ease-out-back) 0.1s both;
+}
+
+@keyframes celebration-scale-up {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.celebration-icon {
+  animation: celebration-bounce 0.6s var(--ease-out-back) 0.3s both;
+}
+
+@keyframes celebration-bounce {
+  0% {
+    opacity: 0;
+    transform: scale(0) rotate(-10deg);
+  }
+  60% {
+    transform: scale(1.2) rotate(5deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+
+/* ============================================
+   SECTION 16: UTILITY ANIMATION CLASSES
+   ============================================ */
+
+/* Fade animations */
+.fade-in {
+  animation: fade-in var(--anim-normal) var(--ease-out-expo);
+}
+
+@keyframes fade-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.fade-out {
+  animation: fade-out var(--anim-normal) var(--ease-out-expo) forwards;
+}
+
+@keyframes fade-out {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Slide animations */
+.slide-up {
+  animation: slide-up var(--anim-normal) var(--ease-out-expo);
+}
+
+@keyframes slide-up {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.slide-down {
+  animation: slide-down var(--anim-normal) var(--ease-out-expo);
+}
+
+@keyframes slide-down {
+  0% { opacity: 0; transform: translateY(-20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Scale animations */
+.scale-in {
+  animation: scale-in var(--anim-normal) var(--ease-out-back);
+}
+
+@keyframes scale-in {
+  0% { opacity: 0; transform: scale(0.9); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* Stagger children animation */
+.stagger-children > * {
+  opacity: 0;
+  animation: stagger-fade-in var(--anim-normal) var(--ease-out-expo) forwards;
+}
+
+.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 50ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 100ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 150ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 200ms; }
+.stagger-children > *:nth-child(6) { animation-delay: 250ms; }
+.stagger-children > *:nth-child(7) { animation-delay: 300ms; }
+.stagger-children > *:nth-child(8) { animation-delay: 350ms; }
+.stagger-children > *:nth-child(9) { animation-delay: 400ms; }
+.stagger-children > *:nth-child(10) { animation-delay: 450ms; }
+
+@keyframes stagger-fade-in {
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Pulse attention */
+.pulse-attention {
+  animation: pulse-attention 2s ease-in-out infinite;
+}
+
+@keyframes pulse-attention {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 var(--glow-accent);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 0 15px 3px var(--glow-accent);
+  }
+}
+
+/* Wiggle for emphasis */
+.wiggle {
+  animation: wiggle 0.5s ease-in-out;
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-3deg); }
+  75% { transform: rotate(3deg); }
+}
