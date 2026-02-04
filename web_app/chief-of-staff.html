@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Chief of Staff - Tiny Seed Farm</title>
+  <!-- API Configuration -->
+  <script src="api-config.js"></script>
   <!-- Performance: Preconnect to font servers -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -380,6 +382,50 @@
     .priority-dot.high { background: var(--high); color: var(--high); }
     .priority-dot.medium { background: var(--medium); color: var(--medium); }
     .priority-dot.low { background: var(--low); color: var(--low); }
+
+    /* AI Priority Score Badge - Unified Task API */
+    .ai-priority-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-left: 8px;
+    }
+    .ai-priority-badge.critical {
+      background: var(--critical-bg);
+      color: var(--critical);
+    }
+    .ai-priority-badge.high {
+      background: var(--high-bg);
+      color: var(--high);
+    }
+    .ai-priority-badge.medium {
+      background: var(--medium-bg);
+      color: var(--medium);
+    }
+    .ai-priority-badge.low {
+      background: var(--low-bg);
+      color: var(--low);
+    }
+
+    /* At Risk Badge for Tasks */
+    .at-risk-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.7rem;
+      padding: 4px 10px;
+      background: var(--critical-bg);
+      color: var(--critical);
+      border-radius: 8px;
+      margin-top: 6px;
+    }
+    .at-risk-badge i {
+      color: var(--critical);
+    }
 
     .priority-header h3 {
       font-size: 16px;
@@ -4197,12 +4243,13 @@
   </div>
 
   <script>
-    // PRODUCTION API - v444 Overnight mega upgrade (2026-01-28)
-    const API_BASE = 'https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec';
+    // PRODUCTION API - Use api-config.js for URL
+    const API_BASE = typeof TINY_SEED_API !== 'undefined' ? TINY_SEED_API.MAIN_API : 'https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec';
 
     let communications = [];
     let actions = [];
     let commitments = [];
+    let unifiedTasks = []; // Unified Task API tasks
     let currentFilter = 'all';
     let commitmentFilter = 'all';
     let selectedMessageId = null;
@@ -5529,6 +5576,59 @@ Please help with this email. Be concise and actionable.`;
       return div.innerHTML;
     }
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // AI PRIORITY HELPERS - Unified Task API
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function getAIPriorityClass(score) {
+      if (score >= 80) return 'critical';
+      if (score >= 50) return 'high';
+      if (score >= 30) return 'medium';
+      return 'low';
+    }
+
+    function getAIPriorityIcon(score) {
+      if (score >= 80) return String.fromCodePoint(0x1F534); // Red circle
+      if (score >= 50) return String.fromCodePoint(0x1F7E1); // Yellow circle
+      if (score >= 30) return String.fromCodePoint(0x1F7E0); // Orange circle
+      return String.fromCodePoint(0x1F7E2); // Green circle
+    }
+
+    // Load unified tasks from API
+    async function loadUnifiedTasks() {
+      try {
+        const params = new URLSearchParams({
+          action: 'getTaskPriorities',
+          limit: 50
+        });
+
+        const response = await fetch(`${API_BASE}?${params.toString()}`);
+        const data = await response.json();
+
+        if (data.success && data.tasks) {
+          unifiedTasks = data.tasks.map(t => ({
+            id: t.Task_ID,
+            title: t.Title || 'Untitled Task',
+            description: t.Description || '',
+            assignee: t.Assignee_Name || t.Assignee_ID || '',
+            dueDate: t.Due_Date || '',
+            dueTime: t.Due_Time || '',
+            status: t.Status || 'scheduled',
+            priorityScore: t.Priority_Score || 50,
+            atRisk: t.At_Risk === true || t.At_Risk === 'TRUE',
+            atRiskReason: t.At_Risk_Reason || '',
+            taskType: t.Task_Type || 'other',
+            _raw: t
+          }));
+          console.log(`[Unified Tasks] Loaded ${unifiedTasks.length} tasks`);
+          return unifiedTasks;
+        }
+      } catch (error) {
+        console.error('Error loading unified tasks:', error);
+      }
+      return [];
+    }
+
     // Escape IDs for use in onclick handlers (handles quotes and special chars)
     function escapeAttr(str) {
       if (!str) return '';
@@ -5703,15 +5803,36 @@ Please help with this email. Be concise and actionable.`;
       } else if (taskType === 'action') {
         actions = actions.filter(a => a.id !== taskId);
         renderActions();
+      } else if (taskType === 'unified') {
+        unifiedTasks = unifiedTasks.filter(t => t.id !== taskId);
       }
 
       closeTaskActionModal();
       showToast('Task completed!', 'success');
 
-      // API call
-      const action = taskType === 'action' ? 'completeAction' : 'completeSMSCommitment';
-      const idParam = taskType === 'action' ? 'actionId' : 'commitmentId';
-      await fetch(`${API_BASE}?action=${action}&${idParam}=${taskId}&notes=${encodeURIComponent(notes)}`);
+      // Legacy API call for commitments/actions
+      if (taskType !== 'unified') {
+        const action = taskType === 'action' ? 'completeAction' : 'completeSMSCommitment';
+        const idParam = taskType === 'action' ? 'actionId' : 'commitmentId';
+        await fetch(`${API_BASE}?action=${action}&${idParam}=${taskId}&notes=${encodeURIComponent(notes)}`);
+      }
+
+      // Also update via Unified Task API for consistency
+      try {
+        await fetch(API_BASE, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'updateUnifiedTask',
+            Task_ID: taskId,
+            Status: 'done',
+            Completed_At: new Date().toISOString(),
+            Notes: notes
+          })
+        });
+      } catch (err) {
+        console.warn('Unified task update skipped:', err);
+      }
 
       // Log activity
       await fetch(`${API_BASE}?action=logActivity&type=COMPLETION&itemType=${taskType}&itemId=${taskId}&notes=${encodeURIComponent(notes)}`);
@@ -7692,9 +7813,40 @@ Please help with this email. Be concise and actionable.`;
     // CHIEF OF STAFF 2.0 - SMART PRIORITY & DECISION SUPPORT
     // ═══════════════════════════════════════════════════════════════════════════
 
-    // Get "What Should I Do Next?" recommendation
+    // Get "What Should I Do Next?" recommendation - Using Unified Task API
     async function getNextPriorityTask() {
       try {
+        // First try Unified Task API for AI-sorted tasks
+        const params = new URLSearchParams({
+          action: 'getTaskPriorities',
+          limit: 1 // Just get the top priority task
+        });
+
+        const unifiedRes = await fetch(`${API_BASE}?${params.toString()}`);
+        const unifiedData = await unifiedRes.json();
+
+        if (unifiedData.success && unifiedData.tasks && unifiedData.tasks.length > 0) {
+          const topTask = unifiedData.tasks[0];
+          const priorityIcon = getAIPriorityIcon(topTask.Priority_Score || 50);
+          const priorityClass = getAIPriorityClass(topTask.Priority_Score || 50);
+
+          showAISuggestion({
+            id: 'next-task-' + Date.now(),
+            text: `${priorityIcon} Top Priority: ${topTask.Title || 'Task'}`,
+            detail: topTask.At_Risk_Reason || topTask.Description || `AI Priority Score: ${topTask.Priority_Score || 50}`,
+            confidence: topTask.Priority_Score || 50,
+            actions: ['Start Now', 'Skip'],
+            meta: {
+              taskId: topTask.Task_ID,
+              priorityScore: topTask.Priority_Score,
+              atRisk: topTask.At_Risk
+            }
+          });
+
+          return { success: true, data: topTask };
+        }
+
+        // Fallback to legacy endpoint
         const res = await cachedFetch('getNextPriorityTask');
         if (res.success && res.data) {
           const task = res.data;

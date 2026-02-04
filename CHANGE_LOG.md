@@ -40,6 +40,75 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-02-03 - Desktop_Claude (Phase 2: Unified Task API for Remaining Pages)
+
+### Files Modified
+- `flowers.html` - Updated to use Unified Task API (getTaskPriorities) with AI priority badges
+- `food-safety.html` - Updated to use Unified Task API with AI priority badges and at-risk indicators
+- `employee.html` - Updated to use Unified Task API with AI priority badges in task cards
+- `web_app/chief-of-staff.html` - Updated to use Unified Task API for "What Should I Do Next?" feature
+
+### CSS Added
+**food-safety.html:**
+- `.priority-badge` - AI priority score badges (critical/high/normal)
+- `.at-risk-badge` - Warning indicator with reason
+
+**employee.html:**
+- `.ai-priority-badge` - AI priority badges styled for mobile (critical/high/normal)
+- `.task-at-risk-badge` - At-risk warning for field worker view
+
+**web_app/chief-of-staff.html:**
+- `.ai-priority-badge` - AI priority badges (critical/high/medium/low)
+- `.at-risk-badge` - At-risk task warning
+
+### Functions Added
+**food-safety.html:**
+- `getPriorityClass(score)` - Returns CSS class based on priority score
+- `getPriorityIcon(score)` - Returns emoji indicator based on priority score
+- `escapeHtml(text)` - HTML escaping utility
+
+**employee.html:**
+- `getAIPriorityClass(score)` - Returns CSS class based on AI priority score
+- `getAIPriorityIcon(score)` - Returns emoji indicator based on priority score
+
+**web_app/chief-of-staff.html:**
+- `getAIPriorityClass(score)` - Returns CSS class (critical/high/medium/low)
+- `getAIPriorityIcon(score)` - Returns emoji indicator
+- `loadUnifiedTasks()` - Loads tasks from getTaskPriorities endpoint
+
+### Functions Modified
+**food-safety.html:**
+- `loadTodaysTasks()` - Now uses getTaskPriorities API with task_type filter, includes priority badges and at-risk indicators
+- `toggleTask(taskId)` - Now calls updateUnifiedTask API to persist completion status
+
+**employee.html:**
+- `loadInitialData()` - Now uses getTaskPriorities API with assignee filter, maps to local task format with priority info
+- `renderTasks()` - Added AI priority badges and at-risk indicators to task cards
+- `completeTaskV2()` - Now also calls updateUnifiedTask API for consistency
+
+**web_app/chief-of-staff.html:**
+- API_BASE updated to use TINY_SEED_API.MAIN_API from api-config.js
+- `completeTaskAction()` - Now also updates via updateUnifiedTask API
+- `getNextPriorityTask()` - Now uses getTaskPriorities API first for AI-sorted results
+
+### API URLs Updated
+- `food-safety.html` - Changed from API_CONFIG.API_URL to TINY_SEED_API.MAIN_API
+- `web_app/chief-of-staff.html` - Added api-config.js import, uses TINY_SEED_API.MAIN_API
+
+### Reason
+Completing Phase 2 of the Task Management System unification. All 4 task-related pages now use the Unified Task API:
+1. flowers.html - Already had api-config.js, updated to use getTaskPriorities
+2. food-safety.html - Updated to use getTaskPriorities with AI priority display
+3. employee.html - Updated to use getTaskPriorities with priority info in task cards
+4. web_app/chief-of-staff.html - Updated "What Should I Do Next?" to use AI-sorted tasks
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions - followed patterns from flowers.html and task-assignment.html
+- [x] No duplicates created - extended existing task functions
+
+---
+
 ## 2026-02-03 - Desktop_Claude (Unified Task API Integration in Today's Work)
 
 ### Files Modified

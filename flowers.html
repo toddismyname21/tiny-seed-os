@@ -6,6 +6,7 @@
     <title>Flower Operations - Tiny Seed OS</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="web_app/api-config.js"></script>
     <script src="web_app/auth-guard.js" data-required-role="Field_Lead"></script>
     <style>
         :root {
@@ -394,6 +395,91 @@
         .task-priority.critical { background: var(--danger); color: white; }
         .task-priority.high { background: var(--warning); color: #1a1a2e; }
         .task-priority.normal { background: var(--success); color: white; }
+
+        /* Priority Score Badge - Unified Task API */
+        .priority-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .priority-badge.critical {
+            background: rgba(230, 57, 70, 0.2);
+            color: var(--danger);
+        }
+        .priority-badge.high {
+            background: rgba(233, 196, 106, 0.2);
+            color: var(--warning);
+        }
+        .priority-badge.normal {
+            background: rgba(42, 157, 143, 0.2);
+            color: var(--success);
+        }
+
+        /* At Risk Badge */
+        .at-risk-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            background: rgba(230, 57, 70, 0.2);
+            color: var(--danger);
+            border-radius: 8px;
+            margin-top: 8px;
+        }
+
+        /* Task loading state */
+        .tasks-loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+        }
+        .tasks-loading i {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Bulk action bar */
+        .bulk-action-bar {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem 1rem;
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            margin-bottom: 1rem;
+        }
+        .bulk-action-bar .select-all {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+        .bulk-action-bar .selected-count {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+        .bulk-action-bar .btn {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+        }
+
+        /* Task checkbox selection */
+        .task-item .task-checkbox.checked {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+        .task-item.selected {
+            border-color: var(--primary);
+            background: rgba(156, 79, 150, 0.1);
+        }
 
         /* Calendar Grid */
         .calendar-grid {
@@ -1204,8 +1290,12 @@
     </div>
 
     <script>
-        // API Configuration
-        const API_URL = 'https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec';
+        // API Configuration - Using Unified Task API
+        const API_URL = TINY_SEED_API.MAIN_API;
+
+        // State management
+        let unifiedTasks = [];
+        let selectedTasks = new Set();
 
         // Flower Database - from reference PDF
         const flowerDatabase = [
@@ -1264,17 +1354,8 @@
             { name: "Peony", spacing: "24\" apart", grid: "varies", dtb: "varies", type: "focal", varieties: "Sarah Bernhardt (pink), Duchess de Nemours (white), Felix Crouse (red)", notes: "", caution: "", growing: true }
         ];
 
-        // Sample Tasks Data
-        let tasks = [
-            { id: 1, name: "Split dahlia tubers", flower: "Dahlia", estTime: "3 hours", supplies: "Sharp knife, labels, rooting hormone", assigned: "Loren", dueDate: "2026-01-20", priority: "high", done: false, notes: "Stored tubers from last season" },
-            { id: 2, name: "Start tulip forcing - batch 2", flower: "Tulip", estTime: "2 hours", supplies: "Crates, bulbs, cooler space", assigned: "Loren", dueDate: "2026-01-18", priority: "critical", done: false, notes: "Double Gudoshnik variety" },
-            { id: 3, name: "Order ranunculus corms", flower: "Ranunculus", estTime: "30 min", supplies: "Computer", assigned: "Todd", dueDate: "2026-01-17", priority: "high", done: false, notes: "Need 500 corms" },
-            { id: 4, name: "Check snapdragon tunnel temps", flower: "Snapdragon", estTime: "15 min", supplies: "Thermometer", assigned: "Loren", dueDate: "2026-01-16", priority: "normal", done: true, notes: "" },
-            { id: 5, name: "Prep beds for anemone planting", flower: "Anemone", estTime: "4 hours", supplies: "Compost, rake, drip tape", assigned: "Team", dueDate: "2026-01-22", priority: "high", done: false, notes: "Tunnel 2" },
-            { id: 6, name: "Seed lisianthus (if available)", flower: "Lisianthus", estTime: "1 hour", supplies: "Seeds, 128 trays, humidity dome", assigned: "Loren", dueDate: "2026-01-25", priority: "normal", done: false, notes: "Check Johnny's for non-pelleted" },
-            { id: 7, name: "Inventory dahlia tuber storage", flower: "Dahlia", estTime: "2 hours", supplies: "Labels, notebook", assigned: "Loren", dueDate: "2026-01-19", priority: "normal", done: false, notes: "Check for rot" },
-            { id: 8, name: "Pre-sprout ranunculus corms", flower: "Ranunculus", estTime: "1 hour", supplies: "Trays, damp paper towels", assigned: "Loren", dueDate: "2026-01-28", priority: "high", done: false, notes: "Soak 4 hours first" }
-        ];
+        // Tasks data - loaded from Unified Task API
+        let tasks = [];
 
         // Critical Dates Calendar Data (from Winter Growing Protocols 2026)
         const criticalDates = {
@@ -1672,16 +1753,99 @@
         };
 
         // Initialize page
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             initTabs();
-            renderDashboard();
             renderFlowerDatabase();
-            renderTasks();
             renderCalendar();
             renderHowTos();
             renderPlanning();
             renderGerminationTables();
+            // Load tasks from Unified Task API
+            await loadTasksFromAPI();
+            renderDashboard();
         });
+
+        // ========================================
+        // UNIFIED TASK API INTEGRATION
+        // ========================================
+
+        // Priority badge helpers
+        function getPriorityClass(score) {
+            if (score >= 80) return 'critical';
+            if (score >= 50) return 'high';
+            return 'normal';
+        }
+
+        function getPriorityIcon(score) {
+            if (score >= 80) return String.fromCodePoint(0x1F534); // Red circle
+            if (score >= 50) return String.fromCodePoint(0x1F7E1); // Yellow circle
+            return String.fromCodePoint(0x1F7E2); // Green circle
+        }
+
+        // Load tasks from Unified Task API
+        async function loadTasksFromAPI() {
+            const container = document.getElementById('allTasks');
+            const dashboardContainer = document.getElementById('todaysTasks');
+
+            // Show loading state
+            if (container) {
+                container.innerHTML = '<div class="tasks-loading"><i class="fas fa-spinner"></i> Loading tasks...</div>';
+            }
+            if (dashboardContainer) {
+                dashboardContainer.innerHTML = '<div class="tasks-loading"><i class="fas fa-spinner"></i> Loading...</div>';
+            }
+
+            try {
+                // Fetch from Unified Task API with flower-related task types
+                const response = await fetch(`${API_URL}?action=getTaskPriorities&limit=100`);
+                const result = await response.json();
+
+                if (result.success && result.tasks) {
+                    // Map to local format and filter for flower-related tasks
+                    const flowerTypes = ['sow', 'transplant', 'harvest', 'maintenance', 'scout', 'irrigate'];
+                    unifiedTasks = result.tasks;
+
+                    tasks = result.tasks.map(t => ({
+                        id: t.Task_ID,
+                        name: t.Title || 'Untitled',
+                        flower: t.Crop_ID || 'General',
+                        estTime: t.Estimated_Minutes ? `${t.Estimated_Minutes} min` : 'TBD',
+                        supplies: t.Description || '',
+                        assigned: t.Assignee_Name || t.Assignee_ID || 'Unassigned',
+                        dueDate: t.Due_Date || '',
+                        priority: getPriorityClass(t.Priority_Score || 50),
+                        priorityScore: t.Priority_Score || 50,
+                        done: t.Status === 'DONE' || t.Status === 'done',
+                        notes: t.Description || '',
+                        atRisk: t.At_Risk === true || t.At_Risk === 'TRUE',
+                        atRiskReason: t.At_Risk_Reason || '',
+                        taskType: t.Task_Type || 'maintenance',
+                        location: t.Field_ID || t.Bed_ID || '',
+                        _raw: t
+                    }));
+
+                    // Sort by priority score (high to low)
+                    tasks.sort((a, b) => (b.priorityScore || 0) - (a.priorityScore || 0));
+
+                    renderTasks();
+                    renderDashboard();
+                } else {
+                    throw new Error(result.error || 'Failed to load tasks');
+                }
+            } catch (error) {
+                console.error('Error loading tasks from API:', error);
+                if (container) {
+                    container.innerHTML = `
+                        <div class="tasks-loading" style="color: var(--danger);">
+                            <i class="fas fa-exclamation-circle"></i> Error loading tasks: ${error.message}
+                            <br><button class="btn btn-secondary" onclick="loadTasksFromAPI()" style="margin-top: 1rem;">
+                                <i class="fas fa-sync-alt"></i> Try Again
+                            </button>
+                        </div>
+                    `;
+                }
+            }
+        }
 
         // Tab functionality
         function initTabs() {
@@ -1700,30 +1864,43 @@
             });
         }
 
-        // Render Dashboard
+        // Render Dashboard with AI Priority badges
         function renderDashboard() {
-            // Today's tasks
+            // Today's tasks - sorted by priority
             const today = new Date().toISOString().split('T')[0];
-            const todaysTasks = tasks.filter(t => t.dueDate <= today && !t.done).slice(0, 5);
+            const todaysTasks = tasks
+                .filter(t => t.dueDate <= today && !t.done)
+                .sort((a, b) => (b.priorityScore || 0) - (a.priorityScore || 0))
+                .slice(0, 5);
 
-            const taskHtml = todaysTasks.map(task => `
+            const taskHtml = todaysTasks.map(task => {
+                const priorityIcon = getPriorityIcon(task.priorityScore || 50);
+                const priorityClass = getPriorityClass(task.priorityScore || 50);
+
+                return `
                 <div class="task-item">
-                    <div class="task-checkbox ${task.done ? 'done' : ''}" onclick="toggleTask(${task.id})">
+                    <div class="task-checkbox ${task.done ? 'done' : ''}" onclick="toggleTask('${task.id}')">
                         ${task.done ? '<i class="fas fa-check"></i>' : ''}
                     </div>
                     <div class="task-content">
-                        <div class="task-title">${task.name}</div>
-                        <div class="task-meta">
-                            <span><i class="fas fa-spa"></i> ${task.flower}</span>
-                            <span><i class="fas fa-clock"></i> ${task.estTime}</span>
-                            <span><i class="fas fa-user"></i> ${task.assigned}</span>
+                        <div class="task-title">
+                            <span class="priority-badge ${priorityClass}" title="AI Priority: ${task.priorityScore || 50}">
+                                ${priorityIcon} ${task.priorityScore || 50}
+                            </span>
+                            ${escapeHtml(task.name)}
                         </div>
+                        <div class="task-meta">
+                            <span><i class="fas fa-spa"></i> ${escapeHtml(task.flower)}</span>
+                            <span><i class="fas fa-clock"></i> ${task.estTime}</span>
+                            <span><i class="fas fa-user"></i> ${escapeHtml(task.assigned)}</span>
+                        </div>
+                        ${task.atRisk ? `<div class="at-risk-badge"><i class="fas fa-exclamation-triangle"></i> ${escapeHtml(task.atRiskReason || 'At Risk')}</div>` : ''}
                     </div>
                     <span class="task-priority ${task.priority}">${task.priority}</span>
                 </div>
-            `).join('');
+            `}).join('');
 
-            document.getElementById('todaysTasks').innerHTML = taskHtml || '<p style="color: var(--text-secondary);">No tasks due today!</p>';
+            document.getElementById('todaysTasks').innerHTML = taskHtml || '<p style="color: var(--text-secondary);">No tasks due today! <button class="btn btn-primary btn-sm" onclick="openTaskModal()"><i class="fas fa-plus"></i> Add Task</button></p>';
 
             // Upcoming dates
             const upcomingHtml = Object.entries(criticalDates).slice(0, 3).map(([month, events]) => `
@@ -1763,28 +1940,215 @@
             `).join('');
         }
 
-        // Render Tasks
+        // Render Tasks with AI Priority and At-Risk indicators
         function renderTasks() {
-            const taskHtml = tasks.map(task => `
-                <div class="task-item" data-status="${task.done ? 'done' : 'pending'}" data-flower="${task.flower}">
-                    <div class="task-checkbox ${task.done ? 'done' : ''}" onclick="toggleTask(${task.id})">
-                        ${task.done ? '<i class="fas fa-check"></i>' : ''}
+            if (tasks.length === 0) {
+                document.getElementById('allTasks').innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 2rem;">No flower tasks found. <button class="btn btn-primary" onclick="openTaskModal()"><i class="fas fa-plus"></i> Add Task</button></p>';
+                return;
+            }
+
+            // Bulk action bar
+            let html = `
+                <div class="bulk-action-bar" id="bulkActionBar" style="display: none;">
+                    <label class="select-all">
+                        <input type="checkbox" id="selectAllTasks" onchange="toggleSelectAll()">
+                        <span>Select All</span>
+                    </label>
+                    <span class="selected-count" id="selectedCount">0 selected</span>
+                    <button class="btn btn-secondary" onclick="bulkComplete()" id="bulkCompleteBtn" disabled>
+                        <i class="fas fa-check"></i> Complete
+                    </button>
+                    <button class="btn btn-secondary" onclick="bulkCancel()" id="bulkCancelBtn" disabled style="color: var(--danger);">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                </div>
+            `;
+
+            html += tasks.map(task => {
+                const isSelected = selectedTasks.has(task.id);
+                const priorityIcon = getPriorityIcon(task.priorityScore || 50);
+                const priorityClass = getPriorityClass(task.priorityScore || 50);
+
+                return `
+                <div class="task-item ${isSelected ? 'selected' : ''}" data-status="${task.done ? 'done' : 'pending'}" data-flower="${task.flower}" data-task-id="${task.id}">
+                    <div class="task-checkbox ${task.done ? 'done' : ''} ${isSelected ? 'checked' : ''}" onclick="handleTaskClick('${task.id}', event)">
+                        ${task.done ? '<i class="fas fa-check"></i>' : (isSelected ? '<i class="fas fa-check"></i>' : '')}
                     </div>
-                    <div class="task-content">
-                        <div class="task-title">${task.name}</div>
-                        <div class="task-meta">
-                            <span><i class="fas fa-spa"></i> ${task.flower}</span>
-                            <span><i class="fas fa-clock"></i> ${task.estTime}</span>
-                            <span><i class="fas fa-user"></i> ${task.assigned}</span>
-                            <span><i class="fas fa-calendar"></i> ${task.dueDate}</span>
+                    <div class="task-content" onclick="handleTaskClick('${task.id}', event)">
+                        <div class="task-title">
+                            <span class="priority-badge ${priorityClass}" title="AI Priority: ${task.priorityScore || 50}">
+                                ${priorityIcon} ${task.priorityScore || 50}
+                            </span>
+                            ${escapeHtml(task.name)}
                         </div>
-                        ${task.notes ? `<div style="margin-top: 8px; font-size: 0.85rem; color: var(--text-secondary);"><i class="fas fa-sticky-note"></i> ${task.notes}</div>` : ''}
+                        <div class="task-meta">
+                            <span><i class="fas fa-spa"></i> ${escapeHtml(task.flower)}</span>
+                            <span><i class="fas fa-clock"></i> ${task.estTime}</span>
+                            <span><i class="fas fa-user"></i> ${escapeHtml(task.assigned)}</span>
+                            <span><i class="fas fa-calendar"></i> ${task.dueDate}</span>
+                            ${task.location ? `<span><i class="fas fa-map-marker-alt"></i> ${escapeHtml(task.location)}</span>` : ''}
+                        </div>
+                        ${task.atRisk && task.atRiskReason ? `
+                            <div class="at-risk-badge">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <span>${escapeHtml(task.atRiskReason)}</span>
+                            </div>
+                        ` : ''}
+                        ${task.notes && !task.atRisk ? `<div style="margin-top: 8px; font-size: 0.85rem; color: var(--text-secondary);"><i class="fas fa-sticky-note"></i> ${escapeHtml(task.notes.substring(0, 100))}</div>` : ''}
                     </div>
                     <span class="task-priority ${task.priority}">${task.priority}</span>
                 </div>
-            `).join('');
+            `}).join('');
 
-            document.getElementById('allTasks').innerHTML = taskHtml;
+            document.getElementById('allTasks').innerHTML = html;
+            updateBulkActionBar();
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Handle task click - toggle selection or complete
+        function handleTaskClick(taskId, event) {
+            event.stopPropagation();
+            const checkbox = event.target.closest('.task-checkbox');
+            if (checkbox) {
+                // Check if task is already done
+                const task = tasks.find(t => t.id === taskId);
+                if (task && task.done) return;
+
+                // Toggle selection for bulk operations
+                toggleTaskSelection(taskId);
+            }
+        }
+
+        // Task selection for bulk operations
+        function toggleTaskSelection(taskId) {
+            if (selectedTasks.has(taskId)) {
+                selectedTasks.delete(taskId);
+            } else {
+                selectedTasks.add(taskId);
+            }
+            updateTaskUI(taskId);
+            updateBulkActionBar();
+        }
+
+        function toggleSelectAll() {
+            const checkbox = document.getElementById('selectAllTasks');
+            if (checkbox.checked) {
+                tasks.filter(t => !t.done).forEach(t => selectedTasks.add(t.id));
+            } else {
+                selectedTasks.clear();
+            }
+            renderTasks();
+        }
+
+        function updateTaskUI(taskId) {
+            const taskEl = document.querySelector(`.task-item[data-task-id="${taskId}"]`);
+            if (taskEl) {
+                const checkbox = taskEl.querySelector('.task-checkbox');
+                if (selectedTasks.has(taskId)) {
+                    taskEl.classList.add('selected');
+                    checkbox.classList.add('checked');
+                    checkbox.innerHTML = '<i class="fas fa-check"></i>';
+                } else {
+                    taskEl.classList.remove('selected');
+                    checkbox.classList.remove('checked');
+                    checkbox.innerHTML = '';
+                }
+            }
+        }
+
+        function updateBulkActionBar() {
+            const bar = document.getElementById('bulkActionBar');
+            const countEl = document.getElementById('selectedCount');
+            const completeBtn = document.getElementById('bulkCompleteBtn');
+            const cancelBtn = document.getElementById('bulkCancelBtn');
+
+            if (!bar) return;
+
+            if (selectedTasks.size > 0) {
+                bar.style.display = 'flex';
+                countEl.textContent = `${selectedTasks.size} selected`;
+                completeBtn.disabled = false;
+                cancelBtn.disabled = false;
+            } else {
+                bar.style.display = 'none';
+                completeBtn.disabled = true;
+                cancelBtn.disabled = true;
+            }
+        }
+
+        // Bulk complete using Unified Task API
+        async function bulkComplete() {
+            const taskIds = Array.from(selectedTasks);
+            if (taskIds.length === 0) return;
+
+            if (!confirm(`Complete ${taskIds.length} tasks?`)) return;
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'bulkUpdateTasks',
+                        taskIds: taskIds,
+                        updates: {
+                            Status: 'DONE',
+                            Completed_At: new Date().toISOString()
+                        }
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    alert(`${result.updated || taskIds.length} tasks completed!`);
+                    selectedTasks.clear();
+                    await loadTasksFromAPI();
+                } else {
+                    alert('Error: ' + (result.error || 'Failed to complete tasks'));
+                }
+            } catch (error) {
+                console.error('Bulk complete error:', error);
+                alert('Error completing tasks: ' + error.message);
+            }
+        }
+
+        // Bulk cancel using Unified Task API
+        async function bulkCancel() {
+            const taskIds = Array.from(selectedTasks);
+            if (taskIds.length === 0) return;
+
+            if (!confirm(`Cancel ${taskIds.length} tasks?`)) return;
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'bulkUpdateTasks',
+                        taskIds: taskIds,
+                        updates: {
+                            Status: 'CANCELLED'
+                        }
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    alert(`${result.updated || taskIds.length} tasks cancelled!`);
+                    selectedTasks.clear();
+                    await loadTasksFromAPI();
+                } else {
+                    alert('Error: ' + (result.error || 'Failed to cancel tasks'));
+                }
+            } catch (error) {
+                console.error('Bulk cancel error:', error);
+                alert('Error cancelling tasks: ' + error.message);
+            }
         }
 
         // Render Calendar
@@ -1844,10 +2208,36 @@
             `).join('');
         }
 
-        // Toggle task completion
-        function toggleTask(id) {
+        // Toggle task completion using Unified Task API
+        async function toggleTask(id) {
             const task = tasks.find(t => t.id === id);
-            if (task) {
+            if (!task) return;
+
+            const newStatus = task.done ? 'scheduled' : 'DONE';
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'updateUnifiedTask',
+                        Task_ID: id,
+                        Status: newStatus,
+                        Completed_At: newStatus === 'DONE' ? new Date().toISOString() : null
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    task.done = !task.done;
+                    renderTasks();
+                    renderDashboard();
+                } else {
+                    alert('Error: ' + (result.error || 'Failed to update task'));
+                }
+            } catch (error) {
+                console.error('Toggle task error:', error);
+                // Optimistic update - still toggle locally
                 task.done = !task.done;
                 renderTasks();
                 renderDashboard();
@@ -1911,40 +2301,74 @@
             document.getElementById(modalId).classList.remove('active');
         }
 
-        // Save task
-        function saveTask() {
-            const task = {
-                id: tasks.length + 1,
-                name: document.getElementById('taskName').value,
-                flower: document.getElementById('taskFlower').value,
-                estTime: document.getElementById('taskEstTime').value,
-                supplies: document.getElementById('taskSupplies').value,
-                assigned: document.getElementById('taskAssigned').value,
-                dueDate: document.getElementById('taskDueDate').value,
-                priority: document.getElementById('taskPriority').value,
-                notes: document.getElementById('taskNotes').value,
-                done: false
+        // Save task using Unified Task API
+        async function saveTask() {
+            const name = document.getElementById('taskName').value.trim();
+            const flower = document.getElementById('taskFlower').value;
+            const estTime = document.getElementById('taskEstTime').value;
+            const supplies = document.getElementById('taskSupplies').value;
+            const assigned = document.getElementById('taskAssigned').value;
+            const dueDate = document.getElementById('taskDueDate').value;
+            const priority = document.getElementById('taskPriority').value;
+            const notes = document.getElementById('taskNotes').value;
+
+            if (!name || !flower) {
+                alert('Please fill in task name and flower');
+                return;
+            }
+
+            // Map priority to Priority_Manual
+            const priorityMap = {
+                'critical': 'critical',
+                'high': 'high',
+                'normal': 'medium',
+                'low': 'low'
             };
 
-            if (task.name && task.flower) {
-                tasks.unshift(task);
-                renderTasks();
-                renderDashboard();
-                closeModal('taskModal');
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'createUnifiedTask',
+                        Title: name,
+                        Description: (supplies ? `Supplies: ${supplies}\n` : '') + (notes || ''),
+                        Task_Type: 'maintenance',
+                        Crop_ID: flower,
+                        Assignee_Name: assigned,
+                        Due_Date: dueDate,
+                        Priority_Manual: priorityMap[priority] || 'medium',
+                        Estimated_Minutes: parseInt(estTime) || null,
+                        Source: 'manual',
+                        Status: 'scheduled',
+                        sendSMS: true
+                    })
+                });
 
-                // Clear form
-                document.getElementById('taskName').value = '';
-                document.getElementById('taskNotes').value = '';
-            } else {
-                alert('Please fill in task name and flower');
+                const result = await response.json();
+                if (result.success) {
+                    closeModal('taskModal');
+                    alert('Task created!' + (result.smsSent ? ' SMS notification sent.' : ''));
+
+                    // Clear form
+                    document.getElementById('taskName').value = '';
+                    document.getElementById('taskNotes').value = '';
+                    document.getElementById('taskSupplies').value = '';
+
+                    // Reload tasks from API
+                    await loadTasksFromAPI();
+                } else {
+                    alert('Error: ' + (result.error || 'Failed to create task'));
+                }
+            } catch (error) {
+                console.error('Save task error:', error);
+                alert('Error creating task: ' + error.message);
             }
         }
 
-        // Refresh data
-        function refreshData() {
-            // In production, this would fetch from API
-            renderDashboard();
-            renderTasks();
+        // Refresh data - fetch from Unified Task API
+        async function refreshData() {
+            await loadTasksFromAPI();
             renderFlowerDatabase();
         }
 

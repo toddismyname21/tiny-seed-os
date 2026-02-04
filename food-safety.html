@@ -570,6 +570,46 @@
             display: none;
         }
 
+        /* Priority Score Badge - Unified Task API */
+        .priority-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+        .priority-badge.critical {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+        }
+        .priority-badge.high {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+        }
+        .priority-badge.normal {
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--success);
+        }
+
+        /* At Risk Badge */
+        .at-risk-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.7rem;
+            padding: 4px 10px;
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+            border-radius: 8px;
+            margin-top: 6px;
+        }
+        .at-risk-badge i {
+            color: var(--danger);
+        }
+
         /* Quick Actions */
         .quick-actions {
             display: grid;
@@ -1882,7 +1922,8 @@
         // SMART COMPLIANCE COMMAND CENTER
         // ========================================
 
-        const API_URL = typeof API_CONFIG !== 'undefined' ? API_CONFIG.API_URL : '';
+        // Use Unified API from api-config.js
+        const API_URL = typeof TINY_SEED_API !== 'undefined' ? TINY_SEED_API.MAIN_API : '';
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
@@ -2057,50 +2098,115 @@
         }
 
         // ========================================
-        // TODAY'S TASKS
+        // TODAY'S TASKS - Using Unified Task API
         // ========================================
 
+        // State for unified tasks
+        let unifiedTasks = [];
+
+        // Priority badge helpers for AI priority scores
+        function getPriorityClass(score) {
+            if (score >= 80) return 'critical';
+            if (score >= 50) return 'high';
+            return 'normal';
+        }
+
+        function getPriorityIcon(score) {
+            if (score >= 80) return String.fromCodePoint(0x1F534); // Red circle
+            if (score >= 50) return String.fromCodePoint(0x1F7E1); // Yellow circle
+            return String.fromCodePoint(0x1F7E2); // Green circle
+        }
+
         async function loadTodaysTasks() {
+            const container = document.getElementById('tasksList');
+            container.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading tasks...</p></div>';
+
             try {
-                const response = await fetch(`${API_URL}?action=getDailyBriefing`);
+                // Get today's date for filtering
+                const today = new Date().toISOString().split('T')[0];
+
+                // Use Unified Task API - getTaskPriorities for AI-sorted results
+                const params = new URLSearchParams({
+                    action: 'getTaskPriorities',
+                    limit: 50,
+                    task_type: 'food_safety' // Filter to food safety tasks
+                });
+
+                const response = await fetch(`${API_URL}?${params.toString()}`);
                 const data = await response.json();
 
-                const container = document.getElementById('tasksList');
-                const tasks = data.briefing?.todaysTasks || [];
+                if (!data.success) {
+                    throw new Error(data.error || 'Failed to load tasks');
+                }
 
-                document.getElementById('tasksTotal').textContent = tasks.length;
-                document.getElementById('tasksComplete').textContent = tasks.filter(t => t.status === 'Completed').length;
+                // Map to local format with priority info
+                unifiedTasks = (data.tasks || []).map(t => ({
+                    id: t.Task_ID,
+                    title: t.Title || 'Untitled Task',
+                    type: t.Task_Type || 'general',
+                    location: t.Field_ID || t.Bed_ID || '',
+                    dueDate: t.Due_Date || '',
+                    dueTime: t.Due_Time || 'Anytime',
+                    status: t.Status || 'scheduled',
+                    priorityScore: t.Priority_Score || 50,
+                    atRisk: t.At_Risk === true || t.At_Risk === 'TRUE',
+                    atRiskReason: t.At_Risk_Reason || '',
+                    assignee: t.Assignee_Name || t.Assignee_ID || '',
+                    _raw: t
+                }));
 
-                if (tasks.length === 0) {
+                // Filter to today's tasks (or overdue)
+                const todaysTasks = unifiedTasks.filter(t => {
+                    if (!t.dueDate) return true; // No date = show
+                    return t.dueDate <= today;
+                });
+
+                const completedCount = todaysTasks.filter(t => t.status === 'done' || t.status === 'DONE').length;
+                document.getElementById('tasksTotal').textContent = todaysTasks.length;
+                document.getElementById('tasksComplete').textContent = completedCount;
+
+                if (todaysTasks.length === 0) {
                     container.innerHTML = '<div class="empty-state"><i class="fas fa-clipboard-check"></i><p>No tasks for today</p></div>';
                     return;
                 }
 
-                container.innerHTML = tasks.map((task, index) => {
-                    const iconClass = (task.type || '').toLowerCase().replace('-', '');
+                container.innerHTML = todaysTasks.map((task, index) => {
+                    const iconClass = (task.type || '').toLowerCase().replace(/[-_]/g, '');
                     const iconMap = {
                         'temperature': 'fa-thermometer-half',
                         'cleaning': 'fa-broom',
                         'preharvest': 'fa-seedling',
                         'water': 'fa-tint',
-                        'training': 'fa-graduation-cap'
+                        'training': 'fa-graduation-cap',
+                        'foodsafety': 'fa-shield-alt',
+                        'audit': 'fa-clipboard-check'
                     };
                     const icon = iconMap[iconClass] || 'fa-tasks';
+                    const isCompleted = task.status === 'done' || task.status === 'DONE';
+                    const priorityIcon = getPriorityIcon(task.priorityScore);
+                    const priorityClass = getPriorityClass(task.priorityScore);
 
                     return `
-                        <div class="task-item ${task.status === 'Completed' ? 'completed' : ''}" data-index="${index}">
-                            <div class="task-checkbox" onclick="toggleTask(${index})">
-                                ${task.status === 'Completed' ? '<i class="fas fa-check"></i>' : ''}
+                        <div class="task-item ${isCompleted ? 'completed' : ''}" data-task-id="${task.id}" data-index="${index}">
+                            <div class="task-checkbox" onclick="toggleTask('${task.id}')">
+                                ${isCompleted ? '<i class="fas fa-check"></i>' : ''}
                             </div>
                             <div class="task-icon ${iconClass}">
                                 <i class="fas ${icon}"></i>
                             </div>
                             <div class="task-content">
-                                <div class="task-title">${task.title}</div>
-                                <div class="task-meta">
-                                    <span><i class="fas fa-map-marker-alt"></i> ${task.location || 'N/A'}</span>
-                                    <span><i class="fas fa-clock"></i> ${task.dueTime || 'Anytime'}</span>
+                                <div class="task-title">
+                                    <span class="priority-badge ${priorityClass}" title="AI Priority: ${task.priorityScore}">
+                                        ${priorityIcon} ${task.priorityScore}
+                                    </span>
+                                    ${escapeHtml(task.title)}
                                 </div>
+                                <div class="task-meta">
+                                    <span><i class="fas fa-map-marker-alt"></i> ${escapeHtml(task.location) || 'N/A'}</span>
+                                    <span><i class="fas fa-clock"></i> ${task.dueTime || 'Anytime'}</span>
+                                    ${task.assignee ? `<span><i class="fas fa-user"></i> ${escapeHtml(task.assignee)}</span>` : ''}
+                                </div>
+                                ${task.atRisk ? `<div class="at-risk-badge"><i class="fas fa-exclamation-triangle"></i> ${escapeHtml(task.atRiskReason) || 'At Risk'}</div>` : ''}
                             </div>
                             <button class="task-action" onclick="quickLog('${iconClass}')">Log</button>
                         </div>
@@ -2108,12 +2214,29 @@
                 }).join('');
             } catch (error) {
                 console.error('Error loading tasks:', error);
-                document.getElementById('tasksList').innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Error loading tasks</p></div>';
+                document.getElementById('tasksList').innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Error loading tasks: ${escapeHtml(error.message)}</p><button class="task-action" onclick="loadTodaysTasks()">Retry</button></div>`;
             }
         }
 
-        function toggleTask(index) {
-            const taskEl = document.querySelector(`.task-item[data-index="${index}"]`);
+        // Helper for escaping HTML
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        async function toggleTask(taskId) {
+            const taskEl = document.querySelector(`.task-item[data-task-id="${taskId}"]`);
+            if (!taskEl) return;
+
+            const task = unifiedTasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            const isCurrentlyCompleted = task.status === 'done' || task.status === 'DONE';
+            const newStatus = isCurrentlyCompleted ? 'scheduled' : 'done';
+
+            // Optimistic UI update
             taskEl.classList.toggle('completed');
             const checkbox = taskEl.querySelector('.task-checkbox');
             checkbox.innerHTML = taskEl.classList.contains('completed') ? '<i class="fas fa-check"></i>' : '';
@@ -2121,6 +2244,34 @@
             // Update count
             const completedCount = document.querySelectorAll('.task-item.completed').length;
             document.getElementById('tasksComplete').textContent = completedCount;
+
+            try {
+                // Call Unified Task API to update status
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'updateUnifiedTask',
+                        Task_ID: taskId,
+                        Status: newStatus
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // Update local state
+                    task.status = newStatus;
+                } else {
+                    throw new Error(data.error || 'Failed to update task');
+                }
+            } catch (error) {
+                console.error('Error updating task:', error);
+                // Revert UI on error
+                taskEl.classList.toggle('completed');
+                checkbox.innerHTML = isCurrentlyCompleted ? '<i class="fas fa-check"></i>' : '';
+                const revertCount = document.querySelectorAll('.task-item.completed').length;
+                document.getElementById('tasksComplete').textContent = revertCount;
+            }
         }
 
         function quickLog(type) {
