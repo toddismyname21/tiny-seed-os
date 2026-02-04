@@ -130,6 +130,38 @@ except ImportError as e:
     def get_skills_api_instance():
         return None
 
+# Import Multi-Agent Enhancements (SOTA 2026 - Based on Research Report)
+try:
+    from multi_agent_enhancements import (
+        # Core systems
+        get_shared_memory,
+        get_tool_tracker,
+        get_session_manager,
+        get_escalation,
+        get_observability,
+        # Convenience functions
+        store_memory,
+        retrieve_memory,
+        track_tool,
+        check_escalation,
+        trace_decision,
+        get_full_system_stats,
+        # Types
+        MemoryType,
+        RiskLevel,
+        EscalationDecision,
+    )
+    MULTI_AGENT_ENHANCED = True
+    print("[Orchestrator] Multi-Agent Enhancements ENABLED:")
+    print("  - SharedMemoryLayer (cross-session learning)")
+    print("  - ToolEffectivenessTracker (self-improving)")
+    print("  - SelfHealingSessionManager (anti-fragile)")
+    print("  - ConfidenceBasedEscalation (human-on-the-loop)")
+    print("  - ObservabilityDashboard (decision tracing)")
+except ImportError as e:
+    MULTI_AGENT_ENHANCED = False
+    print(f"[Orchestrator] Multi-Agent Enhancements not available: {e}")
+
 # ═══════════════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════════════════
