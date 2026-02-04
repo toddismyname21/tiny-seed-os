@@ -13702,8 +13702,12 @@ function doGet(e) {
         return jsonResponse(getSalesOrders(e.parameter));
       case 'getOrderById':
         return jsonResponse(getOrderById(e.parameter));
+      case 'deleteOrder':
+        return jsonResponse(deleteOrder(data));
       case 'getSalesCustomers':
         return jsonResponse(getSalesCustomers(e.parameter));
+      case 'deleteCustomer':
+        return jsonResponse(deleteCustomer(data));
       case 'getCustomerById':
         return jsonResponse(getCustomerById(e.parameter));
       case 'lookupCustomerByEmail':
@@ -32456,6 +32460,95 @@ function updateSalesCustomer(data) {
 
 function updateCustomerProfile(data) {
   return updateSalesCustomer(data);
+}
+
+/**
+ * Delete a customer from SALES_Customers
+ * @param {Object} data - { customerId: string }
+ */
+function deleteCustomer(data) {
+  try {
+    if (!data.customerId) {
+      return { success: false, error: 'Customer ID is required' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(SALES_SHEETS.CUSTOMERS);
+
+    if (!sheet) {
+      return { success: false, error: 'Customers sheet not found' };
+    }
+
+    const values = sheet.getDataRange().getValues();
+    const headers = values[0];
+    const customerIdIdx = headers.indexOf('Customer_ID');
+
+    for (let i = 1; i < values.length; i++) {
+      if (values[i][customerIdIdx] === data.customerId) {
+        // Delete the row
+        sheet.deleteRow(i + 1);
+        Logger.log(`[deleteCustomer] Deleted customer ${data.customerId}`);
+        return { success: true, message: 'Customer deleted successfully' };
+      }
+    }
+
+    return { success: false, error: 'Customer not found' };
+  } catch (error) {
+    Logger.log('[deleteCustomer] Error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Delete an order from SALES_Orders (and its items from SALES_OrderItems)
+ * @param {Object} data - { orderId: string }
+ */
+function deleteOrder(data) {
+  try {
+    if (!data.orderId) {
+      return { success: false, error: 'Order ID is required' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const ordersSheet = ss.getSheetByName(SALES_SHEETS.ORDERS);
+    const itemsSheet = ss.getSheetByName(SALES_SHEETS.ORDER_ITEMS);
+
+    if (!ordersSheet) {
+      return { success: false, error: 'Orders sheet not found' };
+    }
+
+    // Delete order items first
+    if (itemsSheet) {
+      const itemsData = itemsSheet.getDataRange().getValues();
+      const itemsHeaders = itemsData[0];
+      const orderIdIdx = itemsHeaders.indexOf('Order_ID');
+
+      // Delete from bottom to top to avoid index shifting issues
+      for (let i = itemsData.length - 1; i >= 1; i--) {
+        if (itemsData[i][orderIdIdx] === data.orderId) {
+          itemsSheet.deleteRow(i + 1);
+        }
+      }
+    }
+
+    // Delete the order
+    const ordersData = ordersSheet.getDataRange().getValues();
+    const ordersHeaders = ordersData[0];
+    const orderIdIdx = ordersHeaders.indexOf('Order_ID');
+
+    for (let i = 1; i < ordersData.length; i++) {
+      if (ordersData[i][orderIdIdx] === data.orderId) {
+        ordersSheet.deleteRow(i + 1);
+        Logger.log(`[deleteOrder] Deleted order ${data.orderId}`);
+        return { success: true, message: 'Order deleted successfully' };
+      }
+    }
+
+    return { success: false, error: 'Order not found' };
+  } catch (error) {
+    Logger.log('[deleteOrder] Error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

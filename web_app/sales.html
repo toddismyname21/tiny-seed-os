@@ -3133,6 +3133,7 @@
                             <button class="action-btn" onclick="viewOrder('${order.id}')" title="View">👁</button>
                             <button class="action-btn edit" onclick="editOrder('${order.id}')" title="Edit">✏️</button>
                             <button class="action-btn" onclick="updateOrderStatus('${order.id}')" title="Update Status">📦</button>
+                            <button class="action-btn delete" onclick="confirmDeleteOrder('${order.id}')" title="Delete" style="color: var(--danger);">🗑️</button>
                         </div>
                     </td>
                 </tr>
@@ -3252,6 +3253,7 @@
                     <div class="customer-card-actions">
                         <button class="btn btn-secondary" onclick="viewCustomer('${customer.id}')">View</button>
                         <button class="btn btn-primary" onclick="newOrderForCustomer('${customer.id}')">New Order</button>
+                        <button class="btn btn-danger" onclick="confirmDeleteCustomer('${customer.id}', '${(customer.name || '').replace(/'/g, "\\'")}')" title="Delete" style="padding: 8px; background: var(--danger);">🗑️</button>
                     </div>
                 </div>
             `}).join('');
@@ -4664,6 +4666,71 @@
         function newOrderForCustomer(id) { openNewOrderModal(); }
         function editInventory(id) { showToast(`Editing inventory ${id}`, 'info'); }
         function adjustStock(id) { showToast(`Adjusting stock for ${id}`, 'info'); }
+
+        // ========================================
+        // DELETE FUNCTIONS
+        // ========================================
+
+        function confirmDeleteOrder(orderId) {
+            if (confirm(`Are you sure you want to delete order ${orderId}?\n\nThis action cannot be undone.`)) {
+                deleteOrder(orderId);
+            }
+        }
+
+        async function deleteOrder(orderId) {
+            try {
+                showToast('Deleting order...', 'info');
+                const response = await fetch(`${API_URL}?action=deleteOrder`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ orderId: orderId })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('Order deleted successfully', 'success');
+                    // Remove from local state and re-render
+                    AppState.orders = AppState.orders.filter(o => o.id !== orderId);
+                    renderOrders(AppState.orders);
+                    loadDashboardStats(); // Refresh stats
+                } else {
+                    showToast(result.error || 'Failed to delete order', 'error');
+                }
+            } catch (error) {
+                console.error('Delete order error:', error);
+                showToast('Failed to delete order', 'error');
+            }
+        }
+
+        function confirmDeleteCustomer(customerId, customerName) {
+            if (confirm(`Are you sure you want to delete customer "${customerName}"?\n\nThis will NOT delete their orders.\nThis action cannot be undone.`)) {
+                deleteCustomer(customerId);
+            }
+        }
+
+        async function deleteCustomer(customerId) {
+            try {
+                showToast('Deleting customer...', 'info');
+                const response = await fetch(`${API_URL}?action=deleteCustomer`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ customerId: customerId })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('Customer deleted successfully', 'success');
+                    // Remove from local state and re-render
+                    AppState.customers = AppState.customers.filter(c => c.id !== customerId);
+                    renderCustomers(AppState.customers);
+                } else {
+                    showToast(result.error || 'Failed to delete customer', 'error');
+                }
+            } catch (error) {
+                console.error('Delete customer error:', error);
+                showToast('Failed to delete customer', 'error');
+            }
+        }
         function viewMember(id) { showToast(`Viewing member ${id}`, 'info'); }
         function setVacationHold(id) { showToast(`Setting vacation hold for ${id}`, 'info'); }
         function editMember(id) { showToast(`Editing member ${id}`, 'info'); }
