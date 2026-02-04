@@ -40,6 +40,313 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-02-03 - Desktop_Claude (Unified Task API Integration in Today's Work)
+
+### Files Modified
+- `index.html` - Updated Today's Work and Overdue Tasks sections to use new Unified Task API
+
+### CSS Added
+- `.priority-badge` - Color-coded AI priority score badges (critical/high/normal)
+- `.priority-badge.critical` - Red styling for score >= 80
+- `.priority-badge.high` - Yellow styling for score 50-79
+- `.priority-badge.normal` - Green styling for score < 50
+- `.at-risk-badge` - Warning indicator for at-risk tasks
+- `.task-item.with-priority` - Updated grid layout for priority column
+- `.task-source` - Indicator showing task source (AI/planning)
+- `.unified-loading` - Loading state for Unified API calls
+- `.api-error` - Error state with retry button
+
+### Functions Added
+- `mapUnifiedTaskType(unifiedType)` in `index.html` - Maps unified task types to legacy types for compatibility
+- `loadTodaysTasksFromPlanning(today, tomorrow)` in `index.html` - Fallback method using PLANNING_2026 data
+- `getPriorityClass(score)` in `index.html` - Returns CSS class based on priority score
+- `getPriorityIcon(score)` in `index.html` - Returns emoji indicator based on priority score
+
+### Functions Modified
+- `loadTodaysTasks()` in `index.html` - Now async, calls getTaskPriorities API first, falls back to planning data
+- `renderTaskItem(task)` in `index.html` - Added priority badge, at-risk warning, assignee display, AI source indicator
+- `renderOverdueTasks()` in `index.html` - Added priority badges and at-risk indicators to overdue items
+- `completeTask(batchId, taskType, event, unifiedTaskId)` in `index.html` - Now tries updateUnifiedTask API first
+- `completeOverdueTask(batchId, taskType, event, unifiedTaskId)` in `index.html` - Added Unified API support
+- `delegateOverdueTask(batchId, taskType, event, unifiedTaskId)` in `index.html` - Added Unified API support
+- `deleteOverdueTask(batchId, taskType, event, unifiedTaskId)` in `index.html` - Added Unified API support
+- `completeSelectedTasks()` in `index.html` - Uses bulkUpdateTasks for unified tasks (single API call)
+- `deleteSelectedTasks()` in `index.html` - Uses bulkUpdateTasks for unified tasks
+
+### State Variables Added
+- `unifiedTasksEnabled` - Flag to enable new Unified Task API
+- `unifiedTasksLoaded` - Tracks if unified tasks were successfully loaded
+- `unifiedTasksError` - Stores API error message if any
+
+### API Endpoints Used
+- `getTaskPriorities` (GET) - Fetches AI-sorted task list with Priority_Score
+- `updateUnifiedTask` (POST) - Updates single task status
+- `bulkUpdateTasks` (POST) - Bulk updates for complete/delete operations (FAST - single sheet write)
+
+### Display Enhancements
+- Priority score badge with color coding (red >80, yellow 50-80, green <50)
+- At-risk warning indicator with reason
+- AI source indicator for unified tasks
+- Assignee name display in task details
+- Tasks sorted by Priority_Score by default
+
+### Reason
+Implementing Phase 1 of Unified Task System per STATE_OF_THE_ART_TASK_SYSTEM_PLAN.md. This connects the Today's Work section to the new Unified Task API while maintaining backward compatibility with PLANNING_2026 data.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions - extended existing functions, no duplicates
+- [x] No duplicates created - integrates with existing bulk actions from Feb 2
+
+---
+
+## 2026-02-03 - Backend_Claude (AI Priority Scoring Enhancement & API Endpoints)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Enhanced AI Priority Scoring system with workload balancing, dependency risk detection, and new API endpoints
+
+### API Endpoints Added (doGet)
+- `getProactiveAlerts` - Now calls actual `generateProactiveAlerts()` function (was placeholder)
+- `getTasksWithAIPriority` - Get tasks sorted by AI-calculated priority scores
+- `getAtRiskTasks` - Get only tasks flagged as at-risk
+- `getAIPriorityDashboard` - Combined dashboard endpoint for Manager Dashboard
+- `calculateAIPriorityForTask` - Calculate priority for a single task
+- `getTeamWorkloadBalance` - Get team workload distribution with recommendations
+
+### Functions Added
+- `getAIPriorityDashboard(params)` - Combined endpoint returning priority queue, alerts, workload, and stats in one call
+- `getTeamWorkloadBalance(params)` - Team workload analysis with overload/availability detection and rebalancing recommendations
+- `getAssigneeWorkloadRatioAI(assigneeId, date)` - Calculate workload ratio (assigned vs available) for an employee
+- `checkIncompleteBlockersAI(blockerIds)` - Check which blocking tasks are incomplete for dependency risk detection
+
+### Functions Modified
+- `calculateAIPriority(task, context)` - Added workload balancing component (10% weight per plan spec)
+  - Now includes 7 factors: deadline (25%), weather (20%), dependency (15%), revenue (15%), manual (15%), workload (10%), GDD bonus
+  - Breakdown now includes `workload` and `gddBonus` fields
+- `detectAtRisk(task)` - Added DEPENDENCY risk detection
+  - Now checks 5 risk types: TIME, WEATHER, OVERRIPE/GDD, OVERDUE, DEPENDENCY
+  - Calls `checkIncompleteBlockersAI()` to verify blocker completion status
+
+### Algorithm Enhancements (per STATE_OF_THE_ART_TASK_SYSTEM_PLAN.md Part 2)
+- Workload balancing: Penalizes tasks assigned to overloaded workers (-10 points), boosts tasks for available workers (+10 points)
+- Dependency risk: Detects when tasks are blocked by incomplete dependencies (HIGH severity)
+- Team recommendations: Suggests task reassignment when detecting overloaded vs available workers
+
+### Reason
+Implementing Phase 3 (AI Intelligence) of the State of the Art Task Management Plan per owner mandate: "NO SHORTCUTS. STATE OF THE ART." The plan specified weighted factors including workload (10%) and dependency risk detection which were not fully implemented.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions - `calculateAIPriority`, `detectAtRisk`, `getTasksWithAIPriority` already existed - ENHANCED them
+- [x] No duplicates created - connected to existing SmartLaborIntelligence patterns
+
+### Integration Points
+- Uses existing `getAvailableMinutesForAssigneeAI()` for capacity calculation
+- Compatible with existing `optimizeTaskSequence()` from SmartLaborIntelligence
+- Connects to existing `generateProactiveAlerts()` for dashboard alerts
+- Uses existing weather and GDD helper functions
+
+---
+
+## 2026-02-03 - Frontend_Claude (Task Assignment UI - Unified Task API Integration)
+
+### Files Modified
+- `web_app/task-assignment.html` - Migrated to use new Unified Task API endpoints
+
+### Functions Modified
+- `loadTasks()` - Now uses `getUnifiedTasks` endpoint with pagination, status/assignee filtering
+- `saveTask()` - Now uses `createUnifiedTask` for new tasks and `updateUnifiedTask` for edits
+- `setFilter()` - Now reloads from API when filter changes
+- `filterByEmployee()` - Now reloads from API when employee filter changes
+- `renderTasks()` - Added bulk selection checkboxes, at-risk badges, priority scores, status badges
+
+### Functions Added
+- `loadTaskStats()` - Loads dashboard stats from `getTaskStats` endpoint
+- `toggleTaskSelection(taskId)` - Toggle single task selection for bulk ops
+- `toggleSelectAll()` - Select/deselect all visible tasks
+- `getVisibleTaskIds()` - Get task IDs of currently visible tasks
+- `updateTaskCardSelection(taskId)` - Update visual state of task card
+- `updateBulkActionBar()` - Show/hide bulk action bar based on selection
+- `bulkAssign()` - Bulk assign tasks using `bulkUpdateTasks` endpoint
+- `bulkComplete()` - Bulk complete tasks using `bulkUpdateTasks` endpoint
+- `bulkCancel()` - Bulk cancel tasks using `bulkUpdateTasks` endpoint (soft delete)
+
+### CSS Added
+- `.bulk-action-bar` - Bulk action controls container
+- `.task-card.selected` - Selected task styling
+- `.task-checkbox` - Checkbox for task selection
+- `.priority-score` - AI priority score badge
+- `.at-risk-badge` - At-risk task indicator
+- `.status-*` - Status badges for scheduled, in_progress, done, cancelled, blocked, weather_hold
+- `.sms-sent` - SMS notification indicator
+- `.task-meta-item.overdue` - Overdue task styling
+
+### API Integration
+- **Old endpoints removed:** `getEmployeeTasks`, `getTaskAssignments`, `assignTaskToEmployee`
+- **New endpoints used:**
+  - `getUnifiedTasks` - Paginated task query with caching
+  - `getTaskStats` - Dashboard statistics
+  - `createUnifiedTask` - Create task with SMS notification
+  - `updateUnifiedTask` - Update existing task
+  - `bulkUpdateTasks` - Batch update up to 100 tasks (assign, complete, cancel)
+
+### Features Added
+- Bulk task selection with checkboxes
+- Bulk assign, complete, and cancel operations
+- AI priority score display
+- At-risk task indicators
+- Status badges with color coding
+- SMS sent indicators
+- Server-side filtering for better performance
+
+### Reason
+Migrating task-assignment.html to use the new Unified Task API (added Feb 2) per the STATE_OF_THE_ART_TASK_SYSTEM_PLAN.md Phase 1 requirements. The new API provides:
+- Single source of truth (UNIFIED_TASKS sheet)
+- AI-powered priority scoring
+- Bulk operations for speed (up to 100 tasks in one API call)
+- Built-in SMS notification integration
+- Proper status workflow tracking
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Uses existing api-config.js for API URL
+- [x] Connects to existing Unified Task API (not duplicating)
+- [x] No duplicates created
+
+---
+
+## 2026-02-02 - Backend_Claude (Unified Task Management API)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Added complete Unified Task Management API
+
+### API Endpoints Added (doGet)
+- `getUnifiedTasks` - Paginated task query with caching (status, assignee, date filtering)
+- `getTaskPriorities` - AI-sorted task list with priority context
+- `getUnifiedTaskById` - Get single task by ID
+- `getTaskStats` - Dashboard statistics with caching
+
+### API Endpoints Added (doPost)
+- `createUnifiedTask` - Create task with SMS notification
+- `updateUnifiedTask` - Update task with status transitions
+- `bulkUpdateTasks` - Update up to 100 tasks in ONE sheet operation (FAST)
+- `bulkCreateTasks` - Create up to 100 tasks in ONE sheet operation (FAST)
+- `deleteUnifiedTask` - Soft delete (sets status to cancelled)
+
+### Functions Added (lines ~86028-86700)
+- `getUnifiedTasksSheet()` - Get or create UNIFIED_TASKS sheet with schema
+- `getUnifiedTasks(params)` - Main query with caching, filtering, pagination
+- `getUnifiedTaskById(taskId)` - Single task lookup
+- `createUnifiedTask(data)` - Create with SMS integration
+- `updateUnifiedTask(data)` - Update with status transition handling
+- `bulkUpdateTasks(data)` - Batch update in single sheet operation
+- `bulkCreateTasks(data)` - Batch create in single sheet operation
+- `deleteUnifiedTask(taskId)` - Soft delete
+- `getTaskPriorities(params)` - AI priority sorting with context
+- `getUnifiedTaskStats(params)` - Dashboard stats with caching
+- `calculateTaskPriorityScore(task)` - Priority algorithm (0-100)
+- `getPriorityFactors(task)` - Priority explanation context
+
+### Constants Added
+- `UNIFIED_TASKS_SHEET` - Sheet name
+- `UNIFIED_TASKS_HEADERS` - 45-column schema from research
+- `UNIFIED_TASK_CACHE` - Cache duration config
+
+### Performance Features
+- CacheService integration (1-min tasks, 6-hr reference data)
+- Batch sheet writes for bulk operations
+- Pagination (default 50, max 200)
+- Timing metadata in all responses (`_timing`)
+- Row caching to avoid full sheet scans
+
+### Integration Points
+- Calls existing `getEmployeeById()` for SMS lookup
+- Calls existing `sendSMS()` for notifications
+- Compatible with existing `assignTaskToEmployee()` pattern
+
+### Reason
+Implementing Phase 1 of task management system per research report. Owner mandate: "NO SHORTCUTS. STATE OF THE ART. PRODUCTION READY."
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md - No unified task API exists
+- [x] Searched for similar functions - getUnifiedTasks/createUnifiedTask not found
+- [x] Integrates with, doesn't duplicate, existing assignTaskToEmployee()
+- [x] No duplicates created
+
+---
+
+## 2026-02-02 - RESEARCHER Agent (Task Management Research)
+
+### Files Created
+- `claude_sessions/pm_architect/TASK_MANAGEMENT_RESEARCH_REPORT.md` - Comprehensive 800+ line research report on state-of-the-art task management systems
+
+### Research Conducted
+- Analyzed 15+ task management systems: Asana, Monday.com, ClickUp, Notion, Jira, FarmLogs/Bushel Farm, Farmbrite, Tend, Croptracker, Motion, Reclaim.ai, Todoist, Things 3
+- Documented core task data models, assignment patterns, priority systems, dependency management
+- Compiled farm-specific requirements and seasonal task generation patterns
+- Researched AI-powered scheduling and predictive capabilities
+- Defined manager dashboard best practices
+
+### Key Deliverables
+- Complete task data model with 40+ fields
+- Status workflow recommendations
+- Role-based permission matrix
+- Smart priority scoring algorithm
+- Weather-aware scheduling logic
+- Notification system design patterns
+- Manager dashboard specifications
+- 3-phase implementation roadmap
+
+### Reason
+Owner mandate: "NO SHORTCUTS. STATE OF THE ART. PRODUCTION READY." - Research phase before building task management system.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Reviewed existing task-related code (ClaudeCoordination.js, SmartLaborIntelligence.js)
+- [x] No duplicates created - research document only
+
+---
+
+## 2026-02-02 - PM_Architect_Claude (Bulk Task Actions)
+
+### Files Modified
+- `index.html` - Added bulk delete and bulk delegate functionality for tasks
+
+### Functions Added
+- `deleteSelectedTasks()` in `index.html` - Bulk delete today's tasks (marks as "Skipped")
+- `openBulkDelegateModal()` in `index.html` - Opens modal for bulk delegating today's tasks
+- `closeBulkDelegateModal()` in `index.html` - Closes bulk delegate modal
+- `confirmBulkDelegate()` in `index.html` - Executes bulk delegation for both today's and overdue tasks
+- `loadEmployeesForBulkDelegate()` in `index.html` - Loads employee dropdown for delegation
+- `deleteSelectedOverdue()` in `index.html` - Bulk delete overdue tasks
+- `openOverdueDelegateModal()` in `index.html` - Opens delegate modal for overdue tasks
+
+### Functions Modified
+- `updateSelectionUI()` in `index.html` - Added enable/disable for bulkDeleteBtn and bulkDelegateBtn
+- `updateOverdueSelectionUI()` in `index.html` - Added enable/disable for overdueDeleteBtn and overdueDelegateBtn
+
+### CSS Added
+- `.bulk-delete-btn` - Styling for bulk delete button
+- `.bulk-delegate-btn` - Styling for bulk delegate button
+- `.bulk-delegate-modal` - Modal for bulk delegation
+- `.overdue-delete-btn` - Styling for overdue delete button
+- `.overdue-delegate-btn` - Styling for overdue delegate button
+
+### HTML Added
+- Bulk delegate modal with employee dropdown and notes textarea
+- "Delete Selected" and "Delegate Selected" buttons in Today's Work action bar
+- "Delete" and "Delegate" buttons in Overdue Tasks action bar
+
+### Reason
+Owner requested bulk delete and bulk delegate functionality for tasks. Previously only "Complete Selected" was available. Now users can select multiple tasks and delete or delegate them in bulk.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-02-01 - UX_Design_Claude (Predictive Delay Shield Implementation)
 
 ### Files Created

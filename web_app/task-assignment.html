@@ -567,6 +567,114 @@
         @media (min-width: 1001px) {
             .fab { display: none; }
         }
+
+        /* Bulk Action Bar */
+        .bulk-action-bar {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 12px 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            margin-bottom: 16px;
+        }
+
+        .select-all-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .selected-count {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        /* Task Card Selection */
+        .task-card.selected {
+            border-color: var(--accent-green);
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        .task-checkbox {
+            display: flex;
+            align-items: center;
+            margin-right: 8px;
+        }
+
+        .task-checkbox input {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--accent-green);
+        }
+
+        .task-header {
+            display: flex;
+            align-items: flex-start;
+        }
+
+        /* Priority Score Badge */
+        .priority-score {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            background: var(--accent-purple);
+            color: white;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        /* At Risk Badge */
+        .task-card.at-risk {
+            border-left-color: var(--accent-red);
+        }
+
+        .at-risk-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            padding: 4px 10px;
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--accent-red);
+            border-radius: 12px;
+            margin-bottom: 8px;
+        }
+
+        /* Status Badges */
+        .status-badge {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .status-scheduled { background: rgba(59, 130, 246, 0.2); color: var(--accent-blue); }
+        .status-in_progress { background: rgba(245, 158, 11, 0.2); color: var(--accent-amber); }
+        .status-done, .status-completed { background: rgba(34, 197, 94, 0.2); color: var(--accent-green); }
+        .status-cancelled { background: rgba(100, 116, 139, 0.2); color: var(--text-muted); }
+        .status-blocked { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
+        .status-weather_hold { background: rgba(139, 92, 246, 0.2); color: var(--accent-purple); }
+
+        /* SMS Sent indicator */
+        .sms-sent {
+            color: var(--accent-green);
+        }
+
+        /* Overdue styling */
+        .task-meta-item.overdue {
+            color: var(--accent-red);
+        }
     </style>
 </head>
 <body>
@@ -740,7 +848,7 @@
     <div class="toast" id="toast"></div>
 
     <script>
-        // API Configuration
+        // API Configuration - Using Unified Task API
         const API_BASE = TINY_SEED_API.MAIN_API;
 
         // State
@@ -750,6 +858,8 @@
         let currentEmployeeFilter = 'all';
         let selectedPriority = 'medium';
         let editingTaskId = null;
+        let selectedTasks = new Set(); // For bulk operations
+        let taskStats = null; // Cached stats from API
 
         // =========================================================================
         // INITIALIZATION
@@ -759,6 +869,7 @@
             setDefaultDate();
             loadEmployees();
             loadTasks();
+            loadTaskStats();
         });
 
         function setDefaultDate() {
@@ -767,7 +878,7 @@
         }
 
         // =========================================================================
-        // LOAD DATA
+        // UNIFIED TASK API - LOAD DATA
         // =========================================================================
 
         async function loadEmployees() {
@@ -835,80 +946,106 @@
             return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
         }
 
+        /**
+         * Load tasks using the new Unified Task API
+         * Endpoint: getUnifiedTasks (with pagination and caching)
+         */
         async function loadTasks() {
             const container = document.getElementById('task-list');
             container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
 
             try {
-                // Load from EMPLOYEE_TASKS sheet and TASK_ASSIGNMENTS
-                const [tasksRes, assignmentsRes] = await Promise.all([
-                    fetch(`${API_BASE}?action=getEmployeeTasks`).then(r => r.json()).catch(() => ({ success: false })),
-                    fetch(`${API_BASE}?action=getTaskAssignments`).then(r => r.json()).catch(() => ({ success: false }))
-                ]);
-
-                tasks = [];
-
-                // Process employee tasks
-                if (tasksRes.success && tasksRes.tasks) {
-                    tasksRes.tasks.forEach(t => {
-                        tasks.push({
-                            id: t.id || t.Task_ID,
-                            title: t.crop || t.description || 'Task',
-                            description: t.notes || t.description || '',
-                            assignedTo: t.assignedTo || t.Assigned_To || 'Unassigned',
-                            assignedToName: getEmployeeName(t.assignedTo || t.Assigned_To),
-                            dueDate: t.date || t.Due_Date,
-                            dueTime: t.dueTime || '17:00',
-                            priority: t.priority || 'medium',
-                            status: t.status || 'pending',
-                            category: t.type || 'other',
-                            location: t.field || t.bed || '',
-                            createdAt: t.createdAt
-                        });
-                    });
-                }
-
-                // Process task assignments
-                if (assignmentsRes.success && assignmentsRes.assignments) {
-                    assignmentsRes.assignments.forEach(a => {
-                        // Don't duplicate
-                        if (!tasks.find(t => t.id === a.Assignment_ID)) {
-                            tasks.push({
-                                id: a.Assignment_ID,
-                                title: a.Description || 'Assigned Task',
-                                description: a.Notes || '',
-                                assignedTo: a.Employee_ID,
-                                assignedToName: a.Employee_Name || getEmployeeName(a.Employee_ID),
-                                dueDate: a.Due_Date,
-                                dueTime: a.Due_Time || '17:00',
-                                priority: a.Priority || 'medium',
-                                status: a.Status || 'assigned',
-                                category: 'other',
-                                location: '',
-                                createdAt: a.Assigned_At
-                            });
-                        }
-                    });
-                }
-
-                // Sort by due date
-                tasks.sort((a, b) => {
-                    const dateA = new Date(a.dueDate);
-                    const dateB = new Date(b.dueDate);
-                    return dateA - dateB;
+                // Build query params for Unified Task API
+                const params = new URLSearchParams({
+                    action: 'getUnifiedTasks',
+                    limit: 200 // Get more tasks for manager view
                 });
 
-                updateStats();
-                renderTasks();
+                // Apply status filter if not 'all'
+                if (currentFilter && currentFilter !== 'all' && currentFilter !== 'overdue') {
+                    params.set('status', currentFilter);
+                }
+
+                // Apply employee filter
+                if (currentEmployeeFilter && currentEmployeeFilter !== 'all') {
+                    params.set('assignee', currentEmployeeFilter);
+                }
+
+                const response = await fetch(`${API_BASE}?${params.toString()}`);
+                const data = await response.json();
+
+                if (data.success && data.tasks) {
+                    // Map Unified Task schema to local format
+                    tasks = data.tasks.map(t => ({
+                        id: t.Task_ID,
+                        title: t.Title || 'Untitled Task',
+                        description: t.Description || '',
+                        assignedTo: t.Assignee_ID || '',
+                        assignedToName: t.Assignee_Name || getEmployeeName(t.Assignee_ID),
+                        dueDate: t.Due_Date,
+                        dueTime: t.Due_Time || '17:00',
+                        priority: (t.Priority_Manual || 'medium').toLowerCase(),
+                        priorityScore: t.Priority_Score || 0,
+                        status: (t.Status || 'scheduled').toLowerCase(),
+                        category: t.Task_Type || 'other',
+                        location: t.Field_ID || t.Bed_ID || '',
+                        createdAt: t.Created_At,
+                        updatedAt: t.Updated_At,
+                        atRisk: t.At_Risk === true || t.At_Risk === 'TRUE',
+                        atRiskReason: t.At_Risk_Reason || '',
+                        smsSent: t.SMS_Sent === true || t.SMS_Sent === 'TRUE',
+                        // Keep full task data for updates
+                        _raw: t
+                    }));
+
+                    // Sort by priority score (AI-calculated) then due date
+                    tasks.sort((a, b) => {
+                        // High priority score first
+                        if (b.priorityScore !== a.priorityScore) {
+                            return b.priorityScore - a.priorityScore;
+                        }
+                        // Then by due date
+                        const dateA = new Date(a.dueDate);
+                        const dateB = new Date(b.dueDate);
+                        return dateA - dateB;
+                    });
+
+                    // Update pagination info if available
+                    if (data.pagination) {
+                        console.log(`Loaded ${data.pagination.returned} of ${data.pagination.total} tasks`);
+                    }
+
+                    updateStats();
+                    renderTasks();
+                } else {
+                    throw new Error(data.error || 'Failed to load tasks');
+                }
             } catch (error) {
                 console.error('Load tasks error:', error);
                 container.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-state-icon"><i class="fas fa-exclamation-circle"></i></div>
-                        <p>Unable to load tasks</p>
+                        <p>Unable to load tasks: ${escapeHtml(error.message)}</p>
                         <button class="btn btn-secondary" onclick="loadTasks()">Try Again</button>
                     </div>
                 `;
+            }
+        }
+
+        /**
+         * Load task statistics using getTaskStats endpoint
+         */
+        async function loadTaskStats() {
+            try {
+                const response = await fetch(`${API_BASE}?action=getTaskStats`);
+                const data = await response.json();
+
+                if (data.success && data.stats) {
+                    taskStats = data.stats;
+                    // Stats are also updated in updateStats() from task data
+                }
+            } catch (error) {
+                console.error('Load stats error:', error);
             }
         }
 
@@ -919,15 +1056,26 @@
         }
 
         function updateStats() {
-            const pending = tasks.filter(t => t.status === 'pending' || t.status === 'assigned').length;
-            const today = new Date().toISOString().split('T')[0];
-            const assignedToday = tasks.filter(t => {
-                const created = t.createdAt ? new Date(t.createdAt).toISOString().split('T')[0] : '';
-                return created === today;
-            }).length;
+            // Use API stats if available, otherwise calculate from loaded tasks
+            if (taskStats) {
+                document.getElementById('pending-count').textContent = taskStats.pending || 0;
+                document.getElementById('assigned-today').textContent = taskStats.assignedToday || 0;
+            } else {
+                const pending = tasks.filter(t =>
+                    t.status === 'pending' ||
+                    t.status === 'scheduled' ||
+                    t.status === 'assigned'
+                ).length;
 
-            document.getElementById('pending-count').textContent = pending;
-            document.getElementById('assigned-today').textContent = assignedToday;
+                const today = new Date().toISOString().split('T')[0];
+                const assignedToday = tasks.filter(t => {
+                    const created = t.createdAt ? new Date(t.createdAt).toISOString().split('T')[0] : '';
+                    return created === today;
+                }).length;
+
+                document.getElementById('pending-count').textContent = pending;
+                document.getElementById('assigned-today').textContent = assignedToday;
+            }
         }
 
         // =========================================================================
@@ -938,23 +1086,14 @@
             const container = document.getElementById('task-list');
             let filtered = tasks;
 
-            // Apply status filter
-            if (currentFilter !== 'all') {
-                if (currentFilter === 'overdue') {
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    filtered = filtered.filter(t => {
-                        const dueDate = new Date(t.dueDate);
-                        return dueDate < today && t.status !== 'completed';
-                    });
-                } else {
-                    filtered = filtered.filter(t => t.status === currentFilter);
-                }
-            }
-
-            // Apply employee filter
-            if (currentEmployeeFilter !== 'all') {
-                filtered = filtered.filter(t => t.assignedTo === currentEmployeeFilter);
+            // Apply status filter (client-side for overdue, server filtered others)
+            if (currentFilter === 'overdue') {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                filtered = filtered.filter(t => {
+                    const dueDate = new Date(t.dueDate);
+                    return dueDate < today && t.status !== 'done' && t.status !== 'completed' && t.status !== 'cancelled';
+                });
             }
 
             if (filtered.length === 0) {
@@ -967,29 +1106,55 @@
                         </button>
                     </div>
                 `;
+                updateBulkActionBar();
                 return;
             }
 
-            let html = '';
+            let html = `
+                <div class="bulk-action-bar" id="bulk-action-bar" style="display: none;">
+                    <label class="select-all-label">
+                        <input type="checkbox" id="select-all-tasks" onchange="toggleSelectAll()">
+                        <span>Select All</span>
+                    </label>
+                    <span class="selected-count" id="selected-count">0 selected</span>
+                    <button class="btn btn-secondary btn-sm" onclick="bulkAssign()" id="bulk-assign-btn" disabled>
+                        <i class="fas fa-user-plus"></i> Assign Selected
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="bulkComplete()" id="bulk-complete-btn" disabled>
+                        <i class="fas fa-check"></i> Complete Selected
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="bulkCancel()" id="bulk-cancel-btn" disabled style="color: var(--accent-red);">
+                        <i class="fas fa-times"></i> Cancel Selected
+                    </button>
+                </div>
+            `;
+
             filtered.forEach(task => {
                 const isOverdue = isTaskOverdue(task);
                 const priorityClass = task.priority || 'medium';
+                const isSelected = selectedTasks.has(task.id);
+                const isDone = task.status === 'done' || task.status === 'completed';
 
                 html += `
-                    <div class="task-card priority-${priorityClass} ${task.status === 'completed' ? 'completed' : ''}" onclick="editTask('${task.id}')">
+                    <div class="task-card priority-${priorityClass} ${isDone ? 'completed' : ''} ${task.atRisk ? 'at-risk' : ''} ${isSelected ? 'selected' : ''}" data-task-id="${task.id}">
                         <div class="task-header">
-                            <div class="task-title">${escapeHtml(task.title)}</div>
+                            <label class="task-checkbox" onclick="event.stopPropagation();">
+                                <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleTaskSelection('${task.id}')">
+                            </label>
+                            <div class="task-title" onclick="editTask('${task.id}')">${escapeHtml(task.title)}</div>
                             <span class="task-priority ${priorityClass}">${priorityClass}</span>
+                            ${task.priorityScore ? `<span class="priority-score" title="AI Priority Score">${task.priorityScore}</span>` : ''}
                         </div>
-                        ${task.description ? `<div class="task-description">${escapeHtml(task.description)}</div>` : ''}
-                        <div class="task-meta">
+                        ${task.description ? `<div class="task-description" onclick="editTask('${task.id}')">${escapeHtml(task.description)}</div>` : ''}
+                        ${task.atRisk ? `<div class="at-risk-badge"><i class="fas fa-exclamation-triangle"></i> ${escapeHtml(task.atRiskReason || 'At Risk')}</div>` : ''}
+                        <div class="task-meta" onclick="editTask('${task.id}')">
                             <div class="task-meta-item">
                                 <i class="fas fa-user"></i>
                                 <span class="task-assignee ${!task.assignedTo || task.assignedTo === 'Unassigned' ? 'unassigned' : ''}">
                                     ${escapeHtml(task.assignedToName || 'Unassigned')}
                                 </span>
                             </div>
-                            <div class="task-meta-item ${isOverdue ? 'text-danger' : ''}">
+                            <div class="task-meta-item ${isOverdue ? 'overdue' : ''}">
                                 <i class="fas fa-calendar${isOverdue ? '-exclamation' : ''}"></i>
                                 <span>${formatDate(task.dueDate)}${task.dueTime ? ' ' + task.dueTime : ''}</span>
                             </div>
@@ -999,18 +1164,28 @@
                                     <span>${escapeHtml(task.location)}</span>
                                 </div>
                             ` : ''}
-                            ${task.category ? `
+                            ${task.category && task.category !== 'other' ? `
                                 <div class="task-meta-item">
                                     <i class="fas fa-tag"></i>
                                     <span>${escapeHtml(task.category)}</span>
                                 </div>
                             ` : ''}
+                            ${task.smsSent ? `
+                                <div class="task-meta-item sms-sent">
+                                    <i class="fas fa-sms"></i>
+                                    <span>SMS Sent</span>
+                                </div>
+                            ` : ''}
+                            <div class="task-meta-item status-badge status-${task.status}">
+                                <span>${task.status}</span>
+                            </div>
                         </div>
                     </div>
                 `;
             });
 
             container.innerHTML = html;
+            updateBulkActionBar();
         }
 
         function isTaskOverdue(task) {
@@ -1036,7 +1211,7 @@
         }
 
         // =========================================================================
-        // FILTERS
+        // FILTERS - Reload from Unified Task API
         // =========================================================================
 
         function setFilter(filter) {
@@ -1044,7 +1219,10 @@
             document.querySelectorAll('.filter-bar .filter-chip').forEach(c => {
                 c.classList.toggle('active', c.dataset.filter === filter);
             });
-            renderTasks();
+            // Clear selection when changing filters
+            selectedTasks.clear();
+            // Reload from API with new filter
+            loadTasks();
         }
 
         function filterByEmployee(employeeId) {
@@ -1052,7 +1230,10 @@
             document.querySelectorAll('.quick-employee').forEach(e => {
                 e.classList.toggle('selected', e.dataset.employee === employeeId);
             });
-            renderTasks();
+            // Clear selection when changing filters
+            selectedTasks.clear();
+            // Reload from API with new filter
+            loadTasks();
         }
 
         // =========================================================================
@@ -1116,7 +1297,7 @@
         }
 
         // =========================================================================
-        // SAVE TASK
+        // SAVE TASK - Using Unified Task API
         // =========================================================================
 
         async function saveTask(event) {
@@ -1141,54 +1322,296 @@
             const employee = employees.find(e => e.User_ID === employeeId);
             const employeeName = employee ? (employee.Full_Name || employee.Username) : (employeeId === 'ALL' ? 'Everyone' : employeeId);
 
-            // Prepare task data
+            // Prepare task data for Unified Task API
             const taskData = {
-                description: title,
-                task: title,
-                employeeId: employeeId,
-                employeeName: employeeName,
-                dueDate: dueDate,
-                dueTime: dueTime,
-                priority: selectedPriority,
-                notes: `${description}${notes ? '\n\n' + notes : ''}`,
-                category: category,
-                location: location,
+                Title: title,
+                Description: description + (notes ? '\n\n' + notes : ''),
+                Task_Type: category || 'other',
+                Assignee_ID: employeeId,
+                Assignee_Name: employeeName,
+                Due_Date: dueDate,
+                Due_Time: dueTime,
+                Priority_Manual: selectedPriority,
+                Field_ID: location,
+                Status: 'scheduled',
+                Source: 'manual',
                 sendSMS: sendSMS
             };
 
             try {
-                showToast('Assigning task...', 'success');
+                if (editingTaskId) {
+                    // UPDATE existing task
+                    showToast('Updating task...', 'success');
+                    taskData.Task_ID = editingTaskId;
 
-                const response = await fetch(`${API_BASE}?action=assignTaskToEmployee`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(taskData)
-                });
-
-                // Also try GET method as fallback (Apps Script sometimes prefers GET)
-                let data;
-                try {
-                    data = await response.json();
-                } catch {
-                    // Try GET method
-                    const params = new URLSearchParams({
-                        action: 'assignTaskToEmployee',
-                        ...taskData
+                    const response = await fetch(API_BASE, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'updateUnifiedTask',
+                            ...taskData
+                        })
                     });
-                    const getResponse = await fetch(`${API_BASE}?${params.toString()}`);
-                    data = await getResponse.json();
-                }
 
-                if (data.success) {
-                    showToast(`Task assigned to ${employeeName}${sendSMS ? ' (SMS sent)' : ''}`, 'success');
-                    hideTaskForm();
-                    loadTasks();
+                    const data = await response.json();
+
+                    if (data.success) {
+                        showToast('Task updated successfully', 'success');
+                        hideTaskForm();
+                        loadTasks();
+                    } else {
+                        showToast(data.error || 'Failed to update task', 'error');
+                    }
                 } else {
-                    showToast(data.error || 'Failed to assign task', 'error');
+                    // CREATE new task
+                    showToast('Creating task...', 'success');
+
+                    const response = await fetch(API_BASE, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'createUnifiedTask',
+                            ...taskData
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        const smsMsg = data.smsSent ? ' (SMS sent)' : '';
+                        showToast(`Task assigned to ${employeeName}${smsMsg}`, 'success');
+                        hideTaskForm();
+                        loadTasks();
+                        loadTaskStats(); // Refresh stats
+                    } else {
+                        showToast(data.error || 'Failed to create task', 'error');
+                    }
                 }
             } catch (error) {
                 console.error('Save task error:', error);
                 showToast('Failed to save task: ' + error.message, 'error');
+            }
+        }
+
+        // =========================================================================
+        // BULK OPERATIONS - Using Unified Task API
+        // =========================================================================
+
+        function toggleTaskSelection(taskId) {
+            if (selectedTasks.has(taskId)) {
+                selectedTasks.delete(taskId);
+            } else {
+                selectedTasks.add(taskId);
+            }
+            updateBulkActionBar();
+            updateTaskCardSelection(taskId);
+        }
+
+        function toggleSelectAll() {
+            const checkbox = document.getElementById('select-all-tasks');
+            const visibleTasks = getVisibleTaskIds();
+
+            if (checkbox.checked) {
+                visibleTasks.forEach(id => selectedTasks.add(id));
+            } else {
+                visibleTasks.forEach(id => selectedTasks.delete(id));
+            }
+
+            updateBulkActionBar();
+            // Update all task cards
+            visibleTasks.forEach(id => updateTaskCardSelection(id));
+        }
+
+        function getVisibleTaskIds() {
+            const taskCards = document.querySelectorAll('.task-card[data-task-id]');
+            return Array.from(taskCards).map(card => card.dataset.taskId);
+        }
+
+        function updateTaskCardSelection(taskId) {
+            const card = document.querySelector(`.task-card[data-task-id="${taskId}"]`);
+            if (card) {
+                const checkbox = card.querySelector('input[type="checkbox"]');
+                if (selectedTasks.has(taskId)) {
+                    card.classList.add('selected');
+                    if (checkbox) checkbox.checked = true;
+                } else {
+                    card.classList.remove('selected');
+                    if (checkbox) checkbox.checked = false;
+                }
+            }
+        }
+
+        function updateBulkActionBar() {
+            const bar = document.getElementById('bulk-action-bar');
+            const count = document.getElementById('selected-count');
+            const assignBtn = document.getElementById('bulk-assign-btn');
+            const completeBtn = document.getElementById('bulk-complete-btn');
+            const cancelBtn = document.getElementById('bulk-cancel-btn');
+
+            if (!bar) return;
+
+            const selectedCount = selectedTasks.size;
+
+            if (selectedCount > 0) {
+                bar.style.display = 'flex';
+                count.textContent = `${selectedCount} selected`;
+                assignBtn.disabled = false;
+                completeBtn.disabled = false;
+                cancelBtn.disabled = false;
+            } else {
+                bar.style.display = 'none';
+                assignBtn.disabled = true;
+                completeBtn.disabled = true;
+                cancelBtn.disabled = true;
+            }
+
+            // Update select-all checkbox state
+            const selectAllCb = document.getElementById('select-all-tasks');
+            if (selectAllCb) {
+                const visibleIds = getVisibleTaskIds();
+                const allSelected = visibleIds.length > 0 && visibleIds.every(id => selectedTasks.has(id));
+                selectAllCb.checked = allSelected;
+            }
+        }
+
+        /**
+         * Bulk assign selected tasks to an employee
+         * Uses bulkUpdateTasks endpoint for speed
+         */
+        async function bulkAssign() {
+            const taskIds = Array.from(selectedTasks);
+            if (taskIds.length === 0) {
+                showToast('No tasks selected', 'error');
+                return;
+            }
+
+            // Show employee picker modal (reuse existing form)
+            const employeeId = prompt('Enter employee ID to assign tasks to:');
+            if (!employeeId) return;
+
+            const employee = employees.find(e => e.User_ID === employeeId);
+            const employeeName = employee ? (employee.Full_Name || employee.Username) : employeeId;
+
+            try {
+                showToast(`Assigning ${taskIds.length} tasks...`, 'success');
+
+                // Use bulk update endpoint
+                const response = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'bulkUpdateTasks',
+                        taskIds: taskIds,
+                        updates: {
+                            Assignee_ID: employeeId,
+                            Assignee_Name: employeeName,
+                            Status: 'scheduled'
+                        },
+                        sendSMS: true // Notify assignee
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast(`${data.updated || taskIds.length} tasks assigned to ${employeeName}`, 'success');
+                    selectedTasks.clear();
+                    loadTasks();
+                } else {
+                    showToast(data.error || 'Bulk assign failed', 'error');
+                }
+            } catch (error) {
+                console.error('Bulk assign error:', error);
+                showToast('Bulk assign failed: ' + error.message, 'error');
+            }
+        }
+
+        /**
+         * Bulk complete selected tasks
+         * Uses bulkUpdateTasks endpoint
+         */
+        async function bulkComplete() {
+            const taskIds = Array.from(selectedTasks);
+            if (taskIds.length === 0) {
+                showToast('No tasks selected', 'error');
+                return;
+            }
+
+            if (!confirm(`Complete ${taskIds.length} tasks?`)) return;
+
+            try {
+                showToast(`Completing ${taskIds.length} tasks...`, 'success');
+
+                const response = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'bulkUpdateTasks',
+                        taskIds: taskIds,
+                        updates: {
+                            Status: 'done',
+                            Completed_At: new Date().toISOString()
+                        }
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast(`${data.updated || taskIds.length} tasks completed`, 'success');
+                    selectedTasks.clear();
+                    loadTasks();
+                    loadTaskStats();
+                } else {
+                    showToast(data.error || 'Bulk complete failed', 'error');
+                }
+            } catch (error) {
+                console.error('Bulk complete error:', error);
+                showToast('Bulk complete failed: ' + error.message, 'error');
+            }
+        }
+
+        /**
+         * Bulk cancel selected tasks (soft delete)
+         * Uses bulkUpdateTasks endpoint
+         */
+        async function bulkCancel() {
+            const taskIds = Array.from(selectedTasks);
+            if (taskIds.length === 0) {
+                showToast('No tasks selected', 'error');
+                return;
+            }
+
+            if (!confirm(`Cancel ${taskIds.length} tasks? This will mark them as cancelled.`)) return;
+
+            try {
+                showToast(`Cancelling ${taskIds.length} tasks...`, 'success');
+
+                const response = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'bulkUpdateTasks',
+                        taskIds: taskIds,
+                        updates: {
+                            Status: 'cancelled'
+                        }
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast(`${data.updated || taskIds.length} tasks cancelled`, 'success');
+                    selectedTasks.clear();
+                    loadTasks();
+                    loadTaskStats();
+                } else {
+                    showToast(data.error || 'Bulk cancel failed', 'error');
+                }
+            } catch (error) {
+                console.error('Bulk cancel error:', error);
+                showToast('Bulk cancel failed: ' + error.message, 'error');
             }
         }
 

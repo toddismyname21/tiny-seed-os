@@ -1725,6 +1725,54 @@
             cursor: not-allowed;
         }
 
+        .overdue-delete-btn {
+            padding: 10px 16px;
+            border-radius: 10px;
+            border: 2px solid #ef4444;
+            background: transparent;
+            color: #ef4444;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .overdue-delete-btn:hover:not(:disabled) {
+            background: #ef4444;
+            color: white;
+        }
+
+        .overdue-delete-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .overdue-delegate-btn {
+            padding: 10px 16px;
+            border-radius: 10px;
+            border: 2px solid #60a5fa;
+            background: transparent;
+            color: #60a5fa;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .overdue-delegate-btn:hover:not(:disabled) {
+            background: #60a5fa;
+            color: white;
+        }
+
+        .overdue-delegate-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         .overdue-list {
             display: flex;
             flex-direction: column;
@@ -2008,6 +2056,150 @@
             font-size: 1.1rem;
         }
 
+        .bulk-delete-btn {
+            padding: 12px 20px;
+            border-radius: 10px;
+            border: 2px solid #ef4444;
+            background: transparent;
+            color: #ef4444;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .bulk-delete-btn:hover:not(:disabled) {
+            background: #ef4444;
+            color: white;
+        }
+
+        .bulk-delete-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .bulk-delegate-btn {
+            padding: 12px 20px;
+            border-radius: 10px;
+            border: 2px solid #60a5fa;
+            background: transparent;
+            color: #60a5fa;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .bulk-delegate-btn:hover:not(:disabled) {
+            background: #60a5fa;
+            color: white;
+        }
+
+        .bulk-delegate-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Bulk Delegate Modal */
+        .bulk-delegate-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .bulk-delegate-modal.visible {
+            display: flex;
+        }
+
+        .bulk-delegate-content {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .bulk-delegate-content h3 {
+            margin: 0 0 16px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-primary);
+        }
+
+        .bulk-delegate-content h3 i {
+            color: #60a5fa;
+        }
+
+        .bulk-delegate-content select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg-light);
+            color: var(--text-primary);
+            font-size: 1rem;
+            margin-bottom: 12px;
+        }
+
+        .bulk-delegate-content textarea {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg-light);
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            resize: vertical;
+            min-height: 80px;
+            margin-bottom: 16px;
+            font-family: inherit;
+        }
+
+        .bulk-delegate-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .bulk-delegate-actions button {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .bulk-delegate-actions .btn-cancel {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        .bulk-delegate-actions .btn-confirm {
+            background: #60a5fa;
+            border: none;
+            color: white;
+        }
+
+        .bulk-delegate-actions .btn-confirm:hover {
+            background: #3b82f6;
+        }
+
         /* Task Groups */
         .task-group {
             margin-bottom: 1rem;
@@ -2223,6 +2415,123 @@
 
         .task-complete-btn:disabled {
             cursor: not-allowed;
+        }
+
+        /* Priority Score Badge */
+        .priority-badge {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .priority-badge.critical {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .priority-badge.high {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .priority-badge.normal {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .priority-badge .score {
+            font-size: 0.85rem;
+            font-weight: 800;
+        }
+
+        /* At Risk Warning */
+        .at-risk-badge {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 6px;
+            font-size: 0.7rem;
+            color: #ef4444;
+            margin-top: 4px;
+        }
+
+        .at-risk-badge i {
+            font-size: 0.65rem;
+        }
+
+        /* Update task-item grid to accommodate priority badge */
+        .task-item.with-priority {
+            grid-template-columns: 48px auto 1fr auto auto auto;
+        }
+
+        /* Task source indicator */
+        .task-source {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            margin-left: 8px;
+            opacity: 0.7;
+        }
+
+        /* Loading state for Unified API */
+        .unified-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .unified-loading i {
+            font-size: 2rem;
+            color: var(--primary);
+        }
+
+        .unified-loading .loading-text {
+            font-size: 0.9rem;
+        }
+
+        /* API Error state */
+        .api-error {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            padding: 30px;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            border-radius: 12px;
+            color: #ef4444;
+        }
+
+        .api-error i {
+            font-size: 2rem;
+        }
+
+        .api-error .retry-btn {
+            margin-top: 8px;
+            padding: 8px 16px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .api-error .retry-btn:hover {
+            background: #dc2626;
         }
 
         .no-tasks-message {
@@ -3793,6 +4102,12 @@
                     <button class="overdue-complete-btn" id="overdueCompleteBtn" onclick="completeSelectedOverdue()" disabled>
                         <i class="fas fa-check-double"></i> Complete Selected
                     </button>
+                    <button class="overdue-delegate-btn" id="overdueDelegateBtn" onclick="openOverdueDelegateModal()" disabled>
+                        <i class="fas fa-user-plus"></i> Delegate
+                    </button>
+                    <button class="overdue-delete-btn" id="overdueDeleteBtn" onclick="deleteSelectedOverdue()" disabled>
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
                 </div>
                 <div class="overdue-list" id="overdueList"></div>
             </div>
@@ -3811,6 +4126,12 @@
                     <span class="selected-count" id="selectedCount"><strong>0</strong> tasks selected</span>
                     <button class="bulk-complete-btn" id="bulkCompleteBtn" onclick="completeSelectedTasks()" disabled>
                         <i class="fas fa-check-double"></i> Complete Selected
+                    </button>
+                    <button class="bulk-delegate-btn" id="bulkDelegateBtn" onclick="openBulkDelegateModal()" disabled>
+                        <i class="fas fa-user-plus"></i> Delegate Selected
+                    </button>
+                    <button class="bulk-delete-btn" id="bulkDeleteBtn" onclick="deleteSelectedTasks()" disabled>
+                        <i class="fas fa-trash"></i> Delete Selected
                     </button>
                 </div>
                 <div class="tasks-list" id="todaysTasksList">
@@ -4331,6 +4652,23 @@
         </div>
     </div>
 
+    <!-- Bulk Delegate Modal -->
+    <div class="bulk-delegate-modal" id="bulkDelegateModal">
+        <div class="bulk-delegate-content">
+            <h3><i class="fas fa-users"></i> Delegate <span id="bulkDelegateCount">0</span> Tasks</h3>
+            <select id="bulkDelegateEmployee">
+                <option value="">Select an employee...</option>
+            </select>
+            <textarea id="bulkDelegateNote" placeholder="Add a note for the employee (optional)..."></textarea>
+            <div class="bulk-delegate-actions">
+                <button class="btn-cancel" onclick="closeBulkDelegateModal()">Cancel</button>
+                <button class="btn-confirm" onclick="confirmBulkDelegate()">
+                    <i class="fas fa-paper-plane"></i> Delegate & Notify
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Task Action Modal -->
     <div class="modal-overlay task-action-modal" id="taskActionModal">
         <div class="modal" style="max-width: 480px;">
@@ -4587,6 +4925,11 @@
         // Overdue Tasks state
         let overdueTasks = [];
         let selectedOverdueTasks = new Set();
+
+        // Unified Task API state
+        let unifiedTasksEnabled = true; // Enable new API by default
+        let unifiedTasksLoaded = false;
+        let unifiedTasksError = null;
 
         // Smart Add state
         let smartSelectedCrop = null;
@@ -5484,8 +5827,9 @@
 
         // ========================================
         // TODAY'S WORK - Frictionless Task Completion
+        // Using Unified Task API (Feb 2026)
         // ========================================
-        function loadTodaysTasks() {
+        async function loadTodaysTasks() {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             const tomorrow = new Date(today);
@@ -5499,11 +5843,114 @@
                 });
             }
 
+            // Clear state
             todaysTasks = [];
             overdueTasks = [];
             selectedTasks.clear();
             selectedOverdueTasks.clear();
+            unifiedTasksError = null;
 
+            // Show loading state
+            const container = document.getElementById('todaysTasksList');
+            if (container) {
+                container.innerHTML = `
+                    <div class="unified-loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <span class="loading-text">Loading tasks from Unified API...</span>
+                    </div>
+                `;
+            }
+
+            try {
+                // Use new Unified Task API - getTaskPriorities for AI-sorted list
+                const todayStr = today.toISOString().split('T')[0];
+                const response = await fetch(`${API_URL}?action=getTaskPriorities&dueDate=${todayStr}&limit=100`);
+                const result = await response.json();
+
+                if (result.success && result.tasks) {
+                    unifiedTasksLoaded = true;
+
+                    // Process unified tasks
+                    result.tasks.forEach(task => {
+                        const dueDate = task.Due_Date ? new Date(task.Due_Date) : null;
+                        const isToday = dueDate && dueDate >= today && dueDate < tomorrow;
+                        const isOverdue = dueDate && dueDate < today;
+
+                        const taskData = {
+                            id: task.Task_ID,
+                            taskId: task.Task_ID, // Unified Task ID
+                            batchId: task.Batch_ID || '',
+                            type: mapUnifiedTaskType(task.Task_Type),
+                            crop: task.Title?.split(' - ')[0] || task.Title || 'Task',
+                            variety: task.Title?.split(' - ')[1] || '',
+                            quantity: task.Description || '',
+                            location: task.Field_ID || task.Bed_ID || 'Farm',
+                            completed: task.Status === 'DONE',
+                            date: dueDate,
+                            daysOverdue: isOverdue ? Math.floor((today - dueDate) / (1000 * 60 * 60 * 24)) : 0,
+                            // AI Priority fields from Unified API
+                            priorityScore: task.Priority_Score || 50,
+                            priorityManual: task.Priority_Manual || 'medium',
+                            atRisk: task.At_Risk || false,
+                            atRiskReason: task.At_Risk_Reason || '',
+                            source: task.Source || 'unified',
+                            assignee: task.Assignee_Name || '',
+                            estimatedMinutes: task.Estimated_Minutes || 0,
+                            status: task.Status || 'SCHEDULED'
+                        };
+
+                        // Separate into today's and overdue
+                        if (task.Status !== 'DONE' && task.Status !== 'CANCELLED') {
+                            if (isToday) {
+                                todaysTasks.push(taskData);
+                            } else if (isOverdue) {
+                                overdueTasks.push(taskData);
+                            }
+                        }
+                    });
+
+                    // Sort by Priority_Score (highest first) - AI sorted
+                    todaysTasks.sort((a, b) => b.priorityScore - a.priorityScore);
+                    overdueTasks.sort((a, b) => b.priorityScore - a.priorityScore);
+
+                } else {
+                    // API returned success:false or no tasks - fall back to planning data
+                    console.log('Unified API returned no tasks, falling back to planning data');
+                    loadTodaysTasksFromPlanning(today, tomorrow);
+                }
+            } catch (error) {
+                console.error('Error loading unified tasks:', error);
+                unifiedTasksError = error.message;
+
+                // Fall back to planning-based tasks
+                console.log('Falling back to planning-based task loading');
+                loadTodaysTasksFromPlanning(today, tomorrow);
+            }
+
+            // Render both sections
+            renderOverdueTasks();
+            renderTodaysTasks();
+        }
+
+        // Map unified task types to legacy types for compatibility
+        function mapUnifiedTaskType(unifiedType) {
+            const typeMap = {
+                'sow': 'ghSow',
+                'transplant': 'transplant',
+                'harvest': 'harvest',
+                'spray': 'maintenance',
+                'irrigate': 'maintenance',
+                'weed': 'maintenance',
+                'scout': 'maintenance',
+                'maintenance': 'maintenance',
+                'admin': 'admin',
+                'delivery': 'delivery'
+            };
+            return typeMap[unifiedType?.toLowerCase()] || 'ghSow';
+        }
+
+        // Fallback: Load tasks from PLANNING_2026 data (legacy method)
+        function loadTodaysTasksFromPlanning(today, tomorrow) {
             allPlantings.forEach(p => {
                 // GH Sowing tasks
                 const ghSow = parseDate(p.Plan_GH_Sow);
@@ -5518,7 +5965,12 @@
                         location: p.GH_Location || 'Greenhouse',
                         completed: false,
                         date: ghSow,
-                        daysOverdue: Math.floor((today - ghSow) / (1000 * 60 * 60 * 24))
+                        daysOverdue: Math.floor((today - ghSow) / (1000 * 60 * 60 * 24)),
+                        // Default priority for legacy tasks
+                        priorityScore: ghSow < today ? 85 : 50,
+                        atRisk: ghSow < today,
+                        atRiskReason: ghSow < today ? 'Overdue task' : '',
+                        source: 'planning'
                     };
 
                     if (ghSow >= today && ghSow < tomorrow) {
@@ -5541,7 +5993,11 @@
                         location: p.Target_Bed_ID || 'Field',
                         completed: false,
                         date: fieldSow,
-                        daysOverdue: Math.floor((today - fieldSow) / (1000 * 60 * 60 * 24))
+                        daysOverdue: Math.floor((today - fieldSow) / (1000 * 60 * 60 * 24)),
+                        priorityScore: fieldSow < today ? 85 : 50,
+                        atRisk: fieldSow < today,
+                        atRiskReason: fieldSow < today ? 'Overdue task' : '',
+                        source: 'planning'
                     };
 
                     if (fieldSow >= today && fieldSow < tomorrow) {
@@ -5564,7 +6020,11 @@
                         location: p.Target_Bed_ID || 'Field',
                         completed: false,
                         date: transplant,
-                        daysOverdue: Math.floor((today - transplant) / (1000 * 60 * 60 * 24))
+                        daysOverdue: Math.floor((today - transplant) / (1000 * 60 * 60 * 24)),
+                        priorityScore: transplant < today ? 85 : 50,
+                        atRisk: transplant < today,
+                        atRiskReason: transplant < today ? 'Overdue task' : '',
+                        source: 'planning'
                     };
 
                     if (transplant >= today && transplant < tomorrow) {
@@ -5575,18 +6035,9 @@
                 }
             });
 
-            // Sort today's tasks by type
-            todaysTasks.sort((a, b) => {
-                const typeOrder = { ghSow: 0, transplant: 1, directSeed: 2 };
-                return typeOrder[a.type] - typeOrder[b.type];
-            });
-
-            // Sort overdue by days overdue (most overdue first)
-            overdueTasks.sort((a, b) => b.daysOverdue - a.daysOverdue);
-
-            // Render both sections
-            renderOverdueTasks();
-            renderTodaysTasks();
+            // Sort by priority score
+            todaysTasks.sort((a, b) => b.priorityScore - a.priorityScore);
+            overdueTasks.sort((a, b) => b.priorityScore - a.priorityScore);
         }
 
         // ========================================
@@ -5610,28 +6061,42 @@
                 const typeLabel = task.type === 'ghSow' ? 'GH Sow' :
                                   task.type === 'transplant' ? 'Transplant' : 'Direct Seed';
                 const daysText = task.daysOverdue === 1 ? '1 day' : `${task.daysOverdue} days`;
+                const priorityClass = getPriorityClass(task.priorityScore);
+                const priorityIcon = getPriorityIcon(task.priorityScore);
+                const taskIdForComplete = task.taskId || task.id;
 
                 return `
                     <div class="overdue-item ${isSelected ? 'selected' : ''}"
                          data-task-id="${task.id}"
+                         data-unified-task-id="${task.taskId || ''}"
                          onclick="toggleOverdueSelection('${task.id}')">
                         <div class="overdue-checkbox">
                             <i class="fas fa-check"></i>
                         </div>
+                        <div class="priority-badge ${priorityClass}" title="AI Priority: ${task.priorityScore || 50}" style="margin-right: 8px;">
+                            <span>${priorityIcon}</span>
+                            <span class="score">${task.priorityScore || 50}</span>
+                        </div>
                         <div class="overdue-info">
-                            <div class="overdue-crop">${task.crop} - ${task.variety}</div>
+                            <div class="overdue-crop">${task.crop}${task.variety ? ' - ' + task.variety : ''}</div>
                             <div class="overdue-details">${typeLabel} • ${task.location}</div>
+                            ${task.atRisk && task.atRiskReason ? `
+                                <div class="at-risk-badge">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <span>${task.atRiskReason}</span>
+                                </div>
+                            ` : ''}
                         </div>
                         <div class="overdue-days-badge">${daysText} overdue</div>
                         <div class="overdue-quantity">${task.quantity}</div>
                         <div class="overdue-actions">
-                            <button class="overdue-action-btn done" onclick="completeOverdueTask('${task.batchId}', '${task.type}', event)" title="Mark Done">
+                            <button class="overdue-action-btn done" onclick="completeOverdueTask('${task.batchId}', '${task.type}', event, '${taskIdForComplete}')" title="Mark Done">
                                 <i class="fas fa-check"></i>
                             </button>
-                            <button class="overdue-action-btn delegate" onclick="delegateOverdueTask('${task.batchId}', '${task.type}', event)" title="Delegate">
+                            <button class="overdue-action-btn delegate" onclick="delegateOverdueTask('${task.batchId}', '${task.type}', event, '${taskIdForComplete}')" title="Delegate">
                                 <i class="fas fa-user-plus"></i>
                             </button>
-                            <button class="overdue-action-btn delete" onclick="deleteOverdueTask('${task.batchId}', '${task.type}', event)" title="Delete">
+                            <button class="overdue-action-btn delete" onclick="deleteOverdueTask('${task.batchId}', '${task.type}', event, '${taskIdForComplete}')" title="Delete">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -5673,6 +6138,8 @@
             const selectAllBtn = document.getElementById('overdueSelectAll');
             const selectedCountEl = document.getElementById('overdueSelectedCount');
             const completeBtn = document.getElementById('overdueCompleteBtn');
+            const deleteBtn = document.getElementById('overdueDeleteBtn');
+            const delegateBtn = document.getElementById('overdueDelegateBtn');
 
             const selectedCount = selectedOverdueTasks.size;
             const allSelected = overdueTasks.length > 0 && overdueTasks.every(t => selectedOverdueTasks.has(t.id));
@@ -5696,6 +6163,20 @@
                 completeBtn.innerHTML = selectedCount > 0
                     ? `<i class="fas fa-check-double"></i> Complete ${selectedCount}`
                     : `<i class="fas fa-check-double"></i> Complete Selected`;
+            }
+
+            if (deleteBtn) {
+                deleteBtn.disabled = selectedCount === 0;
+                deleteBtn.innerHTML = selectedCount > 0
+                    ? `<i class="fas fa-trash"></i> Delete ${selectedCount}`
+                    : `<i class="fas fa-trash"></i> Delete`;
+            }
+
+            if (delegateBtn) {
+                delegateBtn.disabled = selectedCount === 0;
+                delegateBtn.innerHTML = selectedCount > 0
+                    ? `<i class="fas fa-user-plus"></i> Delegate ${selectedCount}`
+                    : `<i class="fas fa-user-plus"></i> Delegate`;
             }
         }
 
@@ -5752,7 +6233,152 @@
             }
         }
 
-        async function completeOverdueTask(batchId, taskType, event) {
+        // ========================================
+        // BULK DELETE OVERDUE TASKS
+        // ========================================
+        async function deleteSelectedOverdue() {
+            if (selectedOverdueTasks.size === 0) return;
+
+            const count = selectedOverdueTasks.size;
+            if (!confirm(`Delete ${count} overdue task${count !== 1 ? 's' : ''}? This will mark them as skipped.`)) {
+                return;
+            }
+
+            const deleteBtn = document.getElementById('overdueDeleteBtn');
+            const originalText = deleteBtn.innerHTML;
+            deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+            deleteBtn.disabled = true;
+
+            const tasksToDelete = Array.from(selectedOverdueTasks).map(id =>
+                overdueTasks.find(t => t.id === id)
+            ).filter(Boolean);
+
+            let successCount = 0;
+
+            for (const task of tasksToDelete) {
+                try {
+                    let updateField = '';
+                    if (task.type === 'ghSow') updateField = 'GH_Sow_Status';
+                    else if (task.type === 'directSeed') updateField = 'Direct_Sow_Status';
+                    else if (task.type === 'transplant') updateField = 'Transplant_Status';
+
+                    if (!updateField) continue;
+
+                    const params = new URLSearchParams({
+                        action: 'updatePlanting',
+                        batchId: task.batchId,
+                        [updateField]: 'Skipped'
+                    });
+
+                    const response = await fetch(`${API_URL}?${params}`);
+                    const result = await response.json();
+
+                    if (result.success) {
+                        successCount++;
+                    }
+                } catch (error) {
+                    console.error('Error deleting overdue task:', task.id, error);
+                }
+            }
+
+            selectedOverdueTasks.clear();
+            loadTodaysTasks();
+            updateStats();
+
+            if (successCount > 0) {
+                showToast(`${successCount} overdue task${successCount !== 1 ? 's' : ''} deleted`, 'success');
+            }
+
+            deleteBtn.innerHTML = originalText;
+        }
+
+        // ========================================
+        // BULK DELEGATE OVERDUE TASKS
+        // ========================================
+        let overdueDelegate = false; // Flag to identify which modal triggered delegate
+
+        function openOverdueDelegateModal() {
+            if (selectedOverdueTasks.size === 0) return;
+
+            overdueDelegate = true;
+            document.getElementById('bulkDelegateCount').textContent = selectedOverdueTasks.size;
+            loadEmployeesForBulkDelegate();
+            document.getElementById('bulkDelegateModal').classList.add('visible');
+        }
+
+        // Bulk delegate function - handles both today's and overdue tasks
+        async function confirmBulkDelegate() {
+            const employeeId = document.getElementById('bulkDelegateEmployee').value;
+            const note = document.getElementById('bulkDelegateNote').value;
+
+            if (!employeeId) {
+                showToast('Please select an employee', 'error');
+                return;
+            }
+
+            const tasksToDelegate = overdueDelegate
+                ? Array.from(selectedOverdueTasks).map(id => overdueTasks.find(t => t.id === id)).filter(Boolean)
+                : Array.from(selectedTasks).map(id => todaysTasks.find(t => t.id === id)).filter(Boolean);
+
+            if (tasksToDelegate.length === 0) {
+                showToast('No tasks selected', 'error');
+                return;
+            }
+
+            const confirmBtn = document.querySelector('.bulk-delegate-actions .btn-confirm');
+            const originalText = confirmBtn.innerHTML;
+            confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Delegating...';
+            confirmBtn.disabled = true;
+
+            let successCount = 0;
+
+            for (const task of tasksToDelegate) {
+                try {
+                    const params = new URLSearchParams({
+                        action: 'assignTaskToEmployee',
+                        data: JSON.stringify({
+                            taskId: task.id || task.batchId || `TASK_${Date.now()}`,
+                            description: task.name || task.crop || 'Task',
+                            employeeId: employeeId,
+                            notes: note,
+                            dueDate: 'today',
+                            priority: overdueDelegate ? 'high' : 'normal',
+                            sendSMS: successCount === 0
+                        })
+                    });
+
+                    const response = await fetch(`${API_URL}?${params}`);
+                    const result = await response.json();
+
+                    if (result.success) {
+                        successCount++;
+                    }
+                } catch (error) {
+                    console.error('Error delegating task:', task.id, error);
+                }
+            }
+
+            confirmBtn.innerHTML = originalText;
+            confirmBtn.disabled = false;
+
+            if (successCount > 0) {
+                showToast(`${successCount} task${successCount !== 1 ? 's' : ''} delegated! Employee notified.`, 'success');
+            }
+
+            if (overdueDelegate) {
+                selectedOverdueTasks.clear();
+                updateOverdueSelectionUI();
+            } else {
+                selectedTasks.clear();
+            }
+
+            overdueDelegate = false;
+            closeBulkDelegateModal();
+            renderTodaysTasks();
+            updateStats();
+        }
+
+        async function completeOverdueTask(batchId, taskType, event, unifiedTaskId = null) {
             if (event) event.stopPropagation();
 
             const taskItem = document.querySelector(`.overdue-item[data-task-id="${batchId}-${taskType}"]`);
@@ -5763,31 +6389,58 @@
             }
 
             try {
-                let updateField = '';
-                if (taskType === 'ghSow') updateField = 'Act_GH_Sow';
-                else if (taskType === 'directSeed') updateField = 'Act_Field_Sow';
-                else if (taskType === 'transplant') updateField = 'Act_Transplant';
-
                 const today = new Date().toISOString().split('T')[0];
+                let success = false;
 
-                const params = new URLSearchParams({
-                    action: 'updatePlanting',
-                    batchId: batchId,
-                    [updateField]: today
-                });
+                // Try Unified Task API first
+                if (unifiedTaskId && unifiedTaskId !== `${batchId}-${taskType}`) {
+                    try {
+                        const response = await fetch(API_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                action: 'updateUnifiedTask',
+                                taskId: unifiedTaskId,
+                                Status: 'DONE',
+                                Completed_At: new Date().toISOString()
+                            })
+                        });
+                        const result = await response.json();
+                        success = result.success;
+                    } catch (unifiedError) {
+                        console.log('Unified API failed, falling back to legacy:', unifiedError);
+                    }
+                }
 
-                const response = await fetch(`${API_URL}?${params}`);
-                const result = await response.json();
+                // Fall back to legacy update
+                if (!success && batchId) {
+                    let updateField = '';
+                    if (taskType === 'ghSow') updateField = 'Act_GH_Sow';
+                    else if (taskType === 'directSeed') updateField = 'Act_Field_Sow';
+                    else if (taskType === 'transplant') updateField = 'Act_Transplant';
 
-                if (result.success) {
+                    const params = new URLSearchParams({
+                        action: 'updatePlanting',
+                        batchId: batchId,
+                        [updateField]: today
+                    });
+
+                    const response = await fetch(`${API_URL}?${params}`);
+                    const result = await response.json();
+                    success = result.success;
+
+                    if (success) {
+                        const planting = allPlantings.find(p => p.Batch_ID === batchId);
+                        if (planting) {
+                            planting[updateField] = today;
+                        }
+                    }
+                }
+
+                if (success) {
                     const task = overdueTasks.find(t => t.batchId === batchId && t.type === taskType);
                     if (task) {
                         lastCompletedTasks = [{...task, wasOverdue: true}];
-                    }
-
-                    const planting = allPlantings.find(p => p.Batch_ID === batchId);
-                    if (planting) {
-                        planting[updateField] = today;
                     }
 
                     selectedOverdueTasks.delete(`${batchId}-${taskType}`);
@@ -5795,7 +6448,7 @@
                     updateStats();
                     showUndoToast('Overdue task completed');
                 } else {
-                    throw new Error(result.error);
+                    throw new Error('Failed to complete task');
                 }
             } catch (error) {
                 console.error('Error completing overdue task:', error);
@@ -5804,14 +6457,14 @@
             }
         }
 
-        async function delegateOverdueTask(batchId, taskType, event) {
+        async function delegateOverdueTask(batchId, taskType, event, unifiedTaskId = null) {
             if (event) event.stopPropagation();
 
             const task = overdueTasks.find(t => t.batchId === batchId && t.type === taskType);
             if (!task) return;
 
             // Show delegate modal
-            const assignee = prompt(`Delegate "${task.crop} - ${task.variety}" to:`);
+            const assignee = prompt(`Delegate "${task.crop}${task.variety ? ' - ' + task.variety : ''}" to:`);
             if (!assignee) return;
 
             const taskItem = document.querySelector(`.overdue-item[data-task-id="${batchId}-${taskType}"]`);
@@ -5819,23 +6472,50 @@
             if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
             try {
-                const params = new URLSearchParams({
-                    action: 'updatePlanting',
-                    batchId: batchId,
-                    Assigned_To: assignee
-                });
+                let success = false;
 
-                const response = await fetch(`${API_URL}?${params}`);
-                const result = await response.json();
+                // Try Unified Task API first
+                if (unifiedTaskId && unifiedTaskId !== `${batchId}-${taskType}`) {
+                    try {
+                        const response = await fetch(API_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                action: 'updateUnifiedTask',
+                                taskId: unifiedTaskId,
+                                Assignee_Name: assignee
+                            })
+                        });
+                        const result = await response.json();
+                        success = result.success;
+                    } catch (unifiedError) {
+                        console.log('Unified API failed, falling back to legacy:', unifiedError);
+                    }
+                }
 
-                if (result.success) {
-                    const planting = allPlantings.find(p => p.Batch_ID === batchId);
-                    if (planting) planting.Assigned_To = assignee;
+                // Fall back to legacy
+                if (!success) {
+                    const params = new URLSearchParams({
+                        action: 'updatePlanting',
+                        batchId: batchId,
+                        Assigned_To: assignee
+                    });
 
+                    const response = await fetch(`${API_URL}?${params}`);
+                    const result = await response.json();
+                    success = result.success;
+
+                    if (success) {
+                        const planting = allPlantings.find(p => p.Batch_ID === batchId);
+                        if (planting) planting.Assigned_To = assignee;
+                    }
+                }
+
+                if (success) {
                     loadTodaysTasks();
                     showToast(`Task delegated to ${assignee}`, 'success');
                 } else {
-                    throw new Error(result.error);
+                    throw new Error('Failed to delegate task');
                 }
             } catch (error) {
                 console.error('Error delegating task:', error);
@@ -5844,13 +6524,13 @@
             }
         }
 
-        async function deleteOverdueTask(batchId, taskType, event) {
+        async function deleteOverdueTask(batchId, taskType, event, unifiedTaskId = null) {
             if (event) event.stopPropagation();
 
             const task = overdueTasks.find(t => t.batchId === batchId && t.type === taskType);
             if (!task) return;
 
-            if (!confirm(`Delete overdue ${taskType} task for "${task.crop} - ${task.variety}"? This will skip this scheduled task.`)) {
+            if (!confirm(`Delete overdue ${taskType} task for "${task.crop}${task.variety ? ' - ' + task.variety : ''}"? This will skip this scheduled task.`)) {
                 return;
             }
 
@@ -5859,28 +6539,52 @@
             if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
             try {
-                // Mark as skipped by setting status
-                let updateField = '';
-                if (taskType === 'ghSow') updateField = 'GH_Sow_Status';
-                else if (taskType === 'directSeed') updateField = 'Direct_Sow_Status';
-                else if (taskType === 'transplant') updateField = 'Transplant_Status';
+                let success = false;
 
-                const params = new URLSearchParams({
-                    action: 'updatePlanting',
-                    batchId: batchId,
-                    [updateField]: 'Skipped'
-                });
+                // Try Unified Task API first
+                if (unifiedTaskId && unifiedTaskId !== `${batchId}-${taskType}`) {
+                    try {
+                        const response = await fetch(API_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                action: 'updateUnifiedTask',
+                                taskId: unifiedTaskId,
+                                Status: 'CANCELLED'
+                            })
+                        });
+                        const result = await response.json();
+                        success = result.success;
+                    } catch (unifiedError) {
+                        console.log('Unified API failed, falling back to legacy:', unifiedError);
+                    }
+                }
 
-                const response = await fetch(`${API_URL}?${params}`);
-                const result = await response.json();
+                // Fall back to legacy
+                if (!success) {
+                    let updateField = '';
+                    if (taskType === 'ghSow') updateField = 'GH_Sow_Status';
+                    else if (taskType === 'directSeed') updateField = 'Direct_Sow_Status';
+                    else if (taskType === 'transplant') updateField = 'Transplant_Status';
 
-                if (result.success) {
+                    const params = new URLSearchParams({
+                        action: 'updatePlanting',
+                        batchId: batchId,
+                        [updateField]: 'Skipped'
+                    });
+
+                    const response = await fetch(`${API_URL}?${params}`);
+                    const result = await response.json();
+                    success = result.success;
+                }
+
+                if (success) {
                     selectedOverdueTasks.delete(`${batchId}-${taskType}`);
                     loadTodaysTasks();
                     updateStats();
                     showToast('Task removed from schedule', 'success');
                 } else {
-                    throw new Error(result.error);
+                    throw new Error('Failed to delete task');
                 }
             } catch (error) {
                 console.error('Error deleting overdue task:', error);
@@ -5965,29 +6669,63 @@
 
         function renderTaskItem(task) {
             const isSelected = selectedTasks.has(task.id);
+            const priorityClass = getPriorityClass(task.priorityScore);
+            const priorityIcon = getPriorityIcon(task.priorityScore);
+            const hasAtRisk = task.atRisk && task.atRiskReason;
+            const taskIdForComplete = task.taskId || task.id; // Use unified Task_ID if available
+
             return `
-                <div class="task-item ${isSelected ? 'selected' : ''} ${task.completed ? 'completed' : ''}"
+                <div class="task-item with-priority ${isSelected ? 'selected' : ''} ${task.completed ? 'completed' : ''}"
                      data-task-id="${task.id}"
+                     data-unified-task-id="${task.taskId || ''}"
                      data-batch-id="${task.batchId}"
                      data-type="${task.type}"
                      onclick="toggleTaskSelection('${task.id}', event)">
                     <div class="task-checkbox ${isSelected ? 'checked' : ''}" onclick="toggleTaskSelection('${task.id}', event)">
                         <i class="fas fa-check"></i>
                     </div>
+                    <div class="priority-badge ${priorityClass}" title="AI Priority Score: ${task.priorityScore || 50}">
+                        <span>${priorityIcon}</span>
+                        <span class="score">${task.priorityScore || 50}</span>
+                    </div>
                     <div class="task-info">
-                        <div class="task-crop">${task.crop} - ${task.variety}</div>
+                        <div class="task-crop">
+                            ${task.crop}${task.variety ? ' - ' + task.variety : ''}
+                            ${task.source === 'unified' ? '<span class="task-source">AI</span>' : ''}
+                        </div>
                         <div class="task-details">
                             <i class="fas fa-map-marker-alt"></i> ${task.location}
+                            ${task.assignee ? `<span style="margin-left: 8px;"><i class="fas fa-user"></i> ${task.assignee}</span>` : ''}
                         </div>
+                        ${hasAtRisk ? `
+                            <div class="at-risk-badge">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <span>${task.atRiskReason}</span>
+                            </div>
+                        ` : ''}
                     </div>
                     <div class="task-quantity">${task.quantity}</div>
                     <button class="task-complete-btn ${task.completed ? 'done' : ''}"
-                            onclick="completeTask('${task.batchId}', '${task.type}', event)"
+                            onclick="completeTask('${task.batchId}', '${task.type}', event, '${taskIdForComplete}')"
                             ${task.completed ? 'disabled' : ''}>
                         <i class="fas ${task.completed ? 'fa-check' : 'fa-check'}"></i>
                     </button>
                 </div>
             `;
+        }
+
+        // Get priority class based on score (for color coding)
+        function getPriorityClass(score) {
+            if (score >= 80) return 'critical';
+            if (score >= 50) return 'high';
+            return 'normal';
+        }
+
+        // Get priority icon/emoji based on score
+        function getPriorityIcon(score) {
+            if (score >= 80) return '🔴';
+            if (score >= 50) return '🟡';
+            return '🟢';
         }
 
         function toggleTaskSelection(taskId, event) {
@@ -6053,6 +6791,8 @@
             const selectAllBtn = document.getElementById('selectAllBtn');
             const selectedCountEl = document.getElementById('selectedCount');
             const bulkCompleteBtn = document.getElementById('bulkCompleteBtn');
+            const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+            const bulkDelegateBtn = document.getElementById('bulkDelegateBtn');
 
             const incompleteTasks = todaysTasks.filter(t => !t.completed);
             const selectedCount = selectedTasks.size;
@@ -6078,6 +6818,20 @@
                     ? `<i class="fas fa-check-double"></i> Complete ${selectedCount} Task${selectedCount !== 1 ? 's' : ''}`
                     : `<i class="fas fa-check-double"></i> Complete Selected`;
             }
+
+            if (bulkDeleteBtn) {
+                bulkDeleteBtn.disabled = selectedCount === 0;
+                bulkDeleteBtn.innerHTML = selectedCount > 0
+                    ? `<i class="fas fa-trash"></i> Delete ${selectedCount} Task${selectedCount !== 1 ? 's' : ''}`
+                    : `<i class="fas fa-trash"></i> Delete Selected`;
+            }
+
+            if (bulkDelegateBtn) {
+                bulkDelegateBtn.disabled = selectedCount === 0;
+                bulkDelegateBtn.innerHTML = selectedCount > 0
+                    ? `<i class="fas fa-user-plus"></i> Delegate ${selectedCount} Task${selectedCount !== 1 ? 's' : ''}`
+                    : `<i class="fas fa-user-plus"></i> Delegate Selected`;
+            }
         }
 
         async function completeSelectedTasks() {
@@ -6095,10 +6849,42 @@
             // Store for undo
             lastCompletedTasks = tasksToComplete.map(t => ({...t}));
 
-            let successCount = 0;
             const today = new Date().toISOString().split('T')[0];
 
-            for (const task of tasksToComplete) {
+            // Check if we have unified task IDs for bulk update
+            const unifiedTaskIds = tasksToComplete
+                .filter(t => t.taskId && t.source === 'unified')
+                .map(t => t.taskId);
+            const legacyTasks = tasksToComplete.filter(t => !t.taskId || t.source !== 'unified');
+
+            let successCount = 0;
+
+            // Use bulkUpdateTasks for unified tasks (single API call - FAST)
+            if (unifiedTaskIds.length > 0) {
+                try {
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'bulkUpdateTasks',
+                            taskIds: unifiedTaskIds,
+                            updates: {
+                                Status: 'DONE',
+                                Completed_At: new Date().toISOString()
+                            }
+                        })
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        successCount += result.updated || unifiedTaskIds.length;
+                    }
+                } catch (error) {
+                    console.error('Error bulk completing unified tasks:', error);
+                }
+            }
+
+            // Fall back to legacy updates for planning-based tasks
+            for (const task of legacyTasks) {
                 try {
                     let updateField = '';
                     if (task.type === 'ghSow') updateField = 'Act_GH_Sow';
@@ -6142,7 +6928,150 @@
             bulkBtn.innerHTML = originalText;
         }
 
-        async function completeTask(batchId, taskType, event) {
+        // ========================================
+        // BULK DELETE TASKS - Uses Unified Task API
+        // ========================================
+        async function deleteSelectedTasks() {
+            if (selectedTasks.size === 0) return;
+
+            const count = selectedTasks.size;
+            if (!confirm(`Delete ${count} selected task${count !== 1 ? 's' : ''}? This will mark them as cancelled/skipped.`)) {
+                return;
+            }
+
+            const bulkBtn = document.getElementById('bulkDeleteBtn');
+            const originalText = bulkBtn.innerHTML;
+            bulkBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+            bulkBtn.disabled = true;
+
+            const tasksToDelete = Array.from(selectedTasks).map(id =>
+                todaysTasks.find(t => t.id === id)
+            ).filter(Boolean);
+
+            // Separate unified and legacy tasks
+            const unifiedTaskIds = tasksToDelete
+                .filter(t => t.taskId && t.source === 'unified')
+                .map(t => t.taskId);
+            const legacyTasks = tasksToDelete.filter(t => !t.taskId || t.source !== 'unified');
+
+            let successCount = 0;
+
+            // Use bulkUpdateTasks for unified tasks (set status to CANCELLED)
+            if (unifiedTaskIds.length > 0) {
+                try {
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'bulkUpdateTasks',
+                            taskIds: unifiedTaskIds,
+                            updates: {
+                                Status: 'CANCELLED'
+                            }
+                        })
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        successCount += result.updated || unifiedTaskIds.length;
+                    }
+                } catch (error) {
+                    console.error('Error bulk deleting unified tasks:', error);
+                }
+            }
+
+            // Legacy delete for planning-based tasks
+            for (const task of legacyTasks) {
+                try {
+                    let updateField = '';
+                    if (task.type === 'ghSow') updateField = 'GH_Sow_Status';
+                    else if (task.type === 'directSeed') updateField = 'Direct_Sow_Status';
+                    else if (task.type === 'transplant') updateField = 'Transplant_Status';
+
+                    if (!updateField) continue;
+
+                    const params = new URLSearchParams({
+                        action: 'updatePlanting',
+                        batchId: task.batchId,
+                        [updateField]: 'Skipped'
+                    });
+
+                    const response = await fetch(`${API_URL}?${params}`);
+                    const result = await response.json();
+
+                    if (result.success) {
+                        successCount++;
+                    }
+                } catch (error) {
+                    console.error('Error deleting task:', task.id, error);
+                }
+            }
+
+            selectedTasks.clear();
+            loadTodaysTasks();
+            updateStats();
+
+            if (successCount > 0) {
+                showToast(`${successCount} task${successCount !== 1 ? 's' : ''} deleted`, 'success');
+            }
+
+            bulkBtn.innerHTML = originalText;
+        }
+
+        // ========================================
+        // BULK DELEGATE TASKS
+        // ========================================
+        function openBulkDelegateModal() {
+            if (selectedTasks.size === 0) return;
+
+            // Update count in modal
+            document.getElementById('bulkDelegateCount').textContent = selectedTasks.size;
+
+            // Load employees into dropdown
+            loadEmployeesForBulkDelegate();
+
+            // Show modal
+            document.getElementById('bulkDelegateModal').classList.add('visible');
+        }
+
+        function closeBulkDelegateModal() {
+            document.getElementById('bulkDelegateModal').classList.remove('visible');
+            document.getElementById('bulkDelegateNote').value = '';
+        }
+
+        async function loadEmployeesForBulkDelegate() {
+            const select = document.getElementById('bulkDelegateEmployee');
+            select.innerHTML = '<option value="">Loading employees...</option>';
+
+            try {
+                const response = await fetch(`${API_URL}?action=getEmployees`);
+                const result = await response.json();
+
+                if (result.success && result.employees) {
+                    select.innerHTML = '<option value="">Select an employee...</option>';
+                    result.employees.forEach(emp => {
+                        const option = document.createElement('option');
+                        option.value = emp.id || emp.email;
+                        option.textContent = emp.name || emp.email;
+                        select.appendChild(option);
+                    });
+                } else {
+                    select.innerHTML = '<option value="">No employees found</option>';
+                }
+            } catch (error) {
+                console.error('Error loading employees:', error);
+                select.innerHTML = '<option value="">Error loading employees</option>';
+            }
+        }
+
+        // Close bulk delegate modal when clicking outside
+        document.addEventListener('click', function(e) {
+            const modal = document.getElementById('bulkDelegateModal');
+            if (e.target === modal) {
+                closeBulkDelegateModal();
+            }
+        });
+
+        async function completeTask(batchId, taskType, event, unifiedTaskId = null) {
             if (event) {
                 event.stopPropagation();
             }
@@ -6160,36 +7089,63 @@
             }
 
             try {
-                let updateField = '';
-                if (taskType === 'ghSow') updateField = 'Act_GH_Sow';
-                else if (taskType === 'directSeed') updateField = 'Act_Field_Sow';
-                else if (taskType === 'transplant') updateField = 'Act_Transplant';
-
                 const today = new Date().toISOString().split('T')[0];
+                let success = false;
 
-                const params = new URLSearchParams({
-                    action: 'updatePlanting',
-                    batchId: batchId,
-                    [updateField]: today
-                });
+                // Try Unified Task API first if we have a unified task ID
+                if (unifiedTaskId && unifiedTaskId !== batchId) {
+                    try {
+                        const response = await fetch(API_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                action: 'updateUnifiedTask',
+                                taskId: unifiedTaskId,
+                                Status: 'DONE',
+                                Completed_At: new Date().toISOString()
+                            })
+                        });
+                        const result = await response.json();
+                        success = result.success;
+                    } catch (unifiedError) {
+                        console.log('Unified API failed, falling back to legacy:', unifiedError);
+                    }
+                }
 
-                const response = await fetch(`${API_URL}?${params}`);
-                const result = await response.json();
+                // Fall back to legacy planting update if unified didn't work
+                if (!success && batchId) {
+                    let updateField = '';
+                    if (taskType === 'ghSow') updateField = 'Act_GH_Sow';
+                    else if (taskType === 'directSeed') updateField = 'Act_Field_Sow';
+                    else if (taskType === 'transplant') updateField = 'Act_Transplant';
 
-                if (result.success) {
+                    const params = new URLSearchParams({
+                        action: 'updatePlanting',
+                        batchId: batchId,
+                        [updateField]: today
+                    });
+
+                    const response = await fetch(`${API_URL}?${params}`);
+                    const result = await response.json();
+                    success = result.success;
+
+                    if (success) {
+                        // Update local planting data
+                        const planting = allPlantings.find(p => p.Batch_ID === batchId);
+                        if (planting) {
+                            planting[updateField] = today;
+                            if (taskType === 'transplant') planting.STATUS = 'PLANTED';
+                            else if (taskType === 'ghSow') planting.STATUS = 'Sown';
+                        }
+                    }
+                }
+
+                if (success) {
                     // Store for undo
                     const task = todaysTasks.find(t => t.batchId === batchId && t.type === taskType);
                     if (task) {
                         lastCompletedTasks = [{...task}];
                         task.completed = true;
-                    }
-
-                    // Update local planting data
-                    const planting = allPlantings.find(p => p.Batch_ID === batchId);
-                    if (planting) {
-                        planting[updateField] = today;
-                        if (taskType === 'transplant') planting.STATUS = 'PLANTED';
-                        else if (taskType === 'ghSow') planting.STATUS = 'Sown';
                     }
 
                     // Remove from selection if selected
@@ -6203,7 +7159,7 @@
                                     taskType === 'transplant' ? 'Transplant' : 'Direct seed';
                     showUndoToast(`${taskName} completed`);
                 } else {
-                    throw new Error(result.error || 'Failed to update');
+                    throw new Error('Failed to update task');
                 }
             } catch (error) {
                 console.error('Error completing task:', error);

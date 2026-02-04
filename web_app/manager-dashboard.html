@@ -1,0 +1,2775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Manager Dashboard - Tiny Seed OS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="api-config.js"></script>
+    <script src="auth-guard.js" data-required-role="Manager" data-allow-roles="Admin,Manager"></script>
+    <style>
+        /* ═══════════════════════════════════════════════════════════════════════════
+           DESIGN SYSTEM - Matching Tiny Seed OS
+           ═══════════════════════════════════════════════════════════════════════════ */
+        :root {
+            --primary: #4A7C43;
+            --primary-light: #5c9e52;
+            --primary-dark: #3a6235;
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #1e293b;
+            --bg-hover: #334155;
+            --bg-input: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border-color: #334155;
+            --accent-green: #22c55e;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-amber: #f59e0b;
+            --accent-red: #ef4444;
+            --danger: #e63946;
+            --warning: #f59e0b;
+            --success: #22c55e;
+            --priority-critical: #ef4444;
+            --priority-high: #f97316;
+            --priority-medium: #eab308;
+            --priority-low: #22c55e;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+           LAYOUT
+           ═══════════════════════════════════════════════════════════════════════════ */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+           HEADER
+           ═══════════════════════════════════════════════════════════════════════════ */
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .back-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .back-link:hover {
+            color: var(--accent-green);
+            background: var(--bg-hover);
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .weather-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            background: var(--bg-card);
+            padding: 6px 12px;
+            border-radius: 20px;
+        }
+
+        .weather-badge i { color: var(--warning); }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            background: var(--bg-card);
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .user-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+           STATS BAR
+           ═══════════════════════════════════════════════════════════════════════════ */
+        .stats-bar {
+            background: var(--bg-secondary);
+            padding: 12px 20px;
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            border-bottom: 1px solid var(--border-color);
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .stat-chip {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 13px;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .stat-chip:hover {
+            border-color: var(--primary);
+            background: var(--bg-hover);
+        }
+
+        .stat-chip.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .stat-chip .count {
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .stat-chip .label {
+            color: var(--text-secondary);
+        }
+
+        .stat-chip.active .label { color: rgba(255,255,255,0.8); }
+
+        .stat-chip.danger .count { color: var(--danger); }
+        .stat-chip.active.danger { background: var(--danger); }
+        .stat-chip.active.danger .count { color: white; }
+
+        .btn {
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-light);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-hover);
+            border-color: var(--primary);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+           MAIN CONTENT
+           ═══════════════════════════════════════════════════════════════════════════ */
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 20px;
+            overflow: hidden;
+        }
+
+        @media (max-width: 1100px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            .sidebar-panels {
+                display: none;
+            }
+            .sidebar-panels.show {
+                display: block;
+                position: fixed;
+                top: 0;
+                right: 0;
+                bottom: 0;
+                width: 100%;
+                max-width: 400px;
+                z-index: 200;
+                background: var(--bg-primary);
+                padding: 20px;
+                overflow-y: auto;
+            }
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+           PRIORITY QUEUE PANEL
+           ═══════════════════════════════════════════════════════════════════════════ */
+        .priority-panel {
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            max-height: calc(100vh - 200px);
+        }
+
+        .panel-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-card);
+        }
+
+        .panel-title {
+            font-size: 15px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel-title i {
+            color: var(--primary);
+        }
+
+        .panel-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .icon-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            border-color: var(--primary);
+        }
+
+        /* Filter Tabs */
+        .filter-tabs {
+            display: flex;
+            gap: 6px;
+            padding: 12px 20px;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .filter-tab {
+            padding: 8px 16px;
+            font-size: 13px;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-tab:hover {
+            border-color: var(--primary);
+            color: var(--text-primary);
+        }
+
+        .filter-tab.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        /* Task List */
+        .task-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        /* Skeleton Loading */
+        .skeleton {
+            background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-hover) 50%, var(--bg-card) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 8px;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .task-skeleton {
+            height: 90px;
+            margin-bottom: 12px;
+            border-radius: 10px;
+        }
+
+        /* Task Card */
+        .task-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--accent-blue);
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .task-card:hover {
+            border-color: var(--primary);
+            background: var(--bg-hover);
+            transform: translateX(2px);
+        }
+
+        .task-card.selected {
+            border-color: var(--accent-blue);
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .task-card.priority-critical { border-left-color: var(--priority-critical); }
+        .task-card.priority-high { border-left-color: var(--priority-high); }
+        .task-card.priority-medium { border-left-color: var(--priority-medium); }
+        .task-card.priority-low { border-left-color: var(--priority-low); }
+
+        .task-checkbox {
+            position: absolute;
+            top: 14px;
+            left: -28px;
+            width: 20px;
+            height: 20px;
+            opacity: 0;
+            transition: all 0.2s;
+        }
+
+        .task-card:hover .task-checkbox,
+        .task-card.selected .task-checkbox,
+        .bulk-mode .task-checkbox {
+            opacity: 1;
+            left: 16px;
+        }
+
+        .bulk-mode .task-card {
+            padding-left: 48px;
+        }
+
+        .task-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .task-score {
+            font-size: 13px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 6px;
+            min-width: 42px;
+            text-align: center;
+        }
+
+        .task-score.critical { background: rgba(239, 68, 68, 0.2); color: var(--priority-critical); }
+        .task-score.high { background: rgba(249, 115, 22, 0.2); color: var(--priority-high); }
+        .task-score.medium { background: rgba(234, 179, 8, 0.2); color: var(--priority-medium); }
+        .task-score.low { background: rgba(34, 197, 94, 0.2); color: var(--priority-low); }
+
+        .task-title {
+            flex: 1;
+            font-size: 14px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .task-trigger {
+            font-size: 11px;
+            padding: 4px 8px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            color: var(--text-secondary);
+        }
+
+        .task-meta {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .task-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .task-assignee {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            font-size: 12px;
+            color: var(--accent-blue);
+        }
+
+        .task-assignee.unassigned {
+            color: var(--text-muted);
+            border: 1px dashed var(--border-color);
+            background: transparent;
+        }
+
+        .mini-avatar {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent-blue);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 6px;
+            margin-left: auto;
+        }
+
+        .task-action-btn {
+            padding: 6px 12px;
+            font-size: 11px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .task-action-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .task-action-btn.done {
+            background: rgba(34, 197, 94, 0.1);
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+
+        .task-action-btn.done:hover {
+            background: var(--accent-green);
+            color: white;
+        }
+
+        /* Bulk Actions Bar */
+        .bulk-actions-bar {
+            display: none;
+            padding: 12px 20px;
+            background: var(--accent-blue);
+            align-items: center;
+            gap: 12px;
+            animation: slideDown 0.2s;
+        }
+
+        .bulk-actions-bar.show {
+            display: flex;
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .bulk-count {
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .bulk-actions {
+            display: flex;
+            gap: 8px;
+            margin-left: auto;
+        }
+
+        .bulk-btn {
+            padding: 8px 14px;
+            font-size: 12px;
+            border-radius: 6px;
+            border: none;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .bulk-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .bulk-btn.cancel {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* Load More */
+        .load-more {
+            text-align: center;
+            padding: 16px;
+        }
+
+        .load-more-btn {
+            padding: 10px 24px;
+            font-size: 13px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .load-more-btn:hover {
+            border-color: var(--primary);
+            color: var(--text-primary);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+           SIDEBAR PANELS
+           ═══════════════════════════════════════════════════════════════════════════ */
+        .sidebar-panels {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            overflow-y: auto;
+            max-height: calc(100vh - 200px);
+        }
+
+        .sidebar-close {
+            display: none;
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 1100px) {
+            .sidebar-close { display: flex; align-items: center; justify-content: center; }
+        }
+
+        /* Team Workload Panel */
+        .workload-panel {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        .workload-list {
+            padding: 12px 16px;
+        }
+
+        .workload-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .workload-item:last-child { border-bottom: none; }
+
+        .workload-item:hover {
+            background: var(--bg-hover);
+            margin: 0 -16px;
+            padding: 10px 16px;
+            border-radius: 8px;
+        }
+
+        .workload-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--accent-purple);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .workload-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .workload-name {
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 6px;
+        }
+
+        .workload-bar-container {
+            height: 8px;
+            background: var(--bg-primary);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .workload-bar {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .workload-bar.low { background: var(--accent-green); }
+        .workload-bar.medium { background: var(--warning); }
+        .workload-bar.high { background: var(--danger); }
+
+        .workload-percent {
+            font-size: 13px;
+            font-weight: 600;
+            min-width: 45px;
+            text-align: right;
+        }
+
+        .workload-percent.high { color: var(--danger); }
+
+        .rebalance-btn {
+            margin: 12px 16px 16px;
+            width: calc(100% - 32px);
+            padding: 10px;
+            font-size: 13px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .rebalance-btn:hover {
+            border-color: var(--primary);
+            color: var(--text-primary);
+            background: var(--bg-hover);
+        }
+
+        /* Proactive Alerts Panel */
+        .alerts-panel {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        .alert-list {
+            padding: 8px;
+        }
+
+        .alert-item {
+            display: flex;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .alert-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .alert-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .alert-icon.opportunity { background: rgba(34, 197, 94, 0.15); color: var(--success); }
+        .alert-icon.warning { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+        .alert-icon.seasonal { background: rgba(139, 92, 246, 0.15); color: var(--accent-purple); }
+
+        .alert-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .alert-title {
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .alert-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .alert-dismiss {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.2s;
+        }
+
+        .alert-item:hover .alert-dismiss {
+            opacity: 1;
+        }
+
+        .alert-dismiss:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            padding: 16px;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        @media (min-width: 600px) {
+            .quick-actions {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        .quick-action {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 16px 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+
+        .quick-action:hover {
+            border-color: var(--primary);
+            background: var(--bg-hover);
+            transform: translateY(-2px);
+        }
+
+        .quick-action i {
+            font-size: 20px;
+            color: var(--primary);
+        }
+
+        .quick-action span {
+            font-size: 12px;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        /* Field Status Panel */
+        .field-status-panel {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 12px;
+        }
+
+        .field-status-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .field-status-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .field-status-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .field-status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .field-status-indicator.active {
+            background: var(--accent-green);
+            box-shadow: 0 0 8px var(--accent-green);
+        }
+
+        .field-status-indicator.idle {
+            background: var(--accent-amber);
+        }
+
+        .field-status-indicator.blocked {
+            background: var(--accent-red);
+        }
+
+        .field-status-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .field-status-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .field-status-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .field-status-empty {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+           MODALS
+           ═══════════════════════════════════════════════════════════════════════════ */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow: hidden;
+            transform: scale(0.95);
+            transition: transform 0.2s;
+        }
+
+        .modal-overlay.show .modal {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: none;
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:hover {
+            color: var(--text-primary);
+            background: var(--bg-hover);
+        }
+
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            max-height: calc(90vh - 140px);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+
+        .form-group label.required::after {
+            content: ' *';
+            color: var(--danger);
+        }
+
+        .form-input,
+        .form-select,
+        .form-textarea {
+            width: 100%;
+            padding: 12px 14px;
+            font-size: 14px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .form-textarea {
+            min-height: 80px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        .form-select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 36px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .priority-options {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        .priority-option {
+            padding: 12px 8px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 500;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .priority-option:hover { background: var(--bg-hover); }
+        .priority-option i { display: block; font-size: 16px; margin-bottom: 6px; }
+
+        .priority-option.critical { border-color: rgba(239, 68, 68, 0.3); }
+        .priority-option.high { border-color: rgba(249, 115, 22, 0.3); }
+        .priority-option.medium { border-color: rgba(234, 179, 8, 0.3); }
+        .priority-option.low { border-color: rgba(34, 197, 94, 0.3); }
+
+        .priority-option.selected.critical { background: rgba(239, 68, 68, 0.2); border-color: var(--priority-critical); color: var(--priority-critical); }
+        .priority-option.selected.high { background: rgba(249, 115, 22, 0.2); border-color: var(--priority-high); color: var(--priority-high); }
+        .priority-option.selected.medium { background: rgba(234, 179, 8, 0.2); border-color: var(--priority-medium); color: var(--priority-medium); }
+        .priority-option.selected.low { background: rgba(34, 197, 94, 0.2); border-color: var(--priority-low); color: var(--priority-low); }
+
+        .modal-footer {
+            padding: 16px 20px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+           TOAST
+           ═══════════════════════════════════════════════════════════════════════════ */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 14px 24px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid var(--danger); }
+        .toast.info { border-left: 4px solid var(--accent-blue); }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+           MOBILE FAB
+           ═══════════════════════════════════════════════════════════════════════════ */
+        .fab {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(74, 124, 67, 0.4);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            transition: all 0.2s;
+        }
+
+        .fab:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(74, 124, 67, 0.5);
+        }
+
+        @media (max-width: 768px) {
+            .fab { display: flex; }
+            .header .btn-primary { display: none; }
+        }
+
+        /* Mobile sidebar toggle */
+        .sidebar-toggle {
+            display: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @media (max-width: 1100px) {
+            .sidebar-toggle { display: flex; }
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+           EMPTY STATE
+           ═══════════════════════════════════════════════════════════════════════════ */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state p {
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+           SPINNER
+           ═══════════════════════════════════════════════════════════════════════════ */
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 60px;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <a href="admin.html" class="back-link">
+                    <i class="fas fa-arrow-left"></i> Admin
+                </a>
+                <h1><i class="fas fa-gauge-high"></i> Manager Dashboard</h1>
+                <div class="weather-badge" id="weather-badge">
+                    <i class="fas fa-sun"></i>
+                    <span id="weather-temp">--</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <button class="sidebar-toggle" onclick="toggleSidebar()">
+                    <i class="fas fa-columns"></i>
+                </button>
+                <button class="btn btn-primary" onclick="openCreateModal()">
+                    <i class="fas fa-plus"></i> Create Task
+                </button>
+                <div class="user-menu" id="user-menu">
+                    <div class="user-avatar" id="user-avatar">M</div>
+                    <span id="user-name">Manager</span>
+                    <i class="fas fa-chevron-down" style="font-size: 10px; color: var(--text-muted);"></i>
+                </div>
+            </div>
+        </header>
+
+        <!-- Stats Bar -->
+        <div class="stats-bar">
+            <div class="stat-chip active" data-filter="today" onclick="setTaskFilter('today')">
+                <span class="count" id="today-count">--</span>
+                <span class="label">TODAY</span>
+            </div>
+            <div class="stat-chip danger" data-filter="at-risk" onclick="setTaskFilter('at-risk')">
+                <span class="count" id="risk-count">--</span>
+                <span class="label">AT RISK</span>
+            </div>
+            <div class="stat-chip" data-filter="all" onclick="setTaskFilter('all')">
+                <span class="count" id="all-count">--</span>
+                <span class="label">ALL</span>
+            </div>
+            <div class="stat-chip" data-filter="team" onclick="setTaskFilter('team')">
+                <span class="count" id="team-utilization">--%</span>
+                <span class="label">TEAM</span>
+            </div>
+        </div>
+
+        <!-- Bulk Actions Bar -->
+        <div class="bulk-actions-bar" id="bulk-actions-bar">
+            <span class="bulk-count"><span id="selected-count">0</span> selected</span>
+            <div class="bulk-actions">
+                <button class="bulk-btn" onclick="bulkAssign()">
+                    <i class="fas fa-user-plus"></i> Assign
+                </button>
+                <button class="bulk-btn" onclick="bulkChangePriority()">
+                    <i class="fas fa-flag"></i> Priority
+                </button>
+                <button class="bulk-btn" onclick="bulkComplete()">
+                    <i class="fas fa-check"></i> Done
+                </button>
+                <button class="bulk-btn cancel" onclick="cancelBulkMode()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Priority Queue Panel -->
+            <div class="priority-panel">
+                <div class="panel-header">
+                    <h2 class="panel-title"><i class="fas fa-layer-group"></i> Priority Queue (AI Sorted)</h2>
+                    <div class="panel-actions">
+                        <button class="icon-btn" onclick="toggleBulkMode()" title="Bulk Select">
+                            <i class="fas fa-check-double"></i>
+                        </button>
+                        <button class="icon-btn" onclick="loadTasks()" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="filter-tabs">
+                    <button class="filter-tab active" data-filter="priority" onclick="setSortFilter('priority')">By Priority</button>
+                    <button class="filter-tab" data-filter="due" onclick="setSortFilter('due')">By Due Date</button>
+                    <button class="filter-tab" data-filter="employee" onclick="setSortFilter('employee')">By Employee</button>
+                </div>
+
+                <div class="task-list" id="task-list">
+                    <!-- Skeleton loading -->
+                    <div class="task-skeleton skeleton"></div>
+                    <div class="task-skeleton skeleton"></div>
+                    <div class="task-skeleton skeleton"></div>
+                    <div class="task-skeleton skeleton"></div>
+                </div>
+
+                <div class="load-more" id="load-more" style="display: none;">
+                    <button class="load-more-btn" onclick="loadMoreTasks()">
+                        <i class="fas fa-chevron-down"></i> Load More
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sidebar Panels -->
+            <div class="sidebar-panels" id="sidebar-panels">
+                <button class="sidebar-close" onclick="toggleSidebar()">
+                    <i class="fas fa-times"></i>
+                </button>
+
+                <!-- Team Workload Panel -->
+                <div class="workload-panel">
+                    <div class="panel-header">
+                        <h2 class="panel-title"><i class="fas fa-users"></i> Team Workload</h2>
+                    </div>
+                    <div class="workload-list" id="workload-list">
+                        <!-- Skeleton -->
+                        <div class="skeleton" style="height: 50px; margin-bottom: 10px;"></div>
+                        <div class="skeleton" style="height: 50px; margin-bottom: 10px;"></div>
+                        <div class="skeleton" style="height: 50px;"></div>
+                    </div>
+                    <button class="rebalance-btn" onclick="suggestRebalance()">
+                        <i class="fas fa-balance-scale"></i> Suggest Rebalance
+                    </button>
+                </div>
+
+                <!-- Proactive Alerts Panel -->
+                <div class="alerts-panel">
+                    <div class="panel-header">
+                        <h2 class="panel-title"><i class="fas fa-bell"></i> Proactive Alerts</h2>
+                    </div>
+                    <div class="alert-list" id="alert-list">
+                        <!-- Skeleton -->
+                        <div class="skeleton" style="height: 60px; margin-bottom: 8px;"></div>
+                        <div class="skeleton" style="height: 60px; margin-bottom: 8px;"></div>
+                        <div class="skeleton" style="height: 60px;"></div>
+                    </div>
+                </div>
+
+                <!-- Field Status Panel -->
+                <div class="field-status-panel">
+                    <div class="panel-header">
+                        <h2 class="panel-title"><i class="fas fa-map-marked-alt"></i> Field Status</h2>
+                    </div>
+                    <div class="field-status-grid" id="field-status-list">
+                        <!-- Skeleton -->
+                        <div class="skeleton" style="height: 50px;"></div>
+                        <div class="skeleton" style="height: 50px;"></div>
+                        <div class="skeleton" style="height: 50px;"></div>
+                        <div class="skeleton" style="height: 50px;"></div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="quick-actions">
+                    <button class="quick-action" onclick="openCreateModal()">
+                        <i class="fas fa-plus-circle"></i>
+                        <span>Create Task</span>
+                    </button>
+                    <a href="task-assignment.html" class="quick-action">
+                        <i class="fas fa-clipboard-list"></i>
+                        <span>Assign Work</span>
+                    </a>
+                    <a href="sms-campaign.html" class="quick-action">
+                        <i class="fas fa-comment-sms"></i>
+                        <span>Message Team</span>
+                    </a>
+                    <button class="quick-action" onclick="loadWeatherDetailed()">
+                        <i class="fas fa-cloud-sun"></i>
+                        <span>Weather Check</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Task Modal -->
+    <div class="modal-overlay" id="create-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modal-title">Create Task</h2>
+                <button class="modal-close" onclick="closeCreateModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="task-form" onsubmit="saveTask(event)">
+                    <div class="form-group">
+                        <label class="required">Task Title</label>
+                        <input type="text" class="form-input" id="task-title" placeholder="e.g., Harvest tomatoes in Field 2" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea class="form-textarea" id="task-desc" placeholder="Additional details or instructions..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="required">Assign To</label>
+                        <select class="form-select" id="task-employee" required>
+                            <option value="">Select employee...</option>
+                            <option value="ALL">Everyone (Team Task)</option>
+                            <!-- Loaded dynamically -->
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="required">Due Date</label>
+                            <input type="date" class="form-input" id="task-date" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Due Time</label>
+                            <input type="time" class="form-input" id="task-time" value="17:00">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Priority</label>
+                        <div class="priority-options">
+                            <div class="priority-option critical" data-priority="critical" onclick="setPriority('critical')">
+                                <i class="fas fa-fire"></i>Critical
+                            </div>
+                            <div class="priority-option high" data-priority="high" onclick="setPriority('high')">
+                                <i class="fas fa-exclamation"></i>High
+                            </div>
+                            <div class="priority-option medium selected" data-priority="medium" onclick="setPriority('medium')">
+                                <i class="fas fa-clock"></i>Medium
+                            </div>
+                            <div class="priority-option low" data-priority="low" onclick="setPriority('low')">
+                                <i class="fas fa-leaf"></i>Low
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Location</label>
+                        <input type="text" class="form-input" id="task-location" placeholder="e.g., Field 1, Greenhouse A">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeCreateModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary" onclick="saveTask(event)">
+                    <i class="fas fa-paper-plane"></i> <span id="save-btn-text">Create Task</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Assign Modal -->
+    <div class="modal-overlay" id="bulk-assign-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Assign <span id="bulk-assign-count">0</span> Tasks</h2>
+                <button class="modal-close" onclick="closeBulkAssignModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="required">Assign To</label>
+                    <select class="form-select" id="bulk-assign-employee">
+                        <option value="">Select employee...</option>
+                        <!-- Loaded dynamically -->
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeBulkAssignModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="confirmBulkAssign()">
+                    <i class="fas fa-user-plus"></i> Assign
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile FAB -->
+    <button class="fab" onclick="openCreateModal()">
+        <i class="fas fa-plus"></i>
+    </button>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ═══════════════════════════════════════════════════════════════════════════
+        // API CONFIGURATION
+        // ═══════════════════════════════════════════════════════════════════════════
+        const API_URL = TINY_SEED_API.MAIN_API;
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // STATE MANAGEMENT
+        // ═══════════════════════════════════════════════════════════════════════════
+        const state = {
+            tasks: [],
+            employees: [],
+            alerts: [],
+            workload: [],
+            fields: [],
+            currentFilter: 'today',
+            sortFilter: 'priority',
+            selectedTasks: new Set(),
+            bulkMode: false,
+            currentPage: 0,
+            pageSize: 20,
+            hasMore: false,
+            selectedPriority: 'medium',
+            editingTaskId: null,
+            isLoading: false,
+            cache: {
+                tasks: null,
+                tasksTimestamp: 0,
+                employees: null,
+                employeesTimestamp: 0
+            }
+        };
+
+        // Cache duration: 2 minutes
+        const CACHE_DURATION = 2 * 60 * 1000;
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // INDEXEDDB FOR OFFLINE CACHE
+        // ═══════════════════════════════════════════════════════════════════════════
+        let db = null;
+
+        async function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('ManagerDashboardCache', 1);
+
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => {
+                    db = request.result;
+                    resolve(db);
+                };
+
+                request.onupgradeneeded = (event) => {
+                    const database = event.target.result;
+                    if (!database.objectStoreNames.contains('cache')) {
+                        database.createObjectStore('cache', { keyPath: 'key' });
+                    }
+                };
+            });
+        }
+
+        async function getFromCache(key) {
+            if (!db) return null;
+            return new Promise((resolve) => {
+                const tx = db.transaction('cache', 'readonly');
+                const store = tx.objectStore('cache');
+                const request = store.get(key);
+                request.onsuccess = () => {
+                    const result = request.result;
+                    if (result && (Date.now() - result.timestamp < CACHE_DURATION)) {
+                        resolve(result.data);
+                    } else {
+                        resolve(null);
+                    }
+                };
+                request.onerror = () => resolve(null);
+            });
+        }
+
+        async function saveToCache(key, data) {
+            if (!db) return;
+            return new Promise((resolve) => {
+                const tx = db.transaction('cache', 'readwrite');
+                const store = tx.objectStore('cache');
+                store.put({ key, data, timestamp: Date.now() });
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => resolve();
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // INITIALIZATION
+        // ═══════════════════════════════════════════════════════════════════════════
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Set default date
+            document.getElementById('task-date').value = new Date().toISOString().split('T')[0];
+
+            // Initialize IndexedDB
+            try {
+                await initDB();
+            } catch (e) {
+                console.warn('IndexedDB not available:', e);
+            }
+
+            // Load user info
+            loadUserInfo();
+
+            // Load weather
+            loadWeather();
+
+            // Load all data in parallel (priority queue first for perceived speed)
+            loadTasks();
+
+            // Delay non-critical loads
+            setTimeout(() => {
+                loadEmployees();
+                loadWorkload();
+                loadAlerts();
+                loadFieldStatus();
+            }, 100);
+        });
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // LOAD USER INFO
+        // ═══════════════════════════════════════════════════════════════════════════
+        function loadUserInfo() {
+            try {
+                const user = JSON.parse(localStorage.getItem('authUser') || '{}');
+                if (user.name) {
+                    document.getElementById('user-name').textContent = user.name;
+                    document.getElementById('user-avatar').textContent = getInitials(user.name);
+                }
+            } catch (e) {
+                console.warn('Could not load user info');
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // LOAD WEATHER
+        // ═══════════════════════════════════════════════════════════════════════════
+        async function loadWeather() {
+            try {
+                const response = await fetch(`${API_URL}?action=getWeather`);
+                const data = await response.json();
+
+                if (data.success && data.weather) {
+                    const temp = Math.round(data.weather.temperature || data.weather.temp);
+                    document.getElementById('weather-temp').textContent = `${temp}F`;
+
+                    // Update icon based on conditions
+                    const badge = document.getElementById('weather-badge');
+                    const icon = badge.querySelector('i');
+                    if (data.weather.conditions?.toLowerCase().includes('rain')) {
+                        icon.className = 'fas fa-cloud-rain';
+                    } else if (data.weather.conditions?.toLowerCase().includes('cloud')) {
+                        icon.className = 'fas fa-cloud';
+                    }
+                }
+            } catch (error) {
+                console.warn('Weather load failed:', error);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // LOAD EMPLOYEES
+        // ═══════════════════════════════════════════════════════════════════════════
+        async function loadEmployees() {
+            // Try cache first
+            const cached = await getFromCache('employees');
+            if (cached) {
+                state.employees = cached;
+                renderEmployeeOptions();
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}?action=getAllEmployees`);
+                const data = await response.json();
+
+                if (data.success && data.employees) {
+                    state.employees = data.employees.filter(e =>
+                        e.Is_Active === true || e.Is_Active === 'TRUE'
+                    );
+                    await saveToCache('employees', state.employees);
+                    renderEmployeeOptions();
+                }
+            } catch (error) {
+                console.error('Load employees failed:', error);
+            }
+        }
+
+        function renderEmployeeOptions() {
+            const selects = ['task-employee', 'bulk-assign-employee'];
+
+            selects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                if (!select) return;
+
+                // Keep first options
+                const firstOptions = selectId === 'task-employee' ? 2 : 1;
+                while (select.options.length > firstOptions) {
+                    select.remove(firstOptions);
+                }
+
+                // Add employees
+                state.employees.forEach(emp => {
+                    const option = document.createElement('option');
+                    option.value = emp.User_ID;
+                    option.textContent = emp.Full_Name || emp.Username || emp.User_ID;
+                    select.appendChild(option);
+                });
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // LOAD TASKS
+        // ═══════════════════════════════════════════════════════════════════════════
+        let loadTasksDebounce = null;
+
+        async function loadTasks(forceRefresh = false) {
+            if (state.isLoading) return;
+            state.isLoading = true;
+
+            // Show skeleton if no data
+            if (state.tasks.length === 0) {
+                showTaskSkeleton();
+            }
+
+            // Try cache first (unless force refresh)
+            if (!forceRefresh) {
+                const cached = await getFromCache('tasks');
+                if (cached) {
+                    state.tasks = cached;
+                    renderTasks();
+                    updateStats();
+                    state.isLoading = false;
+                    // Still fetch fresh data in background
+                    fetchTasksFromAPI(true);
+                    return;
+                }
+            }
+
+            await fetchTasksFromAPI(false);
+        }
+
+        async function fetchTasksFromAPI(isBackground = false) {
+            try {
+                const [tasksRes, assignmentsRes] = await Promise.all([
+                    fetch(`${API_URL}?action=getTaskPriorities&limit=100`).then(r => r.json()).catch(() => ({ success: false })),
+                    fetch(`${API_URL}?action=getEmployeeTasks`).then(r => r.json()).catch(() => ({ success: false }))
+                ]);
+
+                const allTasks = [];
+
+                // Process priority tasks
+                if (tasksRes.success && tasksRes.tasks) {
+                    tasksRes.tasks.forEach(t => {
+                        allTasks.push(normalizeTask(t));
+                    });
+                }
+
+                // Process employee tasks
+                if (assignmentsRes.success && assignmentsRes.tasks) {
+                    assignmentsRes.tasks.forEach(t => {
+                        // Avoid duplicates
+                        if (!allTasks.find(at => at.id === (t.id || t.Task_ID))) {
+                            allTasks.push(normalizeTask(t));
+                        }
+                    });
+                }
+
+                // Sort by priority score descending
+                allTasks.sort((a, b) => (b.priorityScore || 0) - (a.priorityScore || 0));
+
+                state.tasks = allTasks;
+                state.hasMore = allTasks.length >= 100;
+
+                await saveToCache('tasks', state.tasks);
+
+                if (!isBackground) {
+                    renderTasks();
+                    updateStats();
+                }
+            } catch (error) {
+                console.error('Load tasks error:', error);
+                if (!isBackground && state.tasks.length === 0) {
+                    showTaskError();
+                }
+            } finally {
+                state.isLoading = false;
+            }
+        }
+
+        function normalizeTask(t) {
+            const priorityScore = t.priorityScore || t.priority_score || calculatePriorityScore(t);
+            const priorityLevel = getPriorityLevel(priorityScore);
+
+            return {
+                id: t.id || t.Task_ID || t.Assignment_ID || TinySeedUtils.generateId('TASK'),
+                title: t.title || t.description || t.crop || t.task || 'Untitled Task',
+                description: t.notes || t.description || '',
+                assignedTo: t.assignedTo || t.Assigned_To || t.Employee_ID || '',
+                assignedToName: t.assignedToName || t.Employee_Name || getEmployeeName(t.assignedTo || t.Assigned_To || t.Employee_ID),
+                dueDate: t.dueDate || t.date || t.Due_Date || '',
+                dueTime: t.dueTime || t.Due_Time || '17:00',
+                priority: t.priority || priorityLevel,
+                priorityScore: priorityScore,
+                status: t.status || t.Status || 'pending',
+                trigger: t.trigger || t.smartReason || '',
+                location: t.location || t.field || t.bed || '',
+                category: t.category || t.type || 'other',
+                createdAt: t.createdAt || t.Created_At || new Date().toISOString()
+            };
+        }
+
+        function calculatePriorityScore(task) {
+            let score = 50;
+
+            // Priority boost
+            const priority = (task.priority || '').toLowerCase();
+            if (priority === 'critical') score += 40;
+            else if (priority === 'high') score += 25;
+            else if (priority === 'medium') score += 10;
+
+            // Due date urgency
+            const dueDate = new Date(task.dueDate || task.date || task.Due_Date);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const daysUntilDue = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+
+            if (daysUntilDue < 0) score += 30; // Overdue
+            else if (daysUntilDue === 0) score += 20; // Due today
+            else if (daysUntilDue === 1) score += 10; // Due tomorrow
+
+            return Math.min(100, Math.max(0, score));
+        }
+
+        function getPriorityLevel(score) {
+            if (score >= 80) return 'critical';
+            if (score >= 60) return 'high';
+            if (score >= 40) return 'medium';
+            return 'low';
+        }
+
+        function getEmployeeName(id) {
+            if (!id || id === 'ALL') return 'Everyone';
+            const emp = state.employees.find(e => e.User_ID === id);
+            return emp ? (emp.Full_Name || emp.Username || id) : id;
+        }
+
+        function showTaskSkeleton() {
+            const container = document.getElementById('task-list');
+            container.innerHTML = `
+                <div class="task-skeleton skeleton"></div>
+                <div class="task-skeleton skeleton"></div>
+                <div class="task-skeleton skeleton"></div>
+                <div class="task-skeleton skeleton"></div>
+            `;
+        }
+
+        function showTaskError() {
+            const container = document.getElementById('task-list');
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon"><i class="fas fa-exclamation-circle"></i></div>
+                    <p>Unable to load tasks</p>
+                    <button class="btn btn-secondary" onclick="loadTasks(true)">
+                        <i class="fas fa-sync-alt"></i> Try Again
+                    </button>
+                </div>
+            `;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // RENDER TASKS
+        // ═══════════════════════════════════════════════════════════════════════════
+        function renderTasks() {
+            const container = document.getElementById('task-list');
+            let filtered = [...state.tasks];
+
+            // Apply filter
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const todayStr = today.toISOString().split('T')[0];
+
+            if (state.currentFilter === 'today') {
+                filtered = filtered.filter(t => {
+                    const taskDate = new Date(t.dueDate);
+                    taskDate.setHours(0, 0, 0, 0);
+                    return taskDate.toISOString().split('T')[0] === todayStr;
+                });
+            } else if (state.currentFilter === 'at-risk') {
+                filtered = filtered.filter(t => t.priorityScore >= 80 || t.priority === 'critical' || t.priority === 'high');
+            }
+
+            // Apply sort
+            if (state.sortFilter === 'priority') {
+                filtered.sort((a, b) => (b.priorityScore || 0) - (a.priorityScore || 0));
+            } else if (state.sortFilter === 'due') {
+                filtered.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+            } else if (state.sortFilter === 'employee') {
+                filtered.sort((a, b) => (a.assignedToName || '').localeCompare(b.assignedToName || ''));
+            }
+
+            // Paginate
+            const displayTasks = filtered.slice(0, (state.currentPage + 1) * state.pageSize);
+
+            // Show load more if needed
+            document.getElementById('load-more').style.display =
+                filtered.length > displayTasks.length ? 'block' : 'none';
+
+            if (displayTasks.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon"><i class="fas fa-clipboard-check"></i></div>
+                        <p>No tasks found for this filter</p>
+                        <button class="btn btn-primary" onclick="openCreateModal()">
+                            <i class="fas fa-plus"></i> Create Task
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            displayTasks.forEach(task => {
+                const scoreClass = getPriorityLevel(task.priorityScore);
+                const isSelected = state.selectedTasks.has(task.id);
+
+                html += `
+                    <div class="task-card priority-${task.priority} ${isSelected ? 'selected' : ''}"
+                         data-id="${task.id}"
+                         onclick="handleTaskClick(event, '${task.id}')">
+                        <input type="checkbox" class="task-checkbox"
+                               ${isSelected ? 'checked' : ''}
+                               onclick="event.stopPropagation(); toggleTaskSelection('${task.id}')">
+                        <div class="task-row">
+                            <span class="task-score ${scoreClass}">${Math.round(task.priorityScore)}</span>
+                            <span class="task-title">${escapeHtml(task.title)}</span>
+                            ${task.trigger ? `<span class="task-trigger">${escapeHtml(task.trigger)}</span>` : ''}
+                        </div>
+                        <div class="task-meta">
+                            <div class="task-assignee ${!task.assignedTo ? 'unassigned' : ''}">
+                                ${task.assignedTo ? `<span class="mini-avatar">${getInitials(task.assignedToName)}</span>` : '<i class="fas fa-user-plus"></i>'}
+                                ${escapeHtml(task.assignedToName || 'Unassigned')}
+                            </div>
+                            <div class="task-meta-item">
+                                <i class="fas fa-calendar"></i>
+                                ${formatDate(task.dueDate)}
+                            </div>
+                            ${task.location ? `
+                                <div class="task-meta-item">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    ${escapeHtml(task.location)}
+                                </div>
+                            ` : ''}
+                            <div class="task-actions">
+                                <button class="task-action-btn" onclick="event.stopPropagation(); quickAssign('${task.id}')">
+                                    ${task.assignedTo ? 'Reassign' : 'Assign'}
+                                </button>
+                                <button class="task-action-btn done" onclick="event.stopPropagation(); markDone('${task.id}')">
+                                    <i class="fas fa-check"></i> Done
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function loadMoreTasks() {
+            state.currentPage++;
+            renderTasks();
+        }
+
+        function handleTaskClick(event, taskId) {
+            if (state.bulkMode) {
+                toggleTaskSelection(taskId);
+            } else {
+                editTask(taskId);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // FILTERS
+        // ═══════════════════════════════════════════════════════════════════════════
+        function setTaskFilter(filter) {
+            state.currentFilter = filter;
+            state.currentPage = 0;
+
+            // Update UI
+            document.querySelectorAll('.stat-chip').forEach(chip => {
+                chip.classList.toggle('active', chip.dataset.filter === filter);
+            });
+
+            renderTasks();
+        }
+
+        function setSortFilter(filter) {
+            state.sortFilter = filter;
+
+            // Update UI
+            document.querySelectorAll('.filter-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.filter === filter);
+            });
+
+            renderTasks();
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // UPDATE STATS
+        // ═══════════════════════════════════════════════════════════════════════════
+        function updateStats() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const todayStr = today.toISOString().split('T')[0];
+
+            const todayCount = state.tasks.filter(t => {
+                const taskDate = new Date(t.dueDate);
+                taskDate.setHours(0, 0, 0, 0);
+                return taskDate.toISOString().split('T')[0] === todayStr;
+            }).length;
+
+            const riskCount = state.tasks.filter(t =>
+                t.priorityScore >= 80 || t.priority === 'critical' || t.priority === 'high'
+            ).length;
+
+            document.getElementById('today-count').textContent = todayCount;
+            document.getElementById('risk-count').textContent = riskCount;
+            document.getElementById('all-count').textContent = state.tasks.length;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // LOAD WORKLOAD
+        // ═══════════════════════════════════════════════════════════════════════════
+        async function loadWorkload() {
+            try {
+                const response = await fetch(`${API_URL}?action=getTeamWorkload`);
+                const data = await response.json();
+
+                if (data.success && data.workload) {
+                    state.workload = data.workload;
+                    renderWorkload();
+                } else {
+                    // Generate from tasks if API doesn't have dedicated endpoint
+                    generateWorkloadFromTasks();
+                }
+            } catch (error) {
+                console.warn('Load workload failed, generating from tasks:', error);
+                generateWorkloadFromTasks();
+            }
+        }
+
+        function generateWorkloadFromTasks() {
+            const workloadMap = {};
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // Count tasks per employee for today/this week
+            state.tasks.forEach(task => {
+                const assignee = task.assignedTo;
+                if (!assignee || assignee === 'ALL') return;
+
+                if (!workloadMap[assignee]) {
+                    workloadMap[assignee] = {
+                        id: assignee,
+                        name: task.assignedToName || getEmployeeName(assignee),
+                        taskCount: 0,
+                        maxCapacity: 8 // Assume 8 tasks per day max
+                    };
+                }
+                workloadMap[assignee].taskCount++;
+            });
+
+            state.workload = Object.values(workloadMap);
+            renderWorkload();
+        }
+
+        function renderWorkload() {
+            const container = document.getElementById('workload-list');
+
+            if (state.workload.length === 0) {
+                // Use employees if no workload data
+                if (state.employees.length > 0) {
+                    state.workload = state.employees.slice(0, 5).map(emp => ({
+                        id: emp.User_ID,
+                        name: emp.Full_Name || emp.Username,
+                        taskCount: 0,
+                        maxCapacity: 8
+                    }));
+                } else {
+                    container.innerHTML = '<p style="padding: 16px; color: var(--text-muted); text-align: center;">No team data available</p>';
+                    return;
+                }
+            }
+
+            let totalUtilization = 0;
+            let html = '';
+
+            state.workload.forEach(member => {
+                const percent = Math.min(100, Math.round((member.taskCount / member.maxCapacity) * 100));
+                totalUtilization += percent;
+
+                let barClass = 'low';
+                if (percent >= 90) barClass = 'high';
+                else if (percent >= 70) barClass = 'medium';
+
+                html += `
+                    <div class="workload-item" onclick="filterByEmployee('${member.id}')">
+                        <div class="workload-avatar">${getInitials(member.name)}</div>
+                        <div class="workload-info">
+                            <div class="workload-name">${escapeHtml(member.name)}</div>
+                            <div class="workload-bar-container">
+                                <div class="workload-bar ${barClass}" style="width: ${percent}%"></div>
+                            </div>
+                        </div>
+                        <span class="workload-percent ${percent >= 90 ? 'high' : ''}">${percent}%</span>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+
+            // Update team utilization stat
+            const avgUtilization = state.workload.length > 0
+                ? Math.round(totalUtilization / state.workload.length)
+                : 0;
+            document.getElementById('team-utilization').textContent = avgUtilization + '%';
+        }
+
+        function filterByEmployee(employeeId) {
+            // Quick filter by employee - could expand this feature
+            showToast(`Filtering tasks for ${getEmployeeName(employeeId)}`, 'info');
+        }
+
+        function suggestRebalance() {
+            showToast('Analyzing workload distribution...', 'info');
+
+            // Simple rebalance suggestion
+            const overloaded = state.workload.filter(w => (w.taskCount / w.maxCapacity) >= 0.9);
+            const underloaded = state.workload.filter(w => (w.taskCount / w.maxCapacity) < 0.5);
+
+            if (overloaded.length === 0) {
+                showToast('Team workload is balanced!', 'success');
+            } else if (underloaded.length === 0) {
+                showToast('All team members are busy. Consider adding capacity.', 'info');
+            } else {
+                showToast(`Suggest moving tasks from ${overloaded[0]?.name} to ${underloaded[0]?.name}`, 'info');
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // LOAD ALERTS
+        // ═══════════════════════════════════════════════════════════════════════════
+        async function loadAlerts() {
+            try {
+                const response = await fetch(`${API_URL}?action=getProactiveAlerts`);
+                const data = await response.json();
+
+                if (data.success && data.alerts) {
+                    state.alerts = data.alerts.slice(0, 5); // Max 5 alerts as per spec
+                    renderAlerts();
+                } else {
+                    // NO SAMPLE DATA - Show error state
+                    showAlertsError('No alerts available');
+                }
+            } catch (error) {
+                console.error('Load alerts failed:', error);
+                showAlertsError('Unable to load alerts');
+            }
+        }
+
+        function showAlertsError(message) {
+            const container = document.getElementById('alert-list');
+            container.innerHTML = `
+                <div class="empty-state" style="padding: 20px; text-align: center;">
+                    <i class="fas fa-exclamation-circle" style="font-size: 24px; color: var(--accent-red); margin-bottom: 10px;"></i>
+                    <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 10px;">${message}</p>
+                    <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="loadAlerts()">
+                        <i class="fas fa-sync-alt"></i> Retry
+                    </button>
+                </div>
+            `;
+        }
+
+        function renderAlerts() {
+            const container = document.getElementById('alert-list');
+
+            if (state.alerts.length === 0) {
+                container.innerHTML = '<p style="padding: 16px; color: var(--text-muted); text-align: center;">No alerts at this time</p>';
+                return;
+            }
+
+            let html = '';
+            state.alerts.forEach(alert => {
+                const iconClass = alert.type === 'opportunity' ? 'opportunity' :
+                                  alert.type === 'warning' ? 'warning' : 'seasonal';
+                const icon = alert.icon || (alert.type === 'opportunity' ? 'fa-star' :
+                             alert.type === 'warning' ? 'fa-exclamation-triangle' : 'fa-calendar');
+
+                html += `
+                    <div class="alert-item" onclick="createTaskFromAlert('${alert.id}')">
+                        <div class="alert-icon ${iconClass}">
+                            <i class="fas ${icon}"></i>
+                        </div>
+                        <div class="alert-content">
+                            <div class="alert-title">${escapeHtml(alert.title)}</div>
+                            <div class="alert-desc">${escapeHtml(alert.description)}</div>
+                        </div>
+                        <button class="alert-dismiss" onclick="event.stopPropagation(); dismissAlert('${alert.id}')" title="Dismiss">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function createTaskFromAlert(alertId) {
+            const alert = state.alerts.find(a => a.id === alertId);
+            if (!alert) return;
+
+            // Pre-fill the create modal
+            openCreateModal();
+            document.getElementById('task-title').value = alert.title;
+            document.getElementById('task-desc').value = alert.description;
+
+            // Set priority based on alert type
+            if (alert.type === 'warning') {
+                setPriority('high');
+            } else if (alert.type === 'opportunity') {
+                setPriority('medium');
+            }
+
+            showToast('Creating task from alert...', 'info');
+        }
+
+        function dismissAlert(alertId) {
+            state.alerts = state.alerts.filter(a => a.id !== alertId);
+            renderAlerts();
+            showToast('Alert dismissed', 'success');
+        }
+
+        // ===================================================================
+        // LOAD FIELD STATUS
+        // ===================================================================
+        async function loadFieldStatus() {
+            try {
+                const response = await fetch(`${API_URL}?action=getFields`);
+                const data = await response.json();
+
+                if (data.success && data.fields) {
+                    state.fields = data.fields;
+                    renderFieldStatus();
+                } else {
+                    showFieldStatusError('No field data available');
+                }
+            } catch (error) {
+                console.error('Load field status failed:', error);
+                showFieldStatusError('Unable to load field status');
+            }
+        }
+
+        function showFieldStatusError(message) {
+            const container = document.getElementById('field-status-list');
+            container.innerHTML = `
+                <div class="field-status-empty" style="grid-column: 1 / -1;">
+                    <i class="fas fa-exclamation-circle" style="font-size: 20px; color: var(--accent-red); margin-bottom: 8px; display: block;"></i>
+                    <p>${message}</p>
+                    <button class="btn btn-secondary" style="margin-top: 8px; padding: 4px 10px; font-size: 11px;" onclick="loadFieldStatus()">
+                        <i class="fas fa-sync-alt"></i> Retry
+                    </button>
+                </div>
+            `;
+        }
+
+        function renderFieldStatus() {
+            const container = document.getElementById('field-status-list');
+
+            if (!state.fields || state.fields.length === 0) {
+                container.innerHTML = '<div class="field-status-empty" style="grid-column: 1 / -1;">No fields configured</div>';
+                return;
+            }
+
+            // Calculate field status based on tasks
+            const fieldStatusMap = {};
+            state.tasks.forEach(task => {
+                const field = task.location || task.field;
+                if (!field) return;
+
+                if (!fieldStatusMap[field]) {
+                    fieldStatusMap[field] = { active: 0, blocked: 0 };
+                }
+
+                if (task.status === 'blocked' || task.status === 'BLOCKED') {
+                    fieldStatusMap[field].blocked++;
+                } else if (task.status === 'in_progress' || task.status === 'IN_PROGRESS' || task.status === 'pending') {
+                    fieldStatusMap[field].active++;
+                }
+            });
+
+            let html = '';
+            state.fields.slice(0, 6).forEach(field => {
+                const fieldName = field.Field_Name || field.name || field.Field_ID;
+                const fieldId = field.Field_ID || field.id;
+                const statusInfo = fieldStatusMap[fieldName] || fieldStatusMap[fieldId] || { active: 0, blocked: 0 };
+
+                let status = 'idle';
+                let statusLabel = 'Idle';
+
+                if (statusInfo.blocked > 0) {
+                    status = 'blocked';
+                    statusLabel = 'Blocked';
+                } else if (statusInfo.active > 0) {
+                    status = 'active';
+                    statusLabel = 'Active';
+                }
+
+                html += `
+                    <div class="field-status-item" onclick="filterByField('${fieldId}')">
+                        <div class="field-status-indicator ${status}"></div>
+                        <div class="field-status-info">
+                            <div class="field-status-name">${escapeHtml(fieldName)}</div>
+                            <div class="field-status-label">${statusLabel}</div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function filterByField(fieldId) {
+            showToast(`Filtering tasks for field: ${fieldId}`, 'info');
+            // Future: implement field-based task filtering
+        }
+
+        // ===================================================================
+        // WEATHER CHECK
+        // ===================================================================
+        async function loadWeatherDetailed() {
+            showToast('Loading detailed weather...', 'info');
+
+            try {
+                const response = await fetch(`${API_URL}?action=getWeather&detailed=true`);
+                const data = await response.json();
+
+                if (data.success && data.weather) {
+                    const w = data.weather;
+                    const temp = Math.round(w.temperature || w.temp);
+                    const conditions = w.conditions || w.description || 'Unknown';
+                    const humidity = w.humidity || '--';
+                    const wind = w.windSpeed || w.wind || '--';
+
+                    let alertMsg = '';
+                    if (temp < 35) {
+                        alertMsg = ' - FROST WARNING!';
+                    } else if (temp > 90) {
+                        alertMsg = ' - HEAT ADVISORY!';
+                    }
+
+                    showToast(`${temp}F ${conditions} | Humidity: ${humidity}% | Wind: ${wind} mph${alertMsg}`, 'success');
+                } else {
+                    showToast('Weather data unavailable', 'error');
+                }
+            } catch (error) {
+                console.error('Weather load failed:', error);
+                showToast('Unable to load weather data', 'error');
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // BULK SELECTION
+        // ═══════════════════════════════════════════════════════════════════════════
+        function toggleBulkMode() {
+            state.bulkMode = !state.bulkMode;
+            state.selectedTasks.clear();
+
+            document.querySelector('.priority-panel').classList.toggle('bulk-mode', state.bulkMode);
+            updateBulkUI();
+            renderTasks();
+        }
+
+        function cancelBulkMode() {
+            state.bulkMode = false;
+            state.selectedTasks.clear();
+
+            document.querySelector('.priority-panel').classList.remove('bulk-mode');
+            updateBulkUI();
+            renderTasks();
+        }
+
+        function toggleTaskSelection(taskId) {
+            if (state.selectedTasks.has(taskId)) {
+                state.selectedTasks.delete(taskId);
+            } else {
+                state.selectedTasks.add(taskId);
+            }
+
+            if (!state.bulkMode && state.selectedTasks.size > 0) {
+                state.bulkMode = true;
+                document.querySelector('.priority-panel').classList.add('bulk-mode');
+            }
+
+            updateBulkUI();
+
+            // Update card visual
+            const card = document.querySelector(`.task-card[data-id="${taskId}"]`);
+            if (card) {
+                card.classList.toggle('selected', state.selectedTasks.has(taskId));
+                card.querySelector('.task-checkbox').checked = state.selectedTasks.has(taskId);
+            }
+        }
+
+        function updateBulkUI() {
+            const bar = document.getElementById('bulk-actions-bar');
+            const count = state.selectedTasks.size;
+
+            bar.classList.toggle('show', count > 0);
+            document.getElementById('selected-count').textContent = count;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // BULK ACTIONS
+        // ═══════════════════════════════════════════════════════════════════════════
+        function bulkAssign() {
+            if (state.selectedTasks.size === 0) return;
+
+            document.getElementById('bulk-assign-count').textContent = state.selectedTasks.size;
+            document.getElementById('bulk-assign-modal').classList.add('show');
+        }
+
+        function closeBulkAssignModal() {
+            document.getElementById('bulk-assign-modal').classList.remove('show');
+        }
+
+        async function confirmBulkAssign() {
+            const employeeId = document.getElementById('bulk-assign-employee').value;
+            if (!employeeId) {
+                showToast('Please select an employee', 'error');
+                return;
+            }
+
+            const employeeName = getEmployeeName(employeeId);
+            const taskIds = Array.from(state.selectedTasks);
+
+            showToast(`Assigning ${taskIds.length} tasks to ${employeeName}...`, 'info');
+
+            try {
+                // Optimistic update
+                taskIds.forEach(taskId => {
+                    const task = state.tasks.find(t => t.id === taskId);
+                    if (task) {
+                        task.assignedTo = employeeId;
+                        task.assignedToName = employeeName;
+                    }
+                });
+                renderTasks();
+
+                // API call
+                const response = await fetch(`${API_URL}?action=bulkAssignTasks`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ taskIds, employeeId, employeeName })
+                });
+
+                closeBulkAssignModal();
+                cancelBulkMode();
+                showToast(`${taskIds.length} tasks assigned to ${employeeName}`, 'success');
+
+                // Refresh data
+                setTimeout(() => loadWorkload(), 500);
+            } catch (error) {
+                console.error('Bulk assign error:', error);
+                showToast('Failed to assign tasks', 'error');
+                loadTasks(true); // Refresh to get actual state
+            }
+        }
+
+        async function bulkComplete() {
+            if (state.selectedTasks.size === 0) return;
+
+            const taskIds = Array.from(state.selectedTasks);
+            showToast(`Marking ${taskIds.length} tasks as complete...`, 'info');
+
+            try {
+                // Optimistic update - remove from list
+                state.tasks = state.tasks.filter(t => !state.selectedTasks.has(t.id));
+                renderTasks();
+                updateStats();
+
+                // API call
+                await fetch(`${API_URL}?action=bulkCompleteTasks`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ taskIds })
+                });
+
+                cancelBulkMode();
+                showToast(`${taskIds.length} tasks completed!`, 'success');
+            } catch (error) {
+                console.error('Bulk complete error:', error);
+                showToast('Failed to complete tasks', 'error');
+                loadTasks(true);
+            }
+        }
+
+        function bulkChangePriority() {
+            showToast('Priority change coming soon', 'info');
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // QUICK ACTIONS
+        // ═══════════════════════════════════════════════════════════════════════════
+        function quickAssign(taskId) {
+            state.selectedTasks.clear();
+            state.selectedTasks.add(taskId);
+            bulkAssign();
+        }
+
+        async function markDone(taskId) {
+            const task = state.tasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            showToast(`Completing "${task.title}"...`, 'info');
+
+            try {
+                // Optimistic update
+                state.tasks = state.tasks.filter(t => t.id !== taskId);
+                renderTasks();
+                updateStats();
+
+                // API call
+                await fetch(`${API_URL}?action=completeTask&taskId=${taskId}`);
+
+                showToast('Task completed!', 'success');
+            } catch (error) {
+                console.error('Mark done error:', error);
+                showToast('Failed to complete task', 'error');
+                loadTasks(true);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // CREATE/EDIT TASK MODAL
+        // ═══════════════════════════════════════════════════════════════════════════
+        function openCreateModal() {
+            state.editingTaskId = null;
+            document.getElementById('modal-title').textContent = 'Create Task';
+            document.getElementById('save-btn-text').textContent = 'Create Task';
+            document.getElementById('task-form').reset();
+            document.getElementById('task-date').value = new Date().toISOString().split('T')[0];
+            document.getElementById('task-time').value = '17:00';
+            setPriority('medium');
+
+            document.getElementById('create-modal').classList.add('show');
+        }
+
+        function editTask(taskId) {
+            const task = state.tasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            state.editingTaskId = taskId;
+            document.getElementById('modal-title').textContent = 'Edit Task';
+            document.getElementById('save-btn-text').textContent = 'Update Task';
+
+            document.getElementById('task-title').value = task.title || '';
+            document.getElementById('task-desc').value = task.description || '';
+            document.getElementById('task-employee').value = task.assignedTo || '';
+            document.getElementById('task-date').value = task.dueDate || '';
+            document.getElementById('task-time').value = task.dueTime || '17:00';
+            document.getElementById('task-location').value = task.location || '';
+            setPriority(task.priority || 'medium');
+
+            document.getElementById('create-modal').classList.add('show');
+        }
+
+        function closeCreateModal() {
+            document.getElementById('create-modal').classList.remove('show');
+            state.editingTaskId = null;
+        }
+
+        function setPriority(priority) {
+            state.selectedPriority = priority;
+            document.querySelectorAll('.priority-option').forEach(opt => {
+                opt.classList.toggle('selected', opt.dataset.priority === priority);
+            });
+        }
+
+        async function saveTask(event) {
+            event.preventDefault();
+
+            const title = document.getElementById('task-title').value.trim();
+            const description = document.getElementById('task-desc').value.trim();
+            const employeeId = document.getElementById('task-employee').value;
+            const dueDate = document.getElementById('task-date').value;
+            const dueTime = document.getElementById('task-time').value;
+            const location = document.getElementById('task-location').value.trim();
+
+            if (!title || !employeeId || !dueDate) {
+                showToast('Please fill in required fields', 'error');
+                return;
+            }
+
+            const employeeName = getEmployeeName(employeeId);
+            const taskData = {
+                description: title,
+                task: title,
+                notes: description,
+                employeeId,
+                employeeName,
+                dueDate,
+                dueTime,
+                priority: state.selectedPriority,
+                location,
+                sendSMS: true
+            };
+
+            showToast(state.editingTaskId ? 'Updating task...' : 'Creating task...', 'info');
+
+            try {
+                const action = state.editingTaskId ? 'updateTask' : 'assignTaskToEmployee';
+                if (state.editingTaskId) {
+                    taskData.taskId = state.editingTaskId;
+                }
+
+                const response = await fetch(`${API_URL}?action=${action}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(taskData)
+                });
+
+                closeCreateModal();
+                showToast(state.editingTaskId ? 'Task updated!' : `Task assigned to ${employeeName}`, 'success');
+
+                // Refresh
+                await loadTasks(true);
+                loadWorkload();
+            } catch (error) {
+                console.error('Save task error:', error);
+                showToast('Failed to save task', 'error');
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // SIDEBAR TOGGLE (MOBILE)
+        // ═══════════════════════════════════════════════════════════════════════════
+        function toggleSidebar() {
+            document.getElementById('sidebar-panels').classList.toggle('show');
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // UTILITIES
+        // ═══════════════════════════════════════════════════════════════════════════
+        function getInitials(name) {
+            if (!name) return '?';
+            return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+
+            if (date.toDateString() === today.toDateString()) return 'Today';
+            if (date.toDateString() === tomorrow.toDateString()) return 'Tomorrow';
+
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast ' + type + ' show';
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // Debounce helper
+        function debounce(func, wait) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        }
+
+        // Close modals on escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeCreateModal();
+                closeBulkAssignModal();
+                if (document.getElementById('sidebar-panels').classList.contains('show')) {
+                    toggleSidebar();
+                }
+            }
+        });
+
+        // Close modals on overlay click
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    overlay.classList.remove('show');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
