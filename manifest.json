@@ -1,80 +1,214 @@
 {
   "name": "Tiny Seed Farm - Field App",
   "short_name": "Field App",
-  "description": "Employee field app for Tiny Seed Farm - time clock, tasks, harvest logging, and scouting",
+  "description": "Employee field app for Tiny Seed Farm - time clock, tasks, harvest logging, scouting, and weather monitoring. Works offline for reliable field operations.",
   "start_url": "./employee.html",
+  "id": "/employee.html",
   "display": "standalone",
-  "background_color": "#1a1a2e",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#0f172a",
   "theme_color": "#2d5a27",
   "orientation": "portrait-primary",
   "scope": "./",
+  "lang": "en-US",
+  "dir": "ltr",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "icons/icon-72.png",
       "sizes": "72x72",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "icons/icon-96.png",
       "sizes": "96x96",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "icons/icon-128.png",
       "sizes": "128x128",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "icons/icon-144.png",
       "sizes": "144x144",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "icons/icon-152.png",
       "sizes": "152x152",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "icons/icon-384.png",
       "sizes": "384x384",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "shortcuts": [
     {
       "name": "Clock In",
       "short_name": "Clock In",
-      "description": "Quick clock in",
+      "description": "Quick clock in for your shift",
       "url": "./employee.html?action=clockin",
-      "icons": [{ "src": "icons/clock-icon.png", "sizes": "96x96" }]
+      "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
     },
     {
-      "name": "My Tasks",
+      "name": "View Today's Tasks",
       "short_name": "Tasks",
-      "description": "View today's tasks",
+      "description": "View and complete your tasks for today",
       "url": "./employee.html?tab=tasks",
-      "icons": [{ "src": "icons/tasks-icon.png", "sizes": "96x96" }]
+      "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "Check Weather",
+      "short_name": "Weather",
+      "description": "View current weather conditions",
+      "url": "./employee.html?tab=weather",
+      "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "Log Harvest",
+      "short_name": "Harvest",
+      "description": "Record harvest data from the field",
+      "url": "./employee.html?tab=harvest",
+      "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
     }
   ],
-  "categories": ["business", "productivity"],
-  "lang": "en-US",
-  "dir": "ltr"
+  "categories": ["business", "productivity", "lifestyle"],
+  "screenshots": [
+    {
+      "src": "screenshots/employee-dashboard.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Employee Dashboard - Track time, tasks, and weather"
+    },
+    {
+      "src": "screenshots/task-management.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Task Management - Complete field tasks efficiently"
+    },
+    {
+      "src": "screenshots/harvest-logging.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Harvest Logging - Record yields with AI assistance"
+    },
+    {
+      "src": "screenshots/desktop-dashboard.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Farm Management Dashboard"
+    }
+  ],
+  "related_applications": [],
+  "handle_links": "preferred",
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "share_target": {
+    "action": "./employee.html",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        {
+          "name": "images",
+          "accept": ["image/*"]
+        }
+      ]
+    }
+  },
+  "protocol_handlers": [
+    {
+      "protocol": "web+tinyseed",
+      "url": "./employee.html?action=%s"
+    }
+  ],
+  "file_handlers": [
+    {
+      "action": "./employee.html",
+      "accept": {
+        "image/*": [".png", ".jpg", ".jpeg", ".webp"],
+        "text/csv": [".csv"]
+      }
+    }
+  ]
 }

@@ -1,6 +1,10 @@
 # MANAGER QUICK START GUIDE
 ## Tiny Seed Farm - Operations Guide
 
+**Updated:** 2026-02-03
+
+> For comprehensive documentation, see **docs/MANAGER_GUIDE.md**
+
 ---
 
 ## Your Role
@@ -11,10 +15,16 @@ You manage farm operations: planning, scheduling, sales, and team coordination.
 
 ## YOUR APPS
 
+### Primary Dashboard (NEW)
+| App | URL | Purpose |
+|-----|-----|---------|
+| **Manager Dashboard** | `web_app/manager-dashboard.html` | AI task queue, team workload, proactive alerts |
+| Master Dashboard | `index.html` | Overview of everything |
+| Task Assignment | `web_app/task-assignment.html` | Create and assign tasks |
+
 ### Planning & Operations
 | App | URL | Purpose |
 |-----|-----|---------|
-| Master Dashboard | `index.html` | Overview of everything |
 | Planning View | `planning.html` | Create/edit crop plans |
 | Succession Planner | `succession.html` | Quick batch creation |
 | Bed Assignment | `bed_assignment_COMPLETE.html` | Allocate field beds |
@@ -146,5 +156,37 @@ When to involve Admin (Todd):
 - User access problems
 
 ---
+
+## NEW: AI TASK MANAGEMENT
+
+### Priority Badges
+Tasks now show AI-calculated priority scores:
+- **Red (80-100)**: Do NOW
+- **Orange (50-79)**: Do today
+- **Yellow (30-49)**: Important
+- **Green (0-29)**: Flexible
+
+### At-Risk Warnings
+Yellow warning badges indicate problems:
+- **TIME**: Not enough hours available
+- **WEATHER**: Conditions will prevent work
+- **OVERRIPE**: Harvest immediately
+- **BLOCKED**: Waiting on dependencies
+
+### Team Workload
+Monitor team capacity in Manager Dashboard:
+- Green = Available
+- Yellow = Heavy load
+- Red = Overloaded (needs rebalancing)
+
+### Bulk Operations
+Select multiple tasks and:
+- Complete All
+- Assign All
+- Cancel All
+
+---
+
+*For complete documentation, see docs/MANAGER_GUIDE.md*
 
 *You keep the farm running smoothly!*

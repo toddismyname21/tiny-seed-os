@@ -40,6 +40,1341 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-02-03 - Backend_Claude (Satellite Smart Scouting Integration)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Added complete Satellite Smart Scouting Integration system
+
+### Functions Added (in MERGED TOTAL.js)
+
+**Sheet Management:**
+- `getSatelliteReadingsSheet()` - Get/create SATELLITE_READINGS sheet
+- `getSatelliteAlertsSheet()` - Get/create SATELLITE_ALERTS sheet
+- `getSatelliteWaypointsSheet()` - Get/create SATELLITE_WAYPOINTS sheet
+
+**Data Retrieval:**
+- `getFieldsWithSatelliteData()` - Get all fields with recent satellite readings
+- `getLatestReading(fieldId)` - Get most recent NDVI/NDMI reading for a field
+- `getPreviousReading(fieldId, daysAgo)` - Get historical reading for comparison
+- `getSatelliteReadings(params)` - API endpoint for satellite reading history
+- `getSatelliteAlerts(params)` - API endpoint for satellite alerts (with status filter)
+- `getScoutingWaypoints(fieldId)` - Get GPS waypoints for field scouting (includes Google Maps URL)
+- `getAllFieldProblems()` - Get all current satellite-detected problems across all fields
+
+**Problem Detection:**
+- `detectSatelliteProblems(fieldId, threshold)` - Core algorithm detecting 4 problem types:
+  - NDVI_DROP: Significant vegetation decline (>15% in 7 days)
+  - LOW_NDVI: Absolute low health (NDVI < 0.3)
+  - WATER_STRESS: NDMI indicates water stress (NDMI < 0)
+  - RAPID_DECLINE: Fast vegetation loss (>5% per day, possible pest/disease)
+
+**Task Generation:**
+- `generateScoutingTasks()` - Main function to batch-create scouting tasks for all problem fields
+- `generateScoutingDescription(problems, fieldName)` - Create detailed scouting instructions
+- `getTomorrowDate()` - Utility for setting task due dates
+- `generateWaypointsForTask(fieldId, problems, taskId)` - Create GPS waypoints for scouting
+
+**Alert Management:**
+- `createSatelliteAlert(fieldId, problems, taskId)` - Store satellite alerts in sheet
+- `resolveSatelliteAlert(data)` - Mark alert as resolved
+
+**Data Storage:**
+- `storeSatelliteReading(data)` - Store incoming satellite data (from Agromonitoring API)
+- `markZoneInspected(data)` - Record scouting inspection results with photo URL
+
+**Scheduled Triggers:**
+- `dailyScoutingCheck()` - Daily trigger to auto-generate scouting tasks
+- `setupSatelliteScoutingTrigger()` - Setup 7 AM daily trigger
+
+**Proactive Alert Integration:**
+- `addSatelliteAlertsToProactive(existingAlerts)` - Add satellite problems to generateProactiveAlerts()
+
+### API Endpoints Added
+
+**GET Endpoints:**
+- `generateScoutingTasks` - Batch generate scouting tasks for all problem fields
+- `getScoutingWaypoints?fieldId={id}` - Get GPS waypoints for field scouting
+- `getSatelliteReadings?fieldId={id}&limit={n}` - Get satellite reading history
+- `getSatelliteAlerts?status={open|resolved}&fieldId={id}` - Get satellite alerts
+- `getFieldsWithSatelliteData` - Get fields with satellite data
+- `getAllFieldProblems` - Get all current satellite-detected problems
+- `setupSatelliteScoutingTrigger` - Setup daily scouting trigger
+
+**POST Endpoints:**
+- `storeSatelliteReading` - Store satellite data from external API
+- `markZoneInspected` - Log scouting inspection results
+- `resolveSatelliteAlert` - Resolve a satellite alert
+- `dailyScoutingCheck` - Manually trigger scouting check
+
+### Google Sheets Added
+- `SATELLITE_READINGS` - Stores NDVI, NDMI, NDRE, ReCl readings per field
+- `SATELLITE_ALERTS` - Stores satellite-detected problems and their status
+- `SATELLITE_WAYPOINTS` - Stores GPS coordinates for scouting tasks
+
+### Integration Points
+- Uses existing `createUnifiedTask()` for task creation
+- Follows `detectAtRisk()` pattern for problem detection
+- Compatible with `generateProactiveAlerts()` via `addSatelliteAlertsToProactive()`
+
+### Reason
+Implementing Smart Scouting Task Integration as specified in SATELLITE_INTEGRATION_RESEARCH.md Phase 1:
+- Connects satellite NDVI/NDMI problem detection to the Unified Task System
+- Auto-generates scouting tasks when satellite data indicates crop health issues
+- Provides GPS waypoints for efficient field scouting routes
+- Includes Google Maps URL generation for mobile navigation
+- Daily scheduled trigger runs after satellite data fetch (7 AM)
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md - No existing satellite integration
+- [x] Searched for similar functions - Confirmed no satellite/NDVI functions exist
+- [x] No duplicates created - This is new Phase 1 satellite infrastructure
+
+---
+
+## 2026-02-03 - Frontend_Claude (NDVI Trend Charts)
+
+### Files Modified
+- `web_app/satellite-map.html` - Added comprehensive NDVI trend charts with Chart.js
+
+### Features Added
+1. **NDVI Trend Line Chart** with 30/60/90 day time range options
+   - Multiple fields comparison mode (up to 4 fields)
+   - Reference zone bands: Healthy (0.5-0.8), Warning (0.3-0.5), Stress (<0.3)
+   - Click-to-view satellite imagery from specific dates
+   - Hover tooltips with exact values and cloud cover
+
+2. **Field Comparison Bar Chart**
+   - Horizontal bar chart showing all fields' current NDVI side by side
+   - Color-coded by health status
+   - Reference lines at 0.3 (warning) and 0.5 (healthy) thresholds
+
+3. **Seasonal Pattern Chart**
+   - This year vs last year comparison
+   - Field selector or farm average view
+   - Visual trend analysis
+
+4. **Moisture Chart (NDMI)**
+   - Water stress monitoring over time
+   - Zone bands for Good (>0.2), Adequate (0-0.2), and Stress (<0)
+   - Multi-field overlay
+
+5. **Mini Dashboard Widgets**
+   - Healthiest Field card with NDVI
+   - Needs Attention card highlighting lowest NDVI field
+   - Farm Average NDVI with status
+   - Last Satellite Pass date
+
+6. **Satellite Image Modal**
+   - Click chart data points to open modal
+   - Shows date, NDVI value, and cloud cover
+   - Placeholder for actual Sentinel-2 imagery integration
+
+### Dependencies Added
+- `chartjs-plugin-annotation` (CDN) - For NDVI zone bands on charts
+
+### Functions Added
+- `initializeNDVICharts()` - Initializes all chart components
+- `generateHistoricalData()` - Creates mock historical NDVI/NDMI data for demo
+- `createNDVITrendChart()` - Main trend chart with zone annotations
+- `createFieldComparisonChart()` - Horizontal bar chart for field comparison
+- `createSeasonalPatternChart()` - This year vs last year comparison
+- `createMoistureTrendChart()` - NDMI water stress chart
+- `updateDashboardSummary()` - Updates mini dashboard cards
+- `setupChartEventListeners()` - Time range and comparison button handlers
+- `showSatelliteImageModal()` - Opens modal with satellite data
+- `closeSatelliteImageModal()` - Closes satellite image modal
+- `formatChartDate()` - Formats dates for chart labels
+
+### Reason
+Mission: Build NDVI trend visualization for satellite monitoring as part of the Satellite Integration Initiative. This enables farmers to visualize crop health trends over time, compare fields, and identify areas needing attention through historical NDVI data analysis.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created (enhanced existing satellite-map.html)
+
+---
+
+## 2026-02-03 - Backend_Claude (Time Tracking Feedback Loop)
+
+### Files Created
+- `apps_script/TimeTrackingFeedbackLoop.js` - Complete time tracking and learning system that tracks actual vs estimated time and improves future estimates
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Added API routing for 6 new time tracking endpoints (4 GET, 2 POST)
+
+### Functions Added
+- `getTimeLearningSheet()` - Get or create TIME_LEARNING sheet for storing learning data
+- `recordTaskTime(taskId, actualMinutes, notes)` - Main entry point for logging task completion time
+- `getTaskTimeHistory(taskType, cropId)` - Get historical times for a task type
+- `calculateAverageTime(taskType, cropId, fieldId)` - Smart average with contextual weighting
+- `suggestEstimatedTime(taskType, context)` - AI-suggested estimate based on history, employee, weather
+- `getEfficiencyReport(employeeId, dateRange)` - Employee and team efficiency metrics
+- `updateTaskEstimate(taskId, learnedEstimate)` - Auto-update task estimates based on learning
+- `learnFromCompletion(task)` - Core learning algorithm using exponential moving average
+- `updateBenchmarkFromLearning()` - Auto-update LABOR_BENCHMARKS
+- `getEmployeeTaskPerformance(employeeId, taskType)` - Employee performance on specific task types
+- `getWeatherTimeAdjustmentFactor(weatherCondition, taskType)` - Weather-based time adjustments
+- `generateTimeFeedback()` - User feedback generation
+
+### API Endpoints Added (GET)
+- `getTaskTimeHistory` - Historical time data for task type
+- `calculateAverageTime` - Smart contextual average time
+- `suggestEstimatedTime` - AI-suggested time estimate
+- `getEfficiencyReport` - Employee efficiency metrics
+
+### API Endpoints Added (POST)
+- `recordTaskTime` - Record task completion time and trigger learning
+- `updateTaskEstimate` - Update task estimate from learned data
+
+### Learning Logic
+When task completes with >20% deviation from estimate:
+1. Records to TIME_LEARNING sheet with task type, crop, field context
+2. Uses exponential moving average to calculate new estimate
+3. Limits adjustment to max 30% per learning cycle
+4. After 3+ samples with 70%+ confidence, auto-updates LABOR_BENCHMARKS
+5. Returns feedback to user with learning note
+
+### Integrates With
+- UNIFIED_TASKS sheet (Estimated_Minutes, Actual_Minutes, Efficiency_Pct)
+- TIMELOG sheet (existing logTaskTime function)
+- LABOR_BENCHMARKS sheet (existing getBenchmark function)
+- LABOR_CHECKINS sheet (for raw time data)
+- Creates TIME_LEARNING sheet for aggregated learning data
+
+### Reason
+Phase 5 of Task Management System: Time tracking feedback loop that learns from completions to improve estimates.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions - builds on getBenchmark(), checkInTask(), checkOutTask()
+- [x] No duplicates created - unique function names with "Time" suffix
+
+---
+
+## 2026-02-03 - Backend_Claude (Satellite Service)
+
+### Files Created
+- `apps_script/SatelliteService.js` - Complete Agromonitoring API integration for satellite imagery and NDVI monitoring
+
+### Functions Added
+
+**Sheet Initialization:**
+- `initializeSatelliteSheets()` - Creates SATELLITE_FIELDS and SATELLITE_READINGS sheets with proper headers
+
+**API Key Management:**
+- `getAgromonitoringApiKey()` - Retrieves API key from Script Properties
+- `setAgromonitoringApiKey(apiKey)` - Stores API key in Script Properties
+
+**Polygon Management:**
+- `createSatellitePolygon(fieldId, coordinates, name)` - Registers field polygon with Agromonitoring API
+- `syncFieldPolygons()` - Syncs all REF_Fields to Agromonitoring, creates missing polygons
+- `getSatelliteFields()` - Lists all registered satellite polygons
+
+**NDVI Data Fetching:**
+- `fetchLatestNDVI(polygonId)` - Gets current NDVI for a specific polygon
+- `fetchAllFieldsNDVI()` - Batch fetches NDVI for all registered fields
+- `fetchNDVIHistory(polygonId, startDate, endDate)` - Gets historical NDVI time series
+- `fetchSatelliteImagery(polygonId, startDate, endDate)` - Gets available satellite imagery URLs
+
+**Data Storage:**
+- `storeReading(polygonId, date, ndvi, ndmi, evi, ...)` - Saves readings to SATELLITE_READINGS sheet
+- `getFieldReadings(fieldId, days)` - Retrieves stored readings for a field
+
+**Problem Detection:**
+- `detectProblems(fieldId)` - Detects NDVI drops >15% and low NDVI alerts
+- `getPossibleCauses(dropPercent, daysBetween)` - Returns possible causes for NDVI issues
+- `getRecommendation(dropPercent, currentNDVI)` - Generates action recommendations
+
+**Scouting Integration:**
+- `generateScoutingWaypoints(fieldId, threshold)` - Creates GPS waypoints for field scouting
+- `generateGPX(fieldName, waypoints)` - Generates GPX file for GPS devices
+
+**Scheduled Tasks:**
+- `dailySatelliteFetch()` - Daily automated NDVI collection for all fields
+- `setupSatelliteTrigger()` - Creates daily trigger at 6 AM
+- `removeSatelliteTrigger()` - Removes satellite trigger
+
+**API Handler:**
+- `handleSatelliteAPI(action, params, postData)` - Central handler for satellite endpoints
+
+### Sheet Schemas Created
+
+**SATELLITE_FIELDS:**
+| Field_ID | Field_Name | Polygon_ID | Coordinates | Area_Hectares | Last_Sync | Status | Created_At | Updated_At | Notes |
+
+**SATELLITE_READINGS:**
+| Reading_ID | Field_ID | Polygon_ID | Date | NDVI_Mean | NDVI_Min | NDVI_Max | NDMI | EVI | Cloud_Pct | Image_URL | Data_Source | Quality | Created_At |
+
+### API Endpoints Ready for Integration
+
+**GET Endpoints:**
+- `initializeSatelliteSheets` - Create satellite sheets
+- `syncFieldPolygons` - Sync fields to Agromonitoring
+- `getSatelliteFields` - List satellite polygons
+- `fetchLatestNDVI` - Get current NDVI (params: polygonId)
+- `fetchAllFieldsNDVI` - Batch fetch all NDVI
+- `fetchNDVIHistory` - Historical NDVI (params: polygonId, startDate, endDate)
+- `fetchSatelliteImagery` - Get imagery URLs (params: polygonId, startDate, endDate)
+- `getFieldReadings` - Stored readings (params: fieldId, days)
+- `detectProblems` - Problem detection (params: fieldId)
+- `generateScoutingWaypoints` - GPS waypoints (params: fieldId, threshold)
+- `setupSatelliteTrigger` - Create daily trigger
+- `removeSatelliteTrigger` - Remove trigger
+
+**POST Endpoints:**
+- `createSatellitePolygon` - Create polygon (body: fieldId, coordinates, name)
+- `setAgromonitoringApiKey` - Store API key (body: apiKey)
+
+### Reason
+Implementing satellite imagery integration per SATELLITE_INTEGRATION_RESEARCH.md requirements. This enables:
+- NDVI monitoring for crop health visualization
+- Early problem detection (>15% NDVI drop alerts)
+- Smart scouting with GPS waypoint generation
+- Historical data analysis for yield forecasting
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (Grep for Satellite|NDVI|Agromonitoring - no results)
+- [x] No duplicates created
+
+### Integration Notes
+To activate these endpoints, add the following to MERGED TOTAL.js:
+
+In doGet switch statement:
+```javascript
+case 'initializeSatelliteSheets':
+case 'syncFieldPolygons':
+case 'getSatelliteFields':
+case 'fetchLatestNDVI':
+case 'fetchAllFieldsNDVI':
+case 'fetchNDVIHistory':
+case 'fetchSatelliteImagery':
+case 'getFieldReadings':
+case 'detectProblems':
+case 'generateScoutingWaypoints':
+case 'setupSatelliteTrigger':
+case 'removeSatelliteTrigger':
+  return jsonResponse(handleSatelliteAPI(action, e.parameter, null));
+```
+
+In doPost switch statement:
+```javascript
+case 'createSatellitePolygon':
+case 'setAgromonitoringApiKey':
+  return jsonResponse(handleSatelliteAPI(action, e.parameter, data));
+```
+
+---
+
+## 2026-02-03 - Desktop_Claude (Satellite Map Display)
+
+### Files Created
+- `web_app/satellite-map.html` - Dedicated satellite monitoring page with Leaflet.js map integration
+
+### Features Added
+- **Map Display**: Leaflet.js map centered on Tiny Seed Farm (Beaver, PA area) with OpenStreetMap and ESRI Satellite tile layers
+- **Field Boundary Polygons**: Dynamic rendering of field boundaries from REF_Fields with NDVI-based coloring
+- **NDVI Color Gradient**:
+  - Red (< 0.3): Stressed vegetation
+  - Yellow (0.3 - 0.5): Moderate health
+  - Green (> 0.5): Healthy vegetation
+- **Layer Toggle**: Switch between NDVI, NDMI (Water Stress), and True Color views
+- **Date Selector**: View historical imagery by date
+- **Field Detail Panel**: Click-to-view panel showing:
+  - Current NDVI/NDMI values
+  - 7-day trend
+  - 30-day NDVI history chart (Chart.js)
+  - Crop and growth stage info
+- **Create Scouting Task**: One-click task creation for flagged fields
+- **Export Report**: CSV export of all field satellite data
+- **Alert Feed**: Display satellite-detected alerts (water stress, health changes)
+- **Stats Dashboard**: Counts of healthy/moderate/stressed fields
+- **Mobile Responsive**: Full responsive design for tablet/mobile use
+
+### API Endpoints Used
+- `getFieldsWithSatellite` - Fields with polygon IDs and satellite data
+- `getFieldReadings` - Historical readings for NDVI chart
+- `getSatelliteAlerts` - Active satellite alerts
+- `createUnifiedTask` - Scouting task creation
+
+### Dependencies
+- Leaflet.js v1.9.4 (CDN)
+- Chart.js (CDN)
+- api-config.js (local)
+- auth-guard.js (local)
+
+### Reason
+Implementation of satellite visualization for the Satellite Integration Phase 1, enabling visual monitoring of field health via NDVI/NDMI indices as specified in SATELLITE_INTEGRATION_RESEARCH.md.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for "satellite", "ndvi", "leaflet" - no existing satellite map page found
+- [x] No duplicates created
+
+---
+
+## 2026-02-03 - Backend_Claude (Seasonal Pattern Detection System)
+
+### Files Created
+- `apps_script/SeasonalPatternDetection.js` - Complete seasonal pattern detection module with year-over-year comparison, benchmarks, and reminder generation
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Added API routing for 8 new seasonal pattern endpoints
+
+### Functions Added
+- `getWeekNumber(date)` in `SeasonalPatternDetection.js` - Calculate ISO week number from date
+- `getWeekDateRange(year, week)` in `SeasonalPatternDetection.js` - Get start/end dates for a week
+- `getTasksForWeek(year, weekNum)` in `SeasonalPatternDetection.js` - Retrieve tasks for a specific week/year
+- `getPlantingsForWeek(year, weekNum)` in `SeasonalPatternDetection.js` - Retrieve planting activities for a week
+- `getSeasonalPatterns(params)` in `SeasonalPatternDetection.js` - What tasks typically happen during a given week based on historical data
+- `compareToLastYear(params)` in `SeasonalPatternDetection.js` - Current vs same week last year comparison with gap detection
+- `generateSeasonalReminders(params)` in `SeasonalPatternDetection.js` - Proactive "this time last year" alerts for Morning Brief
+- `detectMissedSeasonalTask(params)` in `SeasonalPatternDetection.js` - Alert if seasonal task not done when expected
+- `getSeasonalBenchmarks(params)` in `SeasonalPatternDetection.js` - Historical performance metrics by season, crop, task type
+- `storeSeasonalBaseline(params)` in `SeasonalPatternDetection.js` - Save weekly task summary for future comparison
+- `getSeasonalBaselines(params)` in `SeasonalPatternDetection.js` - Retrieve stored baselines
+- `autoStoreWeeklyBaseline()` in `SeasonalPatternDetection.js` - Trigger-ready function for weekly baseline storage
+- `getSeasonalRemindersForBrief()` in `SeasonalPatternDetection.js` - Simplified format for Morning Brief integration
+
+### API Endpoints Added
+- `getSeasonalPatterns` - Get seasonal task patterns for a week
+- `compareToLastYear` - Year-over-year week comparison
+- `generateSeasonalReminders` - Generate proactive reminders
+- `detectMissedSeasonalTask` - Check for missed seasonal tasks
+- `getSeasonalBenchmarks` - Historical performance benchmarks
+- `storeSeasonalBaseline` - Store week's baseline
+- `getSeasonalBaselines` - Retrieve stored baselines
+- `getSeasonalRemindersForBrief` - Morning Brief integration
+
+### Integrations
+- PLANNING_2026, PLANNING_2025 sheets for historical planting data
+- TASKS, TASK_ASSIGNMENTS sheets for historical task data
+- Creates SEASONAL_BASELINES sheet for storing weekly snapshots
+- Designed to integrate with existing Morning Brief and Proactive Alerts systems
+
+### Reason
+Implementation of seasonal pattern detection for the State-of-the-Art Task Management System. This enables the system to "know before you" by detecting recurring seasonal tasks, comparing year-over-year activity, and generating proactive reminders when seasonal tasks may be missed.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (found `getThisTimeLastYear()` and `detectSeasonalPatterns()` - these are complementary, not duplicates. The new module provides more comprehensive week-based patterns vs date-range based)
+- [x] No duplicates created - new functions provide distinct week-based seasonal analysis
+
+---
+
+## 2026-02-03 - Documentation_Claude (Comprehensive Documentation Update)
+
+### Files Modified
+- `USER_MANUAL.md` - Complete overhaul with new Task Management System, Mobile PWA, Manager Dashboard, and Notifications sections
+
+### Files Created
+- `docs/QUICK_START.md` - 5-minute getting started guide for all roles
+- `docs/MANAGER_GUIDE.md` - Comprehensive manager-specific features guide including AI Priority Queue, Team Workload, Proactive Alerts, Bulk Operations
+- `docs/EMPLOYEE_GUIDE.md` - Complete employee guide with priority badges, task completion, time tracking, offline mode
+- `docs/API_REFERENCE.md` - Full API documentation with all Task Management endpoints, request/response formats, error handling
+
+### Documentation Added
+
+**USER_MANUAL.md Updates (Version 2.0):**
+- New Task Management System section explaining AI Priority Scoring (7 factors, weights, examples)
+- At-Risk Indicators explanation (5 risk types with responses)
+- Bulk Operations guide
+- Mobile App Usage section (PWA installation for iOS/Android, offline mode, voice commands)
+- Manager Guide update with Manager Dashboard features
+- Employee Guide update with priority badge meanings
+- Notifications section (priority levels, quiet hours, SMS alerts)
+- Updated Feature Status table with Task Management features
+- API Endpoints Reference table
+
+**docs/QUICK_START.md:**
+- 5-minute onboarding for all user roles
+- Role-specific URLs
+- Quick priority color guide
+- Common first questions FAQ
+
+**docs/MANAGER_GUIDE.md:**
+- Complete Manager Dashboard walkthrough
+- AI Priority Queue explanation with score breakdown
+- Team Workload Management (capacity, rebalancing)
+- Proactive Alerts (categories, sources, actions)
+- Field Status Monitoring
+- Bulk Operations detailed guide
+- Task Assignment guide
+- Daily/Weekly workflow checklists
+- Best practices and FAQ
+
+**docs/EMPLOYEE_GUIDE.md:**
+- App installation (iOS/Android)
+- Time clock usage
+- Priority badge color meanings
+- At-risk warning explanations
+- Task completion with time tracking
+- Harvest logging
+- Field scouting
+- Offline mode guide
+- Quick reference card
+- Troubleshooting and FAQ
+
+**docs/API_REFERENCE.md:**
+- All Task Management APIs (getTaskPriorities, getUnifiedTasks, createUnifiedTask, updateUnifiedTask, bulkUpdateTasks, getAtRiskTasks, getProactiveAlerts, getTeamWorkloadBalance, getAIPriorityDashboard)
+- Employee & Time APIs (clockIn, clockOut, completeTaskWithTimeLog, logHarvestWithDetails)
+- Planning APIs
+- Dashboard APIs
+- Weather APIs
+- Error handling guide
+
+### Reason
+User requested comprehensive documentation update to cover the new AI-powered Task Management System implemented on 2026-02-03. Documentation now reflects:
+1. AI Priority Scoring with 7-factor calculation
+2. At-Risk detection with 5 risk types
+3. Bulk operations for task management
+4. Manager Dashboard features
+5. Mobile PWA installation and offline mode
+6. Notification system with quiet hours and SMS
+7. Complete API reference for developers
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for existing documentation - updated existing files, created new files in docs/ folder
+- [x] No duplicates created - consolidated and expanded existing documentation
+
+---
+
+## 2026-02-03 - Team 3: AI UX & Guided Rituals
+
+### Files Created
+- `tinypm/static/js/ai-rituals.js` - Morning Planning & Evening Shutdown rituals (~35KB)
+- `tinypm/static/js/ai-nudges.js` - Non-intrusive Proactive Nudge System (~25KB)
+- `tinypm/static/js/explainable-ai.js` - Explainable AI Decisions & Loading States (~30KB)
+- `tinypm/static/js/smart-capture.js` - Natural Language Task Entry (~20KB)
+- `tinypm/AI_UX_INTEGRATION_GUIDE.md` - Integration documentation for all Team 3 components
+
+### Functions Added
+
+**ai-rituals.js:**
+- `AIRituals.showMorningRitual()` - 3-step morning planning flow (6am-10am)
+- `AIRituals.showEveningRitual()` - 3-step evening shutdown flow (5pm-9pm)
+- `AIRituals.gatherMorningData()` - Collects overdue, due today, high priority tasks
+- `AIRituals.gatherEveningData()` - Collects completion stats for the day
+- `AIRituals.checkAutoShow()` - Auto-triggers rituals based on time of day
+
+**ai-nudges.js:**
+- `AINudges.showNudge(options)` - Displays non-intrusive nudge with configurable type/actions
+- `AINudges.showAchievement(title, message)` - Shows achievement celebration nudge
+- `AINudges.checkOverdueTasks()` - Proactively checks for overdue tasks
+- `AINudges.checkTasksDueSoon()` - Checks for tasks due within 2 hours
+- `AINudges.checkAchievements()` - Checks for achievement triggers
+- `AINudges.checkBreakReminder()` - Suggests break after 90 min focus
+- `AINudges.recordOutcome(nudgeId, outcome)` - Records nudge interaction for learning
+
+**explainable-ai.js:**
+- `ExplainableAI.createSuggestionCard(options)` - Creates AI suggestion with reasoning
+- `ExplainableAI.createThinkingIndicator(stage)` - Animated loading states
+- `ExplainableAI.createStreamingContainer()` - Container for streaming text
+- `ExplainableAI.streamText(container, text, speed)` - Typing effect animation
+- `ExplainableAI.showProgressStages(container, stages, currentIndex)` - Multi-stage progress
+- `ExplainableAI.getConfidenceLevel(confidence)` - Returns high/medium/low from 0-1
+
+**smart-capture.js:**
+- `SmartCapture.open()` - Opens quick capture modal (Cmd/Ctrl + K or Q)
+- `SmartCapture.close()` - Closes quick capture modal
+- `SmartCapture.parseNaturalLanguage(text)` - Parses dates, times, priorities, tags
+- `SmartCapture.extractDate(text)` - Extracts date from natural language
+- `SmartCapture.extractTime(text)` - Extracts time from natural language
+- `SmartCapture.extractPriority(text)` - Extracts priority keywords
+- `SmartCapture.extractDuration(text)` - Extracts time estimates
+- `SmartCapture.extractTags(text)` - Extracts #hashtags
+- `SmartCapture.createTask()` - Creates task from parsed data
+
+### Event Hooks Added
+- `ritualComplete` - Fired when morning/evening ritual completes
+- `taskCreated` - Fired when task created via quick capture
+- `focusTask` - Request to focus on specific task
+- `openTaskEditor` - Request to open task editor with pre-filled data
+
+### Reason
+Mission: "Make the AI feel like a brilliant, proactive Chief of Staff - not a chatbot."
+- Based on research in PROACTIVE_AI_RESEARCH_2026.md
+- Aligned with Superhuman/Motion/Sunsama UX patterns
+- Confidence calibration thresholds: high (0.85+), medium (0.65-0.84), low (<0.65)
+- Non-intrusive design: max 2 nudges, auto-dismiss after 5s, 30min snooze
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (found nudge_engine.py - complementary, not duplicate)
+- [x] No duplicates created (new frontend components, existing backend untouched)
+
+---
+
+## 2026-02-03 - Frontend_Claude (Estimated vs Actual Time UI)
+
+### Files Modified
+- `index.html` - Added complete time tracking UI for task completion flow
+
+### CSS Added
+- `.time-entry-modal` - Modal for capturing actual time spent on tasks
+- `.time-quick-entry` - Grid of quick time buttons (15m, 30m, 45m, 1h)
+- `.time-quick-btn` - Individual quick time selection button styles
+- `.time-custom-entry` - Custom time input field styling
+- `.time-result` - Time comparison result display
+- `.time-result-row` - Individual row in time comparison
+- `.time-result-value.deviation` - Efficiency deviation display with color coding
+- `.efficiency-badge` - Badge showing efficiency on completed tasks (excellent/good/over)
+- `.time-taken` - Time taken display on task cards
+- `.efficiency-summary-widget` - Weekly efficiency summary widget
+- `.efficiency-summary-stats` - 4-column grid of efficiency statistics
+- `.efficiency-stat` - Individual efficiency stat box
+- `.efficiency-trend` - Trend indicator (up/down/stable)
+
+### HTML Added
+- Time Entry Modal (`#timeEntryModal`) with:
+  - Task name display
+  - Estimated time indicator
+  - Quick time buttons (15m, 30m, 45m, 1h)
+  - Custom minutes input field
+  - Real-time efficiency comparison display
+  - Skip and Save Time action buttons
+- Weekly Efficiency Summary Widget (`#efficiencySummaryWidget`) with:
+  - Tasks completed count
+  - Average efficiency percentage with color coding
+  - Trend indicator (vs previous week)
+  - On-target count (tasks within 10% deviation)
+  - Over-time count (tasks with >30% deviation)
+
+### Functions Added
+- `openTimeEntryModal(taskInfo)` - Opens time entry modal with task details
+- `selectQuickTime(minutes)` - Handles quick time button selection
+- `clearQuickTimeSelection()` - Clears quick time selection when custom input used
+- `showTimeComparison(actualMinutes)` - Displays estimated vs actual comparison
+- `formatMinutes(minutes)` - Formats minutes as "Xh Ym" or "X min"
+- `submitTimeEntry()` - Submits time and completes task
+- `skipTimeEntry()` - Skips time entry and uses estimated time
+- `closeTimeEntryModal()` - Closes the time entry modal
+- `completeTaskWithTime(batchId, taskType, unifiedTaskId, actualMinutes, estimatedMinutes)` - Completes task with time tracking
+- `getEfficiencyBadgeClass(actualMinutes, estimatedMinutes)` - Returns CSS class based on deviation
+- `getEfficiencyBadgeEmoji(actualMinutes, estimatedMinutes)` - Returns emoji badge (green/yellow/red)
+- `loadWeeklyEfficiency()` - Loads efficiency report from API
+- `updateEfficiencyWidget(data)` - Updates weekly efficiency widget display
+
+### Functions Modified
+- `completeTask()` - Now opens time entry modal instead of completing immediately
+
+### API Calls Used
+- POST `recordTaskTime` - Records actual time spent on task
+- POST `updateUnifiedTask` - Updates task with Actual_Minutes field
+- GET `getEfficiencyReport` - Gets weekly efficiency summary data
+
+### Reason
+Implementing Phase 5 of the State of the Art Task Management System plan - time tracking feedback loop. This allows:
+1. Quick time entry when completing tasks (15, 30, 45, 60 min or custom)
+2. Real-time comparison of estimated vs actual time
+3. Color-coded efficiency badges (green <10%, yellow 10-30%, red >30%)
+4. Weekly efficiency summary widget showing team performance
+5. Data collection for improving task time estimates
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions - employee.html has timer-based tracking (different UX pattern)
+- [x] No duplicates created - extended existing task completion flow
+
+---
+
+## 2026-02-03 - UX_Design_Claude (Voice/NLP Task Creation)
+
+### Files Modified
+- `index.html` - Added Voice/NLP task creation system
+
+### CSS Added
+- `.voice-fab` - Floating action button for voice input with animated states (listening, processing)
+- `.nlp-input-container` - Text input alternative for typing commands
+- `.nlp-confirm-overlay` / `.nlp-confirm-modal` - Confirmation modal for parsed task
+- `.nlp-field`, `.nlp-field-row` - Form field styling for task editing
+- `.nlp-confidence` - Confidence indicator with high/medium/low states
+- Mobile responsive styles for all voice/NLP components
+
+### HTML Added
+- Voice FAB button (`#voiceFab`) with microphone icon
+- NLP text input container (`#nlpInputContainer`) with submit button
+- NLP confirmation modal (`#nlpConfirmOverlay`) with editable parsed fields:
+  - Task type dropdown
+  - Task title input
+  - Crop/target and field/location inputs
+  - Due date and time inputs
+  - Assignee dropdown
+  - Notes input
+  - Confidence indicator
+
+### Functions Added
+- `initVoiceRecognition()` - Initialize Web Speech API with graceful fallback
+- `toggleVoiceInput()` - Show/hide NLP input, start/stop listening
+- `startListening()` / `stopListening()` - Control voice recognition
+- `handleNlpKeydown()` - Handle Enter/Escape in text input
+- `submitNlpText()` - Submit typed text for processing
+- `parseTaskCommand(text)` - Main NLP parser:
+  - Detects task type (harvest, spray, plant, weed, water, scout, etc.)
+  - Extracts crop names from predefined list
+  - Extracts field/location patterns (e.g., "Field 2", "Bed A")
+  - Parses date expressions (today, tomorrow, next week, day names)
+  - Parses time expressions (this afternoon, morning)
+  - Extracts assignee patterns ("assign to Maria")
+  - Calculates confidence score
+- `generateTaskTitle()` - Create clean task title from parsed data
+- `processNlpCommand()` - Process and show confirmation
+- `showNlpConfirmation()` - Populate and display confirmation modal
+- `closeNlpConfirm()` / `closeNlpConfirmOnOverlay()` - Close confirmation modal
+- `confirmNlpTask()` - Create task via Unified Task API
+- `loadEmployeesForNlp()` - Load employees for assignee dropdown
+
+### NLP Patterns Implemented
+- Task types: harvest, spray, plant, transplant, weed, water, scout, maintenance, admin, delivery
+- Date patterns: today, tomorrow, this week, next week, day names, afternoon/morning
+- Field patterns: field/bed/row/greenhouse + number/letter
+- Crop names: 40+ common farm crops and flowers
+- Assignee pattern: "assign to [name]" or "give to [name]"
+
+### Reason
+Enable natural language task creation through voice or text input as specified in UX_SPEC_UNIFIED_NLP.md. Users can say "Harvest tomatoes tomorrow" or "Spray field 2 this afternoon" and the system parses it into a structured task with confirmation before creation.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md - ChiefOfStaff_Voice.js exists but is backend-only and disconnected
+- [x] Searched for similar functions - No existing frontend NLP task parsing
+- [x] No duplicates created - This is new frontend functionality connecting to Unified Task API
+
+---
+
+## 2026-02-03 - Mobile_Claude (PWA Optimization)
+
+### Files Created
+- `offline.html` - Offline fallback page with cached data viewing, retry connection, and pending sync queue display
+- `install-prompt.js` - PWA install prompt handler with iOS-specific instructions, analytics tracking, and dismissal cooldown
+- `screenshots/` - Directory for PWA app store screenshots (placeholder)
+
+### Files Modified
+- `manifest.json` - Complete PWA manifest optimization
+- `sw.js` - Enhanced service worker with advanced caching strategies
+- `employee.html` - Added install-prompt.js script include
+
+### manifest.json Enhancements
+- Added `id` field for PWA identity
+- Added `display_override` with standalone/minimal-ui fallback
+- Split icons into separate "any" and "maskable" purpose entries (all sizes: 72, 96, 128, 144, 152, 192, 384, 512)
+- Added 2 new shortcuts: "Check Weather" and "Log Harvest"
+- Added 4 screenshots for app store listings (narrow and wide form factors)
+- Added `share_target` for receiving shared images
+- Added `protocol_handlers` for web+tinyseed:// protocol
+- Added `file_handlers` for images and CSV files
+- Added `launch_handler` with navigate-existing client mode
+- Added `edge_side_panel` for Edge browser support
+- Set `prefer_related_applications: false`
+- Improved description with offline capabilities
+
+### sw.js Enhancements
+- Upgraded to v3 with versioned cache names
+- Implemented 4 separate caches: STATIC, DYNAMIC, API, and main CACHE
+- **Cache-first strategy** for static assets (JS, CSS, images, fonts)
+- **Network-first strategy** for API calls with offline JSON fallback
+- **Navigation strategy** with offline.html fallback
+- **Stale-while-revalidate** for dynamic content
+- Background sync handlers for: sync-tasks, sync-timeclock, sync-harvests, sync-all
+- Push notification support with custom actions
+- Notification click handling with app focus or open
+- Periodic sync support for daily-sync and weather-update
+- Service worker messaging for cache management
+- Cache cleanup on version update
+- Client notification on SW update
+
+### offline.html Features
+- Farm-themed offline page matching app design system
+- Pending actions queue display from localStorage
+- Auto-retry connection with visual feedback
+- Quick action buttons for cached: Tasks, Time Clock, Weather, Harvests
+- Online event listener with auto-redirect
+- Service worker sync message handling
+- Background sync registration
+
+### install-prompt.js Features
+- beforeinstallprompt event handling
+- iOS-specific install modal with step-by-step instructions
+- 20-second delayed prompt (non-intrusive)
+- 2 page view minimum before prompting
+- 7-day cooldown after dismissal
+- Success toast notification
+- Analytics tracking (gtag support)
+- Public API: TinySeedInstall.show(), .hide(), .prompt(), .isInstalled(), .canInstall(), .reset()
+- 48px minimum touch targets for field workers
+
+### PWA Checklist Status
+- [x] manifest.json complete with all required fields
+- [x] Service worker caching (cache-first, network-first, stale-while-revalidate)
+- [x] Offline page with retry and cached data viewing
+- [x] Install prompt with iOS support
+- [x] Push notifications registered in service worker
+- [ ] Screenshots need to be created (placeholder paths in manifest)
+- [ ] Lighthouse testing needed for final score
+
+### Reason
+PWA optimization mission for mobile performance. The Field App is used by farm workers in areas with poor connectivity. Enhanced offline support, install prompts, and caching strategies ensure reliable field operations.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for existing install prompt handling in employee.html (exists but less comprehensive)
+- [x] No duplicates created - enhanced existing service worker, added new standalone components
+
+---
+
+## 2026-02-03 - Backend_Claude (Notification Batching System)
+
+### Files Created
+- `apps_script/NotificationBatchingSystem.js` - Complete notification batching system for Phase 5 of State-of-the-Art Task Management System
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Added 14 new API endpoints for notification batching
+
+### Functions Added (NotificationBatchingSystem.js)
+
+**Core Functions:**
+- `initializeNotificationSheets()` - Creates NotificationQueue, NotificationPreferences, and NotificationLog sheets
+- `queueNotification(priority, type, recipientId, message, data)` - Queue notification for later processing
+- `processNotificationQueue()` - Time-triggered processor for pending notifications
+- `sendImmediateNotification(type, recipient, message, channel, data)` - Bypass queue for critical alerts
+- `generateDailyDigest(userId)` - Compile LOW priority notifications into digest
+- `processAllDailyDigests()` - Process digests for all users with pending LOW notifications
+- `getNotificationPreferences(userId)` - Get user notification settings
+- `updateNotificationPreferences(userId, preferences)` - Save user preferences
+- `setupNotificationTriggers()` - Set up time-based triggers (15 min queue processing, 6 PM digest)
+
+**Convenience Functions:**
+- `sendFrostWarning(recipientId, temperature, date)` - Quick frost warning notification
+- `notifyTaskAssignment(recipientId, taskTitle, dueDate, assignedBy)` - Task assignment notification
+- `notifyTaskCompleted(recipientId, taskTitle, completedBy)` - Task completion notification
+- `notifyCriticalAtRisk(recipientId, taskTitle, reason)` - Critical at-risk task alert
+
+### API Endpoints Added (MERGED TOTAL.js)
+- `initializeNotificationSheets`, `queueNotification`, `processNotificationQueue`, `sendImmediateNotification`
+- `generateDailyDigest`, `processAllDailyDigests`, `getNotificationPreferences`, `updateNotificationPreferences`
+- `getNotificationQueueStatus`, `setupNotificationTriggers`, `removeNotificationTriggers`
+- `sendFrostWarning`, `notifyTaskAssignment`, `notifyTaskCompleted`, `notifyCriticalAtRisk`
+
+### Priority Levels Implemented
+- **IMMEDIATE** - Send now (frost warnings, critical at-risk tasks)
+- **HIGH** - Within 15 minutes (task assignments, deadlines today)
+- **MEDIUM** - Batched hourly (status updates, completions)
+- **LOW** - Daily digest at 6 PM (seasonal reminders, benchmarks)
+
+### Sheet Schema: NotificationQueue
+`Notification_ID | Type | Priority | Recipient_ID | Recipient_Name | Recipient_Phone | Recipient_Email | Channel | Subject | Message | Data | Created_At | Scheduled_For | Sent_At | Status | Retry_Count | Error_Message | Batch_ID`
+
+### Integrations
+- Uses existing `sendSMS()` function from Twilio integration
+- Uses existing `sendTelegramMessage()` function
+- Uses `GmailApp.sendEmail()` for email notifications
+
+### Reason
+Implementing Phase 5 of the State-of-the-Art Task Management System plan. This notification batching system provides intelligent notification management to prevent notification fatigue while ensuring critical alerts are delivered immediately.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md - No existing notification batching system found
+- [x] Searched for similar functions - Uses existing sendSMS() rather than duplicating
+- [x] No duplicates created
+
+---
+
+## 2026-02-03 - Performance_Claude (Frontend & Backend Performance Optimization)
+
+### Files Modified
+- `index.html` - Frontend performance optimizations for FCP and TTI
+- `apps_script/MERGED TOTAL.js` - Backend caching improvements
+
+### Frontend Optimizations (index.html)
+
+**Resource Loading:**
+- Added `preconnect` hints for Google Fonts, cdnjs, and script.google.com
+- Added `dns-prefetch` for Open-Meteo weather API
+- Reduced font weight loading from 6 to 4 (400, 500, 600, 700)
+- Deferred Font Awesome loading using media="print" onload pattern
+- Added `display=swap` for fonts to prevent FOIT (Flash of Invisible Text)
+
+**JavaScript Initialization:**
+- Refactored DOMContentLoaded to staged loading approach:
+  - Phase 1: Critical path (UI visible immediately) - `populateUserInfo()`, `updateWelcomeBanner()`, `loadRecentCrops()`
+  - Phase 2: Primary data (parallel fetch) - `checkConnection()`, `loadAllData()`, `loadMorningBrief()`
+  - Phase 3: Secondary data (deferred via requestIdleCallback) - `loadCropProfiles()`, `loadWeather()`, `initKeyboardShortcuts()`
+
+**Client-Side Caching:**
+- Added `ClientCache` utility object for API response caching
+- Cache durations: SHORT (30s), MEDIUM (2min), LONG (5min), SESSION (30min)
+- `ClientCache.fetch()` method for cached API calls
+- Modified `loadAllData()` to use parallel fetching with caching
+- Modified `loadCropProfiles()` to use 5-minute cache (reference data rarely changes)
+- `refreshData()` now invalidates relevant caches before refetching
+- Added performance timing logs for data loading
+
+### Backend Optimizations (apps_script/MERGED TOTAL.js)
+
+**SmartCache Improvements:**
+- Added new cache duration tiers: ULTRA_SHORT (30s), SESSION (6hr)
+- Increased LONG from 15min to 30min for reference data
+- Increased VERY_LONG from 1hr to 2hr for static reference data
+
+**Function-Level Caching:**
+- `getCropProfiles()` - Added 30-minute SmartCache for crop reference data
+- `getBedsData()` - Added 2-hour SmartCache for bed reference data (beds rarely change)
+
+### Performance Targets
+- First Contentful Paint (FCP): <1.5s
+- Time to Interactive (TTI): <3s
+- Lighthouse Performance Score: >80
+
+### Techniques Applied
+1. Resource prioritization with preconnect/dns-prefetch
+2. Deferred loading of non-critical resources (Font Awesome)
+3. Staged JavaScript initialization with requestIdleCallback
+4. Client-side caching to reduce redundant API calls
+5. Parallel API fetching with Promise.all()
+6. Extended server-side cache durations for reference data
+
+### Reason
+Performance optimization mission per user request. The dashboard was loading all data synchronously on page load, causing slower Time to Interactive. These changes prioritize critical-path rendering and defer non-essential operations.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar caching - Enhanced existing SmartCache, no duplicates
+- [x] No duplicates created - Extended existing patterns
+
+---
+
+## 2026-02-03 - PM_Architect (System Manifest Comprehensive Update)
+
+### Files Modified
+- `claude_sessions/pm_architect/SYSTEM_MANIFEST.md` - Complete system inventory update
+
+### Major Updates to SYSTEM_MANIFEST.md
+
+#### 1. NEW Section: Unified Task Management System (Part 2)
+- Complete architecture overview of Unified Task API
+- All 14 GET/POST endpoints documented with parameters and status
+- AI Priority Scoring functions documented
+- 7-factor priority algorithm explained (Deadline 25%, Weather 20%, etc.)
+- 5 at-risk detection types documented (TIME, WEATHER, OVERRIPE, OVERDUE, DEPENDENCY)
+- Frontend integration status table (7 pages now using Unified API)
+
+#### 2. New API Endpoints Documented
+**Unified Task API:**
+- `getUnifiedTasks` - Paginated task query with caching
+- `getTaskPriorities` - AI-sorted task list
+- `getUnifiedTaskById` - Single task lookup
+- `getTaskStats` - Dashboard statistics
+- `getTasksWithAIPriority` - Full AI scoring
+- `getAtRiskTasks` - At-risk tasks only
+- `getAIPriorityDashboard` - Combined dashboard
+- `getTeamWorkloadBalance` - Workload analysis
+- `calculateAIPriorityForTask` - Single task priority
+- `createUnifiedTask` - Create task + SMS
+- `updateUnifiedTask` - Update task
+- `bulkUpdateTasks` - Batch update (100 max)
+- `bulkCreateTasks` - Batch create (100 max)
+- `deleteUnifiedTask` - Soft delete
+
+**Chief of Staff 2.0 API:**
+- `getNextPriorityTask`, `getPendingDecisions`, `generateMorningBriefV2`
+- `getThisTimeLastYear`, `getWeatherAwareScheduling`, `calculateFarmPriority`
+- `recordTaskAction`, `getProactiveAlerts`
+
+**HR & Scheduling API:**
+- Time-off request endpoints, HR stats endpoints, Tardiness tracking
+
+**Garage/Fleet API:**
+- 17 endpoints for parts, manuals, service scheduling
+
+#### 3. New/Updated HTML Files Documented
+- `web_app/manager-dashboard.html` - NEW - Manager AI Dashboard
+- `web_app/task-assignment.html` - UPDATED - Bulk ops, AI priority
+- `index.html` - UPDATED - Unified Task API integration
+- `employee.html` - UPDATED - AI priority badges
+- `flowers.html` - UPDATED - AI priority badges
+- `food-safety.html` - UPDATED - AI priority badges
+- `web_app/chief-of-staff.html` - UPDATED - Brain integration
+
+#### 4. New Sheets Documented
+- `UNIFIED_TASKS` - Single source of truth for all tasks (45 columns)
+- `TIME_OFF_REQUESTS` - Employee time-off tracking
+- `EMPLOYEE_HR_STATS` - HR statistics
+- `GARAGE_PartsInventory`, `GARAGE_Manuals`, `GARAGE_ServiceSchedule`
+
+#### 5. New Backend Functions Documented
+- `calculateAIPriority(task, context)` - Main priority algorithm
+- `detectAtRisk(task)` - Risk detection (5 types)
+- `generateProactiveAlerts()` - System-wide alerts
+- `getAssigneeWorkloadRatioAI()`, `checkIncompleteBlockersAI()`
+- `getTasksWithAIPriority()`, `getAIPriorityDashboard()`, `getTeamWorkloadBalance()`
+
+#### 6. Architecture Section Added (Part 11)
+- Unified Task API Architecture diagram (ASCII)
+- Priority Scoring Flow diagram (ASCII)
+
+#### 7. Updated Status Information
+- Backend line count: ~88,000+ lines
+- Total endpoints: 250+
+- Updated last modified dates for all HTML files
+- Fixed deployment ID to current production version
+
+### Reason
+User requested comprehensive SYSTEM_MANIFEST.md update to document all Feb 3-4, 2026 additions including the Unified Task API, AI priority scoring, at-risk detection, manager dashboard, and all related endpoints and functions.
+
+### Duplicate Check
+- [x] Checked existing SYSTEM_MANIFEST.md - updated in place
+- [x] Cross-referenced with CHANGE_LOG.md entries from Feb 2-3
+- [x] No duplicates created - consolidated existing documentation
+
+---
+
+## 2026-02-03 - Mobile_Claude (Offline Task Management)
+
+### Files Created
+- `web_app/offline-task-manager.js` - Complete offline task management system with IndexedDB
+
+### Files Modified
+- `sw.js` - Enhanced service worker with background sync for task operations
+- `employee.html` - Integrated OfflineTaskManager with employee app
+
+### Classes Added
+**web_app/offline-task-manager.js:**
+- `OfflineTaskManager` - Main class for offline task operations:
+  - `cacheTasksForOffline(tasks)` - Store tasks in IndexedDB for offline viewing
+  - `getOfflineTasks(filters)` - Retrieve cached tasks with filtering
+  - `getOfflineTask(taskId)` - Get single cached task
+  - `updateLocalTask(taskId, updates)` - Update task in local cache
+  - `queueOfflineAction(action, taskId, data)` - Queue changes for sync
+  - `syncWhenOnline()` - Sync queued actions when connected
+  - `completeTask(taskId, options)` - Complete task (works offline)
+  - `startTask(taskId, options)` - Start task (works offline)
+  - `updateTask(taskId, updates)` - Update task (works offline)
+  - `getPendingActionCount()` - Get count of pending sync actions
+  - `getLastSync()` - Get last successful sync timestamp
+- `OfflineUIManager` - UI helper class for offline indicators:
+  - Offline mode banner with pending sync badge
+  - Sync status indicator with animations
+  - Auto-updates based on OfflineTaskManager events
+
+### IndexedDB Schema
+- `offlineTasks` store - Cached tasks with indexes: status, assignee, dueDate, priority, type
+- `pendingActions` store - Action queue with indexes: taskId, action, createdAt, status, retryCount
+- `syncMeta` store - Sync metadata (lastSync, lastTaskCache timestamps)
+
+### Service Worker Enhancements (sw.js)
+- `getPendingActionsFromIDB()` - Direct IndexedDB access for background sync
+- `processTaskAction(action)` - Process single task action via API
+- `markActionSynced(actionId)` - Mark action as completed in IDB
+- `incrementRetryCount(actionId)` - Handle failed sync retries
+- Enhanced `syncOfflineTasks()` - Full background sync processing
+- Added `offline-task-manager.js` and `api-config.js` to static cache
+
+### Employee App Integration (employee.html)
+- Added `OfflineTaskManager` initialization in DOMContentLoaded
+- Added `offlineTaskCount` to AppState
+- Added `initOfflineTaskManager()` function
+- Added `updateCombinedSyncBadge()` for unified pending count
+- Added `completeTaskOffline()` helper function
+
+### Offline Flow
+1. User completes task while offline
+2. Local cache updated immediately via `updateLocalTask()`
+3. Action queued via `queueOfflineAction('complete', taskId, data)`
+4. Pending sync badge shows count
+5. When online, `syncWhenOnline()` processes queue
+6. Background sync via service worker for reliability
+7. Conflicts resolved with "server wins" strategy
+
+### Reason
+Enable task viewing and completion while offline for field workers in areas with poor connectivity. Uses IndexedDB for reliability (not localStorage), handles sync conflicts gracefully, and provides clear UI feedback about offline status and pending syncs.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions - extends existing OfflineDB, doesn't duplicate
+- [x] No duplicates created - OfflineTaskManager is a new specialized class
+
+---
+
+## 2026-02-03 - UX_Design_Claude (Micro-animations & Delight Team)
+
+### Files Created
+- `tinypm/static/css/micro-animations.css` - Complete CSS animation library (900+ lines)
+- `tinypm/static/js/micro-animations.js` - JavaScript animation helpers and celebration system
+- `tinypm/static/js/animated-checkbox.js` - Animated checkbox component with SVG checkmark
+- `tinypm/static/MICRO_ANIMATIONS_GUIDE.md` - Integration guide and documentation
+
+### CSS Features Added
+1. **Task Completion Animations**
+   - Checkmark draw effect with SVG stroke animation
+   - Task card green glow pulse on complete
+   - Slide-out animation for completed tasks
+   - Checkbox pulse and scale animations
+
+2. **Progress Bar Animations**
+   - Smooth fill with trailing glow
+   - Milestone marker pop effects
+   - 100% completion celebration with particles
+   - Pulsing progress indicator
+
+3. **Card & List Micro-interactions**
+   - Hover lift with shadow increase
+   - Press-down active state
+   - Enter animation (fade + slide)
+   - Delete animation (scale + fade)
+   - Drag-and-drop with placeholder and snap
+
+4. **Loading States**
+   - Logo pulse loader
+   - Skeleton screens with shimmer effect
+   - Rotating loading messages
+   - Spinner with personality
+
+5. **Empty State Animations**
+   - Floating icon animation
+   - Particle effects
+   - CTA button hover glow
+
+6. **Button & Input Feedback**
+   - Hover: subtle lift and scale
+   - Active: press-down effect
+   - Success: green flash animation
+   - Error: shake animation
+   - Focus ring pulse animation
+
+7. **Tab/Navigation Transitions**
+   - Content slide in/out based on direction
+   - Tab indicator slide animation
+   - Fade + transform combination
+
+8. **Toast Notifications**
+   - Enter animation (slide + scale)
+   - Exit animation (fade up)
+   - Progress bar countdown
+
+9. **Confetti System**
+   - Multiple particle shapes (square, circle, strip)
+   - Customizable colors and counts
+   - Fall and rotate animation
+   - Auto-cleanup after animation
+
+10. **Celebration Overlay**
+    - Full-screen achievement display
+    - Scale-up entrance animation
+    - Icon bounce animation
+    - Click-to-dismiss
+
+11. **Utility Animation Classes**
+    - `.fade-in`, `.fade-out`
+    - `.slide-up`, `.slide-down`
+    - `.scale-in`
+    - `.stagger-children` (auto-stagger delays)
+    - `.pulse-attention`
+    - `.wiggle`
+
+### JavaScript Functions Added
+- `TinyAnimations.init()` - Initialize with reduced motion detection
+- `TinyAnimations.completeTask(element, options)` - Animate task completion with optional confetti
+- `TinyAnimations.animateCheckbox(checkbox, checked)` - Animate checkbox state change
+- `TinyAnimations.updateProgress(progressBar, percentage, options)` - Animate progress with milestones
+- `TinyAnimations.enterCard(card)` - Animate new card entry
+- `TinyAnimations.deleteCard(card, onComplete)` - Animate card deletion
+- `TinyAnimations.setupDragDrop(container)` - Initialize drag-and-drop with animations
+- `TinyAnimations.spawnConfetti(options)` - Spawn confetti particles
+- `TinyAnimations.showToast(options)` - Show animated toast notification
+- `TinyAnimations.showSkeleton(container, type)` - Show skeleton loading state
+- `TinyAnimations.showLoadingWithMessages(container, messages)` - Rotating loading messages
+- `TinyAnimations.transitionTabs(from, to, direction)` - Animate tab transitions
+- `TinyAnimations.moveTabIndicator(indicator, target)` - Slide tab indicator
+- `TinyAnimations.buttonSuccess(button)` - Flash success on button
+- `TinyAnimations.buttonError(button)` - Shake button for error
+- `TinyAnimations.ripple(element, event)` - Material-style ripple effect
+- `TinyAnimations.celebrate(options)` - Full celebration overlay
+- `TinyAnimations.staggerChildren(container)` - Add stagger to child elements
+- `TinyAnimations.pulseAttention(element)` - Draw attention to element
+- `TinyAnimations.wiggle(element)` - Quick wiggle animation
+- `AnimatedCheckbox.create(container, options)` - Create animated checkbox
+- `AnimatedCheckbox.toggle(checkbox, checked)` - Toggle checkbox state
+- `AnimatedCheckbox.upgrade(input)` - Upgrade existing input to animated
+- `AnimatedCheckbox.upgradeAll(container)` - Batch upgrade checkboxes
+
+### Accessibility Features
+- Full `prefers-reduced-motion` support (CSS and JS)
+- ARIA attributes on checkboxes
+- Keyboard navigation for checkboxes
+- Focus ring animations
+
+### Reason
+Implementing Team 2 deliverables: Make every interaction in TinyPM feel SATISFYING and REWARDING. Inspired by Asana's unicorn celebration, Linear's snappy transitions, and Superhuman's speed. The goal is to create emotional connection through delightful micro-interactions that make users FEEL something when they complete tasks.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (found goal-celebration.js which this complements)
+- [x] No duplicates created - this is a new animation library that extends existing celebration system
+
+---
+
+## 2026-02-03 - Backend_Claude (Critical Task SMS Integration)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Added Critical Task SMS Integration System
+
+### Functions Added
+- `getSMSTemplate(type)` in `MERGED TOTAL.js` - Returns SMS template configuration for alert types (CRITICAL_TASK, AT_RISK, FROST, OVERDUE, TASK_ASSIGNED, WEATHER_WINDOW)
+- `getRecipientPhone(recipientId)` in `MERGED TOTAL.js` - Retrieves phone number from USERS or EMPLOYEES sheet by ID
+- `sendCriticalTaskSMS(taskId, recipientId, reason)` in `MERGED TOTAL.js` - Sends formatted SMS for critical/urgent tasks
+- `sendAtRiskAlert(task, risks)` in `MERGED TOTAL.js` - Sends SMS when task becomes at-risk (integrates with detectAtRisk())
+- `sendFrostWarning(fields, forecastData)` in `MERGED TOTAL.js` - Broadcasts frost warning SMS to all active recipients
+- `sendOverdueReminder(tasks, recipientId)` in `MERGED TOTAL.js` - Sends overdue task count reminder SMS
+- `getAllActiveRecipients()` in `MERGED TOTAL.js` - Gets all users/employees with phone numbers for broadcast
+- `updateTaskSMSStatus(taskId, sent, type)` in `MERGED TOTAL.js` - Updates UNIFIED_TASKS SMS_Sent columns
+- `processAtRiskTaskSMS()` in `MERGED TOTAL.js` - Batch processor for at-risk task alerts (for scheduled triggers)
+- `checkAndSendFrostWarnings()` in `MERGED TOTAL.js` - Weather check and frost warning dispatcher (for scheduled triggers)
+- `sendOverdueReminders()` in `MERGED TOTAL.js` - Batch overdue reminder processor (for scheduled triggers)
+
+### API Endpoints Added (GET)
+- `sendCriticalTaskSMS` - params: taskId, recipientId, reason
+- `sendAtRiskAlert` - params: task (JSON), risks (JSON array)
+- `sendFrostWarning` - params: fields (JSON array), forecastData (JSON)
+- `sendOverdueReminder` - params: tasks (JSON array), recipientId
+- `getSMSTemplate` - params: type
+- `processAtRiskTaskSMS` - no params, processes all at-risk tasks
+- `checkAndSendFrostWarnings` - no params, checks weather and sends alerts
+- `sendOverdueReminders` - no params, sends reminders to all with overdue tasks
+
+### API Endpoints Added (POST)
+- Same 7 endpoints above also available via POST for larger payloads
+
+### SMS Templates Defined
+- CRITICAL_TASK: "{emoji} CRITICAL: {title} due {time}. {reason}. Reply DONE when complete."
+- AT_RISK: "{emoji} AT RISK: {title} - {riskReason}. Action needed today."
+- FROST: "{emoji} FROST ALERT: {temp}F tonight. Protect {fields}."
+- OVERDUE: "{emoji} {count} overdue tasks need attention. Check app."
+- TASK_ASSIGNED: "{emoji} New task: {title}. Due: {dueDate}. Details in app."
+- WEATHER_WINDOW: "{emoji} WEATHER WINDOW: {title} - Good conditions for next {hours}hrs. Act now!"
+
+### Integrations
+- Uses existing `sendSMS()` function (Twilio) - no duplication
+- Uses existing `detectAtRisk()` function for risk assessment
+- Uses existing `getTaskPriorities()` for at-risk task detection
+- Uses existing `getUnifiedTaskById()` for task details
+- Uses existing `logSMSToSheet()` for SMS tracking
+- Updates `UNIFIED_TASKS` sheet SMS_Sent columns
+
+### Reason
+Phase 5 of STATE_OF_THE_ART_TASK_SYSTEM_PLAN.md requires SMS integration for critical tasks. This module provides:
+1. Formatted SMS notifications for critical/high-priority tasks
+2. At-risk task alerts when detectAtRisk() identifies issues
+3. Frost warning broadcasts to protect crops
+4. Overdue task reminders for accountability
+5. Batch processing functions for scheduled triggers
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (sendSMS exists - we use it, don't duplicate)
+- [x] No duplicates created - all new functions integrate with existing SMS infrastructure
+
+---
+
+## 2026-02-03 - Desktop_Claude (Speed & Command Palette Team)
+
+### Files Modified
+- `tinypm/web_dashboard.html` - Added comprehensive Command Palette system (Cmd+K), keyboard shortcuts, optimistic UI, and skeleton loading
+
+### CSS Added
+- Command palette overlay and modal styling (.cmd-palette-*)
+- Keyboard shortcuts help modal (.shortcuts-modal, .shortcuts-*)
+- Skeleton loading animations (.skeleton-*)
+- Optimistic UI task completion animation (.task-card.completing)
+- Undo toast styling (.toast-undo-*)
+- Mobile command palette FAB trigger (.cmd-palette-fab)
+
+### HTML Added
+- Command palette modal with fuzzy search input
+- Keyboard shortcuts help modal with all shortcuts documented
+- Mobile floating action button for command palette access
+
+### Functions Added
+- `openCommandPalette()` - Opens the Cmd+K command palette
+- `closeCommandPalette()` - Closes the command palette
+- `fuzzySearch(query, commands)` - Fuzzy search algorithm for commands
+- `updateCommandPaletteResults(query)` - Updates command palette results UI
+- `highlightCommandItem(idx)` - Highlights selected item in palette
+- `executeCommand(idx)` - Executes selected command and tracks recent
+- `openShortcutsModal()` / `closeShortcutsModal()` - Shortcuts help modal
+- `navigateToTab(tab)` - Helper for keyboard navigation to tabs
+- `focusTaskSearch()` - Opens palette in search mode
+- `navigateTaskList(direction)` - Vim-style j/k task navigation
+- `selectFocusedTask()` - Selects task via keyboard
+- `completeTaskOptimistic(taskId)` - Instant task completion with undo
+- `showUndoToast(message, undoAction)` - Toast with 5-second undo
+- `executeUndo()` - Executes pending undo action
+- `showTaskSkeleton()` - Shows skeleton loading for tasks
+- `showStatsSkeleton()` - Shows skeleton loading for stats
+
+### Keyboard Shortcuts Implemented
+- `Cmd+K` / `Ctrl+K` - Open command palette
+- `C` - Create new task
+- `/` - Focus search (opens palette)
+- `?` - Show keyboard shortcuts help
+- `G T` - Go to Tasks tab
+- `G L` - Go to Life tab
+- `G P` - Go to Projects tab
+- `G A` - Go to Agents tab
+- `G V` - Go to Activity tab
+- `J` / `Down` - Navigate task list down (vim-style)
+- `K` / `Up` - Navigate task list up (vim-style)
+- `X` - Complete selected task (optimistic with undo)
+- `E` - Edit selected task
+- `D` - Cycle task status
+- `Enter` - Select/open focused task or launch agent
+- `Escape` - Close modals/panels
+- `Shift+R` - Refresh all data
+
+### Reason
+Implementing Team 1 deliverables for making TinyPM feel INSTANT and keyboard-first like Linear. This includes:
+1. Full command palette with fuzzy search and categories
+2. Comprehensive keyboard shortcuts with vim-style navigation
+3. Optimistic UI updates with 5-second undo capability
+4. Skeleton loading states for perceived performance
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md - No existing command palette
+- [x] Searched for similar functions - Only basic keyboard shortcuts existed
+- [x] No duplicates created - Enhanced existing minimal shortcuts
+
+---
+
+## 2026-02-03 - PM_Architect (Multi-Agent AI Research)
+
+### Files Created
+- `claude_sessions/pm_architect/MULTI_AGENT_RESEARCH_REPORT.md` - Comprehensive research report on state-of-the-art multi-agent AI patterns for TinyPM enhancement
+
+### Research Conducted
+- Surveyed 2025-2026 developments in multi-agent frameworks (LangGraph, CrewAI, AutoGen, OpenAI Agents SDK, Google ADK, Agency Swarm, Swarms AI)
+- Analyzed communication protocols (MCP, A2A, ACP)
+- Evaluated agent team topologies (hierarchical, swarm, graph-based)
+- Researched memory architectures (hybrid vector store + knowledge graph)
+- Studied self-evolving/self-healing agent patterns
+- Reviewed human-in-the-loop evolution to human-on-the-loop
+- Assessed observability standards (OpenTelemetry)
+- Examined Anthropic's multi-agent best practices
+
+### Key Recommendations
+1. **Priority 1 (Immediate):** Shared memory layer, self-healing for stale sessions, observability dashboard
+2. **Priority 2 (Medium):** Confidence-based escalation, tool effectiveness tracking, parallel execution
+3. **Priority 3 (Long-term):** A2A protocol integration, hierarchical team structure, knowledge graph, swarm capability
+
+### Reason
+User requested research on latest multi-agent AI developments (2025-2026) to identify new architectural patterns, coordination mechanisms, memory sharing approaches, and reliability patterns that could enhance TinyPM's current supervisor-based multi-agent system.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar reports (found TASK_MANAGEMENT_RESEARCH_REPORT.md - this is complementary, not duplicate)
+- [x] No duplicates created
+
+---
+
 ## 2026-02-03 - Desktop_Claude (Fix Orphaned Element References)
 
 ### Files Modified

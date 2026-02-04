@@ -1,6 +1,10 @@
 # EMPLOYEE QUICK START GUIDE
 ## Tiny Seed Farm - Your Daily App Guide
 
+**Updated:** 2026-02-03
+
+> For comprehensive documentation, see **docs/EMPLOYEE_GUIDE.md**
+
 ---
 
 ## Your App: Employee App
@@ -87,5 +91,24 @@ When you harvest:
 - Or call the office: [phone number]
 
 ---
+
+## NEW: PRIORITY BADGES
+
+Tasks now show colored priority badges:
+
+| Color | Meaning |
+|-------|---------|
+| **Red** | Do FIRST |
+| **Orange** | Do today |
+| **Yellow** | Important |
+| **Green** | Flexible |
+
+### At-Risk Warnings
+If you see a yellow triangle warning, that task needs attention!
+- Ask your Field Lead if unsure how to respond
+
+---
+
+*For complete documentation, see docs/EMPLOYEE_GUIDE.md*
 
 *Keep this card in your pocket for reference!*

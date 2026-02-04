@@ -4,10 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tiny Seed OS - Farm Management Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- PERFORMANCE OPTIMIZATIONS (2026-02-03):
+         - Preconnect to critical origins for faster DNS/TCP/TLS
+         - Font with display=swap for better FCP
+         - Defer Font Awesome (non-critical icons)
+         - Target: FCP <1.5s, TTI <3s, Lighthouse >80
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://script.google.com">
+    <link rel="dns-prefetch" href="https://api.open-meteo.com">
+
+    <!-- Load only the font weights we actually use (reduced from 6 to 4) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Defer Font Awesome - icons are not needed for initial render -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
+
+    <!-- Auth guard must load early -->
     <script src="web_app/auth-guard.js" data-required-role="Employee"></script>
+
     <style>
+        /* CRITICAL CSS - Required for above-the-fold rendering */
         :root {
             --primary: #2d5a27;
             --primary-light: #4a7c43;
@@ -3530,6 +3551,76 @@
             color: #f59e0b;
         }
 
+        /* ========================================
+           VOICE/NLP TASK CREATION
+           ======================================== */
+        .voice-fab {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(45, 90, 39, 0.4);
+            transition: all 0.3s ease;
+            z-index: 900;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .voice-fab:hover { transform: scale(1.1); box-shadow: 0 8px 25px rgba(45, 90, 39, 0.5); }
+        .voice-fab.listening { background: linear-gradient(135deg, #ef4444 0%, #f97316 100%); animation: voicePulse 1.5s infinite; }
+        .voice-fab.processing { background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); }
+        .voice-fab .voice-icon { display: flex; align-items: center; justify-content: center; }
+        .voice-fab.listening .voice-icon { animation: micBounce 0.6s ease-in-out infinite; }
+        @keyframes voicePulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 50% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); } }
+        @keyframes micBounce { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+        .voice-fab::after { content: attr(data-hint); position: absolute; right: 80px; background: var(--bg-card); color: var(--text-primary); padding: 8px 14px; border-radius: 8px; font-size: 0.85rem; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.2s; border: 1px solid var(--border); }
+        .voice-fab:hover::after, .voice-fab.listening::after, .voice-fab.processing::after { opacity: 1; }
+        .voice-fab.not-supported { background: var(--bg-light); cursor: not-allowed; opacity: 0.5; }
+        .nlp-input-container { position: fixed; bottom: 2rem; right: 6.5rem; display: flex; align-items: center; gap: 10px; opacity: 0; pointer-events: none; transform: translateX(20px); transition: all 0.3s ease; z-index: 899; }
+        .nlp-input-container.visible { opacity: 1; pointer-events: auto; transform: translateX(0); }
+        .nlp-input { width: 320px; padding: 14px 18px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 32px; color: var(--text-primary); font-size: 1rem; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3); }
+        .nlp-input:focus { outline: none; border-color: var(--primary-light); }
+        .nlp-input::placeholder { color: var(--text-secondary); }
+        .nlp-submit-btn { width: 48px; height: 48px; border-radius: 50%; background: var(--primary); border: none; color: white; font-size: 1rem; cursor: pointer; transition: all 0.2s; }
+        .nlp-submit-btn:hover { background: var(--primary-light); }
+        .nlp-confirm-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px); z-index: 2000; display: none; align-items: center; justify-content: center; padding: 1rem; }
+        .nlp-confirm-overlay.visible { display: flex; }
+        .nlp-confirm-modal { background: var(--bg-card); border-radius: 20px; border: 1px solid var(--border); max-width: 500px; width: 100%; overflow: hidden; box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5); animation: nlpModalSlideUp 0.3s ease-out; }
+        @keyframes nlpModalSlideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .nlp-confirm-header { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); padding: 1.25rem 1.5rem; display: flex; align-items: center; gap: 12px; }
+        .nlp-confirm-header i { font-size: 1.5rem; }
+        .nlp-confirm-header h3 { margin: 0; font-size: 1.1rem; font-weight: 600; }
+        .nlp-confirm-header .close-btn { margin-left: auto; background: rgba(255,255,255,0.2); border: none; color: white; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 1rem; }
+        .nlp-confirm-header .close-btn:hover { background: rgba(255,255,255,0.3); }
+        .nlp-confirm-body { padding: 1.5rem; }
+        .nlp-original-text { background: var(--bg-light); border-radius: 10px; padding: 12px 16px; margin-bottom: 1.5rem; font-style: italic; color: var(--text-secondary); border-left: 3px solid var(--primary-light); }
+        .nlp-original-text i { margin-right: 8px; color: var(--primary-light); }
+        .nlp-parsed-fields { display: flex; flex-direction: column; gap: 1rem; }
+        .nlp-field { display: flex; flex-direction: column; gap: 6px; }
+        .nlp-field label { font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+        .nlp-field input, .nlp-field select { background: var(--bg-light); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; color: var(--text-primary); font-size: 1rem; }
+        .nlp-field input:focus, .nlp-field select:focus { outline: none; border-color: var(--primary-light); }
+        .nlp-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .nlp-confidence { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: rgba(42, 157, 143, 0.1); border-radius: 8px; font-size: 0.9rem; margin-top: 0.5rem; }
+        .nlp-confidence.high { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+        .nlp-confidence.medium { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+        .nlp-confidence.low { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+        .nlp-confidence i { font-size: 1rem; }
+        .nlp-confirm-footer { padding: 1rem 1.5rem; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 12px; }
+        .nlp-confirm-footer .btn { padding: 12px 24px; border-radius: 10px; font-weight: 600; font-size: 0.95rem; cursor: pointer; transition: all 0.2s; }
+        .nlp-confirm-footer .btn-cancel { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); }
+        .nlp-confirm-footer .btn-cancel:hover { background: var(--bg-light); color: var(--text-primary); }
+        .nlp-confirm-footer .btn-confirm { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); border: none; color: white; display: flex; align-items: center; gap: 8px; }
+        .nlp-confirm-footer .btn-confirm:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(45, 90, 39, 0.3); }
+        @media (max-width: 768px) { .voice-fab { bottom: 1.5rem; right: 1.5rem; width: 56px; height: 56px; font-size: 1.25rem; } .voice-fab::after { display: none; } .nlp-input-container { right: 5rem; } .nlp-input { width: 200px; padding: 12px 16px; font-size: 0.9rem; } .nlp-field-row { grid-template-columns: 1fr; } }
+
         /* Loan Readiness Widget */
         .loan-readiness-widget {
             background: linear-gradient(135deg, rgba(230, 57, 70, 0.1) 0%, rgba(230, 57, 70, 0.05) 100%);
@@ -3650,6 +3741,429 @@
             .loan-action {
                 width: 100%;
                 justify-content: center;
+            }
+        }
+
+        /* ========================================
+           TIME TRACKING UI - Estimated vs Actual
+           ======================================== */
+
+        /* Time Entry Modal */
+        .time-entry-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .time-entry-modal.visible {
+            display: flex;
+        }
+
+        .time-entry-content {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 28px;
+            width: 90%;
+            max-width: 400px;
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .time-entry-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .time-entry-header .check-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--success);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .time-entry-header h3 {
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+
+        .time-entry-header .task-name {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .time-entry-label {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            display: block;
+        }
+
+        .time-entry-estimated {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            margin-bottom: 16px;
+            font-size: 0.9rem;
+        }
+
+        .time-entry-estimated i {
+            color: var(--primary-light);
+        }
+
+        .time-entry-estimated .est-value {
+            font-weight: 700;
+            color: var(--primary-light);
+        }
+
+        /* Quick Time Buttons */
+        .time-quick-entry {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .time-quick-btn {
+            padding: 14px 8px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            background: transparent;
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .time-quick-btn:hover {
+            border-color: var(--primary);
+            background: rgba(45, 90, 39, 0.1);
+        }
+
+        .time-quick-btn.selected {
+            border-color: var(--primary);
+            background: var(--primary);
+            color: white;
+        }
+
+        .time-quick-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Custom Time Input */
+        .time-custom-entry {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .time-custom-entry span {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .time-custom-input {
+            flex: 1;
+            padding: 12px 16px;
+            background: var(--bg-dark);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .time-custom-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .time-custom-input::placeholder {
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        .time-entry-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .time-entry-cancel {
+            flex: 1;
+            padding: 14px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-secondary);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .time-entry-submit {
+            flex: 2;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .time-entry-submit:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .time-entry-submit:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(45, 90, 39, 0.4);
+        }
+
+        /* Time Result Comparison */
+        .time-result {
+            background: var(--bg-dark);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .time-result-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+        }
+
+        .time-result-row:not(:last-child) {
+            border-bottom: 1px solid var(--border);
+        }
+
+        .time-result-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .time-result-value {
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        .time-result-value.actual {
+            color: var(--text-primary);
+        }
+
+        .time-result-value.estimated {
+            color: var(--primary-light);
+        }
+
+        .time-result-value.deviation {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+
+        .time-result-value.deviation.excellent {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        .time-result-value.deviation.good {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+
+        .time-result-value.deviation.over {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        /* Efficiency Badge on Completed Tasks */
+        .efficiency-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .efficiency-badge.excellent {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        .efficiency-badge.good {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+
+        .efficiency-badge.over {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        /* Time Taken Display */
+        .time-taken {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .time-taken i {
+            font-size: 0.7rem;
+        }
+
+        .time-taken .actual {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* Weekly Efficiency Summary Widget */
+        .efficiency-summary-widget {
+            background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-light) 100%);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .efficiency-summary-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .efficiency-summary-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .efficiency-summary-title i {
+            font-size: 1.25rem;
+            color: var(--success);
+        }
+
+        .efficiency-summary-title h3 {
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .efficiency-summary-period {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            background: var(--bg-dark);
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+
+        .efficiency-summary-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+
+        .efficiency-stat {
+            text-align: center;
+            padding: 12px;
+            background: var(--bg-dark);
+            border-radius: 10px;
+        }
+
+        .efficiency-stat-value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .efficiency-stat-value.excellent {
+            color: #22c55e;
+        }
+
+        .efficiency-stat-value.good {
+            color: #f59e0b;
+        }
+
+        .efficiency-stat-value.over {
+            color: #ef4444;
+        }
+
+        .efficiency-stat-value.neutral {
+            color: var(--text-primary);
+        }
+
+        .efficiency-stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .efficiency-trend {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            margin-top: 4px;
+            font-size: 0.75rem;
+        }
+
+        .efficiency-trend.up {
+            color: #22c55e;
+        }
+
+        .efficiency-trend.down {
+            color: #ef4444;
+        }
+
+        .efficiency-trend.stable {
+            color: var(--text-secondary);
+        }
+
+        @media (max-width: 768px) {
+            .efficiency-summary-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .time-quick-entry {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
     </style>
@@ -4084,6 +4598,38 @@
                             <i class="fas fa-utensils"></i>
                             <span>Invite Chef</span>
                         </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Weekly Efficiency Summary Widget -->
+            <div class="efficiency-summary-widget" id="efficiencySummaryWidget">
+                <div class="efficiency-summary-header">
+                    <div class="efficiency-summary-title">
+                        <i class="fas fa-chart-line"></i>
+                        <h3>Weekly Efficiency</h3>
+                    </div>
+                    <span class="efficiency-summary-period">Last 7 days</span>
+                </div>
+                <div class="efficiency-summary-stats">
+                    <div class="efficiency-stat">
+                        <div class="efficiency-stat-value neutral" id="efficiencyTasksCompleted">--</div>
+                        <div class="efficiency-stat-label">Tasks Done</div>
+                    </div>
+                    <div class="efficiency-stat">
+                        <div class="efficiency-stat-value neutral" id="efficiencyAvgScore">--%</div>
+                        <div class="efficiency-stat-label">Avg Efficiency</div>
+                        <div class="efficiency-trend stable" id="efficiencyTrend">
+                            <i class="fas fa-minus"></i> --
+                        </div>
+                    </div>
+                    <div class="efficiency-stat">
+                        <div class="efficiency-stat-value excellent" id="efficiencyOnTarget">--</div>
+                        <div class="efficiency-stat-label">On Target</div>
+                    </div>
+                    <div class="efficiency-stat">
+                        <div class="efficiency-stat-value over" id="efficiencyOverTime">--</div>
+                        <div class="efficiency-stat-label">Over Time</div>
                     </div>
                 </div>
             </div>
@@ -4669,6 +5215,65 @@
         </div>
     </div>
 
+    <!-- Time Entry Modal -->
+    <div class="time-entry-modal" id="timeEntryModal">
+        <div class="time-entry-content">
+            <div class="time-entry-header">
+                <div class="check-icon"><i class="fas fa-check"></i></div>
+                <div>
+                    <h3>Task Completed!</h3>
+                    <div class="task-name" id="timeEntryTaskName">Greenhouse Sowing - Tomatoes</div>
+                </div>
+            </div>
+
+            <span class="time-entry-label">How long did this take?</span>
+
+            <div class="time-entry-estimated" id="timeEntryEstimated">
+                <i class="fas fa-clock"></i>
+                <span>Estimated time:</span>
+                <span class="est-value" id="timeEntryEstValue">30 min</span>
+            </div>
+
+            <!-- Quick Time Buttons -->
+            <div class="time-quick-entry">
+                <button class="time-quick-btn" data-minutes="15" onclick="selectQuickTime(15)">15m</button>
+                <button class="time-quick-btn" data-minutes="30" onclick="selectQuickTime(30)">30m</button>
+                <button class="time-quick-btn" data-minutes="45" onclick="selectQuickTime(45)">45m</button>
+                <button class="time-quick-btn" data-minutes="60" onclick="selectQuickTime(60)">1h</button>
+            </div>
+
+            <!-- Custom Time Input -->
+            <div class="time-custom-entry">
+                <span>or enter:</span>
+                <input type="number" class="time-custom-input" id="timeCustomInput" placeholder="Custom minutes" min="1" max="480" oninput="clearQuickTimeSelection()">
+                <span>min</span>
+            </div>
+
+            <!-- Time Result (shows after time is selected) -->
+            <div class="time-result" id="timeResultComparison" style="display: none;">
+                <div class="time-result-row">
+                    <span class="time-result-label">Your time</span>
+                    <span class="time-result-value actual" id="timeResultActual">--</span>
+                </div>
+                <div class="time-result-row">
+                    <span class="time-result-label">Estimated</span>
+                    <span class="time-result-value estimated" id="timeResultEstimated">--</span>
+                </div>
+                <div class="time-result-row">
+                    <span class="time-result-label">Efficiency</span>
+                    <span class="time-result-value deviation" id="timeResultDeviation">--</span>
+                </div>
+            </div>
+
+            <div class="time-entry-actions">
+                <button class="time-entry-cancel" onclick="skipTimeEntry()">Skip</button>
+                <button class="time-entry-submit" id="timeEntrySubmit" onclick="submitTimeEntry()" disabled>
+                    <i class="fas fa-check"></i> Save Time
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Task Action Modal -->
     <div class="modal-overlay task-action-modal" id="taskActionModal">
         <div class="modal" style="max-width: 480px;">
@@ -4894,6 +5499,96 @@
         </div>
     </div>
 
+    <!-- Voice/NLP Task Creation Button -->
+    <button class="voice-fab" id="voiceFab" data-hint="Speak or type a task" onclick="toggleVoiceInput()">
+        <span class="voice-icon"><i class="fas fa-microphone"></i></span>
+    </button>
+
+    <!-- NLP Text Input (shows on click/tap) -->
+    <div class="nlp-input-container" id="nlpInputContainer">
+        <input type="text" class="nlp-input" id="nlpTextInput" placeholder="e.g., Harvest tomatoes tomorrow..." onkeydown="handleNlpKeydown(event)">
+        <button class="nlp-submit-btn" onclick="submitNlpText()"><i class="fas fa-arrow-right"></i></button>
+    </div>
+
+    <!-- NLP Confirmation Modal -->
+    <div class="nlp-confirm-overlay" id="nlpConfirmOverlay" onclick="closeNlpConfirmOnOverlay(event)">
+        <div class="nlp-confirm-modal" onclick="event.stopPropagation()">
+            <div class="nlp-confirm-header">
+                <i class="fas fa-tasks"></i>
+                <h3>Create Task</h3>
+                <button class="close-btn" onclick="closeNlpConfirm()">&times;</button>
+            </div>
+            <div class="nlp-confirm-body">
+                <div class="nlp-original-text" id="nlpOriginalText">
+                    <i class="fas fa-quote-left"></i>
+                    <span id="nlpOriginalTextSpan">Your command will appear here</span>
+                </div>
+                <div class="nlp-parsed-fields">
+                    <div class="nlp-field">
+                        <label>Task Type</label>
+                        <select id="nlpTaskType">
+                            <option value="harvest">Harvest</option>
+                            <option value="spray">Spray/Treat</option>
+                            <option value="plant">Plant/Sow</option>
+                            <option value="transplant">Transplant</option>
+                            <option value="weed">Weed/Cultivate</option>
+                            <option value="water">Water/Irrigate</option>
+                            <option value="scout">Scout</option>
+                            <option value="maintenance">Maintenance</option>
+                            <option value="admin">Admin</option>
+                            <option value="delivery">Delivery</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="nlp-field">
+                        <label>Task Title</label>
+                        <input type="text" id="nlpTaskTitle" placeholder="e.g., Harvest tomatoes">
+                    </div>
+                    <div class="nlp-field-row">
+                        <div class="nlp-field">
+                            <label>Crop/Target</label>
+                            <input type="text" id="nlpCrop" placeholder="e.g., Tomatoes">
+                        </div>
+                        <div class="nlp-field">
+                            <label>Field/Location</label>
+                            <input type="text" id="nlpField" placeholder="e.g., Field 2">
+                        </div>
+                    </div>
+                    <div class="nlp-field-row">
+                        <div class="nlp-field">
+                            <label>Due Date</label>
+                            <input type="date" id="nlpDueDate">
+                        </div>
+                        <div class="nlp-field">
+                            <label>Time (optional)</label>
+                            <input type="time" id="nlpDueTime">
+                        </div>
+                    </div>
+                    <div class="nlp-field">
+                        <label>Assign To (optional)</label>
+                        <select id="nlpAssignee">
+                            <option value="">Unassigned</option>
+                        </select>
+                    </div>
+                    <div class="nlp-field">
+                        <label>Notes (optional)</label>
+                        <input type="text" id="nlpNotes" placeholder="Additional details...">
+                    </div>
+                    <div class="nlp-confidence high" id="nlpConfidenceIndicator">
+                        <i class="fas fa-check-circle"></i>
+                        <span id="nlpConfidenceText">High confidence - ready to create</span>
+                    </div>
+                </div>
+            </div>
+            <div class="nlp-confirm-footer">
+                <button class="btn btn-cancel" onclick="closeNlpConfirm()">Cancel</button>
+                <button class="btn btn-confirm" id="nlpConfirmBtn" onclick="confirmNlpTask()">
+                    <i class="fas fa-check"></i> Create Task
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // ========================================
         // CONFIGURATION
@@ -4901,6 +5596,60 @@
         // UNIFIED API URL - See web_app/api-config.js for canonical source
         // FIXED 2026-01-30: Updated to correct deployment
         const API_URL = 'https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec';
+
+        // ========================================
+        // PERFORMANCE: CLIENT-SIDE CACHE (2026-02-03)
+        // Reduces redundant API calls, improves TTI
+        // ========================================
+        const ClientCache = {
+            _cache: new Map(),
+            _timestamps: new Map(),
+
+            // Cache durations in ms
+            DURATIONS: {
+                SHORT: 30000,      // 30 seconds - for frequently changing data
+                MEDIUM: 120000,    // 2 minutes - for semi-static data
+                LONG: 300000,      // 5 minutes - for reference data
+                SESSION: 1800000   // 30 minutes - for truly static data
+            },
+
+            get(key, maxAge = this.DURATIONS.MEDIUM) {
+                const timestamp = this._timestamps.get(key);
+                if (timestamp && (Date.now() - timestamp) < maxAge) {
+                    return this._cache.get(key);
+                }
+                return null;
+            },
+
+            set(key, value) {
+                this._cache.set(key, value);
+                this._timestamps.set(key, Date.now());
+            },
+
+            invalidate(key) {
+                this._cache.delete(key);
+                this._timestamps.delete(key);
+            },
+
+            // Fetch with caching
+            async fetch(action, params = {}, cacheDuration = this.DURATIONS.MEDIUM) {
+                const cacheKey = `${action}_${JSON.stringify(params)}`;
+                const cached = this.get(cacheKey, cacheDuration);
+                if (cached) {
+                    console.log(`[Cache] HIT: ${action}`);
+                    return cached;
+                }
+
+                const urlParams = new URLSearchParams({ action, ...params });
+                const response = await fetch(`${API_URL}?${urlParams}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    this.set(cacheKey, data);
+                }
+                return data;
+            }
+        };
 
         // State
         let allPlantings = [];
@@ -5124,18 +5873,42 @@
         }
 
         // ========================================
-        // INITIALIZATION
+        // INITIALIZATION - PERFORMANCE OPTIMIZED (2026-02-03)
+        // Staged loading: Critical first, then secondary, then deferred
+        // Target: FCP <1.5s, TTI <3s
         // ========================================
         document.addEventListener('DOMContentLoaded', () => {
+            // PHASE 1: Critical path - UI visible immediately (FCP)
             populateUserInfo();
             updateWelcomeBanner();
-            checkConnection();
-            loadAllData();
-            loadCropProfiles();
-            loadWeather();
-            initKeyboardShortcuts();
-            loadRecentCrops();
-            loadMorningBrief();
+            loadRecentCrops(); // From localStorage - instant
+
+            // PHASE 2: Primary data - fetch in parallel (TTI)
+            Promise.all([
+                checkConnection(),
+                loadAllData(),
+                loadMorningBrief()
+            ]).then(() => {
+                // Data loaded - update UI
+                console.log('[Performance] Primary data loaded');
+            });
+
+            // PHASE 3: Secondary data - deferred loading after main content
+            // Use requestIdleCallback for non-critical items
+            if ('requestIdleCallback' in window) {
+                requestIdleCallback(() => {
+                    loadCropProfiles();
+                    loadWeather();
+                    initKeyboardShortcuts();
+                }, { timeout: 2000 });
+            } else {
+                // Fallback for browsers without requestIdleCallback
+                setTimeout(() => {
+                    loadCropProfiles();
+                    loadWeather();
+                    initKeyboardShortcuts();
+                }, 100);
+            }
         });
 
         async function checkConnection() {
@@ -5155,23 +5928,24 @@
         }
 
         async function loadAllData() {
+            const startTime = performance.now();
             try {
-                const [plantingsRes, bedsRes] = await Promise.all([
-                    fetch(`${API_URL}?action=getPlanningData`),
-                    fetch(`${API_URL}?action=getBeds`)
+                // PERFORMANCE: Parallel fetch with client-side caching
+                const [plantingsData, bedsData] = await Promise.all([
+                    ClientCache.fetch('getPlanningData', {}, ClientCache.DURATIONS.SHORT),
+                    ClientCache.fetch('getBeds', {}, ClientCache.DURATIONS.LONG)
                 ]);
-
-                const plantingsData = await plantingsRes.json();
-                const bedsData = await bedsRes.json();
 
                 if (plantingsData.success) {
                     allPlantings = plantingsData.data;
                     populateFilters();
                     updateStats();
                     loadTodaysTasks();
+                    loadWeeklyEfficiency();
                     filterData();
                     checkTaskWarnings();
-                    showToast(`Loaded ${allPlantings.length} plantings`, 'success');
+                    const loadTime = Math.round(performance.now() - startTime);
+                    showToast(`Loaded ${allPlantings.length} plantings (${loadTime}ms)`, 'success');
                 }
 
                 if (bedsData.success) {
@@ -5186,6 +5960,9 @@
 
         async function refreshData() {
             showToast('Refreshing...', 'info');
+            // Invalidate caches on manual refresh
+            ClientCache.invalidate('getPlanningData_{}');
+            ClientCache.invalidate('getMorningBrief_{}');
             await loadAllData();
             loadMorningBrief();
         }
@@ -7071,11 +7848,156 @@
             }
         });
 
-        async function completeTask(batchId, taskType, event, unifiedTaskId = null) {
-            if (event) {
-                event.stopPropagation();
-            }
+        // ========================================
+        // TIME TRACKING - Estimated vs Actual
+        // ========================================
+        let pendingTimeEntryTask = null;
+        let selectedTimeMinutes = null;
 
+        async function completeTask(batchId, taskType, event, unifiedTaskId = null) {
+            if (event) event.stopPropagation();
+            const task = todaysTasks.find(t => t.batchId === batchId && t.type === taskType);
+            const estimatedMinutes = task?.estimatedMinutes || 30;
+            pendingTimeEntryTask = {
+                batchId, taskType, unifiedTaskId, estimatedMinutes,
+                taskName: task ? `${taskType === 'ghSow' ? 'Greenhouse Sow' : taskType === 'transplant' ? 'Transplant' : 'Direct Seed'} - ${task.crop}` : 'Task'
+            };
+            openTimeEntryModal(pendingTimeEntryTask);
+        }
+
+        function openTimeEntryModal(taskInfo) {
+            const modal = document.getElementById('timeEntryModal');
+            document.getElementById('timeEntryTaskName').textContent = taskInfo.taskName;
+            const estContainer = document.getElementById('timeEntryEstimated');
+            if (taskInfo.estimatedMinutes > 0) {
+                document.getElementById('timeEntryEstValue').textContent = formatMinutes(taskInfo.estimatedMinutes);
+                estContainer.style.display = 'flex';
+            } else {
+                estContainer.style.display = 'none';
+            }
+            selectedTimeMinutes = null;
+            document.querySelectorAll('.time-quick-btn').forEach(btn => btn.classList.remove('selected'));
+            document.getElementById('timeCustomInput').value = '';
+            document.getElementById('timeResultComparison').style.display = 'none';
+            document.getElementById('timeEntrySubmit').disabled = true;
+            modal.classList.add('visible');
+        }
+
+        function selectQuickTime(minutes) {
+            selectedTimeMinutes = minutes;
+            document.querySelectorAll('.time-quick-btn').forEach(btn => btn.classList.toggle('selected', parseInt(btn.dataset.minutes) === minutes));
+            document.getElementById('timeCustomInput').value = '';
+            showTimeComparison(minutes);
+            document.getElementById('timeEntrySubmit').disabled = false;
+        }
+
+        function clearQuickTimeSelection() {
+            document.querySelectorAll('.time-quick-btn').forEach(btn => btn.classList.remove('selected'));
+            const customValue = parseInt(document.getElementById('timeCustomInput').value);
+            if (customValue && customValue > 0) {
+                selectedTimeMinutes = customValue;
+                showTimeComparison(customValue);
+                document.getElementById('timeEntrySubmit').disabled = false;
+            } else {
+                selectedTimeMinutes = null;
+                document.getElementById('timeResultComparison').style.display = 'none';
+                document.getElementById('timeEntrySubmit').disabled = true;
+            }
+        }
+
+        function showTimeComparison(actualMinutes) {
+            if (!pendingTimeEntryTask) return;
+            const estimatedMinutes = pendingTimeEntryTask.estimatedMinutes || 30;
+            const deviation = Math.round(((actualMinutes - estimatedMinutes) / estimatedMinutes) * 100);
+            const absDeviation = Math.abs(deviation);
+            let efficiencyClass, efficiencyText;
+            if (absDeviation <= 10) { efficiencyClass = 'excellent'; efficiencyText = `On target (${deviation >= 0 ? '+' : ''}${deviation}%)`; }
+            else if (absDeviation <= 30) { efficiencyClass = 'good'; efficiencyText = deviation > 0 ? `+${deviation}% over` : `${deviation}% under`; }
+            else { efficiencyClass = 'over'; efficiencyText = deviation > 0 ? `+${deviation}% over` : `${deviation}% under`; }
+            document.getElementById('timeResultActual').textContent = formatMinutes(actualMinutes);
+            document.getElementById('timeResultEstimated').textContent = formatMinutes(estimatedMinutes);
+            const deviationEl = document.getElementById('timeResultDeviation');
+            deviationEl.textContent = efficiencyText;
+            deviationEl.className = `time-result-value deviation ${efficiencyClass}`;
+            document.getElementById('timeResultComparison').style.display = 'block';
+        }
+
+        function formatMinutes(minutes) {
+            if (minutes >= 60) { const hours = Math.floor(minutes / 60); const mins = minutes % 60; return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`; }
+            return `${minutes} min`;
+        }
+
+        async function submitTimeEntry() {
+            if (!pendingTimeEntryTask || !selectedTimeMinutes) return;
+            const { batchId, taskType, unifiedTaskId, estimatedMinutes } = pendingTimeEntryTask;
+            closeTimeEntryModal();
+            await completeTaskWithTime(batchId, taskType, unifiedTaskId, selectedTimeMinutes, estimatedMinutes);
+        }
+
+        function skipTimeEntry() {
+            if (!pendingTimeEntryTask) { closeTimeEntryModal(); return; }
+            const { batchId, taskType, unifiedTaskId, estimatedMinutes } = pendingTimeEntryTask;
+            closeTimeEntryModal();
+            completeTaskWithTime(batchId, taskType, unifiedTaskId, estimatedMinutes, estimatedMinutes);
+        }
+
+        function closeTimeEntryModal() {
+            document.getElementById('timeEntryModal').classList.remove('visible');
+            pendingTimeEntryTask = null;
+            selectedTimeMinutes = null;
+        }
+
+        function getEfficiencyBadgeClass(actualMinutes, estimatedMinutes) {
+            if (!estimatedMinutes || !actualMinutes) return '';
+            const deviation = Math.abs(((actualMinutes - estimatedMinutes) / estimatedMinutes) * 100);
+            if (deviation <= 10) return 'excellent';
+            if (deviation <= 30) return 'good';
+            return 'over';
+        }
+
+        function getEfficiencyBadgeEmoji(actualMinutes, estimatedMinutes) {
+            const badgeClass = getEfficiencyBadgeClass(actualMinutes, estimatedMinutes);
+            if (badgeClass === 'excellent') return '🟢';
+            if (badgeClass === 'good') return '🟡';
+            return '🔴';
+        }
+
+        async function loadWeeklyEfficiency() {
+            try {
+                const response = await fetch(`${API_URL}?action=getEfficiencyReport&days=7`);
+                const data = await response.json();
+                if (data.success) updateEfficiencyWidget(data);
+            } catch (error) { console.log('Could not load efficiency data:', error); }
+        }
+
+        function updateEfficiencyWidget(data) {
+            const tasksEl = document.getElementById('efficiencyTasksCompleted');
+            const avgEl = document.getElementById('efficiencyAvgScore');
+            const trendEl = document.getElementById('efficiencyTrend');
+            const onTargetEl = document.getElementById('efficiencyOnTarget');
+            const overTimeEl = document.getElementById('efficiencyOverTime');
+            if (tasksEl && data.tasksCompleted !== undefined) tasksEl.textContent = data.tasksCompleted;
+            if (avgEl && data.avgEfficiency !== undefined) {
+                const avgPct = Math.round(data.avgEfficiency);
+                avgEl.textContent = avgPct + '%';
+                avgEl.className = 'efficiency-stat-value ' + (avgPct >= 90 ? 'excellent' : avgPct >= 70 ? 'good' : 'over');
+            }
+            if (trendEl && data.trend !== undefined) {
+                const trendPct = data.trend;
+                if (trendPct > 0) { trendEl.innerHTML = `<i class="fas fa-arrow-up"></i> +${trendPct}%`; trendEl.className = 'efficiency-trend up'; }
+                else if (trendPct < 0) { trendEl.innerHTML = `<i class="fas fa-arrow-down"></i> ${trendPct}%`; trendEl.className = 'efficiency-trend down'; }
+                else { trendEl.innerHTML = `<i class="fas fa-minus"></i> 0%`; trendEl.className = 'efficiency-trend stable'; }
+            }
+            if (onTargetEl && data.onTarget !== undefined) onTargetEl.textContent = data.onTarget;
+            if (overTimeEl && data.overTime !== undefined) overTimeEl.textContent = data.overTime;
+        }
+
+        document.addEventListener('click', function(e) {
+            const modal = document.getElementById('timeEntryModal');
+            if (e.target === modal) skipTimeEntry();
+        });
+
+        async function completeTaskWithTime(batchId, taskType, unifiedTaskId, actualMinutes, estimatedMinutes) {
             const taskItem = document.querySelector(`[data-batch-id="${batchId}"][data-type="${taskType}"]`);
             const btn = taskItem?.querySelector('.task-complete-btn');
 
@@ -7102,7 +8024,8 @@
                                 action: 'updateUnifiedTask',
                                 taskId: unifiedTaskId,
                                 Status: 'DONE',
-                                Completed_At: new Date().toISOString()
+                                Completed_At: new Date().toISOString(),
+                                Actual_Minutes: actualMinutes
                             })
                         });
                         const result = await response.json();
@@ -7110,6 +8033,26 @@
                     } catch (unifiedError) {
                         console.log('Unified API failed, falling back to legacy:', unifiedError);
                     }
+                }
+
+                // Record time via dedicated endpoint
+                try {
+                    await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'recordTaskTime',
+                            taskId: unifiedTaskId || batchId,
+                            batchId: batchId,
+                            taskType: taskType,
+                            actualMinutes: actualMinutes,
+                            estimatedMinutes: estimatedMinutes,
+                            completedAt: new Date().toISOString(),
+                            completedBy: window.currentUser?.email || ''
+                        })
+                    });
+                } catch (timeError) {
+                    console.log('Time recording error (non-blocking):', timeError);
                 }
 
                 // Fall back to legacy planting update if unified didn't work
@@ -7144,8 +8087,9 @@
                     // Store for undo
                     const task = todaysTasks.find(t => t.batchId === batchId && t.type === taskType);
                     if (task) {
-                        lastCompletedTasks = [{...task}];
+                        lastCompletedTasks = [{...task, actualMinutes}];
                         task.completed = true;
+                        task.actualMinutes = actualMinutes;
                     }
 
                     // Remove from selection if selected
@@ -7154,10 +8098,11 @@
 
                     renderTodaysTasks();
                     updateStats();
+                    loadWeeklyEfficiency();
 
                     const taskName = taskType === 'ghSow' ? 'Sowing' :
                                     taskType === 'transplant' ? 'Transplant' : 'Direct seed';
-                    showUndoToast(`${taskName} completed`);
+                    showUndoToast(`${taskName} completed (${formatMinutes(actualMinutes)})`);
                 } else {
                     throw new Error('Failed to update task');
                 }
@@ -7858,12 +8803,13 @@
         }
 
         // ========================================
-        // CROP PROFILES
+        // CROP PROFILES - PERFORMANCE OPTIMIZED
+        // Crop profiles rarely change - use long cache
         // ========================================
         async function loadCropProfiles() {
             try {
-                const response = await fetch(`${API_URL}?action=getCropProfiles`);
-                const data = await response.json();
+                // PERFORMANCE: Long cache for reference data (5 min)
+                const data = await ClientCache.fetch('getCropProfiles', {}, ClientCache.DURATIONS.LONG);
                 if (data.success && data.data) {
                     cropProfiles = data.data.map(p => ({
                         Crop: p.Crop || p.Crop_Name || '',
@@ -8839,6 +9785,491 @@
                 setTimeout(() => openSmartAdd(), 300);
             });
         }
+
+        // ========================================
+        // VOICE/NLP TASK CREATION (2026-02-03)
+        // ========================================
+
+        // Voice recognition state
+        let voiceRecognition = null;
+        let isListening = false;
+        let voiceSupported = false;
+        let nlpInputVisible = false;
+        let currentParsedTask = null;
+
+        // NLP Patterns for task parsing
+        const nlpPatterns = {
+            taskTypes: {
+                harvest: /\b(harvest|pick|collect|gather)\b/i,
+                spray: /\b(spray|treat|apply|fertilize|fungicide|pesticide)\b/i,
+                plant: /\b(plant|sow|seed|start)\b/i,
+                transplant: /\b(transplant|move|transfer)\b/i,
+                weed: /\b(weed|cultivate|hoe|till)\b/i,
+                water: /\b(water|irrigate|drip)\b/i,
+                scout: /\b(scout|check|inspect|look at)\b/i,
+                maintenance: /\b(maintain|fix|repair|clean)\b/i,
+                admin: /\b(order|remind|call|email|schedule|meeting)\b/i,
+                delivery: /\b(deliver|pickup|drop off|drive)\b/i
+            },
+            datePatterns: {
+                today: /\b(today|now|asap|right now)\b/i,
+                tomorrow: /\b(tomorrow|tmrw)\b/i,
+                nextWeek: /\b(next week)\b/i,
+                thisWeek: /\b(this week)\b/i,
+                thisAfternoon: /\b(this afternoon|afternoon|pm)\b/i,
+                thisMorning: /\b(this morning|morning|am)\b/i,
+                monday: /\b(monday|mon)\b/i,
+                tuesday: /\b(tuesday|tue|tues)\b/i,
+                wednesday: /\b(wednesday|wed)\b/i,
+                thursday: /\b(thursday|thu|thurs)\b/i,
+                friday: /\b(friday|fri)\b/i,
+                saturday: /\b(saturday|sat)\b/i,
+                sunday: /\b(sunday|sun)\b/i
+            },
+            fieldPatterns: /\b(field|bed|row|greenhouse|gh|tunnel|block)\s*(\d+|[a-z])\b/i,
+            assigneePattern: /\b(assign(?:ed)?\s+to|give\s+to|for)\s+([a-z]+)\b/i,
+            cropNames: ['tomato', 'tomatoes', 'lettuce', 'kale', 'spinach', 'pepper', 'peppers', 'basil', 'cilantro', 'carrot', 'carrots', 'cucumber', 'cucumbers', 'squash', 'zucchini', 'beans', 'peas', 'corn', 'onion', 'onions', 'garlic', 'potato', 'potatoes', 'beet', 'beets', 'radish', 'radishes', 'broccoli', 'cauliflower', 'cabbage', 'chard', 'arugula', 'microgreens', 'sunflower', 'zinnia', 'dahlia', 'cosmos', 'marigold', 'eggplant', 'melon', 'watermelon', 'strawberry', 'strawberries', 'herbs', 'flowers']
+        };
+
+        // Initialize voice recognition
+        function initVoiceRecognition() {
+            const voiceFab = document.getElementById('voiceFab');
+
+            // Check for Web Speech API support
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                voiceSupported = true;
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                voiceRecognition = new SpeechRecognition();
+                voiceRecognition.continuous = false;
+                voiceRecognition.interimResults = true;
+                voiceRecognition.lang = 'en-US';
+
+                voiceRecognition.onstart = () => {
+                    isListening = true;
+                    voiceFab.classList.add('listening');
+                    voiceFab.setAttribute('data-hint', 'Listening...');
+                };
+
+                voiceRecognition.onresult = (event) => {
+                    let finalTranscript = '';
+                    let interimTranscript = '';
+
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const transcript = event.results[i][0].transcript;
+                        if (event.results[i].isFinal) {
+                            finalTranscript += transcript;
+                        } else {
+                            interimTranscript += transcript;
+                        }
+                    }
+
+                    // Show interim results in the text input
+                    const nlpInput = document.getElementById('nlpTextInput');
+                    if (interimTranscript) {
+                        nlpInput.value = interimTranscript;
+                        nlpInput.classList.add('interim');
+                    }
+
+                    if (finalTranscript) {
+                        nlpInput.value = finalTranscript;
+                        nlpInput.classList.remove('interim');
+                        // Process the final transcript
+                        processNlpCommand(finalTranscript);
+                    }
+                };
+
+                voiceRecognition.onerror = (event) => {
+                    console.error('Voice recognition error:', event.error);
+                    stopListening();
+                    if (event.error === 'not-allowed') {
+                        showToast('Microphone access denied. Please allow microphone access.', 'error');
+                    } else if (event.error !== 'aborted') {
+                        showToast('Voice recognition error. Try typing instead.', 'error');
+                    }
+                };
+
+                voiceRecognition.onend = () => {
+                    stopListening();
+                };
+
+                voiceFab.setAttribute('data-hint', 'Speak or type a task');
+            } else {
+                // Voice not supported - show keyboard icon
+                voiceSupported = false;
+                voiceFab.classList.add('not-supported');
+                voiceFab.innerHTML = '<span class="voice-icon"><i class="fas fa-keyboard"></i></span>';
+                voiceFab.setAttribute('data-hint', 'Type a task (voice not supported)');
+            }
+
+            // Load employees for assignment dropdown
+            loadEmployeesForNlp();
+        }
+
+        function toggleVoiceInput() {
+            const nlpContainer = document.getElementById('nlpInputContainer');
+            const nlpInput = document.getElementById('nlpTextInput');
+            const voiceFab = document.getElementById('voiceFab');
+
+            if (isListening) {
+                // Stop listening if currently active
+                stopListening();
+                return;
+            }
+
+            if (nlpInputVisible) {
+                // Hide the input
+                nlpContainer.classList.remove('visible');
+                nlpInputVisible = false;
+                voiceFab.setAttribute('data-hint', 'Speak or type a task');
+            } else {
+                // Show the input
+                nlpContainer.classList.add('visible');
+                nlpInputVisible = true;
+                nlpInput.value = '';
+                nlpInput.focus();
+
+                // If voice is supported, start listening
+                if (voiceSupported) {
+                    startListening();
+                }
+            }
+        }
+
+        function startListening() {
+            if (!voiceSupported || !voiceRecognition) return;
+
+            try {
+                voiceRecognition.start();
+            } catch (error) {
+                console.error('Error starting voice recognition:', error);
+            }
+        }
+
+        function stopListening() {
+            const voiceFab = document.getElementById('voiceFab');
+            isListening = false;
+            voiceFab.classList.remove('listening');
+            voiceFab.classList.remove('processing');
+            voiceFab.setAttribute('data-hint', nlpInputVisible ? 'Listening paused - type or tap to speak' : 'Speak or type a task');
+
+            if (voiceRecognition) {
+                try {
+                    voiceRecognition.stop();
+                } catch (error) {
+                    // Ignore errors when stopping
+                }
+            }
+        }
+
+        function handleNlpKeydown(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                submitNlpText();
+            } else if (event.key === 'Escape') {
+                closeNlpInput();
+            }
+        }
+
+        function submitNlpText() {
+            const nlpInput = document.getElementById('nlpTextInput');
+            const text = nlpInput.value.trim();
+
+            if (!text) {
+                showToast('Please enter or speak a task command', 'info');
+                return;
+            }
+
+            processNlpCommand(text);
+        }
+
+        function closeNlpInput() {
+            const nlpContainer = document.getElementById('nlpInputContainer');
+            nlpContainer.classList.remove('visible');
+            nlpInputVisible = false;
+            stopListening();
+        }
+
+        // Main NLP Parser
+        function parseTaskCommand(text) {
+            const result = {
+                originalText: text,
+                type: 'other',
+                title: text,
+                crop: '',
+                field: '',
+                dueDate: null,
+                dueTime: null,
+                assignee: '',
+                notes: '',
+                confidence: 'medium'
+            };
+
+            let matchCount = 0;
+
+            // 1. Detect task type
+            for (const [type, pattern] of Object.entries(nlpPatterns.taskTypes)) {
+                if (pattern.test(text)) {
+                    result.type = type;
+                    matchCount++;
+                    break;
+                }
+            }
+
+            // 2. Extract crop name
+            const lowerText = text.toLowerCase();
+            for (const crop of nlpPatterns.cropNames) {
+                if (lowerText.includes(crop)) {
+                    result.crop = crop.charAt(0).toUpperCase() + crop.slice(1);
+                    matchCount++;
+                    break;
+                }
+            }
+
+            // 3. Extract field/location
+            const fieldMatch = text.match(nlpPatterns.fieldPatterns);
+            if (fieldMatch) {
+                result.field = fieldMatch[0].replace(/\s+/g, ' ').trim();
+                result.field = result.field.charAt(0).toUpperCase() + result.field.slice(1);
+                matchCount++;
+            }
+
+            // 4. Extract date
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            for (const [dateKey, pattern] of Object.entries(nlpPatterns.datePatterns)) {
+                if (pattern.test(text)) {
+                    const targetDate = new Date(today);
+
+                    switch (dateKey) {
+                        case 'today':
+                            // Already today
+                            break;
+                        case 'tomorrow':
+                            targetDate.setDate(targetDate.getDate() + 1);
+                            break;
+                        case 'nextWeek':
+                            targetDate.setDate(targetDate.getDate() + 7);
+                            break;
+                        case 'thisWeek':
+                            // Keep as today or next business day
+                            break;
+                        case 'thisAfternoon':
+                            result.dueTime = '14:00';
+                            break;
+                        case 'thisMorning':
+                            result.dueTime = '09:00';
+                            break;
+                        case 'monday':
+                        case 'tuesday':
+                        case 'wednesday':
+                        case 'thursday':
+                        case 'friday':
+                        case 'saturday':
+                        case 'sunday':
+                            const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                            const targetDay = days.indexOf(dateKey);
+                            const currentDay = today.getDay();
+                            let daysToAdd = targetDay - currentDay;
+                            if (daysToAdd <= 0) daysToAdd += 7;
+                            targetDate.setDate(targetDate.getDate() + daysToAdd);
+                            break;
+                    }
+
+                    result.dueDate = targetDate.toISOString().split('T')[0];
+                    matchCount++;
+                    break;
+                }
+            }
+
+            // Default to today if no date found
+            if (!result.dueDate) {
+                result.dueDate = today.toISOString().split('T')[0];
+            }
+
+            // 5. Extract assignee
+            const assigneeMatch = text.match(nlpPatterns.assigneePattern);
+            if (assigneeMatch) {
+                result.assignee = assigneeMatch[2].charAt(0).toUpperCase() + assigneeMatch[2].slice(1);
+                matchCount++;
+            }
+
+            // 6. Generate a clean title
+            result.title = generateTaskTitle(result);
+
+            // 7. Determine confidence
+            if (matchCount >= 3) {
+                result.confidence = 'high';
+            } else if (matchCount >= 1) {
+                result.confidence = 'medium';
+            } else {
+                result.confidence = 'low';
+            }
+
+            return result;
+        }
+
+        function generateTaskTitle(parsed) {
+            let title = '';
+
+            // Capitalize first letter of type
+            const typeLabel = parsed.type.charAt(0).toUpperCase() + parsed.type.slice(1);
+
+            if (parsed.crop) {
+                title = `${typeLabel} ${parsed.crop}`;
+            } else if (parsed.type !== 'other') {
+                title = typeLabel;
+            } else {
+                title = parsed.originalText.substring(0, 50);
+            }
+
+            if (parsed.field && !title.includes(parsed.field)) {
+                title += ` - ${parsed.field}`;
+            }
+
+            return title;
+        }
+
+        function processNlpCommand(text) {
+            const voiceFab = document.getElementById('voiceFab');
+            voiceFab.classList.add('processing');
+            voiceFab.setAttribute('data-hint', 'Processing...');
+
+            // Parse the command
+            currentParsedTask = parseTaskCommand(text);
+
+            // Short delay for visual feedback
+            setTimeout(() => {
+                voiceFab.classList.remove('processing');
+                closeNlpInput();
+                showNlpConfirmation(currentParsedTask);
+            }, 300);
+        }
+
+        function showNlpConfirmation(parsed) {
+            // Populate the confirmation modal
+            document.getElementById('nlpOriginalTextSpan').textContent = parsed.originalText;
+            document.getElementById('nlpTaskType').value = parsed.type;
+            document.getElementById('nlpTaskTitle').value = parsed.title;
+            document.getElementById('nlpCrop').value = parsed.crop;
+            document.getElementById('nlpField').value = parsed.field;
+            document.getElementById('nlpDueDate').value = parsed.dueDate;
+            document.getElementById('nlpDueTime').value = parsed.dueTime || '';
+            document.getElementById('nlpNotes').value = parsed.notes;
+
+            // Try to match assignee
+            const assigneeSelect = document.getElementById('nlpAssignee');
+            if (parsed.assignee) {
+                for (let i = 0; i < assigneeSelect.options.length; i++) {
+                    if (assigneeSelect.options[i].text.toLowerCase().includes(parsed.assignee.toLowerCase())) {
+                        assigneeSelect.selectedIndex = i;
+                        break;
+                    }
+                }
+            } else {
+                assigneeSelect.selectedIndex = 0;
+            }
+
+            // Update confidence indicator
+            const confidenceEl = document.getElementById('nlpConfidenceIndicator');
+            const confidenceText = document.getElementById('nlpConfidenceText');
+
+            confidenceEl.className = 'nlp-confidence ' + parsed.confidence;
+            if (parsed.confidence === 'high') {
+                confidenceText.textContent = 'High confidence - ready to create';
+                confidenceEl.querySelector('i').className = 'fas fa-check-circle';
+            } else if (parsed.confidence === 'medium') {
+                confidenceText.textContent = 'Medium confidence - please verify details';
+                confidenceEl.querySelector('i').className = 'fas fa-info-circle';
+            } else {
+                confidenceText.textContent = 'Low confidence - please fill in details';
+                confidenceEl.querySelector('i').className = 'fas fa-exclamation-circle';
+            }
+
+            // Show the modal
+            document.getElementById('nlpConfirmOverlay').classList.add('visible');
+        }
+
+        function closeNlpConfirm() {
+            document.getElementById('nlpConfirmOverlay').classList.remove('visible');
+            currentParsedTask = null;
+        }
+
+        function closeNlpConfirmOnOverlay(event) {
+            if (event.target === document.getElementById('nlpConfirmOverlay')) {
+                closeNlpConfirm();
+            }
+        }
+
+        async function confirmNlpTask() {
+            const confirmBtn = document.getElementById('nlpConfirmBtn');
+            const originalHtml = confirmBtn.innerHTML;
+            confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+            confirmBtn.disabled = true;
+
+            try {
+                // Gather form data
+                const taskData = {
+                    action: 'createUnifiedTask',
+                    Task_Type: document.getElementById('nlpTaskType').value,
+                    Title: document.getElementById('nlpTaskTitle').value,
+                    Description: document.getElementById('nlpNotes').value || document.getElementById('nlpOriginalTextSpan').textContent,
+                    Due_Date: document.getElementById('nlpDueDate').value,
+                    Due_Time: document.getElementById('nlpDueTime').value || null,
+                    Crop: document.getElementById('nlpCrop').value,
+                    Field_ID: document.getElementById('nlpField').value,
+                    Assignee_ID: document.getElementById('nlpAssignee').value || null,
+                    Priority_Manual: 'medium',
+                    Status: 'SCHEDULED',
+                    Source: 'voice_nlp',
+                    Created_By: window.currentUser?.fullName || 'System'
+                };
+
+                // Try Unified Task API first
+                const params = new URLSearchParams(taskData);
+                const response = await fetch(`${API_URL}?${params.toString()}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('Task created successfully!', 'success');
+                    closeNlpConfirm();
+
+                    // Refresh task lists
+                    loadTodaysTasks();
+                    loadMorningBrief();
+                } else {
+                    throw new Error(result.error || 'Failed to create task');
+                }
+            } catch (error) {
+                console.error('Error creating task:', error);
+                showToast('Error creating task: ' + error.message, 'error');
+            } finally {
+                confirmBtn.innerHTML = originalHtml;
+                confirmBtn.disabled = false;
+            }
+        }
+
+        async function loadEmployeesForNlp() {
+            const select = document.getElementById('nlpAssignee');
+            try {
+                const response = await fetch(`${API_URL}?action=getAllActiveEmployees`);
+                const result = await response.json();
+
+                if (result.success && result.employees && result.employees.length > 0) {
+                    select.innerHTML = '<option value="">Unassigned</option>' +
+                        result.employees.map(emp =>
+                            `<option value="${emp.id}">${emp.name} (${emp.role || 'Staff'})</option>`
+                        ).join('');
+                }
+            } catch (error) {
+                console.error('Error loading employees for NLP:', error);
+            }
+        }
+
+        // Initialize voice on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            initVoiceRecognition();
+        });
     </script>
 </body>
 </html>

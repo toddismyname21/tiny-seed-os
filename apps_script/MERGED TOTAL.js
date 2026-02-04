@@ -13527,6 +13527,24 @@ function doGet(e) {
       case 'getSMSHistory':
         return jsonResponse(getSMSHistory(e.parameter));
 
+      // ============ CRITICAL TASK SMS (2026-02-03) ============
+      case 'sendCriticalTaskSMS':
+        return jsonResponse(sendCriticalTaskSMS(e.parameter.taskId, e.parameter.recipientId, e.parameter.reason));
+      case 'sendAtRiskAlert':
+        return jsonResponse(sendAtRiskAlert(JSON.parse(e.parameter.task || '{}'), JSON.parse(e.parameter.risks || '[]')));
+      case 'sendFrostWarning':
+        return jsonResponse(sendFrostWarning(JSON.parse(e.parameter.fields || '[]'), JSON.parse(e.parameter.forecastData || '{}')));
+      case 'sendOverdueReminder':
+        return jsonResponse(sendOverdueReminder(JSON.parse(e.parameter.tasks || '[]'), e.parameter.recipientId));
+      case 'getSMSTemplate':
+        return jsonResponse(getSMSTemplate(e.parameter.type));
+      case 'processAtRiskTaskSMS':
+        return jsonResponse(processAtRiskTaskSMS());
+      case 'checkAndSendFrostWarnings':
+        return jsonResponse(checkAndSendFrostWarnings());
+      case 'sendOverdueReminders':
+        return jsonResponse(sendOverdueReminders());
+
       // ============ ROUTE OPTIMIZATION (GOOGLE ROUTES API) ============
       case 'optimizeDeliveryRoute':
         return jsonResponse(optimizeDeliveryRoute(e.parameter));
@@ -14390,6 +14408,25 @@ function doGet(e) {
       case 'getPredictionAccuracy':
         return jsonResponse(getPredictionAccuracy(e.parameter.type, parseInt(e.parameter.days) || 30));
 
+      // ============ SEASONAL PATTERN DETECTION SYSTEM ============
+      // Created: 2026-02-03 by Backend_Claude
+      case 'getSeasonalPatterns':
+        return jsonResponse(getSeasonalPatterns(e.parameter));
+      case 'compareToLastYear':
+        return jsonResponse(compareToLastYear(e.parameter));
+      case 'generateSeasonalReminders':
+        return jsonResponse(generateSeasonalReminders(e.parameter));
+      case 'detectMissedSeasonalTask':
+        return jsonResponse(detectMissedSeasonalTask(e.parameter));
+      case 'getSeasonalBenchmarks':
+        return jsonResponse(getSeasonalBenchmarks(e.parameter));
+      case 'storeSeasonalBaseline':
+        return jsonResponse(storeSeasonalBaseline(e.parameter));
+      case 'getSeasonalBaselines':
+        return jsonResponse(getSeasonalBaselines(e.parameter));
+      case 'getSeasonalRemindersForBrief':
+        return jsonResponse(getSeasonalRemindersForBrief());
+
       // ============ CHIEF OF STAFF - AUTONOMY SYSTEM ============
       case 'initializeAutonomySystem':
         return jsonResponse(initializeAutonomySystem());
@@ -14725,8 +14762,111 @@ function doGet(e) {
         return jsonResponse(typeof getTimeClockHistory === 'function' ? getTimeClockHistory(e.parameter) : { success: true, entries: [] });
       case 'getChiefMorningBrief':
         return jsonResponse(typeof getMorningBrief === 'function' ? getMorningBrief() : { success: true, message: 'Use getMorningBrief instead' });
+
+      // ============ AI PRIORITY SCORING SYSTEM (2026-02-03) ============
+      // Multi-factor intelligent task prioritization with weather, GDD, workload
       case 'getProactiveAlerts':
-        return jsonResponse({ success: true, alerts: [], message: 'Proactive alerts not yet configured' });
+        return jsonResponse(typeof generateProactiveAlerts === 'function' ? generateProactiveAlerts() : { success: false, error: 'Not available' });
+      case 'getTasksWithAIPriority':
+        return jsonResponse(typeof getTasksWithAIPriority === 'function' ? getTasksWithAIPriority(e.parameter) : { success: false, error: 'Not available' });
+      case 'getAtRiskTasks':
+        return jsonResponse(typeof getAtRiskTasks === 'function' ? getAtRiskTasks(e.parameter) : { success: false, error: 'Not available' });
+      case 'getAIPriorityDashboard':
+        return jsonResponse(typeof getAIPriorityDashboard === 'function' ? getAIPriorityDashboard(e.parameter) : { success: false, error: 'Not available' });
+      case 'calculateAIPriorityForTask':
+        return jsonResponse(typeof calculateAIPriority === 'function' ? calculateAIPriority(e.parameter.task ? JSON.parse(e.parameter.task) : {}, e.parameter.context ? JSON.parse(e.parameter.context) : null) : { success: false, error: 'Not available' });
+      case 'getTeamWorkloadBalance':
+        return jsonResponse(typeof getTeamWorkloadBalance === 'function' ? getTeamWorkloadBalance(e.parameter) : { success: false, error: 'Not available' });
+
+      // ============ SATELLITE SMART SCOUTING SYSTEM (2026-02-03) ============
+      // Connects satellite problem detection to the Unified Task System
+      case 'generateScoutingTasks':
+        return jsonResponse(typeof generateScoutingTasks === 'function' ? generateScoutingTasks() : { success: false, error: 'Not available' });
+      case 'getScoutingWaypoints':
+        return jsonResponse(typeof getScoutingWaypoints === 'function' ? getScoutingWaypoints(e.parameter.fieldId) : { success: false, error: 'Not available' });
+      case 'getSatelliteReadings':
+        return jsonResponse(typeof getSatelliteReadings === 'function' ? getSatelliteReadings(e.parameter) : { success: false, error: 'Not available' });
+      case 'getSatelliteAlerts':
+        return jsonResponse(typeof getSatelliteAlerts === 'function' ? getSatelliteAlerts(e.parameter) : { success: false, error: 'Not available' });
+      case 'getFieldsWithSatelliteData':
+        return jsonResponse(typeof getFieldsWithSatelliteData === 'function' ? getFieldsWithSatelliteData() : { success: false, error: 'Not available' });
+      case 'getAllFieldProblems':
+        return jsonResponse(typeof getAllFieldProblems === 'function' ? { success: true, problems: getAllFieldProblems() } : { success: false, error: 'Not available' });
+      case 'setupSatelliteScoutingTrigger':
+        return jsonResponse(typeof setupSatelliteScoutingTrigger === 'function' ? setupSatelliteScoutingTrigger() : { success: false, error: 'Not available' });
+
+      // ============ NOTIFICATION BATCHING SYSTEM (2026-02-03) ============
+      // Intelligent notification batching with priority levels: IMMEDIATE, HIGH, MEDIUM, LOW
+      case 'initializeNotificationSheets':
+        return jsonResponse(typeof initializeNotificationSheets === 'function' ? initializeNotificationSheets() : { success: false, error: 'Not available' });
+      case 'queueNotification':
+        return jsonResponse(typeof handleQueueNotification === 'function' ? handleQueueNotification(e.parameter) : { success: false, error: 'Not available' });
+      case 'processNotificationQueue':
+        return jsonResponse(typeof processNotificationQueue === 'function' ? processNotificationQueue() : { success: false, error: 'Not available' });
+      case 'sendImmediateNotification':
+        return jsonResponse(typeof sendImmediateNotification === 'function' ?
+          sendImmediateNotification(
+            e.parameter.type || 'SYSTEM_ALERT',
+            { name: e.parameter.recipientName, phone: e.parameter.phone, email: e.parameter.email },
+            e.parameter.message,
+            e.parameter.channel || 'EMAIL',
+            e.parameter.data ? JSON.parse(e.parameter.data) : {}
+          ) : { success: false, error: 'Not available' });
+      case 'generateDailyDigest':
+        return jsonResponse(typeof generateDailyDigest === 'function' ? generateDailyDigest(e.parameter.userId) : { success: false, error: 'Not available' });
+      case 'processAllDailyDigests':
+        return jsonResponse(typeof processAllDailyDigests === 'function' ? processAllDailyDigests() : { success: false, error: 'Not available' });
+      case 'getNotificationPreferences':
+        return jsonResponse(typeof handleGetNotificationPreferences === 'function' ? handleGetNotificationPreferences(e.parameter) : { success: false, error: 'Not available' });
+      case 'updateNotificationPreferences':
+        return jsonResponse(typeof handleUpdateNotificationPreferences === 'function' ? handleUpdateNotificationPreferences(e.parameter) : { success: false, error: 'Not available' });
+      case 'getNotificationQueueStatus':
+        return jsonResponse(typeof getNotificationQueueStatus === 'function' ? getNotificationQueueStatus() : { success: false, error: 'Not available' });
+      case 'setupNotificationTriggers':
+        return jsonResponse(typeof setupNotificationTriggers === 'function' ? setupNotificationTriggers() : { success: false, error: 'Not available' });
+      case 'removeNotificationTriggers':
+        return jsonResponse(typeof removeNotificationTriggers === 'function' ? removeNotificationTriggers() : { success: false, error: 'Not available' });
+      case 'queueFrostWarning':
+        // Use notification batching system for frost warnings
+        return jsonResponse(typeof sendFrostWarning === 'function' ?
+          sendFrostWarning(e.parameter.recipientId, e.parameter.temperature, e.parameter.date) :
+          { success: false, error: 'Not available' });
+      case 'notifyTaskAssignment':
+        // Use notification batching system for task assignments
+        return jsonResponse(typeof notifyTaskAssignment === 'function' ?
+          notifyTaskAssignment(e.parameter.recipientId, e.parameter.taskTitle, e.parameter.dueDate, e.parameter.assignedBy) :
+          { success: false, error: 'Not available' });
+      case 'notifyTaskCompleted':
+        // Use notification batching system for task completions
+        return jsonResponse(typeof notifyTaskCompleted === 'function' ?
+          notifyTaskCompleted(e.parameter.recipientId, e.parameter.taskTitle, e.parameter.completedBy) :
+          { success: false, error: 'Not available' });
+      case 'notifyCriticalAtRisk':
+        // Use notification batching system for critical at-risk alerts
+        return jsonResponse(typeof notifyCriticalAtRisk === 'function' ?
+          notifyCriticalAtRisk(e.parameter.recipientId, e.parameter.taskTitle, e.parameter.reason) :
+          { success: false, error: 'Not available' });
+
+      // ============ UNIFIED TASK MANAGEMENT API (2026-02-02) ============
+      // High-performance task system with caching and pagination
+      case 'getUnifiedTasks':
+        return jsonResponse(getUnifiedTasks(e.parameter));
+      case 'getTaskPriorities':
+        return jsonResponse(getTaskPriorities(e.parameter));
+      case 'getUnifiedTaskById':
+        return jsonResponse(getUnifiedTaskById(e.parameter.taskId));
+      case 'getTaskStats':
+        return jsonResponse(getUnifiedTaskStats(e.parameter));
+
+      // ============ TIME TRACKING FEEDBACK LOOP API (2026-02-03) ============
+      case 'getTaskTimeHistory':
+        return jsonResponse(typeof getTaskTimeHistory === 'function' ? getTaskTimeHistory(e.parameter.taskType, e.parameter.cropId) : { success: false, error: 'Not available' });
+      case 'calculateAverageTime':
+        return jsonResponse(typeof calculateAverageTime === 'function' ? calculateAverageTime(e.parameter.taskType, e.parameter.cropId, e.parameter.fieldId) : { success: false, error: 'Not available' });
+      case 'suggestEstimatedTime':
+        return jsonResponse(typeof suggestEstimatedTime === 'function' ? suggestEstimatedTime(e.parameter.taskType, e.parameter.context ? JSON.parse(e.parameter.context) : {}) : { success: false, error: 'Not available' });
+      case 'getEfficiencyReport':
+        return jsonResponse(typeof getEfficiencyReport === 'function' ? getEfficiencyReport(e.parameter.employeeId, { startDate: e.parameter.startDate, endDate: e.parameter.endDate }) : { success: false, error: 'Not available' });
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
@@ -15419,6 +15559,51 @@ function doPost(e) {
       case 'configureClaudeAPI':
         PropertiesService.getScriptProperties().setProperty('CLAUDE_API_KEY', data.apiKey || '');
         return jsonResponse({ success: true, message: 'Claude API key configured' });
+
+      // ============ UNIFIED TASK MANAGEMENT API (2026-02-02) ============
+      // High-performance task system with caching and batch operations
+      case 'createUnifiedTask':
+        return jsonResponse(createUnifiedTask(data));
+      case 'updateUnifiedTask':
+        return jsonResponse(updateUnifiedTask(data));
+      case 'bulkUpdateTasks':
+        return jsonResponse(bulkUpdateTasks(data));
+      case 'bulkCreateTasks':
+        return jsonResponse(bulkCreateTasks(data));
+      case 'deleteUnifiedTask':
+        return jsonResponse(deleteUnifiedTask(data.taskId));
+
+      // ============ TIME TRACKING FEEDBACK LOOP API (2026-02-03) ============
+      case 'recordTaskTime':
+        return jsonResponse(typeof recordTaskTime === 'function' ? recordTaskTime(data.taskId, data.actualMinutes, data.notes) : { success: false, error: 'Not available' });
+      case 'updateTaskEstimate':
+        return jsonResponse(typeof updateTaskEstimate === 'function' ? updateTaskEstimate(data.taskId, data.learnedEstimate) : { success: false, error: 'Not available' });
+
+      // ============ CRITICAL TASK SMS API (2026-02-03) ============
+      case 'sendCriticalTaskSMS':
+        return jsonResponse(sendCriticalTaskSMS(data.taskId, data.recipientId, data.reason));
+      case 'sendAtRiskAlert':
+        return jsonResponse(sendAtRiskAlert(data.task, data.risks));
+      case 'sendFrostWarning':
+        return jsonResponse(sendFrostWarning(data.fields, data.forecastData));
+      case 'sendOverdueReminder':
+        return jsonResponse(sendOverdueReminder(data.tasks, data.recipientId));
+      case 'processAtRiskTaskSMS':
+        return jsonResponse(processAtRiskTaskSMS());
+      case 'checkAndSendFrostWarnings':
+        return jsonResponse(checkAndSendFrostWarnings());
+      case 'sendOverdueReminders':
+        return jsonResponse(sendOverdueReminders());
+
+      // ============ SATELLITE SMART SCOUTING API (POST) (2026-02-03) ============
+      case 'storeSatelliteReading':
+        return jsonResponse(typeof storeSatelliteReading === 'function' ? storeSatelliteReading(data) : { success: false, error: 'Not available' });
+      case 'markZoneInspected':
+        return jsonResponse(typeof markZoneInspected === 'function' ? markZoneInspected(data) : { success: false, error: 'Not available' });
+      case 'resolveSatelliteAlert':
+        return jsonResponse(typeof resolveSatelliteAlert === 'function' ? resolveSatelliteAlert(data) : { success: false, error: 'Not available' });
+      case 'dailyScoutingCheck':
+        return jsonResponse(typeof dailyScoutingCheck === 'function' ? dailyScoutingCheck() : { success: false, error: 'Not available' });
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
@@ -21785,21 +21970,24 @@ function getCrops() {
 
 /**
  * Get beds data (plain object for caching)
+ * PERFORMANCE OPTIMIZED 2026-02-03: Beds rarely change - use very long cache
  */
 function getBedsData() {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName('REF_Beds');
-  if (!sheet) return {success: false, error: 'REF_Beds not found'};
+  return SmartCache.get('beds_data', () => {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('REF_Beds');
+    if (!sheet) return {success: false, error: 'REF_Beds not found'};
 
-  const data = sheet.getDataRange().getValues();
-  const headers = data[0];
-  const beds = data.slice(1).map(row => {
-    const obj = {};
-    headers.forEach((header, index) => { obj[header] = row[index]; });
-    return obj;
-  }).filter(row => row['Bed ID']);
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const beds = data.slice(1).map(row => {
+      const obj = {};
+      headers.forEach((header, index) => { obj[header] = row[index]; });
+      return obj;
+    }).filter(row => row['Bed ID']);
 
-  return {success: true, count: beds.length, beds: beds};
+    return {success: true, count: beds.length, beds: beds};
+  }, SmartCache.DURATIONS.VERY_LONG); // 2 hour cache - beds rarely change
 }
 
 function getBeds() {
@@ -25918,33 +26106,36 @@ function getMorningBrief(params) {
 }
 
 function getCropProfiles() {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const sheet = ss.getSheetByName('REF_CropProfiles');
+    // PERFORMANCE OPTIMIZED 2026-02-03: Crop profiles rarely change - use long cache
+    return SmartCache.get('crop_profiles', () => {
+      const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+      const sheet = ss.getSheetByName('REF_CropProfiles');
 
-    if (!sheet) {
-      return { success: false, error: 'REF_CropProfiles sheet not found' };
-    }
+      if (!sheet) {
+        return { success: false, error: 'REF_CropProfiles sheet not found' };
+      }
 
-    const data = sheet.getDataRange().getValues();
-    const headers = data[0];
-    const profiles = [];
+      const data = sheet.getDataRange().getValues();
+      const headers = data[0];
+      const profiles = [];
 
-    for (let i = 1; i < data.length; i++) {
-      const row = data[i];
-      if (!row[0]) continue;
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        if (!row[0]) continue;
 
-      const profile = {};
-      headers.forEach((header, index) => {
-        profile[header] = row[index];
-      });
-      profiles.push(profile);
-    }
+        const profile = {};
+        headers.forEach((header, index) => {
+          profile[header] = row[index];
+        });
+        profiles.push(profile);
+      }
 
-    return {
-      success: true,
-      data: profiles,
-      count: profiles.length
-    };
+      return {
+        success: true,
+        data: profiles,
+        count: profiles.length
+      };
+    }, SmartCache.DURATIONS.LONG); // 30 minute cache for reference data
   }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -45545,6 +45736,612 @@ function getSMSHistory(params) {
 
     return { success: true, history: history };
   } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CRITICAL TASK SMS INTEGRATION SYSTEM (2026-02-03)
+// Handles SMS notifications for critical, at-risk, weather emergency, and overdue tasks
+// Integrates with existing detectAtRisk(), getTaskPriorities(), and sendSMS()
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * SMS Template definitions for different alert types
+ * @type {Object}
+ */
+const SMS_TEMPLATES = {
+  CRITICAL_TASK: '{emoji} CRITICAL: {title} due {time}. {reason}. Reply DONE when complete.',
+  AT_RISK: '{emoji} AT RISK: {title} - {riskReason}. Action needed today.',
+  FROST: '{emoji} FROST ALERT: {temp}F tonight. Protect {fields}.',
+  OVERDUE: '{emoji} {count} overdue tasks need attention. Check app.',
+  TASK_ASSIGNED: '{emoji} New task: {title}. Due: {dueDate}. Details in app.',
+  WEATHER_WINDOW: '{emoji} WEATHER WINDOW: {title} - Good conditions for next {hours}hrs. Act now!'
+};
+
+/**
+ * Get SMS template for a specific alert type
+ * @param {string} type - Template type (CRITICAL_TASK, AT_RISK, FROST, OVERDUE, TASK_ASSIGNED, WEATHER_WINDOW)
+ * @returns {Object} Template configuration with message and emoji
+ */
+function getSMSTemplate(type) {
+  const templates = {
+    CRITICAL_TASK: {
+      message: SMS_TEMPLATES.CRITICAL_TASK,
+      emoji: '\uD83D\uDEA8',  // Red siren
+      priority: 'IMMEDIATE'
+    },
+    AT_RISK: {
+      message: SMS_TEMPLATES.AT_RISK,
+      emoji: '\u26A0\uFE0F',  // Warning triangle
+      priority: 'HIGH'
+    },
+    FROST: {
+      message: SMS_TEMPLATES.FROST,
+      emoji: '\u2744\uFE0F',  // Snowflake
+      priority: 'IMMEDIATE'
+    },
+    OVERDUE: {
+      message: SMS_TEMPLATES.OVERDUE,
+      emoji: '\uD83D\uDCCB',  // Clipboard
+      priority: 'HIGH'
+    },
+    TASK_ASSIGNED: {
+      message: SMS_TEMPLATES.TASK_ASSIGNED,
+      emoji: '\u2705',  // Green checkmark
+      priority: 'MEDIUM'
+    },
+    WEATHER_WINDOW: {
+      message: SMS_TEMPLATES.WEATHER_WINDOW,
+      emoji: '\uD83C\uDF24\uFE0F',  // Sun behind cloud
+      priority: 'HIGH'
+    }
+  };
+
+  return templates[type] || templates.CRITICAL_TASK;
+}
+
+/**
+ * Get user/employee phone number by ID
+ * Checks USERS sheet first, then EMPLOYEES sheet
+ * @param {string} recipientId - User or Employee ID
+ * @returns {string|null} Phone number or null if not found
+ */
+function getRecipientPhone(recipientId) {
+  if (!recipientId) return null;
+
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+    // Try USERS sheet first
+    const usersSheet = ss.getSheetByName('USERS');
+    if (usersSheet) {
+      const userData = usersSheet.getDataRange().getValues();
+      const userHeaders = userData[0];
+      const userIdCol = userHeaders.indexOf('User_ID');
+      const phoneCol = userHeaders.indexOf('Phone');
+
+      if (userIdCol !== -1 && phoneCol !== -1) {
+        for (let i = 1; i < userData.length; i++) {
+          if (userData[i][userIdCol] === recipientId) {
+            return userData[i][phoneCol] || null;
+          }
+        }
+      }
+    }
+
+    // Try EMPLOYEES sheet
+    const empSheet = ss.getSheetByName('EMPLOYEES');
+    if (empSheet) {
+      const empData = empSheet.getDataRange().getValues();
+      const empHeaders = empData[0];
+      const empIdCol = empHeaders.indexOf('Employee_ID') !== -1 ? empHeaders.indexOf('Employee_ID') : empHeaders.indexOf('User_ID');
+      const empPhoneCol = empHeaders.indexOf('Phone');
+
+      if (empIdCol !== -1 && empPhoneCol !== -1) {
+        for (let i = 1; i < empData.length; i++) {
+          if (empData[i][empIdCol] === recipientId) {
+            return empData[i][empPhoneCol] || null;
+          }
+        }
+      }
+    }
+
+    return null;
+  } catch (e) {
+    Logger.log('getRecipientPhone error: ' + e.toString());
+    return null;
+  }
+}
+
+/**
+ * Send SMS notification for a critical task
+ * Uses CRITICAL_TASK template with task details
+ *
+ * @param {string} taskId - The task ID to send notification for
+ * @param {string} recipientId - User/Employee ID to receive the SMS
+ * @param {string} reason - Why the task is critical
+ * @returns {Object} { success, message, sid } or { success: false, error }
+ */
+function sendCriticalTaskSMS(taskId, recipientId, reason) {
+  try {
+    // Get phone number
+    const phone = getRecipientPhone(recipientId);
+    if (!phone) {
+      return { success: false, error: 'No phone number found for recipient: ' + recipientId };
+    }
+
+    // Get task details
+    const taskResult = typeof getUnifiedTaskById === 'function' ? getUnifiedTaskById(taskId) : null;
+    let taskTitle = 'Critical Task';
+    let dueTime = 'ASAP';
+
+    if (taskResult && taskResult.success && taskResult.task) {
+      taskTitle = taskResult.task.Title || taskResult.task.title || taskTitle;
+      const dueDate = taskResult.task.Due_Date || taskResult.task.dueDate;
+      const dueTimeVal = taskResult.task.Due_Time || taskResult.task.dueTime;
+
+      if (dueDate) {
+        const dateObj = new Date(dueDate);
+        dueTime = Utilities.formatDate(dateObj, 'America/New_York', 'MMM d');
+        if (dueTimeVal) {
+          dueTime += ' ' + dueTimeVal;
+        }
+      }
+    }
+
+    // Build message from template
+    const template = getSMSTemplate('CRITICAL_TASK');
+    const message = template.message
+      .replace('{emoji}', template.emoji)
+      .replace('{title}', taskTitle.substring(0, 50))
+      .replace('{time}', dueTime)
+      .replace('{reason}', (reason || 'High priority').substring(0, 40));
+
+    // Send SMS
+    const result = sendSMS({ to: phone, message: message });
+
+    // Log to sheet
+    if (result.success) {
+      logSMSToSheet({
+        to: phone,
+        message: message,
+        status: result.status || 'sent',
+        sid: result.sid,
+        timestamp: new Date().toISOString(),
+        type: 'critical_task'
+      });
+
+      // Update task to mark SMS sent
+      if (taskResult && taskResult.success) {
+        updateTaskSMSStatus(taskId, true);
+      }
+    }
+
+    return result;
+  } catch (error) {
+    Logger.log('sendCriticalTaskSMS error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Send SMS alert when a task becomes at-risk
+ * Uses AT_RISK template with risk details
+ *
+ * @param {Object} task - Task object with at least Task_ID, Title, Assignee_ID
+ * @param {Array} risks - Array of risk objects from detectAtRisk()
+ * @returns {Object} { success, message, sid } or { success: false, error }
+ */
+function sendAtRiskAlert(task, risks) {
+  try {
+    if (!task) {
+      return { success: false, error: 'Task object required' };
+    }
+
+    const assigneeId = task.Assignee_ID || task.assigneeId || task.assigned;
+    if (!assigneeId) {
+      return { success: false, error: 'No assignee for task' };
+    }
+
+    const phone = getRecipientPhone(assigneeId);
+    if (!phone) {
+      return { success: false, error: 'No phone number found for assignee: ' + assigneeId };
+    }
+
+    // Get the highest severity risk reason
+    let riskReason = 'Needs attention';
+    if (risks && risks.length > 0) {
+      // Sort by severity (CRITICAL > HIGH > MEDIUM)
+      const severityOrder = { 'CRITICAL': 3, 'HIGH': 2, 'MEDIUM': 1 };
+      const sortedRisks = risks.sort((a, b) =>
+        (severityOrder[b.severity] || 0) - (severityOrder[a.severity] || 0)
+      );
+      riskReason = sortedRisks[0].message || riskReason;
+    }
+
+    // Build message from template
+    const template = getSMSTemplate('AT_RISK');
+    const taskTitle = (task.Title || task.title || 'Task').substring(0, 40);
+    const message = template.message
+      .replace('{emoji}', template.emoji)
+      .replace('{title}', taskTitle)
+      .replace('{riskReason}', riskReason.substring(0, 50));
+
+    // Send SMS
+    const result = sendSMS({ to: phone, message: message });
+
+    // Log to sheet
+    if (result.success) {
+      logSMSToSheet({
+        to: phone,
+        message: message,
+        status: result.status || 'sent',
+        sid: result.sid,
+        timestamp: new Date().toISOString(),
+        type: 'at_risk_alert'
+      });
+
+      // Update task at-risk SMS sent status
+      const taskId = task.Task_ID || task.taskId || task.id;
+      if (taskId) {
+        updateTaskSMSStatus(taskId, true, 'at_risk');
+      }
+    }
+
+    return result;
+  } catch (error) {
+    Logger.log('sendAtRiskAlert error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Send frost warning SMS to relevant field workers
+ * Uses FROST template with temperature and field details
+ *
+ * @param {Array} fields - Array of field names/IDs that need protection
+ * @param {Object} forecastData - Weather forecast with temp_low_f
+ * @returns {Object} { success, sentCount, results }
+ */
+function sendFrostWarning(fields, forecastData) {
+  try {
+    if (!forecastData || !forecastData.temp_low_f) {
+      return { success: false, error: 'Forecast data with temp_low_f required' };
+    }
+
+    const fieldsList = Array.isArray(fields) ? fields : [fields];
+    if (fieldsList.length === 0) {
+      return { success: false, error: 'At least one field required' };
+    }
+
+    // Build message from template
+    const template = getSMSTemplate('FROST');
+    const fieldsDisplay = fieldsList.slice(0, 3).join(', ') + (fieldsList.length > 3 ? ' +' + (fieldsList.length - 3) + ' more' : '');
+    const message = template.message
+      .replace('{emoji}', template.emoji)
+      .replace('{temp}', Math.round(forecastData.temp_low_f))
+      .replace('{fields}', fieldsDisplay);
+
+    // Get all active employees/managers to send frost warning
+    const recipients = getAllActiveRecipients();
+    const results = [];
+
+    for (const recipient of recipients) {
+      if (recipient.phone) {
+        const smsResult = sendSMS({ to: recipient.phone, message: message });
+        results.push({
+          recipientId: recipient.id,
+          phone: recipient.phone,
+          success: smsResult.success,
+          error: smsResult.error
+        });
+
+        if (smsResult.success) {
+          logSMSToSheet({
+            to: recipient.phone,
+            message: message,
+            status: smsResult.status || 'sent',
+            sid: smsResult.sid,
+            timestamp: new Date().toISOString(),
+            type: 'frost_warning'
+          });
+        }
+      }
+    }
+
+    const sentCount = results.filter(r => r.success).length;
+    return {
+      success: sentCount > 0,
+      sentCount: sentCount,
+      totalRecipients: recipients.length,
+      results: results
+    };
+  } catch (error) {
+    Logger.log('sendFrostWarning error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Send overdue task reminder SMS
+ * Uses OVERDUE template with task count
+ *
+ * @param {Array} tasks - Array of overdue task objects
+ * @param {string} recipientId - User/Employee ID to receive the reminder
+ * @returns {Object} { success, message, sid } or { success: false, error }
+ */
+function sendOverdueReminder(tasks, recipientId) {
+  try {
+    if (!recipientId) {
+      return { success: false, error: 'Recipient ID required' };
+    }
+
+    const phone = getRecipientPhone(recipientId);
+    if (!phone) {
+      return { success: false, error: 'No phone number found for recipient: ' + recipientId };
+    }
+
+    const taskList = Array.isArray(tasks) ? tasks : [tasks];
+    const taskCount = taskList.length;
+
+    if (taskCount === 0) {
+      return { success: false, error: 'No overdue tasks provided' };
+    }
+
+    // Build message from template
+    const template = getSMSTemplate('OVERDUE');
+    const message = template.message
+      .replace('{emoji}', template.emoji)
+      .replace('{count}', taskCount);
+
+    // Send SMS
+    const result = sendSMS({ to: phone, message: message });
+
+    // Log to sheet
+    if (result.success) {
+      logSMSToSheet({
+        to: phone,
+        message: message,
+        status: result.status || 'sent',
+        sid: result.sid,
+        timestamp: new Date().toISOString(),
+        type: 'overdue_reminder'
+      });
+    }
+
+    return result;
+  } catch (error) {
+    Logger.log('sendOverdueReminder error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get all active recipients (employees/users with phone numbers)
+ * Used for broadcast messages like frost warnings
+ *
+ * @returns {Array} Array of { id, name, phone, role }
+ */
+function getAllActiveRecipients() {
+  const recipients = [];
+
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+    // Get from USERS sheet
+    const usersSheet = ss.getSheetByName('USERS');
+    if (usersSheet) {
+      const userData = usersSheet.getDataRange().getValues();
+      const headers = userData[0];
+      const idCol = headers.indexOf('User_ID');
+      const nameCol = headers.indexOf('Full_Name') !== -1 ? headers.indexOf('Full_Name') : headers.indexOf('Username');
+      const phoneCol = headers.indexOf('Phone');
+      const roleCol = headers.indexOf('Role');
+      const activeCol = headers.indexOf('Is_Active');
+
+      for (let i = 1; i < userData.length; i++) {
+        const isActive = activeCol !== -1 ? userData[i][activeCol] : true;
+        const phone = phoneCol !== -1 ? userData[i][phoneCol] : null;
+
+        if (isActive && phone) {
+          recipients.push({
+            id: idCol !== -1 ? userData[i][idCol] : 'user_' + i,
+            name: nameCol !== -1 ? userData[i][nameCol] : 'User',
+            phone: phone,
+            role: roleCol !== -1 ? userData[i][roleCol] : 'user'
+          });
+        }
+      }
+    }
+  } catch (e) {
+    Logger.log('getAllActiveRecipients error: ' + e.toString());
+  }
+
+  return recipients;
+}
+
+/**
+ * Update task SMS status in UNIFIED_TASKS sheet
+ *
+ * @param {string} taskId - Task ID to update
+ * @param {boolean} sent - Whether SMS was sent
+ * @param {string} type - Type of SMS (critical, at_risk, reminder)
+ */
+function updateTaskSMSStatus(taskId, sent, type) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('UNIFIED_TASKS');
+
+    if (!sheet) return;
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const idCol = headers.indexOf('Task_ID');
+    const smsSentCol = headers.indexOf('SMS_Sent');
+    const smsSentAtCol = headers.indexOf('SMS_Sent_At');
+
+    if (idCol === -1 || smsSentCol === -1) return;
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][idCol] === taskId) {
+        sheet.getRange(i + 1, smsSentCol + 1).setValue(sent);
+        if (smsSentAtCol !== -1) {
+          sheet.getRange(i + 1, smsSentAtCol + 1).setValue(new Date().toISOString());
+        }
+        break;
+      }
+    }
+  } catch (e) {
+    Logger.log('updateTaskSMSStatus error: ' + e.toString());
+  }
+}
+
+/**
+ * Process and send SMS for all at-risk tasks
+ * Called by scheduled trigger to check tasks and send alerts
+ *
+ * @returns {Object} { success, processed, sent, errors }
+ */
+function processAtRiskTaskSMS() {
+  try {
+    // Get tasks with AI priorities (includes at-risk detection)
+    const priorityResult = typeof getTaskPriorities === 'function' ? getTaskPriorities({ limit: 50, includeContext: true }) : null;
+
+    if (!priorityResult || !priorityResult.success || !priorityResult.tasks) {
+      return { success: false, error: 'Could not get task priorities' };
+    }
+
+    const atRiskTasks = priorityResult.tasks.filter(t => t.atRisk && !t.SMS_Sent);
+    const results = [];
+
+    for (const task of atRiskTasks) {
+      const result = sendAtRiskAlert(task, task.risks || []);
+      results.push({
+        taskId: task.Task_ID || task.id,
+        success: result.success,
+        error: result.error
+      });
+    }
+
+    return {
+      success: true,
+      processed: atRiskTasks.length,
+      sent: results.filter(r => r.success).length,
+      errors: results.filter(r => !r.success),
+      results: results
+    };
+  } catch (error) {
+    Logger.log('processAtRiskTaskSMS error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Check weather forecast and send frost warnings if needed
+ * Called by scheduled trigger (e.g., daily at 4 PM)
+ *
+ * @returns {Object} { success, frostDetected, sentCount }
+ */
+function checkAndSendFrostWarnings() {
+  try {
+    // Get weather forecast for tonight/tomorrow
+    const forecast = typeof getWeatherForDateAI === 'function' ? getWeatherForDateAI(new Date()) : null;
+
+    if (!forecast) {
+      return { success: false, error: 'Could not get weather forecast' };
+    }
+
+    const lowTemp = forecast.temp_low_f || forecast.minTemp || null;
+    if (!lowTemp || lowTemp >= 35) {
+      return { success: true, frostDetected: false, message: 'No frost risk detected' };
+    }
+
+    // Get active fields from REF_Fields or similar
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const fieldsSheet = ss.getSheetByName('REF_Fields') || ss.getSheetByName('FIELDS');
+    let fields = ['All fields'];
+
+    if (fieldsSheet) {
+      const fieldData = fieldsSheet.getDataRange().getValues();
+      const nameCol = fieldData[0].indexOf('Field_Name') !== -1 ? fieldData[0].indexOf('Field_Name') : 0;
+      const activeCol = fieldData[0].indexOf('Active');
+
+      fields = fieldData.slice(1)
+        .filter(row => activeCol === -1 || row[activeCol])
+        .map(row => row[nameCol])
+        .filter(name => name);
+    }
+
+    // Send frost warning
+    const result = sendFrostWarning(fields, { temp_low_f: lowTemp });
+
+    return {
+      success: result.success,
+      frostDetected: true,
+      lowTemp: lowTemp,
+      sentCount: result.sentCount || 0,
+      results: result.results
+    };
+  } catch (error) {
+    Logger.log('checkAndSendFrostWarnings error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Send overdue reminders to all assignees with overdue tasks
+ * Called by scheduled trigger (e.g., daily morning)
+ *
+ * @returns {Object} { success, assigneesNotified, totalOverdue }
+ */
+function sendOverdueReminders() {
+  try {
+    // Get overdue tasks
+    const tasksResult = typeof getUnifiedTasks === 'function' ?
+      getUnifiedTasks({ status: 'overdue', includeCompleted: false }) : null;
+
+    if (!tasksResult || !tasksResult.success) {
+      return { success: false, error: 'Could not get overdue tasks' };
+    }
+
+    const overdueTasks = tasksResult.tasks || [];
+    if (overdueTasks.length === 0) {
+      return { success: true, assigneesNotified: 0, totalOverdue: 0, message: 'No overdue tasks' };
+    }
+
+    // Group by assignee
+    const tasksByAssignee = {};
+    for (const task of overdueTasks) {
+      const assigneeId = task.Assignee_ID || task.assigneeId || 'unassigned';
+      if (!tasksByAssignee[assigneeId]) {
+        tasksByAssignee[assigneeId] = [];
+      }
+      tasksByAssignee[assigneeId].push(task);
+    }
+
+    const results = [];
+    for (const assigneeId of Object.keys(tasksByAssignee)) {
+      if (assigneeId === 'unassigned') continue;
+
+      const assigneeTasks = tasksByAssignee[assigneeId];
+      const result = sendOverdueReminder(assigneeTasks, assigneeId);
+      results.push({
+        assigneeId: assigneeId,
+        taskCount: assigneeTasks.length,
+        success: result.success,
+        error: result.error
+      });
+    }
+
+    return {
+      success: true,
+      assigneesNotified: results.filter(r => r.success).length,
+      totalOverdue: overdueTasks.length,
+      results: results
+    };
+  } catch (error) {
+    Logger.log('sendOverdueReminders error: ' + error.toString());
     return { success: false, error: error.toString() };
   }
 }
@@ -76588,14 +77385,17 @@ function sendShopifyTagsReminderNow() {
 /**
  * SMART CACHE - Uses Google's CacheService for fast data retrieval
  * Cache durations optimized per data type
+ * PERFORMANCE OPTIMIZED 2026-02-03: Increased cache durations for reference data
  */
 const SmartCache = {
-  // Cache duration in seconds
+  // Cache duration in seconds - OPTIMIZED 2026-02-03
   DURATIONS: {
-    SHORT: 60,        // 1 minute - for frequently changing data
-    MEDIUM: 300,      // 5 minutes - for semi-static data
-    LONG: 900,        // 15 minutes - for rarely changing data
-    VERY_LONG: 3600   // 1 hour - for static reference data
+    ULTRA_SHORT: 30,  // 30 seconds - for real-time data
+    SHORT: 60,        // 1 minute - for frequently changing data (tasks, orders)
+    MEDIUM: 300,      // 5 minutes - for semi-static data (planning data)
+    LONG: 1800,       // 30 minutes - for rarely changing data (crop profiles, beds)
+    VERY_LONG: 7200,  // 2 hours - for static reference data (employees, fields)
+    SESSION: 21600    // 6 hours - for truly static data (farm config, units)
   },
 
   /**
@@ -86024,4 +86824,3545 @@ function recordTaskAction(params) {
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════
 // END: CHIEF OF STAFF 2.0 - SMART PRIORITY & DECISION SUPPORT SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+// UNIFIED TASK MANAGEMENT API - HIGH PERFORMANCE TASK SYSTEM
+// Created: 2026-02-02 by Backend_Claude
+//
+// FEATURES:
+// - CacheService for frequently-read data (6 hour cache for employees, fields)
+// - Batch sheet writes (not one row at a time)
+// - Pagination: default 50 items, max 200
+// - Response includes timing metadata for debugging
+// - Integration with existing assignTaskToEmployee(), getEmployeeTasks(), sendSMS()
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+
+const UNIFIED_TASKS_SHEET = 'UNIFIED_TASKS';
+const UNIFIED_TASKS_HEADERS = [
+  'Task_ID', 'Title', 'Description', 'Task_Type',
+  'Batch_ID', 'Field_ID', 'Bed_ID', 'Crop_ID', 'Source',
+  'Assignee_ID', 'Assignee_Name', 'Assigned_By', 'Assigned_At', 'Team_ID', 'Role_Required',
+  'Due_Date', 'Due_Time', 'Scheduled_Start', 'Scheduled_End', 'Flexibility', 'Weather_Dependent',
+  'Priority_Manual', 'Priority_Score', 'At_Risk', 'At_Risk_Reason',
+  'Status', 'Started_At', 'Completed_At', 'Completed_By', 'Blocked_Reason',
+  'Estimated_Minutes', 'Actual_Minutes', 'Efficiency_Pct', 'Labor_Cost',
+  'Blocked_By', 'Blocks', 'Dependency_Type',
+  'Is_Recurring', 'Recurrence_Rule', 'Parent_Task_ID', 'Instance_Date',
+  'SMS_Sent', 'Reminder_Sent', 'Acknowledged',
+  'Created_At', 'Updated_At', 'Created_By', 'Tags', 'Notes'
+];
+
+// Cache durations
+const UNIFIED_TASK_CACHE = {
+  TASKS: 60,           // 1 minute for task list (changes frequently)
+  EMPLOYEES: 21600,    // 6 hours for employee list
+  FIELDS: 21600,       // 6 hours for field/bed list
+  PRIORITIES: 300      // 5 minutes for priority calculations
+};
+
+/**
+ * Get or create the UNIFIED_TASKS sheet
+ */
+function getUnifiedTasksSheet() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName(UNIFIED_TASKS_SHEET);
+
+  if (!sheet) {
+    sheet = ss.insertSheet(UNIFIED_TASKS_SHEET);
+    sheet.getRange(1, 1, 1, UNIFIED_TASKS_HEADERS.length).setValues([UNIFIED_TASKS_HEADERS]);
+    sheet.getRange(1, 1, 1, UNIFIED_TASKS_HEADERS.length).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+
+    // Add data validation for Status column
+    const statusCol = UNIFIED_TASKS_HEADERS.indexOf('Status') + 1;
+    const statusRule = SpreadsheetApp.newDataValidation()
+      .requireValueInList(['pending', 'assigned', 'in_progress', 'blocked', 'completed', 'cancelled'], true)
+      .build();
+    sheet.getRange(2, statusCol, 1000, 1).setDataValidation(statusRule);
+  }
+
+  return sheet;
+}
+
+/**
+ * GET UNIFIED TASKS - Main query endpoint with caching and pagination
+ *
+ * Parameters:
+ *   status - Filter by status (pending, assigned, in_progress, blocked, completed, cancelled)
+ *   assigneeId - Filter by assignee
+ *   dueDate - Filter by due date (YYYY-MM-DD)
+ *   dueBefore - Tasks due before this date
+ *   dueAfter - Tasks due after this date
+ *   taskType - Filter by task type
+ *   priority - Filter by priority (low, medium, high, urgent)
+ *   limit - Max items to return (default 50, max 200)
+ *   offset - Skip first N items (for pagination)
+ *   sortBy - Field to sort by (default: Due_Date)
+ *   sortOrder - asc or desc (default: asc)
+ *   includeCompleted - Include completed tasks (default: false)
+ */
+function getUnifiedTasks(params) {
+  const startTime = Date.now();
+
+  try {
+    // Parse parameters with defaults
+    const status = params.status || null;
+    const assigneeId = params.assigneeId || null;
+    const dueDate = params.dueDate || null;
+    const dueBefore = params.dueBefore || null;
+    const dueAfter = params.dueAfter || null;
+    const taskType = params.taskType || null;
+    const limit = Math.min(parseInt(params.limit) || 50, 200);
+    const offset = parseInt(params.offset) || 0;
+    const sortBy = params.sortBy || 'Due_Date';
+    const sortOrder = (params.sortOrder || 'asc').toLowerCase();
+    const includeCompleted = params.includeCompleted === 'true';
+
+    // Build cache key from parameters
+    const cacheKey = `unified_tasks_${status || 'all'}_${assigneeId || 'all'}_${dueDate || 'all'}_${limit}_${offset}`;
+    const cache = CacheService.getScriptCache();
+
+    // Check cache first (only for simple queries)
+    if (!dueBefore && !dueAfter && !taskType) {
+      const cached = cache.get(cacheKey);
+      if (cached) {
+        const result = JSON.parse(cached);
+        result._cached = true;
+        result._timing = { total: Date.now() - startTime, source: 'cache' };
+        return result;
+      }
+    }
+
+    // Fetch from sheet
+    const sheet = getUnifiedTasksSheet();
+    const data = sheet.getDataRange().getValues();
+
+    if (data.length < 2) {
+      return {
+        success: true,
+        tasks: [],
+        total: 0,
+        limit: limit,
+        offset: offset,
+        hasMore: false,
+        _timing: { total: Date.now() - startTime, source: 'sheet' }
+      };
+    }
+
+    const headers = data[0];
+    const headerIndex = {};
+    headers.forEach((h, i) => headerIndex[h] = i);
+
+    // Filter and transform
+    let tasks = [];
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (!row[0]) continue; // Skip empty rows
+
+      const task = {};
+      headers.forEach((h, j) => {
+        let value = row[j];
+        // Convert dates to ISO strings
+        if (value instanceof Date) {
+          value = value.toISOString();
+        }
+        task[h] = value;
+      });
+
+      // Apply filters
+      if (status && task.Status !== status) continue;
+      if (assigneeId && task.Assignee_ID !== assigneeId) continue;
+      if (dueDate && task.Due_Date && !task.Due_Date.toString().startsWith(dueDate)) continue;
+      if (!includeCompleted && (task.Status === 'completed' || task.Status === 'cancelled')) continue;
+      if (taskType && task.Task_Type !== taskType) continue;
+
+      // Date range filters
+      if (dueBefore && task.Due_Date) {
+        const taskDue = new Date(task.Due_Date);
+        const beforeDate = new Date(dueBefore);
+        if (taskDue > beforeDate) continue;
+      }
+      if (dueAfter && task.Due_Date) {
+        const taskDue = new Date(task.Due_Date);
+        const afterDate = new Date(dueAfter);
+        if (taskDue < afterDate) continue;
+      }
+
+      tasks.push(task);
+    }
+
+    // Sort
+    const sortIdx = headerIndex[sortBy];
+    if (sortIdx !== undefined) {
+      tasks.sort((a, b) => {
+        let aVal = a[sortBy] || '';
+        let bVal = b[sortBy] || '';
+
+        // Handle dates
+        if (sortBy.includes('Date') || sortBy.includes('_At')) {
+          aVal = aVal ? new Date(aVal).getTime() : 0;
+          bVal = bVal ? new Date(bVal).getTime() : 0;
+        }
+
+        if (sortOrder === 'desc') {
+          return bVal > aVal ? 1 : bVal < aVal ? -1 : 0;
+        }
+        return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+      });
+    }
+
+    const total = tasks.length;
+
+    // Apply pagination
+    tasks = tasks.slice(offset, offset + limit);
+
+    const result = {
+      success: true,
+      tasks: tasks,
+      total: total,
+      limit: limit,
+      offset: offset,
+      hasMore: (offset + tasks.length) < total,
+      _timing: {
+        total: Date.now() - startTime,
+        source: 'sheet',
+        rowsScanned: data.length - 1,
+        rowsReturned: tasks.length
+      }
+    };
+
+    // Cache the result (for 1 minute)
+    try {
+      cache.put(cacheKey, JSON.stringify(result), UNIFIED_TASK_CACHE.TASKS);
+    } catch (e) {
+      // Data too large for cache, skip
+    }
+
+    return result;
+
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString(),
+      _timing: { total: Date.now() - startTime }
+    };
+  }
+}
+
+/**
+ * GET TASK BY ID
+ */
+function getUnifiedTaskById(taskId) {
+  const startTime = Date.now();
+
+  try {
+    if (!taskId) {
+      return { success: false, error: 'Task ID required' };
+    }
+
+    const sheet = getUnifiedTasksSheet();
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === taskId) {
+        const task = {};
+        headers.forEach((h, j) => {
+          let value = data[i][j];
+          if (value instanceof Date) {
+            value = value.toISOString();
+          }
+          task[h] = value;
+        });
+        task._rowIndex = i + 1; // 1-based for sheet operations
+
+        return {
+          success: true,
+          task: task,
+          _timing: { total: Date.now() - startTime }
+        };
+      }
+    }
+
+    return {
+      success: false,
+      error: 'Task not found: ' + taskId,
+      _timing: { total: Date.now() - startTime }
+    };
+
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString(),
+      _timing: { total: Date.now() - startTime }
+    };
+  }
+}
+
+/**
+ * CREATE UNIFIED TASK
+ *
+ * Required: title
+ * Optional: all other fields from schema
+ */
+function createUnifiedTask(data) {
+  const startTime = Date.now();
+
+  try {
+    if (!data.title) {
+      return { success: false, error: 'Task title is required' };
+    }
+
+    const sheet = getUnifiedTasksSheet();
+    const taskId = 'UTASK_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+    const now = new Date().toISOString();
+
+    // Build row from schema
+    const row = UNIFIED_TASKS_HEADERS.map(header => {
+      switch (header) {
+        case 'Task_ID': return taskId;
+        case 'Title': return data.title;
+        case 'Description': return data.description || '';
+        case 'Task_Type': return data.taskType || data.type || 'general';
+        case 'Batch_ID': return data.batchId || '';
+        case 'Field_ID': return data.fieldId || '';
+        case 'Bed_ID': return data.bedId || '';
+        case 'Crop_ID': return data.cropId || '';
+        case 'Source': return data.source || 'api';
+        case 'Assignee_ID': return data.assigneeId || '';
+        case 'Assignee_Name': return data.assigneeName || '';
+        case 'Assigned_By': return data.assignedBy || '';
+        case 'Assigned_At': return data.assigneeId ? now : '';
+        case 'Team_ID': return data.teamId || '';
+        case 'Role_Required': return data.roleRequired || '';
+        case 'Due_Date': return data.dueDate || '';
+        case 'Due_Time': return data.dueTime || '';
+        case 'Scheduled_Start': return data.scheduledStart || '';
+        case 'Scheduled_End': return data.scheduledEnd || '';
+        case 'Flexibility': return data.flexibility || 'normal';
+        case 'Weather_Dependent': return data.weatherDependent || false;
+        case 'Priority_Manual': return data.priority || 'medium';
+        case 'Priority_Score': return calculateTaskPriorityScore(data);
+        case 'At_Risk': return false;
+        case 'At_Risk_Reason': return '';
+        case 'Status': return data.assigneeId ? 'assigned' : 'pending';
+        case 'Started_At': return '';
+        case 'Completed_At': return '';
+        case 'Completed_By': return '';
+        case 'Blocked_Reason': return '';
+        case 'Estimated_Minutes': return data.estimatedMinutes || '';
+        case 'Actual_Minutes': return '';
+        case 'Efficiency_Pct': return '';
+        case 'Labor_Cost': return '';
+        case 'Blocked_By': return data.blockedBy || '';
+        case 'Blocks': return data.blocks || '';
+        case 'Dependency_Type': return data.dependencyType || '';
+        case 'Is_Recurring': return data.isRecurring || false;
+        case 'Recurrence_Rule': return data.recurrenceRule || '';
+        case 'Parent_Task_ID': return data.parentTaskId || '';
+        case 'Instance_Date': return data.instanceDate || '';
+        case 'SMS_Sent': return false;
+        case 'Reminder_Sent': return false;
+        case 'Acknowledged': return false;
+        case 'Created_At': return now;
+        case 'Updated_At': return now;
+        case 'Created_By': return data.createdBy || 'api';
+        case 'Tags': return Array.isArray(data.tags) ? data.tags.join(',') : (data.tags || '');
+        case 'Notes': return data.notes || '';
+        default: return '';
+      }
+    });
+
+    sheet.appendRow(row);
+
+    // Invalidate cache
+    CacheService.getScriptCache().remove('unified_tasks_all_all_all_50_0');
+
+    // Send SMS notification if assignee has phone and sendSMS not disabled
+    if (data.assigneeId && data.sendSMS !== false) {
+      try {
+        const employee = getEmployeeById(data.assigneeId);
+        if (employee && employee.Phone) {
+          const dueText = data.dueDate ? ` Due: ${data.dueDate}${data.dueTime ? ' ' + data.dueTime : ''}` : '';
+          sendSMS({
+            to: employee.Phone,
+            message: `[Tiny Seed] New task: ${data.title}.${dueText}`
+          });
+          // Update SMS_Sent flag
+          const lastRow = sheet.getLastRow();
+          const smsSentCol = UNIFIED_TASKS_HEADERS.indexOf('SMS_Sent') + 1;
+          sheet.getRange(lastRow, smsSentCol).setValue(true);
+        }
+      } catch (smsError) {
+        Logger.log('SMS notification failed: ' + smsError.toString());
+      }
+    }
+
+    return {
+      success: true,
+      taskId: taskId,
+      message: 'Task created successfully',
+      _timing: { total: Date.now() - startTime }
+    };
+
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString(),
+      _timing: { total: Date.now() - startTime }
+    };
+  }
+}
+
+/**
+ * UPDATE UNIFIED TASK
+ *
+ * Required: taskId
+ * Optional: any field to update
+ */
+function updateUnifiedTask(data) {
+  const startTime = Date.now();
+
+  try {
+    if (!data.taskId) {
+      return { success: false, error: 'Task ID is required' };
+    }
+
+    const sheet = getUnifiedTasksSheet();
+    const sheetData = sheet.getDataRange().getValues();
+    const headers = sheetData[0];
+    const headerIndex = {};
+    headers.forEach((h, i) => headerIndex[h] = i);
+
+    // Find the task row
+    let rowIndex = -1;
+    for (let i = 1; i < sheetData.length; i++) {
+      if (sheetData[i][0] === data.taskId) {
+        rowIndex = i + 1; // 1-based for sheet operations
+        break;
+      }
+    }
+
+    if (rowIndex === -1) {
+      return {
+        success: false,
+        error: 'Task not found: ' + data.taskId,
+        _timing: { total: Date.now() - startTime }
+      };
+    }
+
+    // Build updates array
+    const updates = [];
+    const now = new Date().toISOString();
+
+    // Map data fields to header columns
+    const fieldMap = {
+      title: 'Title',
+      description: 'Description',
+      taskType: 'Task_Type',
+      assigneeId: 'Assignee_ID',
+      assigneeName: 'Assignee_Name',
+      assignedBy: 'Assigned_By',
+      dueDate: 'Due_Date',
+      dueTime: 'Due_Time',
+      priority: 'Priority_Manual',
+      status: 'Status',
+      notes: 'Notes',
+      tags: 'Tags',
+      estimatedMinutes: 'Estimated_Minutes',
+      actualMinutes: 'Actual_Minutes',
+      blockedReason: 'Blocked_Reason',
+      completedBy: 'Completed_By'
+    };
+
+    for (const [dataKey, headerKey] of Object.entries(fieldMap)) {
+      if (data[dataKey] !== undefined && headerIndex[headerKey] !== undefined) {
+        const colIndex = headerIndex[headerKey] + 1;
+        let value = data[dataKey];
+
+        // Handle arrays
+        if (Array.isArray(value)) {
+          value = value.join(',');
+        }
+
+        updates.push({ col: colIndex, value: value });
+      }
+    }
+
+    // Handle status transitions with timestamps
+    if (data.status) {
+      if (data.status === 'in_progress' && headerIndex['Started_At'] !== undefined) {
+        updates.push({ col: headerIndex['Started_At'] + 1, value: now });
+      }
+      if (data.status === 'completed' && headerIndex['Completed_At'] !== undefined) {
+        updates.push({ col: headerIndex['Completed_At'] + 1, value: now });
+
+        // Calculate actual minutes if started
+        const startedAt = sheetData[rowIndex - 1][headerIndex['Started_At']];
+        if (startedAt) {
+          const startDate = new Date(startedAt);
+          const actualMins = Math.round((Date.now() - startDate.getTime()) / 60000);
+          updates.push({ col: headerIndex['Actual_Minutes'] + 1, value: actualMins });
+
+          // Calculate efficiency
+          const estimatedMins = sheetData[rowIndex - 1][headerIndex['Estimated_Minutes']];
+          if (estimatedMins) {
+            const efficiency = Math.round((estimatedMins / actualMins) * 100);
+            updates.push({ col: headerIndex['Efficiency_Pct'] + 1, value: efficiency });
+          }
+        }
+      }
+      if (data.status === 'assigned' && data.assigneeId && headerIndex['Assigned_At'] !== undefined) {
+        updates.push({ col: headerIndex['Assigned_At'] + 1, value: now });
+      }
+    }
+
+    // Always update Updated_At
+    if (headerIndex['Updated_At'] !== undefined) {
+      updates.push({ col: headerIndex['Updated_At'] + 1, value: now });
+    }
+
+    // Recalculate priority score if relevant fields changed
+    if (data.priority || data.dueDate || data.status) {
+      const currentRow = sheetData[rowIndex - 1];
+      const taskData = {};
+      headers.forEach((h, i) => taskData[h] = currentRow[i]);
+      // Apply updates to calculate new score
+      for (const [dataKey, headerKey] of Object.entries(fieldMap)) {
+        if (data[dataKey] !== undefined) {
+          taskData[headerKey] = data[dataKey];
+        }
+      }
+      const newScore = calculateTaskPriorityScore(taskData);
+      if (headerIndex['Priority_Score'] !== undefined) {
+        updates.push({ col: headerIndex['Priority_Score'] + 1, value: newScore });
+      }
+    }
+
+    // Apply all updates
+    for (const update of updates) {
+      sheet.getRange(rowIndex, update.col).setValue(update.value);
+    }
+
+    // Invalidate cache
+    CacheService.getScriptCache().remove('unified_tasks_all_all_all_50_0');
+
+    return {
+      success: true,
+      taskId: data.taskId,
+      updatedFields: updates.length,
+      message: 'Task updated successfully',
+      _timing: { total: Date.now() - startTime }
+    };
+
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString(),
+      _timing: { total: Date.now() - startTime }
+    };
+  }
+}
+
+/**
+ * BULK UPDATE TASKS - Update multiple tasks in ONE operation (FAST)
+ *
+ * data.updates: Array of { taskId, ...fieldsToUpdate }
+ */
+function bulkUpdateTasks(data) {
+  const startTime = Date.now();
+
+  try {
+    if (!data.updates || !Array.isArray(data.updates) || data.updates.length === 0) {
+      return { success: false, error: 'Updates array is required' };
+    }
+
+    if (data.updates.length > 100) {
+      return { success: false, error: 'Maximum 100 tasks per bulk update' };
+    }
+
+    const sheet = getUnifiedTasksSheet();
+    const sheetData = sheet.getDataRange().getValues();
+    const headers = sheetData[0];
+    const headerIndex = {};
+    headers.forEach((h, i) => headerIndex[h] = i);
+
+    // Build a map of taskId -> row index
+    const taskRowMap = {};
+    for (let i = 1; i < sheetData.length; i++) {
+      const taskId = sheetData[i][0];
+      if (taskId) {
+        taskRowMap[taskId] = i; // 0-based index in data array
+      }
+    }
+
+    const results = [];
+    const now = new Date().toISOString();
+    const fieldMap = {
+      status: 'Status',
+      priority: 'Priority_Manual',
+      assigneeId: 'Assignee_ID',
+      assigneeName: 'Assignee_Name',
+      notes: 'Notes',
+      dueDate: 'Due_Date'
+    };
+
+    // Process each update
+    for (const update of data.updates) {
+      if (!update.taskId) {
+        results.push({ taskId: null, success: false, error: 'Missing taskId' });
+        continue;
+      }
+
+      const dataRowIndex = taskRowMap[update.taskId];
+      if (dataRowIndex === undefined) {
+        results.push({ taskId: update.taskId, success: false, error: 'Not found' });
+        continue;
+      }
+
+      const rowIndex = dataRowIndex + 1; // 1-based for sheet operations
+
+      // Apply updates to this row
+      for (const [dataKey, headerKey] of Object.entries(fieldMap)) {
+        if (update[dataKey] !== undefined && headerIndex[headerKey] !== undefined) {
+          sheetData[dataRowIndex][headerIndex[headerKey]] = update[dataKey];
+        }
+      }
+
+      // Handle status transitions
+      if (update.status === 'in_progress' && headerIndex['Started_At'] !== undefined) {
+        sheetData[dataRowIndex][headerIndex['Started_At']] = now;
+      }
+      if (update.status === 'completed' && headerIndex['Completed_At'] !== undefined) {
+        sheetData[dataRowIndex][headerIndex['Completed_At']] = now;
+      }
+
+      // Update timestamp
+      if (headerIndex['Updated_At'] !== undefined) {
+        sheetData[dataRowIndex][headerIndex['Updated_At']] = now;
+      }
+
+      results.push({ taskId: update.taskId, success: true });
+    }
+
+    // Write all data back in ONE operation (FAST)
+    sheet.getRange(1, 1, sheetData.length, headers.length).setValues(sheetData);
+
+    // Invalidate cache
+    CacheService.getScriptCache().remove('unified_tasks_all_all_all_50_0');
+
+    const successCount = results.filter(r => r.success).length;
+
+    return {
+      success: true,
+      processed: data.updates.length,
+      succeeded: successCount,
+      failed: data.updates.length - successCount,
+      results: results,
+      _timing: { total: Date.now() - startTime }
+    };
+
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString(),
+      _timing: { total: Date.now() - startTime }
+    };
+  }
+}
+
+/**
+ * BULK CREATE TASKS - Create multiple tasks in ONE operation (FAST)
+ *
+ * data.tasks: Array of task objects
+ */
+function bulkCreateTasks(data) {
+  const startTime = Date.now();
+
+  try {
+    if (!data.tasks || !Array.isArray(data.tasks) || data.tasks.length === 0) {
+      return { success: false, error: 'Tasks array is required' };
+    }
+
+    if (data.tasks.length > 100) {
+      return { success: false, error: 'Maximum 100 tasks per bulk create' };
+    }
+
+    const sheet = getUnifiedTasksSheet();
+    const now = new Date().toISOString();
+    const rows = [];
+    const taskIds = [];
+
+    for (const taskData of data.tasks) {
+      if (!taskData.title) {
+        taskIds.push({ success: false, error: 'Missing title' });
+        continue;
+      }
+
+      const taskId = 'UTASK_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+      taskIds.push({ taskId: taskId, success: true });
+
+      const row = UNIFIED_TASKS_HEADERS.map(header => {
+        switch (header) {
+          case 'Task_ID': return taskId;
+          case 'Title': return taskData.title;
+          case 'Description': return taskData.description || '';
+          case 'Task_Type': return taskData.taskType || taskData.type || 'general';
+          case 'Batch_ID': return taskData.batchId || '';
+          case 'Field_ID': return taskData.fieldId || '';
+          case 'Bed_ID': return taskData.bedId || '';
+          case 'Crop_ID': return taskData.cropId || '';
+          case 'Source': return taskData.source || 'bulk_api';
+          case 'Assignee_ID': return taskData.assigneeId || '';
+          case 'Assignee_Name': return taskData.assigneeName || '';
+          case 'Assigned_By': return taskData.assignedBy || '';
+          case 'Assigned_At': return taskData.assigneeId ? now : '';
+          case 'Due_Date': return taskData.dueDate || '';
+          case 'Due_Time': return taskData.dueTime || '';
+          case 'Priority_Manual': return taskData.priority || 'medium';
+          case 'Priority_Score': return calculateTaskPriorityScore(taskData);
+          case 'Status': return taskData.assigneeId ? 'assigned' : 'pending';
+          case 'Created_At': return now;
+          case 'Updated_At': return now;
+          case 'Created_By': return taskData.createdBy || 'bulk_api';
+          case 'Tags': return Array.isArray(taskData.tags) ? taskData.tags.join(',') : (taskData.tags || '');
+          case 'Notes': return taskData.notes || '';
+          default: return '';
+        }
+      });
+
+      rows.push(row);
+    }
+
+    // Write all rows in ONE operation (FAST)
+    if (rows.length > 0) {
+      const lastRow = sheet.getLastRow();
+      sheet.getRange(lastRow + 1, 1, rows.length, UNIFIED_TASKS_HEADERS.length).setValues(rows);
+    }
+
+    // Invalidate cache
+    CacheService.getScriptCache().remove('unified_tasks_all_all_all_50_0');
+
+    const successCount = taskIds.filter(t => t.success).length;
+
+    return {
+      success: true,
+      processed: data.tasks.length,
+      created: successCount,
+      failed: data.tasks.length - successCount,
+      taskIds: taskIds,
+      _timing: { total: Date.now() - startTime }
+    };
+
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString(),
+      _timing: { total: Date.now() - startTime }
+    };
+  }
+}
+
+/**
+ * DELETE UNIFIED TASK (soft delete - sets status to cancelled)
+ */
+function deleteUnifiedTask(taskId) {
+  const startTime = Date.now();
+
+  try {
+    if (!taskId) {
+      return { success: false, error: 'Task ID is required' };
+    }
+
+    // Use updateUnifiedTask to set status to cancelled
+    return updateUnifiedTask({
+      taskId: taskId,
+      status: 'cancelled'
+    });
+
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString(),
+      _timing: { total: Date.now() - startTime }
+    };
+  }
+}
+
+/**
+ * GET TASK PRIORITIES - Return AI-sorted task list with CACHED priority calculations
+ *
+ * Parameters:
+ *   assigneeId - Filter by assignee (optional)
+ *   limit - Max items (default 20)
+ *   includeContext - Include priority calculation context
+ */
+function getTaskPriorities(params) {
+  const startTime = Date.now();
+
+  try {
+    const assigneeId = params.assigneeId || null;
+    const limit = Math.min(parseInt(params.limit) || 20, 50);
+    const includeContext = params.includeContext === 'true';
+
+    // Get tasks that are not completed
+    const tasksResult = getUnifiedTasks({
+      status: null, // Get all active statuses
+      assigneeId: assigneeId,
+      includeCompleted: 'false',
+      limit: '200',
+      sortBy: 'Priority_Score',
+      sortOrder: 'desc'
+    });
+
+    if (!tasksResult.success) {
+      return tasksResult;
+    }
+
+    // Enhance with priority context
+    const prioritizedTasks = tasksResult.tasks.slice(0, limit).map((task, index) => {
+      const enhanced = {
+        ...task,
+        priorityRank: index + 1
+      };
+
+      if (includeContext) {
+        enhanced.priorityContext = {
+          score: task.Priority_Score,
+          factors: getPriorityFactors(task)
+        };
+      }
+
+      return enhanced;
+    });
+
+    // Get summary stats
+    const now = new Date();
+    const overdue = tasksResult.tasks.filter(t => {
+      if (!t.Due_Date) return false;
+      return new Date(t.Due_Date) < now && t.Status !== 'completed';
+    }).length;
+
+    const dueToday = tasksResult.tasks.filter(t => {
+      if (!t.Due_Date) return false;
+      const due = new Date(t.Due_Date);
+      return due.toDateString() === now.toDateString();
+    }).length;
+
+    return {
+      success: true,
+      tasks: prioritizedTasks,
+      summary: {
+        totalActive: tasksResult.total,
+        overdue: overdue,
+        dueToday: dueToday,
+        highPriority: tasksResult.tasks.filter(t => t.Priority_Manual === 'high' || t.Priority_Manual === 'urgent').length
+      },
+      _timing: { total: Date.now() - startTime }
+    };
+
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString(),
+      _timing: { total: Date.now() - startTime }
+    };
+  }
+}
+
+/**
+ * GET UNIFIED TASK STATS - Dashboard statistics
+ */
+function getUnifiedTaskStats(params) {
+  const startTime = Date.now();
+
+  try {
+    const cacheKey = 'unified_task_stats';
+    const cache = CacheService.getScriptCache();
+
+    const cached = cache.get(cacheKey);
+    if (cached) {
+      const result = JSON.parse(cached);
+      result._cached = true;
+      result._timing = { total: Date.now() - startTime, source: 'cache' };
+      return result;
+    }
+
+    const sheet = getUnifiedTasksSheet();
+    const data = sheet.getDataRange().getValues();
+
+    if (data.length < 2) {
+      return {
+        success: true,
+        stats: {
+          total: 0,
+          byStatus: {},
+          byPriority: {},
+          byType: {},
+          overdue: 0,
+          dueToday: 0,
+          dueThisWeek: 0
+        },
+        _timing: { total: Date.now() - startTime }
+      };
+    }
+
+    const headers = data[0];
+    const headerIndex = {};
+    headers.forEach((h, i) => headerIndex[h] = i);
+
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const weekEnd = new Date(now);
+    weekEnd.setDate(weekEnd.getDate() + 7);
+
+    const stats = {
+      total: 0,
+      byStatus: {},
+      byPriority: {},
+      byType: {},
+      byAssignee: {},
+      overdue: 0,
+      dueToday: 0,
+      dueThisWeek: 0,
+      completedToday: 0,
+      completedThisWeek: 0,
+      avgCompletionTime: 0
+    };
+
+    let completionTimes = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (!row[0]) continue;
+
+      stats.total++;
+
+      const status = row[headerIndex['Status']] || 'unknown';
+      const priority = row[headerIndex['Priority_Manual']] || 'medium';
+      const taskType = row[headerIndex['Task_Type']] || 'general';
+      const assigneeId = row[headerIndex['Assignee_ID']] || 'unassigned';
+      const dueDate = row[headerIndex['Due_Date']];
+      const completedAt = row[headerIndex['Completed_At']];
+      const actualMinutes = row[headerIndex['Actual_Minutes']];
+
+      // Count by status
+      stats.byStatus[status] = (stats.byStatus[status] || 0) + 1;
+
+      // Count by priority (only active tasks)
+      if (status !== 'completed' && status !== 'cancelled') {
+        stats.byPriority[priority] = (stats.byPriority[priority] || 0) + 1;
+      }
+
+      // Count by type
+      stats.byType[taskType] = (stats.byType[taskType] || 0) + 1;
+
+      // Count by assignee (only active)
+      if (status !== 'completed' && status !== 'cancelled') {
+        stats.byAssignee[assigneeId] = (stats.byAssignee[assigneeId] || 0) + 1;
+      }
+
+      // Due date analysis
+      if (dueDate && status !== 'completed' && status !== 'cancelled') {
+        const due = new Date(dueDate);
+        const dueStr = due.toISOString().split('T')[0];
+
+        if (due < now) {
+          stats.overdue++;
+        }
+        if (dueStr === todayStr) {
+          stats.dueToday++;
+        }
+        if (due <= weekEnd) {
+          stats.dueThisWeek++;
+        }
+      }
+
+      // Completion analysis
+      if (completedAt) {
+        const completed = new Date(completedAt);
+        const completedStr = completed.toISOString().split('T')[0];
+
+        if (completedStr === todayStr) {
+          stats.completedToday++;
+        }
+        if (completed >= new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)) {
+          stats.completedThisWeek++;
+        }
+
+        if (actualMinutes) {
+          completionTimes.push(parseFloat(actualMinutes));
+        }
+      }
+    }
+
+    // Calculate average completion time
+    if (completionTimes.length > 0) {
+      stats.avgCompletionTime = Math.round(completionTimes.reduce((a, b) => a + b, 0) / completionTimes.length);
+    }
+
+    const result = {
+      success: true,
+      stats: stats,
+      _timing: { total: Date.now() - startTime, source: 'sheet' }
+    };
+
+    // Cache for 5 minutes
+    try {
+      cache.put(cacheKey, JSON.stringify(result), 300);
+    } catch (e) {
+      // Cache write failed, continue
+    }
+
+    return result;
+
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString(),
+      _timing: { total: Date.now() - startTime }
+    };
+  }
+}
+
+/**
+ * Calculate priority score for a task (0-100)
+ * Higher = more urgent
+ */
+function calculateTaskPriorityScore(task) {
+  let score = 50; // Base score
+
+  // Priority weighting
+  const priorityMap = {
+    'urgent': 30,
+    'high': 20,
+    'medium': 0,
+    'low': -20
+  };
+  const priority = task.Priority_Manual || task.priority || 'medium';
+  score += priorityMap[priority] || 0;
+
+  // Due date urgency
+  if (task.Due_Date || task.dueDate) {
+    const dueDate = new Date(task.Due_Date || task.dueDate);
+    const now = new Date();
+    const daysUntilDue = (dueDate - now) / (1000 * 60 * 60 * 24);
+
+    if (daysUntilDue < 0) {
+      score += 25; // Overdue
+    } else if (daysUntilDue < 1) {
+      score += 15; // Due today
+    } else if (daysUntilDue < 3) {
+      score += 10; // Due soon
+    } else if (daysUntilDue > 14) {
+      score -= 10; // Not urgent
+    }
+  }
+
+  // Weather dependent tasks get boost during good weather (simplified)
+  if (task.Weather_Dependent || task.weatherDependent) {
+    score += 5;
+  }
+
+  // Tasks blocking others get priority
+  if (task.Blocks || task.blocks) {
+    score += 10;
+  }
+
+  // Clamp to 0-100
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
+
+/**
+ * Get priority factors for context
+ */
+function getPriorityFactors(task) {
+  const factors = [];
+
+  const priority = task.Priority_Manual || 'medium';
+  factors.push({ factor: 'priority', value: priority, impact: priority === 'urgent' ? 'high' : priority === 'high' ? 'medium' : 'low' });
+
+  if (task.Due_Date) {
+    const dueDate = new Date(task.Due_Date);
+    const now = new Date();
+    const daysUntilDue = Math.round((dueDate - now) / (1000 * 60 * 60 * 24));
+
+    if (daysUntilDue < 0) {
+      factors.push({ factor: 'overdue', value: Math.abs(daysUntilDue) + ' days', impact: 'critical' });
+    } else if (daysUntilDue === 0) {
+      factors.push({ factor: 'dueToday', value: true, impact: 'high' });
+    } else if (daysUntilDue <= 3) {
+      factors.push({ factor: 'dueSoon', value: daysUntilDue + ' days', impact: 'medium' });
+    }
+  }
+
+  if (task.At_Risk === true || task.At_Risk === 'TRUE') {
+    factors.push({ factor: 'atRisk', value: task.At_Risk_Reason || 'Yes', impact: 'high' });
+  }
+
+  if (task.Blocks) {
+    factors.push({ factor: 'blocking', value: task.Blocks, impact: 'high' });
+  }
+
+  if (task.Weather_Dependent === true || task.Weather_Dependent === 'TRUE') {
+    factors.push({ factor: 'weatherDependent', value: true, impact: 'medium' });
+  }
+
+  return factors;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+// END: UNIFIED TASK MANAGEMENT API
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+// AI PRIORITY SCORING & PROACTIVE ALERT SYSTEM (Added 2026-02-02)
+// Multi-factor intelligent task prioritization with caching
+// Connects to: SmartLaborIntelligence, FarmIntelligence, Weather systems
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Calculate AI Priority Score - Multi-factor scoring (0-100)
+ * Connects to existing weather, GDD, and labor intelligence systems
+ *
+ * @param {Object} task - Task object with standard fields
+ * @param {Object} context - Context including weather, user, etc.
+ * @returns {Object} Priority score with breakdown and reasoning
+ */
+function calculateAIPriority(task, context) {
+  const startTime = Date.now();
+  const reasons = [];
+  let score = 0;
+
+  try {
+    // Normalize task fields
+    const dueDate = task.Due_Date || task.dueDate || task.due_date;
+    const taskType = (task.Task_Type || task.taskType || task.type || 'general').toLowerCase();
+    const priority = (task.Priority_Manual || task.priority || 'medium').toLowerCase();
+    const weatherDependent = task.Weather_Dependent || task.weatherDependent ||
+                            ['spray', 'transplant', 'seed', 'irrigate', 'harvest'].includes(taskType);
+    const batchId = task.Batch_ID || task.batchId || task.batch_id;
+    const cropId = task.Crop_ID || task.cropId || task.crop_id || task.crop;
+    const blocks = task.Blocks || task.blocks || '';
+    const estimatedMinutes = task.Estimated_Minutes || task.estimatedMinutes || 30;
+    const assigneeId = task.Assignee_ID || task.assigneeId || task.assigned;
+
+    // Build context if not provided
+    if (!context) {
+      context = { forecast: null, timeOfDay: getTimeOfDay() };
+    }
+
+    // ═══════════════════════════════════════════════════
+    // 1. DEADLINE SCORE (25 points max)
+    // ═══════════════════════════════════════════════════
+    let deadlineScore = 5; // Base score
+    if (dueDate) {
+      const daysUntil = getDaysUntilDueAI(dueDate);
+      if (daysUntil < 0) {
+        deadlineScore = 25;
+        reasons.push('OVERDUE by ' + Math.abs(daysUntil) + ' day(s) - CRITICAL');
+      } else if (daysUntil === 0) {
+        deadlineScore = 22;
+        reasons.push('Due TODAY');
+      } else if (daysUntil === 1) {
+        deadlineScore = 18;
+        reasons.push('Due TOMORROW');
+      } else if (daysUntil <= 3) {
+        deadlineScore = 12;
+        reasons.push('Due within 3 days');
+      } else if (daysUntil <= 7) {
+        deadlineScore = 8;
+        reasons.push('Due this week');
+      }
+    }
+    score += deadlineScore;
+
+    // ═══════════════════════════════════════════════════
+    // 2. WEATHER FIT SCORE (20 points max)
+    // ═══════════════════════════════════════════════════
+    let weatherScore = 10; // Neutral for non-weather tasks
+    if (weatherDependent) {
+      const weather = context.forecast || getCurrentWeatherContextAI();
+      const weatherFit = canDoTaskInWeatherAI(taskType, weather);
+
+      if (weatherFit.canDo) {
+        weatherScore = 20;
+        reasons.push('Weather conditions favorable');
+
+        // Bonus for rare good windows (spray windows are rare)
+        if (weatherFit.perfectWindow) {
+          score += 10; // Bonus points
+          reasons.push('PERFECT weather window - rare opportunity!');
+        }
+      } else {
+        weatherScore = 0;
+        reasons.push('Weather not suitable: ' + weatherFit.reason);
+      }
+    }
+    score += weatherScore;
+
+    // ═══════════════════════════════════════════════════
+    // 3. DEPENDENCY CHAIN SCORE (15 points max)
+    // ═══════════════════════════════════════════════════
+    let dependencyScore = 0;
+    if (blocks) {
+      const blockedCount = String(blocks).split(',').filter(b => b.trim()).length;
+      dependencyScore = Math.min(blockedCount * 5, 15);
+      if (blockedCount > 0) {
+        reasons.push('Blocks ' + blockedCount + ' other task(s)');
+      }
+    }
+    score += dependencyScore;
+
+    // ═══════════════════════════════════════════════════
+    // 4. REVENUE IMPACT SCORE (15 points max)
+    // ═══════════════════════════════════════════════════
+    let revenueScore = 5; // Base
+    if (taskType === 'harvest' && cropId) {
+      const cropValue = getCropValueEstimateAI(cropId);
+      revenueScore = Math.min(Math.round(cropValue / 50), 15);
+      if (cropValue > 200) {
+        reasons.push('High-value crop: $' + cropValue + ' estimated');
+      }
+    }
+    // CSA/Wholesale boost
+    if (task.isCSA || task.is_csa) {
+      revenueScore = Math.min(revenueScore + 5, 15);
+      reasons.push('CSA commitment');
+    }
+    if (task.isWholesale || task.is_wholesale) {
+      revenueScore = Math.min(revenueScore + 3, 15);
+      reasons.push('Wholesale order');
+    }
+    score += revenueScore;
+
+    // ═══════════════════════════════════════════════════
+    // 5. MANUAL PRIORITY SCORE (15 points max)
+    // ═══════════════════════════════════════════════════
+    const manualScores = { critical: 15, urgent: 15, high: 11, medium: 7, low: 3 };
+    const manualScore = manualScores[priority] || 7;
+    if (priority === 'critical' || priority === 'urgent') {
+      reasons.push('Marked as ' + priority.toUpperCase() + ' priority');
+    }
+    score += manualScore;
+
+    // ═══════════════════════════════════════════════════
+    // 6. WORKLOAD BALANCE SCORE (10 points max) - NEW
+    // Penalize tasks for overloaded assignees, boost for available workers
+    // ═══════════════════════════════════════════════════
+    let workloadScore = 5; // Neutral default
+    if (assigneeId) {
+      const workloadInfo = getAssigneeWorkloadRatioAI(assigneeId, dueDate || new Date());
+      if (workloadInfo) {
+        const loadRatio = workloadInfo.ratio; // 0.0 = no load, 1.0 = at capacity, >1.0 = overloaded
+        if (loadRatio > 1.0) {
+          workloadScore = 0;
+          reasons.push('Assignee overloaded (' + Math.round(loadRatio * 100) + '% capacity) - consider reassigning');
+        } else if (loadRatio > 0.9) {
+          workloadScore = 2;
+          reasons.push('Assignee near capacity (' + Math.round(loadRatio * 100) + '%)');
+        } else if (loadRatio < 0.5) {
+          workloadScore = 10;
+          reasons.push('Assignee has availability (' + Math.round(loadRatio * 100) + '% utilized)');
+        } else {
+          workloadScore = 7;
+        }
+      }
+    }
+    score += workloadScore;
+
+    // ═══════════════════════════════════════════════════
+    // 7. GDD URGENCY BONUS (10 points bonus for harvests)
+    // ═══════════════════════════════════════════════════
+    let gddBonus = 0;
+    if (taskType === 'harvest' && batchId) {
+      const gddInfo = getGDDPercentForBatchAI(batchId);
+      if (gddInfo && gddInfo.gdd_percent) {
+        const gddPercent = gddInfo.gdd_percent;
+        if (gddPercent > 98) {
+          gddBonus = 15;
+          reasons.push('GDD at ' + gddPercent + '% - HARVEST NOW or quality drops!');
+        } else if (gddPercent > 95) {
+          gddBonus = 12;
+          reasons.push('GDD at ' + gddPercent + '% - Peak ripeness!');
+        } else if (gddPercent > 90) {
+          gddBonus = 8;
+          reasons.push('GDD at ' + gddPercent + '% - Ready for harvest');
+        }
+      }
+    }
+    score += gddBonus;
+
+    // Cap at 100
+    score = Math.min(100, Math.round(score));
+
+    return {
+      score: score,
+      breakdown: {
+        deadline: deadlineScore,
+        weather: weatherScore,
+        dependency: dependencyScore,
+        revenue: revenueScore,
+        manual: manualScore,
+        workload: workloadScore,
+        gddBonus: gddBonus
+      },
+      reasons: reasons,
+      calculatedAt: new Date().toISOString(),
+      responseTimeMs: Date.now() - startTime
+    };
+
+  } catch (error) {
+    Logger.log('calculateAIPriority error: ' + error.toString());
+    return {
+      score: 50,
+      breakdown: { deadline: 10, weather: 10, dependency: 5, revenue: 5, manual: 7, workload: 5, gddBonus: 0 },
+      reasons: ['Error calculating priority: ' + error.message],
+      error: error.toString()
+    };
+  }
+}
+
+/**
+ * Helper: Get assignee workload ratio for workload balancing
+ * Returns ratio of assigned work vs available capacity
+ * @param {string} assigneeId - Employee ID
+ * @param {Date} date - Date to check workload
+ * @returns {Object} Workload info with ratio
+ */
+function getAssigneeWorkloadRatioAI(assigneeId, date) {
+  try {
+    if (!assigneeId) return null;
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const dateStr = Utilities.formatDate(new Date(date), 'America/New_York', 'yyyy-MM-dd');
+
+    // Get available minutes for this employee
+    const availableMinutes = getAvailableMinutesForAssigneeAI(assigneeId, date);
+
+    // Get assigned tasks for this employee on this date
+    let assignedMinutes = 0;
+
+    // Check UNIFIED_TASKS
+    const taskSheet = ss.getSheetByName('UNIFIED_TASKS');
+    if (taskSheet && taskSheet.getLastRow() > 1) {
+      const data = taskSheet.getDataRange().getValues();
+      const headers = data[0];
+      const assigneeCol = headers.indexOf('Assignee_ID');
+      const dueDateCol = headers.indexOf('Due_Date');
+      const estimatedCol = headers.indexOf('Estimated_Minutes');
+      const statusCol = headers.indexOf('Status');
+
+      for (let i = 1; i < data.length; i++) {
+        if (String(data[i][assigneeCol]) === String(assigneeId)) {
+          const taskDue = data[i][dueDateCol];
+          const taskDateStr = taskDue ? Utilities.formatDate(new Date(taskDue), 'America/New_York', 'yyyy-MM-dd') : '';
+          const status = String(data[i][statusCol]).toLowerCase();
+
+          // Only count non-completed tasks for this date
+          if (taskDateStr === dateStr && !['completed', 'cancelled', 'done'].includes(status)) {
+            assignedMinutes += parseInt(data[i][estimatedCol]) || 30;
+          }
+        }
+      }
+    }
+
+    // Also check legacy TASK_ASSIGNMENTS if exists
+    const legacySheet = ss.getSheetByName('TASK_ASSIGNMENTS');
+    if (legacySheet && legacySheet.getLastRow() > 1) {
+      const data = legacySheet.getDataRange().getValues();
+      const headers = data[0].map(h => String(h).toLowerCase());
+      const assigneeCol = headers.findIndex(h => h.includes('assignee') || h.includes('employee'));
+      const dueDateCol = headers.findIndex(h => h.includes('due') && h.includes('date'));
+      const estimatedCol = headers.findIndex(h => h.includes('estimated') || h.includes('minutes'));
+      const statusCol = headers.findIndex(h => h.includes('status'));
+
+      if (assigneeCol >= 0 && dueDateCol >= 0) {
+        for (let i = 1; i < data.length; i++) {
+          if (String(data[i][assigneeCol]) === String(assigneeId)) {
+            const taskDue = data[i][dueDateCol];
+            const taskDateStr = taskDue ? Utilities.formatDate(new Date(taskDue), 'America/New_York', 'yyyy-MM-dd') : '';
+            const status = statusCol >= 0 ? String(data[i][statusCol]).toLowerCase() : '';
+
+            if (taskDateStr === dateStr && !['completed', 'cancelled', 'done'].includes(status)) {
+              assignedMinutes += estimatedCol >= 0 ? (parseInt(data[i][estimatedCol]) || 30) : 30;
+            }
+          }
+        }
+      }
+    }
+
+    const ratio = availableMinutes > 0 ? assignedMinutes / availableMinutes : 1.0;
+
+    return {
+      assigneeId: assigneeId,
+      date: dateStr,
+      assignedMinutes: assignedMinutes,
+      availableMinutes: availableMinutes,
+      ratio: ratio,
+      status: ratio > 1.0 ? 'overloaded' : ratio > 0.9 ? 'near_capacity' : ratio > 0.5 ? 'normal' : 'available'
+    };
+
+  } catch (e) {
+    Logger.log('getAssigneeWorkloadRatioAI error: ' + e.message);
+    return null;
+  }
+}
+
+/**
+ * Helper: Get days until due date
+ */
+function getDaysUntilDueAI(dueDate) {
+  if (!dueDate) return 999;
+  const due = new Date(dueDate);
+  const now = new Date();
+  // Reset to start of day for accurate day count
+  due.setHours(0, 0, 0, 0);
+  now.setHours(0, 0, 0, 0);
+  return Math.floor((due - now) / (1000 * 60 * 60 * 24));
+}
+
+/**
+ * Helper: Get current weather context for priority calculations
+ * Uses caching to avoid repeated API calls
+ */
+function getCurrentWeatherContextAI() {
+  const cache = CacheService.getScriptCache();
+  const cacheKey = 'AI_WEATHER_CONTEXT';
+
+  // Try cache first
+  const cached = cache.get(cacheKey);
+  if (cached) {
+    try {
+      return JSON.parse(cached);
+    } catch (e) {}
+  }
+
+  // Fetch fresh weather
+  try {
+    const weatherData = typeof getWeatherForecastData === 'function' ? getWeatherForecastData({}) : null;
+    if (weatherData && weatherData.success && weatherData.data && weatherData.data.length > 0) {
+      const today = weatherData.data[0];
+      const context = {
+        temp_high: today.temp_high_f || today.high,
+        temp_low: today.temp_low_f || today.low,
+        precip_chance: today.precip_chance || today.rain || 0,
+        precip_mm: today.precip_mm || 0,
+        condition: today.condition,
+        wind_mph: today.wind_mph || 0,
+        humidity: today.humidity,
+        forecast: weatherData.data.slice(0, 7)
+      };
+
+      // Cache for 5 minutes
+      cache.put(cacheKey, JSON.stringify(context), 300);
+      return context;
+    }
+  } catch (e) {
+    Logger.log('getCurrentWeatherContextAI error: ' + e.message);
+  }
+
+  return { precip_chance: 0, condition: 'unknown' };
+}
+
+/**
+ * Helper: Check if task can be done in current weather
+ */
+function canDoTaskInWeatherAI(taskType, weather) {
+  if (!weather) return { canDo: true, reason: 'No weather data' };
+
+  const precipChance = weather.precip_chance || 0;
+  const tempHigh = weather.temp_high || weather.temp_high_f || 70;
+  const tempLow = weather.temp_low || weather.temp_low_f || 50;
+  const windMph = weather.wind_mph || 0;
+
+  // Task-specific rules
+  switch (taskType) {
+    case 'spray':
+      // No spraying if rain within 48 hours or wind > 10mph
+      if (precipChance > 30) {
+        return { canDo: false, reason: precipChance + '% rain chance - spray will wash off' };
+      }
+      if (windMph > 10) {
+        return { canDo: false, reason: 'Wind ' + windMph + 'mph - spray drift risk' };
+      }
+      // Perfect window = no rain for 48hrs, low wind
+      const perfectSpray = precipChance < 10 && windMph < 5;
+      return { canDo: true, perfectWindow: perfectSpray, reason: 'Good spray conditions' };
+
+    case 'transplant':
+    case 'seed':
+      // Light rain is actually good for transplanting
+      if (precipChance > 70) {
+        return { canDo: false, reason: 'Too much rain expected' };
+      }
+      if (tempHigh > 95 || tempLow < 35) {
+        return { canDo: false, reason: 'Temperature extreme: ' + tempLow + '-' + tempHigh + 'F' };
+      }
+      // Perfect window = overcast, light moisture
+      const perfectTransplant = precipChance > 20 && precipChance < 50 && tempHigh < 85;
+      return { canDo: true, perfectWindow: perfectTransplant };
+
+    case 'harvest':
+      // Harvest before rain if perishable
+      if (precipChance > 60) {
+        return { canDo: true, perfectWindow: false, reason: 'Harvest BEFORE rain' };
+      }
+      return { canDo: true, perfectWindow: precipChance < 20 };
+
+    case 'irrigate':
+      // Don't irrigate if rain coming
+      if (precipChance > 50) {
+        return { canDo: false, reason: 'Rain expected - skip irrigation' };
+      }
+      return { canDo: true };
+
+    case 'cultivate':
+      // Need dry soil
+      if (precipChance > 40 || (weather.precip_mm && weather.precip_mm > 5)) {
+        return { canDo: false, reason: 'Soil too wet for cultivation' };
+      }
+      return { canDo: true };
+
+    default:
+      return { canDo: true };
+  }
+}
+
+/**
+ * Helper: Get crop value estimate
+ */
+function getCropValueEstimateAI(cropId) {
+  const cropValues = {
+    'tomato': 400, 'pepper': 350, 'cucumber': 200, 'squash': 150,
+    'lettuce': 100, 'kale': 120, 'spinach': 150, 'basil': 300,
+    'dahlia': 500, 'lisianthus': 600, 'ranunculus': 550, 'sunflower': 200,
+    'zinnia': 250, 'snapdragon': 350
+  };
+
+  const normalized = String(cropId || '').toLowerCase().trim();
+  return cropValues[normalized] || 100;
+}
+
+/**
+ * Helper: Get GDD percent for a batch
+ */
+function getGDDPercentForBatchAI(batchId) {
+  try {
+    const gddProgress = typeof getGDDProgress === 'function' ? getGDDProgress({}) : null;
+    if (gddProgress && gddProgress.success && gddProgress.data) {
+      const batch = gddProgress.data.find(b => b.batch_id === batchId);
+      if (batch) {
+        return {
+          gdd_percent: batch.gdd_percent,
+          days_remaining: batch.days_remaining,
+          predicted_date: batch.predicted_date
+        };
+      }
+    }
+  } catch (e) {
+    Logger.log('getGDDPercentForBatchAI error: ' + e.message);
+  }
+  return null;
+}
+
+/**
+ * Detect At-Risk Tasks
+ * Identifies tasks that may fail due to time, weather, or maturity issues
+ *
+ * @param {Object} task - Task to analyze
+ * @returns {Object} Risk assessment
+ */
+function detectAtRisk(task) {
+  const risks = [];
+
+  try {
+    const estimatedMinutes = task.Estimated_Minutes || task.estimatedMinutes || 30;
+    const dueDate = task.Due_Date || task.dueDate || task.due_date;
+    const taskType = (task.Task_Type || task.taskType || task.type || 'general').toLowerCase();
+    const assigneeId = task.Assignee_ID || task.assigneeId || task.assigned;
+    const batchId = task.Batch_ID || task.batchId || task.batch_id;
+    const weatherDependent = task.Weather_Dependent || task.weatherDependent ||
+                            ['spray', 'transplant', 'seed', 'irrigate', 'harvest'].includes(taskType);
+
+    // ═══════════════════════════════════════════════════
+    // 1. TIME RISK - Not enough time before deadline
+    // ═══════════════════════════════════════════════════
+    if (estimatedMinutes && dueDate && assigneeId) {
+      const available = getAvailableMinutesForAssigneeAI(assigneeId, dueDate);
+      if (estimatedMinutes > available) {
+        risks.push({
+          type: 'TIME',
+          severity: 'HIGH',
+          message: 'Needs ' + estimatedMinutes + ' min, only ' + available + ' min available',
+          data: { needed: estimatedMinutes, available: available }
+        });
+      }
+    }
+
+    // ═══════════════════════════════════════════════════
+    // 2. WEATHER RISK - Bad weather for task type
+    // ═══════════════════════════════════════════════════
+    if (weatherDependent && dueDate) {
+      const forecast = getWeatherForDateAI(dueDate);
+      if (forecast) {
+        const precipChance = forecast.precip_chance || forecast.rain || 0;
+
+        if (taskType === 'spray' && precipChance > 30) {
+          risks.push({
+            type: 'WEATHER',
+            severity: 'HIGH',
+            message: 'Rain ' + precipChance + '% likely - spray will be ineffective',
+            data: { precipChance: precipChance, condition: forecast.condition }
+          });
+        } else if ((taskType === 'transplant' || taskType === 'seed') && precipChance > 70) {
+          risks.push({
+            type: 'WEATHER',
+            severity: 'MEDIUM',
+            message: 'Heavy rain expected: ' + precipChance + '%',
+            data: { precipChance: precipChance }
+          });
+        } else if (taskType === 'harvest' && precipChance > 60) {
+          risks.push({
+            type: 'WEATHER',
+            severity: 'MEDIUM',
+            message: 'Rain expected (' + precipChance + '%) - harvest may get wet',
+            data: { precipChance: precipChance }
+          });
+        }
+
+        // Frost risk
+        if (forecast.temp_low_f && forecast.temp_low_f < 35) {
+          risks.push({
+            type: 'FROST',
+            severity: 'CRITICAL',
+            message: 'Frost warning: ' + forecast.temp_low_f + 'F expected',
+            data: { lowTemp: forecast.temp_low_f }
+          });
+        }
+      }
+    }
+
+    // ═══════════════════════════════════════════════════
+    // 3. GDD/OVERRIPE RISK - Crop past optimal harvest
+    // ═══════════════════════════════════════════════════
+    if (taskType === 'harvest' && batchId) {
+      const gddInfo = getGDDPercentForBatchAI(batchId);
+      if (gddInfo && gddInfo.gdd_percent) {
+        if (gddInfo.gdd_percent > 100) {
+          risks.push({
+            type: 'OVERRIPE',
+            severity: 'CRITICAL',
+            message: 'OVERRIPE at ' + gddInfo.gdd_percent + '% GDD - harvest IMMEDIATELY!',
+            data: { gddPercent: gddInfo.gdd_percent }
+          });
+        } else if (gddInfo.gdd_percent > 98) {
+          risks.push({
+            type: 'OVERRIPE',
+            severity: 'HIGH',
+            message: 'At ' + gddInfo.gdd_percent + '% maturity - harvest within 24 hours',
+            data: { gddPercent: gddInfo.gdd_percent }
+          });
+        }
+      }
+    }
+
+    // ═══════════════════════════════════════════════════
+    // 4. DEADLINE RISK - Task is overdue
+    // ═══════════════════════════════════════════════════
+    if (dueDate) {
+      const daysUntil = getDaysUntilDueAI(dueDate);
+      if (daysUntil < -3) {
+        risks.push({
+          type: 'OVERDUE',
+          severity: 'CRITICAL',
+          message: 'Task is ' + Math.abs(daysUntil) + ' days overdue',
+          data: { daysOverdue: Math.abs(daysUntil) }
+        });
+      } else if (daysUntil < 0) {
+        risks.push({
+          type: 'OVERDUE',
+          severity: 'HIGH',
+          message: 'Task is overdue',
+          data: { daysOverdue: Math.abs(daysUntil) }
+        });
+      }
+    }
+
+    // ═══════════════════════════════════════════════════
+    // 5. DEPENDENCY RISK - Blocked by incomplete tasks
+    // ═══════════════════════════════════════════════════
+    const blockedBy = task.Blocked_By || task.blockedBy || task.blocked_by || '';
+    if (blockedBy) {
+      const blockerIds = String(blockedBy).split(',').map(id => id.trim()).filter(id => id);
+      if (blockerIds.length > 0) {
+        const incompleteBlockers = checkIncompleteBlockersAI(blockerIds);
+        if (incompleteBlockers.length > 0) {
+          risks.push({
+            type: 'DEPENDENCY',
+            severity: 'HIGH',
+            message: 'Blocked by ' + incompleteBlockers.length + ' incomplete task(s)',
+            data: { blockerIds: incompleteBlockers, totalBlockers: blockerIds.length }
+          });
+        }
+      }
+    }
+
+    return {
+      atRisk: risks.length > 0,
+      riskCount: risks.length,
+      risks: risks,
+      highestSeverity: risks.length > 0 ?
+        (risks.some(r => r.severity === 'CRITICAL') ? 'CRITICAL' :
+         risks.some(r => r.severity === 'HIGH') ? 'HIGH' : 'MEDIUM') : null,
+      reason: risks.length > 0 ? risks[0].message : null
+    };
+
+  } catch (error) {
+    Logger.log('detectAtRisk error: ' + error.toString());
+    return { atRisk: false, risks: [], error: error.toString() };
+  }
+}
+
+/**
+ * Helper: Get available minutes for assignee on a date
+ */
+function getAvailableMinutesForAssigneeAI(assigneeId, date) {
+  try {
+    // Check if there's a schedule for this employee
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const scheduleSheet = ss.getSheetByName('EMPLOYEE_SCHEDULE') || ss.getSheetByName('Employee_Schedule');
+
+    if (!scheduleSheet) {
+      return 480; // Default 8 hours
+    }
+
+    const dateStr = Utilities.formatDate(new Date(date), 'America/New_York', 'yyyy-MM-dd');
+    const data = scheduleSheet.getDataRange().getValues();
+    const headers = data[0].map(h => String(h).toLowerCase());
+
+    const employeeCol = headers.findIndex(h => h.includes('employee') || h.includes('assignee'));
+    const dateCol = headers.findIndex(h => h.includes('date'));
+    const hoursCol = headers.findIndex(h => h.includes('hours') || h.includes('duration'));
+
+    for (let i = 1; i < data.length; i++) {
+      const rowDate = data[i][dateCol];
+      const rowDateStr = rowDate ? Utilities.formatDate(new Date(rowDate), 'America/New_York', 'yyyy-MM-dd') : '';
+
+      if (data[i][employeeCol] === assigneeId && rowDateStr === dateStr) {
+        const hours = hoursCol >= 0 ? (data[i][hoursCol] || 8) : 8;
+        return hours * 60;
+      }
+    }
+
+    return 480; // Default 8 hours if no schedule found
+  } catch (e) {
+    Logger.log('getAvailableMinutesForAssigneeAI error: ' + e.message);
+    return 480;
+  }
+}
+
+/**
+ * Helper: Check which blockers are incomplete
+ * @param {Array} blockerIds - Array of task IDs to check
+ * @returns {Array} Array of incomplete blocker IDs
+ */
+function checkIncompleteBlockersAI(blockerIds) {
+  if (!blockerIds || blockerIds.length === 0) return [];
+
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const incomplete = [];
+
+    // Check UNIFIED_TASKS
+    const taskSheet = ss.getSheetByName('UNIFIED_TASKS');
+    if (taskSheet && taskSheet.getLastRow() > 1) {
+      const data = taskSheet.getDataRange().getValues();
+      const headers = data[0];
+      const taskIdCol = headers.indexOf('Task_ID');
+      const statusCol = headers.indexOf('Status');
+
+      const completedStatuses = ['completed', 'done', 'cancelled'];
+
+      for (let i = 1; i < data.length; i++) {
+        const taskId = String(data[i][taskIdCol]);
+        if (blockerIds.includes(taskId)) {
+          const status = String(data[i][statusCol]).toLowerCase();
+          if (!completedStatuses.includes(status)) {
+            incomplete.push(taskId);
+          }
+        }
+      }
+    }
+
+    // Also check TASK_ASSIGNMENTS for legacy tasks
+    const legacySheet = ss.getSheetByName('TASK_ASSIGNMENTS');
+    if (legacySheet && legacySheet.getLastRow() > 1) {
+      const data = legacySheet.getDataRange().getValues();
+      const headers = data[0].map(h => String(h).toLowerCase());
+      const taskIdCol = headers.findIndex(h => h.includes('task') && h.includes('id'));
+      const statusCol = headers.findIndex(h => h.includes('status'));
+
+      const completedStatuses = ['completed', 'done', 'cancelled'];
+
+      if (taskIdCol >= 0) {
+        for (let i = 1; i < data.length; i++) {
+          const taskId = String(data[i][taskIdCol]);
+          if (blockerIds.includes(taskId) && !incomplete.includes(taskId)) {
+            const status = statusCol >= 0 ? String(data[i][statusCol]).toLowerCase() : '';
+            if (!completedStatuses.includes(status)) {
+              incomplete.push(taskId);
+            }
+          }
+        }
+      }
+    }
+
+    return incomplete;
+
+  } catch (e) {
+    Logger.log('checkIncompleteBlockersAI error: ' + e.message);
+    return blockerIds; // Assume all incomplete on error (safer)
+  }
+}
+
+/**
+ * Helper: Get weather forecast for a specific date
+ */
+function getWeatherForDateAI(date) {
+  try {
+    const context = getCurrentWeatherContextAI();
+    if (context && context.forecast) {
+      const targetDate = Utilities.formatDate(new Date(date), 'America/New_York', 'yyyy-MM-dd');
+
+      for (const day of context.forecast) {
+        if (day.date === targetDate) {
+          return day;
+        }
+      }
+
+      // Return first day if target date is today
+      return context.forecast[0];
+    }
+  } catch (e) {
+    Logger.log('getWeatherForDateAI error: ' + e.message);
+  }
+  return null;
+}
+
+/**
+ * Generate Proactive Alerts
+ * Creates intelligent alerts based on weather, seasonal patterns, and GDD
+ *
+ * @returns {Array} Sorted array of proactive alerts
+ */
+function generateProactiveAlerts() {
+  const alerts = [];
+  const now = new Date();
+
+  try {
+    // ═══════════════════════════════════════════════════
+    // 1. WEATHER-BASED OPPORTUNITIES
+    // ═══════════════════════════════════════════════════
+    const weather = getCurrentWeatherContextAI();
+    if (weather && weather.forecast) {
+      // Check for spray window
+      const sprayWindow = findSprayWindowAI(weather.forecast);
+      if (sprayWindow) {
+        alerts.push({
+          type: 'OPPORTUNITY',
+          icon: 'star',
+          title: 'Spray Window Available',
+          message: sprayWindow.days + ' day(s) with low rain probability (' + sprayWindow.avgPrecip + '%) and calm winds',
+          windowStart: sprayWindow.start,
+          windowEnd: sprayWindow.end,
+          action: { type: 'createTask', template: 'spray' },
+          priority: 'HIGH',
+          expiresAt: sprayWindow.end
+        });
+      }
+
+      // Frost warning
+      for (const day of weather.forecast.slice(0, 5)) {
+        const lowTemp = day.temp_low_f || day.low;
+        if (lowTemp && lowTemp < 35) {
+          alerts.push({
+            type: 'WARNING',
+            icon: 'ac_unit',
+            title: 'Frost Warning',
+            message: lowTemp + 'F expected on ' + day.date + ' - protect tender crops!',
+            date: day.date,
+            action: { type: 'createTask', template: 'frost_protection' },
+            priority: 'CRITICAL',
+            expiresAt: day.date
+          });
+          break; // Only one frost alert
+        }
+      }
+
+      // Heat wave warning
+      for (const day of weather.forecast.slice(0, 5)) {
+        const highTemp = day.temp_high_f || day.high;
+        if (highTemp && highTemp > 95) {
+          alerts.push({
+            type: 'WARNING',
+            icon: 'whatshot',
+            title: 'Heat Wave Alert',
+            message: highTemp + 'F expected on ' + day.date + ' - increase irrigation',
+            date: day.date,
+            action: { type: 'createTask', template: 'extra_irrigation' },
+            priority: 'HIGH',
+            expiresAt: day.date
+          });
+          break;
+        }
+      }
+
+      // Rain opportunity for transplanting
+      const transplantWindow = findTransplantWindowAI(weather.forecast);
+      if (transplantWindow) {
+        alerts.push({
+          type: 'OPPORTUNITY',
+          icon: 'eco',
+          title: 'Good Transplant Conditions',
+          message: 'Overcast with light rain (' + transplantWindow.precipChance + '%) - ideal for transplanting',
+          date: transplantWindow.date,
+          action: { type: 'createTask', template: 'transplant' },
+          priority: 'MEDIUM'
+        });
+      }
+    }
+
+    // ═══════════════════════════════════════════════════
+    // 2. GDD-BASED HARVEST ALERTS
+    // ═══════════════════════════════════════════════════
+    try {
+      const gddProgress = typeof getGDDProgress === 'function' ? getGDDProgress({}) : null;
+      if (gddProgress && gddProgress.success && gddProgress.data) {
+        for (const planting of gddProgress.data) {
+          if (planting.gdd_percent >= 95) {
+            const severity = planting.gdd_percent >= 100 ? 'CRITICAL' : 'HIGH';
+            alerts.push({
+              type: planting.gdd_percent >= 100 ? 'WARNING' : 'HARVEST_READY',
+              icon: planting.gdd_percent >= 100 ? 'warning' : 'grass',
+              title: planting.crop + ' ' + (planting.gdd_percent >= 100 ? 'OVERRIPE!' : 'Ready to Harvest'),
+              message: planting.variety + ' at ' + planting.gdd_percent + '% maturity' +
+                      (planting.location ? ' in ' + planting.location : ''),
+              batchId: planting.batch_id,
+              gddPercent: planting.gdd_percent,
+              action: { type: 'createTask', template: 'harvest', data: { batchId: planting.batch_id, crop: planting.crop } },
+              priority: severity
+            });
+          }
+        }
+      }
+    } catch (e) {
+      Logger.log('GDD alerts error: ' + e.message);
+    }
+
+    // ═══════════════════════════════════════════════════
+    // 3. SEASONAL PATTERN ALERTS (This Time Last Year)
+    // ═══════════════════════════════════════════════════
+    try {
+      const lastYearTasks = getTasksFromLastYearAI(now, 7);
+      if (lastYearTasks && lastYearTasks.length > 0) {
+        for (const task of lastYearTasks.slice(0, 3)) {
+          // Check if we already have a similar task scheduled
+          if (!hasEquivalentTaskScheduledAI(task.title || task.task)) {
+            alerts.push({
+              type: 'SEASONAL',
+              icon: 'history',
+              title: 'Last Year: ' + (task.title || task.task),
+              message: 'You did this around ' + formatDateSimpleAI(task.date) + ' last year',
+              lastYearDate: task.date,
+              action: { type: 'createTask', template: 'custom', title: task.title || task.task },
+              priority: 'LOW'
+            });
+          }
+        }
+      }
+    } catch (e) {
+      Logger.log('Seasonal alerts error: ' + e.message);
+    }
+
+    // ═══════════════════════════════════════════════════
+    // 4. OVERDUE TASK ALERTS
+    // ═══════════════════════════════════════════════════
+    try {
+      const overdueTasks = typeof getOverdueTasks === 'function' ? getOverdueTasks() : [];
+      if (overdueTasks && overdueTasks.length > 0) {
+        const overdueCount = overdueTasks.length;
+        alerts.push({
+          type: 'WARNING',
+          icon: 'assignment_late',
+          title: overdueCount + ' Overdue Task' + (overdueCount > 1 ? 's' : ''),
+          message: 'You have ' + overdueCount + ' task(s) past their due date',
+          count: overdueCount,
+          action: { type: 'viewList', filter: 'overdue' },
+          priority: overdueCount > 3 ? 'CRITICAL' : 'HIGH'
+        });
+      }
+    } catch (e) {
+      Logger.log('Overdue alerts error: ' + e.message);
+    }
+
+    // Sort by priority and limit
+    const priorityOrder = { 'CRITICAL': 0, 'HIGH': 1, 'MEDIUM': 2, 'LOW': 3 };
+    alerts.sort((a, b) => (priorityOrder[a.priority] || 4) - (priorityOrder[b.priority] || 4));
+
+    return {
+      success: true,
+      alerts: alerts.slice(0, 10),
+      totalCount: alerts.length,
+      criticalCount: alerts.filter(a => a.priority === 'CRITICAL').length,
+      timestamp: new Date().toISOString()
+    };
+
+  } catch (error) {
+    Logger.log('generateProactiveAlerts error: ' + error.toString());
+    return {
+      success: false,
+      alerts: [],
+      error: error.toString()
+    };
+  }
+}
+
+/**
+ * Helper: Find optimal spray window in forecast
+ */
+function findSprayWindowAI(forecast) {
+  if (!forecast || forecast.length < 2) return null;
+
+  let windowStart = null;
+  let windowDays = 0;
+  let totalPrecip = 0;
+
+  for (let i = 0; i < Math.min(7, forecast.length); i++) {
+    const day = forecast[i];
+    const precipChance = day.precip_chance || day.rain || 0;
+    const windMph = day.wind_mph || 0;
+
+    // Good spray day: < 20% rain, < 10 mph wind
+    if (precipChance < 20 && windMph < 10) {
+      if (!windowStart) {
+        windowStart = day.date;
+      }
+      windowDays++;
+      totalPrecip += precipChance;
+    } else if (windowStart && windowDays >= 2) {
+      // End of window
+      return {
+        start: windowStart,
+        end: forecast[i - 1].date,
+        days: windowDays,
+        avgPrecip: Math.round(totalPrecip / windowDays)
+      };
+    } else {
+      // Reset
+      windowStart = null;
+      windowDays = 0;
+      totalPrecip = 0;
+    }
+  }
+
+  // Check if window extends to end
+  if (windowStart && windowDays >= 2) {
+    return {
+      start: windowStart,
+      end: forecast[Math.min(6, forecast.length - 1)].date,
+      days: windowDays,
+      avgPrecip: Math.round(totalPrecip / windowDays)
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Helper: Find good transplant window (overcast, light rain)
+ */
+function findTransplantWindowAI(forecast) {
+  if (!forecast || forecast.length < 1) return null;
+
+  for (const day of forecast.slice(0, 5)) {
+    const precipChance = day.precip_chance || day.rain || 0;
+    const tempHigh = day.temp_high_f || day.high || 75;
+
+    // Good transplant day: 20-50% rain, temp 60-85
+    if (precipChance >= 20 && precipChance <= 50 && tempHigh >= 60 && tempHigh <= 85) {
+      return {
+        date: day.date,
+        precipChance: precipChance,
+        tempHigh: tempHigh
+      };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Helper: Get tasks from last year around this time
+ */
+function getTasksFromLastYearAI(currentDate, daysRange) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const taskSheet = ss.getSheetByName('TASKS') || ss.getSheetByName('Tasks');
+    if (!taskSheet) return [];
+
+    const lastYear = new Date(currentDate);
+    lastYear.setFullYear(lastYear.getFullYear() - 1);
+
+    const rangeStart = new Date(lastYear);
+    rangeStart.setDate(rangeStart.getDate() - daysRange);
+    const rangeEnd = new Date(lastYear);
+    rangeEnd.setDate(rangeEnd.getDate() + daysRange);
+
+    const data = taskSheet.getDataRange().getValues();
+    const headers = data[0].map(h => String(h).toLowerCase());
+
+    const dateCol = headers.findIndex(h => h.includes('date') || h.includes('due'));
+    const titleCol = headers.findIndex(h => h.includes('task') || h.includes('title') || h.includes('description'));
+
+    const tasks = [];
+    for (let i = 1; i < data.length; i++) {
+      const taskDate = new Date(data[i][dateCol]);
+      if (taskDate >= rangeStart && taskDate <= rangeEnd) {
+        tasks.push({
+          title: data[i][titleCol] || 'Task',
+          date: taskDate,
+          row: i
+        });
+      }
+    }
+
+    return tasks;
+  } catch (e) {
+    Logger.log('getTasksFromLastYearAI error: ' + e.message);
+    return [];
+  }
+}
+
+/**
+ * Helper: Check if equivalent task already scheduled
+ */
+function hasEquivalentTaskScheduledAI(taskTitle) {
+  try {
+    const todayTasks = typeof getTodaysTasks === 'function' ? getTodaysTasks() : [];
+    const normalizedTitle = String(taskTitle).toLowerCase().trim();
+
+    for (const task of todayTasks) {
+      const existingTitle = String(task.task || task.title || '').toLowerCase().trim();
+      // Simple similarity check
+      if (existingTitle.includes(normalizedTitle) || normalizedTitle.includes(existingTitle)) {
+        return true;
+      }
+    }
+    return false;
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * Helper: Simple date formatting
+ */
+function formatDateSimpleAI(date) {
+  try {
+    return Utilities.formatDate(new Date(date), 'America/New_York', 'MMM d');
+  } catch (e) {
+    return String(date);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+// API ENDPOINTS FOR AI INTELLIGENCE
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Get Tasks with AI Priority Scores
+ * Returns tasks sorted by AI-calculated priority
+ *
+ * @param {Object} params - Optional filters (status, assignee, limit)
+ * @returns {Object} Tasks with priority scores
+ */
+function getTasksWithAIPriority(params) {
+  const startTime = Date.now();
+  params = params || {};
+
+  try {
+    // Use cache for performance
+    const cache = CacheService.getScriptCache();
+    const cacheKey = 'AI_PRIORITY_TASKS_' + JSON.stringify(params);
+
+    // Check cache (5 minute TTL)
+    const cached = cache.get(cacheKey);
+    if (cached && !params.skipCache) {
+      try {
+        const result = JSON.parse(cached);
+        result.fromCache = true;
+        return result;
+      } catch (e) {}
+    }
+
+    // Get tasks
+    const tasks = [];
+
+    // Get today's tasks
+    try {
+      const todayTasks = typeof getTodaysTasks === 'function' ? getTodaysTasks() : [];
+      todayTasks.forEach(t => tasks.push({ ...t, source: 'TODAY' }));
+    } catch (e) {}
+
+    // Get overdue tasks
+    try {
+      const overdueTasks = typeof getOverdueTasks === 'function' ? getOverdueTasks() : [];
+      overdueTasks.forEach(t => {
+        if (!tasks.find(existing => existing.id === t.id)) {
+          tasks.push({ ...t, source: 'OVERDUE' });
+        }
+      });
+    } catch (e) {}
+
+    // Build context once for all tasks
+    const context = {
+      forecast: getCurrentWeatherContextAI(),
+      timeOfDay: typeof getTimeOfDay === 'function' ? getTimeOfDay() : 'day'
+    };
+
+    // Calculate AI priority for each task
+    const scoredTasks = tasks.map(task => {
+      const priority = calculateAIPriority(task, context);
+      const risk = detectAtRisk(task);
+
+      return {
+        ...task,
+        aiPriority: priority.score,
+        priorityBreakdown: priority.breakdown,
+        priorityReasons: priority.reasons,
+        atRisk: risk.atRisk,
+        risks: risk.risks,
+        riskSeverity: risk.highestSeverity
+      };
+    });
+
+    // Sort by AI priority (descending)
+    scoredTasks.sort((a, b) => b.aiPriority - a.aiPriority);
+
+    // Apply limit if specified
+    const limit = parseInt(params.limit) || 50;
+    const limited = scoredTasks.slice(0, limit);
+
+    const result = {
+      success: true,
+      data: limited,
+      total: scoredTasks.length,
+      atRiskCount: scoredTasks.filter(t => t.atRisk).length,
+      criticalCount: scoredTasks.filter(t => t.riskSeverity === 'CRITICAL').length,
+      timestamp: new Date().toISOString(),
+      responseTimeMs: Date.now() - startTime
+    };
+
+    // Cache for 5 minutes
+    cache.put(cacheKey, JSON.stringify(result), 300);
+
+    return result;
+
+  } catch (error) {
+    Logger.log('getTasksWithAIPriority error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get At-Risk Tasks
+ * Returns only tasks flagged as at-risk
+ *
+ * @param {Object} params - Optional filters
+ * @returns {Object} At-risk tasks with details
+ */
+function getAtRiskTasks(params) {
+  const startTime = Date.now();
+
+  try {
+    const allTasks = getTasksWithAIPriority(params || {});
+
+    if (!allTasks.success) {
+      return allTasks;
+    }
+
+    const atRiskTasks = allTasks.data.filter(t => t.atRisk);
+
+    // Group by risk type
+    const byType = {
+      TIME: atRiskTasks.filter(t => t.risks && t.risks.some(r => r.type === 'TIME')),
+      WEATHER: atRiskTasks.filter(t => t.risks && t.risks.some(r => r.type === 'WEATHER')),
+      OVERRIPE: atRiskTasks.filter(t => t.risks && t.risks.some(r => r.type === 'OVERRIPE')),
+      OVERDUE: atRiskTasks.filter(t => t.risks && t.risks.some(r => r.type === 'OVERDUE')),
+      FROST: atRiskTasks.filter(t => t.risks && t.risks.some(r => r.type === 'FROST'))
+    };
+
+    return {
+      success: true,
+      data: atRiskTasks,
+      byType: byType,
+      total: atRiskTasks.length,
+      criticalCount: atRiskTasks.filter(t => t.riskSeverity === 'CRITICAL').length,
+      timestamp: new Date().toISOString(),
+      responseTimeMs: Date.now() - startTime
+    };
+
+  } catch (error) {
+    Logger.log('getAtRiskTasks error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get AI Priority Dashboard - Combined endpoint for Manager Dashboard
+ * Returns everything needed for the smart priority queue in one call
+ *
+ * @param {Object} params - Optional filters
+ * @returns {Object} Dashboard data with tasks, alerts, workload, stats
+ */
+function getAIPriorityDashboard(params) {
+  const startTime = Date.now();
+
+  try {
+    const limit = parseInt(params.limit) || 20;
+    const assigneeId = params.assigneeId || null;
+
+    // Gather all data in parallel-like structure
+    const [tasksResult, alertsResult, workloadResult] = [
+      getTasksWithAIPriority({ ...params, limit: limit.toString() }),
+      generateProactiveAlerts(),
+      getTeamWorkloadBalance(params)
+    ];
+
+    // Calculate summary statistics
+    const tasks = tasksResult.success ? tasksResult.data : [];
+    const atRiskTasks = tasks.filter(t => t.atRisk);
+    const criticalTasks = atRiskTasks.filter(t => t.riskSeverity === 'CRITICAL');
+
+    // Group tasks by urgency for dashboard cards
+    const today = new Date();
+    const tasksByUrgency = {
+      overdue: tasks.filter(t => {
+        const due = t.Due_Date || t.dueDate;
+        return due && new Date(due) < today;
+      }),
+      dueToday: tasks.filter(t => {
+        const due = t.Due_Date || t.dueDate;
+        if (!due) return false;
+        const dueDate = new Date(due);
+        return dueDate.toDateString() === today.toDateString();
+      }),
+      dueTomorrow: tasks.filter(t => {
+        const due = t.Due_Date || t.dueDate;
+        if (!due) return false;
+        const dueDate = new Date(due);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        return dueDate.toDateString() === tomorrow.toDateString();
+      }),
+      thisWeek: tasks.filter(t => {
+        const due = t.Due_Date || t.dueDate;
+        if (!due) return false;
+        const dueDate = new Date(due);
+        const weekFromNow = new Date(today);
+        weekFromNow.setDate(weekFromNow.getDate() + 7);
+        return dueDate > today && dueDate <= weekFromNow;
+      })
+    };
+
+    // Get top priority task (the "What Should I Do Next?")
+    const topTask = tasks.length > 0 ? {
+      ...tasks[0],
+      whyTop: tasks[0].priorityReasons ? tasks[0].priorityReasons.slice(0, 3) : ['Highest priority score']
+    } : null;
+
+    return {
+      success: true,
+
+      // Smart Priority Queue
+      priorityQueue: tasks.slice(0, limit),
+
+      // Top priority recommendation
+      topRecommendation: topTask,
+
+      // At-risk summary
+      atRisk: {
+        count: atRiskTasks.length,
+        critical: criticalTasks.length,
+        tasks: atRiskTasks.slice(0, 5)
+      },
+
+      // Proactive alerts
+      alerts: alertsResult.success ? alertsResult.alerts.slice(0, 5) : [],
+
+      // Team workload (if available)
+      teamWorkload: workloadResult.success ? workloadResult.data : null,
+
+      // Quick stats for dashboard cards
+      stats: {
+        totalTasks: tasksResult.total || tasks.length,
+        overdue: tasksByUrgency.overdue.length,
+        dueToday: tasksByUrgency.dueToday.length,
+        dueTomorrow: tasksByUrgency.dueTomorrow.length,
+        thisWeek: tasksByUrgency.thisWeek.length,
+        atRisk: atRiskTasks.length,
+        critical: criticalTasks.length
+      },
+
+      // Breakdown by urgency
+      byUrgency: {
+        overdue: tasksByUrgency.overdue.slice(0, 5),
+        dueToday: tasksByUrgency.dueToday.slice(0, 5),
+        dueTomorrow: tasksByUrgency.dueTomorrow.slice(0, 3)
+      },
+
+      timestamp: new Date().toISOString(),
+      responseTimeMs: Date.now() - startTime
+    };
+
+  } catch (error) {
+    Logger.log('getAIPriorityDashboard error: ' + error.toString());
+    return {
+      success: false,
+      error: error.toString(),
+      responseTimeMs: Date.now() - startTime
+    };
+  }
+}
+
+/**
+ * Get Team Workload Balance
+ * Returns workload info for all active employees
+ *
+ * @param {Object} params - Optional { date, teamId }
+ * @returns {Object} Team workload data with recommendations
+ */
+function getTeamWorkloadBalance(params) {
+  const startTime = Date.now();
+  params = params || {};
+
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const date = params.date ? new Date(params.date) : new Date();
+    const dateStr = Utilities.formatDate(date, 'America/New_York', 'yyyy-MM-dd');
+
+    // Get active employees
+    const empSheet = ss.getSheetByName('EMPLOYEES') || ss.getSheetByName('Employees');
+    if (!empSheet) {
+      return { success: false, error: 'Employee sheet not found' };
+    }
+
+    const empData = empSheet.getDataRange().getValues();
+    const empHeaders = empData[0].map(h => String(h).toLowerCase());
+    const empIdCol = empHeaders.findIndex(h => h.includes('employee') && h.includes('id'));
+    const empNameCol = empHeaders.findIndex(h => h.includes('name'));
+    const empActiveCol = empHeaders.findIndex(h => h.includes('active') || h.includes('status'));
+
+    const employees = [];
+    for (let i = 1; i < empData.length; i++) {
+      const isActive = empActiveCol >= 0 ? String(empData[i][empActiveCol]).toLowerCase() : 'true';
+      if (isActive === 'true' || isActive === 'active' || isActive === 'yes' || isActive === '1') {
+        const empId = empIdCol >= 0 ? empData[i][empIdCol] : empData[i][0];
+        const empName = empNameCol >= 0 ? empData[i][empNameCol] : 'Unknown';
+
+        if (empId) {
+          employees.push({
+            id: empId,
+            name: empName
+          });
+        }
+      }
+    }
+
+    // Get workload for each employee
+    const workloads = [];
+    let totalAssigned = 0;
+    let totalCapacity = 0;
+
+    for (const emp of employees) {
+      const workloadInfo = getAssigneeWorkloadRatioAI(emp.id, date);
+      if (workloadInfo) {
+        workloads.push({
+          employeeId: emp.id,
+          employeeName: emp.name,
+          ...workloadInfo,
+          utilization: Math.round(workloadInfo.ratio * 100)
+        });
+        totalAssigned += workloadInfo.assignedMinutes;
+        totalCapacity += workloadInfo.availableMinutes;
+      }
+    }
+
+    // Sort by utilization (highest first for identifying overloaded workers)
+    workloads.sort((a, b) => b.ratio - a.ratio);
+
+    // Generate recommendations
+    const recommendations = [];
+    const overloaded = workloads.filter(w => w.ratio > 1.0);
+    const available = workloads.filter(w => w.ratio < 0.5);
+
+    if (overloaded.length > 0 && available.length > 0) {
+      recommendations.push({
+        type: 'REBALANCE',
+        message: `${overloaded.length} worker(s) overloaded, ${available.length} have availability`,
+        suggestion: `Consider reassigning tasks from ${overloaded[0].employeeName} to ${available[0].employeeName}`,
+        priority: 'HIGH'
+      });
+    }
+
+    if (workloads.filter(w => w.ratio > 0.9).length > Math.floor(workloads.length * 0.7)) {
+      recommendations.push({
+        type: 'CAPACITY',
+        message: 'Most of team is at or near capacity',
+        suggestion: 'Consider reducing scope or extending deadlines',
+        priority: 'MEDIUM'
+      });
+    }
+
+    return {
+      success: true,
+      date: dateStr,
+      data: workloads,
+      summary: {
+        totalEmployees: workloads.length,
+        overloaded: overloaded.length,
+        nearCapacity: workloads.filter(w => w.ratio > 0.9 && w.ratio <= 1.0).length,
+        available: available.length,
+        teamUtilization: totalCapacity > 0 ? Math.round((totalAssigned / totalCapacity) * 100) : 0,
+        totalAssignedMinutes: totalAssigned,
+        totalCapacityMinutes: totalCapacity
+      },
+      recommendations: recommendations,
+      responseTimeMs: Date.now() - startTime
+    };
+
+  } catch (error) {
+    Logger.log('getTeamWorkloadBalance error: ' + error.toString());
+    return {
+      success: false,
+      error: error.toString(),
+      responseTimeMs: Date.now() - startTime
+    };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+// END: AI PRIORITY SCORING & PROACTIVE ALERT SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+// SATELLITE SMART SCOUTING INTEGRATION (2026-02-03)
+// Connects satellite problem detection to the Unified Task System
+// Creates scouting tasks when satellite data indicates crop health issues
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+
+const SATELLITE_READINGS_SHEET = 'SATELLITE_READINGS';
+const SATELLITE_ALERTS_SHEET = 'SATELLITE_ALERTS';
+const SATELLITE_WAYPOINTS_SHEET = 'SATELLITE_WAYPOINTS';
+
+/**
+ * SATELLITE READINGS HEADERS - Schema for satellite data storage
+ */
+const SATELLITE_READINGS_HEADERS = [
+  'Reading_ID', 'Field_ID', 'Date', 'Source', 'NDVI', 'NDMI', 'NDRE',
+  'ReCl', 'Cloud_Cover', 'Quality', 'Raw_Data'
+];
+
+/**
+ * SATELLITE ALERTS HEADERS - Schema for satellite alerts
+ */
+const SATELLITE_ALERTS_HEADERS = [
+  'Alert_ID', 'Field_ID', 'Timestamp', 'Type', 'Severity', 'Details',
+  'Status', 'Task_ID', 'Resolved_By', 'Resolved_At'
+];
+
+/**
+ * SATELLITE WAYPOINTS HEADERS - Schema for GPS scouting waypoints
+ */
+const SATELLITE_WAYPOINTS_HEADERS = [
+  'Waypoint_ID', 'Field_ID', 'Task_ID', 'Name', 'Lat', 'Lon',
+  'Description', 'NDVI', 'Photo_Required', 'Inspected', 'Inspected_At',
+  'Inspected_By', 'Notes', 'Photo_URL'
+];
+
+/**
+ * Get or create Satellite Readings sheet
+ */
+function getSatelliteReadingsSheet() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName(SATELLITE_READINGS_SHEET);
+
+  if (!sheet) {
+    sheet = ss.insertSheet(SATELLITE_READINGS_SHEET);
+    sheet.getRange(1, 1, 1, SATELLITE_READINGS_HEADERS.length).setValues([SATELLITE_READINGS_HEADERS]);
+    sheet.getRange(1, 1, 1, SATELLITE_READINGS_HEADERS.length).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+
+  return sheet;
+}
+
+/**
+ * Get or create Satellite Alerts sheet
+ */
+function getSatelliteAlertsSheet() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName(SATELLITE_ALERTS_SHEET);
+
+  if (!sheet) {
+    sheet = ss.insertSheet(SATELLITE_ALERTS_SHEET);
+    sheet.getRange(1, 1, 1, SATELLITE_ALERTS_HEADERS.length).setValues([SATELLITE_ALERTS_HEADERS]);
+    sheet.getRange(1, 1, 1, SATELLITE_ALERTS_HEADERS.length).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+
+  return sheet;
+}
+
+/**
+ * Get or create Satellite Waypoints sheet
+ */
+function getSatelliteWaypointsSheet() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName(SATELLITE_WAYPOINTS_SHEET);
+
+  if (!sheet) {
+    sheet = ss.insertSheet(SATELLITE_WAYPOINTS_SHEET);
+    sheet.getRange(1, 1, 1, SATELLITE_WAYPOINTS_HEADERS.length).setValues([SATELLITE_WAYPOINTS_HEADERS]);
+    sheet.getRange(1, 1, 1, SATELLITE_WAYPOINTS_HEADERS.length).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+
+  return sheet;
+}
+
+/**
+ * Get fields with satellite data
+ * Returns all fields that have polygon IDs and recent satellite readings
+ */
+function getFieldsWithSatelliteData() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const fieldsSheet = ss.getSheetByName('REF_Fields');
+    const readingsSheet = getSatelliteReadingsSheet();
+
+    if (!fieldsSheet) {
+      return { success: false, error: 'REF_Fields sheet not found' };
+    }
+
+    const fieldData = fieldsSheet.getDataRange().getValues();
+    const fieldHeaders = fieldData[0].map(h => String(h).toLowerCase());
+
+    // Find column indices
+    const fieldIdCol = fieldHeaders.findIndex(h => h.includes('field') && h.includes('id'));
+    const fieldNameCol = fieldHeaders.findIndex(h => h.includes('name') || h === 'field name');
+    const polygonIdCol = fieldHeaders.findIndex(h => h.includes('polygon'));
+    const geoJsonCol = fieldHeaders.findIndex(h => h.includes('geojson') || h.includes('geo_json'));
+
+    // Get recent readings
+    const readingsData = readingsSheet.getDataRange().getValues();
+    const readingsMap = {};
+
+    for (let i = 1; i < readingsData.length; i++) {
+      const fieldId = readingsData[i][1]; // Field_ID column
+      if (!readingsMap[fieldId]) {
+        readingsMap[fieldId] = [];
+      }
+      readingsMap[fieldId].push({
+        readingId: readingsData[i][0],
+        date: readingsData[i][2],
+        source: readingsData[i][3],
+        ndvi: readingsData[i][4],
+        ndmi: readingsData[i][5],
+        ndre: readingsData[i][6],
+        recl: readingsData[i][7],
+        cloudCover: readingsData[i][8],
+        quality: readingsData[i][9]
+      });
+    }
+
+    const fields = [];
+    for (let i = 1; i < fieldData.length; i++) {
+      const row = fieldData[i];
+      const fieldId = fieldIdCol >= 0 ? row[fieldIdCol] : row[0];
+      const fieldName = fieldNameCol >= 0 ? row[fieldNameCol] : row[1];
+
+      if (fieldId && readingsMap[fieldId] && readingsMap[fieldId].length > 0) {
+        // Sort readings by date descending
+        const readings = readingsMap[fieldId].sort((a, b) =>
+          new Date(b.date) - new Date(a.date)
+        );
+
+        fields.push({
+          id: fieldId,
+          name: fieldName,
+          polygonId: polygonIdCol >= 0 ? row[polygonIdCol] : null,
+          geoJson: geoJsonCol >= 0 ? row[geoJsonCol] : null,
+          latestReading: readings[0],
+          readingCount: readings.length
+        });
+      }
+    }
+
+    return {
+      success: true,
+      fields: fields,
+      count: fields.length
+    };
+
+  } catch (error) {
+    Logger.log('getFieldsWithSatelliteData error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get the latest satellite reading for a field
+ */
+function getLatestReading(fieldId) {
+  try {
+    const sheet = getSatelliteReadingsSheet();
+    const data = sheet.getDataRange().getValues();
+
+    let latestReading = null;
+    let latestDate = null;
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][1] === fieldId) {
+        const readingDate = new Date(data[i][2]);
+        if (!latestDate || readingDate > latestDate) {
+          latestDate = readingDate;
+          latestReading = {
+            readingId: data[i][0],
+            fieldId: data[i][1],
+            date: data[i][2],
+            source: data[i][3],
+            ndvi: parseFloat(data[i][4]) || 0,
+            ndmi: parseFloat(data[i][5]) || null,
+            ndre: parseFloat(data[i][6]) || null,
+            recl: parseFloat(data[i][7]) || null,
+            cloudCover: data[i][8],
+            quality: data[i][9]
+          };
+        }
+      }
+    }
+
+    return latestReading;
+
+  } catch (error) {
+    Logger.log('getLatestReading error: ' + error.toString());
+    return null;
+  }
+}
+
+/**
+ * Get previous satellite reading from X days ago
+ */
+function getPreviousReading(fieldId, daysAgo) {
+  try {
+    const sheet = getSatelliteReadingsSheet();
+    const data = sheet.getDataRange().getValues();
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() - daysAgo);
+
+    let closestReading = null;
+    let closestDiff = Infinity;
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][1] === fieldId) {
+        const readingDate = new Date(data[i][2]);
+        const diff = Math.abs(readingDate - targetDate);
+
+        // Find reading closest to target date (within 3 days tolerance)
+        if (diff < closestDiff && diff < 3 * 24 * 60 * 60 * 1000) {
+          closestDiff = diff;
+          closestReading = {
+            readingId: data[i][0],
+            fieldId: data[i][1],
+            date: data[i][2],
+            source: data[i][3],
+            ndvi: parseFloat(data[i][4]) || 0,
+            ndmi: parseFloat(data[i][5]) || null,
+            ndre: parseFloat(data[i][6]) || null,
+            recl: parseFloat(data[i][7]) || null,
+            cloudCover: data[i][8],
+            quality: data[i][9]
+          };
+        }
+      }
+    }
+
+    return closestReading;
+
+  } catch (error) {
+    Logger.log('getPreviousReading error: ' + error.toString());
+    return null;
+  }
+}
+
+/**
+ * PROBLEM DETECTION ALGORITHM
+ * Analyzes satellite readings to detect crop health issues
+ *
+ * @param {string} fieldId - The field to analyze
+ * @param {number} threshold - NDVI drop threshold (default 0.15)
+ * @returns {Array} Array of detected problems
+ */
+function detectSatelliteProblems(fieldId, threshold) {
+  threshold = threshold || 0.15;
+  const problems = [];
+
+  try {
+    const current = getLatestReading(fieldId);
+    if (!current) {
+      return problems; // No data available
+    }
+
+    const previous = getPreviousReading(fieldId, 7); // 7 days ago
+
+    // ═══════════════════════════════════════════════════
+    // 1. CHECK FOR SIGNIFICANT NDVI DROP
+    // ═══════════════════════════════════════════════════
+    if (previous && current.ndvi < previous.ndvi - threshold) {
+      const drop = previous.ndvi - current.ndvi;
+      problems.push({
+        type: 'NDVI_DROP',
+        severity: drop > 0.3 ? 'critical' : 'warning',
+        zone: 'Full field', // Or specific zone if available
+        ndvi: current.ndvi,
+        drop: drop,
+        previousNdvi: previous.ndvi,
+        message: 'NDVI dropped ' + Math.round(drop * 100) + '% in 7 days',
+        coordinates: null // Would come from zone analysis
+      });
+    }
+
+    // ═══════════════════════════════════════════════════
+    // 2. CHECK FOR ABSOLUTE LOW NDVI
+    // ═══════════════════════════════════════════════════
+    if (current.ndvi < 0.3) {
+      problems.push({
+        type: 'LOW_NDVI',
+        severity: current.ndvi < 0.2 ? 'critical' : 'warning',
+        zone: 'Full field',
+        ndvi: current.ndvi,
+        message: 'Low vegetation health (NDVI: ' + current.ndvi.toFixed(2) + ')',
+        coordinates: null
+      });
+    }
+
+    // ═══════════════════════════════════════════════════
+    // 3. CHECK FOR WATER STRESS (NDMI)
+    // ═══════════════════════════════════════════════════
+    if (current.ndmi !== null && current.ndmi < 0) {
+      problems.push({
+        type: 'WATER_STRESS',
+        severity: current.ndmi < -0.2 ? 'critical' : 'warning',
+        zone: 'Full field',
+        ndmi: current.ndmi,
+        message: 'Water stress detected (NDMI: ' + current.ndmi.toFixed(2) + ')',
+        coordinates: null
+      });
+    }
+
+    // ═══════════════════════════════════════════════════
+    // 4. CHECK FOR RAPID VEGETATION LOSS (POTENTIAL PEST/DISEASE)
+    // ═══════════════════════════════════════════════════
+    if (previous) {
+      const daysDiff = Math.round((new Date(current.date) - new Date(previous.date)) / (24 * 60 * 60 * 1000));
+      if (daysDiff > 0 && daysDiff <= 7) {
+        const dropPerDay = (previous.ndvi - current.ndvi) / daysDiff;
+        if (dropPerDay > 0.05) { // >5% per day is abnormal
+          problems.push({
+            type: 'RAPID_DECLINE',
+            severity: 'critical',
+            zone: 'Full field',
+            ndvi: current.ndvi,
+            ratePerDay: dropPerDay,
+            message: 'Rapid vegetation decline (' + Math.round(dropPerDay * 100) + '% per day) - possible pest/disease',
+            coordinates: null
+          });
+        }
+      }
+    }
+
+    return problems;
+
+  } catch (error) {
+    Logger.log('detectSatelliteProblems error: ' + error.toString());
+    return problems;
+  }
+}
+
+/**
+ * Get tomorrow's date in YYYY-MM-DD format
+ */
+function getTomorrowDate() {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return Utilities.formatDate(tomorrow, 'America/New_York', 'yyyy-MM-dd');
+}
+
+/**
+ * Generate scouting task description from detected problems
+ */
+function generateScoutingDescription(problems, fieldName) {
+  let description = 'SATELLITE ALERT: Issues detected in ' + fieldName + '\n\n';
+  description += 'PROBLEMS DETECTED:\n';
+
+  problems.forEach((p, idx) => {
+    description += '\n' + (idx + 1) + '. ' + p.type.replace(/_/g, ' ') + '\n';
+    description += '   Severity: ' + p.severity.toUpperCase() + '\n';
+    description += '   ' + p.message + '\n';
+    if (p.zone) {
+      description += '   Zone: ' + p.zone + '\n';
+    }
+  });
+
+  description += '\nSCOUTING INSTRUCTIONS:\n';
+  description += '- Walk the entire field noting problem areas\n';
+  description += '- Take photos of any damage or stress symptoms\n';
+  description += '- Check soil moisture in affected zones\n';
+  description += '- Look for pest activity or disease symptoms\n';
+  description += '- Record findings in task notes\n';
+
+  return description;
+}
+
+/**
+ * GENERATE SCOUTING TASKS
+ * Main function to create scouting tasks for all fields with satellite problems
+ * Called by dailyScoutingCheck() scheduled trigger
+ *
+ * @returns {Object} Results summary
+ */
+function generateScoutingTasks() {
+  const startTime = Date.now();
+  const results = {
+    success: true,
+    tasksCreated: 0,
+    fieldsChecked: 0,
+    problems: [],
+    errors: []
+  };
+
+  try {
+    // 1. Get all fields with recent satellite data
+    const fieldsResult = getFieldsWithSatelliteData();
+    if (!fieldsResult.success) {
+      return { success: false, error: fieldsResult.error };
+    }
+
+    const fields = fieldsResult.fields;
+    results.fieldsChecked = fields.length;
+
+    // 2. For each field, check for problems
+    for (const field of fields) {
+      try {
+        const problems = detectSatelliteProblems(field.id);
+
+        if (problems.length > 0) {
+          // 3. Create scouting task via Unified Task API
+          const taskResult = createUnifiedTask({
+            title: 'Scout ' + field.name + ' - Satellite Alert',
+            description: generateScoutingDescription(problems, field.name),
+            taskType: 'scout',
+            fieldId: field.id,
+            priority: problems[0].severity === 'critical' ? 'high' : 'medium',
+            dueDate: getTomorrowDate(),
+            source: 'satellite_auto',
+            weatherDependent: false,
+            tags: ['satellite', 'scouting', 'auto-generated'],
+            notes: JSON.stringify({
+              satellite_alert: true,
+              problem_zones: problems.map(p => p.zone),
+              ndvi_readings: problems.map(p => p.ndvi),
+              problem_types: problems.map(p => p.type),
+              generated_at: new Date().toISOString()
+            })
+          });
+
+          if (taskResult.success) {
+            results.tasksCreated++;
+            results.problems.push({
+              fieldId: field.id,
+              fieldName: field.name,
+              taskId: taskResult.taskId,
+              problems: problems
+            });
+
+            // Also create satellite alert record
+            createSatelliteAlert(field.id, problems, taskResult.taskId);
+
+            // Generate GPS waypoints for scouting
+            generateWaypointsForTask(field.id, problems, taskResult.taskId);
+          } else {
+            results.errors.push({
+              fieldId: field.id,
+              error: taskResult.error
+            });
+          }
+        }
+      } catch (fieldError) {
+        results.errors.push({
+          fieldId: field.id,
+          error: fieldError.toString()
+        });
+      }
+    }
+
+    results.responseTimeMs = Date.now() - startTime;
+    return results;
+
+  } catch (error) {
+    Logger.log('generateScoutingTasks error: ' + error.toString());
+    return {
+      success: false,
+      error: error.toString(),
+      responseTimeMs: Date.now() - startTime
+    };
+  }
+}
+
+/**
+ * Create a satellite alert record
+ */
+function createSatelliteAlert(fieldId, problems, taskId) {
+  try {
+    const sheet = getSatelliteAlertsSheet();
+    const alertId = 'SAT_ALT_' + Date.now();
+    const now = new Date().toISOString();
+
+    // Create alert for each problem type
+    problems.forEach(problem => {
+      const row = [
+        alertId + '_' + problem.type,
+        fieldId,
+        now,
+        problem.type,
+        problem.severity.toUpperCase(),
+        JSON.stringify(problem),
+        'OPEN',
+        taskId || '',
+        '',
+        ''
+      ];
+      sheet.appendRow(row);
+    });
+
+    return { success: true, alertId: alertId };
+
+  } catch (error) {
+    Logger.log('createSatelliteAlert error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Generate GPS waypoints for scouting task
+ */
+function generateWaypointsForTask(fieldId, problems, taskId) {
+  try {
+    const sheet = getSatelliteWaypointsSheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const fieldsSheet = ss.getSheetByName('REF_Fields');
+
+    // Get field data for centroid
+    const fieldData = fieldsSheet.getDataRange().getValues();
+    const headers = fieldData[0].map(h => String(h).toLowerCase());
+
+    let fieldLat = null;
+    let fieldLon = null;
+    let fieldName = '';
+
+    // Find lat/lon columns
+    const latCol = headers.findIndex(h => h.includes('lat'));
+    const lonCol = headers.findIndex(h => h.includes('lon') || h.includes('lng'));
+    const geoCol = headers.findIndex(h => h.includes('geojson') || h.includes('geo'));
+    const idCol = headers.findIndex(h => h.includes('field') && h.includes('id'));
+    const nameCol = headers.findIndex(h => h.includes('name'));
+
+    for (let i = 1; i < fieldData.length; i++) {
+      if (fieldData[i][idCol >= 0 ? idCol : 0] === fieldId) {
+        fieldName = nameCol >= 0 ? fieldData[i][nameCol] : 'Field';
+
+        if (latCol >= 0 && lonCol >= 0) {
+          fieldLat = parseFloat(fieldData[i][latCol]);
+          fieldLon = parseFloat(fieldData[i][lonCol]);
+        } else if (geoCol >= 0 && fieldData[i][geoCol]) {
+          // Try to parse GeoJSON for centroid
+          try {
+            const geo = JSON.parse(fieldData[i][geoCol]);
+            if (geo.geometry && geo.geometry.coordinates) {
+              const coords = geo.geometry.coordinates[0];
+              if (coords && coords.length > 0) {
+                // Calculate centroid
+                let sumLat = 0, sumLon = 0;
+                coords.forEach(c => {
+                  sumLon += c[0];
+                  sumLat += c[1];
+                });
+                fieldLat = sumLat / coords.length;
+                fieldLon = sumLon / coords.length;
+              }
+            }
+          } catch (e) { }
+        }
+        break;
+      }
+    }
+
+    // Create waypoints for each problem zone
+    problems.forEach((problem, index) => {
+      const waypointId = 'WP_' + taskId + '_' + (index + 1);
+
+      // Use field centroid with small offset for multiple waypoints
+      let lat = fieldLat || 40.0;  // Default if not found
+      let lon = fieldLon || -79.0;
+
+      // Offset each waypoint slightly for differentiation
+      if (problems.length > 1) {
+        lat += (index - problems.length / 2) * 0.0001;
+        lon += (index - problems.length / 2) * 0.0001;
+      }
+
+      const row = [
+        waypointId,
+        fieldId,
+        taskId,
+        'Scout Point ' + (index + 1) + ' - ' + problem.type.replace(/_/g, ' '),
+        lat,
+        lon,
+        problem.message,
+        problem.ndvi || '',
+        true, // Photo required
+        false, // Not inspected yet
+        '',
+        '',
+        '',
+        ''
+      ];
+
+      sheet.appendRow(row);
+    });
+
+    return { success: true, waypointCount: problems.length };
+
+  } catch (error) {
+    Logger.log('generateWaypointsForTask error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get scouting waypoints for a field
+ * API endpoint: getScoutingWaypoints?fieldId={id}
+ */
+function getScoutingWaypoints(fieldId) {
+  try {
+    if (!fieldId) {
+      return { success: false, error: 'Field ID is required' };
+    }
+
+    const sheet = getSatelliteWaypointsSheet();
+    const data = sheet.getDataRange().getValues();
+
+    const waypoints = [];
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][1] === fieldId) {
+        waypoints.push({
+          id: data[i][0],
+          fieldId: data[i][1],
+          taskId: data[i][2],
+          name: data[i][3],
+          lat: data[i][4],
+          lon: data[i][5],
+          description: data[i][6],
+          ndvi: data[i][7],
+          photoRequired: data[i][8],
+          inspected: data[i][9],
+          inspectedAt: data[i][10],
+          inspectedBy: data[i][11],
+          notes: data[i][12],
+          photoUrl: data[i][13]
+        });
+      }
+    }
+
+    // Generate Google Maps URL
+    let googleMapsUrl = '';
+    if (waypoints.length > 0) {
+      const coords = waypoints.map(w => w.lat + ',' + w.lon).join('/');
+      googleMapsUrl = 'https://www.google.com/maps/dir/' + coords;
+    }
+
+    return {
+      success: true,
+      fieldId: fieldId,
+      waypoints: waypoints,
+      count: waypoints.length,
+      googleMapsUrl: googleMapsUrl
+    };
+
+  } catch (error) {
+    Logger.log('getScoutingWaypoints error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Mark a waypoint as inspected
+ * API endpoint: markZoneInspected
+ */
+function markZoneInspected(data) {
+  try {
+    const waypointId = data.waypointId;
+    const notes = data.notes || '';
+    const inspectedBy = data.inspectedBy || 'unknown';
+    const photoUrl = data.photoUrl || '';
+
+    if (!waypointId) {
+      return { success: false, error: 'Waypoint ID is required' };
+    }
+
+    const sheet = getSatelliteWaypointsSheet();
+    const sheetData = sheet.getDataRange().getValues();
+
+    for (let i = 1; i < sheetData.length; i++) {
+      if (sheetData[i][0] === waypointId) {
+        const rowIndex = i + 1;
+        const now = new Date().toISOString();
+
+        // Update inspected columns
+        sheet.getRange(rowIndex, 10).setValue(true); // Inspected
+        sheet.getRange(rowIndex, 11).setValue(now); // Inspected_At
+        sheet.getRange(rowIndex, 12).setValue(inspectedBy); // Inspected_By
+        sheet.getRange(rowIndex, 13).setValue(notes); // Notes
+        sheet.getRange(rowIndex, 14).setValue(photoUrl); // Photo_URL
+
+        return {
+          success: true,
+          waypointId: waypointId,
+          message: 'Waypoint marked as inspected'
+        };
+      }
+    }
+
+    return { success: false, error: 'Waypoint not found: ' + waypointId };
+
+  } catch (error) {
+    Logger.log('markZoneInspected error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get all field problems detected by satellite
+ * Used by generateProactiveAlerts() to add satellite alerts
+ */
+function getAllFieldProblems() {
+  const allProblems = [];
+
+  try {
+    const fieldsResult = getFieldsWithSatelliteData();
+    if (!fieldsResult.success) {
+      return allProblems;
+    }
+
+    for (const field of fieldsResult.fields) {
+      const problems = detectSatelliteProblems(field.id);
+      if (problems.length > 0) {
+        problems.forEach(problem => {
+          allProblems.push({
+            field: {
+              id: field.id,
+              name: field.name
+            },
+            type: problem.type,
+            severity: problem.severity,
+            message: problem.message,
+            ndvi: problem.ndvi,
+            ndmi: problem.ndmi,
+            zone: problem.zone
+          });
+        });
+      }
+    }
+
+    return allProblems;
+
+  } catch (error) {
+    Logger.log('getAllFieldProblems error: ' + error.toString());
+    return allProblems;
+  }
+}
+
+/**
+ * Store a satellite reading (from external API like Agromonitoring)
+ * API endpoint: storeSatelliteReading
+ */
+function storeSatelliteReading(data) {
+  try {
+    if (!data.fieldId) {
+      return { success: false, error: 'Field ID is required' };
+    }
+
+    const sheet = getSatelliteReadingsSheet();
+    const readingId = 'SAT_' + Date.now();
+
+    const row = [
+      readingId,
+      data.fieldId,
+      data.date || new Date().toISOString(),
+      data.source || 'API',
+      data.ndvi !== undefined ? data.ndvi : '',
+      data.ndmi !== undefined ? data.ndmi : '',
+      data.ndre !== undefined ? data.ndre : '',
+      data.recl !== undefined ? data.recl : '',
+      data.cloudCover || '',
+      data.quality || 'GOOD',
+      data.rawData ? JSON.stringify(data.rawData) : ''
+    ];
+
+    sheet.appendRow(row);
+
+    return {
+      success: true,
+      readingId: readingId,
+      message: 'Satellite reading stored'
+    };
+
+  } catch (error) {
+    Logger.log('storeSatelliteReading error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get satellite readings for a field
+ * API endpoint: getSatelliteReadings?fieldId={id}&limit={n}
+ */
+function getSatelliteReadings(params) {
+  try {
+    const fieldId = params.fieldId;
+    const limit = parseInt(params.limit) || 30;
+
+    const sheet = getSatelliteReadingsSheet();
+    const data = sheet.getDataRange().getValues();
+
+    const readings = [];
+    for (let i = 1; i < data.length; i++) {
+      if (!fieldId || data[i][1] === fieldId) {
+        readings.push({
+          readingId: data[i][0],
+          fieldId: data[i][1],
+          date: data[i][2],
+          source: data[i][3],
+          ndvi: data[i][4],
+          ndmi: data[i][5],
+          ndre: data[i][6],
+          recl: data[i][7],
+          cloudCover: data[i][8],
+          quality: data[i][9]
+        });
+      }
+    }
+
+    // Sort by date descending and limit
+    readings.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    return {
+      success: true,
+      readings: readings.slice(0, limit),
+      total: readings.length
+    };
+
+  } catch (error) {
+    Logger.log('getSatelliteReadings error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get satellite alerts
+ * API endpoint: getSatelliteAlerts?status={open|resolved}&fieldId={id}
+ */
+function getSatelliteAlerts(params) {
+  try {
+    const status = params.status;
+    const fieldId = params.fieldId;
+
+    const sheet = getSatelliteAlertsSheet();
+    const data = sheet.getDataRange().getValues();
+
+    const alerts = [];
+    for (let i = 1; i < data.length; i++) {
+      const alertStatus = data[i][6] || 'OPEN';
+      const alertFieldId = data[i][1];
+
+      // Filter by status and field
+      if ((!status || alertStatus === status.toUpperCase()) &&
+          (!fieldId || alertFieldId === fieldId)) {
+        alerts.push({
+          alertId: data[i][0],
+          fieldId: alertFieldId,
+          timestamp: data[i][2],
+          type: data[i][3],
+          severity: data[i][4],
+          details: data[i][5],
+          status: alertStatus,
+          taskId: data[i][7],
+          resolvedBy: data[i][8],
+          resolvedAt: data[i][9]
+        });
+      }
+    }
+
+    // Sort by timestamp descending
+    alerts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    return {
+      success: true,
+      alerts: alerts,
+      count: alerts.length
+    };
+
+  } catch (error) {
+    Logger.log('getSatelliteAlerts error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Resolve a satellite alert
+ * API endpoint: resolveSatelliteAlert
+ */
+function resolveSatelliteAlert(data) {
+  try {
+    const alertId = data.alertId;
+    const resolvedBy = data.resolvedBy || 'unknown';
+
+    if (!alertId) {
+      return { success: false, error: 'Alert ID is required' };
+    }
+
+    const sheet = getSatelliteAlertsSheet();
+    const sheetData = sheet.getDataRange().getValues();
+
+    for (let i = 1; i < sheetData.length; i++) {
+      if (sheetData[i][0] === alertId) {
+        const rowIndex = i + 1;
+        const now = new Date().toISOString();
+
+        sheet.getRange(rowIndex, 7).setValue('RESOLVED'); // Status
+        sheet.getRange(rowIndex, 9).setValue(resolvedBy); // Resolved_By
+        sheet.getRange(rowIndex, 10).setValue(now); // Resolved_At
+
+        return {
+          success: true,
+          alertId: alertId,
+          message: 'Alert resolved'
+        };
+      }
+    }
+
+    return { success: false, error: 'Alert not found: ' + alertId };
+
+  } catch (error) {
+    Logger.log('resolveSatelliteAlert error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * DAILY SCOUTING CHECK
+ * Scheduled trigger to run after satellite data fetch
+ * Creates scouting tasks for any detected problems
+ */
+function dailyScoutingCheck() {
+  Logger.log('Running daily scouting check...');
+
+  const result = generateScoutingTasks();
+
+  if (result.success) {
+    Logger.log('Daily scouting check complete: ' + result.tasksCreated + ' tasks created for ' + result.fieldsChecked + ' fields');
+  } else {
+    Logger.log('Daily scouting check failed: ' + result.error);
+  }
+
+  return result;
+}
+
+/**
+ * Setup satellite scouting trigger
+ * Call this once to set up the daily scheduled check
+ */
+function setupSatelliteScoutingTrigger() {
+  // Delete existing triggers for this function
+  ScriptApp.getProjectTriggers().forEach(trigger => {
+    if (trigger.getHandlerFunction() === 'dailyScoutingCheck') {
+      ScriptApp.deleteTrigger(trigger);
+    }
+  });
+
+  // Create new trigger at 7 AM daily (after satellite data typically arrives)
+  ScriptApp.newTrigger('dailyScoutingCheck')
+    .timeBased()
+    .everyDays(1)
+    .atHour(7)
+    .create();
+
+  return {
+    success: true,
+    message: 'Satellite scouting trigger created for 7 AM daily'
+  };
+}
+
+/**
+ * Enhanced generateProactiveAlerts with satellite integration
+ * This function adds satellite-detected problems to the proactive alerts
+ */
+function addSatelliteAlertsToProactive(existingAlerts) {
+  try {
+    const satelliteProblems = getAllFieldProblems();
+
+    satelliteProblems.forEach(problem => {
+      existingAlerts.push({
+        type: 'WARNING',
+        icon: 'satellite',
+        title: problem.field.name + ': ' + problem.type.replace(/_/g, ' '),
+        message: problem.message,
+        priority: problem.severity === 'critical' ? 'CRITICAL' : 'HIGH',
+        action: {
+          type: 'createTask',
+          taskType: 'scout',
+          fieldId: problem.field.id
+        },
+        source: 'satellite',
+        data: {
+          ndvi: problem.ndvi,
+          ndmi: problem.ndmi,
+          zone: problem.zone
+        }
+      });
+    });
+
+    return existingAlerts;
+
+  } catch (error) {
+    Logger.log('addSatelliteAlertsToProactive error: ' + error.toString());
+    return existingAlerts;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+// END: SATELLITE SMART SCOUTING INTEGRATION
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════

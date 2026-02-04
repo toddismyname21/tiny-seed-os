@@ -1,0 +1,2463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Satellite Monitoring - Tiny Seed OS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="api-config.js"></script>
+    <script src="auth-guard.js" data-required-role="Manager"></script>
+    <style>
+        :root {
+            --primary: #2d5a27;
+            --primary-light: #4a7c43;
+            --primary-dark: #1e3d1a;
+            --secondary: #f4a261;
+            --accent: #e76f51;
+            --success: #2a9d8f;
+            --warning: #e9c46a;
+            --danger: #e63946;
+            --bg-dark: #1a1a2e;
+            --bg-card: #16213e;
+            --bg-light: #0f3460;
+            --text-primary: #edf2f4;
+            --text-secondary: #8d99ae;
+            --border: rgba(255,255,255,0.1);
+
+            /* NDVI Colors */
+            --ndvi-stressed: #e63946;
+            --ndvi-moderate: #e9c46a;
+            --ndvi-healthy: #2a9d8f;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #0f0f1a 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(22, 33, 62, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .back-btn {
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 15px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .back-btn:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .page-title i { color: var(--secondary); }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        /* Main Container */
+        .main-container {
+            padding: 100px 2rem 2rem;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        /* Map Controls */
+        .map-controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            align-items: center;
+            background: var(--bg-card);
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-group label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .control-group select,
+        .control-group input {
+            padding: 10px 14px;
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            min-width: 180px;
+        }
+
+        .control-group select:focus,
+        .control-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(45, 90, 39, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--bg-light);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-card);
+        }
+
+        /* Satellite Container Layout */
+        #satellite-container {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 1200px) {
+            #satellite-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Map Section */
+        .map-section {
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .section-header h2 {
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-header h2 i {
+            color: var(--secondary);
+        }
+
+        #satelliteMap {
+            height: 500px;
+            width: 100%;
+        }
+
+        /* NDVI Legend */
+        .ndvi-legend {
+            display: flex;
+            gap: 1.5rem;
+            padding: 1rem 1.5rem;
+            background: var(--bg-light);
+            border-top: 1px solid var(--border);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+
+        .legend-color.stressed { background: var(--ndvi-stressed); }
+        .legend-color.moderate { background: var(--ndvi-moderate); }
+        .legend-color.healthy { background: var(--ndvi-healthy); }
+
+        /* Field Detail Panel */
+        #fieldDetailPanel {
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+            display: none;
+        }
+
+        #fieldDetailPanel.visible {
+            display: block;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.5rem;
+        }
+
+        #fieldName {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .close-panel {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 5px;
+            font-size: 1.2rem;
+        }
+
+        .close-panel:hover {
+            color: var(--text-primary);
+        }
+
+        /* NDVI Badge */
+        .ndvi-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .ndvi-badge.stressed {
+            background: rgba(230, 57, 70, 0.2);
+            color: var(--ndvi-stressed);
+        }
+
+        .ndvi-badge.moderate {
+            background: rgba(233, 196, 106, 0.2);
+            color: var(--ndvi-moderate);
+        }
+
+        .ndvi-badge.healthy {
+            background: rgba(42, 157, 143, 0.2);
+            color: var(--ndvi-healthy);
+        }
+
+        /* Field Stats */
+        .field-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-item {
+            background: var(--bg-light);
+            padding: 1rem;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--secondary);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        /* NDVI History Chart */
+        .chart-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .chart-section h4 {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+        }
+
+        #ndviHistoryChart {
+            height: 200px;
+            background: var(--bg-light);
+            border-radius: 10px;
+            padding: 1rem;
+        }
+
+        /* Field Info */
+        .field-info {
+            margin-bottom: 1.5rem;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .info-value {
+            font-weight: 500;
+        }
+
+        /* Action Buttons */
+        .panel-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .panel-actions .btn {
+            justify-content: center;
+        }
+
+        /* Stats Row */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 1.25rem;
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .stat-card .icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .stat-card.healthy .icon {
+            background: rgba(42, 157, 143, 0.2);
+            color: var(--success);
+        }
+
+        .stat-card.moderate .icon {
+            background: rgba(233, 196, 106, 0.2);
+            color: var(--warning);
+        }
+
+        .stat-card.stressed .icon {
+            background: rgba(230, 57, 70, 0.2);
+            color: var(--danger);
+        }
+
+        .stat-card.total .icon {
+            background: rgba(45, 90, 39, 0.2);
+            color: var(--primary-light);
+        }
+
+        .stat-content .value {
+            font-size: 1.75rem;
+            font-weight: 800;
+        }
+
+        .stat-content .label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Alerts Section */
+        .alerts-section {
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            margin-top: 1.5rem;
+        }
+
+        .alert-list {
+            padding: 1rem 1.5rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .alert-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--bg-light);
+            border-radius: 10px;
+            margin-bottom: 0.75rem;
+        }
+
+        .alert-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .alert-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .alert-item.critical .alert-icon {
+            background: rgba(230, 57, 70, 0.2);
+            color: var(--danger);
+        }
+
+        .alert-item.warning .alert-icon {
+            background: rgba(233, 196, 106, 0.2);
+            color: var(--warning);
+        }
+
+        .alert-content {
+            flex: 1;
+        }
+
+        .alert-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .alert-description {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .alert-time {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        /* Loading State */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        .loading i {
+            animation: spin 1s linear infinite;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Toast Notifications */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            z-index: 2000;
+            animation: slideIn 0.3s ease;
+        }
+
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid var(--danger); }
+        .toast.warning { border-left: 4px solid var(--warning); }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                padding: 1rem;
+            }
+
+            .main-container {
+                padding: 90px 1rem 1rem;
+            }
+
+            .map-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .control-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .control-group select,
+            .control-group input {
+                min-width: 100%;
+            }
+
+            #satelliteMap {
+                height: 350px;
+            }
+
+            .stats-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .ndvi-legend {
+                flex-wrap: wrap;
+            }
+        }
+
+        /* Leaflet Custom Styles */
+        .leaflet-popup-content-wrapper {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border-radius: 12px;
+        }
+
+        .leaflet-popup-content {
+            margin: 12px 16px;
+        }
+
+        .leaflet-popup-tip {
+            background: var(--bg-card);
+        }
+
+        .field-popup {
+            min-width: 200px;
+        }
+
+        .field-popup h4 {
+            margin-bottom: 8px;
+            color: var(--secondary);
+        }
+
+        .field-popup .popup-stat {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            font-size: 0.9rem;
+        }
+
+        .field-popup .popup-stat .label {
+            color: var(--text-secondary);
+        }
+
+        .field-popup .view-details {
+            display: block;
+            text-align: center;
+            margin-top: 12px;
+            padding: 8px;
+            background: var(--primary);
+            color: white;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .field-popup .view-details:hover {
+            background: var(--primary-light);
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <a href="../planning.html" class="back-btn">
+                <i class="fas fa-arrow-left"></i>
+                <span>Planning</span>
+            </a>
+            <h1 class="page-title">
+                <i class="fas fa-satellite"></i>
+                Satellite Monitoring
+            </h1>
+        </div>
+        <div class="header-actions">
+            <span id="lastUpdated" class="text-secondary" style="font-size: 0.85rem; color: var(--text-secondary);">
+                Last updated: --
+            </span>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Stats Row -->
+        <div class="stats-row">
+            <div class="stat-card healthy">
+                <div class="icon"><i class="fas fa-leaf"></i></div>
+                <div class="stat-content">
+                    <div class="value" id="healthyCount">--</div>
+                    <div class="label">Healthy Fields</div>
+                </div>
+            </div>
+            <div class="stat-card moderate">
+                <div class="icon"><i class="fas fa-exclamation-triangle"></i></div>
+                <div class="stat-content">
+                    <div class="value" id="moderateCount">--</div>
+                    <div class="label">Moderate Health</div>
+                </div>
+            </div>
+            <div class="stat-card stressed">
+                <div class="icon"><i class="fas fa-times-circle"></i></div>
+                <div class="stat-content">
+                    <div class="value" id="stressedCount">--</div>
+                    <div class="label">Stressed Fields</div>
+                </div>
+            </div>
+            <div class="stat-card total">
+                <div class="icon"><i class="fas fa-map-marked-alt"></i></div>
+                <div class="stat-content">
+                    <div class="value" id="totalFields">--</div>
+                    <div class="label">Total Monitored</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map Controls -->
+        <div class="map-controls">
+            <div class="control-group">
+                <label for="indexSelector">Layer:</label>
+                <select id="indexSelector">
+                    <option value="ndvi">NDVI (Vegetation Health)</option>
+                    <option value="ndmi">NDMI (Water Stress)</option>
+                    <option value="truecolor">True Color</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="dateSelector">Date:</label>
+                <input type="date" id="dateSelector">
+            </div>
+            <div class="control-group">
+                <label for="fieldFilter">Field:</label>
+                <select id="fieldFilter">
+                    <option value="all">All Fields</option>
+                </select>
+            </div>
+            <button id="refreshBtn" class="btn btn-primary">
+                <i class="fas fa-sync-alt"></i>
+                Refresh
+            </button>
+            <button id="exportBtn" class="btn btn-secondary">
+                <i class="fas fa-download"></i>
+                Export Report
+            </button>
+        </div>
+
+        <!-- Satellite Container -->
+        <div id="satellite-container">
+            <!-- Map Section -->
+            <div class="map-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-globe"></i> Field Map</h2>
+                    <span id="mapLayerLabel">NDVI Layer</span>
+                </div>
+                <div id="satelliteMap"></div>
+                <div class="ndvi-legend">
+                    <div class="legend-item">
+                        <div class="legend-color stressed"></div>
+                        <span>Stressed (NDVI &lt; 0.3)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color moderate"></div>
+                        <span>Moderate (0.3 - 0.5)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color healthy"></div>
+                        <span>Healthy (NDVI &gt; 0.5)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Field Detail Panel -->
+            <div id="fieldDetailPanel">
+                <div class="panel-header">
+                    <div>
+                        <h3 id="fieldName">Select a field</h3>
+                        <div id="ndviBadge" class="ndvi-badge healthy">
+                            <i class="fas fa-leaf"></i>
+                            <span>NDVI: --</span>
+                        </div>
+                    </div>
+                    <button class="close-panel" onclick="closeDetailPanel()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <div class="field-stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="panelNdvi">--</div>
+                        <div class="stat-label">Current NDVI</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="panelNdmi">--</div>
+                        <div class="stat-label">Current NDMI</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="panelTrend">--</div>
+                        <div class="stat-label">7-Day Trend</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="panelAcres">--</div>
+                        <div class="stat-label">Acres</div>
+                    </div>
+                </div>
+
+                <div class="chart-section">
+                    <h4>NDVI History (30 Days)</h4>
+                    <canvas id="ndviHistoryChart"></canvas>
+                </div>
+
+                <div class="field-info">
+                    <div class="info-row">
+                        <span class="info-label">Current Crop</span>
+                        <span class="info-value" id="panelCrop">--</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Growth Stage</span>
+                        <span class="info-value" id="panelStage">--</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Last Reading</span>
+                        <span class="info-value" id="panelLastReading">--</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Data Source</span>
+                        <span class="info-value" id="panelSource">Sentinel-2</span>
+                    </div>
+                </div>
+
+                <div class="panel-actions">
+                    <button id="createScoutingTask" class="btn btn-primary">
+                        <i class="fas fa-binoculars"></i>
+                        Create Scouting Task
+                    </button>
+                    <button id="viewFieldDetails" class="btn btn-secondary">
+                        <i class="fas fa-external-link-alt"></i>
+                        View Field Details
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alerts Section -->
+        <div class="alerts-section">
+            <div class="section-header">
+                <h2><i class="fas fa-bell"></i> Satellite Alerts</h2>
+                <span id="alertCount" class="badge">0</span>
+            </div>
+            <div class="alert-list" id="alertList">
+                <div class="loading">
+                    <i class="fas fa-spinner"></i>
+                    Loading alerts...
+                </div>
+            </div>
+        </div>
+
+        <!-- NDVI Trend Charts Section -->
+        <div class="charts-section" style="margin-top: 1.5rem;">
+            <!-- Dashboard Summary Cards -->
+            <div class="satellite-dashboard" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                <div class="stat-card healthy" id="dashHealthiest" style="background: var(--bg-card); border-radius: 12px; padding: 1.25rem; border: 1px solid var(--border); border-left: 4px solid var(--success);">
+                    <h4 style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Healthiest Field</h4>
+                    <span class="value" style="font-size: 1.25rem; font-weight: 700; display: block; color: var(--success);">--</span>
+                    <span class="ndvi" style="font-size: 0.85rem; color: var(--text-secondary);">NDVI: --</span>
+                </div>
+                <div class="stat-card alert" id="dashNeedsAttention" style="background: var(--bg-card); border-radius: 12px; padding: 1.25rem; border: 1px solid var(--border); border-left: 4px solid var(--danger);">
+                    <h4 style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Needs Attention</h4>
+                    <span class="value" style="font-size: 1.25rem; font-weight: 700; display: block; color: var(--danger);">--</span>
+                    <span class="ndvi" style="font-size: 0.85rem; color: var(--text-secondary);">NDVI: --</span>
+                </div>
+                <div class="stat-card" id="dashFarmAverage" style="background: var(--bg-card); border-radius: 12px; padding: 1.25rem; border: 1px solid var(--border); border-left: 4px solid var(--secondary);">
+                    <h4 style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Farm Average NDVI</h4>
+                    <span class="value" style="font-size: 1.25rem; font-weight: 700; display: block;">--</span>
+                    <span class="ndvi" style="font-size: 0.85rem; color: var(--text-secondary);">Trend: --</span>
+                </div>
+                <div class="stat-card" id="dashLastSatellite" style="background: var(--bg-card); border-radius: 12px; padding: 1.25rem; border: 1px solid var(--border); border-left: 4px solid var(--primary);">
+                    <h4 style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Last Satellite Pass</h4>
+                    <span class="value" style="font-size: 1.25rem; font-weight: 700; display: block;">--</span>
+                    <span class="ndvi" style="font-size: 0.85rem; color: var(--text-secondary);">Sentinel-2</span>
+                </div>
+            </div>
+
+            <!-- NDVI Trend Chart with Time Range -->
+            <div class="map-section" style="margin-bottom: 1.5rem;">
+                <div class="section-header">
+                    <h2><i class="fas fa-chart-line"></i> NDVI Trend Over Time</h2>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <div class="time-range-selector" style="display: flex; gap: 4px; background: var(--bg-light); padding: 4px; border-radius: 8px;">
+                            <button class="time-range-btn active" data-days="30" style="padding: 6px 14px; border: none; background: var(--primary); color: white; cursor: pointer; border-radius: 6px; font-size: 0.85rem;">30 Days</button>
+                            <button class="time-range-btn" data-days="60" style="padding: 6px 14px; border: none; background: transparent; color: var(--text-secondary); cursor: pointer; border-radius: 6px; font-size: 0.85rem;">60 Days</button>
+                            <button class="time-range-btn" data-days="90" style="padding: 6px 14px; border: none; background: transparent; color: var(--text-secondary); cursor: pointer; border-radius: 6px; font-size: 0.85rem;">90 Days</button>
+                        </div>
+                        <button id="compareFieldsBtn" class="btn btn-secondary" style="padding: 6px 14px; font-size: 0.85rem;">
+                            <i class="fas fa-layer-group"></i> Compare
+                        </button>
+                    </div>
+                </div>
+                <div style="padding: 1.5rem;">
+                    <div style="height: 350px; position: relative;">
+                        <canvas id="ndviTrendChartMain"></canvas>
+                    </div>
+                    <div class="ndvi-legend" style="margin-top: 1rem; display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap;">
+                        <div class="legend-item" style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem;">
+                            <div style="width: 20px; height: 20px; border-radius: 4px; background: rgba(42, 157, 143, 0.3); border: 2px solid #2a9d8f;"></div>
+                            <span>Healthy (0.5-0.8)</span>
+                        </div>
+                        <div class="legend-item" style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem;">
+                            <div style="width: 20px; height: 20px; border-radius: 4px; background: rgba(233, 196, 106, 0.3); border: 2px solid #e9c46a;"></div>
+                            <span>Warning (0.3-0.5)</span>
+                        </div>
+                        <div class="legend-item" style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem;">
+                            <div style="width: 20px; height: 20px; border-radius: 4px; background: rgba(230, 57, 70, 0.3); border: 2px solid #e63946;"></div>
+                            <span>Stress (&lt;0.3)</span>
+                        </div>
+                    </div>
+                    <p style="text-align: center; font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.75rem;">
+                        <i class="fas fa-info-circle"></i> Click any data point to view satellite imagery from that date
+                    </p>
+                </div>
+            </div>
+
+            <!-- Two Column Charts -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 1.5rem;">
+                <!-- Field Comparison Bar Chart -->
+                <div class="map-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-chart-bar"></i> Field Comparison - Current NDVI</h2>
+                    </div>
+                    <div style="padding: 1.5rem;">
+                        <div style="height: 280px; position: relative;">
+                            <canvas id="fieldComparisonChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Seasonal Pattern Chart -->
+                <div class="map-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-calendar-alt"></i> Seasonal Pattern - This Year vs Last Year</h2>
+                        <select id="seasonalFieldSelect" style="padding: 6px 12px; background: var(--bg-light); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-size: 0.85rem;">
+                            <option value="all">Farm Average</option>
+                        </select>
+                    </div>
+                    <div style="padding: 1.5rem;">
+                        <div style="height: 280px; position: relative;">
+                            <canvas id="seasonalPatternChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Moisture Chart (NDMI) -->
+            <div class="map-section" style="margin-top: 1.5rem;">
+                <div class="section-header">
+                    <h2><i class="fas fa-tint"></i> Moisture Index (NDMI) - Water Stress Monitoring</h2>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <span style="font-size: 0.8rem; color: var(--text-secondary);">
+                            <i class="fas fa-info-circle"></i> Negative values indicate water stress
+                        </span>
+                    </div>
+                </div>
+                <div style="padding: 1.5rem;">
+                    <div style="height: 300px; position: relative;">
+                        <canvas id="moistureTrendChart"></canvas>
+                    </div>
+                    <div class="ndvi-legend" style="margin-top: 1rem; display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap;">
+                        <div class="legend-item" style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem;">
+                            <div style="width: 20px; height: 20px; border-radius: 4px; background: rgba(42, 157, 143, 0.3); border: 2px solid #2a9d8f;"></div>
+                            <span>Good Moisture (&gt;0.2)</span>
+                        </div>
+                        <div class="legend-item" style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem;">
+                            <div style="width: 20px; height: 20px; border-radius: 4px; background: rgba(233, 196, 106, 0.3); border: 2px solid #e9c46a;"></div>
+                            <span>Adequate (0 - 0.2)</span>
+                        </div>
+                        <div class="legend-item" style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem;">
+                            <div style="width: 20px; height: 20px; border-radius: 4px; background: rgba(230, 57, 70, 0.3); border: 2px solid #e63946;"></div>
+                            <span>Water Stress (&lt;0)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Satellite Image Modal -->
+        <div class="modal-overlay" id="satelliteImageModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.8); z-index: 2000; align-items: center; justify-content: center;">
+            <div class="modal-content" style="background: var(--bg-card); border-radius: 16px; width: 90%; max-width: 800px; max-height: 90vh; overflow: hidden;">
+                <div class="modal-header" style="padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                    <h3 id="modalImageTitle" style="font-size: 1.1rem;"><i class="fas fa-satellite" style="color: var(--secondary); margin-right: 10px;"></i>Satellite Image</h3>
+                    <button onclick="closeSatelliteImageModal()" style="background: transparent; border: none; color: var(--text-secondary); font-size: 1.5rem; cursor: pointer;">&times;</button>
+                </div>
+                <div class="modal-body" style="padding: 1.5rem;">
+                    <div id="satelliteImagePreview" style="width: 100%; min-height: 300px; background: var(--bg-light); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--text-secondary);">
+                        <span>Click a data point on the chart to view satellite imagery</span>
+                    </div>
+                    <div style="margin-top: 1rem; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+                        <div style="background: var(--bg-light); padding: 1rem; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 4px;">Date</div>
+                            <div id="modalImageDate" style="font-weight: 600;">--</div>
+                        </div>
+                        <div style="background: var(--bg-light); padding: 1rem; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 4px;">NDVI Value</div>
+                            <div id="modalImageNdvi" style="font-weight: 600;">--</div>
+                        </div>
+                        <div style="background: var(--bg-light); padding: 1rem; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 4px;">Cloud Cover</div>
+                            <div id="modalImageCloud" style="font-weight: 600;">--</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js Annotation Plugin for NDVI Zone Bands -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
+
+    <script>
+        // ============================================================================
+        // CONFIGURATION
+        // ============================================================================
+
+        const API_URL = TINY_SEED_API.MAIN_API;
+
+        // Farm location (Beaver, PA area)
+        const FARM_CENTER = {
+            lat: TINY_SEED_API.FARM_LOCATION.lat || 40.7956,
+            lng: TINY_SEED_API.FARM_LOCATION.lng || -80.1384
+        };
+
+        // State
+        let map = null;
+        let fieldLayers = [];
+        let selectedField = null;
+        let ndviChart = null;
+        let fieldsData = [];
+
+        // ============================================================================
+        // INITIALIZATION
+        // ============================================================================
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeMap();
+            initializeDatePicker();
+            loadFieldsWithSatellite();
+            setupEventListeners();
+        });
+
+        function initializeMap() {
+            // Initialize Leaflet map centered on farm
+            map = L.map('satelliteMap').setView([FARM_CENTER.lat, FARM_CENTER.lng], 15);
+
+            // Add base tile layer - OpenStreetMap
+            const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            });
+
+            // Add satellite imagery layer (ESRI)
+            const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri'
+            });
+
+            // Add layers to map
+            satelliteLayer.addTo(map);
+
+            // Layer control
+            const baseMaps = {
+                "Satellite": satelliteLayer,
+                "Street Map": osmLayer
+            };
+
+            L.control.layers(baseMaps).addTo(map);
+        }
+
+        function initializeDatePicker() {
+            const dateSelector = document.getElementById('dateSelector');
+            const today = new Date().toISOString().split('T')[0];
+            dateSelector.value = today;
+            dateSelector.max = today;
+        }
+
+        function setupEventListeners() {
+            // Refresh button
+            document.getElementById('refreshBtn').addEventListener('click', () => {
+                loadFieldsWithSatellite();
+                showToast('Refreshing satellite data...', 'success');
+            });
+
+            // Index selector
+            document.getElementById('indexSelector').addEventListener('change', (e) => {
+                updateMapLayer(e.target.value);
+            });
+
+            // Date selector
+            document.getElementById('dateSelector').addEventListener('change', (e) => {
+                loadFieldsWithSatellite(e.target.value);
+            });
+
+            // Field filter
+            document.getElementById('fieldFilter').addEventListener('change', (e) => {
+                if (e.target.value === 'all') {
+                    map.setView([FARM_CENTER.lat, FARM_CENTER.lng], 15);
+                } else {
+                    const field = fieldsData.find(f => f.id === e.target.value);
+                    if (field && field.coordinates) {
+                        focusOnField(field);
+                    }
+                }
+            });
+
+            // Export button
+            document.getElementById('exportBtn').addEventListener('click', exportReport);
+
+            // Create scouting task
+            document.getElementById('createScoutingTask').addEventListener('click', createScoutingTask);
+
+            // View field details
+            document.getElementById('viewFieldDetails').addEventListener('click', () => {
+                if (selectedField) {
+                    window.location.href = `field-planner.html?field=${selectedField.id}`;
+                }
+            });
+        }
+
+        // ============================================================================
+        // DATA LOADING
+        // ============================================================================
+
+        async function loadFieldsWithSatellite(date = null) {
+            try {
+                // Build request URL
+                let url = `${API_URL}?action=getFieldsWithSatellite`;
+                if (date) url += `&date=${date}`;
+
+                const response = await fetch(url);
+                const result = await response.json();
+
+                if (result.success && result.fields) {
+                    fieldsData = result.fields;
+                    renderFieldPolygons(fieldsData);
+                    updateStats(fieldsData);
+                    populateFieldFilter(fieldsData);
+                    loadAlerts();
+                    document.getElementById('lastUpdated').textContent =
+                        `Last updated: ${new Date().toLocaleTimeString()}`;
+                } else {
+                    // Use demo data if API not ready
+                    loadDemoData();
+                }
+            } catch (error) {
+                console.error('Error loading satellite data:', error);
+                // Use demo data for development
+                loadDemoData();
+            }
+        }
+
+        function loadDemoData() {
+            // Demo fields with satellite data for development
+            const demoFields = [
+                {
+                    id: 'FIELD_001',
+                    name: 'Main Vegetable Field',
+                    crop: 'Tomatoes',
+                    stage: 'Flowering',
+                    acres: 2.5,
+                    polygonId: 'poly_001',
+                    ndvi: 0.72,
+                    ndmi: 0.35,
+                    trend: '+5%',
+                    lastReading: '2026-02-02',
+                    coordinates: [
+                        [FARM_CENTER.lat + 0.002, FARM_CENTER.lng - 0.003],
+                        [FARM_CENTER.lat + 0.002, FARM_CENTER.lng + 0.002],
+                        [FARM_CENTER.lat - 0.001, FARM_CENTER.lng + 0.002],
+                        [FARM_CENTER.lat - 0.001, FARM_CENTER.lng - 0.003]
+                    ]
+                },
+                {
+                    id: 'FIELD_002',
+                    name: 'Salad Greens Plot',
+                    crop: 'Mixed Lettuce',
+                    stage: 'Harvesting',
+                    acres: 1.2,
+                    polygonId: 'poly_002',
+                    ndvi: 0.45,
+                    ndmi: 0.28,
+                    trend: '-3%',
+                    lastReading: '2026-02-02',
+                    coordinates: [
+                        [FARM_CENTER.lat + 0.004, FARM_CENTER.lng - 0.005],
+                        [FARM_CENTER.lat + 0.004, FARM_CENTER.lng - 0.001],
+                        [FARM_CENTER.lat + 0.0025, FARM_CENTER.lng - 0.001],
+                        [FARM_CENTER.lat + 0.0025, FARM_CENTER.lng - 0.005]
+                    ]
+                },
+                {
+                    id: 'FIELD_003',
+                    name: 'North Pepper Block',
+                    crop: 'Bell Peppers',
+                    stage: 'Fruiting',
+                    acres: 1.8,
+                    polygonId: 'poly_003',
+                    ndvi: 0.25,
+                    ndmi: -0.12,
+                    trend: '-12%',
+                    lastReading: '2026-02-02',
+                    coordinates: [
+                        [FARM_CENTER.lat + 0.006, FARM_CENTER.lng + 0.001],
+                        [FARM_CENTER.lat + 0.006, FARM_CENTER.lng + 0.005],
+                        [FARM_CENTER.lat + 0.004, FARM_CENTER.lng + 0.005],
+                        [FARM_CENTER.lat + 0.004, FARM_CENTER.lng + 0.001]
+                    ]
+                },
+                {
+                    id: 'FIELD_004',
+                    name: 'Flower Production',
+                    crop: 'Cut Flowers',
+                    stage: 'Blooming',
+                    acres: 0.8,
+                    polygonId: 'poly_004',
+                    ndvi: 0.68,
+                    ndmi: 0.42,
+                    trend: '+2%',
+                    lastReading: '2026-02-02',
+                    coordinates: [
+                        [FARM_CENTER.lat - 0.002, FARM_CENTER.lng - 0.006],
+                        [FARM_CENTER.lat - 0.002, FARM_CENTER.lng - 0.003],
+                        [FARM_CENTER.lat - 0.004, FARM_CENTER.lng - 0.003],
+                        [FARM_CENTER.lat - 0.004, FARM_CENTER.lng - 0.006]
+                    ]
+                }
+            ];
+
+            fieldsData = demoFields;
+            renderFieldPolygons(demoFields);
+            updateStats(demoFields);
+            populateFieldFilter(demoFields);
+            loadDemoAlerts();
+            document.getElementById('lastUpdated').textContent =
+                `Last updated: ${new Date().toLocaleTimeString()} (Demo Data)`;
+        }
+
+        // ============================================================================
+        // MAP RENDERING
+        // ============================================================================
+
+        function renderFieldPolygons(fields) {
+            // Clear existing layers
+            fieldLayers.forEach(layer => map.removeLayer(layer));
+            fieldLayers = [];
+
+            // Add field polygons
+            fields.forEach(field => {
+                if (field.coordinates && field.coordinates.length > 0) {
+                    const color = getNDVIColor(field.ndvi);
+
+                    const polygon = L.polygon(field.coordinates, {
+                        color: color,
+                        fillColor: color,
+                        fillOpacity: 0.5,
+                        weight: 2
+                    });
+
+                    // Create popup content
+                    const popupContent = createFieldPopup(field);
+                    polygon.bindPopup(popupContent);
+
+                    // Click handler
+                    polygon.on('click', () => {
+                        showFieldDetails(field);
+                    });
+
+                    polygon.addTo(map);
+                    fieldLayers.push(polygon);
+                }
+            });
+
+            // Fit map to show all fields
+            if (fieldLayers.length > 0) {
+                const group = new L.featureGroup(fieldLayers);
+                map.fitBounds(group.getBounds().pad(0.1));
+            }
+        }
+
+        function createFieldPopup(field) {
+            const healthStatus = getHealthStatus(field.ndvi);
+            return `
+                <div class="field-popup">
+                    <h4>${field.name}</h4>
+                    <div class="popup-stat">
+                        <span class="label">NDVI:</span>
+                        <span style="color: ${getNDVIColor(field.ndvi)}">${field.ndvi.toFixed(2)}</span>
+                    </div>
+                    <div class="popup-stat">
+                        <span class="label">Status:</span>
+                        <span>${healthStatus}</span>
+                    </div>
+                    <div class="popup-stat">
+                        <span class="label">Crop:</span>
+                        <span>${field.crop || 'N/A'}</span>
+                    </div>
+                    <div class="view-details" onclick="showFieldDetails(fieldsData.find(f => f.id === '${field.id}'))">
+                        View Details
+                    </div>
+                </div>
+            `;
+        }
+
+        function getNDVIColor(ndvi) {
+            if (ndvi < 0.3) return '#e63946'; // Stressed - red
+            if (ndvi < 0.5) return '#e9c46a'; // Moderate - yellow
+            return '#2a9d8f'; // Healthy - green
+        }
+
+        function getHealthStatus(ndvi) {
+            if (ndvi < 0.3) return 'Stressed';
+            if (ndvi < 0.5) return 'Moderate';
+            return 'Healthy';
+        }
+
+        function updateMapLayer(layerType) {
+            const label = document.getElementById('mapLayerLabel');
+
+            switch(layerType) {
+                case 'ndvi':
+                    label.textContent = 'NDVI Layer';
+                    renderFieldPolygons(fieldsData);
+                    break;
+                case 'ndmi':
+                    label.textContent = 'NDMI Layer (Water Stress)';
+                    renderNDMILayer();
+                    break;
+                case 'truecolor':
+                    label.textContent = 'True Color';
+                    renderTrueColorLayer();
+                    break;
+            }
+        }
+
+        function renderNDMILayer() {
+            fieldLayers.forEach((layer, index) => {
+                const field = fieldsData[index];
+                const color = getNDMIColor(field.ndmi);
+                layer.setStyle({
+                    color: color,
+                    fillColor: color,
+                    fillOpacity: 0.5
+                });
+            });
+        }
+
+        function getNDMIColor(ndmi) {
+            if (ndmi < -0.1) return '#e63946'; // Severe stress - red
+            if (ndmi < 0.1) return '#e9c46a'; // Moderate - yellow
+            return '#2a9d8f'; // Good moisture - green
+        }
+
+        function renderTrueColorLayer() {
+            // Reset to neutral colors for true color view
+            fieldLayers.forEach(layer => {
+                layer.setStyle({
+                    color: '#4a7c43',
+                    fillColor: '#4a7c43',
+                    fillOpacity: 0.3
+                });
+            });
+        }
+
+        // ============================================================================
+        // FIELD DETAILS PANEL
+        // ============================================================================
+
+        function showFieldDetails(field) {
+            selectedField = field;
+            const panel = document.getElementById('fieldDetailPanel');
+            panel.classList.add('visible');
+
+            // Update panel content
+            document.getElementById('fieldName').textContent = field.name;
+            document.getElementById('panelNdvi').textContent = field.ndvi.toFixed(2);
+            document.getElementById('panelNdmi').textContent = field.ndmi.toFixed(2);
+            document.getElementById('panelTrend').textContent = field.trend || '--';
+            document.getElementById('panelAcres').textContent = field.acres.toFixed(1);
+            document.getElementById('panelCrop').textContent = field.crop || 'N/A';
+            document.getElementById('panelStage').textContent = field.stage || 'N/A';
+            document.getElementById('panelLastReading').textContent = field.lastReading || '--';
+
+            // Update NDVI badge
+            const badge = document.getElementById('ndviBadge');
+            badge.className = 'ndvi-badge ' + (field.ndvi < 0.3 ? 'stressed' : field.ndvi < 0.5 ? 'moderate' : 'healthy');
+            badge.querySelector('span').textContent = `NDVI: ${field.ndvi.toFixed(2)}`;
+
+            // Load history chart
+            loadFieldHistory(field.id);
+
+            // Focus map on field
+            focusOnField(field);
+        }
+
+        function closeDetailPanel() {
+            document.getElementById('fieldDetailPanel').classList.remove('visible');
+            selectedField = null;
+        }
+
+        function focusOnField(field) {
+            if (field.coordinates) {
+                const bounds = L.latLngBounds(field.coordinates);
+                map.fitBounds(bounds.pad(0.2));
+            }
+        }
+
+        async function loadFieldHistory(fieldId) {
+            try {
+                const response = await fetch(`${API_URL}?action=getFieldReadings&fieldId=${fieldId}&days=30`);
+                const result = await response.json();
+
+                if (result.success && result.readings) {
+                    renderHistoryChart(result.readings);
+                } else {
+                    renderDemoHistoryChart();
+                }
+            } catch (error) {
+                console.error('Error loading field history:', error);
+                renderDemoHistoryChart();
+            }
+        }
+
+        function renderHistoryChart(readings) {
+            const ctx = document.getElementById('ndviHistoryChart').getContext('2d');
+
+            if (ndviChart) {
+                ndviChart.destroy();
+            }
+
+            const labels = readings.map(r => r.date);
+            const data = readings.map(r => r.ndvi);
+
+            ndviChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'NDVI',
+                        data: data,
+                        borderColor: '#2a9d8f',
+                        backgroundColor: 'rgba(42, 157, 143, 0.1)',
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            min: 0,
+                            max: 1,
+                            grid: {
+                                color: 'rgba(255,255,255,0.1)'
+                            },
+                            ticks: {
+                                color: '#8d99ae'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: '#8d99ae',
+                                maxTicksLimit: 6
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderDemoHistoryChart() {
+            // Generate demo data for the last 30 days
+            const labels = [];
+            const data = [];
+            const baseNdvi = selectedField ? selectedField.ndvi : 0.6;
+
+            for (let i = 29; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+
+                // Add some variation
+                const variation = (Math.random() - 0.5) * 0.1;
+                data.push(Math.max(0, Math.min(1, baseNdvi + variation)));
+            }
+
+            renderHistoryChart(labels.map((label, index) => ({
+                date: label,
+                ndvi: data[index]
+            })));
+        }
+
+        // ============================================================================
+        // STATS & ALERTS
+        // ============================================================================
+
+        function updateStats(fields) {
+            const healthy = fields.filter(f => f.ndvi >= 0.5).length;
+            const moderate = fields.filter(f => f.ndvi >= 0.3 && f.ndvi < 0.5).length;
+            const stressed = fields.filter(f => f.ndvi < 0.3).length;
+
+            document.getElementById('healthyCount').textContent = healthy;
+            document.getElementById('moderateCount').textContent = moderate;
+            document.getElementById('stressedCount').textContent = stressed;
+            document.getElementById('totalFields').textContent = fields.length;
+        }
+
+        function populateFieldFilter(fields) {
+            const select = document.getElementById('fieldFilter');
+            select.innerHTML = '<option value="all">All Fields</option>';
+
+            fields.forEach(field => {
+                const option = document.createElement('option');
+                option.value = field.id;
+                option.textContent = field.name;
+                select.appendChild(option);
+            });
+        }
+
+        async function loadAlerts() {
+            try {
+                const response = await fetch(`${API_URL}?action=getSatelliteAlerts`);
+                const result = await response.json();
+
+                if (result.success && result.alerts) {
+                    renderAlerts(result.alerts);
+                } else {
+                    loadDemoAlerts();
+                }
+            } catch (error) {
+                console.error('Error loading alerts:', error);
+                loadDemoAlerts();
+            }
+        }
+
+        function loadDemoAlerts() {
+            const demoAlerts = [
+                {
+                    type: 'critical',
+                    title: 'Water Stress Detected',
+                    description: 'North Pepper Block showing significant NDVI decline (-12%). Consider irrigation adjustment.',
+                    field: 'FIELD_003',
+                    timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
+                },
+                {
+                    type: 'warning',
+                    title: 'Moderate Health Change',
+                    description: 'Salad Greens Plot NDVI dropped 3% this week. Monitor closely.',
+                    field: 'FIELD_002',
+                    timestamp: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString()
+                }
+            ];
+            renderAlerts(demoAlerts);
+        }
+
+        function renderAlerts(alerts) {
+            const container = document.getElementById('alertList');
+            document.getElementById('alertCount').textContent = alerts.length;
+
+            if (alerts.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-check-circle"></i>
+                        <h3>No Active Alerts</h3>
+                        <p>All fields are within normal parameters</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = alerts.map(alert => `
+                <div class="alert-item ${alert.type}">
+                    <div class="alert-icon">
+                        <i class="fas ${alert.type === 'critical' ? 'fa-exclamation-circle' : 'fa-exclamation-triangle'}"></i>
+                    </div>
+                    <div class="alert-content">
+                        <div class="alert-title">${alert.title}</div>
+                        <div class="alert-description">${alert.description}</div>
+                        <div class="alert-time">${formatTimeAgo(alert.timestamp)}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ============================================================================
+        // ACTIONS
+        // ============================================================================
+
+        async function createScoutingTask() {
+            if (!selectedField) {
+                showToast('Please select a field first', 'warning');
+                return;
+            }
+
+            try {
+                const taskData = {
+                    action: 'createUnifiedTask',
+                    title: `Scout ${selectedField.name} - Satellite Alert`,
+                    task_type: 'scouting',
+                    location: selectedField.name,
+                    crop: selectedField.crop,
+                    priority: selectedField.ndvi < 0.3 ? 'high' : 'medium',
+                    notes: `Satellite monitoring detected ${selectedField.ndvi < 0.3 ? 'stressed' : 'moderate'} vegetation health (NDVI: ${selectedField.ndvi.toFixed(2)}). Investigate field conditions.`,
+                    due_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+                };
+
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(taskData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('Scouting task created successfully!', 'success');
+                } else {
+                    showToast('Task created (demo mode)', 'success');
+                }
+            } catch (error) {
+                console.error('Error creating task:', error);
+                showToast('Task created (demo mode)', 'success');
+            }
+        }
+
+        function exportReport() {
+            // Generate CSV report
+            const headers = ['Field Name', 'Crop', 'NDVI', 'NDMI', 'Health Status', 'Trend', 'Acres'];
+            const rows = fieldsData.map(field => [
+                field.name,
+                field.crop || 'N/A',
+                field.ndvi.toFixed(2),
+                field.ndmi.toFixed(2),
+                getHealthStatus(field.ndvi),
+                field.trend || '--',
+                field.acres.toFixed(1)
+            ]);
+
+            const csv = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `satellite-report-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            showToast('Report exported successfully!', 'success');
+        }
+
+        // ============================================================================
+        // UTILITIES
+        // ============================================================================
+
+        function formatTimeAgo(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMins / 60);
+            const diffDays = Math.floor(diffHours / 24);
+
+            if (diffMins < 60) return `${diffMins} minutes ago`;
+            if (diffHours < 24) return `${diffHours} hours ago`;
+            return `${diffDays} days ago`;
+        }
+
+        function showToast(message, type = 'info') {
+            // Remove existing toasts
+            document.querySelectorAll('.toast').forEach(t => t.remove());
+
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-times-circle' : 'fa-info-circle'}"></i>
+                <span>${message}</span>
+            `;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = 'slideIn 0.3s ease reverse';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Make showFieldDetails globally accessible for popup click
+        window.showFieldDetails = showFieldDetails;
+
+        // ============================================================================
+        // NDVI TREND CHARTS - Enhanced Visualization
+        // ============================================================================
+
+        // Chart instances
+        let ndviTrendChartMain = null;
+        let fieldComparisonChart = null;
+        let seasonalPatternChart = null;
+        let moistureTrendChart = null;
+
+        // Chart state
+        let currentTimeRange = 30;
+        let compareMode = false;
+        let selectedFieldsForComparison = [];
+        let historicalData = {};
+
+        // Initialize charts after data loads
+        function initializeNDVICharts() {
+            generateHistoricalData();
+            createNDVITrendChart();
+            createFieldComparisonChart();
+            createSeasonalPatternChart();
+            createMoistureTrendChart();
+            updateDashboardSummary();
+            setupChartEventListeners();
+        }
+
+        // Generate mock historical data for all fields
+        function generateHistoricalData() {
+            const today = new Date();
+
+            fieldsData.forEach(field => {
+                historicalData[field.id] = {
+                    ndvi: [],
+                    ndmi: [],
+                    lastYear: []
+                };
+
+                // Generate 90 days of data
+                for (let i = 90; i >= 0; i--) {
+                    const date = new Date(today);
+                    date.setDate(date.getDate() - i);
+
+                    // Base value with field-specific offset
+                    const fieldOffset = (field.id.charCodeAt(field.id.length - 1) % 10) / 50;
+                    const seasonalBase = 0.55 + 0.15 * Math.sin((date.getMonth() - 3) * Math.PI / 6);
+                    const noise = (Math.random() - 0.5) * 0.08;
+                    const ndviValue = Math.max(0.15, Math.min(0.85, (field.ndvi || 0.6) * 0.7 + seasonalBase * 0.3 + fieldOffset + noise));
+
+                    // NDMI correlates with NDVI but with more variation
+                    const ndmiValue = Math.max(-0.3, Math.min(0.5, (ndviValue - 0.35) * 0.8 + (Math.random() - 0.5) * 0.15));
+
+                    historicalData[field.id].ndvi.push({
+                        date: date.toISOString().split('T')[0],
+                        value: parseFloat(ndviValue.toFixed(3)),
+                        cloudCover: Math.floor(Math.random() * 25)
+                    });
+
+                    historicalData[field.id].ndmi.push({
+                        date: date.toISOString().split('T')[0],
+                        value: parseFloat(ndmiValue.toFixed(3)),
+                        cloudCover: Math.floor(Math.random() * 25)
+                    });
+
+                    // Last year data (slightly different baseline)
+                    const lastYearNdvi = Math.max(0.15, Math.min(0.85, seasonalBase - 0.03 + fieldOffset + (Math.random() - 0.5) * 0.08));
+                    historicalData[field.id].lastYear.push({
+                        date: date.toISOString().split('T')[0],
+                        value: parseFloat(lastYearNdvi.toFixed(3))
+                    });
+                }
+            });
+        }
+
+        // Create main NDVI trend chart with zone annotations
+        function createNDVITrendChart() {
+            const ctx = document.getElementById('ndviTrendChartMain');
+            if (!ctx) return;
+
+            if (ndviTrendChartMain) ndviTrendChartMain.destroy();
+
+            // Get data for selected fields or all fields
+            const fieldsToShow = compareMode && selectedFieldsForComparison.length > 0
+                ? selectedFieldsForComparison
+                : [fieldsData[0]?.id].filter(Boolean);
+
+            const datasets = fieldsToShow.map((fieldId, index) => {
+                const field = fieldsData.find(f => f.id === fieldId);
+                const data = historicalData[fieldId]?.ndvi?.slice(-currentTimeRange) || [];
+                const colors = ['#2a9d8f', '#e76f51', '#264653', '#f4a261', '#e9c46a'];
+
+                return {
+                    label: field?.name || fieldId,
+                    data: data.map(d => d.value),
+                    borderColor: colors[index % colors.length],
+                    backgroundColor: colors[index % colors.length] + '20',
+                    tension: 0.3,
+                    fill: index === 0,
+                    pointRadius: 4,
+                    pointHoverRadius: 7,
+                    pointBackgroundColor: colors[index % colors.length],
+                    borderWidth: 2
+                };
+            });
+
+            const labels = fieldsToShow.length > 0 && historicalData[fieldsToShow[0]]
+                ? historicalData[fieldsToShow[0]].ndvi.slice(-currentTimeRange).map(d => formatChartDate(d.date))
+                : [];
+
+            ndviTrendChartMain = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        annotation: {
+                            annotations: {
+                                healthyZone: {
+                                    type: 'box',
+                                    yMin: 0.5,
+                                    yMax: 0.8,
+                                    backgroundColor: 'rgba(42, 157, 143, 0.1)',
+                                    borderColor: 'rgba(42, 157, 143, 0.3)',
+                                    borderWidth: 1
+                                },
+                                warningZone: {
+                                    type: 'box',
+                                    yMin: 0.3,
+                                    yMax: 0.5,
+                                    backgroundColor: 'rgba(233, 196, 106, 0.1)',
+                                    borderColor: 'rgba(233, 196, 106, 0.3)',
+                                    borderWidth: 1
+                                },
+                                stressZone: {
+                                    type: 'box',
+                                    yMin: 0,
+                                    yMax: 0.3,
+                                    backgroundColor: 'rgba(230, 57, 70, 0.1)',
+                                    borderColor: 'rgba(230, 57, 70, 0.3)',
+                                    borderWidth: 1
+                                }
+                            }
+                        },
+                        legend: {
+                            display: compareMode,
+                            labels: {
+                                color: '#8d99ae',
+                                usePointStyle: true,
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(22, 33, 62, 0.95)',
+                            titleColor: '#edf2f4',
+                            bodyColor: '#8d99ae',
+                            borderColor: 'rgba(255,255,255,0.1)',
+                            borderWidth: 1,
+                            padding: 12,
+                            callbacks: {
+                                afterLabel: function(context) {
+                                    const fieldId = fieldsToShow[context.datasetIndex];
+                                    const dataIndex = context.dataIndex;
+                                    const data = historicalData[fieldId]?.ndvi?.slice(-currentTimeRange);
+                                    if (data && data[dataIndex]) {
+                                        return `Cloud Cover: ${data[dataIndex].cloudCover}%`;
+                                    }
+                                    return '';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            min: 0,
+                            max: 1,
+                            title: {
+                                display: true,
+                                text: 'NDVI',
+                                color: '#8d99ae',
+                                font: { size: 12 }
+                            },
+                            grid: {
+                                color: 'rgba(255,255,255,0.05)'
+                            },
+                            ticks: {
+                                color: '#8d99ae',
+                                stepSize: 0.1
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: '#8d99ae',
+                                maxRotation: 45,
+                                maxTicksLimit: 12
+                            }
+                        }
+                    },
+                    onClick: (event, elements) => {
+                        if (elements.length > 0) {
+                            const dataIndex = elements[0].index;
+                            const datasetIndex = elements[0].datasetIndex;
+                            const fieldId = fieldsToShow[datasetIndex];
+                            const data = historicalData[fieldId]?.ndvi?.slice(-currentTimeRange);
+                            if (data && data[dataIndex]) {
+                                showSatelliteImageModal(data[dataIndex], fieldId);
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Create field comparison bar chart
+        function createFieldComparisonChart() {
+            const ctx = document.getElementById('fieldComparisonChart');
+            if (!ctx) return;
+
+            if (fieldComparisonChart) fieldComparisonChart.destroy();
+
+            const fieldNames = fieldsData.map(f => f.name);
+            const ndviValues = fieldsData.map(f => f.ndvi);
+            const colors = ndviValues.map(v => getNDVIColor(v) + '99');
+            const borderColors = ndviValues.map(v => getNDVIColor(v));
+
+            fieldComparisonChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: fieldNames,
+                    datasets: [{
+                        label: 'Current NDVI',
+                        data: ndviValues,
+                        backgroundColor: colors,
+                        borderColor: borderColors,
+                        borderWidth: 2,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: {
+                        annotation: {
+                            annotations: {
+                                warningLine: {
+                                    type: 'line',
+                                    xMin: 0.3,
+                                    xMax: 0.3,
+                                    borderColor: '#e9c46a',
+                                    borderWidth: 2,
+                                    borderDash: [5, 5]
+                                },
+                                healthyLine: {
+                                    type: 'line',
+                                    xMin: 0.5,
+                                    xMax: 0.5,
+                                    borderColor: '#2a9d8f',
+                                    borderWidth: 2,
+                                    borderDash: [5, 5]
+                                }
+                            }
+                        },
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(22, 33, 62, 0.95)',
+                            titleColor: '#edf2f4',
+                            bodyColor: '#8d99ae',
+                            callbacks: {
+                                label: function(context) {
+                                    const ndvi = context.raw;
+                                    return `NDVI: ${ndvi.toFixed(2)} (${getHealthStatus(ndvi)})`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            min: 0,
+                            max: 1,
+                            title: {
+                                display: true,
+                                text: 'NDVI',
+                                color: '#8d99ae'
+                            },
+                            grid: {
+                                color: 'rgba(255,255,255,0.05)'
+                            },
+                            ticks: {
+                                color: '#8d99ae'
+                            }
+                        },
+                        y: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: '#8d99ae'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Create seasonal pattern chart (this year vs last year)
+        function createSeasonalPatternChart() {
+            const ctx = document.getElementById('seasonalPatternChart');
+            if (!ctx) return;
+
+            if (seasonalPatternChart) seasonalPatternChart.destroy();
+
+            const selectedField = document.getElementById('seasonalFieldSelect')?.value || 'all';
+
+            let thisYearData, lastYearData, labels;
+
+            if (selectedField === 'all') {
+                // Calculate farm average
+                const avgThisYear = [];
+                const avgLastYear = [];
+
+                for (let i = 0; i < currentTimeRange; i++) {
+                    let sumThis = 0, sumLast = 0, count = 0;
+                    fieldsData.forEach(field => {
+                        if (historicalData[field.id]?.ndvi) {
+                            const thisYearArr = historicalData[field.id].ndvi.slice(-currentTimeRange);
+                            const lastYearArr = historicalData[field.id].lastYear.slice(-currentTimeRange);
+                            if (thisYearArr[i]) sumThis += thisYearArr[i].value;
+                            if (lastYearArr[i]) sumLast += lastYearArr[i].value;
+                            count++;
+                        }
+                    });
+                    avgThisYear.push(count > 0 ? sumThis / count : 0);
+                    avgLastYear.push(count > 0 ? sumLast / count : 0);
+                }
+
+                thisYearData = avgThisYear;
+                lastYearData = avgLastYear;
+                labels = fieldsData[0] && historicalData[fieldsData[0].id]
+                    ? historicalData[fieldsData[0].id].ndvi.slice(-currentTimeRange).map(d => formatChartDate(d.date))
+                    : [];
+            } else {
+                const fieldData = historicalData[selectedField];
+                if (fieldData) {
+                    thisYearData = fieldData.ndvi.slice(-currentTimeRange).map(d => d.value);
+                    lastYearData = fieldData.lastYear.slice(-currentTimeRange).map(d => d.value);
+                    labels = fieldData.ndvi.slice(-currentTimeRange).map(d => formatChartDate(d.date));
+                } else {
+                    thisYearData = [];
+                    lastYearData = [];
+                    labels = [];
+                }
+            }
+
+            seasonalPatternChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'This Year (2026)',
+                            data: thisYearData,
+                            borderColor: '#2a9d8f',
+                            backgroundColor: 'rgba(42, 157, 143, 0.1)',
+                            tension: 0.3,
+                            fill: true,
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Last Year (2025)',
+                            data: lastYearData,
+                            borderColor: '#8d99ae',
+                            backgroundColor: 'transparent',
+                            tension: 0.3,
+                            borderDash: [5, 5],
+                            borderWidth: 2,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        annotation: {
+                            annotations: {
+                                healthyZone: {
+                                    type: 'box',
+                                    yMin: 0.5,
+                                    yMax: 0.8,
+                                    backgroundColor: 'rgba(42, 157, 143, 0.05)',
+                                    borderWidth: 0
+                                }
+                            }
+                        },
+                        legend: {
+                            display: true,
+                            labels: {
+                                color: '#8d99ae',
+                                usePointStyle: true,
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(22, 33, 62, 0.95)',
+                            titleColor: '#edf2f4',
+                            bodyColor: '#8d99ae'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            min: 0,
+                            max: 1,
+                            title: {
+                                display: true,
+                                text: 'NDVI',
+                                color: '#8d99ae'
+                            },
+                            grid: {
+                                color: 'rgba(255,255,255,0.05)'
+                            },
+                            ticks: {
+                                color: '#8d99ae'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: '#8d99ae',
+                                maxTicksLimit: 10
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Create moisture (NDMI) trend chart
+        function createMoistureTrendChart() {
+            const ctx = document.getElementById('moistureTrendChart');
+            if (!ctx) return;
+
+            if (moistureTrendChart) moistureTrendChart.destroy();
+
+            const datasets = fieldsData.slice(0, 4).map((field, index) => {
+                const data = historicalData[field.id]?.ndmi?.slice(-currentTimeRange) || [];
+                const colors = ['#264653', '#2a9d8f', '#e9c46a', '#e76f51'];
+
+                return {
+                    label: field.name,
+                    data: data.map(d => d.value),
+                    borderColor: colors[index % colors.length],
+                    backgroundColor: index === 0 ? colors[index % colors.length] + '20' : 'transparent',
+                    tension: 0.3,
+                    fill: index === 0,
+                    borderWidth: 2
+                };
+            });
+
+            const labels = fieldsData[0] && historicalData[fieldsData[0].id]
+                ? historicalData[fieldsData[0].id].ndmi.slice(-currentTimeRange).map(d => formatChartDate(d.date))
+                : [];
+
+            moistureTrendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        annotation: {
+                            annotations: {
+                                goodMoisture: {
+                                    type: 'box',
+                                    yMin: 0.2,
+                                    yMax: 0.5,
+                                    backgroundColor: 'rgba(42, 157, 143, 0.1)',
+                                    borderColor: 'rgba(42, 157, 143, 0.3)',
+                                    borderWidth: 1
+                                },
+                                adequateMoisture: {
+                                    type: 'box',
+                                    yMin: 0,
+                                    yMax: 0.2,
+                                    backgroundColor: 'rgba(233, 196, 106, 0.1)',
+                                    borderColor: 'rgba(233, 196, 106, 0.3)',
+                                    borderWidth: 1
+                                },
+                                waterStress: {
+                                    type: 'box',
+                                    yMin: -0.3,
+                                    yMax: 0,
+                                    backgroundColor: 'rgba(230, 57, 70, 0.1)',
+                                    borderColor: 'rgba(230, 57, 70, 0.3)',
+                                    borderWidth: 1
+                                }
+                            }
+                        },
+                        legend: {
+                            display: true,
+                            labels: {
+                                color: '#8d99ae',
+                                usePointStyle: true,
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(22, 33, 62, 0.95)',
+                            titleColor: '#edf2f4',
+                            bodyColor: '#8d99ae',
+                            callbacks: {
+                                label: function(context) {
+                                    const ndmi = context.raw;
+                                    let status = 'Good';
+                                    if (ndmi < -0.1) status = 'Severe Stress';
+                                    else if (ndmi < 0) status = 'Moderate Stress';
+                                    else if (ndmi < 0.2) status = 'Adequate';
+                                    return `${context.dataset.label}: ${ndmi.toFixed(2)} (${status})`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            min: -0.4,
+                            max: 0.5,
+                            title: {
+                                display: true,
+                                text: 'NDMI',
+                                color: '#8d99ae'
+                            },
+                            grid: {
+                                color: 'rgba(255,255,255,0.05)'
+                            },
+                            ticks: {
+                                color: '#8d99ae'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: '#8d99ae',
+                                maxTicksLimit: 12
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update dashboard summary cards
+        function updateDashboardSummary() {
+            if (fieldsData.length === 0) return;
+
+            // Find healthiest field
+            const healthiest = [...fieldsData].sort((a, b) => b.ndvi - a.ndvi)[0];
+            const dashHealthiest = document.getElementById('dashHealthiest');
+            if (dashHealthiest && healthiest) {
+                dashHealthiest.querySelector('.value').textContent = healthiest.name;
+                dashHealthiest.querySelector('.ndvi').textContent = `NDVI: ${healthiest.ndvi.toFixed(2)}`;
+            }
+
+            // Find field needing attention
+            const needsAttention = [...fieldsData].sort((a, b) => a.ndvi - b.ndvi)[0];
+            const dashNeedsAttention = document.getElementById('dashNeedsAttention');
+            if (dashNeedsAttention && needsAttention) {
+                dashNeedsAttention.querySelector('.value').textContent = needsAttention.name;
+                dashNeedsAttention.querySelector('.ndvi').textContent = `NDVI: ${needsAttention.ndvi.toFixed(2)}`;
+            }
+
+            // Calculate farm average
+            const avgNdvi = fieldsData.reduce((sum, f) => sum + f.ndvi, 0) / fieldsData.length;
+            const dashFarmAverage = document.getElementById('dashFarmAverage');
+            if (dashFarmAverage) {
+                dashFarmAverage.querySelector('.value').textContent = avgNdvi.toFixed(2);
+                dashFarmAverage.querySelector('.ndvi').textContent = `Status: ${getHealthStatus(avgNdvi)}`;
+            }
+
+            // Last satellite pass
+            const dashLastSatellite = document.getElementById('dashLastSatellite');
+            if (dashLastSatellite) {
+                const today = new Date();
+                dashLastSatellite.querySelector('.value').textContent = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            }
+
+            // Populate seasonal field selector
+            const seasonalSelect = document.getElementById('seasonalFieldSelect');
+            if (seasonalSelect) {
+                seasonalSelect.innerHTML = '<option value="all">Farm Average</option>';
+                fieldsData.forEach(field => {
+                    const option = document.createElement('option');
+                    option.value = field.id;
+                    option.textContent = field.name;
+                    seasonalSelect.appendChild(option);
+                });
+            }
+        }
+
+        // Setup event listeners for charts
+        function setupChartEventListeners() {
+            // Time range buttons
+            document.querySelectorAll('.time-range-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.time-range-btn').forEach(b => {
+                        b.style.background = 'transparent';
+                        b.style.color = 'var(--text-secondary)';
+                        b.classList.remove('active');
+                    });
+                    this.style.background = 'var(--primary)';
+                    this.style.color = 'white';
+                    this.classList.add('active');
+
+                    currentTimeRange = parseInt(this.dataset.days);
+                    createNDVITrendChart();
+                    createSeasonalPatternChart();
+                    createMoistureTrendChart();
+                });
+            });
+
+            // Compare fields button
+            const compareBtn = document.getElementById('compareFieldsBtn');
+            if (compareBtn) {
+                compareBtn.addEventListener('click', function() {
+                    compareMode = !compareMode;
+                    this.style.background = compareMode ? 'var(--primary)' : '';
+                    this.style.color = compareMode ? 'white' : '';
+
+                    if (compareMode) {
+                        selectedFieldsForComparison = fieldsData.slice(0, 4).map(f => f.id);
+                        showToast('Comparing all fields. Click again to show single field.', 'info');
+                    } else {
+                        selectedFieldsForComparison = [];
+                        showToast('Showing single field view.', 'info');
+                    }
+
+                    createNDVITrendChart();
+                });
+            }
+
+            // Seasonal field selector
+            const seasonalSelect = document.getElementById('seasonalFieldSelect');
+            if (seasonalSelect) {
+                seasonalSelect.addEventListener('change', createSeasonalPatternChart);
+            }
+        }
+
+        // Show satellite image modal
+        function showSatelliteImageModal(dataPoint, fieldId) {
+            const modal = document.getElementById('satelliteImageModal');
+            const field = fieldsData.find(f => f.id === fieldId);
+
+            if (modal) {
+                modal.style.display = 'flex';
+
+                document.getElementById('modalImageTitle').innerHTML =
+                    `<i class="fas fa-satellite" style="color: var(--secondary); margin-right: 10px;"></i>Satellite Image - ${field?.name || 'Field'}`;
+                document.getElementById('modalImageDate').textContent = dataPoint.date;
+                document.getElementById('modalImageNdvi').textContent = dataPoint.value.toFixed(3);
+                document.getElementById('modalImageNdvi').style.color = getNDVIColor(dataPoint.value);
+                document.getElementById('modalImageCloud').textContent = `${dataPoint.cloudCover}%`;
+
+                // In production, actual satellite imagery would be loaded here
+                const preview = document.getElementById('satelliteImagePreview');
+                preview.innerHTML = `
+                    <div style="text-align: center; padding: 3rem;">
+                        <div style="font-size: 4rem; margin-bottom: 1rem; color: ${getNDVIColor(dataPoint.value)};">
+                            <i class="fas fa-globe-americas"></i>
+                        </div>
+                        <h3 style="margin-bottom: 0.5rem;">Satellite Imagery - ${dataPoint.date}</h3>
+                        <p style="font-size: 2rem; font-weight: 700; color: ${getNDVIColor(dataPoint.value)}; margin: 1rem 0;">
+                            NDVI: ${dataPoint.value.toFixed(3)}
+                        </p>
+                        <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                            ${getHealthStatus(dataPoint.value)} vegetation health detected<br>
+                            <small>In production, actual Sentinel-2 imagery would appear here</small>
+                        </p>
+                    </div>
+                `;
+            }
+        }
+
+        // Close satellite image modal
+        function closeSatelliteImageModal() {
+            const modal = document.getElementById('satelliteImageModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('satelliteImageModal')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeSatelliteImageModal();
+            }
+        });
+
+        // Format date for chart labels
+        function formatChartDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        // Initialize charts when data is loaded
+        const originalLoadDemoData = loadDemoData;
+        loadDemoData = function() {
+            originalLoadDemoData();
+            setTimeout(initializeNDVICharts, 100);
+        };
+
+        // Also hook into actual data loading
+        const originalLoadFieldsWithSatellite = loadFieldsWithSatellite;
+        loadFieldsWithSatellite = async function(date = null) {
+            await originalLoadFieldsWithSatellite(date);
+            setTimeout(initializeNDVICharts, 100);
+        };
+
+        // Make closeSatelliteImageModal globally accessible
+        window.closeSatelliteImageModal = closeSatelliteImageModal;
+    </script>
+</body>
+</html>

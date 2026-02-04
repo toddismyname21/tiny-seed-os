@@ -19,6 +19,8 @@
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDkAfsMpi7Arqb43gBAitN0WEUs4V13N8Y" async defer></script>
     <!-- QR/Barcode Scanner Library -->
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <!-- PWA Install Prompt -->
+    <script src="install-prompt.js" defer></script>
     <style>
         /* ========================================
            CSS DESIGN SYSTEM - HIGH CONTRAST THEME
@@ -8471,6 +8473,8 @@
     </style>
     <!-- UNIFIED API CONFIG - SINGLE SOURCE OF TRUTH -->
     <script src="web_app/api-config.js"></script>
+    <!-- OFFLINE TASK MANAGER - For background sync and offline task operations -->
+    <script src="web_app/offline-task-manager.js"></script>
 </head>
 <body>
     <!-- PWA Install Prompt -->
@@ -12129,6 +12133,7 @@
             tasks: [],
             plantings: [],
             syncQueueCount: 0,
+            offlineTaskCount: 0,  // Count of pending offline task actions
             isSyncing: false,
             lastSyncTime: null,
             workMode: 'field',
@@ -20715,6 +20720,103 @@
         });
 
         // ============================================
+        // OFFLINE TASK MANAGER INTEGRATION
+        // ============================================
+        let offlineTaskManager = null;
+        let offlineUIManager = null;
+
+        async function initOfflineTaskManager() {
+            if (typeof OfflineTaskManager !== 'undefined') {
+                offlineTaskManager = new OfflineTaskManager({
+                    onSyncStart: () => {
+                        console.log('[Employee App] Task sync started');
+                    },
+                    onSyncComplete: (result) => {
+                        console.log('[Employee App] Task sync complete:', result);
+                        if (result.success > 0) {
+                            showToast(`Synced ${result.success} tasks`, 'success');
+                        }
+                        if (result.conflicts > 0) {
+                            showToast(`${result.conflicts} conflicts resolved (server wins)`, 'info');
+                        }
+                        // Refresh tasks after sync
+                        if (AppState.currentTab === 'tasks') {
+                            loadInitialData();
+                        }
+                    },
+                    onSyncError: (error) => {
+                        console.error('[Employee App] Task sync error:', error);
+                    },
+                    onPendingCountChange: (count) => {
+                        // Update the combined sync badge
+                        AppState.offlineTaskCount = count;
+                        updateCombinedSyncBadge();
+                    },
+                    onOfflineStatusChange: (isOnline) => {
+                        // Let the existing handlers manage this
+                    }
+                });
+                await offlineTaskManager.init();
+
+                // Initialize UI manager for offline indicators
+                if (typeof OfflineUIManager !== 'undefined') {
+                    offlineUIManager = new OfflineUIManager(offlineTaskManager);
+                }
+
+                console.log('[Employee App] OfflineTaskManager initialized');
+            }
+        }
+
+        // Combined sync badge updater
+        function updateCombinedSyncBadge() {
+            const offlineCount = AppState.offlineTaskCount || 0;
+            const queueCount = AppState.syncQueueCount || 0;
+            const total = offlineCount + queueCount;
+
+            const badge = document.getElementById('syncBadge');
+            if (badge) {
+                if (total > 0) {
+                    badge.textContent = total;
+                    badge.classList.add('visible');
+                } else {
+                    badge.classList.remove('visible');
+                }
+            }
+        }
+
+        // Helper to complete task with offline support
+        async function completeTaskOffline(taskId, options = {}) {
+            if (offlineTaskManager) {
+                try {
+                    // Update local cache
+                    await offlineTaskManager.updateLocalTask(taskId, {
+                        status: 'DONE',
+                        completedAt: new Date().toISOString(),
+                        ...options
+                    });
+
+                    // Queue for sync
+                    await offlineTaskManager.queueOfflineAction('complete', taskId, {
+                        completedAt: new Date().toISOString(),
+                        completedBy: AppState.employee?.Name || 'Unknown',
+                        ...options
+                    });
+
+                    showToast(t('tasks.completed'), 'success');
+                    return true;
+                } catch (error) {
+                    console.error('[Employee App] Offline task completion error:', error);
+                    showToast('Failed to save task completion', 'error');
+                    return false;
+                }
+            } else {
+                // Fall back to existing queue system
+                await OfflineDB.queueOperation('completeTask', { taskId, ...options });
+                return true;
+            }
+        }
+
+        // ============================================
         // INITIALIZATION
         // ============================================
         document.addEventListener('DOMContentLoaded', async () => {
@@ -20723,9 +20825,13 @@
                 await OfflineDB.init();
                 console.log('IndexedDB initialized');
 
+                // Initialize OfflineTaskManager
+                await initOfflineTaskManager();
+
                 // Get sync queue count
                 AppState.syncQueueCount = await OfflineDB.getSyncQueueCount();
                 updateSyncBadge();
+                updateCombinedSyncBadge();
 
                 // Try to restore session from IndexedDB first
                 const idbSession = await OfflineDB.getSession();
