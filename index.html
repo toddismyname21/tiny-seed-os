@@ -3095,6 +3095,230 @@
         .toast.show { bottom: 2rem; }
         .toast.success { border-color: var(--success); }
         .toast.error { border-color: var(--danger); }
+        .toast.info { border-color: var(--warning); }
+
+        /* Satellite Alert Popup */
+        .satellite-alert-popup {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: linear-gradient(135deg, #1a472a 0%, #2d5a27 100%);
+            border-left: 4px solid #f59e0b;
+            padding: 16px;
+            border-radius: 8px;
+            animation: slideInRight 0.3s ease;
+            z-index: 9999;
+            max-width: 380px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .satellite-alert-popup.ndvi-drop { border-left-color: #e63946; }
+        .satellite-alert-popup.water-stress { border-left-color: #3b82f6; }
+        .satellite-alert-popup.rapid-decline { border-left-color: #dc2626; }
+        .satellite-alert-popup.low-ndvi { border-left-color: #f97316; }
+
+        .satellite-alert-popup .alert-icon {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .satellite-alert-popup .alert-content {
+            flex: 1;
+        }
+
+        .satellite-alert-popup .alert-content strong {
+            display: block;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+            font-size: 1rem;
+        }
+
+        .satellite-alert-popup .alert-content p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin: 0 0 10px 0;
+            line-height: 1.4;
+        }
+
+        .satellite-alert-popup .alert-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .satellite-alert-popup .alert-actions button {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .satellite-alert-popup .alert-actions .btn-view {
+            background: var(--primary-light);
+            color: white;
+        }
+
+        .satellite-alert-popup .alert-actions .btn-view:hover {
+            background: var(--success);
+        }
+
+        .satellite-alert-popup .alert-actions .btn-dismiss {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+
+        .satellite-alert-popup .alert-actions .btn-dismiss:hover {
+            background: rgba(255,255,255,0.1);
+            color: var(--text-primary);
+        }
+
+        .satellite-alert-popup .close-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 4px;
+        }
+
+        .satellite-alert-popup .close-btn:hover {
+            color: var(--text-primary);
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOutRight {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+
+        .satellite-alert-popup.dismissing {
+            animation: slideOutRight 0.3s ease forwards;
+        }
+
+        /* Push Notification Settings */
+        .push-notification-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            cursor: pointer;
+            padding: 10px 0;
+        }
+
+        .push-notification-toggle .toggle-switch {
+            position: relative;
+            width: 48px;
+            height: 26px;
+            background: var(--bg-light);
+            border-radius: 13px;
+            transition: background 0.3s;
+        }
+
+        .push-notification-toggle input:checked + .toggle-switch {
+            background: var(--primary);
+        }
+
+        .push-notification-toggle .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: white;
+            top: 3px;
+            left: 3px;
+            transition: transform 0.3s;
+        }
+
+        .push-notification-toggle input:checked + .toggle-switch::after {
+            transform: translateX(22px);
+        }
+
+        .push-notification-toggle input {
+            display: none;
+        }
+
+        .push-notification-toggle .toggle-label {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .push-notification-toggle .toggle-label span {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .push-notification-toggle .toggle-label small {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+
+        .push-permission-prompt {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .push-permission-prompt.visible {
+            display: block;
+        }
+
+        .push-permission-prompt p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin: 0 0 10px 0;
+        }
+
+        .push-permission-prompt .btn-enable {
+            background: var(--warning);
+            color: #1a1a2e;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .push-permission-prompt .btn-enable:hover {
+            background: #d97706;
+        }
+
+        /* Mobile responsive for satellite alerts */
+        @media (max-width: 480px) {
+            .satellite-alert-popup {
+                top: 10px;
+                right: 10px;
+                left: 10px;
+                max-width: none;
+            }
+        }
 
         /* Responsive */
         @media (max-width: 1024px) {
@@ -4272,6 +4496,24 @@
             </div>
 
             <div class="nav-section">
+                <div class="nav-section-title">Management</div>
+                <a class="nav-item" href="web_app/manager-dashboard.html" title="AI-Powered Manager Dashboard">
+                    <i class="fas fa-gauge-high"></i>
+                    <span>Manager Dashboard</span>
+                    <span class="badge success">AI</span>
+                </a>
+                <a class="nav-item" href="web_app/task-assignment.html" title="Task Assignment & Bulk Operations">
+                    <i class="fas fa-tasks"></i>
+                    <span>Task Assignment</span>
+                </a>
+                <a class="nav-item" href="web_app/satellite-map.html" title="Satellite NDVI Crop Monitoring">
+                    <i class="fas fa-satellite"></i>
+                    <span>Satellite NDVI</span>
+                    <span class="badge success">NEW</span>
+                </a>
+            </div>
+
+            <div class="nav-section">
                 <div class="nav-section-title">Operations</div>
                 <a class="nav-item" href="farm-operations.html">
                     <i class="fas fa-tractor"></i>
@@ -5387,6 +5629,25 @@
                     </label>
                 </div>
                 <hr style="border: none; border-top: 1px solid var(--border); margin: 1.5rem 0;">
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Push Notifications</label>
+                    <label class="push-notification-toggle">
+                        <input type="checkbox" id="settingsPushEnabled" onchange="togglePushNotifications()">
+                        <span class="toggle-switch"></span>
+                        <span class="toggle-label">
+                            <span>Satellite Alerts (Push)</span>
+                            <small>Get notified when satellite detects crop issues</small>
+                        </span>
+                    </label>
+                    <div class="push-permission-prompt" id="pushPermissionPrompt">
+                        <p><i class="fas fa-bell" style="color: var(--warning); margin-right: 6px;"></i> Push notifications require permission</p>
+                        <button class="btn-enable" onclick="requestNotificationPermission()">
+                            <i class="fas fa-check"></i> Enable Notifications
+                        </button>
+                    </div>
+                    <div id="pushStatusText" style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 8px;"></div>
+                </div>
+                <hr style="border: none; border-top: 1px solid var(--border); margin: 1.5rem 0;">
                 <div class="form-group">
                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-secondary);">System Info</label>
                     <div style="font-size: 0.85rem; color: var(--text-secondary);">
@@ -5685,6 +5946,18 @@
         let smartSelectedVariety = null;
         let smartMode = 'simple';
         let recentCrops = ['Lettuce', 'Kale', 'Spinach', 'Tomatoes']; // Will be stored in localStorage
+
+        // ========================================
+        // PUSH NOTIFICATIONS CONFIGURATION
+        // ========================================
+        // VAPID Public Key for push subscriptions
+        // Note: In production, generate your own keys with: npx web-push generate-vapid-keys
+        const VAPID_PUBLIC_KEY = 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U';
+
+        // Push notification state
+        let pushSubscription = null;
+        let satelliteAlertCheckInterval = null;
+        let lastAlertCheckTime = 0;
 
         // Filter state
         let currentFilter = 'all';
@@ -10270,6 +10543,456 @@
         document.addEventListener('DOMContentLoaded', () => {
             initVoiceRecognition();
         });
+
+        // ========================================
+        // PUSH NOTIFICATIONS FOR SATELLITE ALERTS
+        // ========================================
+
+        /**
+         * Initialize push notification system
+         */
+        async function initPushNotifications() {
+            // Check if push is supported
+            if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+                console.log('[Push] Push notifications not supported');
+                updatePushStatusUI('not-supported');
+                return;
+            }
+
+            // Check current permission state
+            const permission = Notification.permission;
+            updatePushStatusUI(permission);
+
+            // If already granted, check subscription status
+            if (permission === 'granted') {
+                const subscription = await getExistingSubscription();
+                if (subscription) {
+                    pushSubscription = subscription;
+                    document.getElementById('settingsPushEnabled').checked = true;
+                    startSatelliteAlertPolling();
+                }
+            }
+
+            // Listen for push messages from service worker
+            navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
+        }
+
+        /**
+         * Handle messages from service worker
+         */
+        function handleServiceWorkerMessage(event) {
+            const { type, data } = event.data || {};
+
+            if (type === 'SATELLITE_ALERT') {
+                showSatelliteNotification(data);
+            } else if (type === 'PUSH_RECEIVED') {
+                // Handle push notification received
+                console.log('[Push] Notification received:', data);
+            }
+        }
+
+        /**
+         * Get existing push subscription
+         */
+        async function getExistingSubscription() {
+            try {
+                const registration = await navigator.serviceWorker.ready;
+                return await registration.pushManager.getSubscription();
+            } catch (error) {
+                console.error('[Push] Error getting subscription:', error);
+                return null;
+            }
+        }
+
+        /**
+         * Convert VAPID key to Uint8Array
+         */
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding)
+                .replace(/-/g, '+')
+                .replace(/_/g, '/');
+
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+        }
+
+        /**
+         * Request notification permission and subscribe
+         */
+        async function requestNotificationPermission() {
+            try {
+                const permission = await Notification.requestPermission();
+                updatePushStatusUI(permission);
+
+                if (permission === 'granted') {
+                    await subscribeToPushNotifications();
+                    showToast('Push notifications enabled!', 'success');
+                } else if (permission === 'denied') {
+                    showToast('Notification permission denied. Enable in browser settings.', 'error');
+                }
+            } catch (error) {
+                console.error('[Push] Permission error:', error);
+                showToast('Error requesting notification permission', 'error');
+            }
+        }
+
+        /**
+         * Subscribe to push notifications
+         */
+        async function subscribeToPushNotifications() {
+            try {
+                const registration = await navigator.serviceWorker.ready;
+
+                // Subscribe with VAPID key
+                const subscription = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+                });
+
+                pushSubscription = subscription;
+
+                // Send subscription to server
+                await sendSubscriptionToServer(subscription);
+
+                // Update UI
+                document.getElementById('settingsPushEnabled').checked = true;
+
+                // Start polling for satellite alerts
+                startSatelliteAlertPolling();
+
+                console.log('[Push] Subscribed successfully');
+                return subscription;
+
+            } catch (error) {
+                console.error('[Push] Subscription error:', error);
+                if (error.name === 'NotAllowedError') {
+                    showToast('Please allow notifications in your browser', 'error');
+                } else {
+                    showToast('Failed to enable push notifications', 'error');
+                }
+                throw error;
+            }
+        }
+
+        /**
+         * Unsubscribe from push notifications
+         */
+        async function unsubscribeFromPushNotifications() {
+            try {
+                if (pushSubscription) {
+                    await pushSubscription.unsubscribe();
+                    await removeSubscriptionFromServer(pushSubscription);
+                    pushSubscription = null;
+                }
+
+                // Stop polling
+                stopSatelliteAlertPolling();
+
+                // Update UI
+                document.getElementById('settingsPushEnabled').checked = false;
+
+                console.log('[Push] Unsubscribed successfully');
+                showToast('Push notifications disabled', 'info');
+
+            } catch (error) {
+                console.error('[Push] Unsubscribe error:', error);
+                showToast('Error disabling push notifications', 'error');
+            }
+        }
+
+        /**
+         * Toggle push notifications
+         */
+        async function togglePushNotifications() {
+            const checkbox = document.getElementById('settingsPushEnabled');
+            const isEnabled = checkbox.checked;
+
+            if (isEnabled) {
+                // Check if permission already granted
+                if (Notification.permission === 'granted') {
+                    await subscribeToPushNotifications();
+                } else if (Notification.permission === 'default') {
+                    // Show permission prompt
+                    document.getElementById('pushPermissionPrompt').classList.add('visible');
+                    checkbox.checked = false; // Reset until permission granted
+                } else {
+                    // Permission denied
+                    showToast('Notifications blocked. Please enable in browser settings.', 'error');
+                    checkbox.checked = false;
+                }
+            } else {
+                await unsubscribeFromPushNotifications();
+            }
+        }
+
+        /**
+         * Send subscription to server
+         */
+        async function sendSubscriptionToServer(subscription) {
+            try {
+                const response = await fetch(`${API_URL}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'registerPushSubscription',
+                        subscription: subscription.toJSON(),
+                        userId: window.currentUser?.id || 'anonymous',
+                        userAgent: navigator.userAgent
+                    })
+                });
+
+                const result = await response.json();
+                if (!result.success) {
+                    console.warn('[Push] Server registration warning:', result.error);
+                }
+            } catch (error) {
+                console.error('[Push] Server registration error:', error);
+                // Continue even if server registration fails - local notifications still work
+            }
+        }
+
+        /**
+         * Remove subscription from server
+         */
+        async function removeSubscriptionFromServer(subscription) {
+            try {
+                await fetch(`${API_URL}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'unregisterPushSubscription',
+                        endpoint: subscription.endpoint
+                    })
+                });
+            } catch (error) {
+                console.error('[Push] Server unregistration error:', error);
+            }
+        }
+
+        /**
+         * Update push notification UI based on permission state
+         */
+        function updatePushStatusUI(permission) {
+            const statusText = document.getElementById('pushStatusText');
+            const promptEl = document.getElementById('pushPermissionPrompt');
+            const checkbox = document.getElementById('settingsPushEnabled');
+
+            if (!statusText) return;
+
+            switch (permission) {
+                case 'granted':
+                    statusText.innerHTML = '<i class="fas fa-check-circle" style="color: var(--success);"></i> Notifications enabled';
+                    promptEl?.classList.remove('visible');
+                    break;
+                case 'denied':
+                    statusText.innerHTML = '<i class="fas fa-times-circle" style="color: var(--danger);"></i> Notifications blocked - enable in browser settings';
+                    promptEl?.classList.remove('visible');
+                    if (checkbox) checkbox.disabled = true;
+                    break;
+                case 'default':
+                    statusText.innerHTML = '<i class="fas fa-info-circle" style="color: var(--warning);"></i> Click toggle to enable notifications';
+                    break;
+                case 'not-supported':
+                    statusText.innerHTML = '<i class="fas fa-exclamation-triangle" style="color: var(--text-secondary);"></i> Push notifications not supported in this browser';
+                    if (checkbox) checkbox.disabled = true;
+                    break;
+            }
+        }
+
+        /**
+         * Start polling for satellite alerts
+         */
+        function startSatelliteAlertPolling() {
+            // Check immediately
+            checkForSatelliteAlerts();
+
+            // Then check every 5 minutes
+            satelliteAlertCheckInterval = setInterval(checkForSatelliteAlerts, 5 * 60 * 1000);
+        }
+
+        /**
+         * Stop polling for satellite alerts
+         */
+        function stopSatelliteAlertPolling() {
+            if (satelliteAlertCheckInterval) {
+                clearInterval(satelliteAlertCheckInterval);
+                satelliteAlertCheckInterval = null;
+            }
+        }
+
+        /**
+         * Check for new satellite alerts
+         */
+        async function checkForSatelliteAlerts() {
+            try {
+                const response = await fetch(`${API_URL}?action=getSatelliteAlerts&status=open`);
+                const result = await response.json();
+
+                if (result.success && result.alerts && result.alerts.length > 0) {
+                    // Filter to only show alerts newer than last check
+                    const newAlerts = result.alerts.filter(alert => {
+                        const alertTime = new Date(alert.createdAt || alert.Created_At).getTime();
+                        return alertTime > lastAlertCheckTime;
+                    });
+
+                    // Show notifications for new alerts
+                    newAlerts.forEach((alert, index) => {
+                        // Stagger notifications slightly
+                        setTimeout(() => {
+                            showSatelliteNotification(alert);
+                        }, index * 500);
+                    });
+
+                    lastAlertCheckTime = Date.now();
+                }
+            } catch (error) {
+                console.error('[Satellite] Alert check error:', error);
+            }
+        }
+
+        /**
+         * Get icon for alert type
+         */
+        function getAlertIcon(type) {
+            const icons = {
+                'NDVI_DROP': '<i class="fas fa-arrow-down" style="color: #e63946;"></i>',
+                'LOW_NDVI': '<i class="fas fa-leaf" style="color: #f97316;"></i>',
+                'WATER_STRESS': '<i class="fas fa-tint-slash" style="color: #3b82f6;"></i>',
+                'RAPID_DECLINE': '<i class="fas fa-exclamation-triangle" style="color: #dc2626;"></i>',
+                'default': '<i class="fas fa-satellite" style="color: #f59e0b;"></i>'
+            };
+            return icons[type] || icons['default'];
+        }
+
+        /**
+         * Get CSS class for alert type
+         */
+        function getAlertClass(type) {
+            const classes = {
+                'NDVI_DROP': 'ndvi-drop',
+                'LOW_NDVI': 'low-ndvi',
+                'WATER_STRESS': 'water-stress',
+                'RAPID_DECLINE': 'rapid-decline'
+            };
+            return classes[type] || '';
+        }
+
+        /**
+         * Show satellite notification in-app
+         */
+        function showSatelliteNotification(alert) {
+            // Remove any existing notification
+            const existing = document.querySelector('.satellite-alert-popup');
+            if (existing) {
+                existing.remove();
+            }
+
+            const alertType = alert.type || alert.Alert_Type || 'SATELLITE';
+            const fieldName = alert.field || alert.Field_Name || 'Unknown Field';
+            const fieldId = alert.fieldId || alert.Field_ID || '';
+            const message = alert.message || alert.Description || 'Satellite detected an issue in this field';
+
+            const notification = document.createElement('div');
+            notification.className = `satellite-alert-popup ${getAlertClass(alertType)}`;
+            notification.innerHTML = `
+                <button class="close-btn" onclick="dismissSatelliteAlert(this.parentElement)">&times;</button>
+                <div class="alert-icon">${getAlertIcon(alertType)}</div>
+                <div class="alert-content">
+                    <strong>${fieldName}</strong>
+                    <p>${message}</p>
+                    <div class="alert-actions">
+                        <button class="btn-view" onclick="viewOnMap('${fieldId}')">
+                            <i class="fas fa-map-marker-alt"></i> View Map
+                        </button>
+                        <button class="btn-dismiss" onclick="dismissSatelliteAlert(this.closest('.satellite-alert-popup'))">
+                            Dismiss
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(notification);
+
+            // Auto-dismiss after 15 seconds
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    dismissSatelliteAlert(notification);
+                }
+            }, 15000);
+        }
+
+        /**
+         * Dismiss satellite alert with animation
+         */
+        function dismissSatelliteAlert(element) {
+            if (!element) return;
+            element.classList.add('dismissing');
+            setTimeout(() => {
+                element.remove();
+            }, 300);
+        }
+
+        /**
+         * Navigate to satellite map for a specific field
+         */
+        function viewOnMap(fieldId) {
+            // Dismiss notification
+            const notification = document.querySelector('.satellite-alert-popup');
+            if (notification) {
+                dismissSatelliteAlert(notification);
+            }
+
+            // Navigate to satellite map with field parameter
+            if (fieldId) {
+                window.location.href = `web_app/satellite-map.html?field=${encodeURIComponent(fieldId)}`;
+            } else {
+                window.location.href = 'web_app/satellite-map.html';
+            }
+        }
+
+        /**
+         * Test satellite notification (for development)
+         */
+        function testSatelliteNotification() {
+            const testAlert = {
+                type: 'NDVI_DROP',
+                field: 'North Field - Tomatoes',
+                fieldId: 'FIELD-001',
+                message: 'NDVI dropped 18% in the last 7 days. Possible pest damage or disease. Scout recommended.'
+            };
+            showSatelliteNotification(testAlert);
+        }
+
+        // Initialize push notifications when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize push notification system
+            initPushNotifications();
+
+            // Load saved push preference from localStorage
+            const savedPushEnabled = localStorage.getItem('tinyseed_push_enabled');
+            if (savedPushEnabled === 'true' && Notification.permission === 'granted') {
+                document.getElementById('settingsPushEnabled').checked = true;
+                startSatelliteAlertPolling();
+            }
+        });
+
+        // Save push preference when changed
+        function savePushPreference(enabled) {
+            localStorage.setItem('tinyseed_push_enabled', enabled ? 'true' : 'false');
+        }
+
+        // Update togglePushNotifications to save preference
+        const originalTogglePush = togglePushNotifications;
+        togglePushNotifications = async function() {
+            await originalTogglePush();
+            savePushPreference(document.getElementById('settingsPushEnabled').checked);
+        };
     </script>
 </body>
 </html>
