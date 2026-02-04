@@ -39,8 +39,9 @@ for FILE in $FILES; do
         sed -E "s/getElementById\\(['\"]([^'\"]+)['\"]\\)/\\1/g" | sort -u)
 
     # Extract all querySelector('#...') references
+    # Only extract the ID part (stop at space, dot, bracket, or other CSS selector chars)
     JS_IDS_QUERY=$(grep -oE "querySelector\\(['\"]#[^'\"]+['\"]\\)" "$FILE" 2>/dev/null | \
-        sed -E "s/querySelector\\(['\"]#([^'\"]+)['\"]\\)/\\1/g" | sort -u)
+        sed -E "s/querySelector\\(['\"]#([^'\" .\\[>:]+).*['\"]\\)/\\1/g" | sort -u)
 
     # Combine all JS element references
     JS_IDS=$(echo -e "$JS_IDS_GET\n$JS_IDS_QUERY" | sort -u | grep -v '^$' || true)

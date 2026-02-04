@@ -4021,6 +4021,46 @@
             font-size: 0.65rem;
         }
 
+        /* AI Priority Score Badge - Unified Task API */
+        .ai-priority-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        .ai-priority-badge.critical {
+            background: rgba(239, 68, 68, 0.25);
+            color: #fca5a5;
+        }
+        .ai-priority-badge.high {
+            background: rgba(245, 158, 11, 0.25);
+            color: #fcd34d;
+        }
+        .ai-priority-badge.normal {
+            background: rgba(34, 197, 94, 0.25);
+            color: #86efac;
+        }
+
+        /* At Risk Badge for Tasks */
+        .task-at-risk-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.7rem;
+            padding: 6px 12px;
+            background: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+            border-radius: 8px;
+            margin-top: 8px;
+        }
+        .task-at-risk-badge i {
+            color: var(--danger);
+        }
+
         /* Task Header with icon */
         .task-header-v2 {
             display: flex;
@@ -11870,6 +11910,53 @@
         </div>
     </div>
 
+    <!-- Processing Modal (for batch processing workflow) -->
+    <div class="processing-modal" id="processingModal">
+        <!-- Content generated dynamically by showProcessingModal() -->
+        <!-- Hidden input placeholder for weight entry -->
+        <input type="hidden" id="processWeight" value="">
+    </div>
+    <style id="processingModalStyles">
+        /* Processing modal styles - placeholder, full styles added dynamically */
+    </style>
+
+    <!-- Tractor Start Dialog (for fleet management) -->
+    <div class="tractor-dialog" id="tractorStartDialog" style="display: none;">
+        <!-- Content generated dynamically by openTractorStartDialog() -->
+    </div>
+
+    <!-- Tutorial System Elements -->
+    <div class="tutorial-overlay" id="tutorialOverlay"></div>
+    <div class="tutorial-bubble" id="tutorialBubble">
+        <div class="tutorial-bubble-icon"><i class="fas fa-info"></i></div>
+        <div class="tutorial-bubble-title"></div>
+        <div class="tutorial-bubble-text"></div>
+        <div class="tutorial-bubble-actions">
+            <button class="tutorial-btn tutorial-btn-skip" onclick="TutorialMode.skip()">Skip</button>
+            <button class="tutorial-btn tutorial-btn-next" onclick="TutorialMode.next()">Next</button>
+        </div>
+        <div class="tutorial-progress"></div>
+    </div>
+    <button class="tutorial-toggle" id="tutorialToggle" onclick="TutorialMode.start()">
+        <i class="fas fa-question"></i>
+    </button>
+
+    <!-- COS Typing Indicator (placeholder, dynamically shown/hidden) -->
+    <div class="cos-typing" id="cosTyping" style="display: none;">
+        <span></span><span></span><span></span>
+    </div>
+
+    <!-- Team Quick Action Button (placeholder, added to quick actions dynamically) -->
+    <button class="cos-quick-btn" id="teamQuickBtn" style="display: none;">
+        <i class="fas fa-users"></i>Team
+    </button>
+
+    <!-- QR Reader Container (renamed from scannerVideo during scanning) -->
+    <div id="qr-reader" style="display: none;"></div>
+
+    <!-- Print Header (created dynamically for print output) -->
+    <div id="printHeader" style="display: none;"></div>
+
     <script>
         // ============================================
         // PWA - SERVICE WORKER & INSTALL PROMPT
@@ -17130,9 +17217,9 @@
                 }
             } catch (error) {
                 console.error('AI Analysis error:', error);
-                // No simulated fallback - show error
+                // No simulated fallback - show error and return to photo step
                 showToast('AI analysis failed. Check internet connection.', 'error');
-                document.getElementById('aiResults').innerHTML = `<div class="empty-state"><p>Unable to analyze image. Please try again.</p></div>`;
+                showAIStep(2);
             }
         }
 
@@ -17426,10 +17513,11 @@
                 <div class="task-card-v2 ${priorityClass} ${hasCosting ? 'costing-enabled' : ''} ${isTimerActive ? 'timer-active' : ''}"
                      data-id="${task.id}" data-type="${taskType}" data-benchmark="${benchmark}">
 
-                    <!-- Priority Bar -->
+                    <!-- Priority Bar with AI Score -->
                     <div class="task-priority-bar ${priorityClass}">
                         <i class="fas ${isOverdue ? 'fa-exclamation-circle' : (isToday ? 'fa-clock' : 'fa-calendar-check')}"></i>
                         <span>${priorityText}</span>
+                        ${task.priorityScore ? `<span class="ai-priority-badge ${getAIPriorityClass(task.priorityScore)}" title="AI Priority: ${task.priorityScore}">${getAIPriorityIcon(task.priorityScore)} ${task.priorityScore}</span>` : ''}
                         ${hasCosting ? '<span class="costing-badge"><i class="fas fa-dollar-sign"></i> COST TRACKED</span>' : ''}
                     </div>
 
@@ -17443,6 +17531,7 @@
                                 <span><i class="fas fa-map-marker-alt"></i> ${task.bed || task.field || 'TBD'}</span>
                                 ${task.quantity ? `<span><i class="fas fa-seedling"></i> ${task.quantity}</span>` : ''}
                             </div>
+                            ${task.atRisk ? `<div class="task-at-risk-badge"><i class="fas fa-exclamation-triangle"></i> ${task.atRiskReason || 'At Risk'}</div>` : ''}
                         </div>
                     </div>
 
@@ -17700,7 +17789,7 @@
                 };
 
                 if (AppState.isOnline) {
-                    // Online: submit with time logging
+                    // Online: submit with time logging (legacy endpoint)
                     const params = new URLSearchParams({
                         action: 'completeTaskWithTimeLog',
                         ...taskData
@@ -17711,6 +17800,23 @@
 
                     if (!data.success) {
                         console.error('Task completion error:', data.error);
+                    }
+
+                    // Also update via Unified Task API for consistency
+                    try {
+                        await fetch(CONFIG.API_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                action: 'updateUnifiedTask',
+                                Task_ID: taskId,
+                                Status: 'done',
+                                Completed_At: new Date().toISOString(),
+                                Duration_Minutes: durationMinutes
+                            })
+                        });
+                    } catch (unifiedErr) {
+                        console.warn('Unified task update skipped:', unifiedErr);
                     }
                 } else {
                     // Offline: queue for later sync
@@ -18079,17 +18185,64 @@
         }
 
         // ============================================
-        // DATA LOADING (with offline support)
+        // DATA LOADING (with offline support) - Using Unified Task API
         // ============================================
+
+        // AI Priority helpers
+        function getAIPriorityClass(score) {
+            if (score >= 80) return 'critical';
+            if (score >= 50) return 'high';
+            return 'normal';
+        }
+
+        function getAIPriorityIcon(score) {
+            if (score >= 80) return String.fromCodePoint(0x1F534); // Red circle
+            if (score >= 50) return String.fromCodePoint(0x1F7E1); // Yellow circle
+            return String.fromCodePoint(0x1F7E2); // Green circle
+        }
+
         async function loadInitialData() {
             if (AppState.isOnline) {
                 // Online: fetch from API and cache
                 try {
-                    // Load tasks
-                    const tasksResponse = await fetch(`${CONFIG.API_URL}?action=getEmployeeTasks&employeeId=${AppState.employee?.Employee_ID || ''}`);
+                    // Load tasks using Unified Task API (getTaskPriorities for AI-sorted)
+                    const employeeId = AppState.employee?.Employee_ID || '';
+                    const params = new URLSearchParams({
+                        action: 'getTaskPriorities',
+                        limit: 100
+                    });
+                    // Add assignee filter if we have employee ID
+                    if (employeeId) {
+                        params.set('assignee', employeeId);
+                    }
+
+                    const tasksResponse = await fetch(`${CONFIG.API_URL}?${params.toString()}`);
                     const tasksData = await tasksResponse.json();
                     if (tasksData.success) {
-                        AppState.tasks = tasksData.tasks || [];
+                        // Map Unified Task schema to local format with priority info
+                        AppState.tasks = (tasksData.tasks || []).map(t => ({
+                            id: t.Task_ID,
+                            crop: t.Crop_ID || t.Title || 'Task',
+                            variety: t.Description?.split(' - ')[1] || '',
+                            type: t.Task_Type || 'other',
+                            bed: t.Bed_ID || '',
+                            field: t.Field_ID || '',
+                            date: t.Due_Date || '',
+                            quantity: t.Quantity || '',
+                            status: t.Status || 'scheduled',
+                            benchmarkMin: t.Estimated_Minutes || null,
+                            costingMode: t.Costing_Mode === true || t.Costing_Mode === 'TRUE',
+                            Costing_Mode: t.Costing_Mode === true || t.Costing_Mode === 'TRUE',
+                            isTeamTask: t.Is_Team_Task === true || t.Is_Team_Task === 'TRUE',
+                            subtasks: t.Subtasks || [],
+                            subtasksTotal: t.Subtasks?.length || 0,
+                            subtasksCompleted: t.Subtasks?.filter(s => s.completed).length || 0,
+                            // AI Priority fields
+                            priorityScore: t.Priority_Score || 50,
+                            atRisk: t.At_Risk === true || t.At_Risk === 'TRUE',
+                            atRiskReason: t.At_Risk_Reason || '',
+                            _raw: t
+                        }));
                         // Cache tasks for offline use
                         await OfflineDB.cacheTasks(AppState.tasks);
                         renderTasks();
