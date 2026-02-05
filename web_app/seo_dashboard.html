@@ -785,11 +785,24 @@
             <button class="btn btn-secondary" onclick="refreshDashboard()">
                 <i class="fas fa-sync-alt"></i> Refresh
             </button>
+            <button class="btn btn-secondary" onclick="runAutoCheck()" id="auto-check-btn">
+                <i class="fas fa-robot"></i> Auto-Check
+            </button>
+            <button class="btn btn-secondary" onclick="openSettingsModal()">
+                <i class="fas fa-cog"></i> Settings
+            </button>
             <button class="btn btn-primary" onclick="openLogRankingsModal()">
                 <i class="fas fa-chart-line"></i> Log Rankings
             </button>
         </div>
     </nav>
+
+    <!-- API Status Banner -->
+    <div id="api-status-banner" style="padding: 10px 2rem; background: var(--bg-card); border-bottom: 1px solid var(--border); display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.85rem;">
+        <span id="serpapi-status" class="api-badge"><i class="fas fa-circle" style="color: var(--warning);"></i> SerpAPI: Checking...</span>
+        <span id="trigger-status" class="api-badge"><i class="fas fa-circle" style="color: var(--warning);"></i> Daily Check: Checking...</span>
+        <span id="last-check" class="api-badge"><i class="fas fa-clock"></i> Last auto-check: --</span>
+    </div>
 
     <!-- Main Content -->
     <div class="main-content">
@@ -1062,6 +1075,77 @@
         </div>
     </div>
 
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settings-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2><i class="fas fa-cog"></i> SEO Automation Settings</h2>
+                <button class="modal-close" onclick="closeModal('settings-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label><i class="fas fa-key"></i> SerpAPI Key (for automated rank checking)</label>
+                    <input type="password" id="serpapi-key" placeholder="Enter your SerpAPI key">
+                    <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.5rem;">
+                        Get a key at <a href="https://serpapi.com" target="_blank" style="color: var(--primary);">serpapi.com</a> (~$50/mo for 5000 searches)
+                    </p>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-map-marker-alt"></i> Google Place ID (for review QR codes)</label>
+                    <input type="text" id="gbp-place-id" placeholder="ChIJ...">
+                    <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.5rem;">
+                        Find yours at <a href="https://developers.google.com/maps/documentation/places/web-service/place-id" target="_blank" style="color: var(--primary);">Google Place ID Finder</a>
+                    </p>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-mobile-alt"></i> SMS Alert Phone (for critical rank drops)</label>
+                    <input type="tel" id="alert-phone" placeholder="+1 555 123 4567">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-exclamation-triangle"></i> Alert Threshold (position drop)</label>
+                    <select id="alert-threshold">
+                        <option value="3">3 positions (Recommended)</option>
+                        <option value="5">5 positions</option>
+                        <option value="10">10 positions</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('settings-modal')">Cancel</button>
+                <button class="btn btn-secondary" onclick="setupDailyTrigger()">
+                    <i class="fas fa-clock"></i> Enable Daily 7AM Check
+                </button>
+                <button class="btn btn-primary" onclick="saveSettings()">
+                    <i class="fas fa-save"></i> Save Settings
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- GeoGrid Modal -->
+    <div class="modal-overlay" id="geogrid-modal">
+        <div class="modal" style="max-width: 700px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-map"></i> GeoGrid - Pittsburgh Area Rankings</h2>
+                <button class="modal-close" onclick="closeModal('geogrid-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 1rem; color: var(--text-secondary);">
+                    Rankings for "organic farm" search from different Pittsburgh neighborhoods.
+                </p>
+                <div id="geogrid-container" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
+                    <div class="loading"><div class="spinner"></div></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('geogrid-modal')">Close</button>
+                <button class="btn btn-primary" onclick="runGeoGridCheck()">
+                    <i class="fas fa-sync-alt"></i> Run GeoGrid Check
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast -->
     <div class="toast" id="toast">
         <i class="fas fa-check-circle"></i>
@@ -1097,16 +1181,224 @@
         // ============================================
         document.addEventListener('DOMContentLoaded', () => {
             loadDashboard();
+            checkAPIStatus();
         });
+
+        // ============================================
+        // API STATUS & AUTOMATION
+        // ============================================
+        async function checkAPIStatus() {
+            try {
+                const status = await callAPI('getSEOAPIStatus', {});
+
+                // SerpAPI Status
+                const serpBadge = document.getElementById('serpapi-status');
+                if (status.serpapi) {
+                    serpBadge.innerHTML = '<i class="fas fa-circle" style="color: var(--success);"></i> SerpAPI: Connected';
+                } else {
+                    serpBadge.innerHTML = '<i class="fas fa-circle" style="color: var(--danger);"></i> SerpAPI: Not configured';
+                }
+
+                // Daily Trigger Status
+                const triggerBadge = document.getElementById('trigger-status');
+                if (status.dailyTriggerActive) {
+                    triggerBadge.innerHTML = '<i class="fas fa-circle" style="color: var(--success);"></i> Daily Check: Active (7 AM)';
+                } else {
+                    triggerBadge.innerHTML = '<i class="fas fa-circle" style="color: var(--warning);"></i> Daily Check: Not scheduled';
+                }
+            } catch (e) {
+                console.log('Could not check API status');
+            }
+        }
+
+        async function runAutoCheck() {
+            const btn = document.getElementById('auto-check-btn');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
+            btn.disabled = true;
+
+            try {
+                const result = await callAPI('runAutomatedRankCheck', {});
+                if (result.success) {
+                    showToast(`Auto-check complete! Checked ${result.results?.length || 0} keywords.`);
+                    document.getElementById('last-check').innerHTML =
+                        '<i class="fas fa-clock"></i> Last auto-check: Just now';
+                    loadDashboard();
+                } else {
+                    showToast('Auto-check failed: ' + (result.error || 'Unknown error'));
+                }
+            } catch (e) {
+                showToast('Auto-check error: ' + e.message);
+            }
+
+            btn.innerHTML = '<i class="fas fa-robot"></i> Auto-Check';
+            btn.disabled = false;
+        }
+
+        function openSettingsModal() {
+            document.getElementById('settings-modal').classList.add('active');
+        }
+
+        async function saveSettings() {
+            const serpKey = document.getElementById('serpapi-key').value;
+            const placeId = document.getElementById('gbp-place-id').value;
+            const phone = document.getElementById('alert-phone').value;
+            const threshold = document.getElementById('alert-threshold').value;
+
+            try {
+                await callAPI('saveSEOSettings', {
+                    serpApiKey: serpKey,
+                    gbpId: placeId,
+                    alertPhone: phone,
+                    alertThreshold: threshold
+                });
+                showToast('Settings saved successfully!');
+                closeModal('settings-modal');
+                checkAPIStatus();
+            } catch (e) {
+                showToast('Error saving settings: ' + e.message);
+            }
+        }
+
+        async function setupDailyTrigger() {
+            try {
+                const result = await callAPI('setupDailySEOTrigger', {});
+                if (result.success) {
+                    showToast('Daily SEO check scheduled for 7 AM!');
+                    checkAPIStatus();
+                } else {
+                    showToast('Error: ' + (result.error || 'Could not set up trigger'));
+                }
+            } catch (e) {
+                showToast('Error setting up trigger: ' + e.message);
+            }
+        }
+
+        async function runGeoGridCheck() {
+            try {
+                const result = await callAPI('runGeoGridCheck', {});
+                if (result.success) {
+                    renderGeoGrid(result.rankings);
+                    showToast('GeoGrid check complete!');
+                }
+            } catch (e) {
+                showToast('GeoGrid error: ' + e.message);
+            }
+        }
+
+        function renderGeoGrid(rankings) {
+            const container = document.getElementById('geogrid-container');
+            const entries = Object.entries(rankings || {});
+
+            if (entries.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-secondary); text-align: center; grid-column: 1/-1;">No GeoGrid data yet. Click "Run GeoGrid Check".</p>';
+                return;
+            }
+
+            container.innerHTML = entries.map(([area, rank]) => {
+                const colorClass = rank === 1 ? 'success' : rank <= 3 ? 'primary' : rank <= 10 ? 'warning' : 'danger';
+                return `
+                    <div style="background: var(--bg-light); padding: 16px; border-radius: 12px; text-align: center; border-left: 4px solid var(--${colorClass});">
+                        <div style="font-size: 24px; font-weight: 700; color: var(--${colorClass});">#${rank}</div>
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">${area}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openGeoGridModal() {
+            document.getElementById('geogrid-modal').classList.add('active');
+            runGeoGridCheck();
+        }
+
+        // ============================================
+        // DATA TRANSFORMATION - Map API responses to expected format
+        // ============================================
+
+        function transformRankingsData(raw) {
+            // API returns: { success, rankings: [{Date, Keyword, Rank_Google, ...}], latest: [...] }
+            // Expected: { keywords: [{keyword, currentRank, change}], lastUpdated }
+            const rankingsArray = raw?.rankings || raw?.latest || [];
+
+            // Group by keyword and get latest rank for each
+            const keywordMap = {};
+            let lastDate = null;
+
+            rankingsArray.forEach(r => {
+                const kw = r.Keyword || r.keyword;
+                const rank = r.Rank_Google || r.rank || r.currentRank;
+                const date = r.Date || r.date;
+
+                if (kw) {
+                    if (!keywordMap[kw] || new Date(date) > new Date(keywordMap[kw].date)) {
+                        keywordMap[kw] = {
+                            keyword: kw,
+                            currentRank: parseInt(rank) || null,
+                            date: date,
+                            change: 0 // Would need historical data to calculate
+                        };
+                    }
+                    if (!lastDate || new Date(date) > new Date(lastDate)) {
+                        lastDate = date;
+                    }
+                }
+            });
+
+            return {
+                keywords: Object.values(keywordMap),
+                lastUpdated: lastDate
+            };
+        }
+
+        function transformReviewsData(raw) {
+            // API returns: { success, metrics: {totalReviews, averageRating, ...} }
+            // Expected: { total, averageRating, recentReviews: [...] }
+            const metrics = raw?.metrics || {};
+
+            return {
+                total: metrics.totalReviews || 0,
+                averageRating: metrics.averageRating || 0,
+                recentReviews: raw?.reviews || [],
+                byPlatform: metrics.byPlatform || {},
+                needsResponse: metrics.needsResponse || 0
+            };
+        }
+
+        function transformCitationsData(raw) {
+            // API returns: { success, summary: {total, verified, ...}, citations: [...] }
+            // Expected: { submitted, total, byTier: {...} }
+            const summary = raw?.summary || {};
+            const citations = raw?.citations || [];
+
+            // Count citations by tier
+            const byTier = {};
+            citations.forEach(c => {
+                const tier = c.Tier || c.tier || 'Tier 1 Essential';
+                byTier[tier] = (byTier[tier] || 0) + 1;
+            });
+
+            return {
+                submitted: summary.verified || citations.length,
+                total: 37, // Target total
+                verified: summary.verified || 0,
+                pending: summary.pending || 0,
+                byTier: byTier,
+                citations: citations
+            };
+        }
 
         async function loadDashboard() {
             try {
                 // Load all data in parallel
-                const [rankings, reviews, citations] = await Promise.all([
+                const [rankingsRaw, reviewsRaw, citationsRaw] = await Promise.all([
                     callAPI('getSEORankings', { limit: 50 }),
                     callAPI('getReviewMetrics', { platform: 'all', timeframe: 'all' }),
                     callAPI('getCitationStatus', {})
                 ]);
+
+                // Transform API responses to expected format
+                const rankings = transformRankingsData(rankingsRaw);
+                const reviews = transformReviewsData(reviewsRaw);
+                const citations = transformCitationsData(citationsRaw);
 
                 dashboardData = { rankings, reviews, citations };
 
