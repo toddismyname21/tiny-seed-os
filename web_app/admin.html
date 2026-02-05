@@ -3394,13 +3394,28 @@
         }
 
         // ════════════════════════════════════════════════════════════════════════════
+        // AUTHENTICATED API HELPER
+        // ════════════════════════════════════════════════════════════════════════════
+
+        function getAuthToken() {
+            const session = AuthGuard.getSession();
+            return session?.token || '';
+        }
+
+        async function authFetch(action, params = {}) {
+            const token = getAuthToken();
+            const queryParams = new URLSearchParams({ action, token, ...params });
+            const response = await fetch(`${API_URL}?${queryParams.toString()}`);
+            return response.json();
+        }
+
+        // ════════════════════════════════════════════════════════════════════════════
         // USER MANAGEMENT
         // ════════════════════════════════════════════════════════════════════════════
 
         async function loadUsers() {
             try {
-                const response = await fetch(`${API_URL}?action=getUsers`);
-                const result = await response.json();
+                const result = await authFetch('getUsers');
 
                 if (result.success) {
                     currentUsers = result.users || [];
@@ -3580,8 +3595,8 @@
 
             for (const component of SYSTEM_COMPONENTS) {
                 try {
-                    const response = await fetch(`${API_URL}?action=${component.endpoint}`);
-                    const result = await response.json();
+                    // Use authenticated fetch for secured endpoints
+                    const result = await authFetch(component.endpoint);
 
                     const isOk = result.success !== false;
                     if (!isOk) allOk = false;
