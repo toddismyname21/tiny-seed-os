@@ -1065,11 +1065,11 @@
                     <label>Expiration Date (if applicable)</label>
                     <input type="date" id="uploadExpiration">
                 </div>
+                <input type="file" id="uploadFile" style="display: none;" accept=".pdf,.jpg,.jpeg,.png">
                 <div class="upload-zone" id="uploadZone">
-                    <i class="fas fa-cloud-upload-alt"></i>
-                    <p>Drag and drop file here, or click to browse</p>
-                    <p style="font-size: 0.8rem; color: var(--text-secondary);">PDF, JPG, PNG up to 10MB</p>
-                    <input type="file" id="uploadFile" style="display: none;" accept=".pdf,.jpg,.jpeg,.png">
+                    <i class="fas fa-cloud-upload-alt" id="uploadIcon"></i>
+                    <p id="uploadText">Drag and drop file here, or click to browse</p>
+                    <p id="uploadHint" style="font-size: 0.8rem; color: var(--text-secondary);">PDF, JPG, PNG up to 10MB</p>
                 </div>
             </div>
             <div class="modal-footer">
@@ -1312,30 +1312,77 @@
             const zone = document.getElementById('uploadZone');
             const input = document.getElementById('uploadFile');
 
-            zone.addEventListener('click', () => input.click());
-            zone.addEventListener('dragover', (e) => {
+            if (!zone || !input) {
+                console.error('Upload zone or input not found');
+                return;
+            }
+
+            zone.onclick = () => input.click();
+
+            zone.ondragover = (e) => {
                 e.preventDefault();
                 zone.style.borderColor = 'var(--primary)';
                 zone.style.background = 'rgba(42, 157, 143, 0.1)';
-            });
-            zone.addEventListener('dragleave', () => {
+            };
+
+            zone.ondragleave = () => {
                 zone.style.borderColor = 'var(--border)';
                 zone.style.background = 'transparent';
-            });
-            zone.addEventListener('drop', (e) => {
+            };
+
+            zone.ondrop = (e) => {
                 e.preventDefault();
                 zone.style.borderColor = 'var(--border)';
                 zone.style.background = 'transparent';
                 if (e.dataTransfer.files.length) {
                     input.files = e.dataTransfer.files;
-                    zone.innerHTML = `<i class="fas fa-check-circle" style="color: var(--success);"></i><p>${e.dataTransfer.files[0].name}</p>`;
+                    showFileSelected(e.dataTransfer.files[0].name);
                 }
-            });
-            input.addEventListener('change', () => {
+            };
+
+            input.onchange = () => {
                 if (input.files.length) {
-                    zone.innerHTML = `<i class="fas fa-check-circle" style="color: var(--success);"></i><p>${input.files[0].name}</p>`;
+                    showFileSelected(input.files[0].name);
                 }
-            });
+            };
+        }
+
+        function showFileSelected(fileName) {
+            const icon = document.getElementById('uploadIcon');
+            const text = document.getElementById('uploadText');
+            const hint = document.getElementById('uploadHint');
+
+            if (icon) {
+                icon.className = 'fas fa-check-circle';
+                icon.style.color = 'var(--success)';
+            }
+            if (text) {
+                text.textContent = fileName;
+            }
+            if (hint) {
+                hint.style.display = 'none';
+            }
+        }
+
+        function resetUploadZone() {
+            const icon = document.getElementById('uploadIcon');
+            const text = document.getElementById('uploadText');
+            const hint = document.getElementById('uploadHint');
+            const input = document.getElementById('uploadFile');
+
+            if (icon) {
+                icon.className = 'fas fa-cloud-upload-alt';
+                icon.style.color = '';
+            }
+            if (text) {
+                text.textContent = 'Drag and drop file here, or click to browse';
+            }
+            if (hint) {
+                hint.style.display = '';
+            }
+            if (input) {
+                input.value = '';
+            }
         }
 
         // Load Financial Data
@@ -1715,13 +1762,24 @@
         }
 
         async function uploadDocument() {
+            console.log('uploadDocument called');
+
             const category = document.getElementById('uploadCategory').value;
             const docType = document.getElementById('uploadType').value;
             const expiration = document.getElementById('uploadExpiration').value;
             const fileInput = document.getElementById('uploadFile');
 
+            console.log('fileInput element:', fileInput);
+            console.log('All inputs:', document.querySelectorAll('input[type="file"]'));
+
+            if (!fileInput) {
+                alert('ERROR: File input element not found! The page may not have loaded correctly. Please refresh.');
+                console.error('uploadFile element not found in DOM');
+                return;
+            }
+
             if (!fileInput.files.length) {
-                showNotification('Please select a file to upload', 'error');
+                showNotification('Please select a file to upload first', 'error');
                 return;
             }
 
@@ -1739,18 +1797,22 @@
                 // Convert file to base64
                 const base64 = await fileToBase64(file);
 
-                // Upload to Google Drive via backend
-                const params = new URLSearchParams({
-                    action: 'uploadLoanDocument',
-                    base64: base64,
-                    fileName: file.name,
-                    category: category,
-                    documentType: docType,
-                    expiration: expiration || '',
-                    mimeType: file.type
+                // Upload to Google Drive via backend using POST (base64 data is too large for GET)
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/plain'
+                    },
+                    body: JSON.stringify({
+                        action: 'uploadLoanDocument',
+                        base64: base64,
+                        fileName: file.name,
+                        category: category,
+                        documentType: docType,
+                        expiration: expiration || '',
+                        mimeType: file.type
+                    })
                 });
-
-                const response = await fetch(`${API_URL}?${params.toString()}`);
                 const result = await response.json();
 
                 if (result.success) {
@@ -1780,14 +1842,8 @@
                 showNotification('Error uploading: ' + e.message, 'error');
             }
 
-            // Reset upload zone
-            document.getElementById('uploadZone').innerHTML = `
-                <i class="fas fa-cloud-upload-alt"></i>
-                <p>Drag and drop file here, or click to browse</p>
-                <p style="font-size: 0.8rem; color: var(--text-secondary);">PDF, JPG, PNG up to 10MB</p>
-            `;
-            // Clear file input
-            fileInput.value = '';
+            // Reset upload zone display
+            resetUploadZone();
         }
 
         // Helper function to convert file to base64

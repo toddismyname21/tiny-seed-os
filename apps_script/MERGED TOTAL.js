@@ -14657,6 +14657,10 @@ function doGet(e) {
         return jsonResponse(updateLoanDocument(e.parameter));
       case 'deleteLoanDocument':
         return jsonResponse(deleteLoanDocument(e.parameter));
+      case 'createMonthlyBankStatementTask':
+        return jsonResponse(createMonthlyBankStatementTask());
+      case 'setupBankStatementTrigger':
+        return jsonResponse(setupBankStatementTrigger());
       case 'getLoanApplications':
         return jsonResponse(getLoanApplications(e.parameter));
       case 'saveLoanApplication':
@@ -15809,6 +15813,10 @@ function doPost(e) {
         return jsonResponse(addCorrectiveAction(data));
       case 'updateCorrectiveAction':
         return jsonResponse(updateCorrectiveAction(data));
+
+      // ============ LOAN DOCUMENT UPLOAD ============
+      case 'uploadLoanDocument':
+        return jsonResponse(uploadLoanDocument(data));
 
       // ============ LEGACY POST ENDPOINTS ============
       case 'addPlanting':
@@ -88119,6 +88127,122 @@ function deleteLoanDocument(params) {
   } catch (error) {
     return { success: false, error: error.toString() };
   }
+}
+
+/**
+ * Create monthly bank statement upload reminder
+ * This runs automatically on the 1st of each month
+ */
+function createMonthlyBankStatementTask() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('EMPLOYEE_TASKS');
+
+    if (!sheet) {
+      Logger.log('EMPLOYEE_TASKS sheet not found');
+      return { success: false, error: 'Task sheet not found' };
+    }
+
+    const now = new Date();
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                        'July', 'August', 'September', 'October', 'November', 'December'];
+    const currentMonth = monthNames[now.getMonth()];
+    const prevMonth = monthNames[now.getMonth() === 0 ? 11 : now.getMonth() - 1];
+    const year = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+
+    // Task due date is 5th of current month (gives 5 days to upload)
+    const dueDate = new Date(now.getFullYear(), now.getMonth(), 5);
+    const dueDateStr = dueDate.toISOString().split('T')[0];
+
+    // Generate unique task ID
+    const taskId = 'BANK_' + Utilities.getUuid().substring(0, 8);
+
+    // Create the task row
+    const newTask = [
+      taskId,                                                    // Task_ID
+      'Upload ' + prevMonth + ' ' + year + ' Bank Statement',    // Task_Name
+      'Upload the bank statement for ' + prevMonth + ' ' + year + ' to the Loan Readiness Center. This helps keep your loan application documents current for any lender requirements.', // Description
+      'Administrative',                                          // Category
+      dueDateStr,                                                // Due_Date
+      'High',                                                    // Priority
+      'Todd Wilson',                                             // Assigned_To
+      'Pending',                                                 // Status
+      '',                                                        // Completed_Date
+      '',                                                        // Completed_By
+      new Date().toISOString(),                                  // Created_At
+      'Automated Monthly Task',                                  // Created_By
+      '',                                                        // Notes
+      'loan-readiness.html',                                     // Link (to loan readiness page)
+      'Monthly'                                                  // Recurrence
+    ];
+
+    // Check if a similar task already exists for this month
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const taskNameCol = headers.indexOf('Task_Name');
+    const statusCol = headers.indexOf('Status');
+
+    for (let i = 1; i < data.length; i++) {
+      const taskName = data[i][taskNameCol] || '';
+      const status = data[i][statusCol] || '';
+      if (taskName.includes(prevMonth) && taskName.includes('Bank Statement') && status !== 'Completed') {
+        Logger.log('Bank statement task already exists for ' + prevMonth);
+        return { success: true, message: 'Task already exists', existing: true };
+      }
+    }
+
+    // Add the new task
+    sheet.appendRow(newTask);
+
+    // Send SMS notification to Todd
+    try {
+      sendTwilioSMS(
+        OWNER_PHONE,
+        '📊 Monthly Reminder: Time to upload your ' + prevMonth + ' bank statement to the Loan Readiness Center. Due by ' + dueDateStr + '. Open TinySeed OS > Loan Readiness to upload.'
+      );
+    } catch (smsError) {
+      Logger.log('SMS notification failed: ' + smsError.toString());
+    }
+
+    Logger.log('✅ Created bank statement task for ' + prevMonth + ' ' + year);
+
+    return {
+      success: true,
+      message: 'Bank statement upload task created',
+      taskId: taskId,
+      dueDate: dueDateStr,
+      month: prevMonth + ' ' + year
+    };
+  } catch (error) {
+    Logger.log('Error creating bank statement task: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Setup monthly bank statement reminder trigger
+ * Runs on the 1st of every month at 8 AM
+ */
+function setupBankStatementTrigger() {
+  // Remove existing triggers for this function
+  const triggers = ScriptApp.getProjectTriggers();
+  triggers.forEach(trigger => {
+    if (trigger.getHandlerFunction() === 'createMonthlyBankStatementTask') {
+      ScriptApp.deleteTrigger(trigger);
+    }
+  });
+
+  // Create new monthly trigger - 1st of each month at 8 AM
+  ScriptApp.newTrigger('createMonthlyBankStatementTask')
+    .timeBased()
+    .onMonthDay(1)
+    .atHour(8)
+    .inTimezone('America/New_York')
+    .create();
+
+  Logger.log('✅ Bank statement monthly trigger created (1st of month, 8 AM)');
+
+  return { success: true, message: 'Monthly bank statement reminder trigger active' };
 }
 
 /**
