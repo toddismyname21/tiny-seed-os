@@ -13219,6 +13219,10 @@ function doGet(e) {
         return getPlanningData();
       case 'getProductionPlanForDateRange':
         return getProductionPlanForDateRange(e.parameter);
+      case 'recordSeedingDate':
+        return jsonResponse(recordSeedingDate(e.parameter));
+      case 'matchTaskToPlanting':
+        return jsonResponse(matchTaskToPlanting(e.parameter));
       case 'getDashboardStats':
         return getDashboardStats();
 
@@ -20096,6 +20100,174 @@ function getProductionPlanForDateRange(params) {
     };
 
   } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Record actual seeding/transplant date when a planting task is completed
+ * Updates Act_GH_Sow, Act_Field_Sow, or Act_Transplant columns in PLANNING_2026
+ * @param {Object} params - { batchId, type: 'gh_sow'|'field_sow'|'transplant', actualDate }
+ * @returns {Object} Success/failure response
+ */
+function recordSeedingDate(params) {
+  try {
+    const { batchId, type, actualDate } = params;
+
+    if (!batchId) {
+      return { success: false, error: 'batchId is required' };
+    }
+    if (!type || !['gh_sow', 'field_sow', 'transplant'].includes(type)) {
+      return { success: false, error: 'type must be gh_sow, field_sow, or transplant' };
+    }
+
+    const dateToRecord = actualDate ? new Date(actualDate) : new Date();
+    const formattedDate = dateToRecord.toISOString().split('T')[0];
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('PLANNING_2026');
+
+    if (!sheet) {
+      return { success: false, error: 'PLANNING_2026 sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+
+    // Column mapping (0-indexed):
+    // 1=Batch_ID, 10=Act_GH_Sow, 12=Act_Field_Sow, 14=Act_Transplant
+    const columnMap = {
+      'gh_sow': 11,      // Column K (index 10 -> column 11)
+      'field_sow': 13,   // Column M (index 12 -> column 13)
+      'transplant': 15   // Column O (index 14 -> column 15)
+    };
+
+    const targetColumn = columnMap[type];
+    let rowFound = -1;
+    let cropName = '';
+
+    // Find the row with matching Batch_ID
+    for (let i = 0; i < data.length; i++) {
+      if (String(data[i][1]).trim() === String(batchId).trim()) {
+        rowFound = i + 1; // Sheets are 1-indexed
+        cropName = data[i][2] || 'Unknown Crop';
+        break;
+      }
+    }
+
+    if (rowFound === -1) {
+      return { success: false, error: `Batch ${batchId} not found in PLANNING_2026` };
+    }
+
+    // Update the actual date column
+    sheet.getRange(rowFound, targetColumn).setValue(formattedDate);
+
+    // Log the action
+    Logger.log(`Recorded ${type} actual date for ${batchId} (${cropName}): ${formattedDate}`);
+
+    return {
+      success: true,
+      message: `Recorded actual ${type.replace('_', ' ')} date for ${cropName}`,
+      batchId: batchId,
+      crop: cropName,
+      type: type,
+      actualDate: formattedDate
+    };
+
+  } catch (error) {
+    Logger.log('recordSeedingDate error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get tasks that are planting-related (GH sow, field sow, transplant)
+ * Used to match completed tasks with planning records for date recording
+ * @param {Object} params - { taskId, taskTitle, taskType }
+ * @returns {Object} Matched planning data with batch ID
+ */
+function matchTaskToPlanting(params) {
+  try {
+    const { taskId, taskTitle, taskType } = params;
+
+    if (!taskTitle) {
+      return { success: false, error: 'taskTitle is required' };
+    }
+
+    // Determine what type of seeding this is based on task type/title
+    const titleLower = (taskTitle || '').toLowerCase();
+    const typeLower = (taskType || '').toLowerCase();
+
+    let seedingType = null;
+    if (titleLower.includes('greenhouse') || titleLower.includes('gh sow') || typeLower === 'greenhouse') {
+      seedingType = 'gh_sow';
+    } else if (titleLower.includes('direct seed') || titleLower.includes('direct sow') || titleLower.includes('field sow') || typeLower === 'direct_seed') {
+      seedingType = 'field_sow';
+    } else if (titleLower.includes('transplant') || typeLower === 'transplant') {
+      seedingType = 'transplant';
+    }
+
+    if (!seedingType) {
+      return { success: false, isPlantingTask: false, message: 'Not a planting-related task' };
+    }
+
+    // Try to extract crop name and batch ID from task title
+    // Common patterns: "Sow Tomatoes in GH", "Transplant TOM-2026-001", "GH Sow: Cherokee Purple Tomatoes"
+
+    // Get planning data to find matching crop/batch
+    const planningData = getPlanningData();
+    if (!planningData.success) {
+      return { success: false, error: 'Could not retrieve planning data' };
+    }
+
+    // Extract potential crop names from title
+    const words = taskTitle.split(/[\s:,\-]+/);
+
+    // Look for batch ID pattern (e.g., TOM-2026-001)
+    const batchIdMatch = taskTitle.match(/([A-Z]{2,4}-\d{4}-\d{3})/i);
+
+    let matchedPlanting = null;
+
+    if (batchIdMatch) {
+      // Direct batch ID match
+      matchedPlanting = planningData.data.find(p =>
+        p.Batch_ID && p.Batch_ID.toUpperCase() === batchIdMatch[1].toUpperCase()
+      );
+    }
+
+    if (!matchedPlanting) {
+      // Try to match by crop name
+      for (const planting of planningData.data) {
+        const cropName = (planting.Crop || '').toLowerCase();
+        const variety = (planting.Variety || '').toLowerCase();
+
+        if (cropName && titleLower.includes(cropName)) {
+          matchedPlanting = planting;
+          break;
+        }
+        if (variety && titleLower.includes(variety)) {
+          matchedPlanting = planting;
+          break;
+        }
+      }
+    }
+
+    return {
+      success: true,
+      isPlantingTask: true,
+      seedingType: seedingType,
+      matchedPlanting: matchedPlanting ? {
+        Batch_ID: matchedPlanting.Batch_ID,
+        Crop: matchedPlanting.Crop,
+        Variety: matchedPlanting.Variety,
+        Method: matchedPlanting.Method
+      } : null,
+      message: matchedPlanting
+        ? `Matched to ${matchedPlanting.Crop} (${matchedPlanting.Batch_ID})`
+        : 'Could not automatically match to a planting record'
+    };
+
+  } catch (error) {
+    Logger.log('matchTaskToPlanting error: ' + error.toString());
     return { success: false, error: error.toString() };
   }
 }

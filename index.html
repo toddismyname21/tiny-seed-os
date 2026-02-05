@@ -4811,7 +4811,6 @@
             <div class="brief-priorities">
                 <div class="brief-section-header">
                     <h3>Top Priorities</h3>
-                    <a href="web_app/task-assignment.html" class="brief-view-all">View All Tasks <i class="fas fa-arrow-right"></i></a>
                 </div>
                 <div id="briefPriorities" class="priority-list">
                     <!-- Priorities will be inserted here -->
@@ -4822,7 +4821,6 @@
             <div class="brief-harvest" id="briefHarvestSection" style="display: none;">
                 <div class="brief-section-header">
                     <h3>Ready to Harvest</h3>
-                    <a href="web_app/field-planner.html#harvest" class="brief-view-all">View All Harvests <i class="fas fa-arrow-right"></i></a>
                 </div>
                 <div id="briefHarvest" class="harvest-list">
                     <!-- Harvest items will be inserted here -->
@@ -4833,7 +4831,6 @@
             <div class="brief-recommendations">
                 <div class="brief-section-header">
                     <h3>Recommendations</h3>
-                    <a href="web_app/sales.html" class="brief-view-all">View Orders <i class="fas fa-arrow-right"></i></a>
                 </div>
                 <div id="briefRecommendations" class="recommendation-list">
                     <!-- Recommendations will be inserted here -->
@@ -6467,27 +6464,31 @@
 
                 recsContainer.innerHTML = recsHtml;
 
-                // Add stats footer - with clickable links
+                // Add stats footer - widgets are only clickable when count > 0
                 const totalTasks = taskSection.count || allTasks.length;
                 const actualOverdueCount = overdueCount || apiData.must_do_today?.length || 0;
+
+                // Helper to create stat item - only clickable if count > 0
+                const createStatItem = (count, label, href, color = 'inherit') => {
+                    if (count > 0) {
+                        return `<a href="${href}" class="stat-item stat-link" style="text-decoration: none; color: inherit; cursor: pointer;" title="Click to view ${label.toLowerCase()}">
+                            <div class="stat-value" style="color: ${color}">${count}</div>
+                            <div class="stat-label">${label}</div>
+                        </a>`;
+                    } else {
+                        return `<div class="stat-item" style="cursor: default;">
+                            <div class="stat-value" style="color: #22c55e">${count}</div>
+                            <div class="stat-label">${label}</div>
+                        </div>`;
+                    }
+                };
+
                 const statsHtml = `
                     <div class="brief-stats">
-                        <a href="web_app/task-assignment.html" class="stat-item stat-link" style="text-decoration: none; color: inherit; cursor: pointer;">
-                            <div class="stat-value">${totalTasks}</div>
-                            <div class="stat-label">Tasks</div>
-                        </a>
-                        <a href="#overdueTasks" onclick="scrollToOverdue(); return false;" class="stat-item stat-link" style="text-decoration: none; color: inherit; cursor: pointer;">
-                            <div class="stat-value" style="color: ${actualOverdueCount > 0 ? '#ef4444' : '#22c55e'}">${actualOverdueCount}</div>
-                            <div class="stat-label">Overdue</div>
-                        </a>
-                        <a href="web_app/field-planner.html#harvest" class="stat-item stat-link" style="text-decoration: none; color: inherit; cursor: pointer;">
-                            <div class="stat-value" style="color: #22c55e">${harvestCount}</div>
-                            <div class="stat-label">Harvest Ready</div>
-                        </a>
-                        <a href="web_app/sales.html" class="stat-item stat-link" style="text-decoration: none; color: inherit; cursor: pointer;">
-                            <div class="stat-value">${ordersCount}</div>
-                            <div class="stat-label">Orders</div>
-                        </a>
+                        ${createStatItem(totalTasks, 'Tasks', 'web_app/task-assignment.html')}
+                        ${createStatItem(actualOverdueCount, 'Overdue', 'web_app/task-assignment.html?filter=overdue', actualOverdueCount > 0 ? '#ef4444' : '#22c55e')}
+                        ${createStatItem(harvestCount, 'Harvest Ready', 'web_app/field-planner.html#harvest', '#22c55e')}
+                        ${createStatItem(ordersCount, 'Orders', 'web_app/sales.html')}
                     </div>
                 `;
                 // Remove existing stats if any before adding new ones

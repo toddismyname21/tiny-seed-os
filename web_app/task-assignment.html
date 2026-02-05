@@ -1018,6 +1018,18 @@
         // =========================================================================
 
         document.addEventListener('DOMContentLoaded', () => {
+            // Check URL parameters for pre-set filters
+            const urlParams = new URLSearchParams(window.location.search);
+            const filterParam = urlParams.get('filter');
+
+            if (filterParam === 'overdue') {
+                currentStatusFilter = 'overdue';
+                // Update UI to show overdue filter active
+                document.querySelectorAll('#status-filters .filter-chip').forEach(c => {
+                    c.classList.toggle('active', c.dataset.filter === 'overdue');
+                });
+            }
+
             setDefaultDate();
             loadEmployees();
             loadTasks();
@@ -1867,6 +1879,7 @@
         /**
          * Bulk complete selected tasks
          * Uses bulkUpdateTasks endpoint
+         * Also records seeding dates for planting-related tasks
          */
         async function bulkComplete() {
             const taskIds = Array.from(selectedTasks);
@@ -1879,6 +1892,9 @@
 
             try {
                 showToast(`Completing ${taskIds.length} tasks...`, 'success');
+
+                // Get task details to check for planting tasks
+                const selectedTasksData = tasks.filter(t => taskIds.includes(t.id));
 
                 const response = await fetch(API_BASE, {
                     method: 'POST',
@@ -1897,6 +1913,10 @@
 
                 if (data.success) {
                     showToast(`${data.updated || taskIds.length} tasks completed`, 'success');
+
+                    // Check for planting-related tasks and record seeding dates
+                    await recordSeedingDatesForTasks(selectedTasksData);
+
                     selectedTasks.clear();
                     loadTasks();
                     loadTaskStats();
@@ -1906,6 +1926,33 @@
             } catch (error) {
                 console.error('Bulk complete error:', error);
                 showToast('Bulk complete failed: ' + error.message, 'error');
+            }
+        }
+
+        /**
+         * Check if tasks are planting-related and record actual seeding dates
+         * @param {Array} completedTasks - Tasks that were just completed
+         */
+        async function recordSeedingDatesForTasks(completedTasks) {
+            for (const task of completedTasks) {
+                try {
+                    // Check if this is a planting-related task
+                    const matchResponse = await fetch(`${API_BASE}?action=matchTaskToPlanting&taskTitle=${encodeURIComponent(task.title)}&taskType=${encodeURIComponent(task.category || '')}`);
+                    const matchData = await matchResponse.json();
+
+                    if (matchData.success && matchData.isPlantingTask && matchData.matchedPlanting) {
+                        // Record the actual seeding date
+                        const recordResponse = await fetch(`${API_BASE}?action=recordSeedingDate&batchId=${encodeURIComponent(matchData.matchedPlanting.Batch_ID)}&type=${matchData.seedingType}`);
+                        const recordData = await recordResponse.json();
+
+                        if (recordData.success) {
+                            showToast(`Recorded ${matchData.seedingType.replace('_', ' ')} date for ${matchData.matchedPlanting.Crop}`, 'success');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error recording seeding date for task:', task.title, error);
+                    // Don't fail the whole operation for seeding date recording errors
+                }
             }
         }
 
