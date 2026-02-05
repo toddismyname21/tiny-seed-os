@@ -3451,12 +3451,47 @@
             font-weight: 500;
         }
 
+        .brief-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
         .brief-priorities h3,
         .brief-harvest h3,
         .brief-recommendations h3 {
             color: #fff;
             font-size: 1.1rem;
-            margin: 0 0 12px 0;
+            margin: 0;
+        }
+
+        .brief-view-all {
+            color: var(--primary-light);
+            font-size: 0.85rem;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            transition: all 0.2s;
+            background: rgba(74, 124, 67, 0.1);
+        }
+
+        .brief-view-all:hover {
+            background: rgba(74, 124, 67, 0.25);
+            color: #6fcf6f;
+            transform: translateX(2px);
+        }
+
+        .brief-view-all i {
+            font-size: 0.75rem;
+            transition: transform 0.2s;
+        }
+
+        .brief-view-all:hover i {
+            transform: translateX(3px);
         }
 
         .priority-list, .harvest-list, .recommendation-list {
@@ -3533,14 +3568,28 @@
 
         .brief-stats {
             display: flex;
-            gap: 16px;
+            gap: 12px;
             margin-top: 16px;
             padding-top: 16px;
             border-top: 1px solid rgba(255,255,255,0.1);
+            flex-wrap: wrap;
         }
 
         .stat-item {
             text-align: center;
+            flex: 1;
+            min-width: 70px;
+            padding: 12px 8px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.2s ease;
+        }
+
+        .stat-item:hover {
+            background: rgba(74, 124, 67, 0.15);
+            border-color: var(--primary-light);
+            transform: translateY(-2px);
         }
 
         .stat-item .stat-value {
@@ -3550,8 +3599,13 @@
         }
 
         .stat-item .stat-label {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             color: #888;
+            margin-top: 4px;
+        }
+
+        .stat-item:hover .stat-label {
+            color: var(--primary-light);
         }
 
         /* Clickable Brief Items */
@@ -4755,7 +4809,10 @@
 
             <!-- Top Priorities -->
             <div class="brief-priorities">
-                <h3>Top Priorities</h3>
+                <div class="brief-section-header">
+                    <h3>Top Priorities</h3>
+                    <a href="web_app/task-assignment.html" class="brief-view-all">View All Tasks <i class="fas fa-arrow-right"></i></a>
+                </div>
                 <div id="briefPriorities" class="priority-list">
                     <!-- Priorities will be inserted here -->
                 </div>
@@ -4763,7 +4820,10 @@
 
             <!-- Harvest Ready -->
             <div class="brief-harvest" id="briefHarvestSection" style="display: none;">
-                <h3>Ready to Harvest</h3>
+                <div class="brief-section-header">
+                    <h3>Ready to Harvest</h3>
+                    <a href="web_app/field-planner.html#harvest" class="brief-view-all">View All Harvests <i class="fas fa-arrow-right"></i></a>
+                </div>
                 <div id="briefHarvest" class="harvest-list">
                     <!-- Harvest items will be inserted here -->
                 </div>
@@ -4771,7 +4831,10 @@
 
             <!-- Smart Recommendations -->
             <div class="brief-recommendations">
-                <h3>Recommendations</h3>
+                <div class="brief-section-header">
+                    <h3>Recommendations</h3>
+                    <a href="web_app/sales.html" class="brief-view-all">View Orders <i class="fas fa-arrow-right"></i></a>
+                </div>
                 <div id="briefRecommendations" class="recommendation-list">
                     <!-- Recommendations will be inserted here -->
                 </div>
@@ -6404,26 +6467,27 @@
 
                 recsContainer.innerHTML = recsHtml;
 
-                // Add stats footer
+                // Add stats footer - with clickable links
                 const totalTasks = taskSection.count || allTasks.length;
+                const actualOverdueCount = overdueCount || apiData.must_do_today?.length || 0;
                 const statsHtml = `
                     <div class="brief-stats">
-                        <div class="stat-item">
+                        <a href="web_app/task-assignment.html" class="stat-item stat-link" style="text-decoration: none; color: inherit; cursor: pointer;">
                             <div class="stat-value">${totalTasks}</div>
                             <div class="stat-label">Tasks</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value" style="color: ${overdueCount > 0 ? '#ef4444' : '#22c55e'}">${overdueCount || apiData.must_do_today?.length || 0}</div>
+                        </a>
+                        <a href="#overdueTasks" onclick="scrollToOverdue(); return false;" class="stat-item stat-link" style="text-decoration: none; color: inherit; cursor: pointer;">
+                            <div class="stat-value" style="color: ${actualOverdueCount > 0 ? '#ef4444' : '#22c55e'}">${actualOverdueCount}</div>
                             <div class="stat-label">Overdue</div>
-                        </div>
-                        <div class="stat-item">
+                        </a>
+                        <a href="web_app/field-planner.html#harvest" class="stat-item stat-link" style="text-decoration: none; color: inherit; cursor: pointer;">
                             <div class="stat-value" style="color: #22c55e">${harvestCount}</div>
                             <div class="stat-label">Harvest Ready</div>
-                        </div>
-                        <div class="stat-item">
+                        </a>
+                        <a href="web_app/sales.html" class="stat-item stat-link" style="text-decoration: none; color: inherit; cursor: pointer;">
                             <div class="stat-value">${ordersCount}</div>
                             <div class="stat-label">Orders</div>
-                        </div>
+                        </a>
                     </div>
                 `;
                 // Remove existing stats if any before adding new ones
@@ -6447,6 +6511,19 @@
                 const isHidden = detailsList.style.display === 'none';
                 detailsList.style.display = isHidden ? 'block' : 'none';
                 chevron.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+            }
+        }
+
+        // Scroll to overdue tasks section and highlight it
+        function scrollToOverdue() {
+            const overdueSection = document.getElementById('overdueTasks');
+            if (overdueSection) {
+                overdueSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                // Add brief highlight effect
+                overdueSection.style.boxShadow = '0 0 20px rgba(239, 68, 68, 0.5)';
+                setTimeout(() => {
+                    overdueSection.style.boxShadow = '';
+                }, 2000);
             }
         }
 
