@@ -40,6 +40,32 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-02-05 - Desktop_Claude (Seeding Record & Morning Brief Widget Fix)
+
+### Files Modified
+- `index.html` - Removed "View All" links from morning brief section headers, made stat widgets only clickable when count > 0
+- `web_app/task-assignment.html` - Added URL parameter reading for ?filter=overdue, added seeding record functionality
+- `apps_script/MERGED TOTAL.js` - Added recordSeedingDate and matchTaskToPlanting functions
+
+### Functions Added
+- `recordSeedingDate(params)` in `MERGED TOTAL.js` - Records actual GH sow, field sow, or transplant dates in PLANNING_2026 when tasks are completed
+- `matchTaskToPlanting(params)` in `MERGED TOTAL.js` - Matches task titles to planning records for seeding date recording
+- `recordSeedingDatesForTasks(completedTasks)` in `task-assignment.html` - Frontend function to detect planting tasks and record dates on completion
+- `createStatItem(count, label, href, color)` in `index.html` - Helper to create clickable stat widgets only when count > 0
+
+### Reason
+User requested: (1) Morning brief widgets should only be clickable when there are items to act on, not always show "View All" links; (2) When completing greenhouse sow, direct seed, or transplant tasks, the actual dates need to be recorded in PLANNING_2026 for historical records.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+### Deployed
+- Apps Script v529
+
+---
+
 ## 2026-02-05 - Desktop_Claude (Production Planner for Seed Inventory)
 
 ### Files Modified
