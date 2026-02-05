@@ -675,6 +675,121 @@
         .task-meta-item.overdue {
             color: var(--accent-red);
         }
+
+        /* Filter Label */
+        .filter-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            margin-right: 8px;
+        }
+
+        /* Overdue filter chip special styling */
+        .filter-chip.overdue-chip {
+            border-color: rgba(239, 68, 68, 0.5);
+        }
+
+        .filter-chip.overdue-chip:hover {
+            border-color: var(--accent-red);
+            color: var(--accent-red);
+        }
+
+        .filter-chip.overdue-chip.active {
+            background: var(--accent-red);
+            border-color: var(--accent-red);
+            color: white;
+        }
+
+        .overdue-count {
+            background: rgba(255,255,255,0.2);
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 11px;
+            margin-left: 4px;
+        }
+
+        .filter-chip.overdue-chip:not(.active) .overdue-count {
+            background: rgba(239, 68, 68, 0.3);
+            color: var(--accent-red);
+        }
+
+        /* Filter chip with icon */
+        .filter-chip i {
+            margin-right: 4px;
+            font-size: 11px;
+        }
+
+        /* Multi-select active state */
+        .filter-chip.multi-active {
+            background: rgba(34, 197, 94, 0.2);
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+
+        /* Header stats improvements */
+        .header-stat .count.overdue {
+            background: var(--accent-red);
+            color: white;
+        }
+
+        /* Task card overdue styling */
+        .task-card.overdue-task {
+            border-left-color: var(--accent-red);
+            background: rgba(239, 68, 68, 0.05);
+        }
+
+        .task-card.overdue-task .task-title::before {
+            content: "OVERDUE: ";
+            color: var(--accent-red);
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        /* Category badges */
+        .category-badge {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 500;
+            text-transform: uppercase;
+            margin-left: 8px;
+        }
+
+        .category-badge.vegetable { background: rgba(34, 197, 94, 0.2); color: var(--accent-green); }
+        .category-badge.floral { background: rgba(236, 72, 153, 0.2); color: #ec4899; }
+        .category-badge.greenhouse { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+        .category-badge.harvest { background: rgba(245, 158, 11, 0.2); color: var(--accent-amber); }
+        .category-badge.planting { background: rgba(59, 130, 246, 0.2); color: var(--accent-blue); }
+        .category-badge.transplant { background: rgba(139, 92, 246, 0.2); color: var(--accent-purple); }
+        .category-badge.delivery { background: rgba(107, 114, 128, 0.2); color: #6b7280; }
+
+        /* Active filters summary */
+        .active-filters-summary {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 13px;
+        }
+
+        .active-filters-summary .clear-filters {
+            margin-left: auto;
+            color: var(--accent-red);
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .active-filters-summary .clear-filters:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -689,12 +804,16 @@
             </div>
             <div class="header-stats">
                 <div class="header-stat">
+                    <span>Total:</span>
+                    <span class="count" id="total-count">0</span>
+                </div>
+                <div class="header-stat">
                     <span>Pending:</span>
                     <span class="count" id="pending-count">0</span>
                 </div>
-                <div class="header-stat">
-                    <span>Assigned Today:</span>
-                    <span class="count" id="assigned-today">0</span>
+                <div class="header-stat" style="cursor: pointer;" onclick="toggleStatusFilter('overdue')">
+                    <span>Overdue:</span>
+                    <span class="count overdue" id="overdue-count">0</span>
                 </div>
             </div>
             <button class="btn btn-primary mobile-hide" onclick="showNewTaskForm()">
@@ -711,17 +830,48 @@
                 </button>
             </div>
 
-            <!-- Filter Bar -->
-            <div class="filter-bar">
-                <button class="filter-chip active" data-filter="all" onclick="setFilter('all')">All</button>
-                <button class="filter-chip" data-filter="pending" onclick="setFilter('pending')">Pending</button>
-                <button class="filter-chip" data-filter="assigned" onclick="setFilter('assigned')">Assigned</button>
-                <button class="filter-chip" data-filter="completed" onclick="setFilter('completed')">Completed</button>
-                <button class="filter-chip" data-filter="overdue" onclick="setFilter('overdue')">Overdue</button>
+            <!-- Status Filter Bar -->
+            <div class="filter-bar" id="status-filters">
+                <span class="filter-label">Status:</span>
+                <button class="filter-chip active" data-filter="all" onclick="toggleStatusFilter('all')">All</button>
+                <button class="filter-chip" data-filter="pending" onclick="toggleStatusFilter('pending')">Pending</button>
+                <button class="filter-chip" data-filter="in_progress" onclick="toggleStatusFilter('in_progress')">In Progress</button>
+                <button class="filter-chip" data-filter="completed" onclick="toggleStatusFilter('completed')">Completed</button>
+                <button class="filter-chip overdue-chip" data-filter="overdue" onclick="toggleStatusFilter('overdue')">
+                    <i class="fas fa-exclamation-triangle"></i> Overdue <span class="overdue-count" id="overdue-filter-count">0</span>
+                </button>
+            </div>
+
+            <!-- Category Filter Bar -->
+            <div class="filter-bar" id="category-filters">
+                <span class="filter-label">Category:</span>
+                <button class="filter-chip active" data-category="all" onclick="toggleCategoryFilter('all')">All</button>
+                <button class="filter-chip" data-category="vegetable" onclick="toggleCategoryFilter('vegetable')">
+                    <i class="fas fa-carrot"></i> Vegetable
+                </button>
+                <button class="filter-chip" data-category="floral" onclick="toggleCategoryFilter('floral')">
+                    <i class="fas fa-spa"></i> Floral
+                </button>
+                <button class="filter-chip" data-category="greenhouse" onclick="toggleCategoryFilter('greenhouse')">
+                    <i class="fas fa-leaf"></i> Greenhouse
+                </button>
+                <button class="filter-chip" data-category="harvest" onclick="toggleCategoryFilter('harvest')">
+                    <i class="fas fa-hand-holding-seedling"></i> Harvest
+                </button>
+                <button class="filter-chip" data-category="planting" onclick="toggleCategoryFilter('planting')">
+                    <i class="fas fa-seedling"></i> Planting
+                </button>
+                <button class="filter-chip" data-category="transplant" onclick="toggleCategoryFilter('transplant')">
+                    <i class="fas fa-exchange-alt"></i> Transplant
+                </button>
+                <button class="filter-chip" data-category="delivery" onclick="toggleCategoryFilter('delivery')">
+                    <i class="fas fa-truck"></i> Delivery
+                </button>
             </div>
 
             <!-- Quick Employee Filter -->
             <div class="quick-assign-bar" id="employee-filter">
+                <span class="filter-label" style="margin-right: 8px;">Assignee:</span>
                 <div class="quick-employee selected" data-employee="all" onclick="filterByEmployee('all')">
                     <i class="fas fa-users"></i> All
                 </div>
@@ -854,12 +1004,14 @@
         // State
         let tasks = [];
         let employees = [];
-        let currentFilter = 'all';
+        let currentStatusFilter = 'all';
+        let currentCategoryFilters = new Set(['all']); // Multi-select categories
         let currentEmployeeFilter = 'all';
         let selectedPriority = 'medium';
         let editingTaskId = null;
         let selectedTasks = new Set(); // For bulk operations
         let taskStats = null; // Cached stats from API
+        let overdueCount = 0; // Track overdue tasks
 
         // =========================================================================
         // INITIALIZATION
@@ -956,20 +1108,11 @@
 
             try {
                 // Build query params for Unified Task API
+                // Load all tasks and filter client-side for better UX
                 const params = new URLSearchParams({
                     action: 'getUnifiedTasks',
-                    limit: 200 // Get more tasks for manager view
+                    limit: 500 // Get more tasks for manager view with filtering
                 });
-
-                // Apply status filter if not 'all'
-                if (currentFilter && currentFilter !== 'all' && currentFilter !== 'overdue') {
-                    params.set('status', currentFilter);
-                }
-
-                // Apply employee filter
-                if (currentEmployeeFilter && currentEmployeeFilter !== 'all') {
-                    params.set('assignee', currentEmployeeFilter);
-                }
 
                 const response = await fetch(`${API_BASE}?${params.toString()}`);
                 const data = await response.json();
@@ -1056,25 +1199,38 @@
         }
 
         function updateStats() {
-            // Use API stats if available, otherwise calculate from loaded tasks
-            if (taskStats) {
-                document.getElementById('pending-count').textContent = taskStats.pending || 0;
-                document.getElementById('assigned-today').textContent = taskStats.assignedToday || 0;
-            } else {
-                const pending = tasks.filter(t =>
-                    t.status === 'pending' ||
-                    t.status === 'scheduled' ||
-                    t.status === 'assigned'
-                ).length;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
 
-                const today = new Date().toISOString().split('T')[0];
-                const assignedToday = tasks.filter(t => {
-                    const created = t.createdAt ? new Date(t.createdAt).toISOString().split('T')[0] : '';
-                    return created === today;
-                }).length;
+            // Calculate stats from loaded tasks
+            const totalCount = tasks.length;
+            const pending = tasks.filter(t =>
+                t.status === 'pending' ||
+                t.status === 'scheduled' ||
+                t.status === 'assigned' ||
+                t.status === 'in_progress'
+            ).length;
 
-                document.getElementById('pending-count').textContent = pending;
-                document.getElementById('assigned-today').textContent = assignedToday;
+            const overdueCountCalc = tasks.filter(t => {
+                const dueDate = new Date(t.dueDate);
+                return dueDate < today &&
+                    t.status !== 'done' &&
+                    t.status !== 'completed' &&
+                    t.status !== 'cancelled';
+            }).length;
+
+            // Update header stats
+            const totalEl = document.getElementById('total-count');
+            const pendingEl = document.getElementById('pending-count');
+            const overdueEl = document.getElementById('overdue-count');
+
+            if (totalEl) totalEl.textContent = totalCount;
+            if (pendingEl) pendingEl.textContent = pending;
+            if (overdueEl) {
+                overdueEl.textContent = overdueCountCalc;
+                // Highlight if there are overdue tasks
+                overdueEl.style.background = overdueCountCalc > 0 ? 'var(--accent-red)' : '';
+                overdueEl.style.color = overdueCountCalc > 0 ? 'white' : '';
             }
         }
 
@@ -1084,23 +1240,106 @@
 
         function renderTasks() {
             const container = document.getElementById('task-list');
-            let filtered = tasks;
+            let filtered = [...tasks]; // Clone to avoid mutating
 
-            // Apply status filter (client-side for overdue, server filtered others)
-            if (currentFilter === 'overdue') {
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // Calculate overdue count for the badge
+            overdueCount = tasks.filter(t => {
+                const dueDate = new Date(t.dueDate);
+                return dueDate < today && t.status !== 'done' && t.status !== 'completed' && t.status !== 'cancelled';
+            }).length;
+
+            // Update overdue count badge
+            const overdueCountEl = document.getElementById('overdue-filter-count');
+            if (overdueCountEl) {
+                overdueCountEl.textContent = overdueCount;
+            }
+
+            // Apply status filter
+            if (currentStatusFilter === 'overdue') {
                 filtered = filtered.filter(t => {
                     const dueDate = new Date(t.dueDate);
                     return dueDate < today && t.status !== 'done' && t.status !== 'completed' && t.status !== 'cancelled';
                 });
+            } else if (currentStatusFilter === 'pending') {
+                filtered = filtered.filter(t => t.status === 'pending' || t.status === 'scheduled');
+            } else if (currentStatusFilter === 'in_progress') {
+                filtered = filtered.filter(t => t.status === 'in_progress' || t.status === 'assigned');
+            } else if (currentStatusFilter === 'completed') {
+                filtered = filtered.filter(t => t.status === 'done' || t.status === 'completed');
+            }
+
+            // Apply category filter (multi-select)
+            if (!currentCategoryFilters.has('all')) {
+                filtered = filtered.filter(t => {
+                    const taskCategory = (t.category || 'other').toLowerCase();
+                    // Check if task category matches any selected filter
+                    // Also check task title/description for category keywords
+                    for (const cat of currentCategoryFilters) {
+                        if (taskCategory === cat) return true;
+                        if (taskCategory.includes(cat)) return true;
+                        // Check title for category keywords
+                        const title = (t.title || '').toLowerCase();
+                        const desc = (t.description || '').toLowerCase();
+                        if (cat === 'vegetable' && (title.includes('tomato') || title.includes('lettuce') || title.includes('pepper') || title.includes('carrot') || title.includes('bean') || title.includes('squash'))) return true;
+                        if (cat === 'floral' && (title.includes('flower') || title.includes('dahlia') || title.includes('zinnia') || title.includes('sunflower') || title.includes('bouquet'))) return true;
+                        if (cat === 'greenhouse' && (title.includes('greenhouse') || title.includes('gh ') || title.includes('seedling') || title.includes('tray'))) return true;
+                    }
+                    return false;
+                });
+            }
+
+            // Apply employee filter
+            if (currentEmployeeFilter !== 'all') {
+                filtered = filtered.filter(t => t.assignedTo === currentEmployeeFilter);
+            }
+
+            // Mark overdue tasks
+            filtered = filtered.map(t => ({
+                ...t,
+                isOverdue: new Date(t.dueDate) < today && t.status !== 'done' && t.status !== 'completed' && t.status !== 'cancelled'
+            }));
+
+            // Sort: overdue first, then by priority score, then by due date
+            filtered.sort((a, b) => {
+                // Overdue tasks first
+                if (a.isOverdue && !b.isOverdue) return -1;
+                if (!a.isOverdue && b.isOverdue) return 1;
+                // Then by priority score
+                if (b.priorityScore !== a.priorityScore) {
+                    return b.priorityScore - a.priorityScore;
+                }
+                // Then by due date
+                const dateA = new Date(a.dueDate);
+                const dateB = new Date(b.dueDate);
+                return dateA - dateB;
+            });
+
+            // Build active filters summary
+            const filtersDesc = getActiveFiltersDescription();
+            let filtersSummaryHtml = '';
+            if (filtersDesc) {
+                filtersSummaryHtml = `
+                    <div class="active-filters-summary">
+                        <i class="fas fa-filter"></i>
+                        <span>Filters: ${filtersDesc}</span>
+                        <span>Showing ${filtered.length} of ${tasks.length} tasks</span>
+                        <span class="clear-filters" onclick="clearAllFilters()"><i class="fas fa-times"></i> Clear All</span>
+                    </div>
+                `;
             }
 
             if (filtered.length === 0) {
                 container.innerHTML = `
+                    ${filtersSummaryHtml}
                     <div class="empty-state">
                         <div class="empty-state-icon"><i class="fas fa-clipboard-check"></i></div>
-                        <p>No tasks found</p>
+                        <p>No tasks match your filters</p>
+                        <button class="btn btn-secondary" onclick="clearAllFilters()" style="margin-right: 8px;">
+                            <i class="fas fa-times"></i> Clear Filters
+                        </button>
                         <button class="btn btn-primary" onclick="showNewTaskForm()">
                             <i class="fas fa-plus"></i> Create Task
                         </button>
@@ -1110,7 +1349,7 @@
                 return;
             }
 
-            let html = `
+            let html = filtersSummaryHtml + `
                 <div class="bulk-action-bar" id="bulk-action-bar" style="display: none;">
                     <label class="select-all-label">
                         <input type="checkbox" id="select-all-tasks" onchange="toggleSelectAll()">
@@ -1130,23 +1369,27 @@
             `;
 
             filtered.forEach(task => {
-                const isOverdue = isTaskOverdue(task);
+                const isOverdue = task.isOverdue || isTaskOverdue(task);
                 const priorityClass = task.priority || 'medium';
                 const isSelected = selectedTasks.has(task.id);
                 const isDone = task.status === 'done' || task.status === 'completed';
+                const categoryClass = (task.category || 'other').toLowerCase();
+                const daysOverdue = isOverdue ? getDaysOverdue(task.dueDate) : 0;
 
                 html += `
-                    <div class="task-card priority-${priorityClass} ${isDone ? 'completed' : ''} ${task.atRisk ? 'at-risk' : ''} ${isSelected ? 'selected' : ''}" data-task-id="${task.id}">
+                    <div class="task-card priority-${priorityClass} ${isDone ? 'completed' : ''} ${isOverdue ? 'overdue-task' : ''} ${task.atRisk ? 'at-risk' : ''} ${isSelected ? 'selected' : ''}" data-task-id="${task.id}">
                         <div class="task-header">
                             <label class="task-checkbox" onclick="event.stopPropagation();">
                                 <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleTaskSelection('${task.id}')">
                             </label>
                             <div class="task-title" onclick="editTask('${task.id}')">${escapeHtml(task.title)}</div>
+                            ${task.category && task.category !== 'other' ? `<span class="category-badge ${categoryClass}">${task.category}</span>` : ''}
                             <span class="task-priority ${priorityClass}">${priorityClass}</span>
                             ${task.priorityScore ? `<span class="priority-score" title="AI Priority Score">${task.priorityScore}</span>` : ''}
                         </div>
+                        ${isOverdue ? `<div class="at-risk-badge" style="background: rgba(239, 68, 68, 0.2); color: var(--accent-red);"><i class="fas fa-clock"></i> Overdue by ${daysOverdue} day${daysOverdue !== 1 ? 's' : ''}</div>` : ''}
                         ${task.description ? `<div class="task-description" onclick="editTask('${task.id}')">${escapeHtml(task.description)}</div>` : ''}
-                        ${task.atRisk ? `<div class="at-risk-badge"><i class="fas fa-exclamation-triangle"></i> ${escapeHtml(task.atRiskReason || 'At Risk')}</div>` : ''}
+                        ${task.atRisk && !isOverdue ? `<div class="at-risk-badge"><i class="fas fa-exclamation-triangle"></i> ${escapeHtml(task.atRiskReason || 'At Risk')}</div>` : ''}
                         <div class="task-meta" onclick="editTask('${task.id}')">
                             <div class="task-meta-item">
                                 <i class="fas fa-user"></i>
@@ -1189,11 +1432,22 @@
         }
 
         function isTaskOverdue(task) {
-            if (task.status === 'completed') return false;
+            if (task.status === 'completed' || task.status === 'done' || task.status === 'cancelled') return false;
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             const dueDate = new Date(task.dueDate);
             return dueDate < today;
+        }
+
+        function getDaysOverdue(dueDateStr) {
+            if (!dueDateStr) return 0;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const dueDate = new Date(dueDateStr);
+            dueDate.setHours(0, 0, 0, 0);
+            const diffTime = today - dueDate;
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            return Math.max(0, diffDays);
         }
 
         function formatDate(dateStr) {
@@ -1211,18 +1465,62 @@
         }
 
         // =========================================================================
-        // FILTERS - Reload from Unified Task API
+        // FILTERS - Multi-select support
         // =========================================================================
 
-        function setFilter(filter) {
-            currentFilter = filter;
-            document.querySelectorAll('.filter-bar .filter-chip').forEach(c => {
-                c.classList.toggle('active', c.dataset.filter === filter);
+        function toggleStatusFilter(filter) {
+            if (filter === 'all') {
+                currentStatusFilter = 'all';
+            } else {
+                currentStatusFilter = filter;
+            }
+
+            // Update UI
+            document.querySelectorAll('#status-filters .filter-chip').forEach(c => {
+                c.classList.toggle('active', c.dataset.filter === currentStatusFilter);
             });
+
             // Clear selection when changing filters
             selectedTasks.clear();
-            // Reload from API with new filter
-            loadTasks();
+            // Re-render with new filter (client-side filtering)
+            renderTasks();
+        }
+
+        function toggleCategoryFilter(category) {
+            if (category === 'all') {
+                // Reset to all
+                currentCategoryFilters.clear();
+                currentCategoryFilters.add('all');
+            } else {
+                // Remove 'all' if selecting specific category
+                currentCategoryFilters.delete('all');
+
+                // Toggle the category
+                if (currentCategoryFilters.has(category)) {
+                    currentCategoryFilters.delete(category);
+                    // If nothing selected, reset to all
+                    if (currentCategoryFilters.size === 0) {
+                        currentCategoryFilters.add('all');
+                    }
+                } else {
+                    currentCategoryFilters.add(category);
+                }
+            }
+
+            // Update UI
+            document.querySelectorAll('#category-filters .filter-chip').forEach(c => {
+                const cat = c.dataset.category;
+                if (currentCategoryFilters.has('all')) {
+                    c.classList.toggle('active', cat === 'all');
+                } else {
+                    c.classList.toggle('active', currentCategoryFilters.has(cat));
+                }
+            });
+
+            // Clear selection when changing filters
+            selectedTasks.clear();
+            // Re-render with new filter
+            renderTasks();
         }
 
         function filterByEmployee(employeeId) {
@@ -1232,8 +1530,48 @@
             });
             // Clear selection when changing filters
             selectedTasks.clear();
-            // Reload from API with new filter
-            loadTasks();
+            // Re-render with new filter
+            renderTasks();
+        }
+
+        function clearAllFilters() {
+            currentStatusFilter = 'all';
+            currentCategoryFilters.clear();
+            currentCategoryFilters.add('all');
+            currentEmployeeFilter = 'all';
+
+            // Update all filter UIs
+            document.querySelectorAll('#status-filters .filter-chip').forEach(c => {
+                c.classList.toggle('active', c.dataset.filter === 'all');
+            });
+            document.querySelectorAll('#category-filters .filter-chip').forEach(c => {
+                c.classList.toggle('active', c.dataset.category === 'all');
+            });
+            document.querySelectorAll('.quick-employee').forEach(e => {
+                e.classList.toggle('selected', e.dataset.employee === 'all');
+            });
+
+            selectedTasks.clear();
+            renderTasks();
+        }
+
+        function getActiveFiltersDescription() {
+            const parts = [];
+
+            if (currentStatusFilter !== 'all') {
+                parts.push(`Status: ${currentStatusFilter}`);
+            }
+
+            if (!currentCategoryFilters.has('all')) {
+                parts.push(`Categories: ${Array.from(currentCategoryFilters).join(', ')}`);
+            }
+
+            if (currentEmployeeFilter !== 'all') {
+                const emp = employees.find(e => e.User_ID === currentEmployeeFilter);
+                parts.push(`Assignee: ${emp ? emp.Full_Name : currentEmployeeFilter}`);
+            }
+
+            return parts.length > 0 ? parts.join(' | ') : null;
         }
 
         // =========================================================================
