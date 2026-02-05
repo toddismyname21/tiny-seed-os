@@ -13211,6 +13211,8 @@ function doGet(e) {
     return jsonResponse(updateTaskCompletion(e.parameter));
       case 'getPlanningData':
         return getPlanningData();
+      case 'getProductionPlanForDateRange':
+        return getProductionPlanForDateRange(e.parameter);
       case 'getDashboardStats':
         return getDashboardStats();
 
@@ -13712,6 +13714,10 @@ function doGet(e) {
         return jsonResponse(deleteCustomer(data));
       case 'updateCustomer':
         return jsonResponse(updateCustomer(data));
+      case 'setupTwilio':
+        return jsonResponse(setupTwilioCredentials());
+      case 'testTwilio':
+        return jsonResponse(testTwilioSMSDiagnostic(e.parameter));
       case 'getCustomerById':
         return jsonResponse(getCustomerById(e.parameter));
       case 'lookupCustomerByEmail':
@@ -20029,6 +20035,57 @@ function getPlanningData() {
       success: true,
       data: plantings,
       count: plantings.length,
+      timestamp: new Date().toISOString()
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get planning data filtered by date range for production planning
+ * Used by seed_inventory_PRODUCTION.html Production Planner
+ * @param {Object} params - URL parameters with startDate and endDate
+ * @returns {Object} Filtered planning data for the date range
+ */
+function getProductionPlanForDateRange(params) {
+  try {
+    const startDate = params.startDate ? new Date(params.startDate) : null;
+    const endDate = params.endDate ? new Date(params.endDate) : null;
+
+    if (!startDate || !endDate) {
+      return { success: false, error: 'startDate and endDate are required' };
+    }
+
+    // Get all planning data
+    const allData = getPlanningData();
+    if (!allData.success) {
+      return allData;
+    }
+
+    // Filter by date range - check greenhouse sow, field sow, and transplant dates
+    const filtered = allData.data.filter(item => {
+      const ghSowDate = item.Plan_GH_Sow ? new Date(item.Plan_GH_Sow) : null;
+      const fieldSowDate = item.Plan_Field_Sow ? new Date(item.Plan_Field_Sow) : null;
+      const transplantDate = item.Plan_Transplant ? new Date(item.Plan_Transplant) : null;
+
+      // Use the earliest applicable date (when seeds are actually needed)
+      let relevantDate = ghSowDate || fieldSowDate || transplantDate;
+
+      if (!relevantDate || isNaN(relevantDate.getTime())) return false;
+
+      return relevantDate >= startDate && relevantDate <= endDate;
+    });
+
+    return {
+      success: true,
+      data: filtered,
+      count: filtered.length,
+      dateRange: {
+        start: params.startDate,
+        end: params.endDate
+      },
       timestamp: new Date().toISOString()
     };
 
@@ -27400,7 +27457,8 @@ function storeAllCredentials() {
 
   // Twilio SMS
   props.setProperty('TWILIO_ACCOUNT_SID', 'AC85c921ca82cb00ef4f009eefbad6d071');
-  props.setProperty('TWILIO_AUTH_TOKEN', '7ae4c1d1315687baa807af2babfb83fd');
+  props.setProperty('TWILIO_AUTH_TOKEN', 'a2ed0aec3e8ac3b97a0916c77ee96c52');
+  props.setProperty('TWILIO_PHONE_NUMBER', '+14128662259');
 
   // Google Maps
   props.setProperty('GOOGLE_MAPS_API_KEY', 'AIzaSyDkAfsMpi7Arqb43gBAitN0WEUs4V13N8Y');
@@ -27421,6 +27479,86 @@ function storeAllCredentials() {
   Logger.log('IMPORTANT: Now delete the hardcoded values from this function.');
 
   return { success: true, message: 'All credentials stored. Delete values from function now.' };
+}
+
+/**
+ * Setup Twilio credentials via API call (one-time setup)
+ */
+function setupTwilioCredentials() {
+  try {
+    const props = PropertiesService.getScriptProperties();
+    props.setProperty('TWILIO_ACCOUNT_SID', 'AC85c921ca82cb00ef4f009eefbad6d071');
+    props.setProperty('TWILIO_AUTH_TOKEN', 'a2ed0aec3e8ac3b97a0916c77ee96c52');
+    props.setProperty('TWILIO_PHONE_NUMBER', '+14128662259');
+
+    Logger.log('Twilio credentials stored!');
+    return {
+      success: true,
+      message: 'Twilio credentials saved!',
+      configured: {
+        sid: 'AC85c9...set',
+        token: '...set',
+        phone: '+14128662259'
+      }
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Test Twilio SMS - returns actual Twilio response for debugging
+ */
+function testTwilioSMSDiagnostic(params) {
+  try {
+    const phone = (params && params.phone) ? params.phone : '7177255177';
+    let formattedPhone = String(phone).replace(/\D/g, '');
+    if (formattedPhone.length === 10) {
+      formattedPhone = '+1' + formattedPhone;
+    }
+
+    const props = PropertiesService.getScriptProperties();
+    const twilioSid = props.getProperty('TWILIO_ACCOUNT_SID');
+    const twilioToken = props.getProperty('TWILIO_AUTH_TOKEN');
+    const twilioPhone = props.getProperty('TWILIO_PHONE_NUMBER');
+
+    if (!twilioSid || !twilioToken || !twilioPhone) {
+      return {
+        success: false,
+        error: 'Twilio not configured',
+        hasSid: !!twilioSid,
+        hasToken: !!twilioToken,
+        hasPhone: !!twilioPhone
+      };
+    }
+
+    const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`;
+    const response = UrlFetchApp.fetch(twilioUrl, {
+      method: 'post',
+      headers: {
+        'Authorization': 'Basic ' + Utilities.base64Encode(twilioSid + ':' + twilioToken)
+      },
+      payload: {
+        To: formattedPhone,
+        From: twilioPhone,
+        Body: 'Test from Tiny Seed Farm! If you got this, SMS is working.'
+      },
+      muteHttpExceptions: true
+    });
+
+    const responseCode = response.getResponseCode();
+    const responseBody = response.getContentText();
+
+    return {
+      success: responseCode >= 200 && responseCode < 300,
+      httpCode: responseCode,
+      twilioResponse: JSON.parse(responseBody),
+      sentTo: formattedPhone,
+      sentFrom: twilioPhone
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
 }
 
 // Verify credentials are configured

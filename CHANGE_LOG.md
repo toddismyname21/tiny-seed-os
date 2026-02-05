@@ -40,6 +40,1905 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-02-05 - Desktop_Claude (Production Planner for Seed Inventory)
+
+### Files Modified
+- `seed_inventory_PRODUCTION.html` - Added Production Planner feature with date range picker
+- `apps_script/MERGED TOTAL.js` - Added getProductionPlanForDateRange endpoint
+
+### Functions Added
+- `getProductionPlanForDateRange(params)` in `MERGED TOTAL.js` - Filters planning data by date range for seed needs calculation
+- `openProductionPlanner()` in `seed_inventory_PRODUCTION.html` - Opens Production Planner modal
+- `closeProductionPlanner()` in `seed_inventory_PRODUCTION.html` - Closes modal
+- `setDateRange(range)` in `seed_inventory_PRODUCTION.html` - Quick date range presets (week, month, quarter, season)
+- `calculateProductionNeeds()` in `seed_inventory_PRODUCTION.html` - Fetches planning data and calculates seed needs
+- `processAndDisplaySeedNeeds(data)` in `seed_inventory_PRODUCTION.html` - Processes and renders seed requirements
+- `renderSeedNeedsTable(needs)` in `seed_inventory_PRODUCTION.html` - Renders the requirements table
+- `renderShortagesList(shortages)` in `seed_inventory_PRODUCTION.html` - Renders seeds that need to be ordered
+- `exportSeedReport(format)` in `seed_inventory_PRODUCTION.html` - Exports CSV or print report
+- `createOrderTask()` in `seed_inventory_PRODUCTION.html` - Creates task for ordering seeds
+
+### Features Added
+1. Production Planner button in seed inventory controls
+2. Date range picker with quick presets (Week, 2 Weeks, Month, Quarter, Season)
+3. Fetches data from PLANNING_2026 sheet and calculates seeds needed
+4. Shows summary stats: total plantings, seeds needed, crop varieties, shortages
+5. Full seed requirements table with status indicators
+6. Shortages section highlighting seeds that need to be ordered
+7. Export to CSV or print-friendly report
+8. "Create Order Task" functionality to create a task for ordering seeds
+
+### Reason
+User requested ability to pick a date range and generate a list/report of all seeds needed for that date range, with ability to turn the list into a task to order seeds.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md - No existing production planner
+- [x] Searched for similar functions - Only basic seed calculator existed
+- [x] No duplicates created - This is new functionality
+
+---
+
+## 2026-02-04 - PM_Architect (Sovereign Seed Phase 3 & 4 - Test Build Integration)
+
+### Files Modified
+- `tinypm/web_dashboard.html` - Integrated Phase 3 & 4 into test build
+
+### Changes Made
+1. Added script tags for Phase 3 & 4 libraries:
+   - `/static/js/etc-pipeline-ui.js` (Phase 3)
+   - `/static/js/decision-replay-ui.js` (Phase 3)
+   - `/static/js/override-hygiene-ui.js` (Phase 4)
+   - `/static/js/safe-mode-ui.js` (Phase 4)
+
+2. Added initialization code for all Phase 3 & 4 components
+
+3. Added Phase 3 widgets to Forensic Dashboard:
+   - ETC Pipeline card (extractions, calculations, contracts)
+   - Decision Replay card (decisions recorded, replays, chain validity)
+
+4. Added Phase 4 widgets to Forensic Dashboard:
+   - Override Hygiene card (canonical rules, preferences, drifts)
+   - Safe Mode card (level, can write, auto-execute status)
+
+5. Added 10 JavaScript functions for Phase 3 & 4:
+   - loadPhase3Stats(), loadPhase4Stats()
+   - loadETCPipelineStats(), loadDecisionReplayStats()
+   - loadOverrideHygieneStats(), loadSafeModeStats()
+   - openETCPipeline(), openDecisionReplay()
+   - openOverrideManager(), openSafeModeDashboard()
+
+6. Updated loadForensicDashboard() to load all 4 phases in parallel
+
+### Reason
+User requested Phase 3 & 4 of Sovereign Seed be run in parallel and integrated into test build. All 4 phases of Sovereign Seed are now fully operational in the Forensic Dashboard.
+
+### Total Sovereign Seed Implementation
+- Phase 1: Forensic Infrastructure (3 systems)
+- Phase 2: Governor & Policy-as-Code (4 systems)
+- Phase 3: Deterministic Logic Split (2 systems)
+- Phase 4: Operational Sovereignty (2 systems)
+- **TOTAL: 11 systems, ~20,000+ lines of production code**
+
+---
+
+## 2026-02-04 - PM_Architect (Decision Replay Engine - Phase 3 Sovereign Seed)
+
+### Files Created
+- `tinypm/decision_replay_engine.py` (~1550 lines) - Bit-for-bit decision reproducibility engine
+- `tinypm/static/js/decision-replay-ui.js` (~700 lines) - Frontend UI for decision replay
+
+### Files Modified
+- `tinypm/web_server.py` - Added Decision Replay Engine API integration
+
+### Classes Added (decision_replay_engine.py)
+- `ReplayMode` - Enum: FULL, EXTRACTION_ONLY, CALCULATION_ONLY, VERIFY_CHAIN
+- `MatchType` - Enum: EXACT, SEMANTIC, DIVERGED, FAILED
+- `DecisionType` - Enum: Types of decisions (task_priority, email_response, etc.)
+- `LineageAnchor` - Immutable anchor capturing system state at decision time
+- `DecisionRecord` - Complete record of a decision with full lineage and hash chain
+- `ReplayResult` - Result of replaying a decision with comparison analysis
+- `DecisionDatabase` - SQLite-based storage with chain integrity
+- `CalculatorRegistry` - Registry of deterministic calculators for replay
+- `DecisionReplayEngine` - Main engine for recording and replaying decisions
+- `ReplayUI` - ASCII art visualization generator
+
+### API Endpoints Added
+
+GET Endpoints:
+- `/api/replay/decisions` - Get all recorded decisions with stats
+- `/api/replay/decision/{id}` - Get a single decision by ID
+- `/api/replay/stats` - Get engine statistics
+- `/api/replay/verify` - Verify the entire decision chain integrity
+- `/api/replay/lineage/{id}` - Get lineage report for a decision
+
+POST Endpoints:
+- `/api/replay/replay` - Replay a decision and compare results
+- `/api/replay/record` - Record a new decision with full lineage
+- `/api/replay/export` - Export decisions for legal discovery (JSON/HTML)
+
+### Key Features
+1. **Blockchain-style Chain** - Each decision links to previous via hash
+2. **Lineage Anchors** - Capture exact model/vault/calculator versions
+3. **Deterministic Replay** - Calculations MUST match on replay
+4. **Legal Export** - Self-contained HTML/JSON for legal discovery
+5. **Semantic Comparison** - LLM extractions compared semantically
+6. **Chain Verification** - Detect any tampering in decision chain
+
+### Reason
+Phase 3 of Project "Sovereign Seed" - Enables proving exactly how any decision was made.
+Critical for legal discovery, debugging, and auditing AI decisions.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (no existing replay/lineage system)
+- [x] No duplicates created
+
+---
+
+## 2026-02-04 - PM_Architect (Override Hygiene System - Phase 4 Sovereign Seed)
+
+### Files Created
+- `tinypm/override_hygiene.py` (~900 lines) - Tiered preference management system
+- `tinypm/static/js/override-hygiene-ui.js` (~650 lines) - Frontend UI for override hygiene
+
+### Files Modified
+- `tinypm/web_server.py` - Added Override Hygiene API integration and ~400 lines of handler code
+
+### Classes Added (override_hygiene.py)
+- `RuleTier` - Enum: CANONICAL, PREFERENCE, LEARNED (priority hierarchy)
+- `OverrideStatus` - Enum: ACTIVE, PENDING_PROMOTION, PROMOTED, REJECTED, EXPIRED, REVOKED
+- `DriftImpact` - Enum: LOW, MEDIUM, HIGH
+- `AuditAction` - Enum: 10 audit actions for tracking all operations
+- `Rule` - Data class for rules at any tier
+- `Override` - Data class for override records
+- `PromotionRequest` - Data class for promotion workflow
+- `PreferenceDrift` - Data class for drift detection
+- `AuditEntry` - Data class for audit log
+- `OverrideManager` - Main engine managing three-tier hierarchy
+- `PreferenceDriftDetector` - Detects preference drift patterns
+- `CannotOverrideCanonicalError` - Exception when attempting to override canonical
+
+### API Endpoints Added
+
+GET Endpoints:
+- `/api/overrides/hierarchy` - Get hierarchical view of all rules (user_id, filter_key params)
+- `/api/overrides/stats` - Get override hygiene statistics
+- `/api/overrides/explain` - Explain why a rule has its current value
+- `/api/overrides/effective` - Get effective value for a rule key
+- `/api/overrides/preferences` - Get all preferences for a user
+- `/api/overrides/learned` - Get learned patterns (with min_confidence filter)
+- `/api/overrides/promotions/pending` - Get pending promotion requests
+- `/api/overrides/drifts` - Get unresolved drift detections
+- `/api/overrides/drifts/stats` - Get drift detection statistics
+- `/api/overrides/audit` - Get audit log entries (limit, action, user filters)
+
+POST Endpoints:
+- `/api/overrides/preferences` - Set a user preference (blocks canonical overrides)
+- `/api/overrides/preferences/remove` - Remove a user preference
+- `/api/overrides/learned` - Add a learned pattern
+- `/api/overrides/learned/remove` - Remove a learned pattern
+- `/api/overrides/promotions` - Request promotion of an override to canonical
+- `/api/overrides/promotions/direct` - Request direct promotion (no existing override)
+- `/api/overrides/promotions/review` - Review a promotion request (approve/reject)
+- `/api/overrides/drifts/scan` - Scan for preference drift
+- `/api/overrides/drifts/resolve` - Resolve a drift detection
+
+### Frontend Features (override-hygiene-ui.js)
+- Dashboard with tier counts and stats
+- Rule browser modal with tier hierarchy view
+- Searchable rule list with tier filtering
+- Rule explanation ("Why this rule?") modal
+- Promotion request form with justification
+- Canonical override blocked alert with promotion option
+- Drift detection dashboard
+- Toast notifications for success/error
+- Responsive design with dark mode styling
+
+### Key Invariants Enforced
+1. Canonical rules (Tier 1) can NEVER be overridden by lower tiers
+2. User preferences (Tier 2) can override learned patterns (Tier 3)
+3. Promotion to canonical ALWAYS requires human review
+4. All actions are audit logged with before/after state
+5. Drift detection monitors for preference drift patterns
+
+### Hierarchy
+```
+TIER 1: CANONICAL (Seed Vault) - Immutable, organization-wide
+TIER 2: USER PREFERENCES - Personal, can override Tier 3
+TIER 3: LEARNED PATTERNS - AI-discovered, lowest priority, auto-expire
+```
+
+### Reason
+Phase 4 of Project "Sovereign Seed" - implementing Override Hygiene System to prevent
+canonical knowledge corruption through tiered preference management. This ensures:
+- User preferences accidentally becoming "rules" are detected
+- AI patterns drifting canonical knowledge is prevented
+- Full audit trail of what came from where
+- Explicit human review for promotion to canonical
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md - No existing override/preference management
+- [x] Searched for similar functions - No duplicates found
+- [x] No duplicates created
+
+---
+
+## 2026-02-04 - PM_Architect (Intelligent Safe Mode - Phase 4 Sovereign Seed)
+
+### Files Created
+- `tinypm/intelligent_safe_mode.py` - Auto-lockdown system when AI becomes unreliable (~1200 lines)
+- `tinypm/static/js/safe-mode-ui.js` - Frontend dashboard for safe mode status and controls (~600 lines)
+
+### Files Modified
+- `tinypm/web_server.py` - Added Intelligent Safe Mode API integration and handlers
+
+### Classes Added (intelligent_safe_mode.py)
+- `SafeModeLevel` - Enum for GREEN, YELLOW, RED, LOCKDOWN levels
+- `MetricTrend` - Enum for IMPROVING, STABLE, DEGRADING trends
+- `HealthMetric` - Monitored health metric with thresholds and history
+- `SafeModeState` - Current state of the safe mode system
+- `SafeModeEvent` - Log entry for state changes
+- `SafeModeController` - Main controller class with health monitoring
+- `CannotUnlockError` - Exception when unlock fails due to bad metrics
+- `SafeModeBlockedError` - Exception when action blocked by safe mode
+
+### API Endpoints Added
+GET Endpoints:
+- `/api/safe-mode/status` - Get current safe mode status
+- `/api/safe-mode/dashboard` - Get full dashboard data with metrics and events
+- `/api/safe-mode/events` - Get safe mode event history (paginated)
+- `/api/safe-mode/metrics` - Get current metric values
+- `/api/safe-mode/thresholds` - Get threshold configuration
+
+POST Endpoints:
+- `/api/safe-mode/lockdown` - Trigger manual lockdown
+- `/api/safe-mode/unlock` - Acknowledge and attempt to unlock
+- `/api/safe-mode/check-health` - Force a health check
+- `/api/safe-mode/set-threshold` - Update a threshold value
+
+### Frontend Features (safe-mode-ui.js)
+- Color-coded status banner by level (green/yellow/red/black)
+- Metrics dashboard with gauge visualizations
+- Trend indicators for each metric
+- Manual lockdown/unlock controls with confirmation dialogs
+- Alert notifications on level changes
+- Event history viewer
+
+### Safe Mode Levels
+| Level | Color | Can Write | Auto-Execute | Human Required |
+|-------|-------|-----------|--------------|----------------|
+| GREEN | Green | Yes | Yes | No |
+| YELLOW | Yellow | Yes | Yes | No |
+| RED | Red | Yes | No | Yes |
+| LOCKDOWN | Black | No | No | Yes |
+
+### Default Thresholds
+| Metric | Yellow | Red | Lockdown |
+|--------|--------|-----|----------|
+| Abstain Rate | 30% | 50% | 70% |
+| Conflict Rate | 15% | 30% | 50% |
+| Low Confidence | 40% | 60% | 80% |
+| Validation Failures | 10% | 25% | 40% |
+| Circuit Breaker Rate | 20% | 40% | 60% |
+
+### Reason
+Phase 4 of Project "Sovereign Seed" - Intelligent Safe Mode provides automatic protection against AI drift and confusion. When health metrics exceed thresholds, the system automatically transitions to read-only mode, preventing unreliable AI from executing actions.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (no existing safe mode system)
+- [x] No duplicates created - this is a new system
+
+---
+
+## 2026-02-04 - PM_Architect (Extraction/Calculation Split - Phase 3 Sovereign Seed)
+
+### Files Created
+- `tinypm/extraction_calculation_split.py` - Core ETC Pipeline: AI extracts parameters, pure code calculates (~650 lines)
+- `tinypm/static/js/etc-pipeline-ui.js` - Frontend visualization for ETC Pipeline (~650 lines)
+
+### Files Modified
+- `tinypm/web_server.py` - Added ETC Pipeline API integration and handlers
+
+### Classes Added (extraction_calculation_split.py)
+- `SourceCitation` - Cryptographically verifiable citation to source text
+- `ExtractedParameter` - Parameter extracted by AI with full provenance
+- `ExtractionResult` - Complete result of AI extraction from document
+- `CalculationContract` - Versioned specification for calculations
+- `CalculationResult` - Deterministic calculation result with hash verification
+- `ExtractionLayer` - AI parameter extraction with citation validation
+- `CalculationLayer` - Pure deterministic calculations (8 default calculators)
+- `ETCPipeline` - Full Extract-Transform-Calculate pipeline with audit trail
+
+### Calculation Contracts Implemented
+- `rent_total` - Monthly rent x months + deposit
+- `task_priority` - Eisenhower matrix + effort weighting
+- `late_penalty` - Daily rate x days late with optional cap
+- `harvest_yield` - Area x yield/acre with loss percentage
+- `labor_cost` - Hours x rate x workers + overtime
+- `roi_calculation` - (Revenue - Cost) / Cost x 100
+- `compound_interest` - P(1 + r/n)^(nt)
+- `break_even` - Fixed costs / contribution margin
+
+### API Endpoints Added (web_server.py)
+- `GET /api/etc/contracts` - List available calculation contracts
+- `GET /api/etc/audit` - Get pipeline audit trail
+- `GET /api/etc/verify/{pipeline_id}` - Verify a pipeline result
+- `POST /api/etc/run` - Run full ETC pipeline (extract + validate + calculate)
+- `POST /api/etc/calculate` - Run direct calculation with inputs
+
+### Frontend Module (etc-pipeline-ui.js)
+- Pipeline step visualization (Extract -> Validate -> Calculate)
+- Parameter display with source citations and validation status
+- Calculation formula display with inputs/outputs
+- Hash verification UI with modal
+- Full audit trail display
+
+### Reason
+Phase 3 of Project "Sovereign Seed" - implements the core principle that AI should NEVER do math.
+AI extracts parameters with source citations, pure Python functions calculate results deterministically.
+Benefits:
+- 100% reproducible calculations (same inputs = same outputs)
+- Hash-verified results for audit trail
+- Hallucination detection via OverlapValidator integration
+- Full provenance tracking for every extracted value
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for existing ExtractionLayer/CalculationLayer/ETCPipeline (none found)
+- [x] No duplicates created - new Phase 3 system
+
+---
+
+## 2026-02-04 - Backend_Claude (Weekly SMS Writing Prompts System)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Added Weekly SMS Prompt System for marketing automation
+
+### Functions Added
+- `sendWeeklyWritingPrompts()` - Sends contextual writing prompts to Todd (717-725-5177) every Monday 8am
+- `processWritingPromptReply(message, fromPhone)` - Processes Todd's SMS replies and generates posts
+- `generatePostsFromToddInput(toddInput)` - Uses AI to generate platform-specific social posts
+- `generatePostsFromToddInput_NoAI(toddInput)` - Fallback template-based post generation
+- `setupWeeklyPromptTrigger()` - Creates Monday 8am time-based trigger
+- `getWritingResponses(params)` - Returns history of writing responses
+- `checkIfWritingPromptReply(messageBody, fromPhone)` - Detects if SMS is a prompt reply vs approval
+- `getPendingApprovalPosts()` - Gets posts pending approval for preview
+- `initializeWritingResponsesSheet()` - Creates MARKETING_WritingResponses sheet
+- `getSeasonalContext()` - Returns current season/produce context
+- `getCustomerContext()` - Returns recent customer order context
+- `getUpcomingEventsContext()` - Returns upcoming market schedule
+
+### doPost Cases Added
+- `sendWeeklyWritingPrompts` - API route for manual prompt sending
+- `processWritingPromptReply` - API route for reply processing
+- `generatePostsFromToddInput` - API route for post generation
+- `setupWeeklyPromptTrigger` - API route for trigger setup
+- `getWritingResponses` - API route to get response history
+
+### Sheet Created
+- `MARKETING_WritingResponses` with columns: Response_ID, Received_At, Todd_Input, Posts_Generated, Status
+
+### Features
+1. Sends contextual prompts based on season, recent customers, and upcoming markets
+2. AI-generated posts with Pittsburgh SEO keywords optimization
+3. Auto-queues posts with 'pending_approval' status in Marketing_Queue
+4. PREVIEW command shows pending posts via SMS
+5. Integrates with existing Twilio webhook flow
+
+### Reason
+User requested Weekly SMS Prompt System for marketing automation. This allows Todd to receive writing prompts every Monday and reply with thoughts, which are automatically converted into social media posts.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (handleMarketingApprovalSMS, generateMarketingContent_AI)
+- [x] No duplicates created - extends existing patterns
+
+---
+
+## 2026-02-04 - Backend_Claude (Chief of Staff Brain Connection Fix)
+
+### Files Modified
+- `apps_script/ChiefOfStaffDashboard.html` - Connected to Brain Bridge server
+- `tinypm/brain_bridge.py` - Added /api/chat endpoint with Claude integration
+
+### Changes Made
+1. **ChiefOfStaffDashboard.html Updates:**
+   - Added BRAIN_BASE and BRAIN_WS configuration for localhost:8000
+   - Added `brainConnected` and `brainSocket` state variables
+   - Updated `checkConnection()` to try Brain Bridge first, then fallback to Apps Script
+   - Added `connectBrainWebSocket()` for real-time suggestions
+   - Added `handleBrainSuggestion()` and `showProactiveInsight()` handlers
+   - Updated `updateStatus()` to support custom status text
+   - Updated `sendMessage()` to use Brain Bridge when available
+   - Added `sendToBrain()` function for POST requests to /api/chat
+   - Updated `loadActionCards()` to fetch from Brain Bridge first
+
+2. **brain_bridge.py Updates:**
+   - Added Anthropic client initialization with API key from .env
+   - Added `/api/chat` POST endpoint with:
+     - Farm-specific system prompt (Tiny Seed Farm context)
+     - Conversation history support (last 10 messages)
+     - Brain context integration (proactive suggestions)
+     - Claude Sonnet model for responses
+     - Fallback mode when Anthropic unavailable
+
+### Deployment
+- Apps Script deployed to version 499
+- Brain Bridge server running on localhost:8000
+
+### Reason
+User requested fix for Chief of Staff brain connection. The dashboard was calling an API that didn't exist. Now both the local Brain Bridge (localhost:8000) and Apps Script API (chiefOfStaffChat) are working. Brain Bridge is prioritized for richer AI context.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created - enhanced existing files
+
+---
+
+## 2026-02-04 - PM_Architect (Sovereign Seed Phase 2 - Test Build Integration)
+
+### Files Modified
+- `tinypm/web_dashboard.html` - Integrated Phase 2 Governor & Policy-as-Code into test build
+
+### Changes Made
+1. Added script tags for Phase 2 libraries:
+   - `/static/js/structural-gate-ui.js`
+   - `/static/js/conflict-detector-ui.js`
+   - `/static/js/rbac-ui.js`
+   - `/static/js/circuit-breaker-ui.js`
+
+2. Added initialization code in DOMContentLoaded for:
+   - StructuralGateUI.init()
+   - ConflictDetectorUI.init()
+   - RBACUI.init() with document card enhancement
+   - CircuitBreakerUI.init()
+
+3. Added Phase 2 widget section to Forensic Dashboard:
+   - Structural Gate card (validations, pass rate, kills)
+   - Conflict Detector card (critical/high/unresolved counts)
+   - RBAC Retrieval card (access attempts, allowed, denied)
+   - Circuit Breaker card (assessments, blocked, human required)
+
+4. Added 10 JavaScript functions for Phase 2 dashboard:
+   - loadPhase2Stats()
+   - loadStructuralGateStats()
+   - loadConflictStats()
+   - loadRBACStats()
+   - loadCircuitBreakerStats()
+   - openSchemaBrowser()
+   - openConflictManager()
+   - openAccessLog()
+   - openImpactHistory()
+   - Extended loadForensicDashboard() to include Phase 2
+
+### Reason
+User requested Phase 2 of Sovereign Seed be integrated into the current test build. All 4 Phase 2 components (Structural Gate, Conflict Detector, RBAC, Circuit Breaker) are now accessible via the Forensic Dashboard.
+
+### Duplicate Check
+- [x] Checked existing functions - no duplicates
+- [x] Checked existing widgets - no conflicts
+- [x] No duplicates created
+
+---
+
+## 2026-02-04 - PM_Architect (Financial Circuit Breaker - Phase 2 Sovereign Seed)
+
+### Files Created
+- `tinypm/financial_circuit_breaker.py` (~750 lines) - Deterministic financial impact gating engine
+- `tinypm/static/js/circuit-breaker-ui.js` (~600 lines) - Frontend UI for impact assessment display
+
+### Files Modified
+- `tinypm/web_server.py` - Added Circuit Breaker integration and API endpoints
+
+### Backend Components (financial_circuit_breaker.py)
+
+**Enums:**
+- `ImpactCategory` - 7 categories: DIRECT_COST, REVENUE_RISK, PENALTY_RISK, OPPORTUNITY_COST, REPUTATION, RESOURCE_COST, COMMITMENT
+- `ActionType` - 12 action types: SEND_EMAIL, CREATE_TASK, RESCHEDULE_TASK, APPROVE_EXPENSE, etc.
+- `CircuitBreakerState` - CLOSED, OPEN, HALF_OPEN
+
+**Data Classes:**
+- `ImpactAssessment` - Complete assessment result with breakdown, confidence, and trust level decision
+- `ImpactRule` - Rules for calculating impact by action type and category
+- `AuditEntry` - Audit log entry for circuit breaker decisions
+
+**Classes:**
+- `FinancialCircuitBreaker` - Main engine with deterministic thresholds:
+  - < $500: auto_execute
+  - $500-$2000: one_click
+  - $2000-$5000: pre_prepare
+  - > $5000: human_required (inform)
+
+- `ImpactCalculators` - Library of deterministic calculation functions:
+  - `calc_email_commitment_cost()` - Scans email for price mentions, commitments, discounts
+  - `calc_email_reputation_risk()` - VIP recipients, high-stakes content
+  - `calc_deadline_penalty()` - Contract penalty calculations
+  - `calc_revenue_delay_risk()` - Order value, customer retention
+  - `calc_expense_amount()` - Direct expense calculation
+  - `calc_resource_commitment()` - Hours * rate + materials
+  - `calc_cancellation_cost()` - Fees, restocking, deposits
+  - `calc_promise_value()` - Future obligation value
+
+- `CircuitBreakerIntegration` - Bridge to anticipatory_engine.py
+
+**Functions:**
+- `get_circuit_breaker()` - Singleton accessor
+- `assess_impact()` - Convenience function
+- `gate_action()` - Convenience function
+
+### Frontend Components (circuit-breaker-ui.js)
+
+**Public API:**
+- `init(options)` - Initialize with optional config
+- `loadStats()` - Load circuit breaker stats from server
+- `assessImpact(actionType, context)` - Request impact assessment
+- `gateAction(actionType, context, requestedTrust)` - Check if action allowed
+- `getRecentAssessments(limit)` - Get recent assessments
+- `createImpactBadge(assessment)` - Create badge element
+- `createImpactMeter(impact)` - Create threshold meter visualization
+- `createBreakdownChart(breakdown)` - Create category breakdown chart
+- `createStatsWidget()` - Create dashboard widget
+- `attachImpactBadge(cardElement, action)` - Attach badge to action card
+- `showImpactDetails(assessment)` - Show detailed modal
+- `refreshAllBadges()` - Refresh all badges on page
+- `getImpactZone(impact)` - Get zone info (safe/caution/warning/danger)
+
+**Features:**
+- Impact assessment badges with color-coded zones (green/yellow/orange/red)
+- Threshold indicator meter
+- Impact breakdown visualization by category
+- "Why can't this auto-execute?" explanation modal
+- Stats widget for forensic dashboard
+- Real-time polling for stats updates
+
+### API Endpoints Added to web_server.py
+
+**GET Endpoints:**
+- `/api/impact/stats` - Circuit breaker statistics
+- `/api/impact/recent?limit=N` - Recent impact assessments
+- `/api/impact/thresholds` - Current threshold configuration
+- `/api/impact/audit?limit=N` - Audit log entries
+
+**POST Endpoints:**
+- `/api/impact/assess` - Assess impact of proposed action
+- `/api/impact/gate` - Gate action through circuit breaker
+- `/api/impact/wrap` - Wrap action with assessment
+- `/api/impact/thresholds` - Update thresholds
+
+### Integration Points
+- Works with anticipatory_engine.py via CircuitBreakerIntegration
+- Provides wrap_action() for transparent integration
+- Full audit trail stored in .circuit_breaker_audit.json
+- Assessments stored in .circuit_breaker_assessments.json
+- Configuration in .circuit_breaker_config.json
+
+### Test Cases (from spec)
+```python
+# Low impact allows auto-execute
+assessment = breaker.assess_impact(ActionType.CREATE_TASK, low_impact_context)
+assert assessment.auto_execute_allowed == True
+assert assessment.total_impact < Decimal("500")
+
+# Medium impact downgrades to one-click
+assessment = breaker.assess_impact(ActionType.SEND_EMAIL, medium_context)
+assert assessment.max_trust_level == 'one_click'
+
+# High impact requires human
+assessment = breaker.assess_impact(ActionType.APPROVE_EXPENSE, high_context)
+assert assessment.human_required == True
+assert assessment.max_trust_level == 'inform'
+
+# Gate blocks inappropriate trust level
+allowed, assessment = breaker.gate_action(
+    ActionType.APPROVE_EXPENSE,
+    {'amount': 10000},
+    requested_trust_level='auto_execute'
+)
+assert allowed == False
+```
+
+### Reason
+Phase 2 of Project "Sovereign Seed" - implementing the Financial Circuit Breaker to prevent high-impact actions from being auto-executed without human approval. This is a deterministic KILL SWITCH for actions that could have significant financial consequences.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md - No existing circuit breaker system
+- [x] Searched for similar functions - No duplicates
+- [x] No duplicates created
+
+---
+
+## 2026-02-04 - PM_Architect (Structural Gate - Phase 2 Sovereign Seed)
+
+### Files Created
+- `tinypm/structural_gate.py` (~900 lines) - JSON Schema enforcement layer for inter-agent communication
+- `tinypm/schemas/registry.json` (~550 lines) - Initial schema registry with 7 versioned schemas
+- `tinypm/static/js/structural-gate-ui.js` (~700 lines) - Frontend UI component for schema browser
+
+### Backend Components (structural_gate.py)
+**Data Classes:**
+- `SchemaVersion` - Semantic versioning (MAJOR.MINOR.PATCH) with compatibility checking
+- `ValidationResult` - Validation outcome with errors, warnings, timestamps, input hash
+- `GateAction` enum - PASS, WARN, KILL action types
+
+**Core Classes:**
+- `StructuralGate` - Main validation engine with schema registry, validation, gating
+- `StructuralGateViolation` exception - Raised when data fails validation and action is KILL
+
+**Key Methods:**
+- `register_schema(schema_id, version, schema)` - Register a new schema version
+- `validate(data, schema_id, version)` - Validate data, returns ValidationResult
+- `gate(data, schema_id, version, on_failure)` - Validate + take action (KILL raises exception)
+- `get_schema(schema_id, version)` - Retrieve a schema
+- `get_latest_version(schema_id)` - Get latest version of a schema
+- `check_compatibility(schema_id, v1, v2)` - Semver compatibility check
+- `load_registry(path)` / `save_registry(path)` - Persistence
+- `get_stats()` - Validation statistics
+- `get_violations()` / `get_recent_validations()` - Audit trail
+
+**Decorators:**
+- `@validate_input(schema_id)` - Decorator to validate function input
+- `@validate_output(schema_id)` - Decorator to validate function output
+
+**Validation Features:**
+- Full JSON Schema support: type, required, properties, additionalProperties
+- Array validation: items, minItems, maxItems, uniqueItems
+- String validation: minLength, maxLength, pattern, format (date-time, email, uri, uuid)
+- Number validation: minimum, maximum, exclusiveMinimum, exclusiveMaximum, multipleOf
+- Enum and const support
+
+### Schema Registry (schemas/registry.json)
+**Initial Schemas (all v1.0.0):**
+1. `scoring_contract` - AI priority scoring inputs/outputs with cryptographic hash
+2. `decision_record` - Agent decision audit records with lineage anchor
+3. `extraction_result` - AI extraction from unstructured input
+4. `negotiation_message` - P2P negotiation protocol messages
+5. `task_action` - Task operations (create, update, assign, complete)
+6. `agent_handoff` - Agent-to-agent handoff messages
+7. `system_health` - System health reports
+
+### Frontend Components (structural-gate-ui.js)
+- `StructuralGateUI` class - Main UI component with:
+  - Stats bar showing pass/warn/kill counts
+  - Kill count indicator with status
+  - Schema browser with version selector
+  - Live validation tester
+  - Recent violations list
+- Dark theme UI with modern styling
+
+### API Endpoints Added to web_server.py
+**GET Endpoints:**
+- `/api/admin/schemas/stats` - Validation statistics
+- `/api/admin/schemas/list` - List all schemas and versions
+- `/api/admin/schemas/violations?limit=N` - Recent validation failures
+- `/api/admin/schemas/validations?limit=N` - Recent validation results
+- `/api/admin/schemas/health` - System health status
+- `/api/admin/schemas/{schema_id}?version=X` - Get specific schema
+
+**POST Endpoints:**
+- `/api/admin/schemas/validate` - Validate data against schema
+- `/api/admin/schemas/gate` - Gate data with action
+- `/api/admin/schemas/register` - Register new schema version
+- `/api/admin/schemas/reload` - Reload registry from file
+
+### Integration
+- Added `STRUCTURAL_GATE_AVAILABLE` flag to web_server.py
+- Lazy initialization with `get_gate_api()` singleton accessor
+- Full error handling with 503 responses when unavailable
+- Uses existing `send_json()` pattern for consistent API responses
+
+### Reason
+Phase 2 of Project "Sovereign Seed" - The Structural Gate ensures ALL inter-agent
+communication follows versioned JSON schemas. Non-conforming output = IMMEDIATE
+PROCESS TERMINATION. This prevents:
+- Agents returning malformed data
+- Field name drift over time
+- Type mismatches causing silent failures
+- No contract between components
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md - No existing schema validation system
+- [x] Searched for similar functions - No jsonschema usage in codebase
+- [x] No duplicates created
+
+---
+
+## 2026-02-04 - PM_Architect (RBAC Filtered Retrieval - Phase 2 Sovereign Seed)
+
+### Files Created
+- `tinypm/rbac_retrieval.py` (~850 lines) - Permission-aware document retrieval system
+- `tinypm/rbac_api_handlers.py` (~350 lines) - API endpoint handlers for RBAC
+- `tinypm/static/js/rbac-ui.js` (~650 lines) - Frontend UI for permissions
+
+### Backend Components (rbac_retrieval.py)
+**Data Classes:**
+- `Permission` enum - NONE, VIEW, COMMENT, EDIT, OWNER with hierarchy comparison
+- `UserContext` - User identity with roles, groups, cached permissions
+- `DocumentPermission` - Permission record with expiry, source tracking
+- `AccessAttempt` - Audit record for all access attempts
+
+**Core Classes:**
+- `RBACRetrieval` - Main service with permission checking, caching, audit logging
+- `GoogleWorkspaceClient` - Integration with Google Drive/Sheets permissions
+- `RBACFilteredRAG` - RAG system with built-in RBAC filtering
+- `GovernorRBACGate` - Gate for Governor integration (ABSTAIN on permission failure)
+
+**Key Methods:**
+- `check_permission(user, document_id, required)` - Check if user has permission
+- `get_permission(user, document_id)` - Get user's permission level
+- `filter_documents(user, document_ids)` - Batch filter accessible documents
+- `retrieve_with_rbac(user, document_id)` - Retrieve with permission check
+- `search_with_rbac(user, query)` - Search with result filtering
+- `log_access(...)` - Audit all access attempts (allowed and denied)
+- `get_access_log(...)` - Query access log with filters
+- `grant_permission(...)` - Admin function to grant permissions
+
+### Frontend Components (rbac-ui.js)
+- `Permission` object - Hierarchy comparison, labels, colors, icons
+- `RBACClient` - API client with caching for permission checks
+- `PermissionBadge` - Visual permission indicator badges
+- `AccessDeniedModal` - Explains why access denied, offers request button
+- `AccessLogViewer` - Admin component for viewing access log
+- `DocumentCardEnhancer` - Adds permission badges to document cards
+
+### API Endpoints Added
+**GET Endpoints:**
+- `/api/rbac/stats` - Access statistics for dashboard
+- `/api/rbac/access-log` - Query access log with filters
+- `/api/rbac/permission?document_id=X` - Get permission for document
+
+**POST Endpoints:**
+- `/api/rbac/check` - Check if user has required permission
+- `/api/rbac/permissions/batch` - Batch permission lookup
+- `/api/rbac/request` - Request permission for document
+- `/api/rbac/grant` - Grant permission (admin only)
+- `/api/rbac/invalidate-cache` - Clear permission cache
+
+### Security Features
+1. **Fail Closed** - If permission check fails, deny access (never fail open)
+2. **Permission Cache TTL** - 5 minute max cache to limit stale permissions
+3. **Full Audit Trail** - Every access attempt logged (allowed and denied)
+4. **Admin Role Check** - Grant/admin endpoints require admin role
+5. **Batch Limits** - Maximum 100 documents per batch request
+
+### Integration Points
+- Integrates with Stable Anchors - can't cite documents without VIEW permission
+- Governor integration via GovernorRBACGate - ABSTAIN if permission denied
+- Google Workspace client for Drive/Sheets permission lookup
+- Headers-based auth for testing (X-User-ID, X-User-Email, X-User-Roles)
+
+### Reason
+Phase 2 of Project "Sovereign Seed" - ensuring AI agents can ONLY access documents the user has permission to see. Without RBAC filtering, AI could cite documents user can't access, leaking sensitive information.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md - no existing RBAC system
+- [x] Searched for permission/rbac/access control - no duplicates
+- [x] No duplicates created
+
+---
+
+## 2026-02-04 - PM_Architect (Conflict Detector - Phase 2 Sovereign Seed)
+
+### Files Created
+- `tinypm/conflict_detector.py` (~800 lines) - Deterministic conflict detection engine
+- `tinypm/static/js/conflict-detector-ui.js` (~400 lines) - Conflict visualization and management UI
+
+### Files Modified
+- `tinypm/web_server.py` - Added Conflict Detector API endpoints and handlers
+
+### Functions Added
+
+**In conflict_detector.py:**
+- `ConflictType` enum - BOOLEAN, NUMERIC, DATE, STATE, EXISTENCE
+- `ConflictSeverity` enum - LOW, MEDIUM, HIGH, CRITICAL
+- `ResolutionMethod` enum - EFFECTIVE_DATE, SOURCE_PRIORITY, HUMAN, MERGED, MANUAL_OVERRIDE
+- `DataPoint` dataclass - Single data point with provenance tracking
+- `Resolution` dataclass - How a conflict was resolved
+- `Conflict` dataclass - A detected conflict between data points
+- `ConflictDetector` class:
+  - `detect_conflicts()` - Main detection for data points
+  - `detect_boolean_conflict()` - Boolean contradictions (yes/no, true/false)
+  - `detect_numeric_conflict()` - Numeric contradictions with percentage thresholds
+  - `detect_date_conflict()` - Date contradictions with tolerance
+  - `resolve_by_effective_date()` - Newer documents supersede older
+  - `resolve_by_source_priority()` - Contracts > Amendments > Emails > Notes
+  - `resolve_manually()` - User-selected value
+  - `get_conflict()`, `get_all_conflicts()`, `get_unresolved_conflicts()`
+  - `get_conflicts_for_field()`, `get_conflicts_for_document()`
+  - `get_stats()`, `get_health_summary()`
+- `ConflictReport` class - Report generation and JSON export
+- `GovernorConflictGate` class - Blocks actions on HIGH/CRITICAL unresolved conflicts
+- `get_conflict_detector()` - Singleton access
+- `get_conflict_gate()` - Gate singleton
+- `get_conflict_report()` - Report singleton
+
+**In conflict-detector-ui.js:**
+- `ConflictDetectorUI` class:
+  - `loadConflicts()` - Fetch conflicts from API
+  - `renderConflictList()` - Display conflict cards with severity badges
+  - `renderConflictCard()` - Individual conflict card rendering
+  - `showConflictDetail()` - Modal with full conflict details
+  - `renderConflictDetail()` - Detail view with data points
+  - `resolveConflict()` - Manual resolution
+  - `resolveByEffectiveDate()` - Auto-resolve by date
+  - `resolveBySourcePriority()` - Auto-resolve by source
+
+**In web_server.py:**
+- Import section for conflict_detector module
+- `get_conflicts_api()` - Lazy initialization
+- `api_get_conflicts()` - GET /api/conflicts
+- `api_get_unresolved_conflicts()` - GET /api/conflicts/unresolved
+- `api_get_conflict()` - GET /api/conflicts/{id}
+- `api_get_conflicts_for_field()` - GET /api/conflicts/field/{name}
+- `api_conflict_stats()` - GET /api/conflicts/stats
+- `api_conflict_health()` - GET /api/conflicts/health
+- `api_conflicts_detect()` - POST /api/conflicts/detect
+- `api_conflicts_resolve()` - POST /api/conflicts/resolve
+- `api_conflicts_resolve_effective_date()` - POST /api/conflicts/resolve/effective-date
+- `api_conflicts_resolve_source_priority()` - POST /api/conflicts/resolve/source-priority
+- `api_conflicts_check_gate()` - POST /api/conflicts/check-gate
+
+### API Endpoints Added
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| GET | /api/conflicts | List all conflicts |
+| GET | /api/conflicts/unresolved | Get unresolved conflicts |
+| GET | /api/conflicts/{id} | Get specific conflict |
+| GET | /api/conflicts/field/{name} | Get conflicts for a field |
+| GET | /api/conflicts/stats | Get statistics |
+| GET | /api/conflicts/health | Get health summary |
+| POST | /api/conflicts/detect | Detect conflicts in data points |
+| POST | /api/conflicts/resolve | Manually resolve conflict |
+| POST | /api/conflicts/resolve/effective-date | Auto-resolve by date |
+| POST | /api/conflicts/resolve/source-priority | Auto-resolve by source priority |
+| POST | /api/conflicts/check-gate | Check if action is blocked |
+
+### Key Features
+1. **100% Deterministic** - NO LLM, all rule-based detection
+2. **Effective Date Precedence** - Newer documents win by default
+3. **Source Priority** - Contracts (100) > Amendments (90) > Leases (85) > Emails (50) > Notes (30)
+4. **Severity Calculation**:
+   - Numeric: <5% = LOW, 5-20% = MEDIUM, 20-50% = HIGH, >50% = CRITICAL
+   - Boolean: Always HIGH (mutually exclusive)
+   - Date: <7 days = LOW, <30 days = MEDIUM, >30 days = HIGH, >365 days = CRITICAL
+5. **Governor Integration** - GovernorConflictGate blocks actions on HIGH/CRITICAL unresolved conflicts
+6. **Full Audit Trail** - Every conflict and resolution logged with timestamps
+
+### Reason
+Phase 2 of Project "Sovereign Seed" - Deterministic infrastructure for legal-grade data integrity.
+The Conflict Detector finds mutually exclusive facts (like "$1,200 rent" vs "$1,500 rent" in the same lease)
+BEFORE they cause problems. Critical for legal documents where data contradictions are serious issues.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md - no conflict detection system exists
+- [x] Searched for similar functions - no duplicates
+- [x] No duplicates created
+- [x] Integrates with existing NormalizationService (Phase 1)
+- [x] Uses same API patterns as Stable Anchors (Phase 1)
+
+---
+
+## 2026-02-04 - PM_Architect (Sovereign Seed Phase 1 - Test Build Integration)
+
+### Files Modified
+- `tinypm/web_dashboard.html` - Integrated Phase 1 Forensic Infrastructure into test build
+
+### Changes Made
+1. Added script tags for Phase 1 libraries:
+   - `/static/js/stable-anchors.js`
+   - `/static/js/normalization-ui.js`
+   - `/static/js/overlap-validator-ui.js`
+
+2. Added initialization code in DOMContentLoaded for:
+   - StableAnchors.init()
+   - NormalizationUI.init() with auto-enhance for data-normalize inputs
+   - OverlapValidatorUI.init()
+
+3. Added new "Forensic" tab in view-tabs section
+   - Purple badge showing "DEV" indicator
+   - Accessible from main navigation
+
+4. Added forensic-view section with developer dashboard:
+   - Header with system stats (anchor count, validation rate, abstain rate)
+   - Stable Anchors card with verified/stale/invalid counts
+   - Normalization Service card with success rate
+   - Overlap Validator card with hallucination detection stats
+   - Forensic Activity Log
+   - Quick actions: Health Check, Export Audit Log, View Seed Vault
+
+5. Updated switchTab() function to handle 'forensic' tab
+
+6. Added 15+ JavaScript functions for forensic dashboard:
+   - loadForensicDashboard()
+   - loadAnchorStats(), loadNormalizationStats(), loadOverlapStats()
+   - loadForensicActivityLog()
+   - verifyAllAnchors()
+   - openNormalizationTester(), testNormalization()
+   - openOverlapTester(), testOverlap()
+   - runForensicHealthCheck()
+   - exportAuditLog()
+   - openSeedVaultViewer()
+   - refreshForensicLog()
+
+### Reason
+User requested Phase 1 of Sovereign Seed be integrated into the current test build version of TinyPM for both general users and developers.
+
+### Duplicate Check
+- [x] Checked existing tabs - no forensic/audit tab existed
+- [x] Checked existing functions - no duplicates
+- [x] No duplicates created
+
+---
+
+## 2026-02-04 - PM_Architect (Stable Anchor Citation System - Phase 1 Sovereign Seed)
+
+### Files Created
+- `tinypm/stable_anchors.py` (~700 lines) - Cryptographically verifiable AI citation system (Forensic RAG)
+- `tinypm/static/js/stable-anchors.js` (~600 lines) - Citation badges, verification UI, health monitor widget
+
+### Files Modified
+- `tinypm/web_server.py` - Added Stable Anchor System integration and 8 API endpoints
+
+### Classes Added (stable_anchors.py)
+- `VerificationStatus` (Enum) - VERIFIED, STALE, MODIFIED, NOT_FOUND, FAILED
+- `DocumentReference` (dataclass) - Source document with SHA-256 hash, content retrieval
+- `TextAnchor` (dataclass) - Character-precise span with start/end offsets, span hash
+- `VerificationResult` (dataclass) - Detailed verification outcome with timing
+- `StableAnchor` (dataclass) - Complete anchor with document ref, text anchor, metadata
+- `DocumentStore` (ABC) - Abstract interface for document storage
+- `InMemoryDocumentStore` - Fast in-memory implementation with persistence
+- `FileSystemDocumentStore` - File-based implementation for production
+- `StableAnchorService` - Main service with verification chain, bulk operations
+
+### API Endpoints Added
+- `GET /api/anchors/{id}` - Get anchor details
+- `GET /api/anchors/{id}/verify` - Verify anchor integrity (<50ms target)
+- `GET /api/documents/{id}/anchors` - List anchors for a document
+- `GET /api/admin/anchors/health` - System health for developer dashboard
+- `GET /api/admin/anchors/stale` - List anchors needing re-verification
+- `POST /api/admin/anchors/bulk-verify` - Verify multiple anchors
+- `POST /api/anchors/create` - Create a new stable anchor
+- `POST /api/documents/register` - Register document for tracking
+
+### Frontend Components Added (stable-anchors.js)
+- `StableAnchors.createCitation()` - Render citation badge with verification status
+- `StableAnchors.verify()` - Single anchor verification with UI feedback
+- `StableAnchors.bulkVerify()` - Batch verification with progress
+- `StableAnchors.showCitationPanel()` - Expandable citation details panel
+- `AnchorHealthMonitor` - Developer dashboard widget showing system health
+- CSS injection for citation badges (verified/stale/failed states)
+
+### Design Principles
+- **Zero Hallucination Tolerance**: Governor ABSTAINS if anchor cannot be verified
+- **Cryptographic Verification**: SHA-256 hash of document + span hash of extracted text
+- **<50ms Verification**: Performance requirement for real-time use
+- **Forensic Provenance**: Every claim traceable to exact character offsets in source
+- **Graceful Degradation**: System remains functional if anchor service unavailable
+
+### Integration Points
+- **Seed Vault**: New FORENSIC rule category for citation audit rules
+- **Negotiation Protocol**: Cited proposals require anchor verification
+- **Adversarial Auditor**: Anchor verification in adversarial testing
+
+### Reason
+Phase 1 of Project "Sovereign Seed" - the Stable Anchor Citation System enables cryptographically verifiable AI citations. Every claim made by the Governor or PM Brain can be traced to an exact span in a source document with hash verification. This is the foundation for "Deterministic Infrastructure" where AI outputs are forensically auditable.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (no existing citation/anchor system)
+- [x] No duplicates created
+
+---
+
+## 2026-02-04 - PM_Architect (Standalone Normalization Service - Phase 1 Sovereign Seed)
+
+### Files Created
+- `tinypm/normalization_service.py` (~620 lines) - Standalone 100% deterministic value normalization microservice (NO LLM)
+- `tinypm/static/js/normalization-ui.js` (~550 lines) - Smart input enhancement and developer tester UI
+
+### Files Modified
+- `tinypm/web_server.py` - Added Normalization Service integration and 6 API endpoints
+
+### Classes Added (normalization_service.py)
+- `ValueType` (Enum) - Supported normalization types: currency, date, number, duration, boolean
+- `NormalizedValue` (dataclass) - Result with original, normalized, confidence, method, provenance
+- `CurrencyNormalizer` - Handles $1,200 / "1200 dollars" / "$1.2k" / "twelve hundred"
+- `DateNormalizer` - Handles ISO, US slash, European, written formats
+- `NumberNormalizer` - Handles integers, floats, written numbers, ordinals
+- `DurationNormalizer` - Converts all durations to minutes
+- `BooleanNormalizer` - Handles yes/no/confirmed/pending/paid/unpaid etc.
+- `NormalizationService` - Main orchestrator with stats tracking
+
+### API Endpoints Added
+- `POST /api/normalize` - Normalize single value with optional type hint
+- `POST /api/normalize/batch` - Batch normalize up to 100 items
+- `GET /api/normalize/equivalent` - Check if two values are equivalent
+- `GET /api/admin/normalize/stats` - Service statistics
+- `GET /api/admin/normalize/failures` - Recent failed normalizations
+- `POST /api/admin/normalize/test` - Test patterns (developer tool)
+
+### Frontend Components Added (normalization-ui.js)
+- `NormalizationUI.initAll()` - Auto-enhance inputs with data-normalize attribute
+- `NormalizationUI.enhanceInput()` - Add real-time normalization hints to inputs
+- `NormalizationUI.normalize()` - Client API wrapper
+- `NormalizationUI.areEquivalent()` - Client equivalence check
+- `NormalizationTester.init()` - Developer dashboard component
+- `ClientNormalizers` - Client-side mirror of backend for instant feedback
+
+### Test Results
+- 30/30 test cases passed
+- 7/7 equivalence tests passed
+- Currency: "$1,200" = "$1,200.00" = "1200 dollars"
+- Dates: "2026-02-04" = "February 4, 2026" = "02/04/2026"
+- Durations: "2 hours" = "120 minutes"
+
+### Note on Overlap with overlap_validator.py
+The existing `overlap_validator.py` contains a simpler `NormalizationService` class used internally for IoU calculations. This new standalone `normalization_service.py` is a more comprehensive microservice with:
+- Full REST API exposure
+- Provenance/confidence tracking
+- Statistics and failure logging
+- Convenience functions for direct import
+- Frontend UI integration
+The two can coexist; eventually the overlap_validator could be refactored to use this standalone service.
+
+### Reason
+Phase 1 of Project "Sovereign Seed" - the Normalization Service ensures deterministic value comparison for conflict detection, legal accuracy (lease terms), and financial calculations. Critical requirement: NO LLM involvement in normalization - 100% regex and rule-based logic for reproducibility.
+
+### Integration Points
+- **Conflict Detector** (future) - Will use normalization to compare extracted values
+- **Stable Anchors** (future) - Normalize values before storage
+- **Task System** - Can normalize durations and dates in task creation
+- **Financial Circuit Breaker** (future) - Normalize currency for impact calculation
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions - found simpler NormalizationService in overlap_validator.py (noted above)
+- [x] No duplicates created - this is a more comprehensive standalone service with API
+
+---
+
+## 2026-02-04 - PM_Architect (Overlap Validator Implementation)
+
+### Files Created
+- `tinypm/overlap_validator.py` - Overlap Validator for catching AI hallucinations at the extraction layer (~800 lines)
+- `tinypm/static/js/overlap-validator-ui.js` - Frontend integration for overlap validation display (~750 lines)
+
+### Classes Added (overlap_validator.py)
+- `OverlapStatus` (Enum) - Validation status: VALID, PARTIAL, INVALID, HALLUCINATION
+- `ValueType` (Enum) - Value types for normalization: CURRENCY, DATE, PERCENTAGE, NUMBER, TEXT, etc.
+- `OverlapResult` (dataclass) - Result of overlap validation with IoU score, evidence tokens, recommendation
+- `NormalizedValue` (dataclass) - Normalized value with tokens and parsed components
+- `SourceCitation` (dataclass) - Citation pointing to source text with char offsets
+- `AIExtraction` (dataclass) - Complete AI extraction with value, citation, metadata
+- `StableAnchor` (dataclass) - Stable anchor for reproducible extraction identification
+- `ValidationResult` (dataclass) - Complete validation result for an AI extraction
+- `NormalizationService` (class) - Normalizes values for fuzzy matching (currency, dates, percentages, text)
+- `OverlapValidator` (class) - Core validator with IoU calculation, contradiction detection
+- `StableAnchorService` (class) - Creates and validates stable anchors
+- `ExtractionValidator` (class) - Higher-level validator combining overlap, anchor, normalization
+- `GovernorOverlapGate` (class) - Gate that forces Governor to abstain on invalid overlaps
+
+### Functions Added (overlap_validator.py)
+- `validate_overlap()` - Simple API for overlap validation
+- `validate_extraction_full()` - Full extraction validation API
+- CLI test suite for running validation tests
+
+### Frontend Components (overlap-validator-ui.js)
+- `createExtractionCard()` - Creates extraction card with overlap validation display
+- `createValidationBadge()` - Compact validation badge for inline display
+- `createValidationMonitor()` - Developer dashboard monitor component
+- `createTestTool()` - Interactive test tool for dev dashboard
+- `createHallucinationLog()` - Hallucination detection log component
+- `refreshMonitor()` - Refreshes monitor with API stats
+- `runTest()` - Runs test validation via API
+- `validate()` - API wrapper for validation
+- `shouldPass()` / `shouldAbstain()` - Governor gate helpers
+
+### Key Features
+1. **IoU (Intersection over Union) Scoring** - Token overlap measurement between extracted value and cited span
+2. **Normalization Service** - Handles currency, dates, percentages, numbers with fuzzy matching
+3. **Contradiction Detection** - Detects when extracted value conflicts with span (hallucination)
+4. **Governor Gate Integration** - Forces Governor to abstain when IoU < 80%
+5. **Safe Mode Metrics** - Tracks abstain rate and hallucination rate for safe mode triggers
+6. **Performance** - Single validation <10ms, batch of 100 <500ms, no external APIs
+
+### API Endpoints Designed
+- `POST /api/validate/overlap` - Validate a single extraction
+- `GET /api/extractions/{id}/validation` - Get validation result for extraction
+- `GET /api/admin/overlap/stats` - Validation statistics
+- `GET /api/admin/overlap/hallucinations` - Recent detected hallucinations
+- `GET /api/admin/overlap/abstain-rate` - Current abstain rate
+- `POST /api/admin/overlap/test` - Test overlap validation
+
+### Reason
+Implementing Phase 1 of Project "Sovereign Seed" - the Overlap Validator catches AI hallucinations at the extraction layer. When AI extracts a value and cites a document span, the validator verifies the extracted value actually appears in the cited text using IoU scoring. If IoU < 80%, Governor ABSTAINS.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (no overlap validators exist)
+- [x] No duplicates created
+
+---
+
+## 2026-02-04 - Research Team Beta (Deterministic Sovereignty Research)
+
+### Files Created
+- `tinypm/DETERMINISTIC_SOVEREIGNTY_RESEARCH.md` - Comprehensive research report for Project "Sovereign Seed" Phases 3 & 4
+
+### Research Components Documented
+1. **Extraction/Calculation Split** - Pattern for separating AI interpretation from deterministic math
+2. **Financial Circuit Breaker** - Impact-based execution gates ($500 threshold)
+3. **Decision Replay Engine** - Lineage anchors for bit-for-bit reproducibility
+4. **Tiered Override Hygiene** - Preventing preference drift into canonical rules
+5. **Intelligent Safe Mode** - Auto-lock mechanisms with threshold monitoring
+
+### JSON Schemas Designed
+- `scoring_contract_v1.0.0` - Input/output contract for deterministic calculations
+- `decision_record_v1.0.0` - Full decision lineage record for audit
+- `replay_request_v1.0.0` - API contract for decision replay
+
+### Code Patterns Provided
+- `ExtractionContract` class - Structured AI extraction with source citations
+- `DeterministicCalculator` class - Pure functions for calculations
+- `ImpactCalculator` class - Financial impact assessment
+- `AutonomyGate` class - Combined confidence + impact gating
+- `LineageAnchor` class - Immutable anchor for reproducibility
+- `DecisionReplayEngine` class - Historical decision replay
+- `OverrideManager` class - Preference hierarchy management
+- `SafeModeController` class - System health monitoring
+
+### Integration Points Identified
+- `anticipatory_engine.py` - Add Impact Calculator before action execution
+- `learning_engine.py` - Feed confidence calibration into Abstain Rate metrics
+- `adversarial_auditor.py` - Use Decision Replay Engine for audit verification
+- `seed_vault.py` - Add Override Manager as companion class
+
+### Reason
+Research conducted for Project "Sovereign Seed" to transform TinyPM from "assistive chat" to "deterministic infrastructure" suitable for legal and financial decision-making. Every AI decision must be auditable, repeatable, reversible, and legally defensible.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (no duplicates - this is new research)
+- [x] No duplicates created
+
+---
+
+## 2026-02-04 - PM_Architect (Adversarial Auditor System)
+
+### Files Created
+- `tinypm/adversarial_auditor.py` - Black-Hat agent for chaos testing & decision auditing (~1,200 lines)
+- `tinypm/static/js/audit-dashboard.js` - Real-time audit log viewer & decision trail visualization (~900 lines)
+- `tinypm/anti_patterns.json` - Machine-readable anti-pattern library (23 patterns, 6 categories)
+
+### Classes Added (adversarial_auditor.py)
+- `TestSeverity` (Enum) - Test severity levels: critical, high, medium, low, info
+- `SecurityRisk` (Enum) - Security risk categories: permission_escalation, data_leak, rule_bypass, injection, resource_exhaustion
+- `AuditEventType` (Enum) - Auditable event types: decision, action, suggestion, approval, rejection, modification, error, security_event
+- `TestResult` (dataclass) - Result of a single test execution
+- `StressResult` (dataclass) - Result of stress testing with memory/performance metrics
+- `SecurityTestResult` (dataclass) - Result of security probes
+- `AuditEntry` (dataclass) - Blockchain-style immutable audit record with SHA-256 hash chain
+- `EdgeCase` (dataclass) - Edge case discovered during testing
+- `PerformanceMetrics` (dataclass) - Performance measurements from flight simulation
+- `FlightReport` (dataclass) - Results from simulated flight hours
+- `Vulnerability` (dataclass) - Discovered vulnerability
+- `AuditReport` (dataclass) - Comprehensive audit report
+- `AntiPatternLibrary` (class) - Collection of 23 known anti-patterns (UI, AI, Data)
+- `EdgeCaseGenerator` (class) - Generates adversarial inputs (empty, huge, unicode, injection)
+- `FakeDataGenerator` (class) - Generates realistic fake data for stress testing
+- `SeedVault` (class) - Mock Seed Vault interface for testing
+- `AdversarialAuditor` (class) - Main Black-Hat agent with full testing suite
+
+### Methods Added (AdversarialAuditor class)
+**Chaos Testing:**
+- `inject_anti_pattern(pattern_name)` - Inject anti-pattern to verify Seed Vault catches it
+- `run_chaos_suite()` - Run full chaos test suite against all anti-patterns
+- `generate_adversarial_input(target)` - Generate adversarial input for specific system
+
+**Stress Testing:**
+- `stress_test_learning_system(fake_data_count)` - Stress test with fake predictions
+- `stress_test_context_fusion(signal_count)` - Stress test with fake signals
+- `stress_test_anticipatory_engine(action_count)` - Stress test with fake actions
+
+**Decision Auditing:**
+- `record_decision(agent, action, input, output, context, seed_vault_check)` - Record decision with blockchain-style hash chain
+- `get_decision_trail(start, end)` - Get audit entries in time range
+- `verify_decision_integrity(decision_id)` - Verify hash chain integrity
+- `verify_full_chain_integrity()` - Verify entire audit chain
+- `export_audit_log(format)` - Export to JSON or CSV
+
+**Security Probing:**
+- `attempt_permission_escalation()` - Test permission boundaries
+- `attempt_seed_vault_bypass()` - Attempt to bypass validation rules
+- `attempt_negotiation_gaming()` - Test multi-agent consensus manipulation
+
+**Simulated Flight Hours:**
+- `run_simulated_flight_hours(hours)` - Simulate N hours of usage with random actions
+
+**Reporting:**
+- `generate_audit_report()` - Comprehensive audit report generation
+- `calculate_system_health_score()` - Calculate overall health (0-1)
+- `identify_vulnerabilities()` - Extract vulnerabilities from test results
+
+### Frontend (audit-dashboard.js)
+- Real-time SSE connection for live audit updates
+- Audit log table with filtering (agent, event type, violations only)
+- Blockchain-style decision trail visualization with animated hash chain
+- Test results dashboard with pass/fail counts and severity badges
+- Vulnerability scanner interface
+- Health score gauge indicator
+- Export functionality (JSON/CSV)
+- Entry detail modal with full input/output/context data
+
+### Anti-Pattern Library (anti_patterns.json)
+**UI Anti-Patterns (10):**
+- dropdown_instead_of_command, modal_overload, infinite_scroll_crud
+- calendar_dropdown_dates, tooltip_critical_info, auto_save_no_indicator
+- wizard_no_skip, destructive_action_easy, no_empty_state, notification_no_action
+
+**AI Behavior Anti-Patterns (5):**
+- overconfident_suggestion, auto_execute_ambiguous, no_reasoning_shown
+- interrupt_deep_work, repeated_rejected_suggestion
+
+**Data Handling Anti-Patterns (3):**
+- pii_in_logs, unbounded_query, no_input_validation
+
+**Accessibility Anti-Patterns (2):**
+- color_only_status, no_keyboard_nav
+
+**Performance Anti-Patterns (2):**
+- memory_leak_listener, sync_on_main_thread
+
+### Reason
+Building the Adversarial Auditor as the "Black Hat" Mentor Agent that stress-tests all TinyPM systems. This is Phase 4 of the State-of-the-Art Task System implementation. The auditor provides:
+1. Chaos testing to verify Seed Vault catches anti-patterns
+2. Stress testing to verify system stability under load
+3. 100% auditable decision trail with blockchain-style hash chain
+4. Security probing to find permission/bypass vulnerabilities
+5. Simulated flight hours to discover edge cases before production
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar files - No existing adversarial/audit testing system
+- [x] No duplicates created - New capability
+
+---
+
+## 2026-02-04 - PM_Architect (Hierarchical Peer Negotiation Research)
+
+### Files Created
+- `tinypm/HIERARCHICAL_PEER_NEGOTIATION_RESEARCH.md` - Comprehensive research report on state-of-the-art multi-agent architecture (~2,500 lines)
+
+### Research Covered
+- Google A2A Protocol v0.3 for P2P agent negotiation
+- Agentic runtimes and decision auditing (Snowflake Cortex, LangSmith 2.0)
+- Seed Vault (Canonical Knowledge Model) implementation guide
+- Adversarial Auditor design with chaos engineering
+- OpenTelemetry-based audit trail architecture
+- Complete implementation roadmap for TinyPM
+
+### Key Deliverables
+1. **Executive Summary** - What HPN is and why it matters
+2. **Architecture Deep Dive** - Four-layer model (Governor, Librarian, Workers, Auditor)
+3. **P2P Negotiation Protocol Specification** - Proposal/Bid/Counter schemas
+4. **Seed Vault Implementation Guide** - Migrate existing TinyPM research
+5. **Adversarial Auditor Design** - STRIDE threat modeling, chaos engineering
+6. **Audit Trail Architecture** - 100% auditable with OpenTelemetry
+7. **Implementation Roadmap** - 8-week plan for TinyPM integration
+8. **Code Examples** - Production-ready Python implementations
+
+### Reason
+User requested state-of-the-art research on Hierarchical Peer Negotiation - the cutting-edge multi-agent architecture pattern combining hierarchical orchestration with P2P negotiation and canonical knowledge grounding.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar files - Found related: SOTA_MULTI_AGENT_RESEARCH_2026.md, A2A_INTEGRATION_GUIDE.md
+- [x] No duplicates created - This is new research building on existing work
+
+---
+
+## 2026-02-04 - PM_Architect (Seed Vault - Canonical Knowledge Model)
+
+### Files Created
+- `tinypm/seed_vault.py` - Canonical Knowledge Model enforcer (~533 lines)
+- `tinypm/SEED_VAULT_RULES.json` - Machine-readable canonical rules (25 rules)
+
+### Classes Added (seed_vault.py)
+- `RuleCategory` (Enum) - Categories: ui_pattern, ui_anti_pattern, performance, accessibility, farm_specific, engagement, proactive_ai, autonomy, memory, multi_agent
+- `RuleSeverity` (Enum) - Levels: critical, high, medium, low
+- `ComplianceStatus` (Enum) - States: compliant, violation, warning, needs_review
+- `CanonicalRule` (dataclass) - Rule structure with must_do, must_not_do, examples, keywords
+- `Proposal` (dataclass) - Agent proposal structure for compliance checking
+- `ComplianceResult` (dataclass) - Result of compliance check with violations/warnings
+- `ViolationLog` (dataclass) - Audit log for rule violations
+- `SeedVault` (class) - Main enforcer with Governor veto power
+
+### Methods Added (SeedVault class)
+- `check_compliance(proposal)` - Check if proposal follows canonical rules
+- `veto_if_violation(proposal)` - Governor veto power (returns True = KILLED)
+- `log_violation(agent, proposal, violations, action)` - Audit logging
+- `query_rule(category, keyword)` - Query rules by category or keyword
+- `get_canonical_pattern(pattern_type)` - Get specific canonical pattern
+- `get_anti_patterns()` - Get all forbidden patterns
+- `get_stats()` - Get Seed Vault statistics
+- `export_rules_json()` - Export all rules as JSON
+
+### Canonical Rules Added (25 total)
+- UI_PATTERN: UI001-UI004 (Command Palette, Keyboard-First, Dark Mode, Progressive Complexity)
+- UI_ANTI_PATTERN: ANTI001-ANTI003 (No Blank Canvas, No Vanity Gamification, No Guilt Notifications)
+- PERFORMANCE: PERF001-PERF002 (Sub-100ms Response, Animation Duration)
+- PROACTIVE_AI: PROACT001-PROACT004 (Task Boundary Timing, Confidence Thresholds, Alert Consolidation, Calendar-Aware)
+- AUTONOMY: AUTO001-AUTO002 (Five-Level Framework, Human-in-the-Loop)
+- ENGAGEMENT: ENGAGE001-ENGAGE003 (Ethical Streaks, Team Velocity, Endowed Progress)
+- FARM_SPECIFIC: FARM001-FARM002 (Weather-Aware, Seasonal Patterns)
+- MEMORY: MEM001-MEM002 (Style Learning, Cross-Session Memory)
+- ACCESSIBILITY: A11Y001-A11Y002 (WCAG Contrast, Keyboard Accessibility)
+- MULTI_AGENT: AGENT001-AGENT002 (Coordination Protocol, Self-Healing Recovery)
+
+### Reason
+Implementing the Seed Vault (Canonical Knowledge Model) based on Hierarchical Peer Negotiation pattern. Core principle: NO AGENT CAN IMPROVISE. The Governor has absolute veto power over proposals that violate canonical rules extracted from all TinyPM research documents.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
+## 2026-02-04 - PM_Architect (P2P Negotiation Protocol)
+
+### Files Created
+- `tinypm/negotiation_protocol.py` - Peer-to-Peer Negotiation Protocol for multi-agent consensus (~550 lines)
+- `tinypm/static/js/negotiation-viewer.js` - Real-time visualization of agent negotiations (~650 lines)
+
+### Classes Added (negotiation_protocol.py)
+- `MessageType` (Enum) - PROPOSE, BID, COUNTER, ACCEPT, REJECT, ESCALATE, CLARIFY, WITHDRAW
+- `CostLevel` (Enum) - LOW, MEDIUM, HIGH, PROHIBITIVE with numeric values
+- `NegotiationStatus` (Enum) - OPEN, AWAITING_BID, AWAITING_RESPONSE, CONSENSUS_REACHED, ESCALATED, REJECTED, TIMED_OUT, CLOSED
+- `AgentRole` (Enum) - ARCHITECT (UX), ALCHEMIST (Backend), GOVERNOR (PM)
+- `RiskLevel` (Enum) - MINIMAL, LOW, MODERATE, HIGH, CRITICAL
+- `Constraint` (dataclass) - Requirements with Seed Vault references
+- `Component` (dataclass) - UI component with estimated complexity
+- `ImpactEstimate` (dataclass) - User value, dev effort, maintenance overhead estimates
+- `Proposal` (dataclass) - Architect's proposal with components, citations, constraints, SHA-256 hash
+- `ResourceRequirements` (dataclass) - CPU, memory, storage, API calls, dev hours
+- `Bid` (dataclass) - Alchemist's cost analysis with counter-proposal option, SHA-256 hash
+- `Concession` (dataclass) - Record of concessions made during negotiation
+- `GovernorDecision` (dataclass) - Binding decision when escalated
+- `Consensus` (dataclass) - Final agreement with audit hash for 100% auditability
+- `NegotiationMessage` (dataclass) - Structured A2A-style message with thread tracking
+- `Agent` (dataclass) - Agent participant with role and capabilities
+- `SeedVaultValidator` - Validates proposals/bids against Seed Vault rules
+- `NegotiationChannel` - P2P channel managing proposal/bid/counter/accept/reject/escalate flow
+- `NegotiationManager` - Multi-channel manager with statistics and event broadcasting
+
+### Key Methods (NegotiationChannel)
+- `propose(proposal)` - Architect proposes a feature, validates against Seed Vault
+- `bid(bid)` - Alchemist submits cost analysis with optional counter-proposal
+- `counter(proposal)` - Either party submits counter-proposal, records concession
+- `accept(message_id)` - Accept current proposal/bid, reach consensus
+- `reject(message_id, reason)` - Reject with reason
+- `escalate_to_governor()` - Escalate to Governor for binding decision
+- `reach_consensus()` - Finalize and validate consensus, compute audit hash
+- `get_transcript()` - Full negotiation message history
+- `timeout_check()` - Check for negotiation timeout
+
+### Factory Functions
+- `create_architect_proposal()` - Create well-formed Proposal
+- `create_alchemist_bid()` - Create well-formed Bid with cost analysis
+- `create_agent()` - Create Agent with role and capabilities
+
+### Frontend Module (negotiation-viewer.js)
+- `NegotiationViewer` class - Real-time visualization component
+- WebSocket connection with auto-reconnect
+- Channel list sidebar with status indicators
+- Timeline view with proposal/bid/counter flow
+- Message detail panel with full JSON inspection
+- Consensus panel with audit hash display
+- Statistics dashboard with consensus rate
+
+### Reason
+Implements P2P Negotiation Protocol based on Google A2A Protocol and SOTA Multi-Agent Research 2026.
+This enables Architect (UX) and Alchemist (Backend) agents to negotiate feature proposals before
+code is written, reaching consensus on technical cost, latency, complexity, and feasibility.
+Governor (PM) can veto any consensus violating Seed Vault rules.
+
+Pattern: Architects propose UI features -> Alchemists bid with technical analysis ->
+         Counter-proposals until consensus or escalation to Governor.
+
+All negotiations are 100% auditable with SHA-256 hashes for full traceability.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (a2a_client.py exists but handles external agent calls, not P2P negotiation)
+- [x] No duplicates created (NegotiationProtocol is distinct from existing A2A client)
+
+---
+
+## 2026-02-04 - PM_Architect (Phase 1: Context Fusion Engine)
+
+### Files Created
+- `tinypm/context_fusion_engine.py` - Core Context Fusion Engine (~750 lines)
+- `tinypm/static/js/context-fusion.js` - Frontend integration for real-time fusion (~450 lines)
+- `tinypm/templates/context_fusion_panel.html` - Dashboard panel HTML template
+
+### Files Modified
+- `tinypm/web_server.py` - Added Context Fusion API endpoints and import
+
+### Classes Added (context_fusion_engine.py)
+- `SignalType` (Enum) - Signal source types: CALENDAR, WEATHER, TASKS, EMAIL, USER_BEHAVIOR, HISTORICAL, SEASONAL, TIME_CONTEXT
+- `SignalStatus` (Enum) - Signal states: CONNECTED, DISCONNECTED, STALE, ERROR, NOT_CONFIGURED
+- `PredictionType` (Enum) - Prediction types: NEXT_ACTION, DEADLINE_RISK, WEATHER_IMPACT, MEETING_PREP, ENERGY_OPTIMAL, FOLLOW_UP_NEEDED, SEASONAL_TASK
+- `Signal` (dataclass) - Context signal with metadata, TTL, confidence
+- `FusedContext` (dataclass) - All signals fused into unified view (~35 fields)
+- `Prediction` (dataclass) - Generated prediction with confidence, reasoning, action suggestions
+- `SignalCollector` (base class) - Abstract base for signal collectors
+- `TimeContextCollector` - Time/date context (always available)
+- `WeatherSignalCollector` - Open-Meteo API integration for farm weather
+- `CalendarSignalCollector` - Google Calendar integration
+- `TaskSignalCollector` - Task board state from board.json
+- `EmailSignalCollector` - Gmail inbox state
+- `UserBehaviorCollector` - Pattern-based behavior from pm_brain
+- `SeasonalContextCollector` - Farm seasonal calendar (PA growing calendar)
+- `ContextFusionEngine` - Main engine: parallel signal gathering, fusion formula, prediction generation
+
+### Key Methods (ContextFusionEngine)
+- `gather_signals()` - Parallel async signal collection with timeout handling
+- `fuse_signals(signals)` - Apply fusion formula: Signal x Weight x Recency x Confidence
+- `generate_predictions(context)` - Generate predictions from fused context
+- `calculate_confidence(prediction)` - Calibrated confidence calculation
+- `get_full_intelligence()` - Complete API response with context + predictions + status
+
+### API Endpoints Added (web_server.py)
+- `GET /api/fusion/intelligence` - Full fused intelligence response
+- `GET /api/fusion/signals` - Signal status summary
+- `GET /api/fusion/predictions` - Predictions only
+- `GET /api/fusion/stream` - SSE stream for real-time updates
+
+### Frontend Integration (context-fusion.js)
+- `ContextFusion.init()` - Initialize with SSE/polling fallback
+- `ContextFusion.fetchFusedIntelligence()` - Manual refresh
+- `_renderSignalStatus()` - 7-signal grid with freshness indicators
+- `_renderPredictions()` - Prediction cards with confidence, reasoning tooltips
+- Event handlers: onContextUpdate, onPrediction, onSignalStatusChange
+
+### Reason
+Phase 1 of Prescient AI System - implements context fusion to aggregate 7+ signal sources
+(calendar, weather, tasks, email, behavior, historical, seasonal) into actionable predictions.
+Based on PROACTIVE_AI_RESEARCH_2026.md research findings. Uses parallel async collection,
+graceful degradation, and confidence calibration per IUI '26 best practices.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (predictive_intent.py exists but focuses on intent prediction, not signal fusion)
+- [x] No duplicates created (ContextFusionEngine is distinct from existing PredictiveIntentEngine)
+
+---
+
+## 2026-02-04 - PM_Architect (Phase 3: Anticipatory Actions Engine)
+
+### Files Created
+- `tinypm/anticipatory_engine.py` - State of the Art proactive action engine (~450 lines)
+- `tinypm/static/js/anticipatory-actions.js` - Frontend action queue UI (~600 lines)
+
+### Classes Added (anticipatory_engine.py)
+- `TrustLevel` (Enum) - 5-level trust framework: INFORM, SUGGEST, PRE_PREPARE, ONE_CLICK, AUTO_EXECUTE
+- `ActionStatus` (Enum) - Action lifecycle states: PENDING, APPROVED, REJECTED, AUTO_EXECUTED, UNDONE, EXPIRED
+- `UndoToken` (Dataclass) - Reversibility token with expiration for action undo
+- `AnticipatedAction` (Dataclass) - Full action model with confidence, trust level, payload, and undo support
+- `EmailDraft` (Dataclass) - Pre-prepared email draft model (Superhuman-style Auto Drafts)
+- `AnticipatoryEngine` (Class) - Main engine for anticipating and preparing user actions
+
+### Functions Added (anticipatory_engine.py)
+- `determine_trust_level(confidence, action_type)` - Maps confidence to appropriate trust level
+- `create_undo_point(action, original_state)` - Creates reversibility checkpoint
+- `undo_action(token_id)` - Reverses an executed action
+- `detect_actionable_patterns()` - Scans for patterns requiring proactive action
+- `generate_email_draft(thread_id, context)` - Pre-generates email response draft
+- `pre_schedule_task(task_id, reason, new_date)` - Prepares task reschedule action
+- `execute_with_approval(action_id, approved, modifications)` - Executes action with user approval
+- `process_auto_execute_queue()` - Processes high-confidence auto-execute actions
+- `get_pending_actions()` - Returns actions awaiting user review
+- `get_action_queue_summary()` - Dashboard summary of action queue
+
+### JavaScript Module Added (anticipatory-actions.js)
+- `AnticipatoryActions` object with:
+  - Slide-in panel from right side with action queue
+  - Trust level color coding (gray/blue/yellow/green/purple)
+  - One-click approve/reject buttons
+  - Gmail-style undo toast with countdown timer
+  - "Why did I suggest this?" expandable reasoning
+  - Floating action indicator badge with pulse animation
+  - Filter by trust level (All/One-Click/Drafts/Suggestions)
+  - Keyboard shortcut (Cmd+Shift+A) to toggle panel
+  - Mobile responsive design
+
+### Action Types Supported
+1. **email_response** - Draft replies to unanswered emails (max: one_click)
+2. **task_reschedule** - Move tasks due to weather/conflicts (max: auto_execute)
+3. **reminder_creation** - Create reminders from mentioned deadlines (max: auto_execute)
+4. **harvest_alert** - GDD threshold notifications (max: one_click)
+5. **customer_followup** - Follow up on quiet threads (max: pre_prepare)
+
+### Trust Framework (Based on SOTA Research)
+| Level | Confidence | UI Behavior |
+|-------|------------|-------------|
+| INFORM | < 65% | Just show information, no action |
+| SUGGEST | 65-80% | Suggestion with reasoning |
+| PRE_PREPARE | 80-90% | Draft ready for review/edit |
+| ONE_CLICK | 90-95% | One button approval |
+| AUTO_EXECUTE | 95%+ | Auto-execute reversible actions |
+
+### Safety Guarantees
+- All auto-executed actions MUST be reversible
+- 30-minute undo window for all actions
+- Emails NEVER auto-send (max trust: one_click)
+- Original state captured before execution
+
+### Reason
+Phase 3 of SOTA TinyPM implementation - Prescient AI that anticipates user needs before they ask.
+Inspired by Superhuman's Auto Drafts feature. Creates email drafts BEFORE user requests them.
+Implements 5-level trust framework from 2026 AI research for calibrated action automation.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (no existing anticipatory system)
+- [x] No duplicates created
+- [x] Integrates with existing pm_brain.py confidence scoring
+- [x] Integrates with existing nudge_engine.py for action types
+- [x] Integrates with existing calendar_integration.py for scheduling context
+
+---
+
+## 2026-02-04 - PM_Architect (TinyPM Phase 2: Circadian/Energy Optimization)
+
+### Files Created
+- `tinypm/energy_optimizer.py` - Python backend for circadian-aware task scheduling (~300 lines)
+- `tinypm/static/js/energy-optimizer.js` - JavaScript frontend for energy visualization (~450 lines)
+
+### Files Modified
+- `tinypm/web_dashboard.html` - Added energy optimizer widget and integration
+
+### Classes Added (Python)
+- `EnergyOptimizer` in `energy_optimizer.py` - Core optimization engine with:
+  - `get_current_energy_state()` - Returns current energy level, percentage, trend
+  - `match_task_to_energy()` - Scores task-energy fit (0-1)
+  - `optimize_schedule()` - Reorders tasks for optimal energy matching
+  - `suggest_optimal_time()` - Recommends best time for a task
+  - `detect_energy_conflicts()` - Finds scheduling conflicts
+- `EnergyState`, `TimeRecommendation`, `EnergyConflict`, `OptimizedSchedule` dataclasses
+
+### Functions Added (JavaScript)
+- `EnergyOptimizer.init()` - Initialize and render energy visualization
+- `EnergyOptimizer.renderEnergyMeter()` - Battery-style energy meter
+- `EnergyOptimizer.renderEnergyCurve()` - 24-hour SVG energy curve
+- `EnergyOptimizer.renderRecommendations()` - Task recommendations based on energy
+- `EnergyOptimizer.getTaskEnergyMatch()` - Calculate task-energy fit score
+- `EnergyOptimizer.suggestBestTime()` - Generate optimal time suggestion
+- `EnergyOptimizer.showProfileModal()` - Profile configuration UI
+- `EnergyOptimizer.addEnergyIndicatorToTask()` - Add energy badges to task cards
+
+### Energy Profiles Implemented
+1. **Farmer (Early Riser)** - Peak 5-8am, dip 12-3pm, evening recovery 5-7pm
+2. **Morning Person** - Peak 6-10am, dip 12-2pm, secondary peak 2-4pm
+3. **Night Owl** - Peak 10am-1pm, dip afternoon, evening peak 7-11pm
+
+### Task Energy Categories
+- HIGH: planning, harvesting, transplanting, budget_review, seeding
+- MODERATE: customer_calls, market_prep, delivery, team_meeting
+- LOW: watering, weeding, data_entry, cleaning, inventory_count
+
+### UI Components Added
+- Energy meter widget (header of Tasks view)
+- Energy curve SVG visualization (24-hour view)
+- Task recommendations panel
+- Profile selection modal
+- Task card energy indicators (green/yellow/red glow)
+
+### Reason
+Implementing Phase 2 of TinyPM's Prescient AI System. Based on cognitive science research showing:
+- Peak performance windows (10am-12pm standard, 5-8am farmers)
+- Afternoon dips (1-3pm standard, 12-2pm farmers due to heat)
+- Secondary peaks (4-6pm standard, 5-7pm farmers)
+
+The system optimizes task scheduling to match cognitive/physical demands with natural energy rhythms.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md - No existing energy/circadian system
+- [x] Searched for similar functions - None found
+- [x] No duplicates created
+
+---
+
+## 2026-02-04 - PM_Architect (Phase 4: Continuous Learning System)
+
+### Files Created
+- `tinypm/learning_engine.py` - Core learning engine with prediction tracking, outcome recording, confidence calibration, pattern learning, and temporal decay (~350 lines)
+- `tinypm/static/js/learning-system.js` - Frontend feedback capture UI, pattern visualization, teach me mode, and confidence display (~400 lines with CSS)
+
+### Classes Added
+- `LearningEngine` in `learning_engine.py` - Main learning engine class
+  - `record_prediction()` - Record when AI makes a prediction/suggestion
+  - `record_outcome()` - Record user feedback (accepted/rejected/modified/ignored/undone)
+  - `update_confidence_calibration()` - Bayesian confidence calibration based on historical accuracy
+  - `get_calibrated_confidence()` - Apply calibration to raw confidence scores
+  - `learn_pattern()` - Extract and store patterns from interactions
+  - `get_pattern_weight()` - Retrieve learned pattern weights
+  - `decay_old_patterns()` - Apply temporal decay to adapt to changing behavior
+  - `export_learning_state()` / `import_learning_state()` - Backup/sync support
+  - `get_stats()` - Learning statistics dashboard
+  - `get_learned_preferences()` - Human-readable preference descriptions
+
+- `LearningSystem` in `learning-system.js` - Frontend learning interface
+  - `recordPrediction()` - Track predictions shown to user
+  - `recordOutcome()` - Capture user feedback
+  - `attachFeedbackUI()` - Add subtle feedback buttons to suggestions
+  - `openTeachMode()` / `submitTeaching()` - Explicit correction mode
+  - `refreshStats()` - Fetch learning stats from backend
+  - `renderLearningPanel()` - Visualize learned patterns
+
+### Enums/Data Structures Added
+- `Outcome` enum - ACCEPTED, REJECTED, MODIFIED, IGNORED, EXECUTED_UNDO
+- `OUTCOME_WEIGHTS` - Learning signal weights for each outcome type
+- `LEARNABLE_PATTERNS` - Pattern categories (time_preferences, priority_adjustments, email_response_style, task_duration_accuracy, weather_sensitivity, energy_level_patterns, interruption_tolerance)
+- `Prediction` dataclass - Recorded prediction with context
+- `RecordedOutcome` dataclass - User feedback on prediction
+- `PatternEntry` dataclass - Learned pattern storage
+
+### Key Features
+1. **Confidence Calibration** - If predicted 80% confidence but actual acceptance is 95%, calibration factor adjusts future predictions
+2. **Pattern Learning** - Learns time-of-day preferences, task type preferences, energy patterns, weather sensitivity
+3. **Temporal Decay** - Old patterns decay toward neutral to adapt to changing behavior (3% per day after 30 days)
+4. **Teach Me Mode** - Users can provide explicit corrections with "always apply" or "context only" options
+5. **Export/Import** - Full state backup and sync support
+6. **Statistics Dashboard** - Tracks predictions, acceptance rate, calibration status, patterns learned
+
+### Integration Points
+- Backend API endpoints needed: `/api/learning/record-prediction`, `/api/learning/record-outcome`, `/api/learning/stats`, `/api/learning/preferences`, `/api/learning/teach`, `/api/learning/reset`, `/api/learning/export`
+- Works with existing anticipatory_engine.py for calibrated confidence
+- Frontend hooks into suggestion UI components
+
+### Reason
+Implementing Phase 4 of the State of the Art Task Management System. The learning system enables TinyPM to get smarter over time by tracking what suggestions work for this specific user, calibrating confidence based on historical accuracy, and learning patterns across multiple dimensions.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions - pm_brain.py has basic pattern tracking, this extends it significantly
+- [x] No duplicates created - this is a new learning-focused subsystem that complements existing memory systems
+
+---
+
+## 2026-02-04 - Frontend_Claude (Chief of Staff Redesign Completion)
+
+### Files Modified
+- `apps_script/ChiefOfStaffDashboard.html` - Complete Chief of Staff 6-week redesign in one night
+
+### Features Added
+1. **Command Palette (Cmd+K)** - Full keyboard-driven navigation with fuzzy search
+2. **AI Slide-out Panel** - Farm Wizard assistant with slide-out UI and FAB button
+3. **Focus Card Section** - Priority-based focus system with swipe gestures
+4. **Up Next Section** - Queue of upcoming priorities
+5. **Swipe Gestures** - Swipe left (skip) / right (done) on mobile focus cards
+6. **Offline Support** - Offline banner, localStorage caching for insights
+7. **Keyboard Navigation** - Arrow keys + Enter for command palette
+
+### CSS Added
+- Command palette overlay and styling
+- AI panel slide-out with backdrop
+- Focus card with gradient border
+- Up next list items with badges
+- Pull-to-refresh indicator
+- Offline banner
+
+### JavaScript Added
+- `openCommandPalette()`, `closeCommandPalette()`, `filterCommands()`, `renderCommands()`, `executeCommand()`
+- `openAIPanel()`, `closeAIPanel()`, `toggleAIPanel()`, `addPanelMessage()`, `sendPanelMessage()`, `askPanelAI()`
+- `loadFocusItems()`, `renderFocusCard()`, `renderUpNext()`, `jumpToFocus()`, `completeFocusItem()`, `skipFocusItem()`
+- `initSwipeGestures()`, `resetCardPosition()`
+- Keyboard event listeners for Cmd+K, arrow keys, Enter, Escape
+
+### Performance
+- Final file size: 61KB (target was <100KB) ✓
+- Well under budget
+
+### Reason
+Completing the overnight sprint - the CoS Week 1-6 teams all hit rate limits before finishing their work. This completes all the missing features from the 6-week redesign spec.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created - enhanced existing file
+
+---
+
+## 2026-02-04 - Backend_Claude (USDA Organic Certification Reports Dashboard)
+
+### Files Created
+- `apps_script/ReportsDashboard.html` - USDA Organic Compliance Reports Dashboard with year selector, report cards for all 7 report types, data viewing modal, and audit package generation
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Added USDA Organic Compliance Reports system
+
+### Functions Added
+- `generateOrganicAuditPackage(year)` - Master function to compile complete USDA audit package
+- `getSeedSourceReport(year)` - Seed purchase records with organic status tracking
+- `getFieldHistoryReport(year)` - Field and planting history with buffer zone info
+- `getInputApplicationReport(year)` - Input/amendment applications with OMRI status
+- `getHarvestReport(year)` - Harvest records with lot number traceability
+- `getOrganicSalesReport(year)` - Sales records with organic status and lot tracking
+- `getPestManagementReport(year)` - Pest observations and organic control measures
+- `getTraceabilityReport(year)` - Seed-to-sale audit trail analysis with scoring
+- `getOrganicComplianceStatus(year)` - Quick compliance health check
+- `exportOrganicReportForPDF(year)` - Format data for PDF export
+
+### API Endpoints Added (in doGet switch)
+- `generateOrganicAuditPackage` - Generate complete audit package
+- `getSeedSourceReport` - Get seed source records
+- `getFieldHistoryReport` - Get field history records
+- `getInputApplicationReport` - Get input application records
+- `getHarvestReport` - Get harvest records
+- `getOrganicSalesReport` - Get organic sales records
+- `getPestManagementReport` - Get pest management records
+- `getTraceabilityReport` - Get traceability analysis
+- `exportOrganicReportForPDF` - Export for PDF generation
+- `getOrganicComplianceStatus` - Get compliance status
+
+### Page Route Added
+- `?page=reports` or `?page=organic-reports` - Serves ReportsDashboard.html
+
+### Reason
+Task 8.1-8.6: Build USDA Organic Certification Reports Dashboard for audit compliance. During USDA audits, inspectors need comprehensive records for seed sources, field history, inputs, harvests, sales, pest management, and complete traceability. This system makes all required documentation available at the click of a button.
+
+### Required Sheets for Full Compliance
+1. **SEED_INVENTORY** - Seed purchases with lot numbers and organic status
+2. **INPUT_LOG** - Input applications with OMRI listing status
+3. **HARVESTS** - Harvest records with lot numbers
+4. **PEST_LOG** - Pest observations and treatments
+5. **SALES** - Sales records with lot traceability
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md - No existing USDA organic reports system
+- [x] Searched for similar functions - Found existing compliance code but no comprehensive organic audit reports
+- [x] No duplicates created - These are new functions specific to organic certification
+
+---
+
+## 2026-02-04 - Backend_Claude (Team 1: UX & Performance Fixes - Sprint Tasks)
+
+### Files Modified
+
+**Task 1.3 - Manager Dashboard Review:**
+- `web_app/manager-dashboard.html` - VERIFIED: Already follows "NO SAMPLE DATA" rule, uses "--" placeholders, proper error states with retry buttons
+
+**Task 1.4 - Field Planner Fix:**
+- `apps_script/MERGED TOTAL.js` - Fixed `analyzeUnassignedPlantings()` function (lines 19250-19309)
+  - Changed response from `byFieldTime` (grouped by month) to `groupedByFieldTime` (grouped by field time duration)
+  - Added field time duration grouping (Quick: <45 days, Short: 45-75, Medium: 75-100, Long: 100-130, VeryLong: 130+)
+  - Added `fieldStart` field to each planting for frontend display
+  - Added `daysInField`, `fieldTimeGroup`, `rowIndex` fields for better data handling
+
+**Task 1.5 - Flowers.html Task Count:**
+- `flowers.html` - Fixed hardcoded task counts
+  - Line 845: Changed `id="tasksDue">8</div>` to `>--</div>` (loading state)
+  - Line 860: Changed `id="completedTasks">24</div>` to `>--</div>` (loading state)
+  - Line 871: Added `id="todaysTasksBadge"` to badge and changed "8 tasks" to "-- tasks"
+  - Updated `renderDashboard()` function to dynamically update stats from API data
+
+### Functions Modified
+- `analyzeUnassignedPlantings()` in `MERGED TOTAL.js` - Complete rewrite to match frontend expectations
+- `renderDashboard()` in `flowers.html` - Added dynamic stats update logic
+
+### Reason
+Team 1 UX & Performance Fixes sprint - Fixing disconnects between backend and frontend, removing hardcoded demo data, ensuring real API data flows through.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions - `analyzeUnassignedPlantings` is the canonical function
+- [x] No duplicates created
+
+---
+
+## 2026-02-04 - Frontend_Claude/UX_Claude (Portals & Labels Deep Audit)
+
+### Files Created
+- `docs/LABEL_HARDWARE_PLAN.md` - Comprehensive label hardware specification for waterproof seed tray labels with QR traceability
+
+### Files Modified
+- None (audit and documentation only)
+
+### Documentation Created
+Label Hardware Plan includes:
+- GoDEX RT700i+ printer recommendation ($400)
+- Waterproof synthetic polypropylene label specifications
+- Thermal transfer vs direct thermal comparison
+- QR code vs barcode analysis
+- Cost analysis (~$350/year for 10K labels)
+- Implementation checklist
+- Vendor contacts
+
+### Audit Findings
+
+**CSA Portal (web_app/csa.html):**
+- Working: Login (magic link + SMS), onboarding wizard, box preview, item swaps, vacation holds, flex funds, communication preferences
+- Gap: No recipe suggestions, limited "what's coming" forecasting
+
+**Wholesale Portal (web_app/wholesale.html):**
+- Working: Magic link login, product catalog, cart, orders, standing orders, account management
+- Gap: No real-time inventory alerts, no invoicing/PDF generation
+
+**Labels (labels.html + web_app/labels.html):**
+- Working: Seed tray labels with QR codes, market signs (3 categories), CSA labels, wholesale labels
+- Gap: No CSA box contents labels with member name, no wholesale traceability labels with lot numbers
+
+### Reason
+Team 4 Mission: Portals & Labels - Deep audit of CSA portal, wholesale portal, and labels system to identify gaps and create actionable improvement plans.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md - Both portals documented as WORKING
+- [x] Searched for similar functions - No duplicates created
+- [x] No code duplicates created - Documentation only
+
+---
+
+## 2026-02-04 - PM_Architect + Backend_Claude (Field Boundary Capture Upgrade)
+
+### Files Modified
+- `apps_script/FieldMobileCapture.html` - Major upgrade with 4 new feature sets (955 → 1865 lines)
+
+### Functions Added (in FieldMobileCapture.html)
+
+**Offline Capability (IndexedDB):**
+- `openFieldDB()` - Opens/creates IndexedDB database for pending boundaries
+- `savePendingBoundary(fieldData)` - Saves captured boundaries when offline
+- `getPendingBoundaries()` - Retrieves all pending boundaries
+- `markBoundarySynced(id)` - Marks a boundary as synced after upload
+- `deleteBoundary(id)` - Deletes a boundary from local storage
+- `syncPendingBoundaries()` - Auto-syncs pending boundaries when connection restored
+- `updateConnectionStatus()` - Updates online/offline UI indicator
+- `updatePendingCount()` - Updates pending upload badge
+
+**Data Export (KML/GeoJSON):**
+- `exportToKML(points, fieldName, metadata)` - Generates KML for Google Earth
+- `exportToGeoJSON(points, fieldName, metadata)` - Generates GeoJSON for GIS
+- `downloadFile(content, filename, mimeType)` - Blob-based file download
+- `escapeXml(str)` - XML character escaping
+- `sanitizeFilename(str)` - Safe filename generation
+- `getFieldMetadata()` - Calculates area/perimeter for export
+- `handleExport(format)` - Export button handler
+
+**Undo & Manual Points:**
+- `undoLastPoint()` - Removes last captured point (preserves first)
+- `updateUndoButton()` - Enables/disables undo based on point count
+- `dropManualPoint()` - Manually drops point at current GPS location
+- `clearAllPoints()` - Clears all points with confirmation
+
+**Point Averaging & GPS Quality:**
+- `PointAverager` class - Collects GPS samples over 5 seconds, calculates weighted average
+- `toggleAccuracyMode()` - Switches between Fast and High Accuracy modes
+- `addPointWithAccuracy()` - Stores accuracy data with captured points
+- `updatePathWithQuality()` - Color-codes path segments by GPS accuracy
+
+### UI Elements Added
+- Connection status indicator (online/offline badge)
+- Pending uploads count badge
+- Export buttons (KML, GeoJSON) in form panel
+- Undo Last Point button during recording
+- Drop Point Here button for manual capture
+- Accuracy Mode toggle (Fast vs High Accuracy)
+- Averaging progress indicator during high-accuracy capture
+- GPS quality legend (color-coded accuracy levels)
+
+### Reason
+User requested "deep research to make the best field marking app possible" and "team to update the current version to the best possible." Based on comprehensive research comparing Trimble, John Deere, Climate FieldView, Gaia GPS, and other industry-leading apps, implemented Phase 1 critical features: Offline capability, Data export, Undo functionality, and Point averaging/quality visualization.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md - FieldMobileCapture.html exists, enhanced it
+- [x] Searched for similar functions - No duplicates
+- [x] No new files created - All code in existing file
+
+---
+
 ## 2026-02-04 - Backend_Claude (Satellite SMS Alert System)
 
 ### Files Modified

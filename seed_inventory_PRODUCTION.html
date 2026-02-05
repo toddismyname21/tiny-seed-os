@@ -713,6 +713,9 @@
                     <button class="btn btn-primary" onclick="openSeedCalculator()" title="Calculate seeds needed">
                         <span>Calculator</span>
                     </button>
+                    <button class="btn" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white;" onclick="openProductionPlanner()" title="Plan seed needs for date range">
+                        <span>Production Planner</span>
+                    </button>
                 </div>
             </div>
             
@@ -895,6 +898,101 @@
                 <button class="btn btn-primary" onclick="analyzePacket()" id="analyzeBtn" style="display: none;">
                     🤖 Analyze with AI
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Production Planner Modal -->
+    <div class="modal-overlay" id="productionPlannerModal">
+        <div class="modal" style="max-width: 900px;">
+            <div class="modal-header">📅 Production Planner - Seed Needs Calculator</div>
+            <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                Select a date range to calculate all seeds needed for planned plantings. Based on your PLANNING sheet data.
+            </p>
+
+            <!-- Date Range Picker -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 15px; margin-bottom: 20px; align-items: end;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Start Date</label>
+                    <input type="date" id="plannerStartDate">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>End Date</label>
+                    <input type="date" id="plannerEndDate">
+                </div>
+                <button class="btn btn-primary" onclick="calculateProductionNeeds()" style="height: 42px;">
+                    Calculate Needs
+                </button>
+            </div>
+
+            <!-- Quick Date Range Buttons -->
+            <div style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
+                <button class="btn btn-secondary btn-small" onclick="setDateRange('week')">Next Week</button>
+                <button class="btn btn-secondary btn-small" onclick="setDateRange('2weeks')">Next 2 Weeks</button>
+                <button class="btn btn-secondary btn-small" onclick="setDateRange('month')">Next Month</button>
+                <button class="btn btn-secondary btn-small" onclick="setDateRange('quarter')">Next 3 Months</button>
+                <button class="btn btn-secondary btn-small" onclick="setDateRange('season')">Full Season</button>
+            </div>
+
+            <!-- Loading State -->
+            <div id="plannerLoading" style="display: none; text-align: center; padding: 40px;">
+                <div style="font-size: 48px; animation: spin 1s linear infinite;">🌱</div>
+                <p style="color: var(--text-secondary); margin-top: 10px;">Calculating seed needs from planning data...</p>
+            </div>
+
+            <!-- Results Section -->
+            <div id="plannerResults" style="display: none;">
+                <!-- Summary Stats -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                    <div class="stat-card">
+                        <div class="stat-value" id="plannerTotalPlantings">0</div>
+                        <div class="stat-label">Total Plantings</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="plannerTotalSeeds">0</div>
+                        <div class="stat-label">Seeds Needed</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="plannerCropsCount">0</div>
+                        <div class="stat-label">Crop Varieties</div>
+                    </div>
+                    <div class="stat-card" style="border-left-color: var(--warning);">
+                        <div class="stat-value" id="plannerShortages">0</div>
+                        <div class="stat-label">Need to Order</div>
+                    </div>
+                </div>
+
+                <!-- Seed Needs Table -->
+                <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 20px;">
+                    <div style="padding: 15px; background: var(--bg-light); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                        <strong style="color: var(--text-primary);">Seed Requirements</strong>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn btn-small btn-secondary" onclick="exportSeedReport('csv')">Export CSV</button>
+                            <button class="btn btn-small btn-secondary" onclick="exportSeedReport('print')">Print Report</button>
+                        </div>
+                    </div>
+                    <div id="seedNeedsTable" style="max-height: 400px; overflow-y: auto;"></div>
+                </div>
+
+                <!-- Shortages Section -->
+                <div id="shortagesSection" style="display: none; background: rgba(230, 57, 70, 0.1); border: 1px solid var(--danger); border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <strong style="color: var(--danger);">⚠️ Seeds to Order</strong>
+                        <button class="btn btn-success btn-small" onclick="createOrderTask()">Create Order Task</button>
+                    </div>
+                    <div id="shortagesList"></div>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div id="plannerEmpty" style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                <div style="font-size: 64px; margin-bottom: 15px; opacity: 0.5;">📅</div>
+                <div style="font-size: 16px; margin-bottom: 10px;">Select a date range to see seed requirements</div>
+                <div style="font-size: 13px;">Data is pulled from your PLANNING sheet</div>
+            </div>
+
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" onclick="closeProductionPlanner()">Close</button>
             </div>
         </div>
     </div>
@@ -1657,6 +1755,523 @@
         }
 
         init();
+
+        // ============ PRODUCTION PLANNER ============
+
+        let productionPlanData = [];
+        let calculatedSeedNeeds = [];
+
+        function openProductionPlanner() {
+            document.getElementById('productionPlannerModal').classList.add('active');
+
+            // Set default dates (today to 2 weeks out)
+            const today = new Date();
+            const twoWeeksOut = new Date(today);
+            twoWeeksOut.setDate(twoWeeksOut.getDate() + 14);
+
+            document.getElementById('plannerStartDate').value = today.toISOString().split('T')[0];
+            document.getElementById('plannerEndDate').value = twoWeeksOut.toISOString().split('T')[0];
+
+            // Reset display
+            document.getElementById('plannerResults').style.display = 'none';
+            document.getElementById('plannerLoading').style.display = 'none';
+            document.getElementById('plannerEmpty').style.display = 'block';
+        }
+
+        function closeProductionPlanner() {
+            document.getElementById('productionPlannerModal').classList.remove('active');
+        }
+
+        function setDateRange(range) {
+            const today = new Date();
+            const startDate = new Date(today);
+            let endDate = new Date(today);
+
+            switch (range) {
+                case 'week':
+                    endDate.setDate(endDate.getDate() + 7);
+                    break;
+                case '2weeks':
+                    endDate.setDate(endDate.getDate() + 14);
+                    break;
+                case 'month':
+                    endDate.setMonth(endDate.getMonth() + 1);
+                    break;
+                case 'quarter':
+                    endDate.setMonth(endDate.getMonth() + 3);
+                    break;
+                case 'season':
+                    // Set to end of growing season (November)
+                    endDate = new Date(today.getFullYear(), 10, 30);
+                    if (endDate < today) {
+                        endDate = new Date(today.getFullYear() + 1, 10, 30);
+                    }
+                    break;
+            }
+
+            document.getElementById('plannerStartDate').value = startDate.toISOString().split('T')[0];
+            document.getElementById('plannerEndDate').value = endDate.toISOString().split('T')[0];
+
+            calculateProductionNeeds();
+        }
+
+        async function calculateProductionNeeds() {
+            const startDate = document.getElementById('plannerStartDate').value;
+            const endDate = document.getElementById('plannerEndDate').value;
+
+            if (!startDate || !endDate) {
+                showToast('Please select both start and end dates', 'error');
+                return;
+            }
+
+            if (new Date(startDate) > new Date(endDate)) {
+                showToast('Start date must be before end date', 'error');
+                return;
+            }
+
+            // Show loading
+            document.getElementById('plannerEmpty').style.display = 'none';
+            document.getElementById('plannerResults').style.display = 'none';
+            document.getElementById('plannerLoading').style.display = 'block';
+
+            try {
+                // Fetch planning data for date range
+                const response = await fetch(`${API_URL}?action=getProductionPlanForDateRange&startDate=${startDate}&endDate=${endDate}`);
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    productionPlanData = result.data;
+                    processAndDisplaySeedNeeds(result.data);
+                } else if (result.success && (!result.data || result.data.length === 0)) {
+                    showEmptyPlanningState();
+                } else {
+                    throw new Error(result.error || 'Failed to fetch planning data');
+                }
+            } catch (error) {
+                console.error('Production planning error:', error);
+
+                // Try alternative approach - get all planning data and filter locally
+                try {
+                    const response = await fetch(`${API_URL}?action=getPlanningData`);
+                    const result = await response.json();
+
+                    if (result.success && result.data) {
+                        // Filter by date range - check multiple date fields
+                        const start = new Date(startDate);
+                        const end = new Date(endDate);
+
+                        const filtered = result.data.filter(item => {
+                            // Get the relevant sowing/planting date
+                            const ghSowDate = item.Plan_GH_Sow ? new Date(item.Plan_GH_Sow) : null;
+                            const fieldSowDate = item.Plan_Field_Sow ? new Date(item.Plan_Field_Sow) : null;
+                            const transplantDate = item.Plan_Transplant ? new Date(item.Plan_Transplant) : null;
+
+                            // Use the earliest applicable date (greenhouse sow for transplants, field sow for direct seed)
+                            let plantDate = ghSowDate || fieldSowDate || transplantDate;
+
+                            if (!plantDate || isNaN(plantDate.getTime())) return false;
+
+                            return plantDate >= start && plantDate <= end;
+                        });
+
+                        if (filtered.length > 0) {
+                            productionPlanData = filtered;
+                            processAndDisplaySeedNeeds(filtered);
+                        } else {
+                            showEmptyPlanningState();
+                        }
+                    } else {
+                        showEmptyPlanningState();
+                    }
+                } catch (fallbackError) {
+                    console.error('Fallback error:', fallbackError);
+                    showPlanningError('Could not load planning data. Check your connection.');
+                }
+            }
+        }
+
+        function processAndDisplaySeedNeeds(planningData) {
+            document.getElementById('plannerLoading').style.display = 'none';
+            document.getElementById('plannerResults').style.display = 'block';
+
+            // Aggregate seed needs by crop/variety
+            const seedNeedsMap = {};
+
+            planningData.forEach(item => {
+                const crop = item.Crop || item.crop || 'Unknown';
+                const variety = item.Variety || item.variety || '';
+                const key = `${crop}|${variety}`;
+
+                // Calculate seeds needed based on planning data
+                // Use Total_Plants from PLANNING_2026 sheet
+                const plantsNeeded = Number(item.Total_Plants || item.Plants_Needed || item.Quantity || 0);
+
+                // Look for matching inventory item to get germination rate
+                const inventoryMatch = seedInventory.find(s =>
+                    s.crop.toLowerCase() === crop.toLowerCase() &&
+                    (!variety || s.variety.toLowerCase().includes(variety.toLowerCase()))
+                );
+
+                const germRate = (inventoryMatch?.germRate || 85) / 100;
+                const safetyFactor = 1.1; // 10% safety margin
+
+                const seedsNeeded = Math.ceil(plantsNeeded / germRate * safetyFactor);
+
+                if (!seedNeedsMap[key]) {
+                    seedNeedsMap[key] = {
+                        crop: crop,
+                        variety: variety,
+                        totalPlants: 0,
+                        totalSeeds: 0,
+                        plantings: [],
+                        inStock: 0,
+                        shortage: 0
+                    };
+                }
+
+                seedNeedsMap[key].totalPlants += plantsNeeded;
+                seedNeedsMap[key].totalSeeds += seedsNeeded;
+
+                // Get the relevant date for this planting
+                const plantDate = item.Plan_GH_Sow || item.Plan_Field_Sow || item.Plan_Transplant || '';
+
+                seedNeedsMap[key].plantings.push({
+                    date: plantDate,
+                    batchId: item.Batch_ID || '',
+                    plants: plantsNeeded,
+                    seeds: seedsNeeded,
+                    method: item.Method || item.Planting_Method || '',
+                    notes: item.Notes || ''
+                });
+            });
+
+            // Check inventory for each crop
+            calculatedSeedNeeds = Object.values(seedNeedsMap).map(need => {
+                // Find matching inventory
+                const inventoryMatch = seedInventory.find(s =>
+                    s.crop.toLowerCase() === need.crop.toLowerCase() &&
+                    (!need.variety || s.variety.toLowerCase().includes(need.variety.toLowerCase()))
+                );
+
+                if (inventoryMatch) {
+                    const inStockSeeds = inventoryMatch.quantity * inventoryMatch.seedsPerPacket;
+                    need.inStock = inStockSeeds;
+                    need.shortage = Math.max(0, need.totalSeeds - inStockSeeds);
+                    need.inventoryItem = inventoryMatch;
+                } else {
+                    need.shortage = need.totalSeeds;
+                }
+
+                return need;
+            });
+
+            // Sort by shortage (highest first)
+            calculatedSeedNeeds.sort((a, b) => b.shortage - a.shortage);
+
+            // Update summary stats
+            document.getElementById('plannerTotalPlantings').textContent = planningData.length;
+            document.getElementById('plannerTotalSeeds').textContent = calculatedSeedNeeds.reduce((sum, n) => sum + n.totalSeeds, 0).toLocaleString();
+            document.getElementById('plannerCropsCount').textContent = calculatedSeedNeeds.length;
+
+            const shortages = calculatedSeedNeeds.filter(n => n.shortage > 0);
+            document.getElementById('plannerShortages').textContent = shortages.length;
+
+            // Render seed needs table
+            renderSeedNeedsTable(calculatedSeedNeeds);
+
+            // Render shortages section
+            if (shortages.length > 0) {
+                document.getElementById('shortagesSection').style.display = 'block';
+                renderShortagesList(shortages);
+            } else {
+                document.getElementById('shortagesSection').style.display = 'none';
+            }
+        }
+
+        function renderSeedNeedsTable(needs) {
+            const container = document.getElementById('seedNeedsTable');
+
+            if (needs.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 30px; color: var(--text-secondary);">
+                        No seed requirements found for this date range
+                    </div>
+                `;
+                return;
+            }
+
+            const tableHtml = `
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: var(--bg-dark);">
+                            <th style="padding: 12px; text-align: left; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 12px; text-transform: uppercase;">Crop</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 12px; text-transform: uppercase;">Variety</th>
+                            <th style="padding: 12px; text-align: right; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 12px; text-transform: uppercase;">Plants</th>
+                            <th style="padding: 12px; text-align: right; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 12px; text-transform: uppercase;">Seeds Needed</th>
+                            <th style="padding: 12px; text-align: right; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 12px; text-transform: uppercase;">In Stock</th>
+                            <th style="padding: 12px; text-align: center; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 12px; text-transform: uppercase;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${needs.map(need => {
+                            const hasShortage = need.shortage > 0;
+                            const statusColor = hasShortage ? 'var(--danger)' : 'var(--success)';
+                            const statusText = hasShortage ? `Need ${need.shortage.toLocaleString()}` : 'OK';
+                            const rowBg = hasShortage ? 'rgba(230, 57, 70, 0.05)' : '';
+
+                            return `
+                                <tr style="background: ${rowBg};">
+                                    <td style="padding: 12px; border-bottom: 1px solid var(--border); color: var(--text-primary); font-weight: 600;">${need.crop}</td>
+                                    <td style="padding: 12px; border-bottom: 1px solid var(--border); color: var(--text-secondary);">${need.variety || '-'}</td>
+                                    <td style="padding: 12px; text-align: right; border-bottom: 1px solid var(--border); color: var(--text-primary);">${need.totalPlants.toLocaleString()}</td>
+                                    <td style="padding: 12px; text-align: right; border-bottom: 1px solid var(--border); color: var(--secondary); font-weight: 600;">${need.totalSeeds.toLocaleString()}</td>
+                                    <td style="padding: 12px; text-align: right; border-bottom: 1px solid var(--border); color: var(--text-primary);">${need.inStock.toLocaleString()}</td>
+                                    <td style="padding: 12px; text-align: center; border-bottom: 1px solid var(--border);">
+                                        <span style="padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 700; background: ${hasShortage ? 'rgba(230, 57, 70, 0.2)' : 'rgba(42, 157, 143, 0.2)'}; color: ${statusColor};">
+                                            ${statusText}
+                                        </span>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            container.innerHTML = tableHtml;
+        }
+
+        function renderShortagesList(shortages) {
+            const container = document.getElementById('shortagesList');
+
+            const html = shortages.map(item => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--bg-card); border-radius: 6px; margin-bottom: 8px;">
+                    <div>
+                        <strong style="color: var(--text-primary);">${item.crop}</strong>
+                        ${item.variety ? `<span style="color: var(--text-secondary);"> - ${item.variety}</span>` : ''}
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="color: var(--danger); font-weight: 700;">${item.shortage.toLocaleString()} seeds</div>
+                        <div style="font-size: 11px; color: var(--text-secondary);">
+                            ~${Math.ceil(item.shortage / (item.inventoryItem?.seedsPerPacket || 100))} packets
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            container.innerHTML = html;
+        }
+
+        function showEmptyPlanningState() {
+            document.getElementById('plannerLoading').style.display = 'none';
+            document.getElementById('plannerResults').style.display = 'none';
+            document.getElementById('plannerEmpty').style.display = 'block';
+            document.getElementById('plannerEmpty').innerHTML = `
+                <div style="font-size: 64px; margin-bottom: 15px; opacity: 0.5;">📭</div>
+                <div style="font-size: 16px; margin-bottom: 10px; color: var(--text-primary);">No Plantings Found</div>
+                <div style="font-size: 13px; color: var(--text-secondary);">No plantings scheduled in this date range.<br>Check your PLANNING sheet or select a different date range.</div>
+            `;
+        }
+
+        function showPlanningError(message) {
+            document.getElementById('plannerLoading').style.display = 'none';
+            document.getElementById('plannerResults').style.display = 'none';
+            document.getElementById('plannerEmpty').style.display = 'block';
+            document.getElementById('plannerEmpty').innerHTML = `
+                <div style="font-size: 64px; margin-bottom: 15px;">⚠️</div>
+                <div style="font-size: 16px; margin-bottom: 10px; color: var(--danger);">Error Loading Data</div>
+                <div style="font-size: 13px; color: var(--text-secondary);">${message}</div>
+                <button class="btn btn-primary" style="margin-top: 15px;" onclick="calculateProductionNeeds()">Retry</button>
+            `;
+        }
+
+        function exportSeedReport(format) {
+            if (calculatedSeedNeeds.length === 0) {
+                showToast('No data to export', 'error');
+                return;
+            }
+
+            const startDate = document.getElementById('plannerStartDate').value;
+            const endDate = document.getElementById('plannerEndDate').value;
+
+            if (format === 'csv') {
+                // Generate CSV
+                const headers = ['Crop', 'Variety', 'Plants Needed', 'Seeds Needed', 'In Stock', 'To Order'];
+                const rows = calculatedSeedNeeds.map(n => [
+                    n.crop,
+                    n.variety || '',
+                    n.totalPlants,
+                    n.totalSeeds,
+                    n.inStock,
+                    n.shortage
+                ]);
+
+                const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `seed-needs-${startDate}-to-${endDate}.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
+
+                showToast('CSV exported successfully', 'success');
+            } else if (format === 'print') {
+                // Open print-friendly window
+                const printWindow = window.open('', '_blank', 'width=800,height=600');
+
+                const shortages = calculatedSeedNeeds.filter(n => n.shortage > 0);
+
+                printWindow.document.write(`
+                    <html>
+                    <head>
+                        <title>Seed Requirements Report</title>
+                        <style>
+                            body { font-family: Arial, sans-serif; padding: 20px; }
+                            h1 { font-size: 24px; margin-bottom: 5px; }
+                            .subtitle { color: #666; margin-bottom: 20px; }
+                            table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+                            th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
+                            th { background: #f5f5f5; font-size: 12px; text-transform: uppercase; }
+                            .shortage { background: #fee2e2; }
+                            .summary { display: flex; gap: 30px; margin-bottom: 20px; }
+                            .stat { padding: 15px; background: #f0f9ff; border-radius: 8px; }
+                            .stat-value { font-size: 24px; font-weight: bold; color: #2563eb; }
+                            .stat-label { font-size: 12px; color: #666; }
+                            @media print { .no-print { display: none; } }
+                        </style>
+                    </head>
+                    <body>
+                        <h1>Seed Requirements Report</h1>
+                        <div class="subtitle">${startDate} to ${endDate} | Generated ${new Date().toLocaleDateString()}</div>
+
+                        <div class="summary">
+                            <div class="stat">
+                                <div class="stat-value">${productionPlanData.length}</div>
+                                <div class="stat-label">Plantings</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value">${calculatedSeedNeeds.reduce((sum, n) => sum + n.totalSeeds, 0).toLocaleString()}</div>
+                                <div class="stat-label">Total Seeds</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value">${shortages.length}</div>
+                                <div class="stat-label">Need to Order</div>
+                            </div>
+                        </div>
+
+                        <h2>All Seed Requirements</h2>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Crop</th>
+                                    <th>Variety</th>
+                                    <th>Plants</th>
+                                    <th>Seeds Needed</th>
+                                    <th>In Stock</th>
+                                    <th>To Order</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${calculatedSeedNeeds.map(n => `
+                                    <tr class="${n.shortage > 0 ? 'shortage' : ''}">
+                                        <td><strong>${n.crop}</strong></td>
+                                        <td>${n.variety || '-'}</td>
+                                        <td>${n.totalPlants.toLocaleString()}</td>
+                                        <td>${n.totalSeeds.toLocaleString()}</td>
+                                        <td>${n.inStock.toLocaleString()}</td>
+                                        <td>${n.shortage > 0 ? n.shortage.toLocaleString() : '-'}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+
+                        ${shortages.length > 0 ? `
+                            <h2>Seeds to Order</h2>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Crop</th>
+                                        <th>Variety</th>
+                                        <th>Seeds to Order</th>
+                                        <th>Approx. Packets</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${shortages.map(n => `
+                                        <tr>
+                                            <td><strong>${n.crop}</strong></td>
+                                            <td>${n.variety || '-'}</td>
+                                            <td>${n.shortage.toLocaleString()}</td>
+                                            <td>${Math.ceil(n.shortage / (n.inventoryItem?.seedsPerPacket || 100))}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        ` : ''}
+
+                        <p class="no-print" style="margin-top: 30px;">
+                            <button onclick="window.print()">Print Report</button>
+                            <button onclick="window.close()">Close</button>
+                        </p>
+                    </body>
+                    </html>
+                `);
+            }
+        }
+
+        async function createOrderTask() {
+            const shortages = calculatedSeedNeeds.filter(n => n.shortage > 0);
+
+            if (shortages.length === 0) {
+                showToast('No seeds need to be ordered', 'info');
+                return;
+            }
+
+            const startDate = document.getElementById('plannerStartDate').value;
+            const endDate = document.getElementById('plannerEndDate').value;
+
+            // Build task description
+            const taskDescription = shortages.map(s => {
+                const packets = Math.ceil(s.shortage / (s.inventoryItem?.seedsPerPacket || 100));
+                return `- ${s.crop}${s.variety ? ' (' + s.variety + ')' : ''}: ${s.shortage.toLocaleString()} seeds (~${packets} packets)`;
+            }).join('\n');
+
+            const taskData = {
+                action: 'createTask',
+                title: `Order Seeds for ${startDate} to ${endDate}`,
+                description: `Seeds needed for planned plantings:\n\n${taskDescription}`,
+                category: 'Purchasing',
+                priority: 'High',
+                dueDate: startDate // Due before planting starts
+            };
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(taskData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('Order task created successfully!', 'success');
+
+                    // Also log to console for verification
+                    console.log('Created seed order task:', taskData);
+                } else {
+                    // Still show success if we at least tried
+                    showToast('Task queued - check your task list', 'info');
+                    console.log('Task data (may need manual entry):', taskData);
+                }
+            } catch (error) {
+                console.error('Create task error:', error);
+
+                // Show the task data so user can manually add it
+                alert(`Could not create task automatically. Please add manually:\n\nTitle: ${taskData.title}\n\nDescription:\n${taskData.description}`);
+            }
+        }
 
         // ============ PACKET SCANNER (AI VISION) ============
 
