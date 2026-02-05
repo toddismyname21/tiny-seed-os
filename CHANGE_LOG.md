@@ -40,6 +40,32 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-02-05 - Desktop_Claude (Task Assignment & Admin Auth Fix)
+
+### Files Modified
+- `web_app/task-assignment.html` - Changed from getUnifiedTasks to getEmployeeTasks to load actual task data
+- `web_app/admin.html` - Added authFetch helper to pass authentication token with API calls
+
+### Functions Added
+- `getAuthToken()` in `admin.html` - Gets session token from AuthGuard
+- `authFetch(action, params)` in `admin.html` - Authenticated fetch wrapper for API calls
+
+### Functions Modified
+- `loadTasks()` in `task-assignment.html` - Now uses getEmployeeTasks endpoint with real data
+- `loadUsers()` in `admin.html` - Now uses authFetch for authenticated requests
+- `runSystemCheck()` in `admin.html` - Now uses authFetch for authenticated requests
+
+### Reason
+- task-assignment.html was using getUnifiedTasks which returned empty data from an empty UNIFIED_TASKS sheet
+- admin.html API calls were failing because they weren't passing the authentication token
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-02-05 - Desktop_Claude (Seeding Record & Morning Brief Widget Fix)
 
 ### Files Modified
