@@ -1111,64 +1111,62 @@
         }
 
         /**
-         * Load tasks using the new Unified Task API
-         * Endpoint: getUnifiedTasks (with pagination and caching)
+         * Load tasks from EMPLOYEE_TASKS and PLANNING_2026 sheets
+         * Uses getEmployeeTasks endpoint which has actual task data
          */
         async function loadTasks() {
             const container = document.getElementById('task-list');
             container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
 
             try {
-                // Build query params for Unified Task API
-                // Load all tasks and filter client-side for better UX
-                const params = new URLSearchParams({
-                    action: 'getUnifiedTasks',
-                    limit: 500 // Get more tasks for manager view with filtering
-                });
-
-                const response = await fetch(`${API_BASE}?${params.toString()}`);
+                // Use getEmployeeTasks which pulls from EMPLOYEE_TASKS and PLANNING_2026
+                const response = await fetch(`${API_BASE}?action=getEmployeeTasks&employeeId=`);
                 const data = await response.json();
 
                 if (data.success && data.tasks) {
-                    // Map Unified Task schema to local format
+                    // Map task data to local format
                     tasks = data.tasks.map(t => ({
-                        id: t.Task_ID,
-                        title: t.Title || 'Untitled Task',
-                        description: t.Description || '',
-                        assignedTo: t.Assignee_ID || '',
-                        assignedToName: t.Assignee_Name || getEmployeeName(t.Assignee_ID),
-                        dueDate: t.Due_Date,
+                        id: t.id || t.Task_ID,
+                        title: t.crop ? `${t.type ? t.type.charAt(0).toUpperCase() + t.type.slice(1) : 'Task'}: ${t.crop}${t.variety ? ' (' + t.variety + ')' : ''}` : (t.Title || 'Untitled Task'),
+                        description: t.notes || t.Description || '',
+                        assignedTo: t.assignedTo || t.Assignee_ID || '',
+                        assignedToName: t.assignedTo === 'All' ? 'Everyone' : (t.assignedTo || getEmployeeName(t.Assignee_ID)),
+                        dueDate: t.date || t.Due_Date,
                         dueTime: t.Due_Time || '17:00',
-                        priority: (t.Priority_Manual || 'medium').toLowerCase(),
+                        priority: t.priority || (t.costingMode ? 'high' : 'medium'),
                         priorityScore: t.Priority_Score || 0,
-                        status: (t.Status || 'scheduled').toLowerCase(),
-                        category: t.Task_Type || 'other',
-                        location: t.Field_ID || t.Bed_ID || '',
-                        createdAt: t.Created_At,
-                        updatedAt: t.Updated_At,
-                        atRisk: t.At_Risk === true || t.At_Risk === 'TRUE',
-                        atRiskReason: t.At_Risk_Reason || '',
-                        smsSent: t.SMS_Sent === true || t.SMS_Sent === 'TRUE',
+                        status: (t.status || 'Pending').toLowerCase(),
+                        category: t.type || t.Task_Type || 'other',
+                        location: t.bed || t.field || t.Field_ID || '',
+                        quantity: t.quantity || '',
+                        subtasks: t.subtasks || [],
+                        subtasksTotal: t.subtasksTotal || 0,
+                        subtasksCompleted: t.subtasksCompleted || 0,
+                        isTeamTask: t.isTeamTask || t.assignedTo === 'All',
+                        costingMode: t.costingMode || false,
                         // Keep full task data for updates
                         _raw: t
                     }));
 
-                    // Sort by priority score (AI-calculated) then due date
+                    // Sort by date (earliest first), then overdue tasks first
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+
                     tasks.sort((a, b) => {
-                        // High priority score first
-                        if (b.priorityScore !== a.priorityScore) {
-                            return b.priorityScore - a.priorityScore;
-                        }
-                        // Then by due date
                         const dateA = new Date(a.dueDate);
                         const dateB = new Date(b.dueDate);
+                        const aOverdue = dateA < today && a.status !== 'completed' && a.status !== 'done';
+                        const bOverdue = dateB < today && b.status !== 'completed' && b.status !== 'done';
+
+                        // Overdue tasks first
+                        if (aOverdue && !bOverdue) return -1;
+                        if (!aOverdue && bOverdue) return 1;
+
+                        // Then by date
                         return dateA - dateB;
                     });
 
-                    // Update pagination info if available
-                    if (data.pagination) {
-                        console.log(`Loaded ${data.pagination.returned} of ${data.pagination.total} tasks`);
-                    }
+                    console.log(`Loaded ${tasks.length} tasks`);
 
                     updateStats();
                     renderTasks();
