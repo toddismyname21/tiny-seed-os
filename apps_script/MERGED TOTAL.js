@@ -2477,6 +2477,9 @@ function getOverdueTasks() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // FIXED 2026-02-05: Only show tasks overdue within last 30 days (not ancient test data)
+    const maxOverdueDays = 30;
+
     const dateIdx = headers.findIndex(h => h.includes('date') || h.includes('due'));
     const taskIdx = headers.findIndex(h => h.includes('task') || h.includes('description'));
     const statusIdx = headers.findIndex(h => h.includes('status'));
@@ -2487,16 +2490,19 @@ function getOverdueTasks() {
       const taskDate = row[dateIdx];
       const status = statusIdx >= 0 ? String(row[statusIdx]).toLowerCase() : '';
 
-      if (taskDate instanceof Date && !status.includes('complete') && !status.includes('done')) {
+      if (taskDate instanceof Date && !status.includes('complete') && !status.includes('done') && !status.includes('skip') && !status.includes('cancel')) {
         const d = new Date(taskDate);
         d.setHours(0, 0, 0, 0);
         if (d.getTime() < today.getTime()) {
           const daysOverdue = Math.floor((today - d) / (1000 * 60 * 60 * 24));
-          overdue.push({
-            task: taskIdx >= 0 ? row[taskIdx] : row[1],
-            dueDate: taskDate,
-            daysOverdue: daysOverdue
-          });
+          // Only include if overdue within 30 days (not ancient test data)
+          if (daysOverdue <= maxOverdueDays) {
+            overdue.push({
+              task: taskIdx >= 0 ? row[taskIdx] : row[1],
+              dueDate: taskDate,
+              daysOverdue: daysOverdue
+            });
+          }
         }
       }
     }
@@ -81890,26 +81896,38 @@ function getMorningBriefFast(params) {
     const harvestReady = getHarvestReadyCrops() || [];
 
     // Get pending orders from ORDERS sheet
+    // FIXED 2026-02-05: Only show orders from last 30 days (not ancient test/sample data)
     let pendingOrders = [];
     try {
       const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-      const orderSheet = ss.getSheetByName('ORDERS') || ss.getSheetByName('Orders') || ss.getSheetByName('SALES_ORDERS');
+      const orderSheet = ss.getSheetByName('SALES_Orders') || ss.getSheetByName('ORDERS') || ss.getSheetByName('Orders') || ss.getSheetByName('SALES_ORDERS');
       if (orderSheet) {
         const data = orderSheet.getDataRange().getValues();
         if (data.length > 1) {
           const headers = data[0].map(h => String(h).toLowerCase());
           const statusIdx = headers.findIndex(h => h.includes('status'));
           const customerIdx = headers.findIndex(h => h.includes('customer') || h.includes('name'));
-          const dateIdx = headers.findIndex(h => h.includes('date') || h.includes('delivery'));
+          const dateIdx = headers.findIndex(h => h.includes('date') || h.includes('created') || h.includes('order'));
           const totalIdx = headers.findIndex(h => h.includes('total') || h.includes('amount'));
+
+          const thirtyDaysAgo = new Date();
+          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
           for (let i = 1; i < data.length && pendingOrders.length < 10; i++) {
             const row = data[i];
             const status = statusIdx >= 0 ? String(row[statusIdx]).toLowerCase() : '';
-            if (status.includes('pending') || status.includes('new') || status.includes('open') || status === '') {
+            const orderDate = dateIdx >= 0 ? row[dateIdx] : null;
+
+            // Only include orders that are: pending/new/open AND within last 30 days
+            const isRecentOrder = orderDate instanceof Date ? orderDate >= thirtyDaysAgo : true;
+            const isPending = status.includes('pending') || status.includes('new') || status.includes('open') || status.includes('unfulfilled');
+            // Skip orders with blank status that have no customer name (likely test data)
+            const hasValidCustomer = customerIdx >= 0 && row[customerIdx] && String(row[customerIdx]).trim() !== '';
+
+            if (isPending && isRecentOrder && hasValidCustomer) {
               pendingOrders.push({
-                customer: customerIdx >= 0 ? row[customerIdx] : 'Unknown',
-                date: dateIdx >= 0 ? row[dateIdx] : '',
+                customer: row[customerIdx],
+                date: orderDate || '',
                 total: totalIdx >= 0 ? row[totalIdx] : 0
               });
             }
