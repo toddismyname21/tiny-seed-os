@@ -7055,6 +7055,46 @@
                 loadTodaysTasksFromPlanning(today, tomorrow);
             }
 
+            // Also fetch from getOverdueTasks API (TASKS_2026 sheet) to ensure consistency
+            // with task-assignment.html
+            try {
+                const overdueResponse = await fetch(`${API_URL}?action=getOverdueTasks`);
+                const overdueResult = await overdueResponse.json();
+
+                if (overdueResult.success && overdueResult.tasks) {
+                    // Add tasks from TASKS_2026 that aren't already in overdueTasks
+                    const existingIds = new Set(overdueTasks.map(t => t.taskId || t.id));
+
+                    overdueResult.tasks.forEach(task => {
+                        if (!existingIds.has(task.taskId)) {
+                            overdueTasks.push({
+                                id: task.taskId || `tasks-${overdueTasks.length}`,
+                                taskId: task.taskId,
+                                batchId: task.taskId?.split('-').slice(0, 4).join('-') || '',
+                                type: task.taskType || 'task',
+                                crop: task.crop || task.task?.split(':')[1]?.trim() || 'Task',
+                                variety: '',
+                                quantity: '',
+                                location: task.location || 'Farm',
+                                completed: false,
+                                date: task.dueDate ? new Date(task.dueDate) : null,
+                                daysOverdue: task.daysOverdue || 0,
+                                priorityScore: 90, // High priority for overdue
+                                atRisk: true,
+                                atRiskReason: `${task.daysOverdue} days overdue`,
+                                source: 'tasks_sheet',
+                                taskName: task.task // Full task name like "Transplant seedlings: Kale"
+                            });
+                        }
+                    });
+
+                    // Re-sort with new tasks
+                    overdueTasks.sort((a, b) => b.daysOverdue - a.daysOverdue);
+                }
+            } catch (e) {
+                console.log('Could not fetch getOverdueTasks:', e.message);
+            }
+
             // Render both sections
             renderOverdueTasks();
             renderTodaysTasks();
@@ -7206,8 +7246,8 @@
                             <span class="score">${task.priorityScore || 50}</span>
                         </div>
                         <div class="overdue-info">
-                            <div class="overdue-crop">${task.crop}${task.variety ? ' - ' + task.variety : ''}</div>
-                            <div class="overdue-details">${typeLabel} • ${task.location}</div>
+                            <div class="overdue-crop">${task.taskName || (task.crop + (task.variety ? ' - ' + task.variety : ''))}</div>
+                            <div class="overdue-details">${task.source === 'tasks_sheet' ? (task.type || 'Task') : typeLabel} • ${task.location}</div>
                             ${task.atRisk && task.atRiskReason ? `
                                 <div class="at-risk-badge">
                                     <i class="fas fa-exclamation-triangle"></i>
