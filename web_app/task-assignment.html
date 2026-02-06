@@ -1120,13 +1120,15 @@
 
             try {
                 // Fetch from multiple sources in parallel
-                const [employeeTasksRes, overdueTasksRes] = await Promise.all([
+                const [employeeTasksRes, overdueTasksRes, planningRes] = await Promise.all([
                     fetch(`${API_BASE}?action=getEmployeeTasks&employeeId=`),
-                    fetch(`${API_BASE}?action=getOverdueTasks`)
+                    fetch(`${API_BASE}?action=getOverdueTasks`),
+                    fetch(`${API_BASE}?action=getOverduePlantings`)
                 ]);
 
                 const employeeData = await employeeTasksRes.json();
                 const overdueData = await overdueTasksRes.json();
+                const planningData = await planningRes.json();
 
                 tasks = [];
 
@@ -1157,10 +1159,10 @@
                     tasks.push(...empTasks);
                 }
 
-                // Add overdue tasks from TASKS sheet (different source)
+                // Add overdue tasks from TASKS sheet (TASKS_2026)
                 if (overdueData.success && overdueData.tasks) {
                     const overdueTasks = overdueData.tasks.map((t, idx) => ({
-                        id: 'OVERDUE-' + idx,
+                        id: t.taskId || ('OVERDUE-TASK-' + idx),
                         title: t.task || 'Overdue Task',
                         description: `${t.daysOverdue} days overdue`,
                         assignedTo: '',
@@ -1170,8 +1172,8 @@
                         priority: 'high',
                         priorityScore: 100,
                         status: 'overdue',
-                        category: 'other',
-                        location: '',
+                        category: t.category || 'other',
+                        location: t.location || '',
                         quantity: '',
                         subtasks: [],
                         subtasksTotal: 0,
@@ -1183,6 +1185,35 @@
                         _raw: t
                     }));
                     tasks.push(...overdueTasks);
+                }
+
+                // Add overdue plantings from PLANNING_2026 (GH sowings, transplants, etc.)
+                if (planningData.success && planningData.tasks) {
+                    const planningTasks = planningData.tasks.map(t => ({
+                        id: t.id || t.batchId,
+                        title: t.task || `${t.type}: ${t.crop}`,
+                        description: `${t.daysOverdue} days overdue${t.quantity ? ' - ' + t.quantity : ''}`,
+                        assignedTo: '',
+                        assignedToName: 'Unassigned',
+                        dueDate: t.dueDate,
+                        dueTime: '17:00',
+                        priority: 'high',
+                        priorityScore: 95,
+                        status: 'overdue',
+                        category: t.type || 'planting',
+                        location: t.location || '',
+                        quantity: t.quantity || '',
+                        subtasks: [],
+                        subtasksTotal: 0,
+                        subtasksCompleted: 0,
+                        isTeamTask: false,
+                        costingMode: false,
+                        source: 'planning',
+                        daysOverdue: t.daysOverdue,
+                        batchId: t.batchId,
+                        _raw: t
+                    }));
+                    tasks.push(...planningTasks);
                 }
 
                 // Sort by date (earliest first), then overdue tasks first
