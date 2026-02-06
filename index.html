@@ -8701,9 +8701,15 @@
                 }
 
                 return { ...p, actionDate, actionType, actionLabel };
-            }).filter(p => p.actionDate);
+            }).filter(p => {
+                if (!p.actionDate) return false;
+                // Only show overdue or within next 7 days
+                const weekFromNow = new Date(today);
+                weekFromNow.setDate(weekFromNow.getDate() + 7);
+                return p.actionDate < today || (p.actionDate >= today && p.actionDate <= weekFromNow);
+            });
 
-            // Sort by date
+            // Sort by date (overdue first, then by date)
             nurseryPlantings.sort((a, b) => a.actionDate - b.actionDate);
 
             document.getElementById('viewTitle').innerHTML = '<i class="fas fa-seedling"></i> Upcoming Sowings & Transplants';
