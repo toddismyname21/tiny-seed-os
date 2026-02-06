@@ -1185,31 +1185,28 @@
                     tasks.push(...overdueTasks);
                 }
 
-                    // Sort by date (earliest first), then overdue tasks first
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
+                // Sort by date (earliest first), then overdue tasks first
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
 
-                    tasks.sort((a, b) => {
-                        const dateA = new Date(a.dueDate);
-                        const dateB = new Date(b.dueDate);
-                        const aOverdue = dateA < today && a.status !== 'completed' && a.status !== 'done';
-                        const bOverdue = dateB < today && b.status !== 'completed' && b.status !== 'done';
+                tasks.sort((a, b) => {
+                    const dateA = new Date(a.dueDate);
+                    const dateB = new Date(b.dueDate);
+                    const aOverdue = dateA < today && a.status !== 'completed' && a.status !== 'done';
+                    const bOverdue = dateB < today && b.status !== 'completed' && b.status !== 'done';
 
-                        // Overdue tasks first
-                        if (aOverdue && !bOverdue) return -1;
-                        if (!aOverdue && bOverdue) return 1;
+                    // Overdue tasks first
+                    if (aOverdue && !bOverdue) return -1;
+                    if (!aOverdue && bOverdue) return 1;
 
-                        // Then by date
-                        return dateA - dateB;
-                    });
+                    // Then by date
+                    return dateA - dateB;
+                });
 
-                    console.log(`Loaded ${tasks.length} tasks`);
+                console.log(`Loaded ${tasks.length} tasks`);
 
-                    updateStats();
-                    renderTasks();
-                } else {
-                    throw new Error(data.error || 'Failed to load tasks');
-                }
+                updateStats();
+                renderTasks();
             } catch (error) {
                 console.error('Load tasks error:', error);
                 container.innerHTML = `

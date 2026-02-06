@@ -1305,7 +1305,7 @@
                                             <div class="status-item-detail">Edit user details</div>
                                         </div>
                                     </div>
-                                    <span class="badge badge-warning">NEEDS BUILD</span>
+                                    <span class="badge badge-success">WORKING</span>
                                 </div>
                                 <div class="status-item">
                                     <div class="status-item-info">
@@ -1317,7 +1317,7 @@
                                             <div class="status-item-detail">Disable user account</div>
                                         </div>
                                     </div>
-                                    <span class="badge badge-warning">NEEDS BUILD</span>
+                                    <span class="badge badge-success">WORKING</span>
                                 </div>
                                 <div class="status-item">
                                     <div class="status-item-info">
@@ -1329,7 +1329,7 @@
                                             <div class="status-item-detail">Reset user PIN</div>
                                         </div>
                                     </div>
-                                    <span class="badge badge-warning">NEEDS BUILD</span>
+                                    <span class="badge badge-success">WORKING</span>
                                 </div>
                             </div>
                         </div>
@@ -1340,62 +1340,51 @@
                      ACTIVE SESSIONS SECTION
                      ════════════════════════════════════════════════════════════════════ -->
                 <section class="view-section" id="section-sessions">
-                    <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <div class="alert-content">
-                            <div class="alert-title">Backend Required</div>
-                            <div class="alert-message">The Active Sessions feature requires backend API implementation. Sessions are currently stored in browser localStorage only.</div>
-                        </div>
-                    </div>
-
                     <div class="card">
                         <div class="card-header">
                             <div class="card-title">
                                 <i class="fas fa-user-clock"></i>
                                 Active Sessions
-                                <span class="badge-backend">NEEDS API</span>
+                                <span class="badge badge-success" style="margin-left: 8px;">WORKING</span>
                             </div>
+                            <button class="btn btn-secondary" onclick="loadActiveSessions()">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
                         </div>
-                        <div class="card-body">
-                            <div class="empty-state">
-                                <i class="fas fa-user-clock"></i>
-                                <h3>Session Tracking Not Available</h3>
-                                <p>Backend APIs needed: getActiveSessions, forceLogout</p>
-                                <button class="btn btn-secondary" style="margin-top: 16px;" disabled>
-                                    <i class="fas fa-code"></i>
-                                    Awaiting Implementation
-                                </button>
+                        <div class="card-body" id="sessionsContainer">
+                            <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                                <i class="fas fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 12px; display: block;"></i>
+                                Loading active sessions...
                             </div>
                         </div>
                     </div>
 
-                    <!-- What's Needed -->
+                    <!-- Session Stats -->
                     <div class="card" style="margin-top: 24px;">
                         <div class="card-header">
                             <div class="card-title">
-                                <i class="fas fa-clipboard-list"></i>
-                                Implementation Requirements
+                                <i class="fas fa-chart-bar"></i>
+                                Session Statistics
                             </div>
                         </div>
                         <div class="card-body">
-                            <h4 style="margin-bottom: 12px; font-size: 14px; color: var(--text-secondary);">Backend APIs Needed:</h4>
-                            <ul style="list-style: none; padding: 0;">
-                                <li style="padding: 8px 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px;">
-                                    <span class="badge badge-warning">TODO</span>
-                                    <code style="background: var(--bg-elevated); padding: 2px 8px; border-radius: 4px;">getActiveSessions</code>
-                                    <span style="color: var(--text-muted);">- Return list of active user sessions with timestamps</span>
-                                </li>
-                                <li style="padding: 8px 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px;">
-                                    <span class="badge badge-warning">TODO</span>
-                                    <code style="background: var(--bg-elevated); padding: 2px 8px; border-radius: 4px;">forceLogout</code>
-                                    <span style="color: var(--text-muted);">- Invalidate a specific user session</span>
-                                </li>
-                                <li style="padding: 8px 0; display: flex; align-items: center; gap: 10px;">
-                                    <span class="badge badge-warning">TODO</span>
-                                    <code style="background: var(--bg-elevated); padding: 2px 8px; border-radius: 4px;">SESSIONS sheet</code>
-                                    <span style="color: var(--text-muted);">- Google Sheet to store session tokens</span>
-                                </li>
-                            </ul>
+                            <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
+                                <div class="stat-card">
+                                    <div class="stat-icon" style="background: rgba(34, 197, 94, 0.1); color: #22c55e;"><i class="fas fa-users"></i></div>
+                                    <div class="stat-value" id="statSessionsActive">--</div>
+                                    <div class="stat-label">Active Sessions</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-icon" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;"><i class="fas fa-clock"></i></div>
+                                    <div class="stat-value" id="statSessionsToday">--</div>
+                                    <div class="stat-label">Logged In Today</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-icon" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;"><i class="fas fa-hourglass-half"></i></div>
+                                    <div class="stat-value" id="statSessionsExpiring">--</div>
+                                    <div class="stat-label">Expiring Soon</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -3316,6 +3305,7 @@
 
             // Load initial data
             await loadUsers();
+            await loadActiveSessions();
             await runSystemCheck();
         }
 
@@ -3518,6 +3508,158 @@
             document.getElementById('statActiveUsers').textContent = active;
             document.getElementById('statActiveSessions').textContent = '—';
             document.getElementById('userCountBadge').textContent = total;
+        }
+
+        // ════════════════════════════════════════════════════════════════════════════
+        // SESSION MANAGEMENT
+        // ════════════════════════════════════════════════════════════════════════════
+
+        async function loadActiveSessions() {
+            const container = document.getElementById('sessionsContainer');
+            container.innerHTML = `
+                <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 12px; display: block;"></i>
+                    Loading active sessions...
+                </div>
+            `;
+
+            try {
+                const result = await authFetch('getActiveSessions');
+
+                if (result.success && result.sessions) {
+                    const sessions = result.sessions;
+
+                    // Update stats
+                    document.getElementById('statSessionsActive').textContent = sessions.length;
+
+                    // Count sessions from today
+                    const today = new Date().toDateString();
+                    const todayCount = sessions.filter(s => new Date(s.Created_At || s.createdAt).toDateString() === today).length;
+                    document.getElementById('statSessionsToday').textContent = todayCount;
+
+                    // Count sessions expiring within 1 hour
+                    const now = Date.now();
+                    const expiringCount = sessions.filter(s => {
+                        const expiry = new Date(s.Expires_At || s.expiresAt).getTime();
+                        return expiry - now < 3600000 && expiry > now;
+                    }).length;
+                    document.getElementById('statSessionsExpiring').textContent = expiringCount;
+
+                    // Also update the main stats active sessions count
+                    document.getElementById('statActiveSessions').textContent = sessions.length;
+
+                    if (sessions.length === 0) {
+                        container.innerHTML = `
+                            <div class="empty-state">
+                                <i class="fas fa-user-clock"></i>
+                                <h3>No Active Sessions</h3>
+                                <p>There are currently no active user sessions.</p>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    container.innerHTML = `
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Session ID</th>
+                                        <th>Created</th>
+                                        <th>Expires</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${sessions.map(session => {
+                                        const created = new Date(session.Created_At || session.createdAt);
+                                        const expires = new Date(session.Expires_At || session.expiresAt);
+                                        const isExpiring = expires.getTime() - now < 3600000;
+                                        const isExpired = expires.getTime() < now;
+
+                                        return `
+                                            <tr>
+                                                <td>
+                                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                                        <div style="width: 32px; height: 32px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 12px;">
+                                                            ${(session.Username || session.userId || '?').charAt(0).toUpperCase()}
+                                                        </div>
+                                                        <div>
+                                                            <div style="font-weight: 500;">${session.Username || session.userId || 'Unknown'}</div>
+                                                            <div style="font-size: 11px; color: var(--text-muted);">${session.Role || 'User'}</div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td><code style="font-size: 11px; background: var(--bg-elevated); padding: 2px 6px; border-radius: 4px;">${(session.Token || session.token || '').substring(0, 12)}...</code></td>
+                                                <td style="font-size: 13px; color: var(--text-secondary);">${formatDate(created)}</td>
+                                                <td style="font-size: 13px; color: var(--text-secondary);">${formatDate(expires)}</td>
+                                                <td>
+                                                    ${isExpired
+                                                        ? '<span class="badge badge-danger"><i class="fas fa-times-circle"></i> Expired</span>'
+                                                        : isExpiring
+                                                            ? '<span class="badge badge-warning"><i class="fas fa-clock"></i> Expiring</span>'
+                                                            : '<span class="badge badge-success"><i class="fas fa-check-circle"></i> Active</span>'
+                                                    }
+                                                </td>
+                                                <td>
+                                                    <button class="btn btn-danger btn-sm" onclick="forceLogoutSession('${session.Token || session.token}')" title="Force Logout">
+                                                        <i class="fas fa-sign-out-alt"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <h3>Error Loading Sessions</h3>
+                            <p>${result.error || 'Failed to load session data'}</p>
+                            <button class="btn btn-secondary" onclick="loadActiveSessions()" style="margin-top: 12px;">
+                                <i class="fas fa-sync-alt"></i> Try Again
+                            </button>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading sessions:', error);
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <h3>Connection Error</h3>
+                        <p>Unable to connect to the server.</p>
+                        <button class="btn btn-secondary" onclick="loadActiveSessions()" style="margin-top: 12px;">
+                            <i class="fas fa-sync-alt"></i> Retry
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        async function forceLogoutSession(token) {
+            if (!confirm('Are you sure you want to force logout this session? The user will need to log in again.')) {
+                return;
+            }
+
+            try {
+                const result = await authFetch('forceLogout', { targetToken: token });
+
+                if (result.success) {
+                    showToast('Session terminated successfully', 'success');
+                    loadActiveSessions();
+                } else {
+                    showToast('Failed to terminate session: ' + (result.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                console.error('Force logout error:', error);
+                showToast('Error terminating session', 'error');
+            }
         }
 
         // ════════════════════════════════════════════════════════════════════════════
