@@ -5476,7 +5476,7 @@
                             // In production, upload image to Google Drive first, then use public URL
                             const response = await fetch(APPS_SCRIPT_URL, {
                                 method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
+                                headers: { 'Content-Type': 'text/plain' },
                                 body: JSON.stringify({
                                     action: 'postToInstagram',
                                     accountIndex: account.index,
@@ -5504,7 +5504,7 @@
                     // Post to our app feed
                     await fetch(APPS_SCRIPT_URL, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'text/plain' },
                         body: JSON.stringify({
                             action: 'postToAppFeed',
                             content: caption
@@ -6031,7 +6031,7 @@
             try {
                 const response = await fetch(`${API_URL}?action=generateContentForGaps`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'generateContentForGaps',
                         dates: gaps.map(g => g.dateStr),
@@ -6277,7 +6277,7 @@
             try {
                 const response = await fetch(`${API_URL}?action=generateFromToddInput`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'generateFromToddInput',
                         inputId: toddInputData.id,
@@ -6328,7 +6328,7 @@
             try {
                 await fetch(API_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'logMarketingActivity',
                         type: type,
@@ -7585,7 +7585,7 @@
             try {
                 const response = await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'enhanceCaption',
                         caption: caption,
@@ -7617,7 +7617,7 @@
             try {
                 const response = await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'getInstagramConfigStatus'
                     })
@@ -9456,7 +9456,7 @@
             try {
                 const response = await fetch(API_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'trackAttribution',
                         orderId: orderId,
@@ -9564,7 +9564,7 @@
             try {
                 const response = await fetch(API_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'analyzeCompetitorContent',
                         competitorId: competitorId,
@@ -9617,7 +9617,7 @@
             try {
                 const response = await fetch(API_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'addCompetitor',
                         name: name,
@@ -10052,7 +10052,7 @@
             try {
                 const response = await fetch(`${API_URL}?action=addToMarketingQueue`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'addToMarketingQueue',
                         platform: platform,
@@ -10118,7 +10118,7 @@
             try {
                 const response = await fetch(`${API_URL}?action=postNow`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'postNow',
                         platform: platform,
@@ -10150,7 +10150,7 @@
             try {
                 const response = await fetch(`${API_URL}?action=generateWeeklyMarketingContent`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'generateWeeklyMarketingContent',
                         useAI: true,
@@ -10180,7 +10180,7 @@
             try {
                 const response = await fetch(`${API_URL}?action=processMarketingQueue`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({ action: 'processMarketingQueue' })
                 });
 
@@ -10204,7 +10204,7 @@
             try {
                 const response = await fetch(`${API_URL}?action=setupMarketingAutomationTrigger`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({ action: 'setupMarketingAutomationTrigger' })
                 });
 
@@ -10226,7 +10226,7 @@
             try {
                 const response = await fetch(`${API_URL}?action=initializeMarketingQueue`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({ action: 'initializeMarketingQueue' })
                 });
 
@@ -10251,7 +10251,7 @@
             try {
                 const response = await fetch(`${API_URL}?action=postNow`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'postNow',
                         queueId: queueId
