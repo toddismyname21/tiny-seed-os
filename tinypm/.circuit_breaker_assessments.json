@@ -1,0 +1,83 @@
+{
+  "updated_at": "2026-02-04T08:15:08.539449",
+  "count": 4,
+  "assessments": [
+    {
+      "assessment_id": "7daf646f-dca1-4e67-9c38-e5b5325be439",
+      "action_id": "f8fd7cc6-fb96-4e4a-a227-7b1f6633b8c7",
+      "action_type": "create_task",
+      "total_impact": "0.0",
+      "breakdown": {
+        "resource_cost": "0.0"
+      },
+      "confidence": 0.8,
+      "reasoning": [
+        "No significant financial impact detected"
+      ],
+      "assessed_at": "2026-02-04T08:15:08.536615",
+      "auto_execute_allowed": true,
+      "max_trust_level": "auto_execute",
+      "human_required": false,
+      "context_hash": "e2eafade219dd7c8",
+      "version": "1.0"
+    },
+    {
+      "assessment_id": "92d2fc58-1300-41fd-a402-afaab705a3ca",
+      "action_id": "5df52c62-70a1-45a4-b610-0eb4be413058",
+      "action_type": "send_email",
+      "total_impact": "2502.0",
+      "breakdown": {
+        "commitment": "2502.0",
+        "reputation": "0.0"
+      },
+      "confidence": 0.8,
+      "reasoning": [
+        "Monetary commitments made in email: $2502.00"
+      ],
+      "assessed_at": "2026-02-04T08:15:08.539081",
+      "auto_execute_allowed": false,
+      "max_trust_level": "pre_prepare",
+      "human_required": false,
+      "context_hash": "33829175f65344a8",
+      "version": "1.0"
+    },
+    {
+      "assessment_id": "0d45e15d-dfa1-44fe-9c05-8f38bf70685b",
+      "action_id": "3be759c4-3eaf-4663-b37f-6c4731f78aa3",
+      "action_type": "approve_expense",
+      "total_impact": "10000.0",
+      "breakdown": {
+        "direct_cost": "10000.0"
+      },
+      "confidence": 0.8,
+      "reasoning": [
+        "Direct expense amount: $10000.00"
+      ],
+      "assessed_at": "2026-02-04T08:15:08.539292",
+      "auto_execute_allowed": false,
+      "max_trust_level": "inform",
+      "human_required": true,
+      "context_hash": "c7ed85c17b259de7",
+      "version": "1.0"
+    },
+    {
+      "assessment_id": "65606a57-d131-4d98-a47a-62d54aaeda7c",
+      "action_id": "b83f29f7-0d32-44dc-b9aa-24814ffdd5ac",
+      "action_type": "approve_expense",
+      "total_impact": "10000.0",
+      "breakdown": {
+        "direct_cost": "10000.0"
+      },
+      "confidence": 0.8,
+      "reasoning": [
+        "Direct expense amount: $10000.00"
+      ],
+      "assessed_at": "2026-02-04T08:15:08.539442",
+      "auto_execute_allowed": false,
+      "max_trust_level": "inform",
+      "human_required": true,
+      "context_hash": "c7ed85c17b259de7",
+      "version": "1.0"
+    }
+  ]
+}

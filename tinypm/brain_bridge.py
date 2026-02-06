@@ -555,6 +555,129 @@ if FASTAPI_AVAILABLE:
                 print(f"[BrainBridge] Proactive loop error: {e}")
 
     # ===============================================================================
+    # CHAT ENDPOINT - Chief of Staff AI Conversation
+    # ===============================================================================
+
+    # Try to import Anthropic
+    try:
+        import anthropic
+        ANTHROPIC_AVAILABLE = True
+        anthropic_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+        print("[BrainBridge] Anthropic client initialized")
+    except ImportError:
+        ANTHROPIC_AVAILABLE = False
+        anthropic_client = None
+        print("[BrainBridge] Anthropic not available. Install with: pip install anthropic")
+    except Exception as e:
+        ANTHROPIC_AVAILABLE = False
+        anthropic_client = None
+        print(f"[BrainBridge] Anthropic error: {e}")
+
+    @app.post("/api/chat")
+    async def chat_with_brain(request: Dict[str, Any]):
+        """
+        Chat with the Chief of Staff AI brain.
+
+        Request body:
+        - message: User's message
+        - history: List of previous messages (optional)
+        - context: Additional context (optional)
+
+        Returns:
+        - response: AI response text
+        - suggestions: Related action suggestions
+        """
+        message = request.get("message", "")
+        history = request.get("history", [])
+        context = request.get("context", {})
+
+        if not message:
+            return {"error": "No message provided", "response": "Please provide a message."}
+
+        # Build system prompt with farm context
+        system_prompt = """You are the Chief of Staff AI for Tiny Seed Farm, a small organic farm near Pittsburgh, PA.
+
+Your role is to help Todd (the owner) manage his farm operations efficiently. You have access to:
+- Task management (planting, harvesting, deliveries)
+- Customer orders and CSA management
+- Irrigation and field data
+- Financial tracking
+- Employee scheduling
+
+Be concise, practical, and action-oriented. Give specific advice when possible.
+When you don't have specific data, acknowledge it but still offer helpful guidance.
+
+Current context:
+- Time: """ + datetime.now().strftime("%A, %B %d at %I:%M %p") + """
+- Season: """ + ("Winter" if datetime.now().month in [12,1,2] else "Spring" if datetime.now().month in [3,4,5] else "Summer" if datetime.now().month in [6,7,8] else "Fall")
+
+        # Add brain context if available
+        if BRAIN_AVAILABLE:
+            try:
+                brain_context = gather_context()
+                if brain_context:
+                    system_prompt += f"\n\nFarm Context:\n{brain_context}"
+            except:
+                pass
+
+        # Get proactive suggestions to inform response
+        suggestions = []
+        if BRAIN_AVAILABLE:
+            try:
+                proactive = check_proactive_suggestions()
+                if proactive:
+                    system_prompt += f"\n\nProactive insights: {', '.join(proactive[:3])}"
+                    suggestions = proactive[:3]
+            except:
+                pass
+
+        # Build messages for API
+        messages = []
+
+        # Add conversation history
+        for h in history[-10:]:  # Last 10 messages
+            role = h.get("role", "user")
+            content = h.get("content", "")
+            if role in ["user", "assistant"] and content:
+                messages.append({"role": role, "content": content})
+
+        # Add current message
+        messages.append({"role": "user", "content": message})
+
+        # Call Anthropic API
+        if ANTHROPIC_AVAILABLE and anthropic_client:
+            try:
+                response = anthropic_client.messages.create(
+                    model="claude-sonnet-4-20250514",
+                    max_tokens=1024,
+                    system=system_prompt,
+                    messages=messages
+                )
+                ai_response = response.content[0].text
+
+                return {
+                    "response": ai_response,
+                    "suggestions": suggestions,
+                    "model": "claude-sonnet",
+                    "timestamp": datetime.now().isoformat()
+                }
+            except Exception as e:
+                print(f"[BrainBridge] Anthropic API error: {e}")
+                return {
+                    "response": f"I apologize, I'm having trouble connecting to my AI backend. Error: {str(e)}",
+                    "error": str(e),
+                    "timestamp": datetime.now().isoformat()
+                }
+        else:
+            # Fallback response if Anthropic not available
+            return {
+                "response": "I'm currently in limited mode. The AI backend is not available. Please check that the ANTHROPIC_API_KEY is configured.",
+                "limited_mode": True,
+                "suggestions": suggestions,
+                "timestamp": datetime.now().isoformat()
+            }
+
+    # ===============================================================================
     # STARTUP & SHUTDOWN
     # ===============================================================================
 

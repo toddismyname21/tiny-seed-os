@@ -295,8 +295,8 @@
 | Document | API ID Referenced |
 |----------|-------------------|
 | `CLAUDE.md` | `AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm` |
-| `SYSTEM_MANIFEST.md` | `AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp` |
-| `CLAUDE_INTEGRATION_STANDARDS.md` | `AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc` |
+| `SYSTEM_MANIFEST.md` | `AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm` |
+| `CLAUDE_INTEGRATION_STANDARDS.md` | `AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm` |
 
 **CRITICAL:** These reference DIFFERENT deployment IDs! Must synchronize.
 

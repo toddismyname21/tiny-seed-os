@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Irrigation Control - Tiny Seed Farm</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAEjb_a8VxoFb1aqEKZLdRW3NTaQKijWZ0&libraries=geometry"></script>
+  <style>
+    :root {
+      --bg-primary: #0f0f0f;
+      --bg-secondary: #1a1a1a;
+      --bg-card: #242424;
+      --bg-hover: #2d2d2d;
+      --text-primary: #ffffff;
+      --text-secondary: #a0a0a0;
+      --text-muted: #666666;
+      --border-color: #333333;
+      --accent-green: #22c55e;
+      --accent-blue: #3b82f6;
+      --accent-purple: #8b5cf6;
+      --accent-amber: #f59e0b;
+      --accent-red: #ef4444;
+      --accent-cyan: #06b6d4;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+    }
+
+    /* Blinking animation for irrigating zones */
+    @keyframes pulse-irrigating {
+      0%, 100% {
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+        transform: scale(1);
+      }
+      50% {
+        box-shadow: 0 0 20px 10px rgba(34, 197, 94, 0.3);
+        transform: scale(1.1);
+      }
+    }
+
+    .zone-marker.irrigating {
+      animation: pulse-irrigating 1.5s infinite;
+    }
+
+    @keyframes pulse-pump {
+      0%, 100% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+      }
+      50% {
+        box-shadow: 0 0 15px 8px rgba(59, 130, 246, 0.3);
+      }
+    }
+
+    .pump-status.on {
+      animation: pulse-pump 1.5s infinite;
+    }
+
+    /* Header */
+    .header {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header h1 svg {
+      color: var(--accent-blue);
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .connection-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: var(--bg-card);
+      border-radius: 8px;
+      font-size: 13px;
+    }
+
+    .connection-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-green);
+    }
+
+    .connection-dot.offline {
+      background: var(--accent-red);
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--accent-green);
+      color: black;
+    }
+
+    .btn-primary:hover {
+      background: #16a34a;
+    }
+
+    .btn-secondary {
+      background: var(--bg-card);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-hover);
+    }
+
+    .btn-danger {
+      background: var(--accent-red);
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #dc2626;
+    }
+
+    .btn-lg {
+      padding: 16px 32px;
+      font-size: 16px;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Main Layout */
+    .main-container {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 24px;
+      padding: 24px;
+      max-width: 1800px;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 1200px) {
+      .main-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Map Section */
+    .map-section {
+      background: var(--bg-card);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      overflow: hidden;
+    }
+
+    .map-header {
+      padding: 16px 20px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .map-header h2 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    #irrigation-map {
+      height: 500px;
+      width: 100%;
+    }
+
+    @media (max-width: 768px) {
+      #irrigation-map {
+        height: 350px;
+      }
+    }
+
+    /* Pump Control */
+    .pump-control {
+      background: var(--bg-card);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .pump-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .pump-header h3 {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .pump-status {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 20px;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+    }
+
+    .pump-status-indicator {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--text-muted);
+    }
+
+    .pump-status-indicator.on {
+      background: var(--accent-green);
+    }
+
+    .pump-status-indicator.off {
+      background: var(--accent-red);
+    }
+
+    .pump-buttons {
+      display: flex;
+      gap: 12px;
+    }
+
+    .pump-btn {
+      flex: 1;
+      padding: 16px 24px;
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .pump-btn.on {
+      background: var(--accent-green);
+      color: black;
+    }
+
+    .pump-btn.on:hover {
+      background: #16a34a;
+    }
+
+    .pump-btn.off {
+      background: var(--accent-red);
+      color: white;
+    }
+
+    .pump-btn.off:hover {
+      background: #dc2626;
+    }
+
+    .pump-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .pump-stat {
+      background: var(--bg-secondary);
+      padding: 12px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .pump-stat-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .pump-stat-value {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--accent-cyan);
+    }
+
+    /* Zone Cards */
+    .zones-section {
+      background: var(--bg-card);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      overflow: hidden;
+    }
+
+    .zones-header {
+      padding: 16px 20px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      font-weight: 600;
+    }
+
+    .zones-list {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .zone-card {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .zone-card:last-child {
+      border-bottom: none;
+    }
+
+    .zone-info {
+      flex: 1;
+    }
+
+    .zone-name {
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .zone-details {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .zone-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .zone-badge {
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .zone-badge.idle {
+      background: rgba(102, 102, 102, 0.2);
+      color: var(--text-muted);
+    }
+
+    .zone-badge.irrigating {
+      background: rgba(34, 197, 94, 0.2);
+      color: var(--accent-green);
+      animation: pulse-irrigating 1.5s infinite;
+    }
+
+    .zone-toggle {
+      padding: 10px 16px;
+      border-radius: 6px;
+      border: none;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      min-width: 80px;
+    }
+
+    .zone-toggle.open {
+      background: var(--accent-green);
+      color: black;
+    }
+
+    .zone-toggle.close {
+      background: var(--accent-red);
+      color: white;
+    }
+
+    /* Alerts Section */
+    .alerts-section {
+      background: var(--bg-card);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      overflow: hidden;
+      margin-top: 20px;
+    }
+
+    .alerts-header {
+      padding: 16px 20px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .alerts-header h3 {
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .alert-count {
+      background: var(--accent-red);
+      color: white;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+
+    .alerts-list {
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .alert-item {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .alert-item:last-child {
+      border-bottom: none;
+    }
+
+    .alert-content {
+      flex: 1;
+    }
+
+    .alert-severity {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .alert-severity.critical {
+      color: var(--accent-red);
+    }
+
+    .alert-severity.warning {
+      color: var(--accent-amber);
+    }
+
+    .alert-message {
+      font-size: 13px;
+      margin-bottom: 4px;
+    }
+
+    .alert-time {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .alert-ack-btn {
+      padding: 6px 12px;
+      font-size: 11px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+
+    .alert-ack-btn:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    .no-alerts {
+      padding: 24px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    /* Activity Log */
+    .activity-section {
+      background: var(--bg-card);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      overflow: hidden;
+      margin-top: 20px;
+    }
+
+    .activity-header {
+      padding: 16px 20px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      font-weight: 600;
+    }
+
+    .activity-list {
+      max-height: 250px;
+      overflow-y: auto;
+    }
+
+    .activity-item {
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 13px;
+    }
+
+    .activity-item:last-child {
+      border-bottom: none;
+    }
+
+    .activity-time {
+      color: var(--text-muted);
+      font-size: 11px;
+      margin-bottom: 4px;
+    }
+
+    .activity-event {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .activity-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+    }
+
+    .activity-icon.valve-open {
+      background: rgba(34, 197, 94, 0.2);
+      color: var(--accent-green);
+    }
+
+    .activity-icon.valve-close {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--accent-red);
+    }
+
+    .activity-icon.pump-on {
+      background: rgba(59, 130, 246, 0.2);
+      color: var(--accent-blue);
+    }
+
+    .activity-icon.pump-off {
+      background: rgba(102, 102, 102, 0.2);
+      color: var(--text-muted);
+    }
+
+    .activity-icon.telemetry {
+      background: rgba(139, 92, 246, 0.2);
+      color: var(--accent-purple);
+    }
+
+    /* Sidebar */
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Loading & Empty States */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      color: var(--text-muted);
+    }
+
+    .loading-spinner {
+      width: 24px;
+      height: 24px;
+      border: 3px solid var(--border-color);
+      border-top-color: var(--accent-blue);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 12px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+      .header {
+        padding: 12px 16px;
+      }
+
+      .header h1 {
+        font-size: 18px;
+      }
+
+      .main-container {
+        padding: 16px;
+        gap: 16px;
+      }
+
+      .btn {
+        padding: 10px 16px;
+        font-size: 13px;
+      }
+
+      .pump-buttons {
+        flex-direction: column;
+      }
+
+      .pump-stats {
+        grid-template-columns: 1fr;
+      }
+
+      .zone-card {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .zone-status {
+        width: 100%;
+        justify-content: space-between;
+        margin-top: 12px;
+      }
+    }
+
+    /* Custom Google Maps Markers */
+    .custom-marker {
+      position: relative;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 600;
+      color: white;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 3px solid white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    .custom-marker.idle {
+      background: var(--text-muted);
+    }
+
+    .custom-marker.irrigating {
+      background: var(--accent-green);
+      animation: pulse-irrigating 1.5s infinite;
+    }
+
+    .custom-marker.pump {
+      background: var(--accent-blue);
+      width: 48px;
+      height: 48px;
+      font-size: 20px;
+    }
+
+    .custom-marker.pump.on {
+      animation: pulse-pump 1.5s infinite;
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <h1>
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 2v6m0 8v6M4.93 4.93l4.24 4.24m5.66 5.66l4.24 4.24M2 12h6m8 0h6M4.93 19.07l4.24-4.24m5.66-5.66l4.24-4.24"/>
+      </svg>
+      Irrigation Control
+    </h1>
+    <div class="header-actions">
+      <div class="connection-status">
+        <div class="connection-dot" id="connection-dot"></div>
+        <span id="connection-text">Connected</span>
+      </div>
+      <button class="btn btn-secondary" onclick="refreshStatus()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M23 4v6h-6M1 20v-6h6"/>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+        </svg>
+        Refresh
+      </button>
+    </div>
+  </header>
+
+  <main class="main-container">
+    <div class="map-column">
+      <!-- Map Section -->
+      <div class="map-section">
+        <div class="map-header">
+          <h2>Farm Map</h2>
+          <span id="last-updated" style="font-size: 12px; color: var(--text-muted);">Last updated: --</span>
+        </div>
+        <div id="irrigation-map"></div>
+      </div>
+
+      <!-- Activity Log -->
+      <div class="activity-section">
+        <div class="activity-header">Recent Activity</div>
+        <div class="activity-list" id="activity-list">
+          <div class="loading">
+            <div class="loading-spinner"></div>
+            Loading activity...
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar">
+      <!-- Pump Control -->
+      <div class="pump-control">
+        <div class="pump-header">
+          <h3>Pump Station</h3>
+          <div class="pump-status" id="pump-status">
+            <div class="pump-status-indicator" id="pump-indicator"></div>
+            <span id="pump-status-text">Unknown</span>
+          </div>
+        </div>
+        <div class="pump-buttons">
+          <button class="pump-btn on" onclick="setPump('ON')" id="pump-on-btn">
+            START PUMP
+          </button>
+          <button class="pump-btn off" onclick="setPump('OFF')" id="pump-off-btn">
+            STOP PUMP
+          </button>
+        </div>
+        <div class="pump-stats">
+          <div class="pump-stat">
+            <div class="pump-stat-label">Pressure</div>
+            <div class="pump-stat-value" id="pump-pressure">-- PSI</div>
+          </div>
+          <div class="pump-stat">
+            <div class="pump-stat-label">Flow Rate</div>
+            <div class="pump-stat-value" id="flow-rate">-- GPM</div>
+          </div>
+          <div class="pump-stat">
+            <div class="pump-stat-label">Today Total</div>
+            <div class="pump-stat-value" id="total-gallons">-- Gal</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Zone Cards -->
+      <div class="zones-section">
+        <div class="zones-header">Irrigation Zones</div>
+        <div class="zones-list" id="zones-list">
+          <div class="loading">
+            <div class="loading-spinner"></div>
+            Loading zones...
+          </div>
+        </div>
+      </div>
+
+      <!-- Alerts Section -->
+      <div class="alerts-section">
+        <div class="alerts-header">
+          <h3>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            Active Alerts
+            <span class="alert-count" id="alert-count" style="display: none;">0</span>
+          </h3>
+        </div>
+        <div class="alerts-list" id="alerts-list">
+          <div class="no-alerts">No active alerts</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // API Configuration
+    const API_URL = 'https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec';
+
+    // Farm center coordinates
+    const FARM_CENTER = { lat: 40.7456, lng: -80.1610 };
+
+    let map;
+    let markers = [];
+    let pumpMarker;
+    let currentStatus = null;
+    let refreshInterval;
+
+    // Initialize the application
+    document.addEventListener('DOMContentLoaded', function() {
+      initMap();
+      refreshStatus();
+      // Auto-refresh every 30 seconds
+      refreshInterval = setInterval(refreshStatus, 30000);
+    });
+
+    // Initialize Google Map
+    function initMap() {
+      map = new google.maps.Map(document.getElementById('irrigation-map'), {
+        center: FARM_CENTER,
+        zoom: 16,
+        mapTypeId: 'satellite',
+        styles: [
+          { featureType: 'all', elementType: 'labels', stylers: [{ visibility: 'on' }] }
+        ],
+        mapTypeControl: true,
+        mapTypeControlOptions: {
+          style: google.maps.MapTypeControlStyle.DROPDOWN_MENU,
+          position: google.maps.ControlPosition.TOP_RIGHT
+        },
+        fullscreenControl: true,
+        streetViewControl: false
+      });
+
+      // Add pump station marker
+      pumpMarker = new google.maps.Marker({
+        position: { lat: FARM_CENTER.lat - 0.001, lng: FARM_CENTER.lng - 0.002 },
+        map: map,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 16,
+          fillColor: '#3b82f6',
+          fillOpacity: 1,
+          strokeColor: '#ffffff',
+          strokeWeight: 3
+        },
+        title: 'Pump Station',
+        label: {
+          text: 'P',
+          color: 'white',
+          fontWeight: 'bold',
+          fontSize: '14px'
+        }
+      });
+
+      // Info window for pump
+      const pumpInfo = new google.maps.InfoWindow({
+        content: '<div style="color: black; padding: 8px;"><strong>Pump Station</strong><br>Click buttons in sidebar to control</div>'
+      });
+      pumpMarker.addListener('click', () => pumpInfo.open(map, pumpMarker));
+    }
+
+    // Fetch and update status
+    async function refreshStatus() {
+      try {
+        updateConnectionStatus(true);
+
+        const response = await fetch(`${API_URL}?action=getIrrigationStatus`);
+        const data = await response.json();
+
+        if (data.success) {
+          currentStatus = data;
+          updateUI(data);
+          updateLastUpdated();
+        } else {
+          console.error('Error fetching status:', data.error);
+          updateConnectionStatus(false);
+        }
+      } catch (error) {
+        console.error('Network error:', error);
+        updateConnectionStatus(false);
+      }
+    }
+
+    // Update all UI components
+    function updateUI(data) {
+      updatePumpStatus(data.pumpStatus);
+      updateZones(data.zones);
+      updateAlerts(data.activeAlerts);
+      updateActivityLog(data.recentLogs);
+      updateMapMarkers(data.zones);
+    }
+
+    // Update pump status display
+    function updatePumpStatus(status) {
+      const indicator = document.getElementById('pump-indicator');
+      const statusText = document.getElementById('pump-status-text');
+      const pumpStatusDiv = document.getElementById('pump-status');
+
+      if (status === 'ON') {
+        indicator.className = 'pump-status-indicator on';
+        statusText.textContent = 'Running';
+        pumpStatusDiv.classList.add('on');
+        if (pumpMarker) {
+          pumpMarker.setIcon({
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 18,
+            fillColor: '#22c55e',
+            fillOpacity: 1,
+            strokeColor: '#ffffff',
+            strokeWeight: 3
+          });
+        }
+      } else if (status === 'OFF') {
+        indicator.className = 'pump-status-indicator off';
+        statusText.textContent = 'Stopped';
+        pumpStatusDiv.classList.remove('on');
+        if (pumpMarker) {
+          pumpMarker.setIcon({
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 16,
+            fillColor: '#3b82f6',
+            fillOpacity: 1,
+            strokeColor: '#ffffff',
+            strokeWeight: 3
+          });
+        }
+      } else {
+        indicator.className = 'pump-status-indicator';
+        statusText.textContent = 'Unknown';
+        pumpStatusDiv.classList.remove('on');
+      }
+    }
+
+    // Update zones list
+    function updateZones(zones) {
+      const zonesList = document.getElementById('zones-list');
+
+      if (!zones || zones.length === 0) {
+        zonesList.innerHTML = `
+          <div class="no-alerts">
+            No zones configured. Add zones in Field Management.
+          </div>
+        `;
+        return;
+      }
+
+      zonesList.innerHTML = zones.map(zone => `
+        <div class="zone-card" data-zone-id="${zone.Zone_ID}">
+          <div class="zone-info">
+            <div class="zone-name">${zone.Name || zone.Zone_ID}</div>
+            <div class="zone-details">
+              ${zone.Port_Type || 'Camlock 2"'} |
+              ${zone.Last_Irrigated ? 'Last: ' + formatTime(zone.Last_Irrigated) : 'Never irrigated'}
+            </div>
+          </div>
+          <div class="zone-status">
+            <span class="zone-badge ${(zone.Status || 'idle').toLowerCase()}">${zone.Status || 'Idle'}</span>
+            <button class="zone-toggle ${zone.Status === 'IRRIGATING' ? 'close' : 'open'}"
+                    onclick="toggleValve('${zone.Zone_ID}', '${zone.Status === 'IRRIGATING' ? 'CLOSED' : 'OPEN'}')">
+              ${zone.Status === 'IRRIGATING' ? 'Close' : 'Open'}
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Update alerts
+    function updateAlerts(alerts) {
+      const alertsList = document.getElementById('alerts-list');
+      const alertCount = document.getElementById('alert-count');
+
+      if (!alerts || alerts.length === 0) {
+        alertsList.innerHTML = '<div class="no-alerts">No active alerts</div>';
+        alertCount.style.display = 'none';
+        return;
+      }
+
+      alertCount.textContent = alerts.length;
+      alertCount.style.display = 'inline';
+
+      alertsList.innerHTML = alerts.map(alert => `
+        <div class="alert-item">
+          <div class="alert-content">
+            <div class="alert-severity ${(alert.Severity || 'warning').toLowerCase()}">${alert.Severity || 'Warning'}</div>
+            <div class="alert-message">${alert.Message}</div>
+            <div class="alert-time">${formatTime(alert.Timestamp)}</div>
+          </div>
+          <button class="alert-ack-btn" onclick="acknowledgeAlert('${alert.Timestamp}')">Acknowledge</button>
+        </div>
+      `).join('');
+    }
+
+    // Update activity log
+    function updateActivityLog(logs) {
+      const activityList = document.getElementById('activity-list');
+
+      if (!logs || logs.length === 0) {
+        activityList.innerHTML = '<div class="no-alerts">No recent activity</div>';
+        return;
+      }
+
+      activityList.innerHTML = logs.map(log => {
+        let iconClass = 'telemetry';
+        let iconText = 'T';
+
+        if (log.Event_Type && log.Event_Type.includes('VALVE_OPEN')) {
+          iconClass = 'valve-open';
+          iconText = 'V';
+        } else if (log.Event_Type && log.Event_Type.includes('VALVE_CLOSE')) {
+          iconClass = 'valve-close';
+          iconText = 'V';
+        } else if (log.Event_Type && log.Event_Type.includes('PUMP_ON')) {
+          iconClass = 'pump-on';
+          iconText = 'P';
+        } else if (log.Event_Type && log.Event_Type.includes('PUMP_OFF')) {
+          iconClass = 'pump-off';
+          iconText = 'P';
+        }
+
+        return `
+          <div class="activity-item">
+            <div class="activity-time">${formatTime(log.Timestamp)}</div>
+            <div class="activity-event">
+              <div class="activity-icon ${iconClass}">${iconText}</div>
+              <span>${formatEventType(log.Event_Type)} ${log.Zone_ID ? '- ' + log.Zone_ID : ''}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Update map markers for zones
+    function updateMapMarkers(zones) {
+      // Clear existing markers
+      markers.forEach(marker => marker.setMap(null));
+      markers = [];
+
+      if (!zones || zones.length === 0) return;
+
+      zones.forEach((zone, index) => {
+        // Use zone coordinates if available, otherwise calculate offset from center
+        const lat = zone.Lat || (FARM_CENTER.lat + (Math.random() - 0.5) * 0.005);
+        const lng = zone.Lng || (FARM_CENTER.lng + (Math.random() - 0.5) * 0.005);
+
+        const isIrrigating = zone.Status === 'IRRIGATING';
+
+        const marker = new google.maps.Marker({
+          position: { lat: parseFloat(lat), lng: parseFloat(lng) },
+          map: map,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: isIrrigating ? 14 : 12,
+            fillColor: isIrrigating ? '#22c55e' : '#666666',
+            fillOpacity: 1,
+            strokeColor: '#ffffff',
+            strokeWeight: 3
+          },
+          title: zone.Name || zone.Zone_ID,
+          label: {
+            text: String(index + 1),
+            color: 'white',
+            fontWeight: 'bold',
+            fontSize: '12px'
+          },
+          animation: isIrrigating ? google.maps.Animation.BOUNCE : null
+        });
+
+        // Info window for zone
+        const infoWindow = new google.maps.InfoWindow({
+          content: `
+            <div style="color: black; padding: 8px; min-width: 150px;">
+              <strong>${zone.Name || zone.Zone_ID}</strong><br>
+              Status: ${zone.Status || 'Idle'}<br>
+              ${zone.Last_Irrigated ? 'Last: ' + formatTime(zone.Last_Irrigated) : ''}
+              <br><br>
+              <button onclick="toggleValve('${zone.Zone_ID}', '${isIrrigating ? 'CLOSED' : 'OPEN'}')"
+                      style="padding: 8px 16px; cursor: pointer; background: ${isIrrigating ? '#ef4444' : '#22c55e'}; color: white; border: none; border-radius: 4px;">
+                ${isIrrigating ? 'Close Valve' : 'Open Valve'}
+              </button>
+            </div>
+          `
+        });
+
+        marker.addListener('click', () => infoWindow.open(map, marker));
+        markers.push(marker);
+      });
+    }
+
+    // Set pump state
+    async function setPump(state) {
+      const btn = state === 'ON' ? document.getElementById('pump-on-btn') : document.getElementById('pump-off-btn');
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+
+      try {
+        const response = await fetch(`${API_URL}?action=setPumpState&state=${state}`);
+        const data = await response.json();
+
+        if (data.success) {
+          updatePumpStatus(state);
+          setTimeout(refreshStatus, 1000);
+        } else {
+          alert('Failed to set pump state: ' + (data.error || 'Unknown error'));
+        }
+      } catch (error) {
+        console.error('Error setting pump state:', error);
+        alert('Network error. Please try again.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = state === 'ON' ? 'START PUMP' : 'STOP PUMP';
+      }
+    }
+
+    // Toggle valve state
+    async function toggleValve(zoneId, state) {
+      try {
+        const response = await fetch(`${API_URL}?action=setValveState&zoneId=${encodeURIComponent(zoneId)}&state=${state}`);
+        const data = await response.json();
+
+        if (data.success) {
+          setTimeout(refreshStatus, 1000);
+        } else {
+          alert('Failed to set valve state: ' + (data.error || 'Unknown error'));
+        }
+      } catch (error) {
+        console.error('Error setting valve state:', error);
+        alert('Network error. Please try again.');
+      }
+    }
+
+    // Acknowledge alert
+    async function acknowledgeAlert(timestamp) {
+      try {
+        const response = await fetch(`${API_URL}?action=acknowledgeIrrigationAlert&timestamp=${encodeURIComponent(timestamp)}`);
+        const data = await response.json();
+
+        if (data.success) {
+          refreshStatus();
+        } else {
+          alert('Failed to acknowledge alert: ' + (data.error || 'Unknown error'));
+        }
+      } catch (error) {
+        console.error('Error acknowledging alert:', error);
+        alert('Network error. Please try again.');
+      }
+    }
+
+    // Update connection status
+    function updateConnectionStatus(connected) {
+      const dot = document.getElementById('connection-dot');
+      const text = document.getElementById('connection-text');
+
+      if (connected) {
+        dot.classList.remove('offline');
+        text.textContent = 'Connected';
+      } else {
+        dot.classList.add('offline');
+        text.textContent = 'Offline';
+      }
+    }
+
+    // Update last updated timestamp
+    function updateLastUpdated() {
+      const el = document.getElementById('last-updated');
+      el.textContent = 'Last updated: ' + new Date().toLocaleTimeString();
+    }
+
+    // Format timestamp
+    function formatTime(timestamp) {
+      if (!timestamp) return '';
+      const date = new Date(timestamp);
+      const now = new Date();
+      const diffMs = now - date;
+      const diffMins = Math.floor(diffMs / 60000);
+
+      if (diffMins < 1) return 'Just now';
+      if (diffMins < 60) return `${diffMins}m ago`;
+      if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`;
+      return date.toLocaleDateString();
+    }
+
+    // Format event type for display
+    function formatEventType(eventType) {
+      if (!eventType) return 'Unknown event';
+
+      const typeMap = {
+        'VALVE_OPEN_CMD': 'Valve opened',
+        'VALVE_CLOSE_CMD': 'Valve closed',
+        'PUMP_ON_CMD': 'Pump started',
+        'PUMP_OFF_CMD': 'Pump stopped',
+        'TELEMETRY': 'Telemetry received',
+        'VALVE_OPEN': 'Valve opened',
+        'VALVE_CLOSE': 'Valve closed',
+        'PUMP_ON': 'Pump started',
+        'PUMP_OFF': 'Pump stopped'
+      };
+
+      return typeMap[eventType] || eventType.replace(/_/g, ' ').toLowerCase();
+    }
+  </script>
+</body>
+</html>

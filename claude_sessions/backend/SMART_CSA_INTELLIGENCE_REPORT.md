@@ -359,7 +359,7 @@ Based on CSA_Support_Log:
 ```bash
 cd /Users/samanthapollack/Documents/TIny_Seed_OS/apps_script
 PATH="/opt/homebrew/bin:$PATH" clasp push
-PATH="/opt/homebrew/bin:$PATH" clasp deploy -i "AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc" -d "SMART CSA Intelligence Layer"
+PATH="/opt/homebrew/bin:$PATH" clasp deploy -i "AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm" -d "SMART CSA Intelligence Layer"
 ```
 
 ### Option B: Merge into MERGED TOTAL.js
@@ -380,7 +380,7 @@ Copy the 4 functions from SmartCSAIntelligence.js and paste before line 71155 in
 
 ### Test Proactive Alerts:
 ```bash
-curl "https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec?action=getProactiveCSAAlerts"
+curl "https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec?action=getProactiveCSAAlerts"
 ```
 
 **Expected Response:**
@@ -395,7 +395,7 @@ curl "https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ
 
 ### Test Onboarding Tasks:
 ```bash
-curl "https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec?action=getOnboardingTasks"
+curl "https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec?action=getOnboardingTasks"
 ```
 
 **Expected Response:**
@@ -410,7 +410,7 @@ curl "https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ
 
 ### Test Enhanced Retention Dashboard:
 ```bash
-curl "https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec?action=getCSARetentionDashboardEnhanced"
+curl "https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec?action=getCSARetentionDashboardEnhanced"
 ```
 
 **Expected Response:**

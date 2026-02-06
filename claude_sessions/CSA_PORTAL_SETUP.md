@@ -41,7 +41,7 @@ The CSA Customer Portal (`web_app/csa.html`) is built and functional. This docum
 ### Priority 2: Deploy Pending Code
 After deleting old versions:
 ```bash
-clasp deploy -i AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc -d "CSA Box Contents + Bug Fixes"
+clasp deploy -i AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm -d "CSA Box Contents + Bug Fixes"
 ```
 
 ### Priority 3: Import Shopify Tags
@@ -58,7 +58,7 @@ To automatically process CSA orders:
 
 In Shopify Admin > Settings > Notifications > Webhooks:
 1. Create webhook for "Order creation"
-2. URL: `https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec?action=processShopifyOrder`
+2. URL: `https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec?action=processShopifyOrder`
 3. Format: JSON
 4. API version: Latest
 
@@ -92,13 +92,13 @@ Or manually populate the CSA_BoxContents sheet with columns:
 ### API Testing Commands
 ```bash
 # Test magic link send (replace with real member email)
-curl -sL "https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec?action=sendCSAMagicLink&email=member@example.com"
+curl -sL "https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec?action=sendCSAMagicLink&email=member@example.com"
 
 # Test box contents
-curl -sL "https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec?action=getCSABoxContents&shareType=Veggie-CSA"
+curl -sL "https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec?action=getCSABoxContents&shareType=Veggie-CSA"
 
 # Test retention dashboard
-curl -sL "https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec?action=getCSARetentionDashboard"
+curl -sL "https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec?action=getCSARetentionDashboard"
 ```
 
 ---
@@ -159,7 +159,7 @@ Weekly box items:
 
 | Name | URL | Version |
 |------|-----|---------|
-| Primary (CSA Features) | AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc | @229 |
+| Primary (CSA Features) | AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm | @229 |
 | Legacy (Stable) | AKfycbx8syGK5Bm60fypNO0yE60BYtTFJXxviaEtgrqENmF5GStB58UCEA4Shu_IF9r6kjf5 | @223 |
 | HEAD (Latest Pushed) | AKfycbwxe2qjNkrNvYkHv7NJWBJvemu0MGBfO7NEfiF0dBo | @HEAD |
 

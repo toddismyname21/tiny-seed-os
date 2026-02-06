@@ -2,704 +2,456 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Chief of Staff - Tiny Seed Farm</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
+    /* ═══════════════════════════════════════════════════════════════════════════
+       DESIGN TOKENS
+       ═══════════════════════════════════════════════════════════════════════════ */
     :root {
-      /* Matching Tiny Seed OS color palette */
-      --bg-primary: #0f172a;
-      --bg-secondary: #1e293b;
-      --bg-card: #1e293b;
-      --bg-hover: #334155;
-      --bg-input: #1e293b;
-      --text-primary: #f8fafc;
-      --text-secondary: #94a3b8;
-      --text-muted: #64748b;
-      --border-color: #334155;
-      --accent-green: #22c55e;
+      --bg: #0a0a0a;
+      --bg-elevated: #1a1a1a;
+      --card: #1a1a1a;
+      --card-hover: #222;
+      --text: #ffffff;
+      --text-muted: #888;
+      --text-dim: #555;
+      --accent: #22c55e;
+      --accent-dim: rgba(34, 197, 94, 0.15);
       --accent-blue: #3b82f6;
-      --accent-purple: #8b5cf6;
       --accent-amber: #f59e0b;
       --accent-red: #ef4444;
-      --critical: #ef4444;
-      --high: #f97316;
-      --medium: #eab308;
-      --low: #22c55e;
+      --border: #333;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --radius-lg: 24px;
     }
 
+    /* ═══════════════════════════════════════════════════════════════════════════
+       RESET & BASE
+       ═══════════════════════════════════════════════════════════════════════════ */
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
-    body {
-      font-family: 'Inter', -apple-system, sans-serif;
-      background: var(--bg-primary);
-      color: var(--text-primary);
-      min-height: 100vh;
+    html, body {
+      height: 100%;
       overflow: hidden;
     }
 
-    /* Layout */
-    .app-container {
-      display: grid;
-      grid-template-columns: 1fr 420px;
-      grid-template-rows: auto 1fr;
-      height: 100vh;
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
     }
 
-    @media (max-width: 1200px) {
-      .app-container {
-        grid-template-columns: 1fr;
-      }
-      .chat-panel {
-        display: none;
-      }
+    /* ═══════════════════════════════════════════════════════════════════════════
+       SKELETON LOADING ANIMATION
+       ═══════════════════════════════════════════════════════════════════════════ */
+    .skeleton {
+      background: linear-gradient(90deg, var(--card) 25%, #2a2a2a 50%, var(--card) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: var(--radius);
     }
 
-    /* Header */
-    .header {
-      grid-column: 1 / -1;
-      background: var(--bg-secondary);
-      border-bottom: 1px solid var(--border-color);
-      padding: 12px 24px;
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       HEADER
+       ═══════════════════════════════════════════════════════════════════════════ */
+    .cos-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      padding: 16px 20px;
+      background: var(--bg-elevated);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
     }
 
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-
-    .header h1 {
-      font-size: 20px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .header-stats {
-      display: flex;
-      gap: 20px;
-    }
-
-    .header-stat {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 13px;
-    }
-
-    .header-stat .count {
-      background: var(--bg-card);
-      padding: 4px 10px;
-      border-radius: 12px;
-      font-weight: 600;
-    }
-
-    .header-stat .count.critical { color: var(--critical); }
-    .header-stat .count.high { color: var(--high); }
-
-    .header-actions {
-      display: flex;
-      gap: 10px;
-    }
-
-    /* Buttons */
-    .btn {
-      padding: 8px 16px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      border: none;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.2s;
-    }
-
-    .btn-primary {
-      background: var(--accent-green);
-      color: black;
-    }
-
-    .btn-secondary {
-      background: var(--bg-card);
-      color: var(--text-primary);
-      border: 1px solid var(--border-color);
-    }
-
-    .btn:hover { opacity: 0.9; }
-
-    /* Main Panel */
-    .main-panel {
-      overflow-y: auto;
-      padding: 20px;
-    }
-
-    /* Tabs */
-    .tabs {
-      display: flex;
-      gap: 4px;
-      background: var(--bg-secondary);
-      padding: 4px;
-      border-radius: 10px;
-      margin-bottom: 20px;
-    }
-
-    .tab {
-      padding: 10px 20px;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text-secondary);
-      background: transparent;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .tab:hover { color: var(--text-primary); }
-
-    .tab.active {
-      background: var(--bg-card);
-      color: var(--text-primary);
-    }
-
-    .tab-badge {
-      background: var(--critical);
-      color: white;
-      font-size: 11px;
-      padding: 2px 8px;
-      border-radius: 10px;
-      font-weight: 600;
-    }
-
-    /* Tab Content */
-    .tab-content {
-      display: none;
-    }
-
-    .tab-content.active {
-      display: block;
-    }
-
-    /* Communications List */
-    .filter-bar {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 16px;
-      flex-wrap: wrap;
-    }
-
-    .filter-chip {
-      padding: 6px 14px;
-      font-size: 12px;
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: 20px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .filter-chip:hover { border-color: var(--accent-green); }
-    .filter-chip.active {
-      background: var(--accent-green);
-      color: black;
-      border-color: var(--accent-green);
-    }
-
-    .priority-group {
-      margin-bottom: 24px;
-    }
-
-    .priority-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 12px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid var(--border-color);
-    }
-
-    .priority-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-    }
-
-    .priority-dot.critical { background: var(--critical); }
-    .priority-dot.high { background: var(--high); }
-    .priority-dot.medium { background: var(--medium); }
-    .priority-dot.low { background: var(--low); }
-
-    .priority-header h3 {
-      font-size: 14px;
-      font-weight: 600;
-      flex: 1;
-    }
-
-    .priority-header .count {
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-
-    /* Message Card */
-    .message-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: 10px;
-      padding: 14px 16px;
-      margin-bottom: 10px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .message-card:hover {
-      border-color: var(--accent-green);
-      background: var(--bg-hover);
-    }
-
-    .message-card.selected {
-      border-color: var(--accent-green);
-      background: rgba(34, 197, 94, 0.1);
-    }
-
-    .message-header {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      margin-bottom: 8px;
-    }
-
-    .message-type {
+    .cos-header h1 {
       font-size: 18px;
-    }
-
-    .message-meta {
-      flex: 1;
-    }
-
-    .message-from {
-      font-size: 14px;
       font-weight: 600;
-    }
-
-    .message-time {
-      font-size: 11px;
-      color: var(--text-muted);
-    }
-
-    .message-subject {
-      font-size: 13px;
-      color: var(--text-secondary);
-      margin-bottom: 6px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .message-summary {
-      font-size: 12px;
-      color: var(--text-muted);
-      line-height: 1.5;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-
-    .message-tags {
-      display: flex;
-      gap: 6px;
-      margin-top: 10px;
-      flex-wrap: wrap;
-    }
-
-    .message-tag {
-      font-size: 10px;
-      padding: 3px 8px;
-      border-radius: 4px;
-      background: var(--bg-secondary);
-      color: var(--text-secondary);
-    }
-
-    .message-tag.intent { background: rgba(59, 130, 246, 0.2); color: var(--accent-blue); }
-    .message-tag.sentiment-positive { background: rgba(34, 197, 94, 0.2); color: var(--accent-green); }
-    .message-tag.sentiment-negative { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
-    .message-tag.commitment { background: rgba(245, 158, 11, 0.2); color: var(--accent-amber); }
-
-    /* Reclassify Dropdown */
-    .reclassify-menu {
-      position: absolute;
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 8px 0;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-      z-index: 100;
-      display: none;
-    }
-
-    .reclassify-menu.show { display: block; }
-
-    .reclassify-option {
-      padding: 10px 16px;
-      font-size: 13px;
-      cursor: pointer;
       display: flex;
       align-items: center;
       gap: 10px;
     }
 
-    .reclassify-option:hover { background: var(--bg-hover); }
+    .cos-header h1::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      background: var(--accent);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--accent);
+    }
 
-    /* Chat Panel */
-    .chat-panel {
-      background: var(--bg-secondary);
-      border-left: 1px solid var(--border-color);
+    .status-indicator {
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-amber);
+      transition: background 0.3s;
+    }
+
+    .status-dot.connected { background: var(--accent); }
+    .status-dot.error { background: var(--accent-red); }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       QUICK STATS
+       ═══════════════════════════════════════════════════════════════════════════ */
+    .quick-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      padding: 16px 20px;
+      flex-shrink: 0;
+    }
+
+    .stat-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 16px;
+      cursor: pointer;
+      transition: transform 0.15s, background 0.15s;
+      text-align: center;
+      border: 1px solid transparent;
+    }
+
+    .stat-card:hover {
+      background: var(--card-hover);
+    }
+
+    .stat-card:active {
+      transform: scale(0.97);
+    }
+
+    .stat-card.alert {
+      border-color: var(--accent-red);
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    .stat-card .value {
+      font-size: 32px;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .stat-card .label {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .stat-card.alert .value {
+      color: var(--accent-red);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       AI CHAT SECTION
+       ═══════════════════════════════════════════════════════════════════════════ */
+    .ai-chat {
+      flex: 1;
       display: flex;
       flex-direction: column;
-    }
-
-    .chat-header {
-      padding: 16px 20px;
-      border-bottom: 1px solid var(--border-color);
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .chat-avatar {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-    }
-
-    .chat-title h2 {
-      font-size: 15px;
-      font-weight: 600;
-    }
-
-    .chat-title p {
-      font-size: 12px;
-      color: var(--accent-green);
+      min-height: 0;
+      padding: 0 20px;
     }
 
     .chat-messages {
       flex: 1;
       overflow-y: auto;
-      padding: 20px;
+      padding: 16px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      -webkit-overflow-scrolling: touch;
     }
 
     .chat-message {
-      margin-bottom: 16px;
-      max-width: 90%;
+      max-width: 85%;
+      animation: fadeIn 0.2s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     .chat-message.user {
-      margin-left: auto;
+      align-self: flex-end;
     }
 
-    .chat-message.assistant {
-      margin-right: auto;
+    .chat-message.ai {
+      align-self: flex-start;
     }
 
     .chat-bubble {
       padding: 12px 16px;
-      border-radius: 16px;
-      font-size: 14px;
+      border-radius: 18px;
+      font-size: 15px;
       line-height: 1.5;
     }
 
     .chat-message.user .chat-bubble {
-      background: var(--accent-green);
-      color: black;
-      border-bottom-right-radius: 4px;
+      background: var(--accent);
+      color: #000;
+      border-bottom-right-radius: 6px;
     }
 
-    .chat-message.assistant .chat-bubble {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-bottom-left-radius: 4px;
+    .chat-message.ai .chat-bubble {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 6px;
     }
 
-    .chat-bubble p { margin-bottom: 8px; }
-    .chat-bubble p:last-child { margin-bottom: 0; }
-    .chat-bubble ul { margin: 8px 0; padding-left: 20px; }
-    .chat-bubble li { margin-bottom: 4px; }
-    .chat-bubble code {
-      background: rgba(0,0,0,0.2);
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 12px;
+    .chat-bubble .text {
+      white-space: pre-wrap;
+      word-wrap: break-word;
     }
 
-    .chat-time {
-      font-size: 10px;
-      color: var(--text-muted);
-      margin-top: 4px;
-      padding: 0 4px;
-    }
-
-    .chat-input-area {
-      padding: 16px 20px;
-      border-top: 1px solid var(--border-color);
-    }
-
-    .chat-input-wrapper {
+    .typing-dots {
       display: flex;
-      gap: 10px;
-      align-items: flex-end;
+      gap: 4px;
+      padding: 4px 0;
     }
 
-    .chat-input {
-      flex: 1;
-      background: var(--bg-input);
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      padding: 12px 16px;
-      font-size: 14px;
-      color: var(--text-primary);
-      resize: none;
-      font-family: inherit;
-      min-height: 44px;
-      max-height: 120px;
+    .typing-dots span {
+      width: 8px;
+      height: 8px;
+      background: var(--text-muted);
+      border-radius: 50%;
+      animation: typing 1.4s infinite;
     }
 
-    .chat-input:focus {
-      outline: none;
-      border-color: var(--accent-green);
+    .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typing {
+      0%, 100% { opacity: 0.3; transform: translateY(0); }
+      50% { opacity: 1; transform: translateY(-4px); }
     }
 
-    .chat-send {
-      width: 44px;
-      height: 44px;
-      border-radius: 12px;
-      background: var(--accent-green);
-      border: none;
-      cursor: pointer;
+    /* Chat Input */
+    .chat-input-container {
       display: flex;
-      align-items: center;
-      justify-content: center;
+      gap: 12px;
+      padding: 16px 0;
       flex-shrink: 0;
     }
 
-    .chat-send:disabled {
-      background: var(--bg-card);
+    .chat-input-container input {
+      flex: 1;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 14px 20px;
+      color: var(--text);
+      font-size: 16px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .chat-input-container input:focus {
+      border-color: var(--accent);
+    }
+
+    .chat-input-container input::placeholder {
+      color: var(--text-dim);
+    }
+
+    .chat-input-container button {
+      background: var(--accent);
+      border: none;
+      border-radius: var(--radius-lg);
+      padding: 14px 24px;
+      color: #000;
+      font-weight: 600;
+      font-size: 15px;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.15s;
+      flex-shrink: 0;
+    }
+
+    .chat-input-container button:hover {
+      opacity: 0.9;
+    }
+
+    .chat-input-container button:active {
+      transform: scale(0.97);
+    }
+
+    .chat-input-container button:disabled {
+      background: var(--card);
+      color: var(--text-muted);
       cursor: not-allowed;
     }
 
-    .chat-send svg {
-      width: 20px;
-      height: 20px;
-    }
-
-    /* Quick Actions */
-    .quick-actions {
+    /* Quick Prompts */
+    .quick-prompts {
       display: flex;
       gap: 8px;
-      padding: 12px 20px;
-      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 12px;
       overflow-x: auto;
+      flex-shrink: 0;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
     }
 
-    .quick-action {
-      padding: 8px 14px;
-      font-size: 12px;
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
+    .quick-prompts::-webkit-scrollbar {
+      display: none;
+    }
+
+    .quick-prompt {
+      background: var(--card);
+      border: 1px solid var(--border);
       border-radius: 20px;
+      padding: 8px 14px;
+      font-size: 13px;
+      color: var(--text);
       cursor: pointer;
       white-space: nowrap;
-      transition: all 0.2s;
+      transition: background 0.15s, border-color 0.15s;
     }
 
-    .quick-action:hover {
-      border-color: var(--accent-green);
-      background: var(--bg-hover);
+    .quick-prompt:hover {
+      background: var(--card-hover);
+      border-color: var(--accent);
     }
 
-    /* Action Queue */
-    .action-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-left: 4px solid var(--accent-amber);
-      border-radius: 8px;
-      padding: 16px;
-      margin-bottom: 12px;
+    /* ═══════════════════════════════════════════════════════════════════════════
+       ACTION CARDS
+       ═══════════════════════════════════════════════════════════════════════════ */
+    .action-cards {
+      padding: 0 20px 16px;
+      flex-shrink: 0;
     }
 
-    .action-card.critical { border-left-color: var(--critical); }
-    .action-card.high { border-left-color: var(--high); }
-
-    .action-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 8px;
-    }
-
-    .action-contact {
-      font-size: 14px;
-      font-weight: 600;
-    }
-
-    .action-score {
-      font-size: 12px;
-      padding: 4px 10px;
-      background: var(--bg-secondary);
-      border-radius: 12px;
-    }
-
-    .action-description {
-      font-size: 13px;
-      color: var(--text-secondary);
-      margin-bottom: 8px;
-    }
-
-    .action-rationale {
-      font-size: 12px;
-      color: var(--text-muted);
-      font-style: italic;
-    }
-
-    .action-buttons {
-      display: flex;
-      gap: 8px;
-      margin-top: 12px;
-    }
-
-    .action-btn {
-      padding: 8px 16px;
-      font-size: 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      border: none;
-      font-weight: 500;
-    }
-
-    .action-btn.complete {
-      background: var(--accent-green);
-      color: black;
-    }
-
-    .action-btn.dismiss {
-      background: var(--bg-secondary);
-      color: var(--text-secondary);
-    }
-
-    /* Commitments */
-    .commitment-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 16px;
-      margin-bottom: 12px;
-    }
-
-    .commitment-card.overdue {
-      border-color: var(--critical);
-      background: rgba(239, 68, 68, 0.05);
-    }
-
-    .commitment-header {
+    .action-cards-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 8px;
+      margin-bottom: 12px;
     }
 
-    .commitment-type {
-      font-size: 11px;
-      padding: 4px 10px;
-      border-radius: 12px;
-      font-weight: 600;
-    }
-
-    .commitment-type.mine {
-      background: rgba(59, 130, 246, 0.2);
-      color: var(--accent-blue);
-    }
-
-    .commitment-type.theirs {
-      background: rgba(139, 92, 246, 0.2);
-      color: var(--accent-purple);
-    }
-
-    .commitment-deadline {
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-
-    .commitment-deadline.overdue {
-      color: var(--critical);
-      font-weight: 600;
-    }
-
-    .commitment-contact {
+    .action-cards-header h2 {
       font-size: 14px;
       font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .action-cards-header a {
+      font-size: 13px;
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .action-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .action-item {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      border-left: 3px solid var(--accent-amber);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .action-item:hover {
+      background: var(--card-hover);
+    }
+
+    .action-item.critical {
+      border-left-color: var(--accent-red);
+    }
+
+    .action-item.high {
+      border-left-color: var(--accent-amber);
+    }
+
+    .action-item .action-title {
+      font-size: 14px;
+      font-weight: 500;
       margin-bottom: 4px;
     }
 
-    .commitment-text {
-      font-size: 13px;
-      color: var(--text-secondary);
-    }
-
-    /* Loading */
-    .loading {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 40px;
-    }
-
-    .spinner {
-      width: 32px;
-      height: 32px;
-      border: 3px solid var(--border-color);
-      border-top-color: var(--accent-green);
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* Empty State */
-    .empty-state {
-      text-align: center;
-      padding: 40px;
+    .action-item .action-meta {
+      font-size: 12px;
       color: var(--text-muted);
     }
 
-    .empty-state-icon {
-      font-size: 48px;
-      margin-bottom: 16px;
+    /* ═══════════════════════════════════════════════════════════════════════════
+       BOTTOM NAVIGATION
+       ═══════════════════════════════════════════════════════════════════════════ */
+    .bottom-nav {
+      display: flex;
+      background: var(--bg-elevated);
+      border-top: 1px solid var(--border);
+      padding: 8px 0;
+      padding-bottom: max(8px, env(safe-area-inset-bottom));
+      flex-shrink: 0;
     }
 
-    /* Toast */
+    .bottom-nav a {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 4px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 11px;
+      transition: color 0.15s;
+    }
+
+    .bottom-nav a:hover,
+    .bottom-nav a.active {
+      color: var(--accent);
+    }
+
+    .bottom-nav a svg {
+      width: 24px;
+      height: 24px;
+      stroke-width: 1.5;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       TOAST NOTIFICATIONS
+       ═══════════════════════════════════════════════════════════════════════════ */
     .toast {
       position: fixed;
-      bottom: 24px;
+      bottom: 100px;
       left: 50%;
       transform: translateX(-50%) translateY(100px);
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
       padding: 12px 20px;
+      font-size: 14px;
       box-shadow: 0 10px 40px rgba(0,0,0,0.4);
       opacity: 0;
       transition: all 0.3s;
@@ -711,800 +463,1518 @@
       opacity: 1;
     }
 
-    .toast.success { border-left: 4px solid var(--accent-green); }
-    .toast.error { border-left: 4px solid var(--accent-red); }
+    .toast.success { border-left: 3px solid var(--accent); }
+    .toast.error { border-left: 3px solid var(--accent-red); }
 
-    /* Typing indicator */
-    .typing-indicator {
+    /* ═══════════════════════════════════════════════════════════════════════════
+       RESPONSIVE ADJUSTMENTS
+       ═══════════════════════════════════════════════════════════════════════════ */
+    @media (min-width: 768px) {
+      .quick-stats {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      .ai-chat {
+        max-width: 700px;
+        margin: 0 auto;
+        width: 100%;
+      }
+
+      .action-cards {
+        max-width: 700px;
+        margin: 0 auto;
+        width: 100%;
+      }
+
+      .chat-message {
+        max-width: 70%;
+      }
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       EMPTY & LOADING STATES
+       ═══════════════════════════════════════════════════════════════════════════ */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+    }
+
+    .empty-state-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       FOCUS CARD - Week 2 Today View
+       ═══════════════════════════════════════════════════════════════════════════ */
+    .focus-section {
+      padding: 20px;
+    }
+
+    .focus-card {
+      background: linear-gradient(135deg, var(--card) 0%, #1f1f1f 100%);
+      border: 1px solid var(--accent);
+      border-radius: 16px;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .focus-priority {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+
+    .focus-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .focus-title {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      line-height: 1.3;
+    }
+
+    .focus-reason {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+
+    .focus-actions {
       display: flex;
-      gap: 4px;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border-radius: var(--radius);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s, opacity 0.15s;
+      border: none;
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #000;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+    }
+
+    .btn-secondary {
+      background: var(--card);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--card-hover);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       UP NEXT SECTION - Week 2 Today View
+       ═══════════════════════════════════════════════════════════════════════════ */
+    .upnext-section {
+      padding: 0 20px 20px;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+
+    .upnext-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .upnext-item {
+      background: var(--card);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: transform 0.15s, background 0.15s;
+    }
+
+    .upnext-item:hover {
+      background: #252525;
+    }
+
+    .upnext-item:active {
+      transform: scale(0.98);
+    }
+
+    .upnext-icon {
+      font-size: 20px;
+      width: 32px;
+      text-align: center;
+    }
+
+    .upnext-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .upnext-title {
+      font-size: 15px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .upnext-meta {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .upnext-badge {
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .upnext-badge.critical { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
+    .upnext-badge.high { background: rgba(245, 158, 11, 0.2); color: var(--accent-amber); }
+    .upnext-badge.medium { background: rgba(59, 130, 246, 0.2); color: var(--accent-blue); }
+
+    /* Command Palette */
+    .command-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 15vh;
+      z-index: 1000;
+    }
+    .command-overlay.active { display: flex; }
+    .command-palette {
+      width: 90%;
+      max-width: 560px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+    .command-header {
+      display: flex;
+      align-items: center;
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      gap: 12px;
+    }
+    .command-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      font-size: 18px;
+      color: var(--text);
+      outline: none;
+    }
+    .command-input::placeholder { color: var(--text-muted); }
+    .command-hint {
+      background: var(--bg);
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .command-results { max-height: 400px; overflow-y: auto; }
+    .command-group { padding: 8px 0; }
+    .command-group-title {
+      padding: 8px 16px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .command-item {
+      display: flex;
+      align-items: center;
       padding: 12px 16px;
+      gap: 12px;
+      cursor: pointer;
+      transition: background 0.1s;
     }
+    .command-item:hover, .command-item.selected { background: var(--bg); }
+    .command-item-icon {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg);
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    .command-item-content { flex: 1; }
+    .command-item-title { font-size: 14px; font-weight: 500; }
+    .command-item-description { font-size: 12px; color: var(--text-muted); }
+    .command-footer {
+      display: flex;
+      gap: 16px;
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .command-footer kbd {
+      background: var(--bg);
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-right: 4px;
+    }
+    .command-empty { padding: 40px 20px; text-align: center; color: var(--text-muted); }
+    .cmd-trigger {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 12px;
+      color: var(--text-muted);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .cmd-trigger:hover { background: var(--card); color: var(--text); border-color: var(--accent); }
 
-    .typing-indicator span {
-      width: 8px;
-      height: 8px;
-      background: var(--text-muted);
+    /* AI Panel */
+    .ai-panel {
+      position: fixed;
+      top: 0;
+      right: -400px;
+      width: 400px;
+      max-width: 100%;
+      height: 100%;
+      background: var(--card);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      z-index: 1001;
+      transition: right 0.3s ease;
+    }
+    .ai-panel.active { right: 0; }
+    .ai-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 1000;
+      transition: opacity 0.3s;
+    }
+    .ai-backdrop.active { opacity: 1; pointer-events: auto; }
+    .ai-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .ai-panel-header h3 { font-size: 16px; font-weight: 600; }
+    .ai-panel-close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 24px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 8px;
+    }
+    .ai-panel-close:hover { background: var(--bg); color: var(--text); }
+    .ai-panel-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .ai-panel-msg {
+      max-width: 85%;
+      padding: 12px 16px;
+      border-radius: 16px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .ai-panel-msg.user {
+      align-self: flex-end;
+      background: var(--accent);
+      color: black;
+      border-bottom-right-radius: 4px;
+    }
+    .ai-panel-msg.assistant {
+      align-self: flex-start;
+      background: var(--bg);
+      border-bottom-left-radius: 4px;
+    }
+    .ai-suggestions {
+      padding: 12px 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      border-top: 1px solid var(--border);
+    }
+    .ai-suggestion {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 8px 14px;
+      font-size: 13px;
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .ai-suggestion:hover { border-color: var(--accent); background: rgba(34, 197, 94, 0.1); }
+    .ai-panel-input {
+      display: flex;
+      padding: 16px;
+      gap: 12px;
+      border-top: 1px solid var(--border);
+    }
+    .ai-panel-input input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 12px 18px;
+      color: var(--text);
+      font-size: 14px;
+    }
+    .ai-panel-input input:focus { outline: none; border-color: var(--accent); }
+    .ai-panel-send {
+      width: 44px;
+      height: 44px;
+      background: var(--accent);
+      border: none;
       border-radius: 50%;
-      animation: typing 1.4s infinite;
+      color: black;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .ai-fab {
+      position: fixed;
+      bottom: 80px;
+      right: 20px;
+      width: 56px;
+      height: 56px;
+      background: linear-gradient(135deg, var(--accent) 0%, #16a34a 100%);
+      border: none;
+      border-radius: 50%;
+      box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+      cursor: pointer;
+      z-index: 999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      transition: transform 0.2s;
+    }
+    .ai-fab:hover { transform: scale(1.05); }
+
+    /* Pull to refresh */
+    .pull-indicator {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 0;
+      overflow: hidden;
+      background: var(--card);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: var(--text-muted);
+      z-index: 50;
+      transition: height 0.2s;
+    }
+    .pull-indicator.ready { color: var(--accent); }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       EMAIL MANAGEMENT SECTION
+       ═══════════════════════════════════════════════════════════════════════════ */
+    .email-section {
+      padding: 0 20px 20px;
     }
 
-    .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
-    .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+    .email-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 16px;
+    }
 
-    @keyframes typing {
-      0%, 100% { opacity: 0.3; transform: translateY(0); }
-      50% { opacity: 1; transform: translateY(-4px); }
+    .email-stat {
+      background: var(--card);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .email-stat:hover {
+      background: var(--card-hover);
+    }
+
+    .email-stat .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .email-stat .stat-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .email-stat.urgent .stat-value {
+      color: var(--accent-red);
+    }
+
+    .email-stat.warning .stat-value {
+      color: var(--accent-amber);
+    }
+
+    .email-filters {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .email-filter {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 12px;
+      color: var(--text-muted);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s;
+    }
+
+    .email-filter:hover,
+    .email-filter.active {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .email-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .email-item {
+      background: var(--card);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      border-left: 3px solid transparent;
+    }
+
+    .email-item:hover {
+      background: var(--card-hover);
+    }
+
+    .email-item:active {
+      transform: scale(0.98);
+    }
+
+    .email-item.critical {
+      border-left-color: var(--accent-red);
+    }
+
+    .email-item.high {
+      border-left-color: var(--accent-amber);
+    }
+
+    .email-item.medium {
+      border-left-color: var(--accent-blue);
+    }
+
+    .email-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 6px;
+    }
+
+    .email-from {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 200px;
+    }
+
+    .email-date {
+      font-size: 11px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    .email-subject {
+      font-size: 13px;
+      color: var(--text);
+      margin-bottom: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .email-badges {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .email-badge {
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .email-badge.priority-critical {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--accent-red);
+    }
+
+    .email-badge.priority-high {
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--accent-amber);
+    }
+
+    .email-badge.priority-medium {
+      background: rgba(59, 130, 246, 0.2);
+      color: var(--accent-blue);
+    }
+
+    .email-badge.priority-low {
+      background: rgba(34, 197, 94, 0.2);
+      color: var(--accent);
+    }
+
+    .email-badge.category {
+      background: var(--bg);
+      color: var(--text-muted);
+    }
+
+    .email-actions-bar {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border);
+    }
+
+    .email-action-btn {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 11px;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .email-action-btn:hover {
+      background: var(--card-hover);
+      color: var(--text);
+      border-color: var(--accent);
+    }
+
+    .email-action-btn.primary {
+      background: var(--accent-dim);
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .process-inbox-btn {
+      width: 100%;
+      background: linear-gradient(135deg, var(--accent) 0%, #16a34a 100%);
+      border: none;
+      border-radius: var(--radius);
+      padding: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #000;
+      cursor: pointer;
+      margin-bottom: 16px;
+      transition: opacity 0.15s, transform 0.15s;
+    }
+
+    .process-inbox-btn:hover {
+      opacity: 0.9;
+    }
+
+    .process-inbox-btn:active {
+      transform: scale(0.98);
+    }
+
+    .process-inbox-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .email-empty {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+    }
+
+    .email-empty-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+
+    /* Email Detail Modal */
+    .email-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      z-index: 1100;
+    }
+
+    .email-modal-overlay.active {
+      display: flex;
+    }
+
+    .email-modal {
+      width: 100%;
+      max-width: 600px;
+      max-height: 85vh;
+      background: var(--card);
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      display: flex;
+      flex-direction: column;
+      animation: slideUp 0.3s ease-out;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    .email-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .email-modal-close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 24px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 8px;
+    }
+
+    .email-modal-close:hover {
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .email-modal-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+    }
+
+    .email-detail-from {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .email-detail-subject {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .email-detail-meta {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    .email-detail-summary {
+      background: var(--bg);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      margin-bottom: 16px;
+      border-left: 3px solid var(--accent);
+    }
+
+    .email-detail-summary h4 {
+      font-size: 12px;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .email-detail-summary p {
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .email-detail-body {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text);
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .email-modal-actions {
+      display: flex;
+      gap: 12px;
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .email-modal-actions .btn {
+      flex: 1;
+    }
+
+    @media (min-width: 768px) {
+      .email-modal {
+        max-height: 80vh;
+        border-radius: var(--radius-lg);
+        margin: auto;
+      }
+
+      .email-section {
+        max-width: 700px;
+        margin: 0 auto;
+        width: 100%;
+      }
+    }
+
+    /* Offline banner */
+    .offline-banner {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: var(--accent-amber);
+      color: #000;
+      text-align: center;
+      padding: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      z-index: 2000;
+      transform: translateY(-100%);
+      transition: transform 0.3s;
+    }
+    .offline-banner.show { transform: translateY(0); }
+
+    @media (max-width: 480px) {
+      .ai-panel { width: 100%; right: -100%; }
+      .ai-fab { bottom: 100px; }
     }
   </style>
 </head>
 <body>
-  <div class="app-container">
-    <!-- Header -->
-    <header class="header">
-      <div class="header-left">
-        <h1><span style="font-size: 24px;">🌱</span> Chief of Staff</h1>
-        <div class="header-stats">
-          <div class="header-stat">
-            <span id="api-status" style="display: flex; align-items: center; gap: 6px;">
-              <span id="status-dot" style="width: 8px; height: 8px; border-radius: 50%; background: #f59e0b;"></span>
-              <span id="status-text">Connecting...</span>
-            </span>
-          </div>
-          <div class="header-stat">
-            <span>Critical:</span>
-            <span class="count critical" id="critical-count">0</span>
-          </div>
-          <div class="header-stat">
-            <span>High:</span>
-            <span class="count high" id="high-count">0</span>
-          </div>
-          <div class="header-stat">
-            <span>Overdue:</span>
-            <span class="count critical" id="overdue-count">0</span>
-          </div>
-        </div>
-      </div>
-      <div class="header-actions">
-        <button class="btn btn-secondary" onclick="openBrainDump()" title="Dump your thoughts">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2a10 10 0 1 0 0 20 10 10 0 1 0 0-20z"/><path d="M8 12h8"/><path d="M12 8v8"/>
-          </svg>
-          Brain Dump
-        </button>
-        <button class="btn btn-secondary" onclick="refreshAll()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/>
-          </svg>
-          Refresh
-        </button>
-        <button class="btn btn-primary" onclick="runTriage()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-          </svg>
-          Process Inbox
-        </button>
-      </div>
-    </header>
+  <!-- Offline Banner -->
+  <div class="offline-banner" id="offline-banner">You're offline - changes will sync when reconnected</div>
 
-    <!-- Main Panel -->
-    <main class="main-panel">
-      <!-- Tabs -->
-      <div class="tabs">
-        <button class="tab active" data-tab="communications" onclick="switchTab('communications')">
-          <span>Communications</span>
-          <span class="tab-badge" id="comms-badge">0</span>
-        </button>
-        <button class="tab" data-tab="actions" onclick="switchTab('actions')">
-          <span>Action Queue</span>
-        </button>
-        <button class="tab" data-tab="commitments" onclick="switchTab('commitments')">
-          <span>Commitments</span>
-        </button>
+  <!-- Pull to Refresh -->
+  <div class="pull-indicator" id="pull-indicator">↓ Pull to refresh</div>
+
+  <!-- 1. HEADER -->
+  <header class="cos-header">
+    <h1>Chief of Staff</h1>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <button class="cmd-trigger" onclick="openCommandPalette()" title="Cmd+K">⌘K</button>
+      <div class="status-indicator" id="ai-status">
+        <span class="status-dot" id="status-dot"></span>
+        <span id="status-text">Connecting...</span>
       </div>
-
-      <!-- Communications Tab -->
-      <div class="tab-content active" id="tab-communications">
-        <div class="filter-bar">
-          <button class="filter-chip active" data-filter="all" onclick="setFilter('all')">All</button>
-          <button class="filter-chip" data-filter="email" onclick="setFilter('email')">Email</button>
-          <button class="filter-chip" data-filter="sms" onclick="setFilter('sms')">SMS</button>
-          <button class="filter-chip" data-filter="unread" onclick="setFilter('unread')">Unread</button>
-          <button class="filter-chip" data-filter="commitment" onclick="setFilter('commitment')">Has Commitment</button>
-        </div>
-
-        <div id="communications-list">
-          <div class="loading"><div class="spinner"></div></div>
-        </div>
-      </div>
-
-      <!-- Actions Tab -->
-      <div class="tab-content" id="tab-actions">
-        <div id="actions-list">
-          <div class="loading"><div class="spinner"></div></div>
-        </div>
-      </div>
-
-      <!-- Commitments Tab -->
-      <div class="tab-content" id="tab-commitments">
-        <div class="filter-bar">
-          <button class="filter-chip active" data-filter="all" onclick="setCommitmentFilter('all')">All Open</button>
-          <button class="filter-chip" data-filter="overdue" onclick="setCommitmentFilter('overdue')">Overdue</button>
-          <button class="filter-chip" data-filter="mine" onclick="setCommitmentFilter('mine')">My Promises</button>
-          <button class="filter-chip" data-filter="theirs" onclick="setCommitmentFilter('theirs')">Their Promises</button>
-        </div>
-        <div id="commitments-list">
-          <div class="loading"><div class="spinner"></div></div>
-        </div>
-      </div>
-    </main>
-
-    <!-- Chat Panel -->
-    <aside class="chat-panel">
-      <div class="chat-header">
-        <div class="chat-avatar">🤖</div>
-        <div class="chat-title">
-          <h2>Chief of Staff</h2>
-          <p>Online - Ready to help</p>
-        </div>
-      </div>
-
-      <div class="quick-actions">
-        <button class="quick-action" onclick="askQuestion('What needs my attention right now?')">🚨 Urgent</button>
-        <button class="quick-action" onclick="askQuestion('Give me my morning brief')">☀️ Brief</button>
-        <button class="quick-action" onclick="askQuestion('What is on my calendar today?')">📅 Schedule</button>
-        <button class="quick-action" onclick="askQuestion('How many workers do I need this week?')">👥 Staffing</button>
-        <button class="quick-action" onclick="askQuestion('Lets work through my tasks')">✅ Tasks</button>
-        <button class="quick-action" onclick="openQuickIdea()">💡 Idea</button>
-      </div>
-
-      <div class="chat-messages" id="chat-messages">
-        <div class="chat-message assistant">
-          <div class="chat-bubble">
-            <p>Hey Todd. I'm ready. I can:</p>
-            <ul>
-              <li>📧 Read/send emails and texts</li>
-              <li>📅 Check/add to your calendar</li>
-              <li>👥 Predict staffing needs</li>
-              <li>✅ Work through your tasks one by one</li>
-              <li>💡 Capture ideas for later</li>
-              <li>🚨 Surface what's urgent before you ask</li>
-            </ul>
-            <p>What do you need?</p>
-          </div>
-          <div class="chat-time">Just now</div>
-        </div>
-      </div>
-
-      <div class="chat-input-area">
-        <div class="chat-input-wrapper">
-          <textarea class="chat-input" id="chat-input" placeholder="Ask me anything..." rows="1" onkeydown="handleChatKeydown(event)"></textarea>
-          <button class="chat-send" id="chat-send" onclick="sendMessage()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-    </aside>
-  </div>
-
-  <!-- Reclassify Menu -->
-  <div class="reclassify-menu" id="reclassify-menu">
-    <div class="reclassify-option" onclick="reclassify('CRITICAL')">
-      <span class="priority-dot critical"></span> Critical
     </div>
-    <div class="reclassify-option" onclick="reclassify('HIGH')">
-      <span class="priority-dot high"></span> High
+  </header>
+
+  <!-- 2. QUICK STATS -->
+  <section class="quick-stats" id="quick-stats">
+    <div class="stat-card skeleton" style="height:80px"></div>
+    <div class="stat-card skeleton" style="height:80px"></div>
+    <div class="stat-card skeleton" style="height:80px"></div>
+  </section>
+
+  <!-- 2.5 FOCUS CARD -->
+  <section class="focus-section" id="focus-section" style="display:none;">
+    <div class="focus-card" id="focus-card">
+      <div class="focus-priority" id="focus-priority">TOP PRIORITY</div>
+      <div class="focus-icon" id="focus-icon">🎯</div>
+      <div class="focus-title" id="focus-title">Loading...</div>
+      <div class="focus-reason" id="focus-reason">Analyzing your farm data...</div>
+      <div class="focus-actions">
+        <button class="btn btn-secondary" onclick="skipFocusItem()">Skip</button>
+        <button class="btn btn-primary" onclick="completeFocusItem()">Done</button>
+      </div>
     </div>
-    <div class="reclassify-option" onclick="reclassify('MEDIUM')">
-      <span class="priority-dot medium"></span> Medium
+  </section>
+
+  <!-- 2.6 UP NEXT -->
+  <section class="upnext-section" id="upnext-section" style="display:none;">
+    <h3 class="section-title">Up Next</h3>
+    <div class="upnext-list" id="upnext-list"></div>
+  </section>
+
+  <!-- 3. AI CHAT -->
+  <section class="ai-chat">
+    <div class="quick-prompts">
+      <button class="quick-prompt" onclick="askQuestion('What needs my attention right now?')">Urgent items</button>
+      <button class="quick-prompt" onclick="askQuestion('Give me my morning brief')">Morning brief</button>
+      <button class="quick-prompt" onclick="askQuestion('What is on my calendar today?')">Today\'s schedule</button>
+      <button class="quick-prompt" onclick="askQuestion('Show me overdue tasks')">Overdue tasks</button>
+      <button class="quick-prompt" onclick="askQuestion('Summarize my inbox')">Email summary</button>
+      <button class="quick-prompt" onclick="askQuestion('Check harvest status')">Harvest status</button>
     </div>
-    <div class="reclassify-option" onclick="reclassify('LOW')">
-      <span class="priority-dot low"></span> Low
+
+    <div class="chat-messages" id="chat-messages">
+      <!-- AI conversation will appear here -->
+    </div>
+
+    <div class="chat-input-container">
+      <input type="text" id="ai-input" placeholder="Ask me anything..." autocomplete="off">
+      <button id="send-btn" onclick="sendMessage()">Send</button>
+    </div>
+  </section>
+
+  <!-- 4. ACTION CARDS -->
+  <section class="action-cards" id="action-section" style="display: none;">
+    <div class="action-cards-header">
+      <h2>Needs Attention</h2>
+      <a href="?page=tasks">See all</a>
+    </div>
+    <div class="action-list" id="action-cards">
+      <!-- Lazy loaded -->
+    </div>
+  </section>
+
+  <!-- 4.5. EMAIL MANAGEMENT -->
+  <section class="email-section" id="email-section" style="display: none;">
+    <div class="action-cards-header">
+      <h2>Email Inbox</h2>
+      <a href="#" onclick="refreshEmailInbox(); return false;">Refresh</a>
+    </div>
+
+    <!-- Email Stats -->
+    <div class="email-stats" id="email-stats">
+      <div class="email-stat skeleton" style="height:60px"></div>
+      <div class="email-stat skeleton" style="height:60px"></div>
+      <div class="email-stat skeleton" style="height:60px"></div>
+    </div>
+
+    <!-- Process Inbox Button -->
+    <button class="process-inbox-btn" id="process-inbox-btn" onclick="processInbox()">
+      Process Inbox
+    </button>
+
+    <!-- Email Filters -->
+    <div class="email-filters">
+      <button class="email-filter active" data-status="NEW" onclick="filterEmails('NEW', this)">New</button>
+      <button class="email-filter" data-status="TRIAGED" onclick="filterEmails('TRIAGED', this)">Triaged</button>
+      <button class="email-filter" data-status="AWAITING_RESPONSE" onclick="filterEmails('AWAITING_RESPONSE', this)">Awaiting Response</button>
+      <button class="email-filter" data-status="AWAITING_THEM" onclick="filterEmails('AWAITING_THEM', this)">Awaiting Them</button>
+      <button class="email-filter" data-status="ALL" onclick="filterEmails('NEW,TRIAGED,AWAITING_RESPONSE,AWAITING_THEM', this)">All</button>
+    </div>
+
+    <!-- Email List -->
+    <div class="email-list" id="email-list">
+      <div class="email-empty">
+        <div class="email-empty-icon">Loading...</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Email Detail Modal -->
+  <div class="email-modal-overlay" id="email-modal-overlay" onclick="closeEmailModal()">
+    <div class="email-modal" onclick="event.stopPropagation()">
+      <div class="email-modal-header">
+        <h3>Email Details</h3>
+        <button class="email-modal-close" onclick="closeEmailModal()">x</button>
+      </div>
+      <div class="email-modal-content" id="email-modal-content">
+        <!-- Dynamic content -->
+      </div>
+      <div class="email-modal-actions">
+        <button class="btn btn-secondary" id="email-archive-btn" onclick="archiveCurrentEmail()">Archive</button>
+        <button class="btn btn-secondary" id="email-followup-btn" onclick="setFollowUpCurrentEmail()">Follow-up</button>
+        <button class="btn btn-primary" id="email-reply-btn" onclick="replyToCurrentEmail()">Reply</button>
+      </div>
     </div>
   </div>
 
-  <!-- Toast -->
+  <!-- 5. BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <a href="?page=tasks">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path d="M9 11l3 3L22 4"/>
+        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+      </svg>
+      Tasks
+    </a>
+    <a href="?page=calendar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+        <line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+      Calendar
+    </a>
+    <a href="?page=sales" class="active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <line x1="12" y1="1" x2="12" y2="23"/>
+        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+      </svg>
+      Sales
+    </a>
+    <a href="?page=irrigation">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+      </svg>
+      Water
+    </a>
+  </nav>
+
+  <!-- TOAST -->
   <div class="toast" id="toast"></div>
 
-  <!-- Completion Modal -->
-  <div class="modal-overlay" id="completion-modal" style="display:none;">
-    <div class="modal">
-      <div class="modal-header">
-        <h3>Log Completion</h3>
-        <button class="modal-close" onclick="closeCompletionModal()">&times;</button>
+  <!-- Command Palette -->
+  <div class="command-overlay" id="command-overlay" onclick="closeCommandPalette()">
+    <div class="command-palette" onclick="event.stopPropagation()">
+      <div class="command-header">
+        <input type="text" class="command-input" id="command-input" placeholder="Type a command or search..." autocomplete="off" oninput="filterCommands(this.value)">
+        <kbd class="command-hint">ESC</kbd>
       </div>
-      <div class="modal-body">
-        <p id="completion-item-name" style="color:var(--text-secondary);margin-bottom:12px;"></p>
-        <textarea id="completion-notes" placeholder="What did you do? Any notes for future reference..." rows="4" style="width:100%;background:var(--bg-input);border:1px solid var(--border-color);border-radius:8px;padding:12px;color:var(--text-primary);resize:vertical;"></textarea>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="closeCompletionModal()">Cancel</button>
-        <button class="btn btn-primary" onclick="confirmCompletion()">Complete & Log</button>
+      <div class="command-results" id="command-results"></div>
+      <div class="command-footer">
+        <span><kbd>↑↓</kbd> navigate</span>
+        <span><kbd>↵</kbd> select</span>
+        <span><kbd>esc</kbd> close</span>
       </div>
     </div>
   </div>
 
-  <!-- Brain Dump Modal -->
-  <div class="modal-overlay" id="braindump-modal" style="display:none;">
-    <div class="modal" style="max-width:600px;">
-      <div class="modal-header">
-        <h3>Brain Dump</h3>
-        <button class="modal-close" onclick="closeBrainDump()">&times;</button>
-      </div>
-      <div class="modal-body">
-        <p style="color:var(--text-secondary);margin-bottom:12px;">Dump your thoughts, tasks, ideas - I'll organize them into actionable items.</p>
-        <textarea id="braindump-text" placeholder="Example:
-- need to call John about seeds
-- check on greenhouse temps
-- order more pots
-- remember to invoice the restaurant
-- weather looks bad friday need to cover crops" rows="8" style="width:100%;background:var(--bg-input);border:1px solid var(--border-color);border-radius:8px;padding:12px;color:var(--text-primary);resize:vertical;font-family:inherit;"></textarea>
-        <div id="braindump-result" style="margin-top:16px;display:none;">
-          <div style="font-weight:600;margin-bottom:8px;">Extracted Tasks:</div>
-          <div id="braindump-tasks"></div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="closeBrainDump()">Cancel</button>
-        <button class="btn btn-primary" id="braindump-process-btn" onclick="processBrainDump()">Process Thoughts</button>
-        <button class="btn btn-primary" id="braindump-save-btn" onclick="saveBrainDumpTasks()" style="display:none;">Save All Tasks</button>
-      </div>
+  <!-- AI Slide-out Panel -->
+  <div class="ai-backdrop" id="ai-backdrop" onclick="closeAIPanel()"></div>
+  <div class="ai-panel" id="ai-panel">
+    <div class="ai-panel-header">
+      <h3>🧙‍♂️ Farm Wizard</h3>
+      <button class="ai-panel-close" onclick="closeAIPanel()">×</button>
+    </div>
+    <div class="ai-panel-messages" id="ai-panel-messages"></div>
+    <div class="ai-suggestions">
+      <button class="ai-suggestion" onclick="askPanelAI('What should I focus on today?')">Focus today</button>
+      <button class="ai-suggestion" onclick="askPanelAI('Any urgent issues?')">Urgent issues</button>
+      <button class="ai-suggestion" onclick="askPanelAI('Show goal progress')">Goals</button>
+    </div>
+    <div class="ai-panel-input">
+      <input type="text" id="ai-panel-input" placeholder="Ask the Farm Wizard..." onkeypress="if(event.key==='Enter')sendPanelMessage()">
+      <button class="ai-panel-send" onclick="sendPanelMessage()">→</button>
     </div>
   </div>
 
-  <style>
-    .modal-overlay { position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:1000; }
-    .modal { background:var(--bg-card);border-radius:12px;max-width:450px;width:90%;max-height:80vh;overflow:auto; }
-    .modal-header { padding:16px 20px;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center; }
-    .modal-header h3 { font-size:16px;font-weight:600; }
-    .modal-close { background:none;border:none;color:var(--text-muted);font-size:24px;cursor:pointer; }
-    .modal-body { padding:20px; }
-    .modal-footer { padding:16px 20px;border-top:1px solid var(--border-color);display:flex;gap:10px;justify-content:flex-end; }
-    .extracted-task { background:var(--bg-secondary);border-radius:8px;padding:12px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px; }
-    .extracted-task input[type="checkbox"] { margin-top:4px; }
-    .extracted-task-text { flex:1; }
-    .extracted-task-type { font-size:11px;background:var(--accent-blue);color:white;padding:2px 8px;border-radius:4px; }
-  </style>
+  <!-- AI FAB Button -->
+  <button class="ai-fab" id="ai-fab" onclick="toggleAIPanel()">🧙‍♂️</button>
 
   <script>
-    // PRODUCTION API - COS Phase 2 (2026-01-28)
-    const API_BASE = 'https://script.google.com/macros/s/AKfycbxCe6CsPMQapQ6MU3pXtXKw5jDAyTnDblX5xSDH919iqs4Ny8774skd0YI73vSoLUmL/exec';
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CONFIGURATION
+    // ═══════════════════════════════════════════════════════════════════════════
+    const API_BASE = 'https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec';
 
-    let communications = [];
-    let actions = [];
-    let commitments = [];
-    let currentFilter = 'all';
-    let commitmentFilter = 'all';
-    let selectedMessageId = null;
+    // Brain Bridge Configuration (local AI server)
+    const BRAIN_BASE = 'http://localhost:8000';
+    const BRAIN_WS = 'ws://localhost:8000/ws';
+
+    // State
     let conversationHistory = [];
+    let isConnected = false;
+    let brainConnected = false;
+    let brainSocket = null;
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // INITIALIZATION
+    // INITIALIZATION - Speed Optimized
     // ═══════════════════════════════════════════════════════════════════════════
-
     document.addEventListener('DOMContentLoaded', () => {
-      checkAPIConnection();
-      autoResizeTextarea();
+      initAIChat();
+      checkConnection();
+
+      // Load stats in background (non-blocking)
+      loadQuickStats();
+
+      // Lazy load action cards after initial render
+      setTimeout(loadActionCards, 500);
     });
 
-    async function checkAPIConnection() {
-      updateStatus('connecting', 'Connecting...');
-      try {
-        const response = await fetch(`${API_BASE}?action=getEmailCategories`);
-        const data = await response.json();
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CONNECTION CHECK - Brain Bridge First, then Apps Script fallback
+    // ═══════════════════════════════════════════════════════════════════════════
+    async function checkConnection() {
+      updateStatus('connecting');
 
-        if (data.success) {
-          updateStatus('connected', 'Connected');
-          loadAllData();
-        } else {
-          updateStatus('error', 'API Error');
-          showToast('API returned error: ' + (data.error || 'Unknown'), 'error');
+      // Try Brain Bridge first (local AI server)
+      try {
+        const brainRes = await fetch(`${BRAIN_BASE}/api/health`, {
+          signal: AbortSignal.timeout(3000)
+        });
+        const brainData = await brainRes.json();
+        if (brainData.status === 'healthy') {
+          brainConnected = true;
+          isConnected = true;
+          updateStatus('connected', 'Brain Online');
+          console.log('[Brain] Connected to Brain Bridge:', brainData.components);
+          connectBrainWebSocket();
+          return;
         }
-      } catch (error) {
-        updateStatus('error', 'Connection Failed');
-        showToast('Cannot connect to API: ' + error.message, 'error');
-        console.error('API Connection Error:', error);
+      } catch (e) {
+        console.log('[Brain] Brain Bridge not available, falling back to Apps Script');
+        brainConnected = false;
+      }
+
+      // Fallback to Apps Script API
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+        const res = await fetch(`${API_BASE}?action=testConnection`, {
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        const data = await res.json();
+        if (data.success || data.connected) {
+          updateStatus('connected', 'API Ready');
+          isConnected = true;
+        } else {
+          updateStatus('error');
+        }
+      } catch (e) {
+        console.error('Connection check failed:', e);
+        updateStatus('error');
       }
     }
 
-    function updateStatus(status, text) {
-      const dot = document.getElementById('status-dot');
-      const statusText = document.getElementById('status-text');
+    // ═══════════════════════════════════════════════════════════════════════════
+    // BRAIN WEBSOCKET - Real-time suggestions
+    // ═══════════════════════════════════════════════════════════════════════════
+    function connectBrainWebSocket() {
+      if (brainSocket) {
+        brainSocket.close();
+      }
 
-      statusText.textContent = text;
+      try {
+        brainSocket = new WebSocket(BRAIN_WS);
+
+        brainSocket.onopen = () => {
+          console.log('[Brain] WebSocket connected');
+          // Register for suggestions
+          brainSocket.send(JSON.stringify({ type: 'subscribe', channel: 'suggestions' }));
+        };
+
+        brainSocket.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'suggestion') {
+              handleBrainSuggestion(data);
+            } else if (data.type === 'proactive') {
+              showProactiveInsight(data);
+            }
+          } catch (e) {
+            console.log('[Brain] Message:', event.data);
+          }
+        };
+
+        brainSocket.onclose = () => {
+          console.log('[Brain] WebSocket disconnected');
+          // Reconnect after 5 seconds
+          setTimeout(connectBrainWebSocket, 5000);
+        };
+
+        brainSocket.onerror = (e) => {
+          console.log('[Brain] WebSocket error:', e);
+        };
+      } catch (e) {
+        console.log('[Brain] WebSocket not available');
+      }
+    }
+
+    function handleBrainSuggestion(data) {
+      // Show suggestion as a toast notification
+      if (data.confidence > 0.7) {
+        showToast(`💡 ${data.message}`, 'info');
+      }
+    }
+
+    function showProactiveInsight(data) {
+      // Add to action cards if high confidence
+      const container = document.getElementById('action-cards');
+      if (container && data.confidence > 0.6) {
+        const card = document.createElement('div');
+        card.className = 'action-card proactive';
+        card.innerHTML = `
+          <div class="action-emoji">🧠</div>
+          <div class="action-content">
+            <div class="action-title">Brain Insight</div>
+            <div class="action-description">${data.message}</div>
+          </div>
+        `;
+        container.insertBefore(card, container.firstChild);
+      }
+    }
+
+    function updateStatus(status, customText = null) {
+      const dot = document.getElementById('status-dot');
+      const text = document.getElementById('status-text');
+
+      dot.className = 'status-dot';
 
       if (status === 'connected') {
-        dot.style.background = '#22c55e';
+        dot.classList.add('connected');
+        text.textContent = customText || 'AI Ready';
       } else if (status === 'error') {
-        dot.style.background = '#ef4444';
+        dot.classList.add('error');
+        text.textContent = customText || 'Offline';
       } else {
-        dot.style.background = '#f59e0b';
+        text.textContent = customText || 'Connecting...';
       }
     }
 
-    async function loadAllData() {
-      await Promise.all([
-        loadCommunications(),
-        loadActions(),
-        loadCommitments()
-      ]);
-    }
-
-    function refreshAll() {
-      checkAPIConnection();
-      showToast('Refreshing data...', 'success');
-    }
-
     // ═══════════════════════════════════════════════════════════════════════════
-    // COMMUNICATIONS
+    // QUICK STATS - Non-blocking load
     // ═══════════════════════════════════════════════════════════════════════════
-
-    async function loadCommunications() {
+    async function loadQuickStats() {
       try {
-        // Load both email and SMS data
-        const [emailRes, smsRes] = await Promise.all([
-          fetch(`${API_BASE}?action=getEmailInboxState`).then(r => r.json()).catch(() => ({ success: false })),
-          fetch(`${API_BASE}?action=getSMSLog`).then(r => r.json()).catch(() => ({ success: false }))
-        ]);
+        const res = await fetch(`${API_BASE}?action=getDashboardStats`);
+        const data = await res.json();
 
-        communications = [];
+        const overdue = data.overdueTasks || 0;
+        const pending = data.pendingOrders || 0;
+        const harvest = data.harvestToday || 0;
 
-        // Process emails
-        if (emailRes.success && emailRes.emails) {
-          emailRes.emails.forEach(e => {
-            communications.push({
-              id: e.threadId || e.messageId,
-              type: 'email',
-              from: e.fromName || e.from,
-              subject: e.subject,
-              summary: e.aiSummary || '',
-              priority: e.priority || 'MEDIUM',
-              status: e.status,
-              category: e.category,
-              intent: e.aiSuggestedAction,
-              sentiment: e.sentiment,
-              hasCommitment: e.hasCommitment,
-              receivedAt: e.receivedAt,
-              isUnread: e.status === 'NEW'
-            });
+        document.getElementById('quick-stats').innerHTML = `
+          <div class="stat-card ${overdue > 0 ? 'alert' : ''}" onclick="navigate('tasks')">
+            <div class="value">${overdue}</div>
+            <div class="label">Overdue</div>
+          </div>
+          <div class="stat-card" onclick="navigate('orders')">
+            <div class="value">${pending}</div>
+            <div class="label">Orders</div>
+          </div>
+          <div class="stat-card" onclick="navigate('harvest')">
+            <div class="value">${harvest}</div>
+            <div class="label">Harvest</div>
+          </div>
+        `;
+      } catch (e) {
+        console.error('Stats load failed:', e);
+        // Show zeros on error - fail gracefully
+        document.getElementById('quick-stats').innerHTML = `
+          <div class="stat-card" onclick="navigate('tasks')">
+            <div class="value">--</div>
+            <div class="label">Overdue</div>
+          </div>
+          <div class="stat-card" onclick="navigate('orders')">
+            <div class="value">--</div>
+            <div class="label">Orders</div>
+          </div>
+          <div class="stat-card" onclick="navigate('harvest')">
+            <div class="value">--</div>
+            <div class="label">Harvest</div>
+          </div>
+        `;
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ACTION CARDS - Brain Bridge first, then Apps Script fallback
+    // ═══════════════════════════════════════════════════════════════════════════
+    async function loadActionCards() {
+      let actions = [];
+
+      // Try Brain Bridge first for proactive suggestions
+      if (brainConnected) {
+        try {
+          const res = await fetch(`${BRAIN_BASE}/api/suggestions`, {
+            signal: AbortSignal.timeout(5000)
           });
-        }
-
-        // Process SMS
-        if (smsRes.success && smsRes.messages) {
-          smsRes.messages.forEach(s => {
-            communications.push({
-              id: s.messageId || s.id,
-              type: 'sms',
-              from: s.contactName || s.phoneNumber,
-              subject: s.message ? s.message.substring(0, 50) + '...' : '',
-              summary: s.aiSummary || s.message,
-              priority: s.priority || 'MEDIUM',
-              status: s.status,
-              category: s.category,
-              intent: s.intent,
-              sentiment: s.sentiment,
-              hasCommitment: s.hasCommitment,
-              receivedAt: s.timestamp,
-              isUnread: s.status === 'NEW'
-            });
-          });
-        }
-
-        // Sort by priority and time
-        const priorityOrder = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
-        communications.sort((a, b) => {
-          if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
-            return priorityOrder[a.priority] - priorityOrder[b.priority];
+          const data = await res.json();
+          if (data.suggestions && data.suggestions.length > 0) {
+            actions = data.suggestions.map(s => ({
+              id: s.id,
+              action: s.message,
+              rationale: `Confidence: ${Math.round(s.confidence * 100)}%`,
+              queuePosition: s.confidence > 0.8 ? 'CRITICAL' : s.confidence > 0.6 ? 'HIGH' : 'NORMAL',
+              source: 'brain'
+            }));
+            console.log('[Brain] Loaded', actions.length, 'proactive suggestions');
           }
-          return new Date(b.receivedAt) - new Date(a.receivedAt);
-        });
-
-        updateStats();
-        renderCommunications();
-      } catch (error) {
-        console.error('Load communications error:', error);
-        document.getElementById('communications-list').innerHTML = `
-          <div class="empty-state">
-            <div class="empty-state-icon">📭</div>
-            <p>Unable to load communications</p>
-          </div>
-        `;
-      }
-    }
-
-    function updateStats() {
-      const critical = communications.filter(c => c.priority === 'CRITICAL').length;
-      const high = communications.filter(c => c.priority === 'HIGH').length;
-
-      document.getElementById('critical-count').textContent = critical;
-      document.getElementById('high-count').textContent = high;
-      document.getElementById('comms-badge').textContent = communications.filter(c => c.isUnread).length;
-    }
-
-    function renderCommunications() {
-      const container = document.getElementById('communications-list');
-      let filtered = communications;
-
-      // Apply filter
-      if (currentFilter === 'email') filtered = filtered.filter(c => c.type === 'email');
-      else if (currentFilter === 'sms') filtered = filtered.filter(c => c.type === 'sms');
-      else if (currentFilter === 'unread') filtered = filtered.filter(c => c.isUnread);
-      else if (currentFilter === 'commitment') filtered = filtered.filter(c => c.hasCommitment);
-
-      if (filtered.length === 0) {
-        container.innerHTML = `
-          <div class="empty-state">
-            <div class="empty-state-icon">📭</div>
-            <p>No communications found</p>
-          </div>
-        `;
-        return;
-      }
-
-      // Group by priority
-      const groups = {
-        CRITICAL: filtered.filter(c => c.priority === 'CRITICAL'),
-        HIGH: filtered.filter(c => c.priority === 'HIGH'),
-        MEDIUM: filtered.filter(c => c.priority === 'MEDIUM'),
-        LOW: filtered.filter(c => c.priority === 'LOW')
-      };
-
-      let html = '';
-
-      for (const [priority, items] of Object.entries(groups)) {
-        if (items.length === 0) continue;
-
-        html += `
-          <div class="priority-group">
-            <div class="priority-header">
-              <span class="priority-dot ${priority.toLowerCase()}"></span>
-              <h3>${priority}</h3>
-              <span class="count">${items.length}</span>
-            </div>
-        `;
-
-        for (const msg of items) {
-          html += renderMessageCard(msg);
+        } catch (e) {
+          console.log('[Brain] Suggestions fetch failed:', e);
         }
-
-        html += '</div>';
       }
 
-      container.innerHTML = html;
-    }
+      // Fallback or supplement with Apps Script actions
+      if (actions.length < 3) {
+        try {
+          const res = await fetch(`${API_BASE}?action=getActionQueue`);
+          const data = await res.json();
+          if (data.success && data.actions) {
+            const apiActions = data.actions.map(a => ({ ...a, source: 'api' }));
+            actions = [...actions, ...apiActions].slice(0, 5);
+          }
+        } catch (e) {
+          console.log('[API] Actions fetch failed:', e);
+        }
+      }
 
-    function renderMessageCard(msg) {
-      const timeAgo = formatTimeAgo(msg.receivedAt);
-      const icon = msg.type === 'email' ? '📧' : '💬';
+      // Render action cards
+      if (actions.length > 0) {
+        const top3 = actions.slice(0, 3);
+        const container = document.getElementById('action-cards');
 
-      let tags = '';
-      if (msg.intent) tags += `<span class="message-tag intent">${msg.intent}</span>`;
-      if (msg.sentiment === 'POSITIVE') tags += `<span class="message-tag sentiment-positive">Positive</span>`;
-      if (msg.sentiment === 'NEGATIVE') tags += `<span class="message-tag sentiment-negative">Negative</span>`;
-      if (msg.hasCommitment) tags += `<span class="message-tag commitment">Commitment</span>`;
-
-      return `
-        <div class="message-card ${selectedMessageId === msg.id ? 'selected' : ''}"
-             onclick="selectMessage('${msg.id}')"
-             oncontextmenu="showReclassifyMenu(event, '${msg.id}')">
-          <div class="message-header">
-            <span class="message-type">${icon}</span>
-            <div class="message-meta">
-              <div class="message-from">${escapeHtml(msg.from || 'Unknown')}</div>
-              <div class="message-time">${timeAgo}</div>
+        container.innerHTML = top3.map(action => {
+          const priorityClass = action.queuePosition === 'CRITICAL' ? 'critical' :
+                                action.queuePosition === 'HIGH' ? 'high' : '';
+          const sourceIcon = action.source === 'brain' ? '🧠 ' : '';
+          return `
+            <div class="action-item ${priorityClass}" onclick="handleAction('${action.id}')">
+              <div class="action-title">${sourceIcon}${escapeHtml(action.action || action.contactName || 'Action needed')}</div>
+              <div class="action-meta">${escapeHtml(action.rationale || '')}</div>
             </div>
-          </div>
-          <div class="message-subject">${escapeHtml(msg.subject || 'No subject')}</div>
-          <div class="message-summary">${escapeHtml(msg.summary || '')}</div>
-          ${tags ? `<div class="message-tags">${tags}</div>` : ''}
-        </div>
-      `;
+          `;
+        }).join('');
+
+        document.getElementById('action-section').style.display = 'block';
+      }
     }
 
-    function setFilter(filter) {
-      currentFilter = filter;
-      document.querySelectorAll('#tab-communications .filter-chip').forEach(c => {
-        c.classList.toggle('active', c.dataset.filter === filter);
+    function handleAction(id) {
+      askQuestion(`Tell me more about action ${id} and help me handle it`);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // AI CHAT
+    // ═══════════════════════════════════════════════════════════════════════════
+    function initAIChat() {
+      const input = document.getElementById('ai-input');
+
+      input.addEventListener('keypress', e => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendMessage();
+        }
       });
-      renderCommunications();
-    }
 
-    function selectMessage(id) {
-      selectedMessageId = id;
-      renderCommunications();
-
-      // Load message details in chat
-      const msg = communications.find(c => c.id === id);
-      if (msg) {
-        askQuestion(`Tell me more about the ${msg.type} from ${msg.from}: "${msg.subject}"`);
-      }
-    }
-
-    function showReclassifyMenu(event, id) {
-      event.preventDefault();
-      selectedMessageId = id;
-
-      const menu = document.getElementById('reclassify-menu');
-      menu.style.left = event.pageX + 'px';
-      menu.style.top = event.pageY + 'px';
-      menu.classList.add('show');
-
-      document.addEventListener('click', hideReclassifyMenu, { once: true });
-    }
-
-    function hideReclassifyMenu() {
-      document.getElementById('reclassify-menu').classList.remove('show');
-    }
-
-    async function reclassify(newPriority) {
-      if (!selectedMessageId) return;
-
-      const msg = communications.find(c => c.id === selectedMessageId);
-      if (!msg) return;
-
-      try {
-        const endpoint = msg.type === 'email' ? 'reclassifyEmail' : 'reclassifySMS';
-        const response = await fetch(`${API_BASE}?action=${endpoint}&id=${selectedMessageId}&priority=${newPriority}`);
-        const result = await response.json();
-
-        if (result.success) {
-          msg.priority = newPriority;
-          renderCommunications();
-          updateStats();
-          showToast(`Reclassified as ${newPriority} - AI will learn from this`, 'success');
-        }
-      } catch (error) {
-        showToast('Failed to reclassify', 'error');
+      // Focus input on load (desktop only)
+      if (window.innerWidth >= 768) {
+        input.focus();
       }
 
-      hideReclassifyMenu();
+      // Welcome message
+      addMessage('ai', getGreeting() + " How can I help you today?");
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // ACTIONS
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    async function loadActions() {
-      try {
-        const response = await fetch(`${API_BASE}?action=getActionQueue`);
-        const data = await response.json();
-
-        if (data.success) {
-          actions = data.actions || [];
-          renderActions();
-        }
-      } catch (error) {
-        console.error('Load actions error:', error);
-      }
+    function getGreeting() {
+      const hour = new Date().getHours();
+      if (hour < 12) return "Good morning!";
+      if (hour < 17) return "Good afternoon!";
+      return "Good evening!";
     }
-
-    function renderActions() {
-      const container = document.getElementById('actions-list');
-
-      if (actions.length === 0) {
-        container.innerHTML = `
-          <div class="empty-state">
-            <div class="empty-state-icon">✅</div>
-            <p>No pending actions</p>
-          </div>
-        `;
-        return;
-      }
-
-      let html = '';
-      for (const action of actions) {
-        const priorityClass = action.queuePosition === 'CRITICAL' ? 'critical' :
-                              action.queuePosition === 'HIGH' ? 'high' : '';
-
-        html += `
-          <div class="action-card ${priorityClass}">
-            <div class="action-header">
-              <span class="action-contact">${escapeHtml(action.contactName || 'Unknown')}</span>
-              <span class="action-score">Score: ${action.priorityScore || 0}</span>
-            </div>
-            <div class="action-description">${escapeHtml(action.action || '')}</div>
-            <div class="action-rationale">${escapeHtml(action.rationale || '')}</div>
-            <div class="action-buttons">
-              <button class="action-btn complete" onclick="completeAction('${action.id}')">Mark Done</button>
-              <button class="action-btn dismiss" onclick="dismissAction('${action.id}')">Dismiss</button>
-            </div>
-          </div>
-        `;
-      }
-
-      container.innerHTML = html;
-    }
-
-    async function completeAction(id) {
-      try {
-        const response = await fetch(`${API_BASE}?action=completeAction&actionId=${id}`);
-        await response.json();
-        actions = actions.filter(a => a.id !== id);
-        renderActions();
-        showToast('Action completed', 'success');
-      } catch (error) {
-        showToast('Failed to complete action', 'error');
-      }
-    }
-
-    async function dismissAction(id) {
-      try {
-        const response = await fetch(`${API_BASE}?action=dismissAction&actionId=${id}`);
-        await response.json();
-        actions = actions.filter(a => a.id !== id);
-        renderActions();
-      } catch (error) {
-        showToast('Failed to dismiss action', 'error');
-      }
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // COMMITMENTS
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    async function loadCommitments() {
-      try {
-        const response = await fetch(`${API_BASE}?action=getOpenSMSCommitments`);
-        const data = await response.json();
-
-        if (data.success) {
-          commitments = data.commitments || [];
-          renderCommitments();
-
-          const overdue = commitments.filter(c => c.isOverdue).length;
-          document.getElementById('overdue-count').textContent = overdue;
-        }
-      } catch (error) {
-        console.error('Load commitments error:', error);
-      }
-    }
-
-    function renderCommitments() {
-      const container = document.getElementById('commitments-list');
-      let filtered = commitments;
-
-      if (commitmentFilter === 'overdue') filtered = filtered.filter(c => c.isOverdue);
-      else if (commitmentFilter === 'mine') filtered = filtered.filter(c => c.type === 'OUTBOUND');
-      else if (commitmentFilter === 'theirs') filtered = filtered.filter(c => c.type === 'INBOUND');
-
-      if (filtered.length === 0) {
-        container.innerHTML = `
-          <div class="empty-state">
-            <div class="empty-state-icon">📝</div>
-            <p>No commitments found</p>
-          </div>
-        `;
-        return;
-      }
-
-      let html = '';
-      for (const c of filtered) {
-        const typeClass = c.type === 'OUTBOUND' ? 'mine' : 'theirs';
-        const typeLabel = c.type === 'OUTBOUND' ? 'My Promise' : 'Their Promise';
-
-        html += `
-          <div class="commitment-card ${c.isOverdue ? 'overdue' : ''}">
-            <div class="commitment-header">
-              <span class="commitment-type ${typeClass}">${typeLabel}</span>
-              <span class="commitment-deadline ${c.isOverdue ? 'overdue' : ''}">
-                ${c.isOverdue ? 'OVERDUE' : (c.deadline || 'No deadline')}
-              </span>
-            </div>
-            <div class="commitment-contact">${escapeHtml(c.contactName || 'Unknown')}</div>
-            <div class="commitment-text">${escapeHtml(c.text || '')}</div>
-            <div class="action-buttons">
-              <button class="action-btn complete" onclick="completeCommitmentWithLog('${c.id}', '${escapeHtml(c.text || '').replace(/'/g, "\\'")}')">Complete</button>
-            </div>
-          </div>
-        `;
-      }
-
-      container.innerHTML = html;
-    }
-
-    function setCommitmentFilter(filter) {
-      commitmentFilter = filter;
-      document.querySelectorAll('#tab-commitments .filter-chip').forEach(c => {
-        c.classList.toggle('active', c.dataset.filter === filter);
-      });
-      renderCommitments();
-    }
-
-    async function completeCommitment(id) {
-      try {
-        const response = await fetch(`${API_BASE}?action=completeSMSCommitment&commitmentId=${id}`);
-        await response.json();
-        commitments = commitments.filter(c => c.id !== id);
-        renderCommitments();
-        showToast('Commitment completed', 'success');
-      } catch (error) {
-        showToast('Failed to complete commitment', 'error');
-      }
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // CHAT
-    // ═══════════════════════════════════════════════════════════════════════════
 
     function askQuestion(question) {
-      document.getElementById('chat-input').value = question;
+      document.getElementById('ai-input').value = question;
       sendMessage();
     }
 
     async function sendMessage() {
-      const input = document.getElementById('chat-input');
+      const input = document.getElementById('ai-input');
+      const btn = document.getElementById('send-btn');
       const message = input.value.trim();
+
       if (!message) return;
 
       // Add user message
-      addChatMessage(message, 'user');
+      addMessage('user', message);
       input.value = '';
-      input.style.height = 'auto';
+
+      // Disable input while processing
+      input.disabled = true;
+      btn.disabled = true;
 
       // Show typing indicator
-      const typingId = showTypingIndicator();
+      const typingId = showTyping();
 
       try {
-        const response = await fetch(`${API_BASE}?action=chatWithChiefOfStaff&message=${encodeURIComponent(message)}&history=${encodeURIComponent(JSON.stringify(conversationHistory))}`);
-        const data = await response.json();
+        let response;
 
-        removeTypingIndicator(typingId);
-
-        if (data.success) {
-          addChatMessage(data.message, 'assistant');
-
-          // Update conversation history
-          conversationHistory.push({ role: 'user', content: message });
-          conversationHistory.push({ role: 'assistant', content: data.message });
-
-          // Keep last 10 exchanges
-          if (conversationHistory.length > 20) {
-            conversationHistory = conversationHistory.slice(-20);
-          }
-        } else {
-          addChatMessage('Sorry, I encountered an error. Please try again.', 'assistant');
+        // Try Brain Bridge first if connected
+        if (brainConnected) {
+          console.log('[Brain] Sending message to Brain Bridge');
+          response = await sendToBrain(message);
         }
-      } catch (error) {
-        removeTypingIndicator(typingId);
-        addChatMessage('Connection error. Please check your network.', 'assistant');
+
+        // Fallback to Apps Script API
+        if (!response) {
+          console.log('[API] Sending message to Apps Script');
+          const res = await fetch(`${API_BASE}?action=chiefOfStaffChat&message=${encodeURIComponent(message)}&history=${encodeURIComponent(JSON.stringify(conversationHistory))}`);
+          const data = await res.json();
+          response = data.response || data.message || "I'll help you with that.";
+        }
+
+        removeTyping(typingId);
+        addMessage('ai', response);
+
+        // Update conversation history
+        conversationHistory.push({ role: 'user', content: message });
+        conversationHistory.push({ role: 'assistant', content: response });
+
+        // Keep last 10 exchanges
+        if (conversationHistory.length > 20) {
+          conversationHistory = conversationHistory.slice(-20);
+        }
+      } catch (e) {
+        removeTyping(typingId);
+        addMessage('ai', "Sorry, I'm having trouble connecting. Please try again.");
+        console.error('Chat error:', e);
+      }
+
+      // Re-enable input
+      input.disabled = false;
+      btn.disabled = false;
+      input.focus();
+    }
+
+    // Send message to Brain Bridge with conversation context
+    async function sendToBrain(message) {
+      try {
+        const res = await fetch(`${BRAIN_BASE}/api/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: message,
+            history: conversationHistory,
+            context: {
+              page: 'chief-of-staff',
+              timestamp: new Date().toISOString()
+            }
+          }),
+          signal: AbortSignal.timeout(30000) // 30 second timeout for AI response
+        });
+
+        const data = await res.json();
+        if (data.response) {
+          return data.response;
+        }
+        return null;
+      } catch (e) {
+        console.log('[Brain] Chat error:', e);
+        return null;
       }
     }
 
-    function addChatMessage(content, role) {
+    function addMessage(role, text) {
       const container = document.getElementById('chat-messages');
-      const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const id = 'msg-' + Date.now();
 
       const div = document.createElement('div');
+      div.id = id;
       div.className = `chat-message ${role}`;
-
-      // Simple markdown-ish parsing
-      let html = escapeHtml(content)
-        .replace(/\n/g, '</p><p>')
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.*?)\*/g, '<em>$1</em>');
-
       div.innerHTML = `
-        <div class="chat-bubble"><p>${html}</p></div>
-        <div class="chat-time">${time}</div>
+        <div class="chat-bubble">
+          <span class="text">${formatMessage(text)}</span>
+        </div>
       `;
 
       container.appendChild(div);
       container.scrollTop = container.scrollHeight;
+
+      return id;
     }
 
-    function showTypingIndicator() {
+    function formatMessage(text) {
+      // Basic markdown-like formatting
+      return escapeHtml(text)
+        .replace(/\n/g, '<br>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>');
+    }
+
+    function showTyping() {
       const container = document.getElementById('chat-messages');
       const id = 'typing-' + Date.now();
 
       const div = document.createElement('div');
       div.id = id;
-      div.className = 'chat-message assistant';
+      div.className = 'chat-message ai';
       div.innerHTML = `
         <div class="chat-bubble">
-          <div class="typing-indicator">
+          <div class="typing-dots">
             <span></span><span></span><span></span>
           </div>
         </div>
@@ -1512,71 +1982,35 @@
 
       container.appendChild(div);
       container.scrollTop = container.scrollHeight;
+
       return id;
     }
 
-    function removeTypingIndicator(id) {
+    function removeTyping(id) {
       const el = document.getElementById(id);
       if (el) el.remove();
     }
 
-    function handleChatKeydown(event) {
-      if (event.key === 'Enter' && !event.shiftKey) {
-        event.preventDefault();
-        sendMessage();
+    function updateMessage(id, text) {
+      const el = document.getElementById(id);
+      if (el) {
+        const textSpan = el.querySelector('.text');
+        if (textSpan) {
+          textSpan.innerHTML = formatMessage(text);
+        }
       }
     }
 
-    function autoResizeTextarea() {
-      const textarea = document.getElementById('chat-input');
-      textarea.addEventListener('input', function() {
-        this.style.height = 'auto';
-        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
-      });
-    }
-
     // ═══════════════════════════════════════════════════════════════════════════
-    // TABS
+    // NAVIGATION
     // ═══════════════════════════════════════════════════════════════════════════
-
-    function switchTab(tab) {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-
-      document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
-      document.getElementById(`tab-${tab}`).classList.add('active');
+    function navigate(page) {
+      window.location.href = `?page=${page}`;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
     // UTILITIES
     // ═══════════════════════════════════════════════════════════════════════════
-
-    async function runTriage() {
-      showToast('Processing inbox...', 'success');
-      try {
-        await fetch(`${API_BASE}?action=triageInbox`);
-        setTimeout(() => loadCommunications(), 3000);
-      } catch (error) {
-        showToast('Triage started in background', 'success');
-      }
-    }
-
-    function formatTimeAgo(dateStr) {
-      if (!dateStr) return '';
-      const date = new Date(dateStr);
-      const now = new Date();
-      const diffMs = now - date;
-      const diffMins = Math.floor(diffMs / 60000);
-      const diffHours = Math.floor(diffMs / 3600000);
-      const diffDays = Math.floor(diffMs / 86400000);
-
-      if (diffMins < 1) return 'Just now';
-      if (diffMins < 60) return `${diffMins}m ago`;
-      if (diffHours < 24) return `${diffHours}h ago`;
-      if (diffDays < 7) return `${diffDays}d ago`;
-      return date.toLocaleDateString();
-    }
-
     function escapeHtml(text) {
       if (!text) return '';
       const div = document.createElement('div');
@@ -1591,199 +2025,652 @@
       setTimeout(() => toast.classList.remove('show'), 3000);
     }
 
-    // Close reclassify menu when clicking elsewhere
-    document.addEventListener('click', (e) => {
-      if (!e.target.closest('.reclassify-menu')) {
-        hideReclassifyMenu();
-      }
-    });
-
     // ═══════════════════════════════════════════════════════════════════════════
-    // COMPLETION LOGGING
+    // COMMAND PALETTE
     // ═══════════════════════════════════════════════════════════════════════════
+    const commands = [
+      { id: 'nav-tasks', icon: '✓', title: 'Go to Tasks', description: 'View all tasks', category: 'Navigation', action: () => navigate('tasks') },
+      { id: 'nav-calendar', icon: '📅', title: 'Go to Calendar', description: 'View calendar', category: 'Navigation', action: () => navigate('calendar') },
+      { id: 'nav-sales', icon: '💰', title: 'Go to Sales', description: 'Sales dashboard', category: 'Navigation', action: () => navigate('sales') },
+      { id: 'nav-irrigation', icon: '💧', title: 'Go to Irrigation', description: 'Water control', category: 'Navigation', action: () => navigate('irrigation') },
+      { id: 'nav-reports', icon: '📊', title: 'Go to Reports', description: 'USDA & financial reports', category: 'Navigation', action: () => navigate('reports') },
+      { id: 'ai-brief', icon: '🧠', title: 'Morning Brief', description: 'Get AI briefing', category: 'AI', action: () => { askQuestion('Give me my morning brief'); closeCommandPalette(); } },
+      { id: 'ai-focus', icon: '🎯', title: 'What to Focus On', description: 'Top priority now', category: 'AI', action: () => { askQuestion('What needs my attention right now?'); closeCommandPalette(); } },
+      { id: 'ai-panel', icon: '🧙‍♂️', title: 'Open Farm Wizard', description: 'AI assistant panel', category: 'AI', action: () => { openAIPanel(); closeCommandPalette(); } },
+      { id: 'email-inbox', icon: '📧', title: 'View Inbox', description: 'Email management', category: 'Email', action: () => { scrollToEmailSection(); closeCommandPalette(); } },
+      { id: 'email-process', icon: '⚡', title: 'Process Inbox', description: 'Triage new emails', category: 'Email', action: () => { processInbox(); closeCommandPalette(); } },
+      { id: 'email-urgent', icon: '🔥', title: 'Urgent Emails', description: 'Critical priority emails', category: 'Email', action: () => { filterEmails('NEW,TRIAGED'); scrollToEmailSection(); closeCommandPalette(); } },
+    ];
+    let filteredCommands = [...commands];
+    let selectedIndex = 0;
 
-    let pendingCompletion = null;
-
-    function openCompletionModal(type, id, name) {
-      pendingCompletion = { type, id };
-      document.getElementById('completion-item-name').textContent = name || 'Complete this item';
-      document.getElementById('completion-notes').value = '';
-      document.getElementById('completion-modal').style.display = 'flex';
-      document.getElementById('completion-notes').focus();
+    function openCommandPalette() {
+      document.getElementById('command-overlay').classList.add('active');
+      document.getElementById('command-input').value = '';
+      document.getElementById('command-input').focus();
+      filteredCommands = [...commands];
+      selectedIndex = 0;
+      renderCommands();
     }
 
-    function closeCompletionModal() {
-      document.getElementById('completion-modal').style.display = 'none';
-      pendingCompletion = null;
+    function closeCommandPalette() {
+      document.getElementById('command-overlay').classList.remove('active');
     }
 
-    async function confirmCompletion() {
-      if (!pendingCompletion) return;
-
-      const notes = document.getElementById('completion-notes').value.trim();
-      const { type, id } = pendingCompletion;
-
-      // Optimistic UI - remove immediately
-      if (type === 'action') {
-        actions = actions.filter(a => a.id !== id);
-        renderActions();
-      } else if (type === 'commitment') {
-        commitments = commitments.filter(c => c.id !== id);
-        renderCommitments();
-      }
-
-      closeCompletionModal();
-      showToast('Completed & logged!', 'success');
-
-      // Save to backend
-      try {
-        const action = type === 'action' ? 'completeAction' : 'completeSMSCommitment';
-        const idParam = type === 'action' ? 'actionId' : 'commitmentId';
-        await fetch(`${API_BASE}?action=${action}&${idParam}=${id}&notes=${encodeURIComponent(notes)}`);
-
-        // Also log to activity log
-        await fetch(`${API_BASE}?action=logActivity&type=COMPLETION&itemType=${type}&itemId=${id}&notes=${encodeURIComponent(notes)}`);
-      } catch (error) {
-        console.error('Completion save error:', error);
-      }
+    function filterCommands(query) {
+      const q = query.toLowerCase().trim();
+      filteredCommands = !q ? [...commands] : commands.filter(cmd =>
+        cmd.title.toLowerCase().includes(q) || cmd.description.toLowerCase().includes(q) || cmd.category.toLowerCase().includes(q)
+      );
+      selectedIndex = 0;
+      renderCommands();
     }
 
-    // Override the original complete functions to use modal
-    function completeActionWithLog(id, name) {
-      openCompletionModal('action', id, name);
-    }
-
-    function completeCommitmentWithLog(id, name) {
-      openCompletionModal('commitment', id, name);
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // BRAIN DUMP
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    let extractedTasks = [];
-
-    function openBrainDump() {
-      document.getElementById('braindump-text').value = '';
-      document.getElementById('braindump-result').style.display = 'none';
-      document.getElementById('braindump-process-btn').style.display = 'inline-flex';
-      document.getElementById('braindump-save-btn').style.display = 'none';
-      document.getElementById('braindump-modal').style.display = 'flex';
-      document.getElementById('braindump-text').focus();
-    }
-
-    function closeBrainDump() {
-      document.getElementById('braindump-modal').style.display = 'none';
-      extractedTasks = [];
-    }
-
-    async function processBrainDump() {
-      const text = document.getElementById('braindump-text').value.trim();
-      if (!text) {
-        showToast('Enter some thoughts first', 'error');
+    function renderCommands() {
+      const container = document.getElementById('command-results');
+      if (filteredCommands.length === 0) {
+        container.innerHTML = '<div class="command-empty">No commands found</div>';
         return;
       }
-
-      document.getElementById('braindump-process-btn').textContent = 'Processing...';
-      document.getElementById('braindump-process-btn').disabled = true;
-
-      try {
-        const response = await fetch(`${API_BASE}?action=processBrainDump&text=${encodeURIComponent(text)}`);
-        const data = await response.json();
-
-        if (data.success && data.tasks && data.tasks.length > 0) {
-          extractedTasks = data.tasks;
-          renderExtractedTasks();
-          document.getElementById('braindump-result').style.display = 'block';
-          document.getElementById('braindump-process-btn').style.display = 'none';
-          document.getElementById('braindump-save-btn').style.display = 'inline-flex';
-        } else {
-          showToast('No tasks extracted. Try being more specific.', 'error');
-        }
-      } catch (error) {
-        console.error('Brain dump error:', error);
-        showToast('Processing failed. Try again.', 'error');
-      }
-
-      document.getElementById('braindump-process-btn').textContent = 'Process Thoughts';
-      document.getElementById('braindump-process-btn').disabled = false;
-    }
-
-    function renderExtractedTasks() {
-      const container = document.getElementById('braindump-tasks');
+      const groups = {};
+      filteredCommands.forEach(cmd => {
+        if (!groups[cmd.category]) groups[cmd.category] = [];
+        groups[cmd.category].push(cmd);
+      });
       let html = '';
-
-      for (let i = 0; i < extractedTasks.length; i++) {
-        const task = extractedTasks[i];
-        html += `
-          <div class="extracted-task">
-            <input type="checkbox" checked id="task-${i}">
-            <div class="extracted-task-text">${escapeHtml(task.text)}</div>
-            <span class="extracted-task-type">${task.type || 'Task'}</span>
-          </div>
-        `;
-      }
-
+      let globalIndex = 0;
+      Object.entries(groups).forEach(([category, cmds]) => {
+        html += `<div class="command-group"><div class="command-group-title">${category}</div>`;
+        cmds.forEach(cmd => {
+          html += `<div class="command-item ${globalIndex === selectedIndex ? 'selected' : ''}" data-index="${globalIndex}" onclick="executeCommand('${cmd.id}')">
+            <div class="command-item-icon">${cmd.icon}</div>
+            <div class="command-item-content"><div class="command-item-title">${cmd.title}</div><div class="command-item-description">${cmd.description}</div></div>
+          </div>`;
+          globalIndex++;
+        });
+        html += '</div>';
+      });
       container.innerHTML = html;
     }
 
-    async function saveBrainDumpTasks() {
-      const selectedTasks = extractedTasks.filter((_, i) =>
-        document.getElementById(`task-${i}`).checked
-      );
+    function executeCommand(id) {
+      const cmd = commands.find(c => c.id === id);
+      if (cmd && cmd.action) { closeCommandPalette(); cmd.action(); }
+    }
 
-      if (selectedTasks.length === 0) {
-        showToast('Select at least one task', 'error');
+    // ═══════════════════════════════════════════════════════════════════════════
+    // AI SLIDE-OUT PANEL
+    // ═══════════════════════════════════════════════════════════════════════════
+    let panelConversation = [];
+
+    function openAIPanel() {
+      document.getElementById('ai-panel').classList.add('active');
+      document.getElementById('ai-backdrop').classList.add('active');
+      document.getElementById('ai-panel-input').focus();
+      if (panelConversation.length === 0) {
+        addPanelMessage('assistant', "Hi! I'm your Farm Wizard 🧙‍♂️ How can I help you today?");
+      }
+    }
+
+    function closeAIPanel() {
+      document.getElementById('ai-panel').classList.remove('active');
+      document.getElementById('ai-backdrop').classList.remove('active');
+    }
+
+    function toggleAIPanel() {
+      document.getElementById('ai-panel').classList.contains('active') ? closeAIPanel() : openAIPanel();
+    }
+
+    function addPanelMessage(role, content) {
+      const container = document.getElementById('ai-panel-messages');
+      const msg = document.createElement('div');
+      msg.className = `ai-panel-msg ${role}`;
+      msg.textContent = content;
+      container.appendChild(msg);
+      container.scrollTop = container.scrollHeight;
+      panelConversation.push({ role, content });
+    }
+
+    async function sendPanelMessage() {
+      const input = document.getElementById('ai-panel-input');
+      const message = input.value.trim();
+      if (!message) return;
+      input.value = '';
+      addPanelMessage('user', message);
+      try {
+        const res = await fetch(`${API_BASE}?action=chiefOfStaffChat&message=${encodeURIComponent(message)}`);
+        const data = await res.json();
+        addPanelMessage('assistant', data.response || "I'll help you with that.");
+      } catch (e) {
+        addPanelMessage('assistant', "Connection error. Please try again.");
+      }
+    }
+
+    function askPanelAI(question) {
+      document.getElementById('ai-panel-input').value = question;
+      sendPanelMessage();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // FOCUS CARD & UP NEXT
+    // ═══════════════════════════════════════════════════════════════════════════
+    let focusQueue = [];
+    let currentFocusIndex = 0;
+
+    async function loadFocusItems() {
+      try {
+        const res = await fetch(`${API_BASE}?action=generateProactiveInsights`);
+        const data = await res.json();
+        if (data.insights && data.insights.length > 0) {
+          focusQueue = data.insights;
+          currentFocusIndex = 0;
+          renderFocusCard();
+          renderUpNext();
+          document.getElementById('focus-section').style.display = 'block';
+          document.getElementById('upnext-section').style.display = 'block';
+          localStorage.setItem('cachedInsights', JSON.stringify(data));
+        }
+      } catch (e) {
+        const cached = localStorage.getItem('cachedInsights');
+        if (cached) {
+          const data = JSON.parse(cached);
+          if (data.insights) {
+            focusQueue = data.insights;
+            renderFocusCard();
+            renderUpNext();
+            document.getElementById('focus-section').style.display = 'block';
+            document.getElementById('upnext-section').style.display = 'block';
+          }
+        }
+      }
+    }
+
+    function renderFocusCard() {
+      if (focusQueue.length === 0 || currentFocusIndex >= focusQueue.length) {
+        document.getElementById('focus-section').style.display = 'none';
         return;
       }
+      const item = focusQueue[currentFocusIndex];
+      document.getElementById('focus-priority').textContent = item.priority || 'TOP PRIORITY';
+      document.getElementById('focus-icon').textContent = item.icon || '🎯';
+      document.getElementById('focus-title').textContent = item.title || item.insight || 'Focus item';
+      document.getElementById('focus-reason').textContent = item.reason || item.rationale || '';
+    }
 
-      document.getElementById('braindump-save-btn').textContent = 'Saving...';
-      document.getElementById('braindump-save-btn').disabled = true;
-
-      try {
-        const response = await fetch(`${API_BASE}?action=saveBrainDumpTasks&tasks=${encodeURIComponent(JSON.stringify(selectedTasks))}`);
-        await response.json();
-        showToast(`${selectedTasks.length} tasks created!`, 'success');
-        closeBrainDump();
-        loadActions(); // Refresh action queue
-      } catch (error) {
-        showToast('Failed to save tasks', 'error');
+    function renderUpNext() {
+      const upnext = focusQueue.slice(currentFocusIndex + 1, currentFocusIndex + 4);
+      const container = document.getElementById('upnext-list');
+      if (upnext.length === 0) {
+        document.getElementById('upnext-section').style.display = 'none';
+        return;
       }
+      container.innerHTML = upnext.map((item, i) => `
+        <div class="upnext-item" onclick="jumpToFocus(${currentFocusIndex + 1 + i})">
+          <div class="upnext-icon">${item.icon || '📋'}</div>
+          <div class="upnext-content">
+            <div class="upnext-title">${escapeHtml(item.title || item.insight || 'Task')}</div>
+            <div class="upnext-meta">${escapeHtml(item.category || '')}</div>
+          </div>
+          <span class="upnext-badge ${(item.priority || '').toLowerCase()}">${item.priority || ''}</span>
+        </div>
+      `).join('');
+    }
 
-      document.getElementById('braindump-save-btn').textContent = 'Save All Tasks';
-      document.getElementById('braindump-save-btn').disabled = false;
+    function jumpToFocus(index) {
+      currentFocusIndex = index;
+      renderFocusCard();
+      renderUpNext();
+    }
+
+    function completeFocusItem() {
+      if (navigator.vibrate) navigator.vibrate(50);
+      showToast('Marked as complete!', 'success');
+      currentFocusIndex++;
+      renderFocusCard();
+      renderUpNext();
+    }
+
+    function skipFocusItem() {
+      if (navigator.vibrate) navigator.vibrate(30);
+      currentFocusIndex++;
+      renderFocusCard();
+      renderUpNext();
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // QUICK IDEA CAPTURE - Flows to COS_Ideas sheet
+    // SWIPE GESTURES FOR FOCUS CARD
     // ═══════════════════════════════════════════════════════════════════════════
+    let touchStartX = 0;
+    let touchStartY = 0;
 
-    function openQuickIdea() {
-      const idea = prompt('💡 Quick idea:');
-      if (idea && idea.trim()) {
-        captureIdea(idea.trim());
+    function initSwipeGestures() {
+      const card = document.getElementById('focus-card');
+      if (!card) return;
+      card.addEventListener('touchstart', e => {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      }, { passive: true });
+      card.addEventListener('touchmove', e => {
+        if (!touchStartX) return;
+        const diffX = e.touches[0].clientX - touchStartX;
+        const diffY = e.touches[0].clientY - touchStartY;
+        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 10) {
+          card.style.transform = `translateX(${diffX}px) rotate(${diffX / 20}deg)`;
+          card.style.opacity = 1 - Math.abs(diffX) / 300;
+          card.style.borderColor = diffX > 50 ? 'var(--accent)' : diffX < -50 ? 'var(--accent-amber)' : 'var(--accent)';
+        }
+      }, { passive: true });
+      card.addEventListener('touchend', e => {
+        const diffX = e.changedTouches[0].clientX - touchStartX;
+        if (Math.abs(diffX) > 100) {
+          card.style.transform = `translateX(${diffX > 0 ? '100vw' : '-100vw'}) rotate(${diffX > 0 ? 20 : -20}deg)`;
+          card.style.opacity = '0';
+          setTimeout(() => { diffX > 0 ? completeFocusItem() : skipFocusItem(); resetCardPosition(); }, 200);
+          if (navigator.vibrate) navigator.vibrate(50);
+        } else {
+          resetCardPosition();
+        }
+        touchStartX = 0;
+      }, { passive: true });
+    }
+
+    function resetCardPosition() {
+      const card = document.getElementById('focus-card');
+      card.style.transition = 'transform 0.3s, opacity 0.3s, border-color 0.3s';
+      card.style.transform = 'translateX(0) rotate(0)';
+      card.style.opacity = '1';
+      card.style.borderColor = 'var(--accent)';
+      setTimeout(() => { card.style.transition = ''; }, 300);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // OFFLINE SUPPORT
+    // ═══════════════════════════════════════════════════════════════════════════
+    let isOnline = navigator.onLine;
+
+    window.addEventListener('online', () => {
+      isOnline = true;
+      document.getElementById('offline-banner').classList.remove('show');
+      showToast('Back online!', 'success');
+    });
+
+    window.addEventListener('offline', () => {
+      isOnline = false;
+      document.getElementById('offline-banner').classList.add('show');
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // KEYBOARD SHORTCUTS
+    // ═══════════════════════════════════════════════════════════════════════════
+    document.addEventListener('keydown', e => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); openCommandPalette(); }
+      if (!document.getElementById('command-overlay').classList.contains('active')) return;
+      if (e.key === 'Escape') closeCommandPalette();
+      if (e.key === 'ArrowDown') { e.preventDefault(); selectedIndex = Math.min(selectedIndex + 1, filteredCommands.length - 1); renderCommands(); }
+      if (e.key === 'ArrowUp') { e.preventDefault(); selectedIndex = Math.max(selectedIndex - 1, 0); renderCommands(); }
+      if (e.key === 'Enter') { e.preventDefault(); if (filteredCommands[selectedIndex]) executeCommand(filteredCommands[selectedIndex].id); }
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // EXTENDED INITIALIZATION
+    // ═══════════════════════════════════════════════════════════════════════════
+    document.addEventListener('DOMContentLoaded', () => {
+      initSwipeGestures();
+      setTimeout(loadFocusItems, 800);
+      if (!navigator.onLine) document.getElementById('offline-banner').classList.add('show');
+
+      // Initialize email management
+      setTimeout(initEmailManagement, 300);
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // EMAIL MANAGEMENT
+    // ═══════════════════════════════════════════════════════════════════════════
+    let currentEmailStatus = 'NEW';
+    let currentEmailThreadId = null;
+    let emailCache = {};
+
+    function initEmailManagement() {
+      document.getElementById('email-section').style.display = 'block';
+      loadEmailStats();
+      loadInbox('NEW');
+    }
+
+    // Load email statistics
+    async function loadEmailStats() {
+      try {
+        // Get counts for different statuses
+        const [newRes, awaitingRes, overdueRes] = await Promise.all([
+          fetch(`${API_BASE}?action=getEmailsByStatus&status=NEW,TRIAGED&limit=100`),
+          fetch(`${API_BASE}?action=getEmailsByStatus&status=AWAITING_RESPONSE&limit=100`),
+          fetch(`${API_BASE}?action=getOverdueFollowups`)
+        ]);
+
+        const newData = await newRes.json();
+        const awaitingData = await awaitingRes.json();
+        const overdueData = await overdueRes.json();
+
+        const unreadCount = newData.count || 0;
+        const awaitingCount = awaitingData.count || 0;
+        const overdueCount = (overdueData.success && overdueData.followups) ? overdueData.followups.length : 0;
+
+        // Count urgent (CRITICAL + HIGH priority)
+        let urgentCount = 0;
+        if (newData.success && newData.data) {
+          urgentCount = newData.data.filter(e => e.priority === 'CRITICAL' || e.priority === 'HIGH').length;
+        }
+
+        document.getElementById('email-stats').innerHTML = `
+          <div class="email-stat ${unreadCount > 10 ? 'urgent' : ''}" onclick="filterEmails('NEW,TRIAGED')">
+            <div class="stat-value">${unreadCount}</div>
+            <div class="stat-label">Unread</div>
+          </div>
+          <div class="email-stat ${urgentCount > 0 ? 'urgent' : ''}" onclick="filterEmails('NEW,TRIAGED')">
+            <div class="stat-value">${urgentCount}</div>
+            <div class="stat-label">Urgent</div>
+          </div>
+          <div class="email-stat ${overdueCount > 0 ? 'warning' : ''}" onclick="filterEmails('AWAITING_RESPONSE')">
+            <div class="stat-value">${overdueCount}</div>
+            <div class="stat-label">Overdue</div>
+          </div>
+        `;
+      } catch (e) {
+        console.error('Failed to load email stats:', e);
+        document.getElementById('email-stats').innerHTML = `
+          <div class="email-stat">
+            <div class="stat-value">--</div>
+            <div class="stat-label">Unread</div>
+          </div>
+          <div class="email-stat">
+            <div class="stat-value">--</div>
+            <div class="stat-label">Urgent</div>
+          </div>
+          <div class="email-stat">
+            <div class="stat-value">--</div>
+            <div class="stat-label">Overdue</div>
+          </div>
+        `;
       }
     }
 
-    async function captureIdea(idea) {
-      showToast('Capturing idea...', 'success');
+    // Load inbox emails by status
+    async function loadInbox(status = 'NEW') {
+      currentEmailStatus = status;
+      const container = document.getElementById('email-list');
+
+      // Show loading state
+      container.innerHTML = `
+        <div class="email-item skeleton" style="height:80px"></div>
+        <div class="email-item skeleton" style="height:80px"></div>
+        <div class="email-item skeleton" style="height:80px"></div>
+      `;
+
       try {
-        // Use chat to capture idea - this triggers the capture_idea tool
-        const response = await fetch(`${API_BASE}?action=chatWithChiefOfStaff&message=${encodeURIComponent('idea: ' + idea)}`);
-        const data = await response.json();
+        const res = await fetch(`${API_BASE}?action=getEmailsByStatus&status=${encodeURIComponent(status)}&limit=50`);
+        const data = await res.json();
+
+        if (data.success && data.data && data.data.length > 0) {
+          // Cache emails
+          data.data.forEach(email => {
+            emailCache[email.threadId] = email;
+          });
+
+          container.innerHTML = data.data.map(email => renderEmailItem(email)).join('');
+        } else {
+          container.innerHTML = `
+            <div class="email-empty">
+              <div class="email-empty-icon">Inbox Zero!</div>
+              <p>No emails in this category</p>
+            </div>
+          `;
+        }
+      } catch (e) {
+        console.error('Failed to load inbox:', e);
+        container.innerHTML = `
+          <div class="email-empty">
+            <div class="email-empty-icon">Error</div>
+            <p>Failed to load emails. Try refreshing.</p>
+          </div>
+        `;
+      }
+    }
+
+    // Render a single email item
+    function renderEmailItem(email) {
+      const priorityClass = (email.priority || '').toLowerCase();
+      const dateStr = formatEmailDate(email.receivedAt || email.createdAt);
+
+      return `
+        <div class="email-item ${priorityClass}" onclick="showEmailDetail('${email.threadId}')">
+          <div class="email-item-header">
+            <div class="email-from">${escapeHtml(email.from || 'Unknown')}</div>
+            <div class="email-date">${dateStr}</div>
+          </div>
+          <div class="email-subject">${escapeHtml(email.subject || '(no subject)')}</div>
+          <div class="email-badges">
+            ${email.priority ? `<span class="email-badge priority-${priorityClass}">${email.priority}</span>` : ''}
+            ${email.category ? `<span class="email-badge category">${email.category}</span>` : ''}
+          </div>
+          <div class="email-actions-bar">
+            <button class="email-action-btn" onclick="event.stopPropagation(); archiveEmail('${email.threadId}')">Archive</button>
+            <button class="email-action-btn" onclick="event.stopPropagation(); setFollowUp('${email.threadId}')">Follow-up</button>
+            <button class="email-action-btn primary" onclick="event.stopPropagation(); showEmailDetail('${email.threadId}')">View</button>
+          </div>
+        </div>
+      `;
+    }
+
+    // Format email date for display
+    function formatEmailDate(dateStr) {
+      if (!dateStr) return '';
+      const date = new Date(dateStr);
+      const now = new Date();
+      const diffMs = now - date;
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
+
+      if (diffMins < 60) return `${diffMins}m ago`;
+      if (diffHours < 24) return `${diffHours}h ago`;
+      if (diffDays < 7) return `${diffDays}d ago`;
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    // Filter emails by status
+    function filterEmails(status, buttonEl) {
+      // Update active filter button
+      if (buttonEl) {
+        document.querySelectorAll('.email-filter').forEach(btn => btn.classList.remove('active'));
+        buttonEl.classList.add('active');
+      }
+
+      loadInbox(status);
+    }
+
+    // Process inbox (triage new emails)
+    async function processInbox() {
+      const btn = document.getElementById('process-inbox-btn');
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Processing...';
+
+      try {
+        const res = await fetch(`${API_BASE}?action=triageInbox`);
+        const data = await res.json();
 
         if (data.success) {
-          showToast('💡 Idea captured!', 'success');
-          addChatMessage('idea: ' + idea, 'user');
-          addChatMessage(data.message || 'Got it. Idea saved for later.', 'assistant');
+          showToast(`Processed ${data.processed || 0} emails`, 'success');
+          // Refresh the inbox and stats
+          loadEmailStats();
+          loadInbox(currentEmailStatus);
         } else {
-          showToast('Idea saved locally', 'success');
+          showToast(data.error || 'Failed to process inbox', 'error');
         }
-      } catch (error) {
-        console.error('Idea capture error:', error);
-        showToast('Idea noted', 'success');
+      } catch (e) {
+        console.error('Failed to process inbox:', e);
+        showToast('Error processing inbox', 'error');
+      }
+
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+
+    // Archive a single email
+    async function archiveEmail(threadId) {
+      try {
+        const res = await fetch(`${API_BASE}?action=archiveEmail&threadId=${encodeURIComponent(threadId)}`);
+        const data = await res.json();
+
+        if (data.success) {
+          showToast('Email archived', 'success');
+          // Remove from cache and UI
+          delete emailCache[threadId];
+          const el = document.querySelector(`[onclick*="${threadId}"]`);
+          if (el && el.classList.contains('email-item')) {
+            el.style.opacity = '0';
+            el.style.transform = 'translateX(100%)';
+            setTimeout(() => el.remove(), 300);
+          }
+          // Update stats
+          loadEmailStats();
+        } else {
+          showToast(data.error || 'Failed to archive', 'error');
+        }
+      } catch (e) {
+        console.error('Failed to archive email:', e);
+        showToast('Error archiving email', 'error');
       }
     }
+
+    // Set follow-up on email
+    async function setFollowUp(threadId) {
+      try {
+        const res = await fetch(`${API_BASE}?action=updateEmailStatus&threadId=${encodeURIComponent(threadId)}&status=AWAITING_RESPONSE`);
+        const data = await res.json();
+
+        if (data.success) {
+          showToast('Marked for follow-up', 'success');
+          loadInbox(currentEmailStatus);
+          loadEmailStats();
+        } else {
+          showToast(data.error || 'Failed to set follow-up', 'error');
+        }
+      } catch (e) {
+        console.error('Failed to set follow-up:', e);
+        showToast('Error setting follow-up', 'error');
+      }
+    }
+
+    // Show email detail modal
+    async function showEmailDetail(threadId) {
+      currentEmailThreadId = threadId;
+      const modal = document.getElementById('email-modal-overlay');
+      const content = document.getElementById('email-modal-content');
+
+      // Show modal with loading state
+      modal.classList.add('active');
+      content.innerHTML = '<div class="email-empty"><div class="email-empty-icon">Loading...</div></div>';
+
+      try {
+        const res = await fetch(`${API_BASE}?action=getEmailDetail&threadId=${encodeURIComponent(threadId)}`);
+        const data = await res.json();
+
+        if (data.success) {
+          const email = data.email || data;
+          const cached = emailCache[threadId] || {};
+
+          content.innerHTML = `
+            <div class="email-detail-from">${escapeHtml(email.from || cached.from || 'Unknown')}</div>
+            <div class="email-detail-subject">${escapeHtml(email.subject || cached.subject || '(no subject)')}</div>
+            <div class="email-detail-meta">
+              ${formatEmailDate(email.date || email.receivedAt || cached.receivedAt)}
+              ${email.to ? ` | To: ${escapeHtml(email.to)}` : ''}
+            </div>
+            ${email.summary ? `
+              <div class="email-detail-summary">
+                <h4>AI Summary</h4>
+                <p>${escapeHtml(email.summary)}</p>
+              </div>
+            ` : ''}
+            ${email.suggestedAction ? `
+              <div class="email-detail-summary" style="border-left-color: var(--accent-amber);">
+                <h4>Suggested Action</h4>
+                <p>${escapeHtml(email.suggestedAction)}</p>
+              </div>
+            ` : ''}
+            <div class="email-detail-body">${escapeHtml(email.body || email.snippet || 'No content available')}</div>
+          `;
+        } else {
+          content.innerHTML = `
+            <div class="email-empty">
+              <div class="email-empty-icon">Error</div>
+              <p>${data.error || 'Failed to load email details'}</p>
+            </div>
+          `;
+        }
+      } catch (e) {
+        console.error('Failed to load email detail:', e);
+        content.innerHTML = `
+          <div class="email-empty">
+            <div class="email-empty-icon">Error</div>
+            <p>Failed to load email details</p>
+          </div>
+        `;
+      }
+    }
+
+    // Close email detail modal
+    function closeEmailModal() {
+      document.getElementById('email-modal-overlay').classList.remove('active');
+      currentEmailThreadId = null;
+    }
+
+    // Archive current email (from modal)
+    function archiveCurrentEmail() {
+      if (currentEmailThreadId) {
+        archiveEmail(currentEmailThreadId);
+        closeEmailModal();
+      }
+    }
+
+    // Set follow-up on current email (from modal)
+    function setFollowUpCurrentEmail() {
+      if (currentEmailThreadId) {
+        setFollowUp(currentEmailThreadId);
+        closeEmailModal();
+      }
+    }
+
+    // Reply to current email (opens in chat)
+    function replyToCurrentEmail() {
+      if (currentEmailThreadId && emailCache[currentEmailThreadId]) {
+        const email = emailCache[currentEmailThreadId];
+        closeEmailModal();
+        askQuestion(`Help me draft a reply to the email from ${email.from} about "${email.subject}"`);
+      }
+    }
+
+    // Refresh email inbox
+    function refreshEmailInbox() {
+      loadEmailStats();
+      loadInbox(currentEmailStatus);
+      showToast('Inbox refreshed', 'success');
+    }
+
+    // Scroll to email section
+    function scrollToEmailSection() {
+      const section = document.getElementById('email-section');
+      if (section) {
+        section.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+
+    // Keyboard shortcut: Escape to close email modal
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && document.getElementById('email-modal-overlay').classList.contains('active')) {
+        closeEmailModal();
+      }
+    });
   </script>
 </body>
 </html>

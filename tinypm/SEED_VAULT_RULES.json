@@ -1,0 +1,704 @@
+{
+  "version": "1.0.0",
+  "name": "TinyPM Canonical Knowledge Model - Seed Vault",
+  "description": "THE SEED VAULT IS LAW. NO AGENT CAN IMPROVISE. These are the canonical rules extracted from all TinyPM research. Any proposal that violates these rules is automatically vetoed by the Governor.",
+  "last_updated": "2026-02-04T00:00:00.000Z",
+  "rule_count": 25,
+  "sources": [
+    "PROACTIVE_AI_RESEARCH_2026.md",
+    "TINYPM_UX_RESEARCH_2026.md",
+    "TINYPM_ENGAGEMENT_PSYCHOLOGY_2026.md",
+    "COMPETITOR_ANALYSIS_2026.md",
+    "MULTI_AGENT_RESEARCH_REPORT.md",
+    "TINYPM_ARCHITECTURE_BLUEPRINT_2026.md"
+  ],
+  "severity_levels": {
+    "critical": "Instant kill - NEVER violate. Governor automatically vetoes.",
+    "high": "Veto unless explicitly overridden by human approval.",
+    "medium": "Warning issued, requires justification to proceed.",
+    "low": "Advisory only - logged but allowed to proceed."
+  },
+  "categories": {
+    "ui_pattern": "Required UI patterns that MUST be implemented",
+    "ui_anti_pattern": "Forbidden UI patterns that MUST NOT be used",
+    "performance": "Performance requirements and thresholds",
+    "accessibility": "WCAG and accessibility requirements",
+    "farm_specific": "Domain-specific rules for farm operations",
+    "engagement": "Ethical engagement and gamification patterns",
+    "proactive_ai": "Rules for proactive AI behavior and timing",
+    "autonomy": "Agent autonomy levels and approval requirements",
+    "memory": "Memory persistence and learning requirements",
+    "multi_agent": "Multi-agent coordination protocols"
+  },
+  "rules": {
+    "UI001": {
+      "id": "UI001",
+      "category": "ui_pattern",
+      "severity": "critical",
+      "title": "Command Palette Required",
+      "description": "ALL power user interfaces MUST include a Command Palette accessible via Cmd/Ctrl+K",
+      "must_do": [
+        "Implement Command Palette as universal entry point",
+        "Bind to Cmd+K (Mac) and Ctrl+K (Windows/Linux)",
+        "Support fuzzy search in Command Palette",
+        "Show keyboard shortcuts on hover (2 second delay)"
+      ],
+      "must_not_do": [
+        "Use dropdown menus as primary navigation for power users",
+        "Hide critical actions behind multiple menu levels",
+        "Require mouse for common actions"
+      ],
+      "examples_good": ["Linear's command palette", "Superhuman's keyboard-first design"],
+      "examples_bad": ["Multi-level dropdown menus", "Mouse-only interfaces"],
+      "source": "TINYPM_UX_RESEARCH_2026.md - Section 1: Core Features",
+      "keywords": ["command palette", "keyboard", "cmd+k", "navigation"],
+      "validation_regex": []
+    },
+    "UI002": {
+      "id": "UI002",
+      "category": "ui_pattern",
+      "severity": "high",
+      "title": "Keyboard-First Design",
+      "description": "Implement keyboard shortcuts for all common actions with Linear-style hints",
+      "must_do": [
+        "Single-key shortcuts for common actions (C for create, E for edit)",
+        "Vim-style navigation (j/k for up/down)",
+        "Show shortcuts on hover with 2 second delay",
+        "Support Cmd+K command palette"
+      ],
+      "must_not_do": [
+        "Require Shift/Ctrl for common actions",
+        "Hide shortcuts from users",
+        "Conflict with browser shortcuts"
+      ],
+      "examples_good": [],
+      "examples_bad": [],
+      "source": "TINYPM_UX_RESEARCH_2026.md - Keyboard-First vs Mouse-First Design",
+      "keywords": ["keyboard", "shortcuts", "vim", "navigation"],
+      "validation_regex": []
+    },
+    "UI003": {
+      "id": "UI003",
+      "category": "ui_pattern",
+      "severity": "critical",
+      "title": "Dark Mode Required",
+      "description": "Dark mode is table stakes and MUST be implemented properly",
+      "must_do": [
+        "Use muted greys (#121212 or darker), NOT pure black (#000000)",
+        "Increase font weight slightly in dark mode for readability",
+        "Ensure 4.5:1 contrast ratio minimum (WCAG AA)",
+        "Respect system preference as default with manual override",
+        "Test ALL UI elements in both modes before shipping"
+      ],
+      "must_not_do": [
+        "Use pure black (#000000) backgrounds",
+        "Use stark white text on dark backgrounds",
+        "Ship dark mode without contrast testing"
+      ],
+      "examples_good": ["Deep charcoal backgrounds (#0A0A0F)", "Cloud white text (#F8F7F4)"],
+      "examples_bad": ["Pure black (#000000)", "Stark white (#FFFFFF) on black"],
+      "source": "TINYPM_UX_RESEARCH_2026.md - Section 3: Visual Design Trends",
+      "keywords": ["dark mode", "theme", "colors", "contrast"],
+      "validation_regex": []
+    },
+    "UI004": {
+      "id": "UI004",
+      "category": "ui_pattern",
+      "severity": "high",
+      "title": "Progressive Complexity",
+      "description": "Start simple, reveal power features as users advance",
+      "must_do": [
+        "Show simple interface by default",
+        "Reveal advanced features based on user experience level",
+        "Guide users to power features progressively",
+        "Never overwhelm new users with options"
+      ],
+      "must_not_do": [
+        "Show all features at once",
+        "Require configuration before first use",
+        "Present blank canvas (Notion anti-pattern)"
+      ],
+      "examples_good": [],
+      "examples_bad": [],
+      "source": "TINYPM_UX_RESEARCH_2026.md - Differentiation Opportunities",
+      "keywords": ["progressive", "complexity", "onboarding", "features"],
+      "validation_regex": []
+    },
+    "ANTI001": {
+      "id": "ANTI001",
+      "category": "ui_anti_pattern",
+      "severity": "critical",
+      "title": "No Blank Canvas Problem",
+      "description": "NEVER present users with a blank canvas requiring system building",
+      "must_do": [
+        "Provide intelligent defaults",
+        "Include pre-built project templates",
+        "Offer suggested workflows",
+        "Show 'This is how successful teams do it' prompts"
+      ],
+      "must_not_do": [
+        "Present blank canvas (Notion anti-pattern)",
+        "Require building PM system from scratch",
+        "Force extensive upfront configuration"
+      ],
+      "examples_good": [],
+      "examples_bad": ["Notion's blank page approach", "Requiring weeks to be useful"],
+      "source": "COMPETITOR_ANALYSIS_2026.md - What Notion Does Poorly",
+      "keywords": ["blank canvas", "configuration", "setup", "templates"],
+      "validation_regex": []
+    },
+    "ANTI002": {
+      "id": "ANTI002",
+      "category": "ui_anti_pattern",
+      "severity": "high",
+      "title": "No Vanity Gamification",
+      "description": "Gamification must be tied to real value, not vanity metrics",
+      "must_do": [
+        "Tie achievements to genuine progress",
+        "Connect points to real outcomes",
+        "Make badges meaningful",
+        "Track 'productive days' not just 'opens'"
+      ],
+      "must_not_do": [
+        "Award badges for trivial actions ('Opened app 100 times')",
+        "Create points disconnected from value",
+        "Use too-easy achievements that feel meaningless",
+        "Use too-hard achievements that cause users to give up"
+      ],
+      "examples_good": [],
+      "examples_bad": [],
+      "source": "TINYPM_ENGAGEMENT_PSYCHOLOGY_2026.md - Section 6: Emotional Connection",
+      "keywords": ["gamification", "badges", "achievements", "points"],
+      "validation_regex": []
+    },
+    "ANTI003": {
+      "id": "ANTI003",
+      "category": "ui_anti_pattern",
+      "severity": "critical",
+      "title": "No Guilt-Based Notifications",
+      "description": "Use positive framing, not anxiety-inducing guilt trips",
+      "must_do": [
+        "Use positive framing: 'You've maintained momentum for 12 days'",
+        "Offer streak shields for weekends/vacations",
+        "Celebrate progress without punishing breaks"
+      ],
+      "must_not_do": [
+        "Use guilt messaging: 'Don't break your streak!'",
+        "Punish users for taking breaks",
+        "Create anxiety about missing streaks"
+      ],
+      "examples_good": [],
+      "examples_bad": [],
+      "source": "TINYPM_ENGAGEMENT_PSYCHOLOGY_2026.md - Section 1: Habit Loops",
+      "keywords": ["notifications", "streak", "guilt", "anxiety"],
+      "validation_regex": []
+    },
+    "PERF001": {
+      "id": "PERF001",
+      "category": "performance",
+      "severity": "critical",
+      "title": "Sub-100ms Response Time",
+      "description": "Every interaction MUST feel instant with sub-100ms response",
+      "must_do": [
+        "Response time < 100ms for all UI interactions",
+        "Use optimistic updates for perceived speed",
+        "Pre-load likely next actions",
+        "Implement skeleton loading states"
+      ],
+      "must_not_do": [
+        "Allow loading times > 300ms (feels sluggish)",
+        "Block UI during API calls",
+        "Show spinners for common actions"
+      ],
+      "examples_good": [],
+      "examples_bad": [],
+      "source": "TINYPM_ENGAGEMENT_PSYCHOLOGY_2026.md - Section 2: Dopamine-Driven Design",
+      "keywords": ["performance", "speed", "response time", "latency"],
+      "validation_regex": [],
+      "thresholds": {
+        "instant": "< 100ms",
+        "acceptable": "100-300ms",
+        "sluggish": "> 300ms"
+      }
+    },
+    "PERF002": {
+      "id": "PERF002",
+      "category": "performance",
+      "severity": "high",
+      "title": "Animation Duration Limits",
+      "description": "Animations must be between 300-500ms for responsiveness",
+      "must_do": [
+        "Keep animations between 300-500ms",
+        "Use satisfying 'snap' effects for task completion",
+        "Scale celebration to achievement magnitude",
+        "Ensure animations serve clarity OR delight"
+      ],
+      "must_not_do": [
+        "Use animations > 500ms (feels slow)",
+        "Use animations < 200ms (feels jarring)",
+        "Add gimmicky animations for trivial actions"
+      ],
+      "examples_good": [],
+      "examples_bad": [],
+      "source": "TINYPM_UX_RESEARCH_2026.md - Micro-Interactions That Delight",
+      "keywords": ["animation", "duration", "transition", "micro-interaction"],
+      "validation_regex": [],
+      "thresholds": {
+        "minimum": "200ms",
+        "optimal_min": "300ms",
+        "optimal_max": "500ms",
+        "maximum": "500ms"
+      }
+    },
+    "PROACT001": {
+      "id": "PROACT001",
+      "category": "proactive_ai",
+      "severity": "critical",
+      "title": "Task Boundary Intervention Timing",
+      "description": "Proactive suggestions MUST be timed at task boundaries (52% engagement)",
+      "must_do": [
+        "Intervene at task boundaries (post-commit, task completion)",
+        "Detect natural breaks in user workflow",
+        "Wait for 2-5 minute idle periods",
+        "Check for task completion signals before suggesting"
+      ],
+      "must_not_do": [
+        "Interrupt during deep work (38% engagement, 62% dismissed)",
+        "Suggest during rapid activity",
+        "Interrupt within first 2 minutes of activity"
+      ],
+      "examples_good": [],
+      "examples_bad": [],
+      "source": "PROACTIVE_AI_RESEARCH_2026.md - Part 2: Avoiding Alert Fatigue",
+      "keywords": ["timing", "task boundary", "intervention", "suggestion"],
+      "validation_regex": [],
+      "metrics": {
+        "task_boundary_engagement": "52%",
+        "mid_task_engagement": "38%",
+        "mid_task_dismissal": "62%"
+      }
+    },
+    "PROACT002": {
+      "id": "PROACT002",
+      "category": "proactive_ai",
+      "severity": "critical",
+      "title": "Confidence Threshold Requirements",
+      "description": "Suggestions MUST respect confidence thresholds for autonomy levels",
+      "must_do": [
+        ">95% confidence: Auto-execute, notify after (LEVEL_AUTO)",
+        "85-95% confidence: Present for one-click approval (LEVEL_APPROVE)",
+        "70-85% confidence: Ask specific clarifying question (LEVEL_CLARIFY)",
+        "50-70% confidence: Collaborative mode (LEVEL_COLLABORATE)",
+        "<50% confidence: Don't suggest, or caveat heavily (LEVEL_CAVEAT)"
+      ],
+      "must_not_do": [
+        "Auto-execute with <95% confidence",
+        "Show suggestions with <50% confidence without heavy caveats",
+        "Display false confidence (overconfident on uncertain items)"
+      ],
+      "examples_good": [],
+      "examples_bad": [],
+      "source": "PROACTIVE_AI_RESEARCH_2026.md - Part 5: Confidence Levels",
+      "keywords": ["confidence", "threshold", "autonomy", "approval"],
+      "validation_regex": [],
+      "thresholds": {
+        "LEVEL_AUTO": ">95%",
+        "LEVEL_APPROVE": "85-95%",
+        "LEVEL_CLARIFY": "70-85%",
+        "LEVEL_COLLABORATE": "50-70%",
+        "LEVEL_CAVEAT": "<50%"
+      }
+    },
+    "PROACT003": {
+      "id": "PROACT003",
+      "category": "proactive_ai",
+      "severity": "high",
+      "title": "Alert Consolidation Required",
+      "description": "Multiple alerts MUST be consolidated into digestible bundles",
+      "must_do": [
+        "Bundle related suggestions into coherent packages",
+        "Use narrative format: 'Morning Focus: 3 priority items'",
+        "Prioritize by impact, not volume",
+        "Target 3-8 suggestions per day maximum"
+      ],
+      "must_not_do": [
+        "Show 5+ separate task reminders",
+        "Create notification fatigue",
+        "Alert for each individual item separately"
+      ],
+      "examples_good": [],
+      "examples_bad": [],
+      "source": "PROACTIVE_AI_RESEARCH_2026.md - Part 2.2.3: The Consolidation Principle",
+      "keywords": ["alerts", "consolidation", "notifications", "bundle"],
+      "validation_regex": [],
+      "thresholds": {
+        "daily_suggestions_min": 3,
+        "daily_suggestions_max": 8
+      }
+    },
+    "PROACT004": {
+      "id": "PROACT004",
+      "category": "proactive_ai",
+      "severity": "high",
+      "title": "Calendar-Aware Timing",
+      "description": "NEVER interrupt during meetings or within 5 minutes of meeting start",
+      "must_do": [
+        "Check calendar before suggesting",
+        "Respect 'focus time' calendar blocks",
+        "Prefer task boundary + calendar gap combinations"
+      ],
+      "must_not_do": [
+        "Interrupt during meetings",
+        "Suggest within 5 minutes of meeting start",
+        "Ignore calendar context when timing suggestions"
+      ],
+      "examples_good": [],
+      "examples_bad": [],
+      "source": "PROACTIVE_AI_RESEARCH_2026.md - TimingIntelligence class",
+      "keywords": ["calendar", "meeting", "focus time", "timing"],
+      "validation_regex": [],
+      "thresholds": {
+        "pre_meeting_buffer_minutes": 5
+      }
+    },
+    "AUTO001": {
+      "id": "AUTO001",
+      "category": "autonomy",
+      "severity": "critical",
+      "title": "Five-Level Autonomy Framework",
+      "description": "Agent autonomy MUST follow the five-level framework",
+      "must_do": [
+        "Level 5: Auto-execute routine, low-risk, >95% confidence",
+        "Level 4: One-click approval for moderate risk, >85% confidence",
+        "Level 3: Ask specific question for 70-85% confidence",
+        "Level 2: Collaborative mode for 50-70% confidence",
+        "Level 1: Human operator for <50% confidence or high-risk"
+      ],
+      "must_not_do": [
+        "Auto-execute high-risk actions",
+        "Skip human approval for financial transactions",
+        "Make irreversible changes without confirmation"
+      ],
+      "examples_good": [],
+      "examples_bad": [],
+      "source": "TINYPM_ARCHITECTURE_BLUEPRINT_2026.md - Part 4: Autonomy System",
+      "keywords": ["autonomy", "level", "approval", "risk"],
+      "validation_regex": [],
+      "levels": {
+        "5": {"name": "AUTO", "confidence": ">95%", "risk": "low", "action": "Auto-execute"},
+        "4": {"name": "APPROVE", "confidence": ">85%", "risk": "moderate", "action": "One-click approval"},
+        "3": {"name": "CLARIFY", "confidence": "70-85%", "risk": "moderate", "action": "Ask specific question"},
+        "2": {"name": "COLLABORATE", "confidence": "50-70%", "risk": "higher", "action": "Collaborative mode"},
+        "1": {"name": "HUMAN", "confidence": "<50%", "risk": "high", "action": "Human operator"}
+      }
+    },
+    "AUTO002": {
+      "id": "AUTO002",
+      "category": "autonomy",
+      "severity": "critical",
+      "title": "Human-in-the-Loop for Sensitive Actions",
+      "description": "Sensitive actions MUST have human approval before execution",
+      "must_do": [
+        "Pause for human approval on delete operations",
+        "Require confirmation for financial transactions",
+        "Get explicit approval for external communications",
+        "Log all autonomous decisions for audit"
+      ],
+      "must_not_do": [
+        "Delete data without human confirmation",
+        "Send external emails without review",
+        "Execute financial transactions autonomously"
+      ],
+      "examples_good": [],
+      "examples_bad": [],
+      "source": "SOTA_MULTI_AGENT_RESEARCH_2026.md - Section 7: Guardrails",
+      "keywords": ["sensitive", "approval", "human", "confirmation"],
+      "validation_regex": [],
+      "sensitive_actions": [
+        "delete",
+        "financial_transaction",
+        "external_email",
+        "external_communication",
+        "irreversible_change"
+      ]
+    },
+    "ENGAGE001": {
+      "id": "ENGAGE001",
+      "category": "engagement",
+      "severity": "high",
+      "title": "Ethical Streak System",
+      "description": "Streaks MUST include ethical safeguards",
+      "must_do": [
+        "Track 'productive days' not just 'opens'",
+        "Offer streak freeze for weekends/vacations",
+        "Include grace periods",
+        "Use positive framing for streak messages"
+      ],
+      "must_not_do": [
+        "Punish users for taking breaks",
+        "Use guilt-inducing streak messaging",
+        "Create anxiety about missing streaks"
+      ],
+      "examples_good": [],
+      "examples_bad": [],
+      "source": "TINYPM_ENGAGEMENT_PSYCHOLOGY_2026.md - Section 1: Habit Loops",
+      "keywords": ["streak", "ethics", "freeze", "grace"],
+      "validation_regex": []
+    },
+    "ENGAGE002": {
+      "id": "ENGAGE002",
+      "category": "engagement",
+      "severity": "high",
+      "title": "Team Velocity Over Individual Rankings",
+      "description": "Show team trends, not individual comparisons",
+      "must_do": [
+        "Celebrate collective achievements",
+        "Show 'We completed 50 tasks' not 'John 30, Mary 20'",
+        "Focus on team velocity trends",
+        "Enable peer kudos/recognition"
+      ],
+      "must_not_do": [
+        "Create public individual rankings",
+        "Shame-based accountability",
+        "Competition that damages collaboration"
+      ],
+      "examples_good": [],
+      "examples_bad": [],
+      "source": "TINYPM_ENGAGEMENT_PSYCHOLOGY_2026.md - Section 5: Social Dynamics",
+      "keywords": ["team", "velocity", "ranking", "collaboration"],
+      "validation_regex": []
+    },
+    "ENGAGE003": {
+      "id": "ENGAGE003",
+      "category": "engagement",
+      "severity": "medium",
+      "title": "Progress Visualization with Endowed Progress",
+      "description": "Never start progress bars at 0% - show existing work",
+      "must_do": [
+        "Start progress visualization showing existing work",
+        "Show what's accomplished, not just what remains",
+        "Use goal gradient effect near completion",
+        "Create visual acceleration as goals approach"
+      ],
+      "must_not_do": [
+        "Start progress bars at 0%",
+        "Only show remaining work",
+        "Miss opportunity to show endowed progress"
+      ],
+      "examples_good": [],
+      "examples_bad": [],
+      "source": "TINYPM_ENGAGEMENT_PSYCHOLOGY_2026.md - Section 2: Progress Visualization",
+      "keywords": ["progress", "endowed", "visualization", "gradient"],
+      "validation_regex": []
+    },
+    "FARM001": {
+      "id": "FARM001",
+      "category": "farm_specific",
+      "severity": "high",
+      "title": "Weather-Aware Operations",
+      "description": "Farm operations MUST integrate weather signals",
+      "must_do": [
+        "Check weather forecast for outdoor tasks",
+        "Alert for planting/harvest windows",
+        "Consider weather in deadline calculations",
+        "Include weather context in morning briefs"
+      ],
+      "must_not_do": [
+        "Schedule outdoor work without weather check",
+        "Ignore weather alerts",
+        "Miss frost/freeze warnings"
+      ],
+      "examples_good": [],
+      "examples_bad": [],
+      "source": "PROACTIVE_AI_RESEARCH_2026.md - External Signal Monitor",
+      "keywords": ["weather", "farm", "planting", "harvest"],
+      "validation_regex": []
+    },
+    "FARM002": {
+      "id": "FARM002",
+      "category": "farm_specific",
+      "severity": "high",
+      "title": "Seasonal Pattern Awareness",
+      "description": "System MUST understand and adapt to seasonal farm patterns",
+      "must_do": [
+        "Recognize planting vs harvest seasons",
+        "Adjust workload expectations by season",
+        "Understand CSA delivery cycles",
+        "Track seasonal revenue patterns"
+      ],
+      "must_not_do": [
+        "Ignore seasonal variations",
+        "Apply same patterns to all seasons",
+        "Miss critical seasonal deadlines"
+      ],
+      "examples_good": [],
+      "examples_bad": [],
+      "source": "PROACTIVE_AI_RESEARCH_2026.md - Tier 2 Context Signals",
+      "keywords": ["seasonal", "planting", "harvest", "CSA"],
+      "validation_regex": []
+    },
+    "MEM001": {
+      "id": "MEM001",
+      "category": "memory",
+      "severity": "high",
+      "title": "Style Learning Required",
+      "description": "System MUST learn and apply user's communication style",
+      "must_do": [
+        "Learn formality level from user messages",
+        "Detect greeting/closing patterns",
+        "Track punctuation and emoji usage",
+        "Apply learned style to AI drafts"
+      ],
+      "must_not_do": [
+        "Use generic tone for all users",
+        "Ignore user communication preferences",
+        "Override learned style without reason"
+      ],
+      "examples_good": [],
+      "examples_bad": [],
+      "source": "PROACTIVE_AI_RESEARCH_2026.md - StyleLearner class",
+      "keywords": ["style", "learning", "tone", "formality"],
+      "validation_regex": []
+    },
+    "MEM002": {
+      "id": "MEM002",
+      "category": "memory",
+      "severity": "high",
+      "title": "Cross-Session Memory",
+      "description": "Learned context MUST persist across sessions",
+      "must_do": [
+        "Store entity memories (people, projects)",
+        "Persist learned preferences",
+        "Track tool effectiveness across sessions",
+        "Maintain conversation context for handoffs"
+      ],
+      "must_not_do": [
+        "Start fresh each session",
+        "Lose learned preferences",
+        "Duplicate work due to memory loss"
+      ],
+      "examples_good": [],
+      "examples_bad": [],
+      "source": "MULTI_AGENT_RESEARCH_REPORT.md - Part 3.1.1: Shared Memory Layer",
+      "keywords": ["memory", "persistence", "session", "learning"],
+      "validation_regex": []
+    },
+    "A11Y001": {
+      "id": "A11Y001",
+      "category": "accessibility",
+      "severity": "critical",
+      "title": "WCAG AA Contrast Compliance",
+      "description": "All text MUST meet WCAG AA contrast requirements",
+      "must_do": [
+        "Ensure 4.5:1 contrast ratio for normal text",
+        "Ensure 3:1 contrast ratio for large text",
+        "Test contrast in both light and dark modes",
+        "Use contrast checking tools before shipping"
+      ],
+      "must_not_do": [
+        "Ship text with less than 4.5:1 contrast",
+        "Use low-contrast placeholder text",
+        "Ignore contrast in dark mode"
+      ],
+      "examples_good": [],
+      "examples_bad": [],
+      "source": "TINYPM_UX_RESEARCH_2026.md - Dark Mode Guidelines",
+      "keywords": ["contrast", "WCAG", "accessibility", "color"],
+      "validation_regex": [],
+      "thresholds": {
+        "normal_text_ratio": "4.5:1",
+        "large_text_ratio": "3:1"
+      }
+    },
+    "A11Y002": {
+      "id": "A11Y002",
+      "category": "accessibility",
+      "severity": "high",
+      "title": "Keyboard Accessibility",
+      "description": "All functionality MUST be accessible via keyboard",
+      "must_do": [
+        "Ensure all interactive elements are keyboard accessible",
+        "Provide visible focus indicators",
+        "Support tab navigation in logical order",
+        "Allow keyboard shortcuts for common actions"
+      ],
+      "must_not_do": [
+        "Create mouse-only interactions",
+        "Hide focus indicators",
+        "Trap keyboard focus"
+      ],
+      "examples_good": [],
+      "examples_bad": [],
+      "source": "TINYPM_UX_RESEARCH_2026.md - Keyboard-First Design",
+      "keywords": ["keyboard", "accessibility", "focus", "tab"],
+      "validation_regex": []
+    },
+    "AGENT001": {
+      "id": "AGENT001",
+      "category": "multi_agent",
+      "severity": "high",
+      "title": "Agent Coordination Protocol",
+      "description": "Agents MUST coordinate through established protocols",
+      "must_do": [
+        "Use message passing through designated channels",
+        "Respect file locking for concurrent access",
+        "Send heartbeats at regular intervals",
+        "Handle handoffs with context transfer"
+      ],
+      "must_not_do": [
+        "Bypass coordination protocols",
+        "Ignore file locks",
+        "Fail silently without notification"
+      ],
+      "examples_good": [],
+      "examples_bad": [],
+      "source": "MULTI_AGENT_RESEARCH_REPORT.md - Part 1: Current Architecture",
+      "keywords": ["coordination", "protocol", "heartbeat", "handoff"],
+      "validation_regex": []
+    },
+    "AGENT002": {
+      "id": "AGENT002",
+      "category": "multi_agent",
+      "severity": "critical",
+      "title": "Self-Healing Session Recovery",
+      "description": "System MUST auto-recover from agent failures",
+      "must_do": [
+        "Detect stale sessions (>15 min no heartbeat)",
+        "Auto-release file locks on stale detection",
+        "Reassign claimed tasks to queue",
+        "Generate handoff summary for next session"
+      ],
+      "must_not_do": [
+        "Leave orphaned work",
+        "Require manual intervention for recovery",
+        "Lose session context on failure"
+      ],
+      "examples_good": [],
+      "examples_bad": [],
+      "source": "MULTI_AGENT_RESEARCH_REPORT.md - Part 3.1.2: Self-Healing",
+      "keywords": ["self-healing", "recovery", "stale", "heartbeat"],
+      "validation_regex": [],
+      "thresholds": {
+        "stale_session_minutes": 15
+      }
+    }
+  },
+  "quick_reference": {
+    "critical_rules": ["UI001", "UI003", "ANTI001", "ANTI003", "PERF001", "PROACT001", "PROACT002", "AUTO001", "AUTO002", "A11Y001", "AGENT002"],
+    "high_rules": ["UI002", "UI004", "ANTI002", "PERF002", "PROACT003", "PROACT004", "ENGAGE001", "ENGAGE002", "FARM001", "FARM002", "MEM001", "MEM002", "A11Y002", "AGENT001"],
+    "medium_rules": ["ENGAGE003"],
+    "ui_must_have": ["Command Palette (Cmd+K)", "Keyboard shortcuts", "Dark mode", "Progressive complexity"],
+    "ui_forbidden": ["Blank canvas", "Vanity gamification", "Guilt-based notifications"],
+    "performance_targets": {
+      "response_time": "< 100ms",
+      "animation_duration": "300-500ms"
+    },
+    "confidence_thresholds": {
+      "auto_execute": ">95%",
+      "one_click": "85-95%",
+      "clarify": "70-85%",
+      "collaborate": "50-70%",
+      "caveat": "<50%"
+    }
+  }
+}

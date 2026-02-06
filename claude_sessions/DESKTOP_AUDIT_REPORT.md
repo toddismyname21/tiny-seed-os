@@ -332,7 +332,7 @@ These files have hardcoded API URLs that could drift:
 **Recommendation:** Migrate all inline API URLs to use api-config.js
 
 ### API URL Status
-- **Current URL:** `https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec`
+- **Current URL:** `https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec`
 - **Status:** VALID (testConnection works)
 - **Last Deployment:** 2026-01-18
 

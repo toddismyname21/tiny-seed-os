@@ -24,12 +24,12 @@
 
 ### OLD (EXPIRED) URL
 ```
-AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc
+AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm
 ```
 
 ### NEW (ACTIVE) URL
 ```
-AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp
+AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm
 ```
 
 ### CANONICAL SOURCE
@@ -159,7 +159,7 @@ Uses a separate Marketing API endpoint. Verify this is intentional with Financia
 |-------------|-----|
 | **Production Site** | https://app.tinyseedfarm.com |
 | **GitHub Pages** | https://toddismyname21.github.io/tiny-seed-os/ |
-| **API Endpoint** | https://script.google.com/macros/s/AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp/exec |
+| **API Endpoint** | https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec |
 
 ---
 
@@ -167,13 +167,13 @@ Uses a separate Marketing API endpoint. Verify this is intentional with Financia
 
 ### Confirm No Old URLs Remain
 ```bash
-grep -r "AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc" --include="*.html"
+grep -r "AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm" --include="*.html"
 # Expected: No results
 ```
 
 ### Count Files with New URL
 ```bash
-grep -r "AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp" --include="*.html" -l | wc -l
+grep -r "AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm" --include="*.html" -l | wc -l
 # Expected: 27
 ```
 

@@ -164,7 +164,7 @@ These systems are CRITICAL and any changes require extra caution:
 
 ```bash
 # Current Production
-CURRENT_VERSION="AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp"
+CURRENT_VERSION="AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm"
 
 # List all deployments to find previous
 PATH="/opt/homebrew/bin:$PATH" clasp deployments

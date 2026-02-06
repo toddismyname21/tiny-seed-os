@@ -23,7 +23,7 @@ git status
 Run this audit:
 ```bash
 # Check all HTML files have correct deployment ID
-grep -rln "AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc" *.html web_app/*.html
+grep -rln "AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm" *.html web_app/*.html
 ```
 
 **Expected result:** NO OUTPUT (no files with old URL)
@@ -34,7 +34,7 @@ If any files found: FIX THEM IMMEDIATELY
 
 After pushing:
 ```bash
-curl -sL "https://script.google.com/macros/s/AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp/exec?action=healthCheck"
+curl -sL "https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec?action=healthCheck"
 ```
 
 **Expected:** `{"success":true,"status":"healthy"...}`
@@ -44,9 +44,9 @@ curl -sL "https://script.google.com/macros/s/AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9k
 ## CURRENT CORRECT API DEPLOYMENT
 
 ```
-ID: AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp
+ID: AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm
 
-Full URL: https://script.google.com/macros/s/AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp/exec
+Full URL: https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec
 ```
 
 ---
@@ -122,7 +122,7 @@ git commit -m "Emergency sync - fix live site"
 git push origin main
 
 # Verify
-curl -sL "https://script.google.com/macros/s/AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp/exec?action=healthCheck"
+curl -sL "https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec?action=healthCheck"
 ```
 
 ---

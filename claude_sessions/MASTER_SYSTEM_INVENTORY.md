@@ -15,7 +15,7 @@ Before you do ANYTHING, verify that:
 
 **CURRENT API DEPLOYMENT:**
 ```
-Deployment ID: AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp
+Deployment ID: AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm
 Live Site: https://app.tinyseedfarm.com
 API Config: web_app/api-config.js (SINGLE SOURCE OF TRUTH)
 ```
@@ -412,7 +412,7 @@ Changes appear at https://app.tinyseedfarm.com within minutes.
 ```bash
 cd /Users/samanthapollack/Documents/TIny_Seed_OS/apps_script
 PATH="/opt/homebrew/bin:$PATH" clasp push
-PATH="/opt/homebrew/bin:$PATH" clasp deploy -i "AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp" -d "v###: Description"
+PATH="/opt/homebrew/bin:$PATH" clasp deploy -i "AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm" -d "v###: Description"
 ```
 
 ## MCP Server

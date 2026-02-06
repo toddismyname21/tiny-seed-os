@@ -1,0 +1,81 @@
+{
+  "events": [
+    {
+      "id": "e5f76df4",
+      "timestamp": "2026-02-04T23:54:31.109536",
+      "previous_level": "green",
+      "new_level": "yellow",
+      "triggered_by": [
+        "abstain_rate:YELLOW(35.0%)"
+      ],
+      "metrics_snapshot": {
+        "abstain_rate": 0.35,
+        "conflict_rate": 0.0,
+        "low_confidence_rate": 0.0,
+        "validation_failure_rate": 0.0,
+        "circuit_breaker_rate": 0.0
+      },
+      "auto_triggered": true,
+      "acknowledged_by": null,
+      "acknowledged_at": null,
+      "notes": null
+    },
+    {
+      "id": "d6153cd4",
+      "timestamp": "2026-02-04T23:54:31.109860",
+      "previous_level": "yellow",
+      "new_level": "lockdown",
+      "triggered_by": [
+        "abstain_rate:YELLOW(35.0%)",
+        "conflict_rate:LOCKDOWN(55.0%)"
+      ],
+      "metrics_snapshot": {
+        "abstain_rate": 0.35,
+        "conflict_rate": 0.55,
+        "low_confidence_rate": 0.0,
+        "validation_failure_rate": 0.0,
+        "circuit_breaker_rate": 0.0
+      },
+      "auto_triggered": true,
+      "acknowledged_by": "test_user",
+      "acknowledged_at": "2026-02-04T23:54:31.112706",
+      "notes": "Issues resolved"
+    },
+    {
+      "id": "1cb5f98f",
+      "timestamp": "2026-02-04T23:54:31.112872",
+      "previous_level": "lockdown",
+      "new_level": "green",
+      "triggered_by": [],
+      "metrics_snapshot": {
+        "abstain_rate": 0.1,
+        "conflict_rate": 0.05,
+        "low_confidence_rate": 0.0,
+        "validation_failure_rate": 0.0,
+        "circuit_breaker_rate": 0.0
+      },
+      "auto_triggered": false,
+      "acknowledged_by": null,
+      "acknowledged_at": null,
+      "notes": null
+    },
+    {
+      "id": "fc6adf8c",
+      "timestamp": "2026-02-04T23:54:31.113257",
+      "previous_level": "green",
+      "new_level": "lockdown",
+      "triggered_by": [],
+      "metrics_snapshot": {
+        "abstain_rate": 0.1,
+        "conflict_rate": 0.05,
+        "low_confidence_rate": 0.0,
+        "validation_failure_rate": 0.0,
+        "circuit_breaker_rate": 0.0
+      },
+      "auto_triggered": false,
+      "acknowledged_by": null,
+      "acknowledged_at": null,
+      "notes": null
+    }
+  ]
+}

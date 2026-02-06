@@ -1,0 +1,275 @@
+<!--
+  ============================================================================
+  CONTEXT FUSION PANEL - Dashboard Integration
+  ============================================================================
+
+  Add this HTML snippet to web_dashboard.html to display fused intelligence.
+
+  Integration Steps:
+  1. Add this HTML where you want the fusion panel to appear
+  2. Include the context-fusion.js script
+  3. Call ContextFusion.init() after page load
+
+  Example placement: In sidebar or as a collapsible panel
+  ============================================================================
+-->
+
+<!-- Context Fusion Panel -->
+<div class="fusion-panel" id="fusion-panel">
+  <div class="fusion-panel-header">
+    <div class="fusion-panel-title">
+      <span class="fusion-panel-icon">~</span>
+      <span>Intelligence Feed</span>
+    </div>
+    <div class="fusion-panel-controls">
+      <span id="fusion-connection-indicator" class="fusion-connection fusion-connection-disconnected">
+        Connecting...
+      </span>
+      <button class="fusion-refresh-btn" onclick="ContextFusion.refresh()" title="Refresh">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M1 4v6h6M23 20v-6h-6"/>
+          <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
+        </svg>
+      </button>
+      <button class="fusion-collapse-btn" onclick="toggleFusionPanel()" title="Toggle">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="fusion-panel-body" id="fusion-panel-body">
+    <!-- Signal Status Grid -->
+    <div id="fusion-signal-status" class="fusion-signal-status">
+      <div class="fusion-signals-header">
+        <span class="fusion-signals-title">Signal Sources</span>
+        <span class="fusion-signals-confidence">-- %</span>
+      </div>
+      <div class="fusion-signals-grid">
+        <div class="fusion-signal signal-not-configured" title="Time">
+          <span class="fusion-signal-icon">T</span>
+        </div>
+        <div class="fusion-signal signal-not-configured" title="Calendar">
+          <span class="fusion-signal-icon">C</span>
+        </div>
+        <div class="fusion-signal signal-not-configured" title="Weather">
+          <span class="fusion-signal-icon">W</span>
+        </div>
+        <div class="fusion-signal signal-not-configured" title="Tasks">
+          <span class="fusion-signal-icon">K</span>
+        </div>
+        <div class="fusion-signal signal-not-configured" title="Email">
+          <span class="fusion-signal-icon">E</span>
+        </div>
+        <div class="fusion-signal signal-not-configured" title="Behavior">
+          <span class="fusion-signal-icon">U</span>
+        </div>
+        <div class="fusion-signal signal-not-configured" title="Seasonal">
+          <span class="fusion-signal-icon">S</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Context Metrics -->
+    <div class="fusion-metrics-grid">
+      <div class="fusion-metric-card">
+        <div class="fusion-metric-label">Energy</div>
+        <div class="fusion-metric-value" id="fusion-energy-estimate">--%</div>
+      </div>
+      <div class="fusion-metric-card">
+        <div class="fusion-metric-label">Focus</div>
+        <div class="fusion-metric-value" id="fusion-focus-likelihood">--%</div>
+      </div>
+      <div class="fusion-metric-card">
+        <div class="fusion-metric-label">Urgency</div>
+        <div class="fusion-metric-value" id="fusion-urgency">--%</div>
+      </div>
+    </div>
+
+    <!-- Weather (Farm Critical) -->
+    <div class="fusion-weather-section" id="fusion-weather-section">
+      <div class="fusion-section-title">Weather</div>
+      <div id="fusion-weather" class="fusion-weather">
+        <span class="fusion-weather-temp">--</span>
+        <span class="fusion-weather-condition">Loading...</span>
+      </div>
+    </div>
+
+    <!-- Predictions List -->
+    <div id="fusion-predictions" class="fusion-predictions">
+      <div class="fusion-predictions-header">
+        <span class="fusion-predictions-title">Predictions</span>
+        <span class="fusion-predictions-count">0</span>
+      </div>
+      <div class="fusion-no-predictions">
+        <span class="fusion-no-predictions-icon">~</span>
+        <span>Gathering intelligence...</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Panel-specific styles -->
+<style>
+.fusion-panel {
+  background: var(--bg-card, #1e2130);
+  border: 1px solid var(--border, #2a2d3e);
+  border-radius: 14px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.fusion-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--bg-secondary, #1a1d27);
+  border-bottom: 1px solid var(--border, #2a2d3e);
+}
+
+.fusion-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #f0f0f5);
+}
+
+.fusion-panel-icon {
+  font-size: 18px;
+  animation: fusionIconPulse 3s infinite;
+}
+
+@keyframes fusionIconPulse {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+.fusion-panel-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fusion-refresh-btn,
+.fusion-collapse-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border, #2a2d3e);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary, #a0a4b8);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.fusion-refresh-btn:hover,
+.fusion-collapse-btn:hover {
+  background: var(--bg-hover, #252839);
+  color: var(--text-primary, #f0f0f5);
+}
+
+.fusion-panel-body {
+  padding: 16px;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+}
+
+.fusion-panel.collapsed .fusion-panel-body {
+  max-height: 0;
+  opacity: 0;
+  padding: 0 16px;
+  overflow: hidden;
+}
+
+.fusion-panel.collapsed .fusion-collapse-btn svg {
+  transform: rotate(180deg);
+}
+
+/* Metrics Grid */
+.fusion-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.fusion-metric-card {
+  background: var(--bg-secondary, #1a1d27);
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+}
+
+.fusion-metric-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted, #6b6f82);
+  margin-bottom: 4px;
+}
+
+.fusion-metric-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent, #6366f1);
+}
+
+/* Weather Section */
+.fusion-weather-section {
+  background: var(--bg-secondary, #1a1d27);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.fusion-section-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted, #6b6f82);
+  margin-bottom: 8px;
+}
+</style>
+
+<!-- Initialization Script -->
+<script>
+// Toggle panel collapse
+function toggleFusionPanel() {
+  const panel = document.getElementById('fusion-panel');
+  if (panel) {
+    panel.classList.toggle('collapsed');
+  }
+}
+
+// Initialize Context Fusion when DOM ready
+document.addEventListener('DOMContentLoaded', function() {
+  // Check if ContextFusion is available
+  if (typeof ContextFusion !== 'undefined') {
+    ContextFusion.init({
+      baseUrl: '/api/fusion',
+      sseUrl: '/api/fusion/stream'
+    }).then(() => {
+      console.log('[FusionPanel] Context Fusion initialized');
+    }).catch(err => {
+      console.error('[FusionPanel] Init error:', err);
+    });
+
+    // Register handlers for external integration
+    ContextFusion.onContextUpdate(function(ctx) {
+      console.log('[FusionPanel] Context updated:', ctx.signals_fused, 'signals');
+    });
+
+    ContextFusion.onPrediction(function(pred) {
+      console.log('[FusionPanel] New prediction:', pred.message);
+    });
+  } else {
+    console.warn('[FusionPanel] ContextFusion not loaded - include context-fusion.js first');
+  }
+});
+</script>

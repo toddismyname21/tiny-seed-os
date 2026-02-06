@@ -78,12 +78,12 @@ const customerApi = new CustomerPortalAPI('Wholesale');
 ### Deployment Checklist
 ```bash
 # 1. Test the API
-curl "https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec?action=testConnection"
+curl "https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec?action=testConnection"
 
 # 2. Push to Apps Script (if backend changed)
 cd /Users/samanthapollack/Documents/TIny_Seed_OS/apps_script
 clasp push
-clasp deploy -i "AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc" -d "Description"
+clasp deploy -i "AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm" -d "Description"
 
 # 3. Push to GitHub (for frontend)
 git add .
@@ -199,12 +199,12 @@ ID: `128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc`
 
 ### API URL (Single Source of Truth)
 ```
-https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec
+https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec
 ```
 
 ### Deployment ID
 ```
-AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc
+AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm
 ```
 
 ### GitHub Pages URL

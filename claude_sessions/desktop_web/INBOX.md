@@ -15,7 +15,7 @@
 
 ### CONTEXT
 The API URL was pointing to an EXPIRED deployment. This has been FIXED:
-- **NEW API URL:** `AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp`
+- **NEW API URL:** `AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm`
 - Updated in `web_app/api-config.js`
 - Site is live at: **https://app.tinyseedfarm.com**
 

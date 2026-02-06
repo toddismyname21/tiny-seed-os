@@ -1,0 +1,59 @@
+{
+  "preferences": {
+    "test_user:test.preference": {
+      "id": "7027e956bb32",
+      "key": "test.preference",
+      "value": "test_value",
+      "tier": "preference",
+      "source": "user:test_user",
+      "created_at": "2026-02-04T23:55:33.333904",
+      "created_by": "test_user",
+      "description": "test reason",
+      "expires_at": null,
+      "confidence": 1.0,
+      "metadata": {}
+    }
+  },
+  "learned": {
+    "test.learned": {
+      "id": "aefc5204a56f",
+      "key": "test.learned",
+      "value": "learned_value",
+      "tier": "learned",
+      "source": "test_source",
+      "created_at": "2026-02-04T23:55:33.334364",
+      "created_by": "ai_learning",
+      "description": "Learned pattern with 85% confidence",
+      "expires_at": "2026-03-06T23:55:33.334357",
+      "confidence": 0.85,
+      "metadata": {
+        "confidence": 0.85,
+        "source_system": "test_source"
+      }
+    }
+  },
+  "overrides": {
+    "930c0f120d62": {
+      "id": "930c0f120d62",
+      "rule_key": "test.preference",
+      "original_value": null,
+      "override_value": "test_value",
+      "tier": "preference",
+      "target_tier": "default",
+      "reason": "test reason",
+      "status": "active",
+      "created_at": "2026-02-04T23:55:33.333912",
+      "created_by": "test_user",
+      "expires_at": null,
+      "access_count": 0,
+      "last_accessed": null,
+      "metadata": {
+        "user_id": "test_user"
+      }
+    }
+  },
+  "promotions": {},
+  "access_counts": {},
+  "last_updated": "2026-02-04T23:55:33.334551",
+  "version": "1.0.0"
+}

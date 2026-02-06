@@ -1,0 +1,19 @@
+[
+  {
+    "result": {
+      "is_valid": false,
+      "schema_id": "task_action",
+      "schema_version": "1.0.0",
+      "errors": [
+        ".actor_id: Required field missing",
+        ".timestamp: Required field missing"
+      ],
+      "warnings": [],
+      "validated_at": "2026-02-04T08:14:14.459977",
+      "process_killed": true,
+      "input_hash": "ccc502d5fe680f326789b13702c044c416540b27a6acabcbe7e793220d6f5e4b"
+    },
+    "data_preview": "{'action': 'create', 'task_id': 'task_123'}",
+    "archived_at": "2026-02-04T08:14:14.460002"
+  }
+]

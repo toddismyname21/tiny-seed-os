@@ -81,6 +81,360 @@ except ImportError as e:
     def get_claims_db():
         return None
 
+# =============================================================================
+# CONTEXT FUSION ENGINE INTEGRATION (Phase 1 - Prescient AI)
+# =============================================================================
+try:
+    from context_fusion_engine import get_fusion_engine, ContextFusionEngine
+    import asyncio
+
+    _fusion_engine = None
+
+    def get_fusion_api() -> ContextFusionEngine:
+        """Lazy initialization of ContextFusionEngine."""
+        global _fusion_engine
+        if _fusion_engine is None:
+            _fusion_engine = get_fusion_engine()
+        return _fusion_engine
+
+    CONTEXT_FUSION_AVAILABLE = True
+    print("[TinyPM] Context Fusion Engine ENABLED - prescient AI active")
+except ImportError as e:
+    print(f"[TinyPM] Context Fusion Engine not available: {e}")
+    CONTEXT_FUSION_AVAILABLE = False
+
+    def get_fusion_api():
+        return None
+
+# =============================================================================
+# NORMALIZATION SERVICE INTEGRATION (Phase 1 - Sovereign Seed)
+# =============================================================================
+try:
+    from normalization_service import (
+        get_normalization_service,
+        NormalizationService,
+        normalize,
+        are_equivalent,
+        NormalizedValue
+    )
+    _normalization_service = None
+    _normalization_failures = []  # Track failed normalizations for debugging
+
+    def get_normalizer() -> NormalizationService:
+        """Lazy initialization of NormalizationService."""
+        global _normalization_service
+        if _normalization_service is None:
+            _normalization_service = get_normalization_service()
+        return _normalization_service
+
+    NORMALIZATION_AVAILABLE = True
+    print("[TinyPM] Normalization Service ENABLED - deterministic value normalization active")
+except ImportError as e:
+    print(f"[TinyPM] Normalization Service not available: {e}")
+    NORMALIZATION_AVAILABLE = False
+    _normalization_failures = []
+
+    def get_normalizer():
+        return None
+
+# =============================================================================
+# STABLE ANCHOR CITATION SYSTEM (Phase 1 - Forensic RAG)
+# =============================================================================
+try:
+    from stable_anchors import (
+        get_anchor_service,
+        get_document_store,
+        StableAnchorService,
+        InMemoryDocumentStore,
+        VerificationStatus
+    )
+    _anchor_service = None
+
+    def get_anchors_api() -> StableAnchorService:
+        """Lazy initialization of StableAnchorService."""
+        global _anchor_service
+        if _anchor_service is None:
+            _anchor_service = get_anchor_service()
+        return _anchor_service
+
+    STABLE_ANCHORS_AVAILABLE = True
+    print("[TinyPM] Stable Anchor Citation System ENABLED - forensic RAG active")
+except ImportError as e:
+    print(f"[TinyPM] Stable Anchor System not available: {e}")
+    STABLE_ANCHORS_AVAILABLE = False
+
+    def get_anchors_api():
+        return None
+
+# =============================================================================
+# RBAC FILTERED RETRIEVAL INTEGRATION (Phase 2 - Sovereign Seed)
+# =============================================================================
+try:
+    from rbac_retrieval import (
+        get_rbac_retrieval,
+        RBACRetrieval,
+        UserContext,
+        Permission,
+        AccessAction
+    )
+    import asyncio
+
+    _rbac_service = None
+
+    def get_rbac_api() -> RBACRetrieval:
+        """Lazy initialization of RBACRetrieval."""
+        global _rbac_service
+        if _rbac_service is None:
+            _rbac_service = get_rbac_retrieval()
+        return _rbac_service
+
+    RBAC_AVAILABLE = True
+    print("[TinyPM] RBAC Filtered Retrieval ENABLED - permission-aware access active")
+except ImportError as e:
+    print(f"[TinyPM] RBAC Retrieval not available: {e}")
+    RBAC_AVAILABLE = False
+
+    def get_rbac_api():
+        return None
+
+# =============================================================================
+# CONFLICT DETECTOR (Phase 2 - Sovereign Seed)
+# =============================================================================
+try:
+    from conflict_detector import (
+        get_conflict_detector,
+        get_conflict_gate,
+        get_conflict_report,
+        ConflictDetector,
+        ConflictSeverity,
+        ConflictType,
+        DataPoint,
+        Conflict,
+        Resolution
+    )
+    _conflict_detector = None
+
+    def get_conflicts_api() -> ConflictDetector:
+        """Lazy initialization of ConflictDetector."""
+        global _conflict_detector
+        if _conflict_detector is None:
+            _conflict_detector = get_conflict_detector()
+        return _conflict_detector
+
+    CONFLICT_DETECTOR_AVAILABLE = True
+    print("[TinyPM] Conflict Detector ENABLED - data conflict detection active")
+except ImportError as e:
+    print(f"[TinyPM] Conflict Detector not available: {e}")
+    CONFLICT_DETECTOR_AVAILABLE = False
+
+    def get_conflicts_api():
+        return None
+
+# =============================================================================
+# STRUCTURAL GATE INTEGRATION (Phase 2 - Sovereign Seed)
+# =============================================================================
+try:
+    from structural_gate import (
+        get_structural_gate,
+        StructuralGate,
+        StructuralGateViolation,
+        GateAction,
+        ValidationResult,
+        SchemaVersion
+    )
+    _structural_gate = None
+
+    def get_gate_api() -> StructuralGate:
+        """Lazy initialization of StructuralGate."""
+        global _structural_gate
+        if _structural_gate is None:
+            _structural_gate = get_structural_gate()
+        return _structural_gate
+
+    STRUCTURAL_GATE_AVAILABLE = True
+    print("[TinyPM] Structural Gate ENABLED - schema enforcement active")
+except ImportError as e:
+    print(f"[TinyPM] Structural Gate not available: {e}")
+    STRUCTURAL_GATE_AVAILABLE = False
+
+    def get_gate_api():
+        return None
+
+# =============================================================================
+# FINANCIAL CIRCUIT BREAKER (Phase 2 - Sovereign Seed)
+# =============================================================================
+try:
+    from financial_circuit_breaker import (
+        get_circuit_breaker,
+        FinancialCircuitBreaker,
+        ImpactAssessment,
+        ActionType,
+        ImpactCategory,
+        CircuitBreakerIntegration
+    )
+    _circuit_breaker = None
+
+    def get_circuit_breaker_api() -> FinancialCircuitBreaker:
+        """Lazy initialization of FinancialCircuitBreaker."""
+        global _circuit_breaker
+        if _circuit_breaker is None:
+            _circuit_breaker = get_circuit_breaker()
+        return _circuit_breaker
+
+    CIRCUIT_BREAKER_AVAILABLE = True
+    print("[TinyPM] Financial Circuit Breaker ENABLED - deterministic impact gating active")
+except ImportError as e:
+    print(f"[TinyPM] Circuit Breaker not available: {e}")
+    CIRCUIT_BREAKER_AVAILABLE = False
+
+    def get_circuit_breaker_api():
+        return None
+
+# =============================================================================
+# INTELLIGENT SAFE MODE (Phase 4 - Sovereign Seed)
+# Auto-locks system when AI is confused or unreliable
+# =============================================================================
+try:
+    from intelligent_safe_mode import (
+        get_safe_mode_controller,
+        SafeModeController,
+        SafeModeLevel,
+        SafeModeBlockedError,
+        CannotUnlockError,
+        is_safe,
+        can_write,
+        can_auto_execute
+    )
+    _safe_mode_controller = None
+
+    def get_safe_mode_api() -> SafeModeController:
+        """Lazy initialization of SafeModeController."""
+        global _safe_mode_controller
+        if _safe_mode_controller is None:
+            _safe_mode_controller = get_safe_mode_controller()
+        return _safe_mode_controller
+
+    SAFE_MODE_AVAILABLE = True
+    print("[TinyPM] Intelligent Safe Mode ENABLED - auto-lockdown on AI confusion active")
+except ImportError as e:
+    print(f"[TinyPM] Intelligent Safe Mode not available: {e}")
+    SAFE_MODE_AVAILABLE = False
+
+    def get_safe_mode_api():
+        return None
+
+# =============================================================================
+# EXTRACTION/CALCULATION SPLIT (Phase 3 - Sovereign Seed)
+# =============================================================================
+try:
+    from extraction_calculation_split import (
+        get_etc_pipeline,
+        get_extraction_layer,
+        get_calculation_layer,
+        ETCPipeline,
+        ExtractionLayer,
+        CalculationLayer,
+        calculate_direct,
+        run_pipeline_sync
+    )
+    _etc_pipeline = None
+
+    def get_etc_api() -> ETCPipeline:
+        """Lazy initialization of ETCPipeline."""
+        global _etc_pipeline
+        if _etc_pipeline is None:
+            _etc_pipeline = get_etc_pipeline()
+        return _etc_pipeline
+
+    ETC_PIPELINE_AVAILABLE = True
+    print("[TinyPM] ETC Pipeline ENABLED - extraction/calculation split active")
+except ImportError as e:
+    print(f"[TinyPM] ETC Pipeline not available: {e}")
+    ETC_PIPELINE_AVAILABLE = False
+
+    def get_etc_api():
+        return None
+
+# =============================================================================
+# OVERRIDE HYGIENE SYSTEM (Phase 4 - Sovereign Seed)
+# Tiered preference management preventing canonical knowledge corruption
+# =============================================================================
+try:
+    from override_hygiene import (
+        get_override_manager,
+        get_drift_detector,
+        OverrideManager,
+        PreferenceDriftDetector,
+        RuleTier,
+        OverrideStatus,
+        CannotOverrideCanonicalError,
+        Override,
+        Rule,
+        PromotionRequest,
+        PreferenceDrift
+    )
+    _override_manager = None
+    _drift_detector = None
+
+    def get_overrides_api() -> OverrideManager:
+        """Lazy initialization of OverrideManager."""
+        global _override_manager
+        if _override_manager is None:
+            _override_manager = get_override_manager()
+        return _override_manager
+
+    def get_drift_api() -> PreferenceDriftDetector:
+        """Lazy initialization of PreferenceDriftDetector."""
+        global _drift_detector
+        if _drift_detector is None:
+            _drift_detector = get_drift_detector()
+        return _drift_detector
+
+    OVERRIDE_HYGIENE_AVAILABLE = True
+    print("[TinyPM] Override Hygiene System ENABLED - tiered preference management active")
+except ImportError as e:
+    print(f"[TinyPM] Override Hygiene System not available: {e}")
+    OVERRIDE_HYGIENE_AVAILABLE = False
+
+    def get_overrides_api():
+        return None
+
+    def get_drift_api():
+        return None
+
+# =============================================================================
+# DECISION REPLAY ENGINE (Phase 3 - Sovereign Seed)
+# =============================================================================
+try:
+    from decision_replay_engine import (
+        get_replay_engine,
+        DecisionReplayEngine,
+        ReplayMode,
+        MatchType,
+        DecisionRecord,
+        ReplayResult,
+        record_decision,
+        replay_decision,
+        verify_all_decisions
+    )
+    _replay_engine = None
+
+    def get_replay_api() -> DecisionReplayEngine:
+        """Lazy initialization of DecisionReplayEngine."""
+        global _replay_engine
+        if _replay_engine is None:
+            _replay_engine = get_replay_engine()
+        return _replay_engine
+
+    DECISION_REPLAY_AVAILABLE = True
+    print("[TinyPM] Decision Replay Engine ENABLED - bit-for-bit reproducibility active")
+except ImportError as e:
+    print(f"[TinyPM] Decision Replay Engine not available: {e}")
+    DECISION_REPLAY_AVAILABLE = False
+
+    def get_replay_api():
+        return None
+
 # Load .env file if present
 _env_file = APP_DIR / ".env"
 if _env_file.exists():
@@ -523,6 +877,169 @@ class TinyPMHandler(SimpleHTTPRequestHandler):
             self.serve_file(APP_DIR / "avatar_builder.html", "text/html")
         elif path == "/api/avatar/get":
             self.api_get_avatar()
+        # Context Fusion Engine API (Phase 1 - Prescient AI)
+        elif path == "/api/fusion/intelligence":
+            self.api_get_fusion_intelligence()
+        elif path == "/api/fusion/signals":
+            self.api_get_fusion_signals()
+        elif path == "/api/fusion/predictions":
+            self.api_get_fusion_predictions()
+        elif path == "/api/fusion/stream":
+            self.api_fusion_sse_stream()
+        # Normalization Service API (Phase 1 - Sovereign Seed)
+        elif path == "/api/normalize/equivalent":
+            self.api_normalize_equivalent()
+        elif path == "/api/admin/normalize/stats":
+            self.api_normalize_stats()
+        elif path == "/api/admin/normalize/failures":
+            self.api_normalize_failures()
+        # Stable Anchor Citation System API (Phase 1 - Forensic RAG)
+        elif path == "/api/admin/anchors/health":
+            self.api_anchors_health()
+        elif path == "/api/admin/anchors/stale":
+            self.api_anchors_stale()
+        elif path.startswith("/api/anchors/") and path.endswith("/verify"):
+            anchor_id = path.split("/")[3]
+            self.api_anchor_verify(anchor_id)
+        elif path.startswith("/api/anchors/"):
+            anchor_id = path.split("/")[-1]
+            self.api_anchor_get(anchor_id)
+        elif path.startswith("/api/documents/") and "/anchors" in path:
+            doc_id = path.split("/")[3]
+            self.api_document_anchors(doc_id)
+        # RBAC Filtered Retrieval API (Phase 2 - Sovereign Seed)
+        elif path == "/api/rbac/stats":
+            self.api_rbac_stats()
+        elif path == "/api/rbac/access-log":
+            params = parse_qs(parsed.query)
+            self.api_rbac_access_log(params)
+        elif path == "/api/rbac/permission":
+            params = parse_qs(parsed.query)
+            document_id = params.get("document_id", [None])[0]
+            self.api_rbac_get_permission(document_id)
+        # Conflict Detector API (Phase 2 - Sovereign Seed)
+        elif path == "/api/conflicts":
+            self.api_get_conflicts()
+        elif path == "/api/conflicts/unresolved":
+            self.api_get_unresolved_conflicts()
+        elif path == "/api/conflicts/stats":
+            self.api_conflict_stats()
+        elif path == "/api/conflicts/health":
+            self.api_conflict_health()
+        elif path.startswith("/api/conflicts/field/"):
+            field_name = path.split("/")[-1]
+            self.api_get_conflicts_for_field(field_name)
+        elif path.startswith("/api/conflicts/") and not path.endswith("/"):
+            conflict_id = path.split("/")[-1]
+            self.api_get_conflict(conflict_id)
+        # Financial Circuit Breaker API (Phase 2 - Sovereign Seed)
+        elif path == "/api/impact/stats":
+            self.api_circuit_breaker_stats()
+        elif path == "/api/impact/recent":
+            params = parse_qs(parsed.query)
+            limit = int(params.get("limit", ["20"])[0])
+            self.api_circuit_breaker_recent(limit)
+        elif path == "/api/impact/thresholds":
+            self.api_circuit_breaker_thresholds()
+        elif path == "/api/impact/audit":
+            params = parse_qs(parsed.query)
+            limit = int(params.get("limit", ["50"])[0])
+            self.api_circuit_breaker_audit(limit)
+        # Structural Gate API (Phase 2 - Sovereign Seed)
+        elif path == "/api/admin/schemas/stats":
+            self.api_schemas_stats()
+        elif path == "/api/admin/schemas/list":
+            self.api_schemas_list()
+        elif path == "/api/admin/schemas/violations":
+            params = parse_qs(parsed.query)
+            limit = int(params.get("limit", [50])[0])
+            self.api_schemas_violations(limit)
+        elif path == "/api/admin/schemas/validations":
+            params = parse_qs(parsed.query)
+            limit = int(params.get("limit", [50])[0])
+            self.api_schemas_validations(limit)
+        elif path == "/api/admin/schemas/health":
+            self.api_schemas_health()
+        elif path.startswith("/api/admin/schemas/") and not path.endswith("/"):
+            schema_id = path.split("/")[-1]
+            params = parse_qs(parsed.query)
+            version = params.get("version", [None])[0]
+            self.api_schema_get(schema_id, version)
+        # ETC Pipeline API (Phase 3 - Sovereign Seed)
+        elif path == "/api/etc/contracts":
+            self.api_etc_contracts()
+        elif path == "/api/etc/audit":
+            params = parse_qs(parsed.query)
+            limit = int(params.get("limit", [50])[0])
+            self.api_etc_audit(limit)
+        elif path.startswith("/api/etc/verify/"):
+            pipeline_id = path.split("/")[-1]
+            self.api_etc_verify(pipeline_id)
+        # Intelligent Safe Mode API (Phase 4 - Sovereign Seed)
+        elif path == "/api/safe-mode/status":
+            self.api_safe_mode_status()
+        elif path == "/api/safe-mode/dashboard":
+            self.api_safe_mode_dashboard()
+        elif path == "/api/safe-mode/events":
+            params = parse_qs(parsed.query)
+            limit = int(params.get("limit", [50])[0])
+            offset = int(params.get("offset", [0])[0])
+            self.api_safe_mode_events(limit, offset)
+        elif path == "/api/safe-mode/metrics":
+            self.api_safe_mode_metrics()
+        elif path == "/api/safe-mode/thresholds":
+            self.api_safe_mode_thresholds()
+        # Override Hygiene API (Phase 4 - Sovereign Seed)
+        elif path == "/api/overrides/hierarchy":
+            params = parse_qs(parsed.query)
+            user_id = params.get("user_id", [None])[0]
+            filter_key = params.get("filter_key", [None])[0]
+            self.api_overrides_hierarchy(user_id, filter_key)
+        elif path == "/api/overrides/stats":
+            self.api_overrides_stats()
+        elif path == "/api/overrides/explain":
+            params = parse_qs(parsed.query)
+            key = params.get("key", [None])[0]
+            user_id = params.get("user_id", [None])[0]
+            self.api_overrides_explain(key, user_id)
+        elif path == "/api/overrides/effective":
+            params = parse_qs(parsed.query)
+            key = params.get("key", [None])[0]
+            user_id = params.get("user_id", [None])[0]
+            self.api_overrides_get_effective(key, user_id)
+        elif path == "/api/overrides/preferences":
+            params = parse_qs(parsed.query)
+            user_id = params.get("user_id", [None])[0]
+            self.api_overrides_get_preferences(user_id)
+        elif path == "/api/overrides/learned":
+            params = parse_qs(parsed.query)
+            min_confidence = float(params.get("min_confidence", [0.0])[0])
+            self.api_overrides_get_learned(min_confidence)
+        elif path == "/api/overrides/promotions/pending":
+            self.api_overrides_get_pending_promotions()
+        elif path == "/api/overrides/drifts":
+            self.api_overrides_get_drifts()
+        elif path == "/api/overrides/drifts/stats":
+            self.api_overrides_drift_stats()
+        elif path == "/api/overrides/audit":
+            params = parse_qs(parsed.query)
+            limit = int(params.get("limit", [100])[0])
+            action_filter = params.get("action", [None])[0]
+            user_filter = params.get("user", [None])[0]
+            self.api_overrides_audit(limit, action_filter, user_filter)
+        # Decision Replay Engine GET endpoints (Phase 3 - Sovereign Seed)
+        elif path == "/api/replay/decisions":
+            self.api_replay_get_decisions()
+        elif path == "/api/replay/stats":
+            self.api_replay_stats()
+        elif path == "/api/replay/verify":
+            self.api_replay_verify()
+        elif path.startswith("/api/replay/decision/"):
+            decision_id = path.split("/")[-1]
+            self.api_replay_get_decision(decision_id)
+        elif path.startswith("/api/replay/lineage/"):
+            decision_id = path.split("/")[-1]
+            self.api_replay_lineage(decision_id)
         else:
             super().do_GET()
 
@@ -637,6 +1154,93 @@ class TinyPMHandler(SimpleHTTPRequestHandler):
             self.api_avatar_analyze(data)
         elif path == "/api/avatar/save":
             self.api_avatar_save(data)
+        # Normalization Service POST endpoints (Phase 1 - Sovereign Seed)
+        elif path == "/api/normalize":
+            self.api_normalize(data)
+        elif path == "/api/normalize/batch":
+            self.api_normalize_batch(data)
+        elif path == "/api/admin/normalize/test":
+            self.api_normalize_test(data)
+        # Stable Anchor Citation System POST endpoints (Phase 1 - Forensic RAG)
+        elif path == "/api/admin/anchors/bulk-verify":
+            self.api_anchors_bulk_verify(data)
+        elif path == "/api/anchors/create":
+            self.api_anchors_create(data)
+        elif path == "/api/documents/register":
+            self.api_documents_register(data)
+        # RBAC Filtered Retrieval POST endpoints (Phase 2 - Sovereign Seed)
+        elif path == "/api/rbac/check":
+            self.api_rbac_check(data)
+        elif path == "/api/rbac/permissions/batch":
+            self.api_rbac_batch_permissions(data)
+        elif path == "/api/rbac/request":
+            self.api_rbac_request_permission(data)
+        elif path == "/api/rbac/grant":
+            self.api_rbac_grant_permission(data)
+        elif path == "/api/rbac/invalidate-cache":
+            self.api_rbac_invalidate_cache(data)
+        # Conflict Detector POST endpoints (Phase 2 - Sovereign Seed)
+        elif path == "/api/conflicts/detect":
+            self.api_conflicts_detect(data)
+        elif path == "/api/conflicts/resolve":
+            self.api_conflicts_resolve(data)
+        elif path == "/api/conflicts/resolve/effective-date":
+            self.api_conflicts_resolve_effective_date(data)
+        elif path == "/api/conflicts/resolve/source-priority":
+            self.api_conflicts_resolve_source_priority(data)
+        elif path == "/api/conflicts/check-gate":
+            self.api_conflicts_check_gate(data)
+        # Financial Circuit Breaker POST endpoints (Phase 2 - Sovereign Seed)
+        elif path == "/api/impact/assess":
+            self.api_circuit_breaker_assess(data)
+        elif path == "/api/impact/gate":
+            self.api_circuit_breaker_gate(data)
+        elif path == "/api/impact/wrap":
+            self.api_circuit_breaker_wrap(data)
+        elif path == "/api/impact/thresholds":
+            self.api_circuit_breaker_update_thresholds(data)
+        # Structural Gate POST endpoints (Phase 2 - Sovereign Seed)
+        elif path == "/api/admin/schemas/validate":
+            self.api_schemas_validate(data)
+        elif path == "/api/admin/schemas/gate":
+            self.api_schemas_gate(data)
+        elif path == "/api/admin/schemas/register":
+            self.api_schemas_register(data)
+        elif path == "/api/admin/schemas/reload":
+            self.api_schemas_reload(data)
+        # ETC Pipeline POST endpoints (Phase 3 - Sovereign Seed)
+        elif path == "/api/etc/run":
+            self.api_etc_run(data)
+        elif path == "/api/etc/calculate":
+            self.api_etc_calculate(data)
+        # Intelligent Safe Mode POST endpoints (Phase 4 - Sovereign Seed)
+        elif path == "/api/safe-mode/lockdown":
+            self.api_safe_mode_lockdown(data)
+        elif path == "/api/safe-mode/unlock":
+            self.api_safe_mode_unlock(data)
+        elif path == "/api/safe-mode/check-health":
+            self.api_safe_mode_check_health(data)
+        elif path == "/api/safe-mode/set-threshold":
+            self.api_safe_mode_set_threshold(data)
+        # Override Hygiene POST endpoints (Phase 4 - Sovereign Seed)
+        elif path == "/api/overrides/preferences":
+            self.api_overrides_set_preference(data)
+        elif path == "/api/overrides/preferences/remove":
+            self.api_overrides_remove_preference(data)
+        elif path == "/api/overrides/learned":
+            self.api_overrides_add_learned(data)
+        elif path == "/api/overrides/learned/remove":
+            self.api_overrides_remove_learned(data)
+        elif path == "/api/overrides/promotions":
+            self.api_overrides_request_promotion(data)
+        elif path == "/api/overrides/promotions/direct":
+            self.api_overrides_request_direct_promotion(data)
+        elif path == "/api/overrides/promotions/review":
+            self.api_overrides_review_promotion(data)
+        elif path == "/api/overrides/drifts/scan":
+            self.api_overrides_scan_drift(data)
+        elif path == "/api/overrides/drifts/resolve":
+            self.api_overrides_resolve_drift(data)
         else:
             self.send_json({"error": "Unknown endpoint"}, 404)
 
@@ -3521,6 +4125,2840 @@ Make the avatar feel like a magical/scientific version of the person!"""
                 "message": "Connect Gmail to see emails",
                 "emails": []
             })
+
+    # =========================================================================
+    # CONTEXT FUSION ENGINE API (Phase 1 - Prescient AI)
+    # =========================================================================
+
+    def api_get_fusion_intelligence(self):
+        """
+        GET /api/fusion/intelligence
+        Returns full fused intelligence including context and predictions.
+        """
+        if not CONTEXT_FUSION_AVAILABLE:
+            self.send_json({
+                "error": "Context Fusion Engine not available",
+                "available": False
+            })
+            return
+
+        try:
+            fusion = get_fusion_api()
+
+            # Run async function in event loop
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                data = loop.run_until_complete(fusion.get_full_intelligence())
+            finally:
+                loop.close()
+
+            self.send_json(data)
+        except Exception as e:
+            print(f"[ContextFusion] API error: {e}")
+            self.send_json({
+                "error": str(e),
+                "available": True
+            })
+
+    def api_get_fusion_signals(self):
+        """
+        GET /api/fusion/signals
+        Returns current signal status for all sources.
+        """
+        if not CONTEXT_FUSION_AVAILABLE:
+            self.send_json({
+                "error": "Context Fusion Engine not available",
+                "signals": {}
+            })
+            return
+
+        try:
+            fusion = get_fusion_api()
+            status = fusion.get_signal_status_summary()
+            self.send_json({
+                "signals": status,
+                "available": True
+            })
+        except Exception as e:
+            self.send_json({
+                "error": str(e),
+                "signals": {}
+            })
+
+    def api_get_fusion_predictions(self):
+        """
+        GET /api/fusion/predictions
+        Returns current predictions only.
+        """
+        if not CONTEXT_FUSION_AVAILABLE:
+            self.send_json({
+                "error": "Context Fusion Engine not available",
+                "predictions": []
+            })
+            return
+
+        try:
+            fusion = get_fusion_api()
+
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                context = loop.run_until_complete(fusion.gather_and_fuse())
+                predictions = loop.run_until_complete(fusion.generate_predictions(context))
+            finally:
+                loop.close()
+
+            self.send_json({
+                "predictions": [p.to_dict() for p in predictions],
+                "count": len(predictions),
+                "available": True
+            })
+        except Exception as e:
+            self.send_json({
+                "error": str(e),
+                "predictions": []
+            })
+
+    def api_fusion_sse_stream(self):
+        """
+        GET /api/fusion/stream
+        Server-Sent Events stream for real-time fusion updates.
+        """
+        if not CONTEXT_FUSION_AVAILABLE:
+            self.send_error(503, "Context Fusion Engine not available")
+            return
+
+        try:
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/event-stream')
+            self.send_header('Cache-Control', 'no-cache')
+            self.send_header('Connection', 'keep-alive')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+
+            fusion = get_fusion_api()
+            last_update = None
+
+            # Send initial heartbeat
+            self.wfile.write(b'event: heartbeat\n')
+            self.wfile.write(b'data: {"status": "connected"}\n\n')
+            self.wfile.flush()
+
+            # Stream updates (simplified - in production use proper async)
+            import time
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+            try:
+                while True:
+                    # Get fresh data
+                    data = loop.run_until_complete(fusion.get_full_intelligence())
+
+                    # Send context update
+                    event_data = json.dumps({
+                        "type": "context_update",
+                        "payload": data
+                    })
+                    self.wfile.write(f'event: context_update\n'.encode())
+                    self.wfile.write(f'data: {event_data}\n\n'.encode())
+                    self.wfile.flush()
+
+                    # Wait before next update
+                    time.sleep(30)  # Update every 30 seconds
+
+                    # Send heartbeat
+                    self.wfile.write(b'event: heartbeat\n')
+                    self.wfile.write(b'data: {"status": "alive"}\n\n')
+                    self.wfile.flush()
+
+            except (BrokenPipeError, ConnectionResetError):
+                print("[ContextFusion] SSE client disconnected")
+            finally:
+                loop.close()
+
+        except Exception as e:
+            print(f"[ContextFusion] SSE error: {e}")
+
+    # =========================================================================
+    # NORMALIZATION SERVICE API (Phase 1 - Sovereign Seed)
+    # Deterministic value normalization - NO LLM involvement
+    # =========================================================================
+
+    def api_normalize(self, data: dict):
+        """
+        POST /api/normalize
+        Normalize a single value.
+
+        Request: {"text": "$1,200", "hint": "currency"}
+        Response: {"original": "$1,200", "normalized": "1200.00", ...}
+        """
+        if not NORMALIZATION_AVAILABLE:
+            self.send_json({"error": "Normalization Service not available"}, 503)
+            return
+
+        text = data.get("text", "")
+        hint = data.get("hint")
+
+        if not text:
+            self.send_json({"error": "Missing 'text' field"}, 400)
+            return
+
+        try:
+            normalizer = get_normalizer()
+            result = normalizer.normalize(text, hint=hint)
+
+            if result:
+                self.send_json(result.to_dict())
+            else:
+                # Track failed normalization for debugging
+                global _normalization_failures
+                _normalization_failures.append({
+                    "text": text,
+                    "hint": hint,
+                    "timestamp": datetime.now().isoformat()
+                })
+                # Keep only last 100 failures
+                _normalization_failures = _normalization_failures[-100:]
+
+                self.send_json({
+                    "original": text,
+                    "normalized": None,
+                    "error": "Could not normalize value"
+                })
+
+        except Exception as e:
+            print(f"[Normalization] Error: {e}")
+            self.send_json({"error": f"Normalization error: {str(e)}"}, 500)
+
+    def api_normalize_batch(self, data: dict):
+        """
+        POST /api/normalize/batch
+        Normalize multiple values at once.
+
+        Request: {"items": [{"text": "$1,200", "hint": "currency"}, ...]}
+        Response: {"results": [...]}
+        """
+        if not NORMALIZATION_AVAILABLE:
+            self.send_json({"error": "Normalization Service not available"}, 503)
+            return
+
+        items = data.get("items", [])
+
+        if not items:
+            self.send_json({"error": "Missing 'items' array"}, 400)
+            return
+
+        if len(items) > 100:
+            self.send_json({"error": "Maximum 100 items per batch"}, 400)
+            return
+
+        try:
+            normalizer = get_normalizer()
+            results = normalizer.normalize_batch(items)
+            self.send_json({"results": results})
+
+        except Exception as e:
+            print(f"[Normalization] Batch error: {e}")
+            self.send_json({"error": f"Batch normalization error: {str(e)}"}, 500)
+
+    def api_normalize_equivalent(self):
+        """
+        GET /api/normalize/equivalent?v1=...&v2=...&type=...
+        Check if two values are equivalent after normalization.
+
+        Response: {"equivalent": true, "v1_normalized": ..., "v2_normalized": ...}
+        """
+        if not NORMALIZATION_AVAILABLE:
+            self.send_json({"error": "Normalization Service not available"}, 503)
+            return
+
+        parsed = urlparse(self.path)
+        params = parse_qs(parsed.query)
+
+        v1 = params.get("v1", [""])[0]
+        v2 = params.get("v2", [""])[0]
+        value_type = params.get("type", [""])[0]
+
+        if not v1 or not v2:
+            self.send_json({"error": "Missing v1 or v2 parameters"}, 400)
+            return
+
+        if not value_type:
+            self.send_json({"error": "Missing type parameter"}, 400)
+            return
+
+        try:
+            normalizer = get_normalizer()
+            is_equivalent = normalizer.are_equivalent(v1, v2, value_type)
+
+            # Also return the normalized values for display
+            r1 = normalizer.normalize(v1, hint=value_type)
+            r2 = normalizer.normalize(v2, hint=value_type)
+
+            self.send_json({
+                "equivalent": is_equivalent,
+                "v1_original": v1,
+                "v2_original": v2,
+                "v1_normalized": r1.to_dict() if r1 else None,
+                "v2_normalized": r2.to_dict() if r2 else None,
+                "type": value_type
+            })
+
+        except Exception as e:
+            print(f"[Normalization] Equivalence error: {e}")
+            self.send_json({"error": f"Equivalence check error: {str(e)}"}, 500)
+
+    def api_normalize_stats(self):
+        """
+        GET /api/admin/normalize/stats
+        Get normalization service statistics.
+        """
+        if not NORMALIZATION_AVAILABLE:
+            self.send_json({"error": "Normalization Service not available"}, 503)
+            return
+
+        try:
+            normalizer = get_normalizer()
+            stats = normalizer.get_stats()
+            self.send_json(stats)
+
+        except Exception as e:
+            print(f"[Normalization] Stats error: {e}")
+            self.send_json({"error": f"Stats error: {str(e)}"}, 500)
+
+    def api_normalize_failures(self):
+        """
+        GET /api/admin/normalize/failures
+        Get recent failed normalizations for debugging.
+        """
+        if not NORMALIZATION_AVAILABLE:
+            self.send_json({"error": "Normalization Service not available"}, 503)
+            return
+
+        parsed = urlparse(self.path)
+        params = parse_qs(parsed.query)
+        limit = int(params.get("limit", ["50"])[0])
+
+        global _normalization_failures
+        failures = _normalization_failures[-limit:]
+
+        self.send_json({
+            "failures": failures,
+            "total": len(_normalization_failures)
+        })
+
+    def api_normalize_test(self, data: dict):
+        """
+        POST /api/admin/normalize/test
+        Test normalization patterns (developer tool).
+
+        Request: {"text": "$1,200", "type": "currency"}
+        Response: {"results": [...]} (all possible interpretations)
+        """
+        if not NORMALIZATION_AVAILABLE:
+            self.send_json({"error": "Normalization Service not available"}, 503)
+            return
+
+        text = data.get("text", "")
+
+        if not text:
+            self.send_json({"error": "Missing 'text' field"}, 400)
+            return
+
+        try:
+            normalizer = get_normalizer()
+            # Get all possible interpretations
+            results = normalizer.normalize_all(text)
+
+            self.send_json({
+                "text": text,
+                "interpretations": [r.to_dict() for r in results],
+                "count": len(results)
+            })
+
+        except Exception as e:
+            print(f"[Normalization] Test error: {e}")
+            self.send_json({"error": f"Test error: {str(e)}"}, 500)
+
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # STABLE ANCHOR CITATION SYSTEM API (Phase 1 - Forensic RAG)
+    # Cryptographically verifiable AI citations with zero hallucination tolerance
+    # ═══════════════════════════════════════════════════════════════════════════════
+
+    def api_anchors_health(self):
+        """GET /api/admin/anchors/health - System health for developer dashboard."""
+        if not STABLE_ANCHORS_AVAILABLE:
+            self.send_json({
+                "available": False,
+                "error": "Stable Anchor system not installed"
+            }, 503)
+            return
+
+        try:
+            import time
+            start = time.perf_counter()
+            service = get_anchors_api()
+            health = service.get_health()
+            elapsed_ms = (time.perf_counter() - start) * 1000
+
+            self.send_json({
+                "available": True,
+                "total_anchors": health["total_anchors"],
+                "verified_count": health["verified_count"],
+                "failed_count": health["failed_count"],
+                "stale_count": health["stale_count"],
+                "verification_rate": health["verification_rate"],
+                "avg_verification_ms": health["avg_verification_ms"],
+                "performance_ok": health["avg_verification_ms"] < 50,
+                "api_latency_ms": round(elapsed_ms, 2),
+                "documents_tracked": health.get("documents_tracked", 0)
+            })
+        except Exception as e:
+            print(f"[StableAnchors] Health check error: {e}")
+            self.send_json({"error": f"Health check failed: {str(e)}"}, 500)
+
+    def api_anchors_stale(self):
+        """GET /api/admin/anchors/stale - List anchors needing re-verification."""
+        if not STABLE_ANCHORS_AVAILABLE:
+            self.send_json({"error": "Stable Anchor system not available"}, 503)
+            return
+
+        try:
+            from urllib.parse import parse_qs, urlparse
+            parsed = urlparse(self.path)
+            params = parse_qs(parsed.query)
+            max_age_hours = int(params.get("max_age_hours", [24])[0])
+
+            service = get_anchors_api()
+            stale = service.get_stale_anchors(max_age_hours=max_age_hours)
+
+            self.send_json({
+                "stale_anchors": [a.to_dict() for a in stale],
+                "count": len(stale),
+                "max_age_hours": max_age_hours
+            })
+        except Exception as e:
+            print(f"[StableAnchors] Stale anchors error: {e}")
+            self.send_json({"error": f"Failed to get stale anchors: {str(e)}"}, 500)
+
+    def api_anchor_get(self, anchor_id: str):
+        """GET /api/anchors/{anchor_id} - Get anchor details."""
+        if not STABLE_ANCHORS_AVAILABLE:
+            self.send_json({"error": "Stable Anchor system not available"}, 503)
+            return
+
+        try:
+            service = get_anchors_api()
+            anchor = service.get_anchor(anchor_id)
+
+            if anchor is None:
+                self.send_json({"error": f"Anchor {anchor_id} not found"}, 404)
+                return
+
+            self.send_json(anchor.to_dict())
+        except Exception as e:
+            print(f"[StableAnchors] Get anchor error: {e}")
+            self.send_json({"error": f"Failed to get anchor: {str(e)}"}, 500)
+
+    def api_anchor_verify(self, anchor_id: str):
+        """GET /api/anchors/{anchor_id}/verify - Verify anchor integrity."""
+        if not STABLE_ANCHORS_AVAILABLE:
+            self.send_json({"error": "Stable Anchor system not available"}, 503)
+            return
+
+        try:
+            import time
+            start = time.perf_counter()
+            service = get_anchors_api()
+            result = service.verify_anchor(anchor_id)
+            elapsed_ms = (time.perf_counter() - start) * 1000
+
+            self.send_json({
+                "anchor_id": anchor_id,
+                "status": result.status.value,
+                "verified": result.status.value == "verified",
+                "message": result.message,
+                "verification_ms": round(elapsed_ms, 2),
+                "performance_ok": elapsed_ms < 50,
+                "details": result.details
+            })
+        except Exception as e:
+            print(f"[StableAnchors] Verify anchor error: {e}")
+            self.send_json({"error": f"Verification failed: {str(e)}"}, 500)
+
+    def api_document_anchors(self, doc_id: str):
+        """GET /api/documents/{doc_id}/anchors - List all anchors for a document."""
+        if not STABLE_ANCHORS_AVAILABLE:
+            self.send_json({"error": "Stable Anchor system not available"}, 503)
+            return
+
+        try:
+            service = get_anchors_api()
+            anchors = service.get_anchors_for_document(doc_id)
+
+            self.send_json({
+                "document_id": doc_id,
+                "anchors": [a.to_dict() for a in anchors],
+                "count": len(anchors)
+            })
+        except Exception as e:
+            print(f"[StableAnchors] Document anchors error: {e}")
+            self.send_json({"error": f"Failed to get document anchors: {str(e)}"}, 500)
+
+    def api_anchors_bulk_verify(self, data: dict):
+        """POST /api/admin/anchors/bulk-verify - Verify multiple anchors."""
+        if not STABLE_ANCHORS_AVAILABLE:
+            self.send_json({"error": "Stable Anchor system not available"}, 503)
+            return
+
+        try:
+            anchor_ids = data.get("anchor_ids", [])
+            if not anchor_ids:
+                self.send_json({"error": "No anchor_ids provided"}, 400)
+                return
+
+            import time
+            start = time.perf_counter()
+            service = get_anchors_api()
+            results = service.bulk_verify(anchor_ids)
+            elapsed_ms = (time.perf_counter() - start) * 1000
+
+            verified = sum(1 for r in results if r.status.value == "verified")
+            failed = sum(1 for r in results if r.status.value == "failed")
+
+            self.send_json({
+                "results": [{
+                    "anchor_id": r.anchor_id,
+                    "status": r.status.value,
+                    "verified": r.status.value == "verified",
+                    "message": r.message
+                } for r in results],
+                "summary": {
+                    "total": len(results),
+                    "verified": verified,
+                    "failed": failed,
+                    "verification_rate": round(verified / len(results) * 100, 1) if results else 0
+                },
+                "total_ms": round(elapsed_ms, 2),
+                "avg_ms": round(elapsed_ms / len(results), 2) if results else 0
+            })
+        except Exception as e:
+            print(f"[StableAnchors] Bulk verify error: {e}")
+            self.send_json({"error": f"Bulk verification failed: {str(e)}"}, 500)
+
+    def api_anchors_create(self, data: dict):
+        """POST /api/anchors/create - Create a new stable anchor."""
+        if not STABLE_ANCHORS_AVAILABLE:
+            self.send_json({"error": "Stable Anchor system not available"}, 503)
+            return
+
+        try:
+            doc_id = data.get("document_id")
+            text = data.get("text")
+            start_offset = data.get("start_offset")
+            end_offset = data.get("end_offset")
+            context = data.get("context", "")
+            metadata = data.get("metadata", {})
+
+            if not all([doc_id, text, start_offset is not None, end_offset is not None]):
+                self.send_json({
+                    "error": "Required: document_id, text, start_offset, end_offset"
+                }, 400)
+                return
+
+            service = get_anchors_api()
+            anchor = service.create_anchor(
+                document_id=doc_id,
+                text=text,
+                start_offset=start_offset,
+                end_offset=end_offset,
+                context=context,
+                metadata=metadata
+            )
+
+            self.send_json({
+                "created": True,
+                "anchor": anchor.to_dict()
+            })
+        except Exception as e:
+            print(f"[StableAnchors] Create anchor error: {e}")
+            self.send_json({"error": f"Failed to create anchor: {str(e)}"}, 500)
+
+    def api_documents_register(self, data: dict):
+        """POST /api/documents/register - Register a document for anchor tracking."""
+        if not STABLE_ANCHORS_AVAILABLE:
+            self.send_json({"error": "Stable Anchor system not available"}, 503)
+            return
+
+        try:
+            doc_id = data.get("document_id")
+            content = data.get("content")
+            source = data.get("source", "api")
+            metadata = data.get("metadata", {})
+
+            if not doc_id or not content:
+                self.send_json({"error": "Required: document_id, content"}, 400)
+                return
+
+            store = get_document_store()
+            doc_ref = store.register_document(
+                doc_id=doc_id,
+                content=content,
+                source=source,
+                metadata=metadata
+            )
+
+            self.send_json({
+                "registered": True,
+                "document": doc_ref.to_dict()
+            })
+        except Exception as e:
+            print(f"[StableAnchors] Register document error: {e}")
+            self.send_json({"error": f"Failed to register document: {str(e)}"}, 500)
+
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # CONFLICT DETECTOR API (Phase 2 - Sovereign Seed)
+    # Deterministic conflict detection for data integrity
+    # ═══════════════════════════════════════════════════════════════════════════════
+
+    def api_get_conflicts(self):
+        """GET /api/conflicts - Get all conflicts."""
+        if not CONFLICT_DETECTOR_AVAILABLE:
+            self.send_json({"error": "Conflict Detector not available"}, 503)
+            return
+
+        try:
+            detector = get_conflicts_api()
+            conflicts = detector.get_all_conflicts()
+
+            self.send_json({
+                "available": True,
+                "conflicts": [c.to_dict() for c in conflicts],
+                "total": len(conflicts)
+            })
+        except Exception as e:
+            print(f"[ConflictDetector] Get conflicts error: {e}")
+            self.send_json({"error": f"Failed to get conflicts: {str(e)}"}, 500)
+
+    def api_get_unresolved_conflicts(self):
+        """GET /api/conflicts/unresolved - Get unresolved conflicts."""
+        if not CONFLICT_DETECTOR_AVAILABLE:
+            self.send_json({"error": "Conflict Detector not available"}, 503)
+            return
+
+        try:
+            detector = get_conflicts_api()
+            conflicts = detector.get_unresolved_conflicts()
+
+            self.send_json({
+                "conflicts": [c.to_dict() for c in conflicts],
+                "total": len(conflicts)
+            })
+        except Exception as e:
+            print(f"[ConflictDetector] Get unresolved error: {e}")
+            self.send_json({"error": f"Failed to get unresolved conflicts: {str(e)}"}, 500)
+
+    def api_get_conflict(self, conflict_id: str):
+        """GET /api/conflicts/{conflict_id} - Get specific conflict."""
+        if not CONFLICT_DETECTOR_AVAILABLE:
+            self.send_json({"error": "Conflict Detector not available"}, 503)
+            return
+
+        try:
+            detector = get_conflicts_api()
+            conflict = detector.get_conflict(conflict_id)
+
+            if conflict:
+                self.send_json({"conflict": conflict.to_dict()})
+            else:
+                self.send_json({"error": f"Conflict {conflict_id} not found"}, 404)
+        except Exception as e:
+            print(f"[ConflictDetector] Get conflict error: {e}")
+            self.send_json({"error": f"Failed to get conflict: {str(e)}"}, 500)
+
+    def api_get_conflicts_for_field(self, field_name: str):
+        """GET /api/conflicts/field/{field_name} - Get conflicts for field."""
+        if not CONFLICT_DETECTOR_AVAILABLE:
+            self.send_json({"error": "Conflict Detector not available"}, 503)
+            return
+
+        try:
+            from urllib.parse import unquote
+            field_name = unquote(field_name)
+
+            detector = get_conflicts_api()
+            conflicts = detector.get_conflicts_for_field(field_name)
+
+            self.send_json({
+                "field_name": field_name,
+                "conflicts": [c.to_dict() for c in conflicts],
+                "total": len(conflicts)
+            })
+        except Exception as e:
+            print(f"[ConflictDetector] Get conflicts for field error: {e}")
+            self.send_json({"error": f"Failed to get conflicts: {str(e)}"}, 500)
+
+    def api_conflict_stats(self):
+        """GET /api/conflicts/stats - Get conflict statistics."""
+        if not CONFLICT_DETECTOR_AVAILABLE:
+            self.send_json({"error": "Conflict Detector not available"}, 503)
+            return
+
+        try:
+            detector = get_conflicts_api()
+            stats = detector.get_stats()
+
+            self.send_json({
+                "available": True,
+                "stats": stats
+            })
+        except Exception as e:
+            print(f"[ConflictDetector] Stats error: {e}")
+            self.send_json({"error": f"Failed to get stats: {str(e)}"}, 500)
+
+    def api_conflict_health(self):
+        """GET /api/conflicts/health - Get conflict health summary."""
+        if not CONFLICT_DETECTOR_AVAILABLE:
+            self.send_json({"error": "Conflict Detector not available"}, 503)
+            return
+
+        try:
+            detector = get_conflicts_api()
+            health = detector.get_health_summary()
+
+            self.send_json({
+                "available": True,
+                "health": health
+            })
+        except Exception as e:
+            print(f"[ConflictDetector] Health error: {e}")
+            self.send_json({"error": f"Failed to get health: {str(e)}"}, 500)
+
+    def api_conflicts_detect(self, data: dict):
+        """POST /api/conflicts/detect - Detect conflicts in data points."""
+        if not CONFLICT_DETECTOR_AVAILABLE:
+            self.send_json({"error": "Conflict Detector not available"}, 503)
+            return
+
+        try:
+            field_name = data.get("field_name")
+            data_points_raw = data.get("data_points", [])
+
+            if not field_name or not data_points_raw:
+                self.send_json({"error": "Required: field_name, data_points"}, 400)
+                return
+
+            # Convert to DataPoint objects
+            from datetime import datetime
+            from decimal import Decimal
+
+            data_points = []
+            for dp_data in data_points_raw:
+                # Try to normalize value if normalization service available
+                normalized_value = dp_data.get("normalized_value", dp_data.get("value"))
+
+                effective_date = dp_data.get("effective_date")
+                if isinstance(effective_date, str):
+                    effective_date = datetime.fromisoformat(effective_date)
+
+                dp = DataPoint(
+                    value=dp_data.get("value"),
+                    normalized_value=normalized_value,
+                    source_id=dp_data.get("source_id", "unknown"),
+                    source_type=dp_data.get("source_type", "unknown"),
+                    effective_date=effective_date,
+                    extraction_confidence=dp_data.get("extraction_confidence", 1.0),
+                    anchor_id=dp_data.get("anchor_id"),
+                    metadata=dp_data.get("metadata", {"field_name": field_name})
+                )
+                data_points.append(dp)
+
+            detector = get_conflicts_api()
+            conflicts = detector.detect_conflicts(data_points, field_name)
+
+            self.send_json({
+                "detected": True,
+                "conflicts": [c.to_dict() for c in conflicts],
+                "count": len(conflicts)
+            })
+        except Exception as e:
+            print(f"[ConflictDetector] Detect error: {e}")
+            self.send_json({"error": f"Failed to detect conflicts: {str(e)}"}, 500)
+
+    def api_conflicts_resolve(self, data: dict):
+        """POST /api/conflicts/resolve - Manually resolve a conflict."""
+        if not CONFLICT_DETECTOR_AVAILABLE:
+            self.send_json({"error": "Conflict Detector not available"}, 503)
+            return
+
+        try:
+            conflict_id = data.get("conflict_id")
+            winning_index = data.get("winning_index")
+            resolved_by = data.get("resolved_by", "user")
+            reasoning = data.get("reasoning", "")
+
+            if not conflict_id or winning_index is None:
+                self.send_json({"error": "Required: conflict_id, winning_index"}, 400)
+                return
+
+            detector = get_conflicts_api()
+            conflict = detector.get_conflict(conflict_id)
+
+            if not conflict:
+                self.send_json({"error": f"Conflict {conflict_id} not found"}, 404)
+                return
+
+            resolution = detector.resolve_manually(
+                conflict,
+                winning_index,
+                resolved_by,
+                reasoning
+            )
+
+            self.send_json({
+                "resolved": True,
+                "resolution": resolution.to_dict(),
+                "conflict": conflict.to_dict()
+            })
+        except Exception as e:
+            print(f"[ConflictDetector] Resolve error: {e}")
+            self.send_json({"error": f"Failed to resolve conflict: {str(e)}"}, 500)
+
+    def api_conflicts_resolve_effective_date(self, data: dict):
+        """POST /api/conflicts/resolve/effective-date - Resolve by effective date."""
+        if not CONFLICT_DETECTOR_AVAILABLE:
+            self.send_json({"error": "Conflict Detector not available"}, 503)
+            return
+
+        try:
+            conflict_id = data.get("conflict_id")
+
+            if not conflict_id:
+                self.send_json({"error": "Required: conflict_id"}, 400)
+                return
+
+            detector = get_conflicts_api()
+            conflict = detector.get_conflict(conflict_id)
+
+            if not conflict:
+                self.send_json({"error": f"Conflict {conflict_id} not found"}, 404)
+                return
+
+            resolution = detector.resolve_by_effective_date(conflict)
+
+            self.send_json({
+                "resolved": True,
+                "resolution": resolution.to_dict(),
+                "conflict": conflict.to_dict()
+            })
+        except Exception as e:
+            print(f"[ConflictDetector] Resolve by effective date error: {e}")
+            self.send_json({"error": f"Failed to resolve conflict: {str(e)}"}, 500)
+
+    def api_conflicts_resolve_source_priority(self, data: dict):
+        """POST /api/conflicts/resolve/source-priority - Resolve by source priority."""
+        if not CONFLICT_DETECTOR_AVAILABLE:
+            self.send_json({"error": "Conflict Detector not available"}, 503)
+            return
+
+        try:
+            conflict_id = data.get("conflict_id")
+
+            if not conflict_id:
+                self.send_json({"error": "Required: conflict_id"}, 400)
+                return
+
+            detector = get_conflicts_api()
+            conflict = detector.get_conflict(conflict_id)
+
+            if not conflict:
+                self.send_json({"error": f"Conflict {conflict_id} not found"}, 404)
+                return
+
+            resolution = detector.resolve_by_source_priority(conflict)
+
+            self.send_json({
+                "resolved": True,
+                "resolution": resolution.to_dict(),
+                "conflict": conflict.to_dict()
+            })
+        except Exception as e:
+            print(f"[ConflictDetector] Resolve by source priority error: {e}")
+            self.send_json({"error": f"Failed to resolve conflict: {str(e)}"}, 500)
+
+    def api_conflicts_check_gate(self, data: dict):
+        """POST /api/conflicts/check-gate - Check if action is blocked by conflicts."""
+        if not CONFLICT_DETECTOR_AVAILABLE:
+            self.send_json({"error": "Conflict Detector not available"}, 503)
+            return
+
+        try:
+            field_name = data.get("field_name")
+            action = data.get("action", "unknown action")
+
+            if not field_name:
+                self.send_json({"error": "Required: field_name"}, 400)
+                return
+
+            gate = get_conflict_gate()
+            allowed, blocking_conflict = gate.check(field_name, action)
+
+            self.send_json({
+                "allowed": allowed,
+                "field_name": field_name,
+                "action": action,
+                "blocking_conflict": blocking_conflict.to_dict() if blocking_conflict else None
+            })
+        except Exception as e:
+            print(f"[ConflictDetector] Check gate error: {e}")
+            self.send_json({"error": f"Failed to check gate: {str(e)}"}, 500)
+
+    # =========================================================================
+    # STRUCTURAL GATE API METHODS (Phase 2 - Sovereign Seed)
+    # JSON Schema enforcement for inter-agent communication
+    # =========================================================================
+
+    def api_schemas_stats(self):
+        """GET /api/admin/schemas/stats - Get validation statistics."""
+        if not STRUCTURAL_GATE_AVAILABLE:
+            self.send_json({"error": "Structural Gate not available"}, 503)
+            return
+
+        try:
+            gate = get_gate_api()
+            stats = gate.get_stats()
+            self.send_json(stats)
+        except Exception as e:
+            print(f"[StructuralGate] Stats error: {e}")
+            self.send_json({"error": f"Failed to get stats: {str(e)}"}, 500)
+
+    def api_schemas_list(self):
+        """GET /api/admin/schemas/list - List all registered schemas."""
+        if not STRUCTURAL_GATE_AVAILABLE:
+            self.send_json({"error": "Structural Gate not available"}, 503)
+            return
+
+        try:
+            gate = get_gate_api()
+            schemas = gate.list_schemas()
+            registry = gate.export_registry()
+            self.send_json({
+                "schemas": registry.get("schemas", {}),
+                "schema_ids": list(schemas.keys()),
+                "version_counts": {k: len(v) for k, v in schemas.items()},
+                "total_schemas": len(schemas),
+                "total_versions": sum(len(v) for v in schemas.values())
+            })
+        except Exception as e:
+            print(f"[StructuralGate] List schemas error: {e}")
+            self.send_json({"error": f"Failed to list schemas: {str(e)}"}, 500)
+
+    def api_schemas_violations(self, limit: int):
+        """GET /api/admin/schemas/violations - Get recent validation failures."""
+        if not STRUCTURAL_GATE_AVAILABLE:
+            self.send_json({"error": "Structural Gate not available"}, 503)
+            return
+
+        try:
+            gate = get_gate_api()
+            violations = gate.get_violations(limit=limit)
+            self.send_json({
+                "violations": violations,
+                "count": len(violations),
+                "limit": limit
+            })
+        except Exception as e:
+            print(f"[StructuralGate] Violations error: {e}")
+            self.send_json({"error": f"Failed to get violations: {str(e)}"}, 500)
+
+    def api_schemas_validations(self, limit: int):
+        """GET /api/admin/schemas/validations - Get recent validation results."""
+        if not STRUCTURAL_GATE_AVAILABLE:
+            self.send_json({"error": "Structural Gate not available"}, 503)
+            return
+
+        try:
+            gate = get_gate_api()
+            validations = gate.get_recent_validations(limit=limit)
+            self.send_json({
+                "validations": validations,
+                "count": len(validations),
+                "limit": limit
+            })
+        except Exception as e:
+            print(f"[StructuralGate] Validations error: {e}")
+            self.send_json({"error": f"Failed to get validations: {str(e)}"}, 500)
+
+    def api_schemas_health(self):
+        """GET /api/admin/schemas/health - Get Structural Gate health status."""
+        if not STRUCTURAL_GATE_AVAILABLE:
+            self.send_json({
+                "status": "unavailable",
+                "message": "Structural Gate not loaded",
+                "available": False
+            }, 503)
+            return
+
+        try:
+            gate = get_gate_api()
+            stats = gate.get_stats()
+
+            # Determine health status based on kill rate
+            kill_rate = stats.get("kill_rate", 0)
+            if kill_rate > 0.1:
+                health_status = "degraded"
+            elif kill_rate > 0:
+                health_status = "warning"
+            else:
+                health_status = "healthy"
+
+            self.send_json({
+                "status": health_status,
+                "available": True,
+                "stats": stats,
+                "registry_loaded": stats.get("schemas_registered", 0) > 0,
+                "message": f"{stats.get('schemas_registered', 0)} schemas registered, "
+                           f"{stats.get('total_validations', 0)} validations performed"
+            })
+        except Exception as e:
+            print(f"[StructuralGate] Health check error: {e}")
+            self.send_json({
+                "status": "error",
+                "available": False,
+                "error": str(e)
+            }, 500)
+
+    def api_schema_get(self, schema_id: str, version: str = None):
+        """GET /api/admin/schemas/{schema_id} - Get a specific schema."""
+        if not STRUCTURAL_GATE_AVAILABLE:
+            self.send_json({"error": "Structural Gate not available"}, 503)
+            return
+
+        try:
+            gate = get_gate_api()
+            schema = gate.get_schema(schema_id, version)
+
+            if schema is None:
+                self.send_json({
+                    "error": f"Schema not found: {schema_id}" +
+                             (f"@{version}" if version else "")
+                }, 404)
+                return
+
+            actual_version = version or gate.get_latest_version(schema_id)
+            self.send_json({
+                "schema_id": schema_id,
+                "version": actual_version,
+                "schema": schema,
+                "is_latest": version is None or version == gate.get_latest_version(schema_id)
+            })
+        except Exception as e:
+            print(f"[StructuralGate] Get schema error: {e}")
+            self.send_json({"error": f"Failed to get schema: {str(e)}"}, 500)
+
+    def api_schemas_validate(self, data: dict):
+        """POST /api/admin/schemas/validate - Validate data against a schema."""
+        if not STRUCTURAL_GATE_AVAILABLE:
+            self.send_json({"error": "Structural Gate not available"}, 503)
+            return
+
+        try:
+            schema_id = data.get("schema_id")
+            version = data.get("version")
+            test_data = data.get("data")
+
+            if not schema_id:
+                self.send_json({"error": "Required: schema_id"}, 400)
+                return
+
+            if test_data is None:
+                self.send_json({"error": "Required: data"}, 400)
+                return
+
+            gate = get_gate_api()
+            result = gate.validate(test_data, schema_id, version)
+
+            self.send_json(result.to_dict())
+        except Exception as e:
+            print(f"[StructuralGate] Validate error: {e}")
+            self.send_json({"error": f"Validation failed: {str(e)}"}, 500)
+
+    def api_schemas_gate(self, data: dict):
+        """POST /api/admin/schemas/gate - Gate data through schema validation."""
+        if not STRUCTURAL_GATE_AVAILABLE:
+            self.send_json({"error": "Structural Gate not available"}, 503)
+            return
+
+        try:
+            schema_id = data.get("schema_id")
+            version = data.get("version")
+            test_data = data.get("data")
+            action = data.get("on_failure", "warn")  # Default to warn for API testing
+
+            if not schema_id:
+                self.send_json({"error": "Required: schema_id"}, 400)
+                return
+
+            if test_data is None:
+                self.send_json({"error": "Required: data"}, 400)
+                return
+
+            # Map action string to GateAction
+            action_map = {
+                "pass": GateAction.PASS,
+                "warn": GateAction.WARN,
+                "kill": GateAction.KILL
+            }
+            gate_action = action_map.get(action.lower(), GateAction.WARN)
+
+            gate = get_gate_api()
+
+            try:
+                passed, validated_data = gate.gate(
+                    test_data, schema_id, version, on_failure=gate_action
+                )
+                self.send_json({
+                    "passed": passed,
+                    "action_taken": gate_action.value,
+                    "schema_id": schema_id,
+                    "version": version or gate.get_latest_version(schema_id),
+                    "data": validated_data
+                })
+            except StructuralGateViolation as violation:
+                self.send_json({
+                    "passed": False,
+                    "action_taken": "kill",
+                    "violation": violation.to_dict(),
+                    "schema_id": schema_id,
+                    "version": version or gate.get_latest_version(schema_id)
+                }, 422)  # Unprocessable Entity
+        except Exception as e:
+            print(f"[StructuralGate] Gate error: {e}")
+            self.send_json({"error": f"Gate operation failed: {str(e)}"}, 500)
+
+    def api_schemas_register(self, data: dict):
+        """POST /api/admin/schemas/register - Register a new schema version."""
+        if not STRUCTURAL_GATE_AVAILABLE:
+            self.send_json({"error": "Structural Gate not available"}, 503)
+            return
+
+        try:
+            schema_id = data.get("schema_id")
+            version = data.get("version")
+            schema = data.get("schema")
+
+            if not schema_id or not version or not schema:
+                self.send_json({
+                    "error": "Required: schema_id, version, schema"
+                }, 400)
+                return
+
+            gate = get_gate_api()
+            gate.register_schema(schema_id, version, schema)
+
+            self.send_json({
+                "registered": True,
+                "schema_id": schema_id,
+                "version": version,
+                "message": f"Schema {schema_id}@{version} registered successfully"
+            })
+        except ValueError as e:
+            self.send_json({"error": f"Invalid schema: {str(e)}"}, 400)
+        except Exception as e:
+            print(f"[StructuralGate] Register error: {e}")
+            self.send_json({"error": f"Registration failed: {str(e)}"}, 500)
+
+    def api_schemas_reload(self, data: dict):
+        """POST /api/admin/schemas/reload - Reload schema registry from file."""
+        if not STRUCTURAL_GATE_AVAILABLE:
+            self.send_json({"error": "Structural Gate not available"}, 503)
+            return
+
+        try:
+            # Reset and reload the gate
+            from structural_gate import reset_structural_gate, SCHEMA_REGISTRY_FILE
+            reset_structural_gate()
+
+            # Get fresh instance which auto-loads registry
+            global _structural_gate
+            _structural_gate = None
+            gate = get_gate_api()
+
+            stats = gate.get_stats()
+            self.send_json({
+                "reloaded": True,
+                "schemas_loaded": stats.get("schemas_registered", 0),
+                "versions_loaded": stats.get("schema_versions", 0),
+                "message": "Schema registry reloaded successfully"
+            })
+        except Exception as e:
+            print(f"[StructuralGate] Reload error: {e}")
+            self.send_json({"error": f"Reload failed: {str(e)}"}, 500)
+
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # FINANCIAL CIRCUIT BREAKER API - Phase 2 Sovereign Seed
+    # Deterministic impact gating for high-stakes actions
+    # ═══════════════════════════════════════════════════════════════════════════════
+
+    def api_circuit_breaker_stats(self):
+        """GET /api/impact/stats - Get circuit breaker statistics."""
+        if not CIRCUIT_BREAKER_AVAILABLE:
+            self.send_json({
+                "available": False,
+                "error": "Circuit Breaker not available"
+            })
+            return
+
+        try:
+            breaker = get_circuit_breaker_api()
+            stats = breaker.get_stats()
+            self.send_json({
+                "available": True,
+                "stats": stats
+            })
+        except Exception as e:
+            print(f"[CircuitBreaker] Stats error: {e}")
+            self.send_json({
+                "available": False,
+                "error": str(e)
+            }, 500)
+
+    def api_circuit_breaker_recent(self, limit: int = 20):
+        """GET /api/impact/recent - Get recent impact assessments."""
+        if not CIRCUIT_BREAKER_AVAILABLE:
+            self.send_json({
+                "available": False,
+                "assessments": [],
+                "error": "Circuit Breaker not available"
+            })
+            return
+
+        try:
+            breaker = get_circuit_breaker_api()
+            assessments = breaker.get_recent_assessments(limit)
+            self.send_json({
+                "available": True,
+                "assessments": assessments,
+                "count": len(assessments)
+            })
+        except Exception as e:
+            print(f"[CircuitBreaker] Recent assessments error: {e}")
+            self.send_json({
+                "available": False,
+                "assessments": [],
+                "error": str(e)
+            }, 500)
+
+    def api_circuit_breaker_thresholds(self):
+        """GET /api/impact/thresholds - Get current thresholds."""
+        if not CIRCUIT_BREAKER_AVAILABLE:
+            self.send_json({
+                "available": False,
+                "error": "Circuit Breaker not available"
+            })
+            return
+
+        try:
+            breaker = get_circuit_breaker_api()
+            self.send_json({
+                "available": True,
+                "thresholds": {
+                    "auto_execute": str(breaker.threshold_auto_execute),
+                    "one_click": str(breaker.threshold_one_click),
+                    "human_required": str(breaker.threshold_human_required)
+                },
+                "enabled": breaker.enabled,
+                "state": breaker.state.value
+            })
+        except Exception as e:
+            print(f"[CircuitBreaker] Thresholds error: {e}")
+            self.send_json({
+                "available": False,
+                "error": str(e)
+            }, 500)
+
+    def api_circuit_breaker_audit(self, limit: int = 50):
+        """GET /api/impact/audit - Get audit log entries."""
+        if not CIRCUIT_BREAKER_AVAILABLE:
+            self.send_json({
+                "available": False,
+                "entries": [],
+                "error": "Circuit Breaker not available"
+            })
+            return
+
+        try:
+            from financial_circuit_breaker import AUDIT_LOG_FILE
+            import json as json_module
+
+            if AUDIT_LOG_FILE.exists():
+                data = json_module.loads(AUDIT_LOG_FILE.read_text())
+                entries = data.get('entries', [])[-limit:]
+                self.send_json({
+                    "available": True,
+                    "entries": list(reversed(entries)),
+                    "count": len(entries),
+                    "updated_at": data.get('updated_at')
+                })
+            else:
+                self.send_json({
+                    "available": True,
+                    "entries": [],
+                    "count": 0
+                })
+        except Exception as e:
+            print(f"[CircuitBreaker] Audit log error: {e}")
+            self.send_json({
+                "available": False,
+                "entries": [],
+                "error": str(e)
+            }, 500)
+
+    def api_circuit_breaker_assess(self, data: dict):
+        """POST /api/impact/assess - Assess impact of a proposed action."""
+        if not CIRCUIT_BREAKER_AVAILABLE:
+            self.send_json({
+                "success": False,
+                "error": "Circuit Breaker not available"
+            })
+            return
+
+        action_type = data.get("action_type")
+        context = data.get("context", {})
+
+        if not action_type:
+            self.send_json({
+                "success": False,
+                "error": "action_type required"
+            }, 400)
+            return
+
+        try:
+            breaker = get_circuit_breaker_api()
+            assessment = breaker.assess_impact(action_type, context)
+            self.send_json({
+                "success": True,
+                "assessment": assessment.to_dict()
+            })
+        except Exception as e:
+            print(f"[CircuitBreaker] Assess error: {e}")
+            self.send_json({
+                "success": False,
+                "error": str(e)
+            }, 500)
+
+    def api_circuit_breaker_gate(self, data: dict):
+        """POST /api/impact/gate - Gate an action through circuit breaker."""
+        if not CIRCUIT_BREAKER_AVAILABLE:
+            self.send_json({
+                "success": False,
+                "allowed": False,
+                "error": "Circuit Breaker not available"
+            })
+            return
+
+        action_type = data.get("action_type")
+        context = data.get("context", {})
+        requested_trust = data.get("requested_trust", "auto_execute")
+
+        if not action_type:
+            self.send_json({
+                "success": False,
+                "allowed": False,
+                "error": "action_type required"
+            }, 400)
+            return
+
+        try:
+            breaker = get_circuit_breaker_api()
+            allowed, assessment = breaker.gate_action(action_type, context, requested_trust)
+            self.send_json({
+                "success": True,
+                "allowed": allowed,
+                "assessment": assessment.to_dict(),
+                "decision": "allowed" if allowed else "blocked",
+                "reason": f"Impact ${assessment.total_impact:.2f} {'allows' if allowed else 'blocks'} {requested_trust}"
+            })
+        except Exception as e:
+            print(f"[CircuitBreaker] Gate error: {e}")
+            self.send_json({
+                "success": False,
+                "allowed": False,
+                "error": str(e)
+            }, 500)
+
+    def api_circuit_breaker_wrap(self, data: dict):
+        """POST /api/impact/wrap - Wrap an action with circuit breaker assessment."""
+        if not CIRCUIT_BREAKER_AVAILABLE:
+            self.send_json({
+                "success": False,
+                "error": "Circuit Breaker not available"
+            })
+            return
+
+        action = data.get("action", {})
+        if not action:
+            self.send_json({
+                "success": False,
+                "error": "action object required"
+            }, 400)
+            return
+
+        try:
+            breaker = get_circuit_breaker_api()
+            wrapped_action = breaker.wrap_action(action)
+            self.send_json({
+                "success": True,
+                "action": wrapped_action,
+                "was_modified": "circuit_breaker_note" in wrapped_action
+            })
+        except Exception as e:
+            print(f"[CircuitBreaker] Wrap error: {e}")
+            self.send_json({
+                "success": False,
+                "error": str(e)
+            }, 500)
+
+    def api_circuit_breaker_update_thresholds(self, data: dict):
+        """POST /api/impact/thresholds - Update circuit breaker thresholds."""
+        if not CIRCUIT_BREAKER_AVAILABLE:
+            self.send_json({
+                "success": False,
+                "error": "Circuit Breaker not available"
+            })
+            return
+
+        thresholds = data.get("thresholds", {})
+        if not thresholds:
+            self.send_json({
+                "success": False,
+                "error": "thresholds object required"
+            }, 400)
+            return
+
+        try:
+            breaker = get_circuit_breaker_api()
+            breaker.update_thresholds(thresholds)
+            self.send_json({
+                "success": True,
+                "thresholds": {
+                    "auto_execute": str(breaker.threshold_auto_execute),
+                    "one_click": str(breaker.threshold_one_click),
+                    "human_required": str(breaker.threshold_human_required)
+                }
+            })
+        except Exception as e:
+            print(f"[CircuitBreaker] Update thresholds error: {e}")
+            self.send_json({
+                "success": False,
+                "error": str(e)
+            }, 500)
+
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # INTELLIGENT SAFE MODE API - Phase 4 Sovereign Seed
+    # Auto-lockdown when AI systems become unreliable
+    # ═══════════════════════════════════════════════════════════════════════════════
+
+    def api_safe_mode_status(self):
+        """GET /api/safe-mode/status - Get current safe mode status."""
+        if not SAFE_MODE_AVAILABLE:
+            self.send_json({
+                "available": False,
+                "level": "green",
+                "can_write": True,
+                "can_auto_execute": True,
+                "error": "Safe Mode system not available"
+            })
+            return
+
+        try:
+            controller = get_safe_mode_api()
+            state = controller.get_state()
+            self.send_json({
+                "available": True,
+                "level": state.level.value,
+                "can_write": state.can_write,
+                "can_auto_execute": state.can_auto_execute,
+                "requires_human": state.requires_human,
+                "triggered_by": state.triggered_by,
+                "locked_at": state.locked_at.isoformat() if state.locked_at else None,
+                "lock_reason": state.lock_reason,
+                "last_check": state.last_check.isoformat()
+            })
+        except Exception as e:
+            print(f"[SafeMode] Status error: {e}")
+            self.send_json({
+                "available": False,
+                "error": str(e)
+            }, 500)
+
+    def api_safe_mode_dashboard(self):
+        """GET /api/safe-mode/dashboard - Get dashboard data including metrics and events."""
+        if not SAFE_MODE_AVAILABLE:
+            self.send_json({
+                "available": False,
+                "error": "Safe Mode system not available"
+            })
+            return
+
+        try:
+            controller = get_safe_mode_api()
+            data = controller.get_dashboard_data()
+            data["available"] = True
+            self.send_json(data)
+        except Exception as e:
+            print(f"[SafeMode] Dashboard error: {e}")
+            self.send_json({
+                "available": False,
+                "error": str(e)
+            }, 500)
+
+    def api_safe_mode_events(self, limit: int = 50, offset: int = 0):
+        """GET /api/safe-mode/events - Get safe mode event history."""
+        if not SAFE_MODE_AVAILABLE:
+            self.send_json({
+                "available": False,
+                "events": [],
+                "error": "Safe Mode system not available"
+            })
+            return
+
+        try:
+            controller = get_safe_mode_api()
+            events = controller.get_events(limit=limit, offset=offset)
+            self.send_json({
+                "available": True,
+                "events": events,
+                "count": len(events),
+                "limit": limit,
+                "offset": offset
+            })
+        except Exception as e:
+            print(f"[SafeMode] Events error: {e}")
+            self.send_json({
+                "available": False,
+                "events": [],
+                "error": str(e)
+            }, 500)
+
+    def api_safe_mode_metrics(self):
+        """GET /api/safe-mode/metrics - Get current metric values."""
+        if not SAFE_MODE_AVAILABLE:
+            self.send_json({
+                "available": False,
+                "metrics": {},
+                "error": "Safe Mode system not available"
+            })
+            return
+
+        try:
+            controller = get_safe_mode_api()
+            state = controller.get_state()
+            metrics = {
+                name: m.to_dict()
+                for name, m in state.metrics.items()
+            }
+            self.send_json({
+                "available": True,
+                "metrics": metrics,
+                "count": len(metrics)
+            })
+        except Exception as e:
+            print(f"[SafeMode] Metrics error: {e}")
+            self.send_json({
+                "available": False,
+                "metrics": {},
+                "error": str(e)
+            }, 500)
+
+    def api_safe_mode_thresholds(self):
+        """GET /api/safe-mode/thresholds - Get current threshold configuration."""
+        if not SAFE_MODE_AVAILABLE:
+            self.send_json({
+                "available": False,
+                "error": "Safe Mode system not available"
+            })
+            return
+
+        try:
+            controller = get_safe_mode_api()
+            self.send_json({
+                "available": True,
+                "thresholds": controller.thresholds,
+                "default_thresholds": controller.DEFAULT_THRESHOLDS
+            })
+        except Exception as e:
+            print(f"[SafeMode] Thresholds error: {e}")
+            self.send_json({
+                "available": False,
+                "error": str(e)
+            }, 500)
+
+    def api_safe_mode_lockdown(self, data: dict):
+        """POST /api/safe-mode/lockdown - Trigger manual lockdown."""
+        if not SAFE_MODE_AVAILABLE:
+            self.send_json({
+                "success": False,
+                "error": "Safe Mode system not available"
+            })
+            return
+
+        reason = data.get("reason", "Manual lockdown")
+        user_id = self.headers.get('X-User-ID', 'anonymous')
+
+        try:
+            controller = get_safe_mode_api()
+            state = controller.force_lockdown(reason, user_id)
+            self.send_json({
+                "success": True,
+                "level": state.level.value,
+                "locked_at": state.locked_at.isoformat() if state.locked_at else None,
+                "lock_reason": state.lock_reason,
+                "message": f"System locked down by {user_id}"
+            })
+        except Exception as e:
+            print(f"[SafeMode] Lockdown error: {e}")
+            self.send_json({
+                "success": False,
+                "error": str(e)
+            }, 500)
+
+    def api_safe_mode_unlock(self, data: dict):
+        """POST /api/safe-mode/unlock - Acknowledge and attempt to unlock."""
+        if not SAFE_MODE_AVAILABLE:
+            self.send_json({
+                "success": False,
+                "error": "Safe Mode system not available"
+            })
+            return
+
+        notes = data.get("notes", "")
+        user_id = self.headers.get('X-User-ID', 'anonymous')
+
+        try:
+            controller = get_safe_mode_api()
+            state = controller.acknowledge_and_unlock(user_id, notes)
+            self.send_json({
+                "success": True,
+                "level": state.level.value,
+                "can_write": state.can_write,
+                "can_auto_execute": state.can_auto_execute,
+                "message": f"System unlocked by {user_id}"
+            })
+        except CannotUnlockError as e:
+            self.send_json({
+                "success": False,
+                "error": str(e),
+                "reason": "metrics_still_bad",
+                "triggered_by": controller.get_state().triggered_by
+            }, 400)
+        except Exception as e:
+            print(f"[SafeMode] Unlock error: {e}")
+            self.send_json({
+                "success": False,
+                "error": str(e)
+            }, 500)
+
+    def api_safe_mode_check_health(self, data: dict):
+        """POST /api/safe-mode/check-health - Force a health check."""
+        if not SAFE_MODE_AVAILABLE:
+            self.send_json({
+                "success": False,
+                "error": "Safe Mode system not available"
+            })
+            return
+
+        try:
+            controller = get_safe_mode_api()
+            level = controller.check_health()
+            state = controller.get_state()
+            self.send_json({
+                "success": True,
+                "level": level.value,
+                "triggered_by": state.triggered_by,
+                "can_write": state.can_write,
+                "can_auto_execute": state.can_auto_execute,
+                "last_check": state.last_check.isoformat()
+            })
+        except Exception as e:
+            print(f"[SafeMode] Health check error: {e}")
+            self.send_json({
+                "success": False,
+                "error": str(e)
+            }, 500)
+
+    def api_safe_mode_set_threshold(self, data: dict):
+        """POST /api/safe-mode/set-threshold - Update a threshold value."""
+        if not SAFE_MODE_AVAILABLE:
+            self.send_json({
+                "success": False,
+                "error": "Safe Mode system not available"
+            })
+            return
+
+        metric = data.get("metric")
+        level = data.get("level")  # 'yellow', 'red', or 'lockdown'
+        value = data.get("value")
+
+        if not all([metric, level, value is not None]):
+            self.send_json({
+                "success": False,
+                "error": "metric, level, and value required"
+            }, 400)
+            return
+
+        if level not in ['yellow', 'red', 'lockdown']:
+            self.send_json({
+                "success": False,
+                "error": "level must be 'yellow', 'red', or 'lockdown'"
+            }, 400)
+            return
+
+        try:
+            value = float(value)
+            if not 0 <= value <= 1:
+                raise ValueError("value must be between 0 and 1")
+
+            controller = get_safe_mode_api()
+            controller.set_threshold(metric, level, value)
+            self.send_json({
+                "success": True,
+                "metric": metric,
+                "level": level,
+                "value": value,
+                "thresholds": controller.thresholds.get(metric, {})
+            })
+        except ValueError as e:
+            self.send_json({
+                "success": False,
+                "error": str(e)
+            }, 400)
+        except Exception as e:
+            print(f"[SafeMode] Set threshold error: {e}")
+            self.send_json({
+                "success": False,
+                "error": str(e)
+            }, 500)
+
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # RBAC FILTERED RETRIEVAL API (Phase 2 - Sovereign Seed)
+    # ═══════════════════════════════════════════════════════════════════════════════
+
+    def _get_current_user_context(self):
+        """Get UserContext from request headers or session."""
+        if not RBAC_AVAILABLE:
+            return None
+        user_id = self.headers.get('X-User-ID', 'anonymous')
+        user_email = self.headers.get('X-User-Email', 'anonymous@localhost')
+        user_roles = self.headers.get('X-User-Roles', '').split(',') if self.headers.get('X-User-Roles') else []
+        return UserContext(user_id=user_id, email=user_email, roles=[r.strip() for r in user_roles if r.strip()])
+
+    def api_rbac_stats(self):
+        """GET /api/rbac/stats - Get RBAC access statistics."""
+        if not RBAC_AVAILABLE:
+            self.send_json({"available": False, "error": "RBAC system not installed"}, 503)
+            return
+        try:
+            import time
+            start = time.perf_counter()
+            rbac = get_rbac_api()
+            stats = rbac.get_access_stats()
+            stats["available"] = True
+            stats["api_latency_ms"] = round((time.perf_counter() - start) * 1000, 2)
+            self.send_json(stats)
+        except Exception as e:
+            print(f"[RBAC] Stats error: {e}")
+            self.send_json({"error": f"Stats check failed: {str(e)}"}, 500)
+
+    def api_rbac_access_log(self, params: dict):
+        """GET /api/rbac/access-log - Get access log entries."""
+        if not RBAC_AVAILABLE:
+            self.send_json({"error": "RBAC system not available"}, 503)
+            return
+        try:
+            user_id = params.get("user_id", [None])[0]
+            document_id = params.get("document_id", [None])[0]
+            denied_only = params.get("denied_only", ["false"])[0].lower() == "true"
+            limit = int(params.get("limit", [50])[0])
+            rbac = get_rbac_api()
+            attempts = rbac.get_access_log(user_id=user_id, document_id=document_id, allowed_only=False if denied_only else None, limit=min(limit, 500))
+            self.send_json({"attempts": [a.to_dict() for a in attempts], "count": len(attempts)})
+        except Exception as e:
+            print(f"[RBAC] Access log error: {e}")
+            self.send_json({"error": f"Failed to get access log: {str(e)}"}, 500)
+
+    def api_rbac_get_permission(self, document_id: str):
+        """GET /api/rbac/permission - Get permission level for document."""
+        if not RBAC_AVAILABLE:
+            self.send_json({"error": "RBAC system not available"}, 503)
+            return
+        if not document_id:
+            self.send_json({"error": "document_id parameter required"}, 400)
+            return
+        try:
+            user = self._get_current_user_context()
+            if not user:
+                self.send_json({"error": "User context not available"}, 401)
+                return
+            rbac = get_rbac_api()
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                permission = loop.run_until_complete(rbac.get_permission(user, document_id))
+            finally:
+                loop.close()
+            self.send_json({"document_id": document_id, "permission": permission.value, "user_id": user.user_id, "user_email": user.email, "is_admin": user.is_admin()})
+        except Exception as e:
+            print(f"[RBAC] Get permission error: {e}")
+            self.send_json({"error": f"Permission check failed: {str(e)}"}, 500)
+
+    def api_rbac_check(self, data: dict):
+        """POST /api/rbac/check - Check if user has required permission."""
+        if not RBAC_AVAILABLE:
+            self.send_json({"error": "RBAC system not available"}, 503)
+            return
+        try:
+            document_id = data.get("document_id")
+            required = data.get("required", "view")
+            if not document_id:
+                self.send_json({"error": "document_id required"}, 400)
+                return
+            user = self._get_current_user_context()
+            if not user:
+                self.send_json({"error": "User context not available"}, 401)
+                return
+            rbac = get_rbac_api()
+            required_perm = Permission(required) if required in [p.value for p in Permission] else Permission.VIEW
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                allowed = loop.run_until_complete(rbac.check_permission(user, document_id, required_perm))
+                actual_perm = loop.run_until_complete(rbac.get_permission(user, document_id))
+            finally:
+                loop.close()
+            self.send_json({"allowed": allowed, "document_id": document_id, "permission_required": required_perm.value, "permission_actual": actual_perm.value, "user_id": user.user_id, "reason": "" if allowed else f"Insufficient: has {actual_perm.value}, needs {required_perm.value}"})
+        except Exception as e:
+            print(f"[RBAC] Permission check error: {e}")
+            self.send_json({"error": f"Permission check failed: {str(e)}"}, 500)
+
+    def api_rbac_batch_permissions(self, data: dict):
+        """POST /api/rbac/permissions/batch - Get permissions for multiple documents."""
+        if not RBAC_AVAILABLE:
+            self.send_json({"error": "RBAC system not available"}, 503)
+            return
+        try:
+            document_ids = data.get("document_ids", [])
+            if not document_ids:
+                self.send_json({"error": "document_ids array required"}, 400)
+                return
+            if len(document_ids) > 100:
+                self.send_json({"error": "Maximum 100 documents per batch"}, 400)
+                return
+            user = self._get_current_user_context()
+            if not user:
+                self.send_json({"error": "User context not available"}, 401)
+                return
+            rbac = get_rbac_api()
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                permissions = {}
+                for doc_id in document_ids:
+                    perm = loop.run_until_complete(rbac.get_permission(user, doc_id))
+                    permissions[doc_id] = perm.value
+            finally:
+                loop.close()
+            self.send_json({"permissions": permissions, "count": len(permissions), "user_id": user.user_id})
+        except Exception as e:
+            print(f"[RBAC] Batch permissions error: {e}")
+            self.send_json({"error": f"Batch permission check failed: {str(e)}"}, 500)
+
+    def api_rbac_request_permission(self, data: dict):
+        """POST /api/rbac/request - Request permission for a document."""
+        if not RBAC_AVAILABLE:
+            self.send_json({"error": "RBAC system not available"}, 503)
+            return
+        try:
+            document_id = data.get("document_id")
+            requested_permission = data.get("requested_permission", "view")
+            reason = data.get("reason", "")
+            if not document_id:
+                self.send_json({"error": "document_id required"}, 400)
+                return
+            user = self._get_current_user_context()
+            if not user:
+                self.send_json({"error": "User context not available"}, 401)
+                return
+            rbac = get_rbac_api()
+            rbac.log_access(user=user, document_id=document_id, action=AccessAction.PERMISSION_CHECK, required=Permission(requested_permission), actual=Permission.NONE, allowed=False, reason=f"Permission request: {reason}")
+            self.send_json({"success": True, "message": "Permission request submitted", "document_id": document_id, "requested_permission": requested_permission, "user_id": user.user_id, "status": "pending"})
+        except Exception as e:
+            print(f"[RBAC] Request permission error: {e}")
+            self.send_json({"error": f"Permission request failed: {str(e)}"}, 500)
+
+    def api_rbac_grant_permission(self, data: dict):
+        """POST /api/rbac/grant - Grant permission to a user (admin only)."""
+        if not RBAC_AVAILABLE:
+            self.send_json({"error": "RBAC system not available"}, 503)
+            return
+        try:
+            document_id = data.get("document_id")
+            target_user_id = data.get("user_id")
+            permission = data.get("permission", "view")
+            expires_in_days = data.get("expires_in_days")
+            reason = data.get("reason", "")
+            if not document_id or not target_user_id:
+                self.send_json({"error": "document_id and user_id required"}, 400)
+                return
+            admin_user = self._get_current_user_context()
+            if not admin_user or not admin_user.is_admin():
+                self.send_json({"error": "Admin permission required"}, 403)
+                return
+            from rbac_retrieval import grant_permission
+            rbac = get_rbac_api()
+            perm = grant_permission(rbac=rbac, document_id=document_id, user_id=target_user_id, permission=Permission(permission), granted_by=admin_user.user_id, expires_in_days=expires_in_days, reason=reason)
+            self.send_json({"success": True, "grant": perm.to_dict()})
+        except Exception as e:
+            print(f"[RBAC] Grant permission error: {e}")
+            self.send_json({"error": f"Grant permission failed: {str(e)}"}, 500)
+
+    def api_rbac_invalidate_cache(self, data: dict):
+        """POST /api/rbac/invalidate-cache - Invalidate permission cache."""
+        if not RBAC_AVAILABLE:
+            self.send_json({"error": "RBAC system not available"}, 503)
+            return
+        try:
+            document_id = data.get("document_id")
+            rbac = get_rbac_api()
+            rbac.invalidate_cache(document_id)
+            self.send_json({"success": True, "document_id": document_id, "message": f"Cache invalidated for {'document ' + document_id if document_id else 'all documents'}"})
+        except Exception as e:
+            print(f"[RBAC] Invalidate cache error: {e}")
+            self.send_json({"error": f"Cache invalidation failed: {str(e)}"}, 500)
+
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # ETC PIPELINE API - Phase 3 Sovereign Seed
+    # Extraction/Calculation Split: AI extracts, code calculates
+    # ═══════════════════════════════════════════════════════════════════════════════
+
+    def api_etc_contracts(self):
+        """GET /api/etc/contracts - List available calculation contracts."""
+        if not ETC_PIPELINE_AVAILABLE:
+            self.send_json({
+                "available": False,
+                "contracts": [],
+                "error": "ETC Pipeline not available"
+            })
+            return
+
+        try:
+            calc_layer = get_calculation_layer()
+            contracts = calc_layer.get_available_contracts()
+            self.send_json({
+                "available": True,
+                "contracts": contracts,
+                "count": len(contracts)
+            })
+        except Exception as e:
+            print(f"[ETC] Contracts error: {e}")
+            self.send_json({
+                "available": False,
+                "contracts": [],
+                "error": str(e)
+            }, 500)
+
+    def api_etc_audit(self, limit: int = 50):
+        """GET /api/etc/audit - Get pipeline audit trail."""
+        if not ETC_PIPELINE_AVAILABLE:
+            self.send_json({
+                "available": False,
+                "audit_trail": [],
+                "error": "ETC Pipeline not available"
+            })
+            return
+
+        try:
+            pipeline = get_etc_api()
+            audit_trail = pipeline.get_audit_trail(limit)
+            self.send_json({
+                "available": True,
+                "audit_trail": audit_trail,
+                "count": len(audit_trail)
+            })
+        except Exception as e:
+            print(f"[ETC] Audit error: {e}")
+            self.send_json({
+                "available": False,
+                "audit_trail": [],
+                "error": str(e)
+            }, 500)
+
+    def api_etc_verify(self, pipeline_id: str):
+        """GET /api/etc/verify/{pipeline_id} - Verify a pipeline result."""
+        if not ETC_PIPELINE_AVAILABLE:
+            self.send_json({
+                "pipeline_id": pipeline_id,
+                "verified": False,
+                "error": "ETC Pipeline not available"
+            })
+            return
+
+        try:
+            pipeline = get_etc_api()
+            # Find the result in audit trail
+            audit_trail = pipeline.get_audit_trail(100)
+            result = None
+            for entry in audit_trail:
+                if entry.get("pipeline_id") == pipeline_id:
+                    result = entry
+                    break
+
+            if not result:
+                self.send_json({
+                    "pipeline_id": pipeline_id,
+                    "verified": False,
+                    "error": "Pipeline result not found"
+                }, 404)
+                return
+
+            # Build verification result
+            verification = {
+                "pipeline_id": pipeline_id,
+                "verified": True,
+                "checks": []
+            }
+
+            # Check for warnings
+            warnings = result.get("validation_warnings", [])
+            hallucinations = [w for w in warnings if "HALLUCINATION" in w]
+
+            verification["checks"].append({
+                "check": "no_hallucinations",
+                "passed": len(hallucinations) == 0,
+                "details": f"{len(hallucinations)} hallucinations detected" if hallucinations else "No hallucinations"
+            })
+
+            if hallucinations:
+                verification["verified"] = False
+                verification["hallucinations"] = hallucinations
+
+            # Check hashes exist
+            has_hashes = bool(result.get("extraction_hash") and result.get("output_hash"))
+            verification["checks"].append({
+                "check": "hashes_present",
+                "passed": has_hashes,
+                "details": "All hashes recorded" if has_hashes else "Missing hash records"
+            })
+
+            if not has_hashes:
+                verification["verified"] = False
+
+            self.send_json(verification)
+
+        except Exception as e:
+            print(f"[ETC] Verify error: {e}")
+            self.send_json({
+                "pipeline_id": pipeline_id,
+                "verified": False,
+                "error": str(e)
+            }, 500)
+
+    def api_etc_run(self, data: dict):
+        """POST /api/etc/run - Run the full ETC pipeline."""
+        if not ETC_PIPELINE_AVAILABLE:
+            self.send_json({
+                "success": False,
+                "error": "ETC Pipeline not available"
+            }, 503)
+            return
+
+        try:
+            document_id = data.get("document_id")
+            schema = data.get("schema", {})
+            contract = data.get("contract")
+            context = data.get("context")
+
+            if not document_id or not contract:
+                self.send_json({
+                    "success": False,
+                    "error": "document_id and contract are required"
+                }, 400)
+                return
+
+            if not schema:
+                self.send_json({
+                    "success": False,
+                    "error": "schema is required (dict of param_name -> type)"
+                }, 400)
+                return
+
+            # Run pipeline synchronously
+            result = run_pipeline_sync(document_id, schema, contract, context)
+
+            self.send_json(result)
+
+        except Exception as e:
+            print(f"[ETC] Run pipeline error: {e}")
+            import traceback
+            traceback.print_exc()
+            self.send_json({
+                "success": False,
+                "error": str(e)
+            }, 500)
+
+    def api_etc_calculate(self, data: dict):
+        """POST /api/etc/calculate - Run a direct calculation."""
+        if not ETC_PIPELINE_AVAILABLE:
+            self.send_json({
+                "success": False,
+                "error": "ETC Pipeline not available"
+            }, 503)
+            return
+
+        try:
+            contract_id = data.get("contract_id")
+            inputs = data.get("inputs", {})
+
+            if not contract_id:
+                self.send_json({
+                    "success": False,
+                    "error": "contract_id is required"
+                }, 400)
+                return
+
+            if not inputs:
+                self.send_json({
+                    "success": False,
+                    "error": "inputs dictionary is required"
+                }, 400)
+                return
+
+            # Run direct calculation
+            result = calculate_direct(contract_id, inputs)
+
+            self.send_json({
+                "success": result.status == "success",
+                "contract_id": result.contract_id,
+                "contract_version": result.contract_version,
+                "output": str(result.output) if hasattr(result.output, '__str__') else result.output,
+                "output_hash": result.output_hash,
+                "formula_used": result.formula_used,
+                "input_hash": result.input_hash,
+                "status": result.status,
+                "error_message": result.error_message,
+                "verified": result.verify(),
+                "inputs_snapshot": result.inputs_snapshot,
+                "calculated_at": result.calculated_at.isoformat()
+            })
+
+        except Exception as e:
+            print(f"[ETC] Calculate error: {e}")
+            import traceback
+            traceback.print_exc()
+            self.send_json({
+                "success": False,
+                "error": str(e)
+            }, 500)
+
+    # =========================================================================
+    # OVERRIDE HYGIENE SYSTEM API (Phase 4 - Sovereign Seed)
+    # =========================================================================
+
+    def api_overrides_hierarchy(self, user_id: str = None, filter_key: str = None):
+        """Get hierarchical view of all rules."""
+        if not OVERRIDE_HYGIENE_AVAILABLE:
+            self.send_json({"error": "Override Hygiene System not available"}, 503)
+            return
+
+        try:
+            manager = get_overrides_api()
+            hierarchy = manager.get_hierarchy_view(user_id=user_id, filter_key=filter_key)
+            self.send_json(hierarchy)
+        except Exception as e:
+            print(f"[OverrideHygiene] Hierarchy error: {e}")
+            self.send_json({"error": str(e)}, 500)
+
+    def api_overrides_stats(self):
+        """Get override hygiene statistics."""
+        if not OVERRIDE_HYGIENE_AVAILABLE:
+            self.send_json({"error": "Override Hygiene System not available"}, 503)
+            return
+
+        try:
+            manager = get_overrides_api()
+            stats = manager.get_stats()
+            self.send_json(stats)
+        except Exception as e:
+            print(f"[OverrideHygiene] Stats error: {e}")
+            self.send_json({"error": str(e)}, 500)
+
+    def api_overrides_explain(self, key: str, user_id: str = None):
+        """Explain why a rule has its current value."""
+        if not OVERRIDE_HYGIENE_AVAILABLE:
+            self.send_json({"error": "Override Hygiene System not available"}, 503)
+            return
+
+        if not key:
+            self.send_json({"error": "key parameter is required"}, 400)
+            return
+
+        try:
+            manager = get_overrides_api()
+            explanation = manager.explain_rule(key, user_id)
+            self.send_json(explanation)
+        except Exception as e:
+            print(f"[OverrideHygiene] Explain error: {e}")
+            self.send_json({"error": str(e)}, 500)
+
+    def api_overrides_get_effective(self, key: str, user_id: str = None):
+        """Get effective value for a rule key."""
+        if not OVERRIDE_HYGIENE_AVAILABLE:
+            self.send_json({"error": "Override Hygiene System not available"}, 503)
+            return
+
+        if not key:
+            self.send_json({"error": "key parameter is required"}, 400)
+            return
+
+        try:
+            manager = get_overrides_api()
+            value, tier, source = manager.get_effective_rule(key, user_id)
+            self.send_json({
+                "key": key,
+                "value": value,
+                "tier": tier.value if tier else None,
+                "source": source
+            })
+        except Exception as e:
+            print(f"[OverrideHygiene] Get effective error: {e}")
+            self.send_json({"error": str(e)}, 500)
+
+    def api_overrides_get_preferences(self, user_id: str):
+        """Get all preferences for a user."""
+        if not OVERRIDE_HYGIENE_AVAILABLE:
+            self.send_json({"error": "Override Hygiene System not available"}, 503)
+            return
+
+        if not user_id:
+            self.send_json({"error": "user_id parameter is required"}, 400)
+            return
+
+        try:
+            manager = get_overrides_api()
+            preferences = manager.get_user_preferences(user_id)
+            self.send_json({
+                "user_id": user_id,
+                "preferences": [p.to_dict() for p in preferences]
+            })
+        except Exception as e:
+            print(f"[OverrideHygiene] Get preferences error: {e}")
+            self.send_json({"error": str(e)}, 500)
+
+    def api_overrides_get_learned(self, min_confidence: float = 0.0):
+        """Get learned patterns."""
+        if not OVERRIDE_HYGIENE_AVAILABLE:
+            self.send_json({"error": "Override Hygiene System not available"}, 503)
+            return
+
+        try:
+            manager = get_overrides_api()
+            patterns = manager.get_learned_patterns(min_confidence=min_confidence)
+            self.send_json({
+                "min_confidence": min_confidence,
+                "patterns": [p.to_dict() for p in patterns]
+            })
+        except Exception as e:
+            print(f"[OverrideHygiene] Get learned error: {e}")
+            self.send_json({"error": str(e)}, 500)
+
+    def api_overrides_get_pending_promotions(self):
+        """Get pending promotion requests."""
+        if not OVERRIDE_HYGIENE_AVAILABLE:
+            self.send_json({"error": "Override Hygiene System not available"}, 503)
+            return
+
+        try:
+            manager = get_overrides_api()
+            pending = manager.get_pending_promotions()
+            self.send_json({
+                "pending_count": len(pending),
+                "promotions": [p.to_dict() for p in pending]
+            })
+        except Exception as e:
+            print(f"[OverrideHygiene] Get pending promotions error: {e}")
+            self.send_json({"error": str(e)}, 500)
+
+    def api_overrides_get_drifts(self):
+        """Get unresolved drift detections."""
+        if not OVERRIDE_HYGIENE_AVAILABLE:
+            self.send_json({"error": "Override Hygiene System not available"}, 503)
+            return
+
+        try:
+            detector = get_drift_api()
+            drifts = detector.get_unresolved_drifts()
+            self.send_json({
+                "unresolved_count": len(drifts),
+                "drifts": [d.to_dict() for d in drifts]
+            })
+        except Exception as e:
+            print(f"[OverrideHygiene] Get drifts error: {e}")
+            self.send_json({"error": str(e)}, 500)
+
+    def api_overrides_drift_stats(self):
+        """Get drift detection statistics."""
+        if not OVERRIDE_HYGIENE_AVAILABLE:
+            self.send_json({"error": "Override Hygiene System not available"}, 503)
+            return
+
+        try:
+            detector = get_drift_api()
+            stats = detector.get_drift_stats()
+            self.send_json(stats)
+        except Exception as e:
+            print(f"[OverrideHygiene] Drift stats error: {e}")
+            self.send_json({"error": str(e)}, 500)
+
+    def api_overrides_audit(self, limit: int = 100, action_filter: str = None, user_filter: str = None):
+        """Get audit log entries."""
+        if not OVERRIDE_HYGIENE_AVAILABLE:
+            self.send_json({"error": "Override Hygiene System not available"}, 503)
+            return
+
+        try:
+            manager = get_overrides_api()
+            entries = manager.get_audit_log(
+                limit=limit,
+                action_filter=action_filter,
+                user_filter=user_filter
+            )
+            self.send_json({
+                "count": len(entries),
+                "entries": entries
+            })
+        except Exception as e:
+            print(f"[OverrideHygiene] Audit error: {e}")
+            self.send_json({"error": str(e)}, 500)
+
+    def api_overrides_set_preference(self, data: dict):
+        """Set a user preference."""
+        if not OVERRIDE_HYGIENE_AVAILABLE:
+            self.send_json({"error": "Override Hygiene System not available"}, 503)
+            return
+
+        key = data.get("key")
+        value = data.get("value")
+        user_id = data.get("user_id")
+        reason = data.get("reason")
+        expires_in_days = data.get("expires_in_days")
+
+        if not key or not user_id:
+            self.send_json({"error": "key and user_id are required"}, 400)
+            return
+
+        try:
+            manager = get_overrides_api()
+            override = manager.set_preference(
+                key=key,
+                value=value,
+                user_id=user_id,
+                reason=reason,
+                expires_in_days=expires_in_days
+            )
+            self.send_json({
+                "success": True,
+                "override": override.to_dict()
+            })
+        except CannotOverrideCanonicalError as e:
+            # Get the canonical value to return
+            canonical_value = None
+            try:
+                value, tier, source = manager.get_effective_rule(key)
+                canonical_value = value
+            except:
+                pass
+
+            self.send_json({
+                "success": False,
+                "error": str(e),
+                "canonical_blocked": True,
+                "canonical_value": canonical_value,
+                "key": key
+            }, 403)
+        except Exception as e:
+            print(f"[OverrideHygiene] Set preference error: {e}")
+            self.send_json({"error": str(e)}, 500)
+
+    def api_overrides_remove_preference(self, data: dict):
+        """Remove a user preference."""
+        if not OVERRIDE_HYGIENE_AVAILABLE:
+            self.send_json({"error": "Override Hygiene System not available"}, 503)
+            return
+
+        key = data.get("key")
+        user_id = data.get("user_id")
+
+        if not key or not user_id:
+            self.send_json({"error": "key and user_id are required"}, 400)
+            return
+
+        try:
+            manager = get_overrides_api()
+            removed = manager.remove_preference(key, user_id)
+            self.send_json({
+                "success": removed,
+                "key": key,
+                "user_id": user_id
+            })
+        except Exception as e:
+            print(f"[OverrideHygiene] Remove preference error: {e}")
+            self.send_json({"error": str(e)}, 500)
+
+    def api_overrides_add_learned(self, data: dict):
+        """Add a learned pattern."""
+        if not OVERRIDE_HYGIENE_AVAILABLE:
+            self.send_json({"error": "Override Hygiene System not available"}, 503)
+            return
+
+        key = data.get("key")
+        value = data.get("value")
+        confidence = data.get("confidence", 0.5)
+        source = data.get("source", "manual")
+        description = data.get("description")
+        expires_in_days = data.get("expires_in_days")
+
+        if not key:
+            self.send_json({"error": "key is required"}, 400)
+            return
+
+        try:
+            manager = get_overrides_api()
+            rule = manager.add_learned_pattern(
+                key=key,
+                value=value,
+                confidence=confidence,
+                source=source,
+                description=description,
+                expires_in_days=expires_in_days
+            )
+            self.send_json({
+                "success": True,
+                "rule": rule.to_dict()
+            })
+        except Exception as e:
+            print(f"[OverrideHygiene] Add learned error: {e}")
+            self.send_json({"error": str(e)}, 500)
+
+    def api_overrides_remove_learned(self, data: dict):
+        """Remove a learned pattern."""
+        if not OVERRIDE_HYGIENE_AVAILABLE:
+            self.send_json({"error": "Override Hygiene System not available"}, 503)
+            return
+
+        key = data.get("key")
+
+        if not key:
+            self.send_json({"error": "key is required"}, 400)
+            return
+
+        try:
+            manager = get_overrides_api()
+            removed = manager.remove_learned_pattern(key)
+            self.send_json({
+                "success": removed,
+                "key": key
+            })
+        except Exception as e:
+            print(f"[OverrideHygiene] Remove learned error: {e}")
+            self.send_json({"error": str(e)}, 500)
+
+    def api_overrides_request_promotion(self, data: dict):
+        """Request promotion of an override to canonical."""
+        if not OVERRIDE_HYGIENE_AVAILABLE:
+            self.send_json({"error": "Override Hygiene System not available"}, 503)
+            return
+
+        override_id = data.get("override_id")
+        user_id = data.get("user_id")
+        justification = data.get("justification")
+        evidence = data.get("evidence", [])
+
+        if not override_id or not user_id or not justification:
+            self.send_json({"error": "override_id, user_id, and justification are required"}, 400)
+            return
+
+        try:
+            manager = get_overrides_api()
+            request = manager.request_promotion(
+                override_id=override_id,
+                user_id=user_id,
+                justification=justification,
+                evidence=evidence
+            )
+            self.send_json({
+                "success": True,
+                "request": request.to_dict()
+            })
+        except Exception as e:
+            print(f"[OverrideHygiene] Request promotion error: {e}")
+            self.send_json({"error": str(e)}, 500)
+
+    def api_overrides_request_direct_promotion(self, data: dict):
+        """Request direct promotion of a value to canonical."""
+        if not OVERRIDE_HYGIENE_AVAILABLE:
+            self.send_json({"error": "Override Hygiene System not available"}, 503)
+            return
+
+        key = data.get("key")
+        value = data.get("value")
+        user_id = data.get("user_id")
+        justification = data.get("justification")
+        evidence = data.get("evidence", [])
+
+        if not key or not user_id or not justification:
+            self.send_json({"error": "key, user_id, and justification are required"}, 400)
+            return
+
+        try:
+            manager = get_overrides_api()
+            request = manager.request_direct_promotion(
+                key=key,
+                value=value,
+                user_id=user_id,
+                justification=justification,
+                evidence=evidence
+            )
+            self.send_json({
+                "success": True,
+                "request": request.to_dict()
+            })
+        except Exception as e:
+            print(f"[OverrideHygiene] Request direct promotion error: {e}")
+            self.send_json({"error": str(e)}, 500)
+
+    def api_overrides_review_promotion(self, data: dict):
+        """Review a promotion request."""
+        if not OVERRIDE_HYGIENE_AVAILABLE:
+            self.send_json({"error": "Override Hygiene System not available"}, 503)
+            return
+
+        request_id = data.get("request_id")
+        reviewer_id = data.get("reviewer_id")
+        approved = data.get("approved")
+        notes = data.get("notes")
+
+        if not request_id or not reviewer_id or approved is None:
+            self.send_json({"error": "request_id, reviewer_id, and approved are required"}, 400)
+            return
+
+        try:
+            manager = get_overrides_api()
+            request = manager.review_promotion(
+                request_id=request_id,
+                reviewer_id=reviewer_id,
+                approved=approved,
+                notes=notes
+            )
+            self.send_json({
+                "success": True,
+                "request": request.to_dict()
+            })
+        except Exception as e:
+            print(f"[OverrideHygiene] Review promotion error: {e}")
+            self.send_json({"error": str(e)}, 500)
+
+    def api_overrides_scan_drift(self, data: dict):
+        """Scan for preference drift."""
+        if not OVERRIDE_HYGIENE_AVAILABLE:
+            self.send_json({"error": "Override Hygiene System not available"}, 503)
+            return
+
+        try:
+            detector = get_drift_api()
+            drifts = detector.detect_drift()
+            self.send_json({
+                "success": True,
+                "new_drifts_detected": len(drifts),
+                "drifts": [d.to_dict() for d in drifts]
+            })
+        except Exception as e:
+            print(f"[OverrideHygiene] Scan drift error: {e}")
+            self.send_json({"error": str(e)}, 500)
+
+    def api_overrides_resolve_drift(self, data: dict):
+        """Resolve a drift detection."""
+        if not OVERRIDE_HYGIENE_AVAILABLE:
+            self.send_json({"error": "Override Hygiene System not available"}, 503)
+            return
+
+        drift_id = data.get("drift_id")
+        action = data.get("action")
+        resolved_by = data.get("resolved_by")
+
+        if not drift_id or not action or not resolved_by:
+            self.send_json({"error": "drift_id, action, and resolved_by are required"}, 400)
+            return
+
+        try:
+            detector = get_drift_api()
+            drift = detector.resolve_drift(drift_id, action, resolved_by)
+            if drift:
+                self.send_json({
+                    "success": True,
+                    "drift": drift.to_dict()
+                })
+            else:
+                self.send_json({
+                    "success": False,
+                    "error": "Drift not found"
+                }, 404)
+        except Exception as e:
+            print(f"[OverrideHygiene] Resolve drift error: {e}")
+            self.send_json({"error": str(e)}, 500)
+
+
+    # =========================================================================
+    # DECISION REPLAY ENGINE API HANDLERS (Phase 3 - Sovereign Seed)
+    # =========================================================================
+
+    def api_replay_get_decisions(self):
+        """GET /api/replay/decisions - Get all recorded decisions."""
+        if not DECISION_REPLAY_AVAILABLE:
+            self.send_json({"error": "Decision Replay Engine not available"}, 503)
+            return
+
+        try:
+            engine = get_replay_api()
+            decisions = engine.query_decisions(limit=100)
+            stats = engine.get_stats()
+
+            self.send_json({
+                "decisions": [d.to_dict() for d in decisions],
+                "stats": {
+                    "total_decisions": stats.get("database", {}).get("total_decisions", 0),
+                    "engine_version": stats.get("engine_version", "1.0.0"),
+                    "chain_status": "Unknown",
+                    "by_type": stats.get("database", {}).get("by_type", {})
+                }
+            })
+
+        except Exception as e:
+            print(f"[Replay] Get decisions error: {e}")
+            self.send_json({"error": str(e)}, 500)
+
+    def api_replay_get_decision(self, decision_id: str):
+        """GET /api/replay/decision/{id} - Get a single decision by ID."""
+        if not DECISION_REPLAY_AVAILABLE:
+            self.send_json({"error": "Decision Replay Engine not available"}, 503)
+            return
+
+        try:
+            engine = get_replay_api()
+            decision = engine.get_decision(decision_id)
+
+            if decision:
+                self.send_json(decision.to_dict())
+            else:
+                self.send_json({"error": f"Decision not found: {decision_id}"}, 404)
+
+        except Exception as e:
+            print(f"[Replay] Get decision error: {e}")
+            self.send_json({"error": str(e)}, 500)
+
+    def api_replay_stats(self):
+        """GET /api/replay/stats - Get engine statistics."""
+        if not DECISION_REPLAY_AVAILABLE:
+            self.send_json({"error": "Decision Replay Engine not available"}, 503)
+            return
+
+        try:
+            engine = get_replay_api()
+            stats = engine.get_stats()
+            self.send_json(stats)
+
+        except Exception as e:
+            print(f"[Replay] Stats error: {e}")
+            self.send_json({"error": str(e)}, 500)
+
+    def api_replay_verify(self):
+        """GET /api/replay/verify - Verify the entire decision chain."""
+        if not DECISION_REPLAY_AVAILABLE:
+            self.send_json({"error": "Decision Replay Engine not available"}, 503)
+            return
+
+        try:
+            engine = get_replay_api()
+            chain_results = engine.verify_chain()
+
+            all_valid = all(chain_results.values()) if chain_results else True
+            invalid_records = [k for k, v in chain_results.items() if not v]
+
+            self.send_json({
+                "all_valid": all_valid,
+                "total": len(chain_results),
+                "invalid_count": len(invalid_records),
+                "invalid_records": invalid_records,
+                "verified_at": datetime.now().isoformat()
+            })
+
+        except Exception as e:
+            print(f"[Replay] Verify error: {e}")
+            self.send_json({"error": str(e)}, 500)
+
+    def api_replay_lineage(self, decision_id: str):
+        """GET /api/replay/lineage/{id} - Get lineage report for a decision."""
+        if not DECISION_REPLAY_AVAILABLE:
+            self.send_json({"error": "Decision Replay Engine not available"}, 503)
+            return
+
+        try:
+            engine = get_replay_api()
+            report = engine.get_lineage_report(decision_id)
+
+            if "error" in report:
+                self.send_json(report, 404)
+            else:
+                self.send_json(report)
+
+        except Exception as e:
+            print(f"[Replay] Lineage error: {e}")
+            self.send_json({"error": str(e)}, 500)
+
+    def api_replay_replay(self, data: dict):
+        """POST /api/replay/replay - Replay a decision and compare results."""
+        if not DECISION_REPLAY_AVAILABLE:
+            self.send_json({"error": "Decision Replay Engine not available"}, 503)
+            return
+
+        try:
+            decision_id = data.get("decision_id")
+            mode_str = data.get("mode", "full")
+
+            if not decision_id:
+                self.send_json({"error": "decision_id required"}, 400)
+                return
+
+            mode_map = {
+                "full": ReplayMode.FULL,
+                "extraction": ReplayMode.EXTRACTION_ONLY,
+                "calculation": ReplayMode.CALCULATION_ONLY,
+                "verify": ReplayMode.VERIFY_CHAIN
+            }
+            mode = mode_map.get(mode_str, ReplayMode.FULL)
+
+            engine = get_replay_api()
+            result = engine.replay(decision_id, mode=mode)
+
+            self.send_json({
+                "original_record_id": result.original_record.id,
+                "replayed_decision": result.replayed_decision,
+                "match_type": result.match_type.value,
+                "extraction_matched": result.extraction_matched,
+                "calculation_matched": result.calculation_matched,
+                "decision_matched": result.decision_matched,
+                "differences": result.differences,
+                "warnings": result.warnings,
+                "replay_time_ms": result.replay_time_ms,
+                "original_time": result.original_time.isoformat() if result.original_time else None,
+                "replayed_at": result.replayed_at.isoformat() if result.replayed_at else None
+            })
+
+        except ValueError as e:
+            self.send_json({"error": str(e)}, 404)
+        except Exception as e:
+            print(f"[Replay] Replay error: {e}")
+            import traceback
+            traceback.print_exc()
+            self.send_json({"error": str(e)}, 500)
+
+    def api_replay_record(self, data: dict):
+        """POST /api/replay/record - Record a new decision."""
+        if not DECISION_REPLAY_AVAILABLE:
+            self.send_json({"error": "Decision Replay Engine not available"}, 503)
+            return
+
+        try:
+            decision_type = data.get("decision_type")
+            raw_inputs = data.get("raw_inputs", {})
+            extraction_result = data.get("extraction_result", {})
+            calculation_result = data.get("calculation_result")
+            final_decision = data.get("final_decision")
+
+            if not decision_type:
+                self.send_json({"error": "decision_type required"}, 400)
+                return
+
+            context = data.get("context", {})
+            model_id = data.get("model_id", "unknown")
+            agent_id = data.get("agent_id", "api")
+            tags = data.get("tags", [])
+            notes = data.get("notes", "")
+
+            engine = get_replay_api()
+            record = engine.record_decision(
+                decision_type=decision_type,
+                raw_inputs=raw_inputs,
+                context=context,
+                extraction_result=extraction_result,
+                calculation_result=calculation_result,
+                final_decision=final_decision,
+                model_id=model_id,
+                agent_id=agent_id,
+                tags=tags,
+                notes=notes
+            )
+
+            self.send_json({
+                "success": True,
+                "decision_id": record.id,
+                "record_hash": record.record_hash,
+                "lineage_hash": record.lineage.to_hash()
+            })
+
+        except Exception as e:
+            print(f"[Replay] Record error: {e}")
+            import traceback
+            traceback.print_exc()
+            self.send_json({"error": str(e)}, 500)
+
+    def api_replay_export(self, data: dict):
+        """POST /api/replay/export - Export decisions for legal discovery."""
+        if not DECISION_REPLAY_AVAILABLE:
+            self.send_json({"error": "Decision Replay Engine not available"}, 503)
+            return
+
+        try:
+            decision_ids = data.get("decision_ids", [])
+            export_format = data.get("format", "json")
+            include_verification = data.get("include_verification", True)
+
+            if not decision_ids:
+                self.send_json({"error": "decision_ids required"}, 400)
+                return
+
+            engine = get_replay_api()
+            export_bytes = engine.export_for_legal(
+                decision_ids=decision_ids,
+                format=export_format,
+                include_verification=include_verification
+            )
+
+            content_type = "application/json" if export_format == "json" else "text/html"
+            filename = f"decision_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.{export_format}"
+
+            self.send_response(200)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(export_bytes)))
+            self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
+            self.end_headers()
+            self.wfile.write(export_bytes)
+
+        except Exception as e:
+            print(f"[Replay] Export error: {e}")
+            import traceback
+            traceback.print_exc()
+            self.send_json({"error": str(e)}, 500)
 
 
 def main():

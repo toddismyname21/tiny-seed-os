@@ -21,8 +21,8 @@
 | Source | Deployment ID | Status |
 |--------|---------------|--------|
 | `api-config.js` (v402, 2026-01-23) | `AKfycbwS36-nKIb1cc6l7AQmnM24Ynx_yluuN-_ZMZr5VRGK7ZpqqemMvXGArvzKS3TlHYCb` | **CURRENT** |
-| `MASTER_SYSTEM_INVENTORY.md` | `AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp` | OUTDATED |
-| `CLAUDE.md` | `AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc` | OUTDATED |
+| `MASTER_SYSTEM_INVENTORY.md` | `AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm` | OUTDATED |
+| `CLAUDE.md` | `AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm` | OUTDATED |
 
 **ACTION NEEDED:** PM_Architect must update MASTER_SYSTEM_INVENTORY.md and CLAUDE.md to match api-config.js v402.
 
@@ -91,7 +91,7 @@ Added missing functions at line ~3087:
 ### Deployment Complete
 - Pushed via `clasp push`
 - Updated primary deployment to **@285**
-- Deployment ID: `AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc`
+- Deployment ID: `AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm`
 
 ### Endpoint Status - VERIFIED WORKING
 | Endpoint | Status | Response |

@@ -105,7 +105,7 @@ Applied ULTRATHINK Protocol to research multi-agent orchestration patterns for T
 ### CRITICAL DISCOVERY
 
 **Deployment ID Changed!** The old ID is no longer valid:
-- OLD (Invalid): `AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp`
+- OLD (Invalid): `AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm`
 - NEW (Active): `AKfycbwS36-nKIb1cc6l7AQmnM24Ynx_yluuN-_ZMZr5VRGK7ZpqqemMvXGArvzKS3TlHYCb`
 
 **All frontend files need to use the NEW deployment URL.**
@@ -129,7 +129,7 @@ Applied ULTRATHINK Protocol to research multi-agent orchestration patterns for T
 
 ### ROOT CAUSE IDENTIFIED
 
-The previous deployment ID `AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp` is **no longer valid**.
+The previous deployment ID `AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm` is **no longer valid**.
 
 **Current active deployment:**
 ```
@@ -391,7 +391,7 @@ Trigger onboarding sequence
 
 **Webhook URL:**
 ```
-https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec?action=shopifyWebhook
+https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec?action=shopifyWebhook
 ```
 
 **Supported Topics:**
@@ -561,7 +561,7 @@ const monthsTenure = (new Date() - signupDate) / (1000 * 60 * 60 * 24 * 30);
 **Configuration:**
 - **Event:** Order creation
 - **Format:** JSON
-- **URL:** `https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec?action=shopifyWebhook`
+- **URL:** `https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec?action=shopifyWebhook`
 - **Webhook API version:** 2024-01
 
 **Testing:**
@@ -822,7 +822,7 @@ These are **connected and routed** - just need data or minor fixes.
 ## DEPLOYMENT DETAILS
 
 - **Version:** v359
-- **ID:** `AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp`
+- **ID:** `AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm`
 - **Files Modified:** `apps_script/MERGED TOTAL.js`
 - **Functions Renamed:** 8
 

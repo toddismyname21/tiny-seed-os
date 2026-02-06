@@ -29,11 +29,34 @@ const TINY_SEED_API = {
 
     MAIN_API: 'https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec',
 
-    // Farm location for geofencing (update with your actual farm coordinates)
+    // Farm location - 257 Zeigler Rd, Rochester, PA 15074
     FARM_LOCATION: {
-        lat: 40.7956,
-        lng: -80.1384,
-        radius: 500 // meters
+        lat: 40.7456217,
+        lng: -80.1610431,
+        radius: 500, // meters for geofencing
+        address: '257 Zeigler Rd, Rochester, PA 15074'
+    },
+
+    // Weekly Cycle Configuration - Business schedule
+    WEEKLY_CYCLE: {
+        DELIVERY_DAYS: ['Tuesday', 'Friday'],
+        DELIVERY_CHANNELS: {
+            Tuesday: ['Wholesale', 'CSA'],
+            Friday: ['Wholesale', 'CSA']
+        },
+        FARMERS_MARKETS: {
+            Tuesday: [{ name: 'Lawrenceville', time: '4-7pm' }],
+            Saturday: [
+                { name: 'Sewickley', time: '9am-1pm' },
+                { name: 'Bloomfield', time: '9am-2pm' }
+            ],
+            Sunday: [{ name: 'Squirrel Hill', time: '10am-2pm' }]
+        },
+        HARVEST_DAYS: ['Monday', 'Thursday'],
+        ORDER_WINDOWS: {
+            fridayDelivery: { opens: 'Monday 12:00pm', closes: 'Thursday 6:00am' },
+            tuesdayDelivery: { opens: 'Thursday 5:00pm', closes: 'Monday 6:00am' }
+        }
     },
 
     // App URLs for redirects
@@ -326,6 +349,13 @@ class SalesAPI extends TinySeedAPI {
 
     async getFleetCostReport(filters = {}) {
         return this.get('getFleetCostReport', filters);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SHOPIFY SYNC
+    // ═══════════════════════════════════════════════════════════════════════════
+    async syncFromShopify() {
+        return this.get('syncShopifyToSheets');
     }
 }
 

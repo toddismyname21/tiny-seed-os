@@ -34,7 +34,7 @@ The Owner has assigned me as **your #2** to help drive the Tiny Seed OS project 
 - ✅ Audited chief-of-staff.html (80% operational)
 
 **What I Know:**
-- Current API Deployment ID: `AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp`
+- Current API Deployment ID: `AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm`
 - Live Site: `https://app.tinyseedfarm.com`
 - 40+ MCP tools exist
 - 31 Apps Script modules
@@ -1165,7 +1165,7 @@ function getAuditLogSecured(params) {
 ### DEPLOYMENT
 - Pushed via `clasp push`
 - Updated primary deployment to **@285**
-- Deployment ID: `AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc`
+- Deployment ID: `AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm`
 
 ### VERIFIED WORKING
 | Endpoint | Status |
@@ -4531,7 +4531,7 @@ This requires moving from reactive (user enters data) to proactive (system predi
 
 ### DEPLOYMENT STATUS
 
-- **Apps Script:** @165 (AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc)
+- **Apps Script:** @165 (AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm)
 - **GitHub:** Commit `ac9133b`
 - **Sample Data:** 6 customers + 4 delivery stops created with phone 7177255177
 

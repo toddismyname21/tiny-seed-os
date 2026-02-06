@@ -401,6 +401,288 @@
     .accuracy-dot.good { background: var(--accent-green); }
     .accuracy-dot.medium { background: var(--accent-amber); }
     .accuracy-dot.poor { background: var(--accent-red); }
+
+    /* Connection Status */
+    .connection-status {
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 12px;
+      margin-left: 8px;
+    }
+    .connection-status.online {
+      background: rgba(34, 197, 94, 0.2);
+      color: var(--accent-green);
+    }
+    .connection-status.offline {
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--accent-amber);
+    }
+
+    /* Pending Badge */
+    .pending-badge {
+      font-size: 10px;
+      padding: 3px 7px;
+      border-radius: 10px;
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--accent-amber);
+      margin-left: 6px;
+    }
+
+    /* Export Section */
+    .export-section {
+      margin-bottom: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #333;
+    }
+
+    .export-buttons {
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn-export {
+      flex: 1;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 500;
+      border: 1px solid #444;
+      background: var(--bg-accent);
+      color: var(--text-primary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .btn-export:hover {
+      background: #333;
+      border-color: var(--accent-green);
+    }
+
+    .btn-export:active {
+      transform: scale(0.98);
+    }
+
+    /* Undo Button */
+    .undo-button {
+      width: 100%;
+      margin-top: 12px;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 500;
+      border: 1px solid #444;
+      background: var(--bg-accent);
+      color: var(--text-primary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .undo-button:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    .undo-button:not(:disabled):hover {
+      background: #333;
+      border-color: var(--accent-amber);
+    }
+
+    /* Manual Point Button */
+    .manual-point-button {
+      width: 100%;
+      margin-top: 8px;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 500;
+      border: 1px solid var(--accent-blue);
+      background: rgba(59, 130, 246, 0.1);
+      color: var(--accent-blue);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .manual-point-button:hover {
+      background: rgba(59, 130, 246, 0.2);
+    }
+
+    .manual-point-button:active {
+      transform: scale(0.98);
+    }
+
+    /* Accuracy Mode Toggle */
+    .stat-chip.accuracy-mode {
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .stat-chip.accuracy-mode:hover {
+      background: rgba(0, 0, 0, 0.85);
+    }
+
+    .stat-chip.accuracy-mode.high-accuracy {
+      border: 1px solid var(--accent-green);
+    }
+
+    /* Averaging progress indicator */
+    .averaging-indicator {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.9);
+      backdrop-filter: blur(10px);
+      padding: 24px 32px;
+      border-radius: 16px;
+      text-align: center;
+      z-index: 50;
+      display: none;
+    }
+
+    .averaging-indicator.active {
+      display: block;
+    }
+
+    .averaging-progress {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      border: 4px solid #333;
+      border-top-color: var(--accent-green);
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .averaging-count {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--accent-green);
+    }
+
+    .averaging-label {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: 8px;
+    }
+
+    /* Quality Legend */
+    .quality-legend {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(10px);
+      padding: 6px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .legend-item .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    /* Vertex Editing */
+    .edit-mode-banner {
+      position: absolute;
+      top: 60px;
+      left: 12px;
+      right: 12px;
+      background: rgba(59, 130, 246, 0.9);
+      backdrop-filter: blur(10px);
+      padding: 12px 16px;
+      border-radius: 12px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 500;
+      z-index: 30;
+      display: none;
+    }
+
+    .edit-mode-banner.active {
+      display: block;
+    }
+
+    .edit-controls {
+      display: none;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .edit-controls.active {
+      display: flex;
+    }
+
+    .btn-edit {
+      flex: 1;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      border: 1px solid #444;
+      background: var(--bg-accent);
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+
+    .btn-edit.active {
+      background: rgba(59, 130, 246, 0.2);
+      border-color: var(--accent-blue);
+      color: var(--accent-blue);
+    }
+
+    .btn-edit:hover {
+      background: #333;
+    }
+
+    /* Pause/Resume Button */
+    .pause-button {
+      width: 100%;
+      margin-top: 8px;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 500;
+      border: 1px solid var(--accent-amber);
+      background: rgba(245, 158, 11, 0.1);
+      color: var(--accent-amber);
+      cursor: pointer;
+      display: none;
+    }
+
+    .pause-button.active {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .header-status.paused {
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--accent-amber);
+    }
   </style>
 </head>
 <body>
@@ -417,7 +699,11 @@
   <!-- Main Content -->
   <header class="header">
     <h1><span>🌱</span> Field Capture</h1>
-    <span class="header-status ready" id="status-badge">READY</span>
+    <div style="display: flex; align-items: center;">
+      <span class="header-status ready" id="status-badge">READY</span>
+      <span class="connection-status online" id="connection-status">🌐 Online</span>
+      <span class="pending-badge" id="pending-badge" style="display: none;"></span>
+    </div>
   </header>
 
   <div class="map-container">
@@ -431,10 +717,28 @@
         <span>Area:</span>
         <span class="value" id="area-display">0 sq ft</span>
       </div>
+      <div class="stat-chip accuracy-mode" onclick="toggleAccuracyMode()">
+        <span id="accuracy-mode-icon">⚡</span>
+        <span id="accuracy-mode-text">Fast Mode</span>
+      </div>
+    </div>
+    <div class="averaging-indicator" id="averaging-indicator">
+      <div class="averaging-progress">
+        <span class="averaging-count" id="averaging-count">0</span>
+      </div>
+      <div class="averaging-label" id="averaging-label">Averaging position...</div>
+    </div>
+    <div class="quality-legend" id="quality-legend" style="display: none;">
+      <span class="legend-item"><span class="dot" style="background:#22c55e"></span>&lt;3m</span>
+      <span class="legend-item"><span class="dot" style="background:#f59e0b"></span>5-8m</span>
+      <span class="legend-item"><span class="dot" style="background:#ef4444"></span>&gt;8m</span>
     </div>
     <div class="accuracy-indicator" id="accuracy-indicator">
       <div class="accuracy-dot good" id="accuracy-dot"></div>
       <span id="accuracy-text">GPS: --</span>
+    </div>
+    <div class="edit-mode-banner" id="edit-mode-banner">
+      Drag vertices to adjust • Tap vertex to select • Tap Done when finished
     </div>
   </div>
 
@@ -444,6 +748,15 @@
       <button class="record-button start" id="record-btn" onclick="toggleRecording()">
         <div class="record-icon"></div>
         <span>Start Walking Boundary</span>
+      </button>
+      <button class="undo-button" id="undo-btn" onclick="undoLastPoint()" style="display: none;">
+        ↩️ Undo Last Point
+      </button>
+      <button class="manual-point-button" id="manual-point-btn" onclick="dropManualPoint()" style="display: none;">
+        📍 Drop Point Here
+      </button>
+      <button class="pause-button" id="pause-btn" onclick="togglePause()">
+        ⏸️ Pause Recording
       </button>
     </div>
 
@@ -490,6 +803,29 @@
         </div>
       </div>
 
+      <!-- Edit Controls -->
+      <div class="edit-controls" id="edit-controls">
+        <button class="btn-edit" id="edit-vertices-btn" onclick="toggleEditMode()">
+          ✏️ Edit Vertices
+        </button>
+        <button class="btn-edit" id="delete-vertex-btn" onclick="deleteSelectedVertex()" disabled>
+          🗑️ Delete Point
+        </button>
+      </div>
+
+      <!-- Export Options -->
+      <div class="export-section">
+        <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 8px;">Export Boundary</label>
+        <div class="export-buttons">
+          <button class="btn btn-export" onclick="handleExport('kml')">
+            <span>📍</span> KML
+          </button>
+          <button class="btn btn-export" onclick="handleExport('geojson')">
+            <span>🗺️</span> GeoJSON
+          </button>
+        </div>
+      </div>
+
       <div class="action-buttons">
         <button class="btn btn-secondary" onclick="discardCapture()">
           Discard
@@ -512,10 +848,166 @@
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAEjb_a8VxoFb1aqEKZLdRW3NTaQKijWZ0&libraries=geometry"></script>
   <script>
     // ═══════════════════════════════════════════════════════════════════════════
+    // INDEXEDDB - OFFLINE STORAGE
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    const DB_NAME = 'FieldCaptureDB';
+    const DB_VERSION = 1;
+    const STORE_NAME = 'pending_boundaries';
+
+    function openFieldDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result);
+        request.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+          }
+        };
+      });
+    }
+
+    async function savePendingBoundary(fieldData) {
+      const db = await openFieldDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        const request = store.add({
+          ...fieldData,
+          capturedAt: new Date().toISOString(),
+          synced: false
+        });
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function getPendingBoundaries() {
+      const db = await openFieldDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, 'readonly');
+        const store = tx.objectStore(STORE_NAME);
+        const request = store.getAll();
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function markBoundarySynced(id) {
+      const db = await openFieldDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        const getReq = store.get(id);
+        getReq.onsuccess = () => {
+          const data = getReq.result;
+          if (data) {
+            data.synced = true;
+            store.put(data);
+          }
+          resolve();
+        };
+        getReq.onerror = () => reject(getReq.error);
+      });
+    }
+
+    async function deleteBoundary(id) {
+      const db = await openFieldDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        const request = store.delete(id);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ONLINE/OFFLINE DETECTION
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    let isOnline = navigator.onLine;
+
+    window.addEventListener('online', () => {
+      isOnline = true;
+      updateConnectionStatus();
+      syncPendingBoundaries();
+    });
+
+    window.addEventListener('offline', () => {
+      isOnline = false;
+      updateConnectionStatus();
+    });
+
+    function updateConnectionStatus() {
+      const indicator = document.getElementById('connection-status');
+      if (indicator) {
+        indicator.className = isOnline ? 'connection-status online' : 'connection-status offline';
+        indicator.textContent = isOnline ? '🌐 Online' : '📴 Offline';
+      }
+    }
+
+    async function updatePendingCount() {
+      try {
+        const pending = await getPendingBoundaries();
+        const unsynced = pending.filter(b => !b.synced);
+        const badge = document.getElementById('pending-badge');
+        if (badge) {
+          badge.textContent = unsynced.length > 0 ? `${unsynced.length} pending` : '';
+          badge.style.display = unsynced.length > 0 ? 'inline' : 'none';
+        }
+      } catch (e) {
+        console.log('Error updating pending count:', e);
+      }
+    }
+
+    async function syncPendingBoundaries() {
+      if (!isOnline) return;
+
+      try {
+        const pending = await getPendingBoundaries();
+        const unsynced = pending.filter(b => !b.synced);
+
+        if (unsynced.length === 0) return;
+
+        showToast(`Syncing ${unsynced.length} pending fields...`, 'success');
+
+        for (const boundary of unsynced) {
+          try {
+            const params = new URLSearchParams({
+              action: 'createField',
+              name: boundary.name,
+              type: boundary.type,
+              bedWidth: boundary.bedWidth,
+              pathWidth: boundary.pathWidth,
+              gpsPolygon: JSON.stringify(boundary.points)
+            });
+
+            const response = await fetch(`${API_BASE}?${params}`);
+            const data = await response.json();
+
+            if (data.success) {
+              await markBoundarySynced(boundary.id);
+              showToast(`Synced: ${boundary.name}`, 'success');
+            }
+          } catch (e) {
+            console.log('Sync failed for', boundary.name, e);
+          }
+        }
+
+        await updatePendingCount();
+      } catch (e) {
+        console.log('Error syncing boundaries:', e);
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // CONFIGURATION
     // ═══════════════════════════════════════════════════════════════════════════
 
-    const API_BASE = 'https://script.google.com/macros/s/AKfycbx8syGK5Bm60fypNO0yE60BYtTFJXxviaEtgrqENmF5GStB58UCEA4Shu_IF9r6kjf5/exec';
+    const API_BASE = 'https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec';
     const FARM_CENTER = { lat: 40.7456217, lng: -80.1610431 };
     const DEFAULT_BED_WIDTH = 45;
     const DEFAULT_PATH_WIDTH = 12;
@@ -532,10 +1024,116 @@
     let lastAccuracy = null;
 
     // ═══════════════════════════════════════════════════════════════════════════
+    // POINT AVERAGING
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    let highAccuracyMode = false;
+    let pointAverager = null;
+
+    class PointAverager {
+      constructor(durationMs = 5000, minSamples = 5) {
+        this.readings = [];
+        this.duration = durationMs;
+        this.minSamples = minSamples;
+        this.startTime = null;
+      }
+
+      addReading(lat, lng, accuracy) {
+        if (!this.startTime) this.startTime = Date.now();
+        this.readings.push({ lat, lng, accuracy, time: Date.now() });
+        this.updateUI();
+      }
+
+      isComplete() {
+        const elapsed = this.startTime ? (Date.now() - this.startTime) : 0;
+        return elapsed >= this.duration && this.readings.length >= this.minSamples;
+      }
+
+      getProgress() {
+        if (!this.startTime) return 0;
+        return Math.min(100, ((Date.now() - this.startTime) / this.duration) * 100);
+      }
+
+      updateUI() {
+        const indicator = document.getElementById('averaging-indicator');
+        const count = document.getElementById('averaging-count');
+        const label = document.getElementById('averaging-label');
+
+        if (indicator && count && label) {
+          count.textContent = this.readings.length;
+          label.textContent = `${Math.round(this.getProgress())}% - ${this.readings.length} samples`;
+        }
+      }
+
+      getAveragedPosition() {
+        if (this.readings.length === 0) return null;
+
+        // Weight by accuracy (lower accuracy number = higher weight)
+        const weights = this.readings.map(r => 1 / (r.accuracy || 10));
+        const totalWeight = weights.reduce((a, b) => a + b, 0);
+
+        const avgLat = this.readings.reduce((sum, r, i) =>
+          sum + r.lat * weights[i], 0) / totalWeight;
+        const avgLng = this.readings.reduce((sum, r, i) =>
+          sum + r.lng * weights[i], 0) / totalWeight;
+
+        // Calculate horizontal accuracy estimate
+        const avgAccuracy = this.readings.reduce((sum, r) => sum + r.accuracy, 0) / this.readings.length;
+        const improvedAccuracy = avgAccuracy / Math.sqrt(this.readings.length);
+
+        return {
+          lat: avgLat,
+          lng: avgLng,
+          accuracy: improvedAccuracy,
+          sampleCount: this.readings.length
+        };
+      }
+
+      reset() {
+        this.readings = [];
+        this.startTime = null;
+      }
+    }
+
+    function toggleAccuracyMode() {
+      highAccuracyMode = !highAccuracyMode;
+
+      const icon = document.getElementById('accuracy-mode-icon');
+      const text = document.getElementById('accuracy-mode-text');
+      const chip = document.querySelector('.stat-chip.accuracy-mode');
+
+      if (highAccuracyMode) {
+        icon.textContent = '🎯';
+        text.textContent = 'High Accuracy';
+        chip.classList.add('high-accuracy');
+        showToast('High Accuracy Mode: Points will be averaged for 5 seconds', 'success');
+      } else {
+        icon.textContent = '⚡';
+        text.textContent = 'Fast Mode';
+        chip.classList.remove('high-accuracy');
+        showToast('Fast Mode: Points captured instantly', 'success');
+      }
+
+      // Haptic feedback
+      if (navigator.vibrate) {
+        navigator.vibrate(highAccuracyMode ? [50, 50, 100] : [50]);
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // INITIALIZATION
     // ═══════════════════════════════════════════════════════════════════════════
 
     document.addEventListener('DOMContentLoaded', () => {
+      // Initialize connection status
+      updateConnectionStatus();
+      updatePendingCount();
+
+      // Try to sync any pending boundaries if online
+      if (isOnline) {
+        syncPendingBoundaries();
+      }
+
       checkPermission();
     });
 
@@ -647,9 +1245,32 @@
       lastAccuracy = accuracy;
       updateAccuracyIndicator(accuracy);
 
-      // If recording, add point
-      if (isRecording && accuracy <= MIN_ACCURACY) {
-        addPoint(pos);
+      // If recording (and not paused)
+      if (isRecording && !isPaused) {
+        if (highAccuracyMode) {
+          // High accuracy mode - collect samples
+          if (!pointAverager) {
+            pointAverager = new PointAverager(5000, 5);
+            document.getElementById('averaging-indicator').classList.add('active');
+          }
+
+          pointAverager.addReading(latitude, longitude, accuracy);
+
+          if (pointAverager.isComplete()) {
+            const averaged = pointAverager.getAveragedPosition();
+            if (averaged) {
+              addPointWithAccuracy(averaged);
+              showToast(`Averaged point: ±${averaged.accuracy.toFixed(1)}m (${averaged.sampleCount} samples)`, 'success');
+            }
+            document.getElementById('averaging-indicator').classList.remove('active');
+            pointAverager = null;
+          }
+        } else {
+          // Fast mode - original behavior
+          if (accuracy <= MIN_ACCURACY) {
+            addPoint(pos);
+          }
+        }
       }
     }
 
@@ -701,6 +1322,27 @@
       btn.className = 'record-button stop';
       btn.innerHTML = '<div class="record-icon recording"></div><span>Stop & Review</span>';
 
+      // Show undo button
+      const undoBtn = document.getElementById('undo-btn');
+      if (undoBtn) {
+        undoBtn.style.display = 'flex';
+        undoBtn.disabled = true;
+      }
+
+      // Show manual point button
+      const manualBtn = document.getElementById('manual-point-btn');
+      if (manualBtn) {
+        manualBtn.style.display = 'flex';
+      }
+
+      // Show pause button and reset pause state
+      const pauseBtn = document.getElementById('pause-btn');
+      if (pauseBtn) {
+        pauseBtn.classList.add('active');
+        pauseBtn.innerHTML = '⏸️ Pause Recording';
+      }
+      isPaused = false;
+
       // Clear existing polygon
       if (polygon) {
         polygon.setMap(null);
@@ -720,11 +1362,40 @@
     function stopRecording() {
       isRecording = false;
 
+      // Clear point averager if active
+      if (pointAverager) {
+        document.getElementById('averaging-indicator').classList.remove('active');
+        pointAverager = null;
+      }
+
       // Update UI
       updateStatusBadge('ready', 'READY');
       const btn = document.getElementById('record-btn');
       btn.className = 'record-button start';
       btn.innerHTML = '<div class="record-icon"></div><span>Start Walking Boundary</span>';
+
+      // Hide undo button
+      const undoBtn = document.getElementById('undo-btn');
+      if (undoBtn) {
+        undoBtn.style.display = 'none';
+      }
+
+      // Hide manual point button
+      const manualBtn = document.getElementById('manual-point-btn');
+      if (manualBtn) {
+        manualBtn.style.display = 'none';
+      }
+
+      // Hide pause button and reset pause state
+      const pauseBtn = document.getElementById('pause-btn');
+      if (pauseBtn) pauseBtn.classList.remove('active');
+      isPaused = false;
+
+      // Hide quality legend
+      const legend = document.getElementById('quality-legend');
+      if (legend) {
+        legend.style.display = 'none';
+      }
 
       if (capturedPoints.length < 3) {
         showToast('Need at least 3 points for a field', 'error');
@@ -757,9 +1428,85 @@
       // Update stats
       updateCaptureStats();
 
+      // Update undo button
+      updateUndoButton();
+
+      // Update path quality visualization
+      updatePathWithQuality();
+
       // Brief vibration feedback
       if (navigator.vibrate) {
         navigator.vibrate(50);
+      }
+    }
+
+    // Enhanced addPoint that stores accuracy
+    function addPointWithAccuracy(posData) {
+      const pos = { lat: posData.lat, lng: posData.lng, accuracy: posData.accuracy };
+
+      // Check distance from last point
+      if (capturedPoints.length > 0) {
+        const last = capturedPoints[capturedPoints.length - 1];
+        const distance = google.maps.geometry.spherical.computeDistanceBetween(
+          new google.maps.LatLng(last.lat, last.lng),
+          new google.maps.LatLng(pos.lat, pos.lng)
+        );
+        if (distance < 2) return;
+      }
+
+      capturedPoints.push(pos);
+      pathLine.setPath(capturedPoints);
+      updateCaptureStats();
+      updateUndoButton();
+      updatePathWithQuality();
+
+      if (navigator.vibrate) {
+        navigator.vibrate([50, 30, 50]);  // Different pattern for averaged point
+      }
+    }
+
+    // GPS Quality Path Coloring
+    function updatePathWithQuality() {
+      if (!capturedPoints || capturedPoints.length < 2) return;
+
+      // Remove existing quality overlays
+      if (window.qualitySegments) {
+        window.qualitySegments.forEach(seg => seg.setMap(null));
+      }
+      window.qualitySegments = [];
+
+      // Show quality legend when recording
+      const legend = document.getElementById('quality-legend');
+      if (legend && isRecording) {
+        legend.style.display = 'flex';
+      }
+
+      // Create color-coded segments
+      for (let i = 0; i < capturedPoints.length - 1; i++) {
+        const p1 = capturedPoints[i];
+        const p2 = capturedPoints[i + 1];
+        const accuracy = p1.accuracy || 5;  // Default to good if unknown
+
+        let color;
+        if (accuracy <= 3) {
+          color = '#22c55e';  // Green - excellent
+        } else if (accuracy <= 5) {
+          color = '#84cc16';  // Lime - good
+        } else if (accuracy <= 8) {
+          color = '#f59e0b';  // Amber - fair
+        } else {
+          color = '#ef4444';  // Red - poor
+        }
+
+        const segment = new google.maps.Polyline({
+          path: [p1, p2],
+          strokeColor: color,
+          strokeOpacity: 1,
+          strokeWeight: 4,
+          map: map
+        });
+
+        window.qualitySegments.push(segment);
       }
     }
 
@@ -773,6 +1520,91 @@
         const sqft = Math.round(area * 10.764); // m² to ft²
         document.getElementById('area-display').textContent = formatArea(sqft);
       }
+    }
+
+    function undoLastPoint() {
+      if (capturedPoints.length <= 1) {
+        showToast('Cannot undo first point', 'error');
+        return;
+      }
+
+      // Remove last point
+      capturedPoints.pop();
+
+      // Update path visualization
+      pathLine.setPath(capturedPoints);
+
+      // Update stats
+      updateCaptureStats();
+
+      // Update undo button state
+      updateUndoButton();
+
+      // Haptic feedback
+      if (navigator.vibrate) {
+        navigator.vibrate([30, 30, 30]);
+      }
+
+      showToast(`Point removed (${capturedPoints.length} remaining)`, 'success');
+    }
+
+    function updateUndoButton() {
+      const btn = document.getElementById('undo-btn');
+      if (btn) {
+        btn.disabled = capturedPoints.length <= 1;
+      }
+    }
+
+    function dropManualPoint() {
+      if (!isRecording) {
+        showToast('Start recording first', 'error');
+        return;
+      }
+
+      const pos = userMarker.getPosition();
+      if (!pos) {
+        showToast('Waiting for GPS position', 'error');
+        return;
+      }
+
+      // Force add point even if we haven't moved
+      const newPoint = { lat: pos.lat(), lng: pos.lng() };
+      capturedPoints.push(newPoint);
+
+      // Update path
+      pathLine.setPath(capturedPoints);
+
+      // Update stats
+      updateCaptureStats();
+
+      // Update undo button
+      updateUndoButton();
+
+      // Stronger haptic feedback for manual point
+      if (navigator.vibrate) {
+        navigator.vibrate([100, 50, 100]);
+      }
+
+      showToast(`Point dropped (${capturedPoints.length} total)`, 'success');
+    }
+
+    function clearAllPoints() {
+      if (capturedPoints.length === 0) return;
+
+      if (!confirm('Clear all captured points? This cannot be undone.')) {
+        return;
+      }
+
+      capturedPoints = [];
+      pathLine.setPath([]);
+      updateCaptureStats();
+      updateUndoButton();
+
+      if (navigator.vibrate) {
+        navigator.vibrate([50, 30, 50, 30, 50]);
+      }
+
+      showToast('All points cleared', 'success');
     }
 
     function formatArea(sqft) {
@@ -804,6 +1636,9 @@
       // Show form panel
       document.getElementById('recording-controls').style.display = 'none';
       document.getElementById('form-panel').classList.add('active');
+
+      // Show edit controls
+      document.getElementById('edit-controls').classList.add('active');
 
       // Calculate stats
       const area = google.maps.geometry.spherical.computeArea(
@@ -858,11 +1693,27 @@
 
       pathLine.setPath([]);
 
+      // Clear quality segments
+      if (window.qualitySegments) {
+        window.qualitySegments.forEach(seg => seg.setMap(null));
+        window.qualitySegments = [];
+      }
+
+      // Hide quality legend
+      const legend = document.getElementById('quality-legend');
+      if (legend) {
+        legend.style.display = 'none';
+      }
+
       document.getElementById('point-count').textContent = '0';
       document.getElementById('area-display').textContent = '0 sq ft';
 
       document.getElementById('form-panel').classList.remove('active');
       document.getElementById('recording-controls').style.display = 'block';
+
+      // Hide edit controls and exit edit mode if active
+      document.getElementById('edit-controls').classList.remove('active');
+      if (isEditMode) toggleEditMode();
 
       document.getElementById('field-name').value = '';
     }
@@ -881,6 +1732,28 @@
       const type = document.getElementById('field-type').value;
       const bedWidth = document.getElementById('bed-width').value;
 
+      const fieldData = {
+        name: name,
+        type: type,
+        bedWidth: bedWidth,
+        pathWidth: DEFAULT_PATH_WIDTH,
+        points: capturedPoints
+      };
+
+      // Handle offline mode
+      if (!isOnline) {
+        try {
+          await savePendingBoundary(fieldData);
+          showToast(`"${name}" saved offline. Will sync when connected.`, 'success');
+          discardCapture();
+          updatePendingCount();
+        } catch (e) {
+          showToast('Error saving locally: ' + e.message, 'error');
+        }
+        return;
+      }
+
+      // Online - proceed with normal save
       showLoading(true);
 
       try {
@@ -912,9 +1785,163 @@
         }
       } catch (error) {
         console.error('Save error:', error);
-        showToast('Network error', 'error');
+        // Network error - try to save offline
+        try {
+          await savePendingBoundary(fieldData);
+          showToast(`Network error. "${name}" saved offline for later sync.`, 'success');
+          discardCapture();
+          updatePendingCount();
+        } catch (e) {
+          showToast('Network error and local save failed', 'error');
+        }
       } finally {
         showLoading(false);
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // DATA EXPORT
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function exportToKML(points, fieldName, metadata = {}) {
+      const coords = points.map(p => `${p.lng},${p.lat},0`).join('\n            ');
+      // Close the ring
+      const closedCoords = coords + `\n            ${points[0].lng},${points[0].lat},0`;
+
+      const kml = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>${escapeXml(fieldName)}</name>
+    <description>Captured: ${new Date().toISOString()}</description>
+    <Style id="fieldStyle">
+      <LineStyle>
+        <color>ff00ff00</color>
+        <width>3</width>
+      </LineStyle>
+      <PolyStyle>
+        <color>4000ff00</color>
+      </PolyStyle>
+    </Style>
+    <Placemark>
+      <name>${escapeXml(fieldName)}</name>
+      <description>
+        Field Type: ${metadata.type || 'Unknown'}
+        Area: ${metadata.area || 'Unknown'} sq ft
+        Perimeter: ${metadata.perimeter || 'Unknown'} ft
+        Points: ${points.length}
+      </description>
+      <styleUrl>#fieldStyle</styleUrl>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+            ${closedCoords}
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+  </Document>
+</kml>`;
+
+      downloadFile(kml, `${sanitizeFilename(fieldName)}.kml`, 'application/vnd.google-earth.kml+xml');
+    }
+
+    function exportToGeoJSON(points, fieldName, metadata = {}) {
+      // GeoJSON requires closing the polygon ring
+      const coordinates = [
+        ...points.map(p => [p.lng, p.lat]),
+        [points[0].lng, points[0].lat]
+      ];
+
+      const geojson = {
+        type: "FeatureCollection",
+        features: [{
+          type: "Feature",
+          properties: {
+            name: fieldName,
+            fieldType: metadata.type || 'Unknown',
+            capturedAt: new Date().toISOString(),
+            areaSqFt: metadata.area,
+            perimeterFt: metadata.perimeter,
+            pointCount: points.length,
+            source: "Tiny Seed Farm GPS Capture"
+          },
+          geometry: {
+            type: "Polygon",
+            coordinates: [coordinates]
+          }
+        }]
+      };
+
+      const jsonStr = JSON.stringify(geojson, null, 2);
+      downloadFile(jsonStr, `${sanitizeFilename(fieldName)}.geojson`, 'application/geo+json');
+    }
+
+    function downloadFile(content, filename, mimeType) {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function escapeXml(str) {
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+    }
+
+    function sanitizeFilename(str) {
+      return str.replace(/[^a-z0-9_-]/gi, '_').substring(0, 50);
+    }
+
+    function getFieldMetadata() {
+      // Calculate current stats for export
+      const area = google.maps.geometry.spherical.computeArea(
+        capturedPoints.map(p => new google.maps.LatLng(p.lat, p.lng))
+      );
+      const sqft = Math.round(area * 10.764);
+
+      let perimeter = 0;
+      for (let i = 0; i < capturedPoints.length; i++) {
+        const j = (i + 1) % capturedPoints.length;
+        perimeter += google.maps.geometry.spherical.computeDistanceBetween(
+          new google.maps.LatLng(capturedPoints[i].lat, capturedPoints[i].lng),
+          new google.maps.LatLng(capturedPoints[j].lat, capturedPoints[j].lng)
+        );
+      }
+      const perimeterFt = Math.round(perimeter * 3.281);
+
+      return {
+        type: document.getElementById('field-type').value,
+        area: sqft,
+        perimeter: perimeterFt
+      };
+    }
+
+    function handleExport(format) {
+      const fieldName = document.getElementById('field-name').value.trim() || 'Unnamed_Field';
+      const metadata = getFieldMetadata();
+
+      try {
+        if (format === 'kml') {
+          exportToKML(capturedPoints, fieldName, metadata);
+          showToast('KML file downloaded', 'success');
+        } else if (format === 'geojson') {
+          exportToGeoJSON(capturedPoints, fieldName, metadata);
+          showToast('GeoJSON file downloaded', 'success');
+        }
+      } catch (e) {
+        console.error('Export error:', e);
+        showToast('Export failed: ' + e.message, 'error');
       }
     }
 
@@ -948,6 +1975,208 @@
         <h2>Error</h2>
         <p>${message}</p>
       `;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ENHANCED HAPTICS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    const HapticPatterns = {
+      pointCaptured: [50],
+      pointAveraged: [50, 30, 50],
+      undo: [30, 30, 30],
+      manualPoint: [100, 50, 100],
+      clearAll: [50, 30, 50, 30, 50],
+      recordStart: [200],
+      recordStop: [50, 50, 50],
+      pause: [50, 50],
+      resume: [100],
+      error: [30, 20, 30, 20, 30],
+      success: [50, 100],
+      vertexSelect: [30],
+      vertexDrag: [50],
+      vertexDelete: [30, 30, 30],
+      export: [100, 50]
+    };
+
+    function haptic(pattern) {
+      if (navigator.vibrate && HapticPatterns[pattern]) {
+        navigator.vibrate(HapticPatterns[pattern]);
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PAUSE/RESUME
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    let isPaused = false;
+
+    function togglePause() {
+      isPaused = !isPaused;
+      const btn = document.getElementById('pause-btn');
+
+      if (isPaused) {
+        btn.innerHTML = '▶️ Resume Recording';
+        updateStatusBadge('paused', 'PAUSED');
+        haptic('pause');
+        showToast('Recording paused', 'success');
+      } else {
+        btn.innerHTML = '⏸️ Pause Recording';
+        updateStatusBadge('recording', 'RECORDING');
+        haptic('resume');
+        showToast('Recording resumed', 'success');
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // VERTEX EDITING
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    let isEditMode = false;
+    let editMarkers = [];
+    let selectedVertexIndex = null;
+
+    function toggleEditMode() {
+      isEditMode = !isEditMode;
+      const btn = document.getElementById('edit-vertices-btn');
+      const banner = document.getElementById('edit-mode-banner');
+
+      if (isEditMode) {
+        btn.textContent = '✓ Done Editing';
+        btn.classList.add('active');
+        banner.classList.add('active');
+        createEditMarkers();
+      } else {
+        btn.textContent = '✏️ Edit Vertices';
+        btn.classList.remove('active');
+        banner.classList.remove('active');
+        removeEditMarkers();
+        updatePolygonFromPoints();
+        recalculateBeds();
+      }
+    }
+
+    function createEditMarkers() {
+      removeEditMarkers();
+
+      capturedPoints.forEach((point, index) => {
+        const marker = new google.maps.Marker({
+          position: { lat: point.lat, lng: point.lng },
+          map: map,
+          draggable: true,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 10,
+            fillColor: '#3b82f6',
+            fillOpacity: 1,
+            strokeColor: '#ffffff',
+            strokeWeight: 2
+          },
+          title: `Point ${index + 1}`
+        });
+
+        // Drag events
+        marker.addListener('drag', () => {
+          const pos = marker.getPosition();
+          capturedPoints[index] = { lat: pos.lat(), lng: pos.lng() };
+          updatePolygonFromPoints();
+          updateCaptureStats();
+        });
+
+        marker.addListener('dragend', () => {
+          haptic('vertexDrag');
+          showToast('Point moved', 'success');
+        });
+
+        // Selection
+        marker.addListener('click', () => {
+          selectVertex(index);
+        });
+
+        editMarkers.push(marker);
+      });
+    }
+
+    function removeEditMarkers() {
+      editMarkers.forEach(marker => marker.setMap(null));
+      editMarkers = [];
+      selectedVertexIndex = null;
+      document.getElementById('delete-vertex-btn').disabled = true;
+    }
+
+    function selectVertex(index) {
+      // Deselect previous
+      if (selectedVertexIndex !== null && editMarkers[selectedVertexIndex]) {
+        editMarkers[selectedVertexIndex].setIcon({
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 10,
+          fillColor: '#3b82f6',
+          fillOpacity: 1,
+          strokeColor: '#ffffff',
+          strokeWeight: 2
+        });
+      }
+
+      // Select new
+      selectedVertexIndex = index;
+      editMarkers[index].setIcon({
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 12,
+        fillColor: '#ef4444',
+        fillOpacity: 1,
+        strokeColor: '#ffffff',
+        strokeWeight: 3
+      });
+
+      document.getElementById('delete-vertex-btn').disabled = false;
+      haptic('vertexSelect');
+    }
+
+    function deleteSelectedVertex() {
+      if (selectedVertexIndex === null) return;
+      if (capturedPoints.length <= 3) {
+        showToast('Need at least 3 points', 'error');
+        return;
+      }
+
+      capturedPoints.splice(selectedVertexIndex, 1);
+      selectedVertexIndex = null;
+
+      // Recreate markers
+      createEditMarkers();
+      updatePolygonFromPoints();
+      updateCaptureStats();
+
+      document.getElementById('delete-vertex-btn').disabled = true;
+      haptic('vertexDelete');
+      showToast('Point deleted', 'success');
+    }
+
+    function updatePolygonFromPoints() {
+      if (polygon) {
+        polygon.setPath(capturedPoints);
+      }
+
+      // Update preview stats
+      const area = google.maps.geometry.spherical.computeArea(
+        capturedPoints.map(p => new google.maps.LatLng(p.lat, p.lng))
+      );
+      const sqft = Math.round(area * 10.764);
+      const acres = (sqft / 43560).toFixed(2);
+
+      let perimeter = 0;
+      for (let i = 0; i < capturedPoints.length; i++) {
+        const j = (i + 1) % capturedPoints.length;
+        perimeter += google.maps.geometry.spherical.computeDistanceBetween(
+          new google.maps.LatLng(capturedPoints[i].lat, capturedPoints[i].lng),
+          new google.maps.LatLng(capturedPoints[j].lat, capturedPoints[j].lng)
+        );
+      }
+      const perimeterFt = Math.round(perimeter * 3.281);
+
+      document.getElementById('final-area').textContent = `${acres} ac (${sqft.toLocaleString()} sq ft)`;
+      document.getElementById('final-perimeter').textContent = `${perimeterFt.toLocaleString()} ft`;
+      document.getElementById('final-points').textContent = capturedPoints.length;
     }
   </script>
 </body>

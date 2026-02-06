@@ -433,6 +433,77 @@
     padding: 20px;
   }
 
+  /* ═══ ENERGY WIDGET ═══ */
+  .energy-widget {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .energy-widget-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .energy-widget-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .energy-icon {
+    font-size: 14px;
+  }
+
+  .energy-settings-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .energy-settings-btn:hover {
+    background: var(--bg-hover);
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .energy-curve-wrapper {
+    margin-top: 12px;
+    padding: 8px 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .energy-recommendations {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .energy-rec-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+  }
+
+  .energy-rec-good { color: var(--green); }
+  .energy-rec-avoid { color: var(--text-muted); }
+
   /* ═══ FILTERS ═══ */
   .filters {
     display: flex;
@@ -4009,10 +4080,38 @@
     <button class="view-tab" id="life-tab-btn" onclick="switchTab('life', this)">
       Life <span class="tab-badge" id="life-badge" style="display:none;background:var(--green)">0</span>
     </button>
+    <button class="view-tab" id="forensic-tab-btn" onclick="switchTab('forensic', this)">
+      Forensic <span class="tab-badge" id="forensic-badge" style="background:var(--purple)">DEV</span>
+    </button>
   </div>
 
   <!-- TASKS VIEW -->
   <div id="tasks-view">
+    <!-- ENERGY OPTIMIZER WIDGET -->
+    <div class="energy-widget" id="energy-widget">
+      <div class="energy-widget-header">
+        <div class="energy-widget-title">
+          <span class="energy-icon">&#9889;</span>
+          <span>Energy Level</span>
+        </div>
+        <button class="energy-settings-btn" onclick="EnergyOptimizer.showProfileModal()" title="Change energy profile">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+      </div>
+      <div id="energy-meter-container">
+        <!-- Energy meter rendered by JS -->
+      </div>
+      <div id="energy-curve-container" class="energy-curve-wrapper">
+        <!-- Energy curve rendered by JS -->
+      </div>
+      <div class="energy-recommendations" id="energy-recommendations">
+        <!-- Recommendations rendered by JS -->
+      </div>
+    </div>
+
     <!-- FILTERS -->
     <div class="filters">
       <button class="filter-btn active" data-filter="all" onclick="setFilter('all', this)">All</button>
@@ -5428,6 +5527,436 @@
   </div>
 </div>
 
+<!-- FORENSIC VIEW - Sovereign Seed Developer Dashboard -->
+<div class="main-content" id="forensic-view" style="display:none">
+  <div style="padding:20px">
+
+    <!-- THE GOVERNOR: Central Command -->
+    <div style="background:linear-gradient(135deg, #1a1a2e, #16213e);border-radius:16px;padding:24px;margin-bottom:24px;position:relative;overflow:hidden;border:2px solid #7c3aed">
+      <div style="position:absolute;top:-20px;right:-20px;font-size:100px;opacity:0.1">👑</div>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <h2 style="font-size:28px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:12px">
+            <span>👑</span> THE GOVERNOR
+          </h2>
+          <p style="color:rgba(255,255,255,0.7);font-size:14px">Central AI Operations Governance Layer</p>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary" onclick="GovernorUI && GovernorUI.openDashboard()" style="display:flex;align-items:center;gap:6px">
+            <span>📊</span> Dashboard
+          </button>
+          <button class="btn btn-primary" onclick="GovernorUI && GovernorUI.runHealthCheck()" style="display:flex;align-items:center;gap:6px">
+            <span>🏥</span> Health Check
+          </button>
+        </div>
+      </div>
+      <div style="display:flex;gap:16px;margin-top:20px;flex-wrap:wrap">
+        <div style="background:rgba(34, 197, 94, 0.15);padding:16px 20px;border-radius:12px;border:1px solid rgba(34, 197, 94, 0.3);flex:1;min-width:180px">
+          <div style="font-size:12px;color:#22c55e;margin-bottom:4px;font-weight:600">SAFE LEVEL</div>
+          <div style="font-size:28px;font-weight:700;color:#22c55e" id="governor-safe-level">GREEN</div>
+        </div>
+        <div style="background:rgba(99, 102, 241, 0.15);padding:16px 20px;border-radius:12px;border:1px solid rgba(99, 102, 241, 0.3);flex:1;min-width:180px">
+          <div style="font-size:12px;color:#6366f1;margin-bottom:4px;font-weight:600">OPERATIONS</div>
+          <div style="font-size:28px;font-weight:700" id="governor-operations">0</div>
+        </div>
+        <div style="background:rgba(59, 130, 246, 0.15);padding:16px 20px;border-radius:12px;border:1px solid rgba(59, 130, 246, 0.3);flex:1;min-width:180px">
+          <div style="font-size:12px;color:#3b82f6;margin-bottom:4px;font-weight:600">ALLOWED</div>
+          <div style="font-size:28px;font-weight:700;color:#3b82f6" id="governor-allowed">0</div>
+        </div>
+        <div style="background:rgba(239, 68, 68, 0.15);padding:16px 20px;border-radius:12px;border:1px solid rgba(239, 68, 68, 0.3);flex:1;min-width:180px">
+          <div style="font-size:12px;color:#ef4444;margin-bottom:4px;font-weight:600">BLOCKED</div>
+          <div style="font-size:28px;font-weight:700;color:#ef4444" id="governor-blocked">0</div>
+        </div>
+        <div style="background:rgba(234, 179, 8, 0.15);padding:16px 20px;border-radius:12px;border:1px solid rgba(234, 179, 8, 0.3);flex:1;min-width:180px">
+          <div style="font-size:12px;color:#eab308;margin-bottom:4px;font-weight:600">CIRCUITS HEALTHY</div>
+          <div style="font-size:28px;font-weight:700" id="governor-circuits">11/11</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sovereign Seed Header -->
+    <div style="background:linear-gradient(135deg, #7c3aed, #4f46e5);border-radius:16px;padding:24px;margin-bottom:24px;position:relative;overflow:hidden">
+      <div style="position:absolute;top:-20px;right:-20px;font-size:100px;opacity:0.1">🛡️</div>
+      <h2 style="font-size:24px;font-weight:700;margin-bottom:8px">Sovereign Seed Systems</h2>
+      <p style="color:rgba(255,255,255,0.8);font-size:14px">11 Integrated Forensic &amp; Governance Modules</p>
+      <div style="display:flex;gap:16px;margin-top:16px">
+        <div style="background:rgba(255,255,255,0.1);padding:12px 16px;border-radius:8px">
+          <div style="font-size:24px;font-weight:700" id="forensic-anchor-count">0</div>
+          <div style="font-size:11px;opacity:0.8">Stable Anchors</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.1);padding:12px 16px;border-radius:8px">
+          <div style="font-size:24px;font-weight:700" id="forensic-validation-rate">--</div>
+          <div style="font-size:11px;opacity:0.8">Validation Rate</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.1);padding:12px 16px;border-radius:8px">
+          <div style="font-size:24px;font-weight:700" id="forensic-abstain-rate">0%</div>
+          <div style="font-size:11px;opacity:0.8">Abstain Rate</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 1: Forensic Infrastructure -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:16px;margin-bottom:24px">
+
+      <!-- Stable Anchors Card -->
+      <div class="card" style="padding:20px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div style="width:40px;height:40px;background:var(--green);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px">🔒</div>
+          <div>
+            <div style="font-weight:600">Stable Anchors</div>
+            <div style="font-size:12px;color:var(--text-secondary)">Forensic Citation System</div>
+          </div>
+        </div>
+        <div id="anchor-health-widget">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+            <span style="font-size:13px;color:var(--text-secondary)">Verified</span>
+            <span style="font-size:13px;color:var(--green)" id="anchors-verified">0</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+            <span style="font-size:13px;color:var(--text-secondary)">Stale</span>
+            <span style="font-size:13px;color:var(--yellow)" id="anchors-stale">0</span>
+          </div>
+          <div style="display:flex;justify-content:space-between">
+            <span style="font-size:13px;color:var(--text-secondary)">Invalid</span>
+            <span style="font-size:13px;color:var(--red)" id="anchors-invalid">0</span>
+          </div>
+        </div>
+        <button class="btn btn-secondary" style="width:100%;margin-top:16px" onclick="verifyAllAnchors()">
+          Verify All Anchors
+        </button>
+      </div>
+
+      <!-- Normalization Service Card -->
+      <div class="card" style="padding:20px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div style="width:40px;height:40px;background:var(--blue);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px">📊</div>
+          <div>
+            <div style="font-weight:600">Normalization Service</div>
+            <div style="font-size:12px;color:var(--text-secondary)">Data Standardization</div>
+          </div>
+        </div>
+        <div id="normalization-stats-widget">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+            <span style="font-size:13px;color:var(--text-secondary)">Normalizations</span>
+            <span style="font-size:13px" id="norm-total">0</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+            <span style="font-size:13px;color:var(--text-secondary)">Success Rate</span>
+            <span style="font-size:13px;color:var(--green)" id="norm-success-rate">--</span>
+          </div>
+          <div style="display:flex;justify-content:space-between">
+            <span style="font-size:13px;color:var(--text-secondary)">Failures</span>
+            <span style="font-size:13px;color:var(--red)" id="norm-failures">0</span>
+          </div>
+        </div>
+        <button class="btn btn-secondary" style="width:100%;margin-top:16px" onclick="openNormalizationTester()">
+          Test Normalization
+        </button>
+      </div>
+
+      <!-- Overlap Validator Card -->
+      <div class="card" style="padding:20px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div style="width:40px;height:40px;background:var(--purple);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px">🔍</div>
+          <div>
+            <div style="font-weight:600">Overlap Validator</div>
+            <div style="font-size:12px;color:var(--text-secondary)">Hallucination Detection</div>
+          </div>
+        </div>
+        <div id="overlap-stats-widget">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+            <span style="font-size:13px;color:var(--text-secondary)">Validations</span>
+            <span style="font-size:13px" id="overlap-total">0</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+            <span style="font-size:13px;color:var(--text-secondary)">Hallucinations Caught</span>
+            <span style="font-size:13px;color:var(--red)" id="overlap-hallucinations">0</span>
+          </div>
+          <div style="display:flex;justify-content:space-between">
+            <span style="font-size:13px;color:var(--text-secondary)">Avg IoU Score</span>
+            <span style="font-size:13px" id="overlap-avg-iou">--</span>
+          </div>
+        </div>
+        <button class="btn btn-secondary" style="width:100%;margin-top:16px" onclick="openOverlapTester()">
+          Test Extraction
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Phase 2: Governor & Policy-as-Code -->
+    <h3 style="font-size:16px;font-weight:600;margin-bottom:16px;color:var(--accent)">⚖️ Phase 2: Governor & Policy-as-Code</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:16px;margin-bottom:24px">
+
+      <!-- Structural Gate Card -->
+      <div class="card" style="padding:20px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div style="width:40px;height:40px;background:var(--orange);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px">📜</div>
+          <div>
+            <div style="font-weight:600">Structural Gate</div>
+            <div style="font-size:12px;color:var(--text-secondary)">Schema Enforcement</div>
+          </div>
+        </div>
+        <div id="structural-gate-widget">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+            <span style="font-size:13px;color:var(--text-secondary)">Validations</span>
+            <span style="font-size:13px" id="gate-validations">0</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+            <span style="font-size:13px;color:var(--text-secondary)">Pass Rate</span>
+            <span style="font-size:13px;color:var(--green)" id="gate-pass-rate">--</span>
+          </div>
+          <div style="display:flex;justify-content:space-between">
+            <span style="font-size:13px;color:var(--text-secondary)">Kills</span>
+            <span style="font-size:13px;color:var(--red)" id="gate-kills">0</span>
+          </div>
+        </div>
+        <button class="btn btn-secondary" style="width:100%;margin-top:16px" onclick="openSchemaBrowser()">
+          Browse Schemas
+        </button>
+      </div>
+
+      <!-- Conflict Detector Card -->
+      <div class="card" style="padding:20px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div style="width:40px;height:40px;background:var(--red);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px">⚔️</div>
+          <div>
+            <div style="font-weight:600">Conflict Detector</div>
+            <div style="font-size:12px;color:var(--text-secondary)">Contradiction Finder</div>
+          </div>
+        </div>
+        <div id="conflict-detector-widget">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+            <span style="font-size:13px;color:var(--text-secondary)">Critical</span>
+            <span style="font-size:13px;color:var(--red)" id="conflicts-critical">0</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+            <span style="font-size:13px;color:var(--text-secondary)">High</span>
+            <span style="font-size:13px;color:var(--orange)" id="conflicts-high">0</span>
+          </div>
+          <div style="display:flex;justify-content:space-between">
+            <span style="font-size:13px;color:var(--text-secondary)">Unresolved</span>
+            <span style="font-size:13px;color:var(--yellow)" id="conflicts-unresolved">0</span>
+          </div>
+        </div>
+        <button class="btn btn-secondary" style="width:100%;margin-top:16px" onclick="openConflictManager()">
+          View Conflicts
+        </button>
+      </div>
+
+      <!-- RBAC Card -->
+      <div class="card" style="padding:20px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div style="width:40px;height:40px;background:var(--blue);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px">🔐</div>
+          <div>
+            <div style="font-weight:600">RBAC Retrieval</div>
+            <div style="font-size:12px;color:var(--text-secondary)">Permission Control</div>
+          </div>
+        </div>
+        <div id="rbac-widget">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+            <span style="font-size:13px;color:var(--text-secondary)">Access Attempts</span>
+            <span style="font-size:13px" id="rbac-attempts">0</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+            <span style="font-size:13px;color:var(--text-secondary)">Allowed</span>
+            <span style="font-size:13px;color:var(--green)" id="rbac-allowed">0</span>
+          </div>
+          <div style="display:flex;justify-content:space-between">
+            <span style="font-size:13px;color:var(--text-secondary)">Denied</span>
+            <span style="font-size:13px;color:var(--red)" id="rbac-denied">0</span>
+          </div>
+        </div>
+        <button class="btn btn-secondary" style="width:100%;margin-top:16px" onclick="openAccessLog()">
+          View Access Log
+        </button>
+      </div>
+
+      <!-- Circuit Breaker Card -->
+      <div class="card" style="padding:20px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div style="width:40px;height:40px;background:var(--yellow);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px">⚡</div>
+          <div>
+            <div style="font-weight:600">Circuit Breaker</div>
+            <div style="font-size:12px;color:var(--text-secondary)">Financial Safety</div>
+          </div>
+        </div>
+        <div id="circuit-breaker-widget">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+            <span style="font-size:13px;color:var(--text-secondary)">Impact Assessments</span>
+            <span style="font-size:13px" id="breaker-assessments">0</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+            <span style="font-size:13px;color:var(--text-secondary)">Auto-Execute Blocked</span>
+            <span style="font-size:13px;color:var(--orange)" id="breaker-blocked">0</span>
+          </div>
+          <div style="display:flex;justify-content:space-between">
+            <span style="font-size:13px;color:var(--text-secondary)">Human Required</span>
+            <span style="font-size:13px;color:var(--red)" id="breaker-human">0</span>
+          </div>
+        </div>
+        <button class="btn btn-secondary" style="width:100%;margin-top:16px" onclick="openImpactHistory()">
+          View Impact History
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Phase 3: Deterministic Logic Split -->
+    <h3 style="font-size:16px;font-weight:600;margin-bottom:16px;color:var(--green)">🧮 Phase 3: Deterministic Logic Split</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:16px;margin-bottom:24px">
+
+      <!-- ETC Pipeline Card -->
+      <div class="card" style="padding:20px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div style="width:40px;height:40px;background:var(--green);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px">🔬</div>
+          <div>
+            <div style="font-weight:600">ETC Pipeline</div>
+            <div style="font-size:12px;color:var(--text-secondary)">Extract → Calculate</div>
+          </div>
+        </div>
+        <div id="etc-pipeline-widget">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+            <span style="font-size:13px;color:var(--text-secondary)">Extractions</span>
+            <span style="font-size:13px" id="etc-extractions">0</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+            <span style="font-size:13px;color:var(--text-secondary)">Calculations</span>
+            <span style="font-size:13px" id="etc-calculations">0</span>
+          </div>
+          <div style="display:flex;justify-content:space-between">
+            <span style="font-size:13px;color:var(--text-secondary)">Contracts</span>
+            <span style="font-size:13px;color:var(--accent)" id="etc-contracts">0</span>
+          </div>
+        </div>
+        <button class="btn btn-secondary" style="width:100%;margin-top:16px" onclick="openETCPipeline()">
+          View Pipeline
+        </button>
+      </div>
+
+      <!-- Decision Replay Card -->
+      <div class="card" style="padding:20px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div style="width:40px;height:40px;background:var(--blue);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px">🔄</div>
+          <div>
+            <div style="font-weight:600">Decision Replay</div>
+            <div style="font-size:12px;color:var(--text-secondary)">Bit-for-Bit Audit</div>
+          </div>
+        </div>
+        <div id="replay-widget">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+            <span style="font-size:13px;color:var(--text-secondary)">Decisions Recorded</span>
+            <span style="font-size:13px" id="replay-recorded">0</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+            <span style="font-size:13px;color:var(--text-secondary)">Replays Run</span>
+            <span style="font-size:13px" id="replay-runs">0</span>
+          </div>
+          <div style="display:flex;justify-content:space-between">
+            <span style="font-size:13px;color:var(--text-secondary)">Chain Valid</span>
+            <span style="font-size:13px;color:var(--green)" id="replay-chain">✓</span>
+          </div>
+        </div>
+        <button class="btn btn-secondary" style="width:100%;margin-top:16px" onclick="openDecisionReplay()">
+          View Decisions
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Phase 4: Operational Sovereignty -->
+    <h3 style="font-size:16px;font-weight:600;margin-bottom:16px;color:var(--purple)">🏛️ Phase 4: Operational Sovereignty</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:16px;margin-bottom:24px">
+
+      <!-- Override Hygiene Card -->
+      <div class="card" style="padding:20px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div style="width:40px;height:40px;background:var(--purple);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px">🧹</div>
+          <div>
+            <div style="font-weight:600">Override Hygiene</div>
+            <div style="font-size:12px;color:var(--text-secondary)">Tier Management</div>
+          </div>
+        </div>
+        <div id="override-widget">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+            <span style="font-size:13px;color:var(--text-secondary)">Canonical Rules</span>
+            <span style="font-size:13px;color:var(--accent)" id="override-canonical">0</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+            <span style="font-size:13px;color:var(--text-secondary)">User Preferences</span>
+            <span style="font-size:13px" id="override-preferences">0</span>
+          </div>
+          <div style="display:flex;justify-content:space-between">
+            <span style="font-size:13px;color:var(--text-secondary)">Drifts Detected</span>
+            <span style="font-size:13px;color:var(--yellow)" id="override-drifts">0</span>
+          </div>
+        </div>
+        <button class="btn btn-secondary" style="width:100%;margin-top:16px" onclick="openOverrideManager()">
+          Manage Rules
+        </button>
+      </div>
+
+      <!-- Safe Mode Card -->
+      <div class="card" style="padding:20px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div style="width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px" id="safe-mode-icon-bg" style="background:var(--green)">🛑</div>
+          <div>
+            <div style="font-weight:600">Safe Mode</div>
+            <div style="font-size:12px;color:var(--text-secondary)" id="safe-mode-status">System Healthy</div>
+          </div>
+        </div>
+        <div id="safe-mode-widget">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+            <span style="font-size:13px;color:var(--text-secondary)">Current Level</span>
+            <span style="font-size:13px;font-weight:600" id="safe-mode-level">GREEN</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+            <span style="font-size:13px;color:var(--text-secondary)">Can Write</span>
+            <span style="font-size:13px;color:var(--green)" id="safe-mode-write">✓</span>
+          </div>
+          <div style="display:flex;justify-content:space-between">
+            <span style="font-size:13px;color:var(--text-secondary)">Auto-Execute</span>
+            <span style="font-size:13px;color:var(--green)" id="safe-mode-auto">✓</span>
+          </div>
+        </div>
+        <button class="btn btn-secondary" style="width:100%;margin-top:16px" onclick="openSafeModeDashboard()">
+          View Dashboard
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Recent Activity Log -->
+    <div class="card" style="padding:20px;margin-bottom:24px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h3 style="font-size:16px;font-weight:600">Forensic Activity Log</h3>
+        <button class="btn btn-secondary btn-sm" onclick="refreshForensicLog()">Refresh</button>
+      </div>
+      <div id="forensic-activity-log" style="max-height:300px;overflow-y:auto">
+        <div style="text-align:center;padding:40px;color:var(--text-muted)">
+          <div style="font-size:32px;margin-bottom:8px">🛡️</div>
+          <div>Forensic infrastructure ready</div>
+          <div style="font-size:12px;margin-top:4px">Citations, normalizations, and validations will appear here</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="runForensicHealthCheck()">
+        🏥 Health Check
+      </button>
+      <button class="btn btn-secondary" onclick="exportAuditLog()">
+        📜 Export Audit Log
+      </button>
+      <button class="btn btn-secondary" onclick="openSeedVaultViewer()">
+        📚 View Seed Vault
+      </button>
+    </div>
+
+  </div>
+</div>
+
 <!-- MANTRA -->
 <div class="mantra-bar">
   No shortcuts &middot; Best possible &middot; Production-ready &middot; Always improving
@@ -6603,6 +7132,7 @@
     document.getElementById('projects-view').style.display = tab === 'projects' ? 'block' : 'none';
     document.getElementById('feedback-view').style.display = tab === 'feedback' ? 'block' : 'none';
     document.getElementById('life-view').style.display = tab === 'life' ? 'block' : 'none';
+    document.getElementById('forensic-view').style.display = tab === 'forensic' ? 'block' : 'none';
     if (tab === 'activity') loadActivity();
     if (tab === 'life') loadLifeView();
     if (tab === 'questions') loadAgentQuestions();
@@ -6612,6 +7142,7 @@
     if (tab === 'terminal') terminalInit();
     if (tab === 'projects') loadProjects();
     if (tab === 'feedback') loadFeedback();
+    if (tab === 'forensic') loadForensicDashboard();
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -10726,6 +11257,553 @@
     await Promise.all([loadContacts(), loadGoals(), loadRelationshipNudges()]);
     setInterval(loadRelationshipNudges, 5 * 60 * 1000);
   })();
+
+  // ═══════════════════════════════════════════════════════════
+  // SOVEREIGN SEED: FORENSIC DASHBOARD
+  // Phase 1: Stable Anchors, Normalization, Overlap Validation
+  // ═══════════════════════════════════════════════════════════
+
+  let forensicStats = {
+    anchors: { verified: 0, stale: 0, invalid: 0, total: 0 },
+    normalization: { total: 0, success: 0, failures: 0 },
+    overlap: { total: 0, hallucinations: 0, avgIou: 0 }
+  };
+
+  async function loadForensicDashboard() {
+    console.log('🛡️ Loading Forensic Dashboard...');
+    await Promise.all([
+      loadGovernorStats(),
+      loadAnchorStats(),
+      loadNormalizationStats(),
+      loadOverlapStats()
+    ]);
+    await loadForensicActivityLog();
+  }
+
+  async function loadGovernorStats() {
+    try {
+      const data = await apiGet('/api/governor/status');
+      if (data) {
+        // Safe Level
+        const safeLevel = data.safe_level || 'GREEN';
+        const safeLevelEl = document.getElementById('governor-safe-level');
+        if (safeLevelEl) {
+          safeLevelEl.textContent = safeLevel;
+          const levelColors = { GREEN: '#22c55e', YELLOW: '#eab308', RED: '#ef4444', LOCKDOWN: '#64748b' };
+          safeLevelEl.style.color = levelColors[safeLevel] || '#22c55e';
+        }
+
+        // Operations count
+        const metrics = data.metrics || {};
+        const gates = metrics.gates || {};
+        let totalOps = 0, totalAllowed = 0, totalBlocked = 0;
+        for (const gate of Object.values(gates)) {
+          totalOps += gate.processed || 0;
+          totalAllowed += gate.allowed || 0;
+          totalBlocked += gate.blocked || 0;
+        }
+
+        const opsEl = document.getElementById('governor-operations');
+        if (opsEl) opsEl.textContent = totalOps.toLocaleString();
+
+        const allowedEl = document.getElementById('governor-allowed');
+        if (allowedEl) allowedEl.textContent = totalAllowed.toLocaleString();
+
+        const blockedEl = document.getElementById('governor-blocked');
+        if (blockedEl) blockedEl.textContent = totalBlocked.toLocaleString();
+
+        // Circuit breakers
+        const circuitBreakers = data.circuit_breakers || {};
+        const cbCount = Object.keys(circuitBreakers).length;
+        const healthyCb = Object.values(circuitBreakers).filter(cb => cb.state === 'closed').length;
+
+        const circuitsEl = document.getElementById('governor-circuits');
+        if (circuitsEl) {
+          circuitsEl.textContent = `${healthyCb}/${cbCount}`;
+          circuitsEl.style.color = healthyCb === cbCount ? '#22c55e' : healthyCb > cbCount/2 ? '#eab308' : '#ef4444';
+        }
+      }
+    } catch (err) {
+      console.log('Governor stats not available:', err);
+    }
+  }
+
+  async function loadAnchorStats() {
+    try {
+      const data = await apiGet('/api/admin/anchors/health');
+      if (data && data.stats) {
+        forensicStats.anchors = data.stats;
+        document.getElementById('forensic-anchor-count').textContent = data.stats.total || 0;
+        document.getElementById('anchors-verified').textContent = data.stats.verified || 0;
+        document.getElementById('anchors-stale').textContent = data.stats.stale || 0;
+        document.getElementById('anchors-invalid').textContent = data.stats.invalid || 0;
+      }
+    } catch (err) {
+      console.log('Anchor stats not available:', err);
+    }
+  }
+
+  async function loadNormalizationStats() {
+    try {
+      const data = await apiGet('/api/admin/normalize/stats');
+      if (data && data.stats) {
+        forensicStats.normalization = data.stats;
+        document.getElementById('norm-total').textContent = data.stats.total || 0;
+        document.getElementById('norm-failures').textContent = data.stats.failures || 0;
+        const rate = data.stats.total > 0 ? ((data.stats.success / data.stats.total) * 100).toFixed(1) + '%' : '--';
+        document.getElementById('norm-success-rate').textContent = rate;
+      }
+    } catch (err) {
+      console.log('Normalization stats not available:', err);
+    }
+  }
+
+  async function loadOverlapStats() {
+    try {
+      const data = await apiGet('/api/admin/overlap/stats');
+      if (data && data.stats) {
+        forensicStats.overlap = data.stats;
+        document.getElementById('overlap-total').textContent = data.stats.total || 0;
+        document.getElementById('overlap-hallucinations').textContent = data.stats.hallucinations || 0;
+        document.getElementById('overlap-avg-iou').textContent = data.stats.avg_iou ? (data.stats.avg_iou * 100).toFixed(1) + '%' : '--';
+
+        // Update abstain rate
+        const abstainRate = data.stats.total > 0 ? ((data.stats.abstains / data.stats.total) * 100).toFixed(1) : '0';
+        document.getElementById('forensic-abstain-rate').textContent = abstainRate + '%';
+
+        // Update validation rate
+        const validRate = data.stats.total > 0 ? ((data.stats.valid / data.stats.total) * 100).toFixed(1) : '--';
+        document.getElementById('forensic-validation-rate').textContent = validRate + '%';
+      }
+    } catch (err) {
+      console.log('Overlap stats not available:', err);
+    }
+  }
+
+  async function loadForensicActivityLog() {
+    const container = document.getElementById('forensic-activity-log');
+    try {
+      const data = await apiGet('/api/admin/forensic/activity?limit=20');
+      if (data && data.activities && data.activities.length > 0) {
+        container.innerHTML = data.activities.map(activity => `
+          <div style="padding:12px;border-bottom:1px solid var(--border);display:flex;gap:12px;align-items:flex-start">
+            <div style="font-size:16px">${getActivityIcon(activity.type)}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:500">${escapeHtml(activity.message)}</div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:2px">
+                ${new Date(activity.timestamp).toLocaleString()}
+                ${activity.confidence ? ` • ${(activity.confidence * 100).toFixed(0)}% confidence` : ''}
+              </div>
+            </div>
+            <div style="font-size:11px;padding:2px 8px;border-radius:4px;background:${getStatusColor(activity.status)}">${activity.status}</div>
+          </div>
+        `).join('');
+      }
+    } catch (err) {
+      console.log('Forensic activity log not available:', err);
+    }
+  }
+
+  function getActivityIcon(type) {
+    const icons = {
+      'anchor_created': '🔒',
+      'anchor_verified': '✅',
+      'anchor_stale': '⚠️',
+      'normalization': '📊',
+      'validation': '🔍',
+      'hallucination': '🚨',
+      'abstain': '⏸️'
+    };
+    return icons[type] || '📋';
+  }
+
+  function getStatusColor(status) {
+    const colors = {
+      'valid': 'var(--green)',
+      'verified': 'var(--green)',
+      'stale': 'var(--yellow)',
+      'invalid': 'var(--red)',
+      'hallucination': 'var(--red)',
+      'abstain': 'var(--orange)'
+    };
+    return colors[status] || 'var(--bg-secondary)';
+  }
+
+  async function verifyAllAnchors() {
+    showToast('Verifying all anchors...', 'info');
+    try {
+      const data = await apiPost('/api/admin/anchors/bulk-verify', {});
+      if (data.success) {
+        showToast(`Verified ${data.total} anchors: ${data.verified} valid, ${data.stale} stale, ${data.invalid} invalid`, 'success');
+        await loadAnchorStats();
+      } else {
+        showToast(data.error || 'Verification failed', 'error');
+      }
+    } catch (err) {
+      showToast('Failed to verify anchors', 'error');
+    }
+  }
+
+  function openNormalizationTester() {
+    // Open normalization tester modal
+    if (typeof NormalizationUI !== 'undefined' && NormalizationUI.openTester) {
+      NormalizationUI.openTester();
+    } else {
+      showToast('Normalization tester loading...', 'info');
+      // Fallback: prompt for input
+      const value = prompt('Enter a value to normalize (e.g., "$1,200", "Feb 4, 2026", "2 hours"):');
+      if (value) {
+        testNormalization(value);
+      }
+    }
+  }
+
+  async function testNormalization(value) {
+    try {
+      const data = await apiPost('/api/normalize', { value });
+      if (data.success) {
+        showToast(`"${value}" → ${data.normalized} (${data.type}, ${(data.confidence * 100).toFixed(0)}% confidence)`, 'success');
+      } else {
+        showToast(`Could not normalize "${value}"`, 'warning');
+      }
+    } catch (err) {
+      showToast('Normalization failed', 'error');
+    }
+  }
+
+  function openOverlapTester() {
+    // Open overlap validation tester
+    if (typeof OverlapValidatorUI !== 'undefined' && OverlapValidatorUI.openTester) {
+      OverlapValidatorUI.openTester();
+    } else {
+      showToast('Overlap tester loading...', 'info');
+      // Fallback: prompt for inputs
+      const extracted = prompt('Enter extracted value (e.g., "$1,200"):');
+      if (!extracted) return;
+      const span = prompt('Enter cited text span:');
+      if (!span) return;
+      testOverlap(extracted, span);
+    }
+  }
+
+  async function testOverlap(extracted, span) {
+    try {
+      const data = await apiPost('/api/validate/overlap', { extracted_value: extracted, cited_span: span });
+      if (data.success) {
+        const statusEmoji = data.status === 'valid' ? '✅' : data.status === 'hallucination' ? '🚨' : '⚠️';
+        showToast(`${statusEmoji} ${data.status.toUpperCase()}: IoU ${(data.iou_score * 100).toFixed(1)}%`, data.status === 'valid' ? 'success' : 'warning');
+      }
+    } catch (err) {
+      showToast('Overlap validation failed', 'error');
+    }
+  }
+
+  async function runForensicHealthCheck() {
+    showToast('Running forensic health check...', 'info');
+    try {
+      const [anchors, normalization, overlap] = await Promise.all([
+        apiGet('/api/admin/anchors/health'),
+        apiGet('/api/admin/normalize/stats'),
+        apiGet('/api/admin/overlap/stats')
+      ]);
+
+      let issues = [];
+      if (anchors.stats?.stale > 0) issues.push(`${anchors.stats.stale} stale anchors`);
+      if (anchors.stats?.invalid > 0) issues.push(`${anchors.stats.invalid} invalid anchors`);
+      if (overlap.stats?.abstain_rate > 0.3) issues.push(`High abstain rate: ${(overlap.stats.abstain_rate * 100).toFixed(1)}%`);
+
+      if (issues.length === 0) {
+        showToast('✅ All forensic systems healthy!', 'success');
+      } else {
+        showToast(`⚠️ Issues found: ${issues.join(', ')}`, 'warning');
+      }
+
+      await loadForensicDashboard();
+    } catch (err) {
+      showToast('Health check failed', 'error');
+    }
+  }
+
+  async function exportAuditLog() {
+    showToast('Exporting audit log...', 'info');
+    try {
+      const data = await apiGet('/api/admin/forensic/export');
+      if (data.success && data.audit_log) {
+        const blob = new Blob([JSON.stringify(data.audit_log, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `forensic-audit-${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('Audit log exported!', 'success');
+      }
+    } catch (err) {
+      showToast('Export failed', 'error');
+    }
+  }
+
+  function openSeedVaultViewer() {
+    showToast('Opening Seed Vault viewer...', 'info');
+    // This would open a modal showing the canonical rules
+    if (typeof SeedVaultViewer !== 'undefined') {
+      SeedVaultViewer.open();
+    } else {
+      window.open('/api/admin/seed-vault/rules', '_blank');
+    }
+  }
+
+  function refreshForensicLog() {
+    loadForensicActivityLog();
+    showToast('Log refreshed', 'info');
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // SOVEREIGN SEED PHASE 2: Governor & Policy-as-Code
+  // ═══════════════════════════════════════════════════════════
+
+  async function loadPhase2Stats() {
+    await Promise.all([
+      loadStructuralGateStats(),
+      loadConflictStats(),
+      loadRBACStats(),
+      loadCircuitBreakerStats()
+    ]);
+  }
+
+  async function loadStructuralGateStats() {
+    try {
+      const data = await apiGet('/api/admin/schemas/stats');
+      if (data && data.stats) {
+        document.getElementById('gate-validations').textContent = data.stats.total_validations || 0;
+        document.getElementById('gate-kills').textContent = data.stats.kill_count || 0;
+        const passRate = data.stats.total_validations > 0
+          ? ((data.stats.pass_count / data.stats.total_validations) * 100).toFixed(1) + '%'
+          : '--';
+        document.getElementById('gate-pass-rate').textContent = passRate;
+      }
+    } catch (err) {
+      console.log('Structural Gate stats not available:', err);
+    }
+  }
+
+  async function loadConflictStats() {
+    try {
+      const data = await apiGet('/api/conflicts/stats');
+      if (data && data.stats) {
+        document.getElementById('conflicts-critical').textContent = data.stats.critical || 0;
+        document.getElementById('conflicts-high').textContent = data.stats.high || 0;
+        document.getElementById('conflicts-unresolved').textContent = data.stats.unresolved || 0;
+      }
+    } catch (err) {
+      console.log('Conflict stats not available:', err);
+    }
+  }
+
+  async function loadRBACStats() {
+    try {
+      const data = await apiGet('/api/rbac/stats');
+      if (data && data.stats) {
+        document.getElementById('rbac-attempts').textContent = data.stats.total || 0;
+        document.getElementById('rbac-allowed').textContent = data.stats.allowed || 0;
+        document.getElementById('rbac-denied').textContent = data.stats.denied || 0;
+      }
+    } catch (err) {
+      console.log('RBAC stats not available:', err);
+    }
+  }
+
+  async function loadCircuitBreakerStats() {
+    try {
+      const data = await apiGet('/api/impact/stats');
+      if (data && data.stats) {
+        document.getElementById('breaker-assessments').textContent = data.stats.total_assessments || 0;
+        document.getElementById('breaker-blocked').textContent = data.stats.auto_blocked || 0;
+        document.getElementById('breaker-human').textContent = data.stats.human_required || 0;
+      }
+    } catch (err) {
+      console.log('Circuit Breaker stats not available:', err);
+    }
+  }
+
+  function openSchemaBrowser() {
+    if (typeof StructuralGateUI !== 'undefined' && StructuralGateUI.openBrowser) {
+      StructuralGateUI.openBrowser();
+    } else {
+      showToast('Opening schema browser...', 'info');
+      window.open('/api/admin/schemas/list', '_blank');
+    }
+  }
+
+  function openConflictManager() {
+    if (typeof ConflictDetectorUI !== 'undefined' && ConflictDetectorUI.openManager) {
+      ConflictDetectorUI.openManager();
+    } else {
+      showToast('Opening conflict manager...', 'info');
+      window.open('/api/conflicts', '_blank');
+    }
+  }
+
+  function openAccessLog() {
+    if (typeof RBACUI !== 'undefined' && RBACUI.openAccessLog) {
+      RBACUI.openAccessLog();
+    } else {
+      showToast('Opening access log...', 'info');
+      window.open('/api/rbac/access-log', '_blank');
+    }
+  }
+
+  function openImpactHistory() {
+    if (typeof CircuitBreakerUI !== 'undefined' && CircuitBreakerUI.openHistory) {
+      CircuitBreakerUI.openHistory();
+    } else {
+      showToast('Opening impact history...', 'info');
+      window.open('/api/impact/recent', '_blank');
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // SOVEREIGN SEED PHASE 3: Deterministic Logic Split
+  // ═══════════════════════════════════════════════════════════
+
+  async function loadPhase3Stats() {
+    await Promise.all([
+      loadETCPipelineStats(),
+      loadDecisionReplayStats()
+    ]);
+  }
+
+  async function loadETCPipelineStats() {
+    try {
+      const data = await apiGet('/api/etc/audit');
+      if (data && data.stats) {
+        document.getElementById('etc-extractions').textContent = data.stats.extractions || 0;
+        document.getElementById('etc-calculations').textContent = data.stats.calculations || 0;
+        document.getElementById('etc-contracts').textContent = data.stats.contracts || 0;
+      }
+    } catch (err) {
+      console.log('ETC Pipeline stats not available:', err);
+    }
+  }
+
+  async function loadDecisionReplayStats() {
+    try {
+      const data = await apiGet('/api/replay/stats');
+      if (data && data.stats) {
+        document.getElementById('replay-recorded').textContent = data.stats.total_decisions || 0;
+        document.getElementById('replay-runs').textContent = data.stats.total_replays || 0;
+        document.getElementById('replay-chain').textContent = data.stats.chain_valid ? '✓' : '✗';
+        document.getElementById('replay-chain').style.color = data.stats.chain_valid ? 'var(--green)' : 'var(--red)';
+      }
+    } catch (err) {
+      console.log('Decision Replay stats not available:', err);
+    }
+  }
+
+  function openETCPipeline() {
+    if (typeof ETCPipelineUI !== 'undefined' && ETCPipelineUI.openViewer) {
+      ETCPipelineUI.openViewer();
+    } else {
+      showToast('Opening ETC Pipeline...', 'info');
+      window.open('/api/etc/contracts', '_blank');
+    }
+  }
+
+  function openDecisionReplay() {
+    if (typeof DecisionReplayUI !== 'undefined' && DecisionReplayUI.openTimeline) {
+      DecisionReplayUI.openTimeline();
+    } else {
+      showToast('Opening Decision Replay...', 'info');
+      window.open('/api/replay/decisions', '_blank');
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // SOVEREIGN SEED PHASE 4: Operational Sovereignty
+  // ═══════════════════════════════════════════════════════════
+
+  async function loadPhase4Stats() {
+    await Promise.all([
+      loadOverrideHygieneStats(),
+      loadSafeModeStats()
+    ]);
+  }
+
+  async function loadOverrideHygieneStats() {
+    try {
+      const data = await apiGet('/api/overrides/stats');
+      if (data && data.stats) {
+        document.getElementById('override-canonical').textContent = data.stats.canonical || 0;
+        document.getElementById('override-preferences').textContent = data.stats.preferences || 0;
+        document.getElementById('override-drifts').textContent = data.stats.drifts || 0;
+      }
+    } catch (err) {
+      console.log('Override Hygiene stats not available:', err);
+    }
+  }
+
+  async function loadSafeModeStats() {
+    try {
+      const data = await apiGet('/api/safe-mode/status');
+      if (data) {
+        const level = data.level || 'GREEN';
+        const levelColors = {
+          'GREEN': 'var(--green)',
+          'YELLOW': 'var(--yellow)',
+          'RED': 'var(--red)',
+          'LOCKDOWN': 'var(--text-muted)'
+        };
+
+        document.getElementById('safe-mode-level').textContent = level;
+        document.getElementById('safe-mode-level').style.color = levelColors[level];
+
+        const iconBg = document.getElementById('safe-mode-icon-bg');
+        if (iconBg) iconBg.style.background = levelColors[level];
+
+        document.getElementById('safe-mode-status').textContent =
+          level === 'GREEN' ? 'System Healthy' :
+          level === 'YELLOW' ? 'Elevated Caution' :
+          level === 'RED' ? 'High Alert' : 'LOCKED DOWN';
+
+        document.getElementById('safe-mode-write').textContent = data.can_write ? '✓' : '✗';
+        document.getElementById('safe-mode-write').style.color = data.can_write ? 'var(--green)' : 'var(--red)';
+
+        document.getElementById('safe-mode-auto').textContent = data.can_auto_execute ? '✓' : '✗';
+        document.getElementById('safe-mode-auto').style.color = data.can_auto_execute ? 'var(--green)' : 'var(--red)';
+      }
+    } catch (err) {
+      console.log('Safe Mode stats not available:', err);
+    }
+  }
+
+  function openOverrideManager() {
+    if (typeof OverrideHygieneUI !== 'undefined' && OverrideHygieneUI.openManager) {
+      OverrideHygieneUI.openManager();
+    } else {
+      showToast('Opening Override Manager...', 'info');
+      window.open('/api/overrides/hierarchy', '_blank');
+    }
+  }
+
+  function openSafeModeDashboard() {
+    if (typeof SafeModeUI !== 'undefined' && SafeModeUI.openDashboard) {
+      SafeModeUI.openDashboard();
+    } else {
+      showToast('Opening Safe Mode Dashboard...', 'info');
+      window.open('/api/safe-mode/dashboard', '_blank');
+    }
+  }
+
+  // Update loadForensicDashboard to include all phases
+  const originalLoadForensicDashboard = loadForensicDashboard;
+  loadForensicDashboard = async function() {
+    await originalLoadForensicDashboard();
+    await Promise.all([
+      loadPhase2Stats(),
+      loadPhase3Stats(),
+      loadPhase4Stats()
+    ]);
+  };
 </script>
 
 <!-- PWA Install Prompt Handler -->
@@ -10738,6 +11816,29 @@
 <script src="/static/js/ai-nudges.js"></script>
 <script src="/static/js/explainable-ai.js"></script>
 <script src="/static/js/smart-capture.js"></script>
+<script src="/static/js/energy-optimizer.js"></script>
+
+<!-- Phase 1: Sovereign Seed - Forensic Infrastructure -->
+<script src="/static/js/stable-anchors.js"></script>
+<script src="/static/js/normalization-ui.js"></script>
+<script src="/static/js/overlap-validator-ui.js"></script>
+
+<!-- Phase 2: Sovereign Seed - Governor & Policy-as-Code -->
+<script src="/static/js/structural-gate-ui.js"></script>
+<script src="/static/js/conflict-detector-ui.js"></script>
+<script src="/static/js/rbac-ui.js"></script>
+<script src="/static/js/circuit-breaker-ui.js"></script>
+
+<!-- Phase 3: Sovereign Seed - Deterministic Logic Split -->
+<script src="/static/js/etc-pipeline-ui.js"></script>
+<script src="/static/js/decision-replay-ui.js"></script>
+
+<!-- Phase 4: Sovereign Seed - Operational Sovereignty -->
+<script src="/static/js/override-hygiene-ui.js"></script>
+<script src="/static/js/safe-mode-ui.js"></script>
+
+<!-- THE GOVERNOR: Central AI Operations Governance -->
+<script src="/static/js/governor-ui.js"></script>
 
 <!-- Initialize TinyPM Enhancements -->
 <script>
@@ -10772,10 +11873,121 @@
     // Initialize smart capture if available
     if (typeof SmartCapture !== 'undefined') {
       SmartCapture.init();
-      console.log('⚡ Smart Capture system loaded');
+      console.log('Smart Capture system loaded');
     }
 
-    console.log('🚀 TinyPM Enhancement Suite initialized');
+    // Initialize energy optimizer if available
+    if (typeof EnergyOptimizer !== 'undefined') {
+      EnergyOptimizer.init();
+      console.log('Energy Optimizer system loaded');
+    }
+
+    // ═══ SOVEREIGN SEED: Phase 1 - Forensic Infrastructure ═══
+
+    // Initialize Stable Anchor Citation System
+    if (typeof StableAnchors !== 'undefined') {
+      StableAnchors.init();
+      console.log('🔒 Stable Anchors (Forensic RAG) loaded');
+    }
+
+    // Initialize Normalization Service UI
+    if (typeof NormalizationUI !== 'undefined') {
+      NormalizationUI.init();
+      // Auto-enhance currency, date, and duration inputs
+      document.querySelectorAll('input[data-normalize]').forEach(input => {
+        NormalizationUI.enhanceInput(input, input.dataset.normalize);
+      });
+      console.log('📊 Normalization Service loaded');
+    }
+
+    // Initialize Overlap Validator UI
+    if (typeof OverlapValidatorUI !== 'undefined') {
+      OverlapValidatorUI.init();
+      console.log('🔍 Overlap Validator (Hallucination Detection) loaded');
+    }
+
+    console.log('TinyPM Enhancement Suite initialized');
+    console.log('🛡️ Sovereign Seed Phase 1: Forensic Infrastructure ACTIVE');
+
+    // ═══ SOVEREIGN SEED: Phase 2 - Governor & Policy-as-Code ═══
+
+    // Initialize Structural Gate (JSON Schema enforcement)
+    if (typeof StructuralGateUI !== 'undefined') {
+      StructuralGateUI.init();
+      console.log('📜 Structural Gate (Schema Enforcement) loaded');
+    }
+
+    // Initialize Conflict Detector
+    if (typeof ConflictDetectorUI !== 'undefined') {
+      ConflictDetectorUI.init();
+      console.log('⚔️ Conflict Detector loaded');
+    }
+
+    // Initialize RBAC UI (Permission-aware retrieval)
+    if (typeof RBACUI !== 'undefined') {
+      RBACUI.init();
+      // Auto-enhance document cards with permission badges
+      document.querySelectorAll('[data-document-id]').forEach(card => {
+        RBACUI.enhanceDocumentCard(card);
+      });
+      console.log('🔐 RBAC-Filtered Retrieval loaded');
+    }
+
+    // Initialize Financial Circuit Breaker UI
+    if (typeof CircuitBreakerUI !== 'undefined') {
+      CircuitBreakerUI.init();
+      console.log('⚡ Financial Circuit Breaker loaded');
+    }
+
+    console.log('⚖️ Sovereign Seed Phase 2: Governor & Policy-as-Code ACTIVE');
+
+    // ═══ SOVEREIGN SEED: Phase 3 - Deterministic Logic Split ═══
+
+    // Initialize ETC Pipeline (Extract-Transform-Calculate)
+    if (typeof ETCPipelineUI !== 'undefined') {
+      ETCPipelineUI.init();
+      console.log('🔬 ETC Pipeline (Extraction/Calculation Split) loaded');
+    }
+
+    // Initialize Decision Replay Engine
+    if (typeof DecisionReplayUI !== 'undefined') {
+      DecisionReplayUI.init();
+      console.log('🔄 Decision Replay Engine loaded');
+    }
+
+    console.log('🧮 Sovereign Seed Phase 3: Deterministic Logic Split ACTIVE');
+
+    // ═══ SOVEREIGN SEED: Phase 4 - Operational Sovereignty ═══
+
+    // Initialize Override Hygiene System
+    if (typeof OverrideHygieneUI !== 'undefined') {
+      OverrideHygieneUI.init();
+      console.log('🧹 Override Hygiene System loaded');
+    }
+
+    // Initialize Intelligent Safe Mode
+    if (typeof SafeModeUI !== 'undefined') {
+      SafeModeUI.init();
+      // Show status banner if not GREEN
+      SafeModeUI.checkAndShowBanner();
+      console.log('🛑 Intelligent Safe Mode loaded');
+    }
+
+    console.log('🏛️ Sovereign Seed Phase 4: Operational Sovereignty ACTIVE');
+
+    // ═══ THE GOVERNOR: Central AI Operations Governance ═══
+
+    // Initialize Governor UI (auto-wires all 11 systems)
+    if (typeof GovernorUI !== 'undefined') {
+      GovernorUI.init();
+      GovernorUI.checkAndShowBanner();
+      console.log('👑 THE GOVERNOR loaded - All AI operations now governed');
+    }
+
+    console.log('═══════════════════════════════════════════════════════════');
+    console.log('👑 SOVEREIGN SEED + GOVERNOR - Full Governance Stack Active');
+    console.log('   11 Systems | 6 Gate Levels | Complete Audit Trail');
+    console.log('═══════════════════════════════════════════════════════════');
   });
 </script>
 

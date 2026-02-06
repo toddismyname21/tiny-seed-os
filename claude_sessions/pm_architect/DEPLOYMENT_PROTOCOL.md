@@ -44,7 +44,7 @@ SmartSuccessionPlanner.js
 ```bash
 cd /Users/samanthapollack/Documents/TIny_Seed_OS/apps_script
 clasp push
-clasp deploy -i "AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc" -d "Description of changes"
+clasp deploy -i "AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm" -d "Description of changes"
 ```
 
 ## Pre-Deployment Checklist
@@ -57,7 +57,7 @@ clasp deploy -i "AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCx
 ## Post-Deployment Verification
 ```bash
 # Test API is responding
-curl "https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec?action=testConnection"
+curl "https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec?action=testConnection"
 ```
 
 ---

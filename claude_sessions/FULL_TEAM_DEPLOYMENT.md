@@ -46,7 +46,7 @@ Every Claude must:
 
 ```
 Live Site: https://app.tinyseedfarm.com
-API ID: AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp
+API ID: AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm
 API Config: web_app/api-config.js (SINGLE SOURCE OF TRUTH)
 ```
 
@@ -85,7 +85,7 @@ BROKEN ENDPOINTS TO FIX:
 - configureClaudeAPI
 
 After fixing, redeploy:
-cd apps_script && PATH="/opt/homebrew/bin:$PATH" clasp push && clasp deploy -i "AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp" -d "v202: Fix broken endpoints"
+cd apps_script && PATH="/opt/homebrew/bin:$PATH" clasp push && clasp deploy -i "AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm" -d "v202: Fix broken endpoints"
 
 SPEC: claude_sessions/SMART_CHIEF_OF_STAFF_SPEC.md
 

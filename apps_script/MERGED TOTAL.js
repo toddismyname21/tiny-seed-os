@@ -2473,32 +2473,101 @@ function getOverdueTasks() {
     const data = taskSheet.getDataRange().getValues();
     if (data.length < 2) return [];
 
-    const headers = data[0].map(h => String(h).toLowerCase());
+    const headers = data[0].map(h => String(h).toLowerCase().trim());
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     // FIXED 2026-02-05: Only show tasks overdue within last 30 days (not ancient test data)
     const maxOverdueDays = 30;
 
-    const dateIdx = headers.findIndex(h => h.includes('date') || h.includes('due'));
-    const taskIdx = headers.findIndex(h => h.includes('task') || h.includes('description'));
+    // Find all relevant column indices - check multiple possible column names
+    const dateIdx = headers.findIndex(h => h === 'due_date' || h.includes('date') || h.includes('due'));
+    const taskIdIdx = headers.findIndex(h => h === 'task_id' || h === 'taskid' || h === 'task id');
+    const taskNameIdx = headers.findIndex(h => h === 'task_name' || h === 'taskname');
+    const descIdx = headers.findIndex(h => h === 'description' || h === 'task_description' || h === 'notes');
+    const cropIdx = headers.findIndex(h => h === 'crop' || h.includes('crop'));
+    const categoryIdx = headers.findIndex(h => h === 'category');
+    const actionIdx = headers.findIndex(h => h === 'action' || h === 'task_type' || h === 'type');
+    const locationIdx = headers.findIndex(h => h === 'location' || h === 'field' || h === 'bed' || h === 'bed_id');
     const statusIdx = headers.findIndex(h => h.includes('status'));
 
     const overdue = [];
     for (let i = 1; i < data.length && overdue.length < 10; i++) {
       const row = data[i];
-      const taskDate = row[dateIdx];
+      const rawDate = row[dateIdx];
       const status = statusIdx >= 0 ? String(row[statusIdx]).toLowerCase() : '';
 
-      if (taskDate instanceof Date && !status.includes('complete') && !status.includes('done') && !status.includes('skip') && !status.includes('cancel')) {
+      // Parse date - handle both Date objects and string dates
+      let taskDate = null;
+      if (rawDate instanceof Date) {
+        taskDate = rawDate;
+      } else if (rawDate && typeof rawDate === 'string') {
+        const parsed = new Date(rawDate);
+        if (!isNaN(parsed.getTime())) {
+          taskDate = parsed;
+        }
+      } else if (rawDate && typeof rawDate === 'number') {
+        // Handle serial date numbers from Google Sheets
+        taskDate = new Date((rawDate - 25569) * 86400 * 1000);
+      }
+
+      if (taskDate && !status.includes('complete') && !status.includes('done') && !status.includes('skip') && !status.includes('cancel')) {
         const d = new Date(taskDate);
         d.setHours(0, 0, 0, 0);
         if (d.getTime() < today.getTime()) {
           const daysOverdue = Math.floor((today - d) / (1000 * 60 * 60 * 24));
           // Only include if overdue within 30 days (not ancient test data)
           if (daysOverdue <= maxOverdueDays) {
+            // Build a readable task description
+            const taskId = taskIdIdx >= 0 ? row[taskIdIdx] : '';
+            const taskNameCol = taskNameIdx >= 0 ? String(row[taskNameIdx] || '').trim() : '';
+            const description = descIdx >= 0 ? String(row[descIdx] || '').trim() : '';
+            const crop = cropIdx >= 0 ? String(row[cropIdx] || '').trim() : '';
+            const category = categoryIdx >= 0 ? String(row[categoryIdx] || '').trim() : '';
+            const action = actionIdx >= 0 ? String(row[actionIdx] || '').trim() : '';
+            const location = locationIdx >= 0 ? String(row[locationIdx] || '').trim() : '';
+
+            // Create human-readable task name - prioritize Task_Name column
+            // Skip showing location if it's "Unassigned" or empty
+            const showLocation = location && location.toLowerCase() !== 'unassigned' && location.toLowerCase() !== 'tbd';
+
+            let taskName = '';
+            if (taskNameCol) {
+              // Use Task_Name column directly - it may already contain crop info like "GH Sow: Bells of Ireland"
+              // Only append crop if taskNameCol doesn't already include it
+              const taskNameLower = taskNameCol.toLowerCase();
+              const cropLower = crop.toLowerCase();
+              if (crop && !taskNameLower.includes(cropLower)) {
+                taskName = `${taskNameCol}: ${crop}`;
+              } else {
+                taskName = taskNameCol;
+              }
+              if (showLocation) taskName += ` @ ${location}`;
+            } else if (description) {
+              taskName = description;
+            } else if (action && crop) {
+              taskName = `${action}: ${crop}`;
+              if (showLocation) taskName += ` @ ${location}`;
+            } else if (category && crop) {
+              taskName = `${category}: ${crop}`;
+              if (showLocation) taskName += ` @ ${location}`;
+            } else if (crop) {
+              taskName = `Task: ${crop}`;
+            } else if (action || category) {
+              taskName = action || category;
+            } else if (taskId) {
+              taskName = taskId;
+            } else {
+              taskName = `Task row ${i}`;
+            }
+
             overdue.push({
-              task: taskIdx >= 0 ? row[taskIdx] : row[1],
+              task: taskName,
+              taskId: taskId,
+              taskType: taskNameCol || action || category,
+              crop: crop,
+              category: category,
+              location: location,
               dueDate: taskDate,
               daysOverdue: daysOverdue
             });
@@ -2508,7 +2577,389 @@ function getOverdueTasks() {
     }
     return overdue.sort((a, b) => b.daysOverdue - a.daysOverdue);
   } catch (e) {
+    Logger.log('getOverdueTasks error: ' + e.message);
     return [];
+  }
+}
+
+/**
+ * Debug endpoint to inspect TASKS_2026 sheet contents
+ */
+function debugTasksSheet() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const year = new Date().getFullYear();
+    const taskSheet = ss.getSheetByName('TASKS_' + year);
+
+    if (!taskSheet) {
+      return { success: false, error: 'TASKS_2026 sheet not found' };
+    }
+
+    const data = taskSheet.getDataRange().getValues();
+    const headers = data[0];
+
+    // Get first 5 rows of data
+    const sampleRows = [];
+    for (let i = 1; i < Math.min(6, data.length); i++) {
+      const rowData = {};
+      headers.forEach((h, idx) => {
+        const val = data[i][idx];
+        rowData[h] = {
+          value: String(val).substring(0, 100),
+          type: typeof val,
+          isDate: val instanceof Date
+        };
+      });
+      sampleRows.push(rowData);
+    }
+
+    return {
+      success: true,
+      sheetName: 'TASKS_' + year,
+      rowCount: data.length,
+      headers: headers,
+      sampleRows: sampleRows
+    };
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+/**
+ * Get overdue plantings from PLANNING_2026 sheet
+ * Returns GH sowings, transplants, and field sowings that are past due
+ */
+function getOverduePlantings() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('PLANNING_2026');
+    if (!sheet) {
+      return { success: false, error: 'PLANNING_2026 sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length < 2) {
+      return { success: true, tasks: [] };
+    }
+
+    const headers = data[0].map(h => String(h).trim());
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Find column indices
+    const batchIdx = headers.indexOf('Batch_ID');
+    const cropIdx = headers.indexOf('Crop');
+    const varietyIdx = headers.indexOf('Variety');
+    const ghSowPlanIdx = headers.indexOf('Plan_GH_Sow');
+    const ghSowActIdx = headers.indexOf('Act_GH_Sow');
+    const transplantPlanIdx = headers.indexOf('Plan_Transplant');
+    const transplantActIdx = headers.indexOf('Act_Transplant');
+    const fieldSowPlanIdx = headers.indexOf('Plan_Field_Sow');
+    const fieldSowActIdx = headers.indexOf('Act_Field_Sow');
+    const traysIdx = headers.indexOf('Trays_Needed');
+    const plantsIdx = headers.indexOf('Plants_Needed');
+    const bedIdx = headers.indexOf('Target_Bed_ID');
+    const ghLocIdx = headers.indexOf('GH_Location');
+
+    const overdue = [];
+    const maxOverdueDays = 30; // Only show recent overdue, not ancient data
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const crop = row[cropIdx];
+      if (!crop) continue;
+
+      const batchId = row[batchIdx] || `PLAN-${i}`;
+      const variety = varietyIdx >= 0 ? row[varietyIdx] : '';
+
+      // Check GH Sow - overdue if planned but not done
+      const ghSowPlan = ghSowPlanIdx >= 0 ? row[ghSowPlanIdx] : null;
+      const ghSowAct = ghSowActIdx >= 0 ? row[ghSowActIdx] : null;
+      if (ghSowPlan instanceof Date && !ghSowAct) {
+        const daysOverdue = Math.floor((today - ghSowPlan) / (1000 * 60 * 60 * 24));
+        if (daysOverdue > 0 && daysOverdue <= maxOverdueDays) {
+          overdue.push({
+            id: `${batchId}-ghSow`,
+            batchId: batchId,
+            type: 'ghSow',
+            task: `GH Sow: ${crop}${variety ? ' (' + variety + ')' : ''}`,
+            crop: crop,
+            variety: variety,
+            quantity: traysIdx >= 0 && row[traysIdx] ? `${row[traysIdx]} trays` : '',
+            location: ghLocIdx >= 0 ? (row[ghLocIdx] || 'Greenhouse') : 'Greenhouse',
+            dueDate: ghSowPlan.toISOString(),
+            daysOverdue: daysOverdue
+          });
+        }
+      }
+
+      // Check Transplant - overdue if planned but not done
+      const transplantPlan = transplantPlanIdx >= 0 ? row[transplantPlanIdx] : null;
+      const transplantAct = transplantActIdx >= 0 ? row[transplantActIdx] : null;
+      if (transplantPlan instanceof Date && !transplantAct) {
+        const daysOverdue = Math.floor((today - transplantPlan) / (1000 * 60 * 60 * 24));
+        if (daysOverdue > 0 && daysOverdue <= maxOverdueDays) {
+          overdue.push({
+            id: `${batchId}-transplant`,
+            batchId: batchId,
+            type: 'transplant',
+            task: `Transplant: ${crop}${variety ? ' (' + variety + ')' : ''}`,
+            crop: crop,
+            variety: variety,
+            quantity: plantsIdx >= 0 && row[plantsIdx] ? `${row[plantsIdx]} plants` : '',
+            location: bedIdx >= 0 ? (row[bedIdx] || 'Field') : 'Field',
+            dueDate: transplantPlan.toISOString(),
+            daysOverdue: daysOverdue
+          });
+        }
+      }
+
+      // Check Field/Direct Sow - overdue if planned but not done
+      const fieldSowPlan = fieldSowPlanIdx >= 0 ? row[fieldSowPlanIdx] : null;
+      const fieldSowAct = fieldSowActIdx >= 0 ? row[fieldSowActIdx] : null;
+      if (fieldSowPlan instanceof Date && !fieldSowAct) {
+        const daysOverdue = Math.floor((today - fieldSowPlan) / (1000 * 60 * 60 * 24));
+        if (daysOverdue > 0 && daysOverdue <= maxOverdueDays) {
+          overdue.push({
+            id: `${batchId}-directSeed`,
+            batchId: batchId,
+            type: 'directSeed',
+            task: `Direct Seed: ${crop}${variety ? ' (' + variety + ')' : ''}`,
+            crop: crop,
+            variety: variety,
+            quantity: plantsIdx >= 0 && row[plantsIdx] ? `${row[plantsIdx]} plants` : '',
+            location: bedIdx >= 0 ? (row[bedIdx] || 'Field') : 'Field',
+            dueDate: fieldSowPlan.toISOString(),
+            daysOverdue: daysOverdue
+          });
+        }
+      }
+    }
+
+    // Sort by days overdue (most overdue first)
+    overdue.sort((a, b) => b.daysOverdue - a.daysOverdue);
+
+    return {
+      success: true,
+      count: overdue.length,
+      tasks: overdue.slice(0, 50) // Limit to 50 items
+    };
+
+  } catch (error) {
+    Logger.log('getOverduePlantings error: ' + error.message);
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Clear orphan tasks from TASKS_2026 that don't have matching batches in PLANNING_2026
+ */
+function clearOrphanTasks() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const tasksSheet = ss.getSheetByName('TASKS_2026');
+    const planningSheet = ss.getSheetByName('PLANNING_2026');
+
+    if (!tasksSheet) {
+      return { success: false, error: 'TASKS_2026 sheet not found' };
+    }
+    if (!planningSheet) {
+      return { success: false, error: 'PLANNING_2026 sheet not found' };
+    }
+
+    // Get all valid batch IDs from PLANNING_2026
+    const planningData = planningSheet.getDataRange().getValues();
+    const planningHeaders = planningData[0];
+    const batchCol = planningHeaders.indexOf('Batch_ID');
+
+    const validBatches = new Set();
+    for (let i = 1; i < planningData.length; i++) {
+      const batchId = planningData[i][batchCol];
+      if (batchId) validBatches.add(String(batchId).trim());
+    }
+
+    // Check TASKS_2026 for orphan tasks
+    const tasksData = tasksSheet.getDataRange().getValues();
+    if (tasksData.length <= 1) {
+      return { success: true, message: 'No tasks to check', cleared: 0 };
+    }
+
+    const tasksHeaders = tasksData[0];
+    const taskIdCol = tasksHeaders.indexOf('Task_ID');
+    const batchIdCol = tasksHeaders.indexOf('Batch_ID');
+
+    // Find rows to delete (orphan tasks whose batch doesn't exist in PLANNING)
+    const rowsToDelete = [];
+    const orphanTasks = [];
+
+    for (let i = tasksData.length - 1; i >= 1; i--) {
+      const taskId = tasksData[i][taskIdCol] || '';
+      const batchId = tasksData[i][batchIdCol] || '';
+
+      // Extract batch ID from task ID if batch column is empty
+      // Task ID format: TASK-26-CEN-2969-1 -> batch is 26-CEN-2969
+      let checkBatch = batchId;
+      if (!checkBatch && taskId) {
+        const parts = taskId.split('-');
+        if (parts.length >= 4) {
+          checkBatch = parts.slice(1, 4).join('-'); // e.g., "26-CEN-2969"
+        }
+      }
+
+      if (checkBatch && !validBatches.has(checkBatch)) {
+        rowsToDelete.push(i + 1);
+        orphanTasks.push({ taskId, batchId: checkBatch });
+      }
+    }
+
+    // Delete rows from bottom to top
+    rowsToDelete.forEach(row => {
+      tasksSheet.deleteRow(row);
+    });
+
+    return {
+      success: true,
+      message: `Cleared ${rowsToDelete.length} orphan tasks`,
+      cleared: rowsToDelete.length,
+      orphanTasks: orphanTasks
+    };
+
+  } catch (error) {
+    Logger.log('clearOrphanTasks error: ' + error.message);
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Generate tasks from overdue PLANNING_2026 entries into TASKS_2026
+ * Creates proper tasks for GH Sow, Transplant, Direct Seed that are overdue
+ */
+function generateTasksFromPlanning() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const planningSheet = ss.getSheetByName('PLANNING_2026');
+    let tasksSheet = ss.getSheetByName('TASKS_2026');
+
+    if (!planningSheet) {
+      return { success: false, error: 'PLANNING_2026 sheet not found' };
+    }
+
+    // Create TASKS_2026 if it doesn't exist with correct structure
+    if (!tasksSheet) {
+      tasksSheet = ss.insertSheet('TASKS_2026');
+      tasksSheet.appendRow([
+        'Task_ID', 'Batch_ID', 'Crop', 'Task_Name', 'Category', 'Due_Date', 'Duration_Min',
+        'Status', 'Assigned_To', 'Bed_ID', 'Completed_Date', 'Completed_By', 'Notes', 'Auto_Generated', 'Created_At'
+      ]);
+    }
+
+    // Get existing task IDs to avoid duplicates
+    const existingData = tasksSheet.getDataRange().getValues();
+    const existingTaskIds = new Set();
+    for (let i = 1; i < existingData.length; i++) {
+      existingTaskIds.add(existingData[i][0]); // Task_ID column
+    }
+
+    // Get overdue plantings
+    const overduePlantings = getOverduePlantings();
+    if (!overduePlantings.success) {
+      return { success: false, error: 'Failed to get overdue plantings: ' + overduePlantings.error };
+    }
+
+    const now = new Date().toISOString();
+    const newTasks = [];
+
+    overduePlantings.tasks.forEach(p => {
+      const taskId = `TASK-${p.batchId}-${p.type}`;
+
+      // Skip if task already exists
+      if (existingTaskIds.has(taskId)) {
+        return;
+      }
+
+      // Match existing TASKS_2026 structure:
+      // Task_ID, Batch_ID, Crop, Task_Name, Category, Due_Date, Duration_Min, Status, Assigned_To, Bed_ID, Completed_Date, Completed_By, Notes, Auto_Generated, Created_At
+      const taskRow = [
+        taskId,                           // Task_ID
+        p.batchId,                        // Batch_ID
+        p.crop,                           // Crop
+        p.task,                           // Task_Name (e.g., "GH Sow: Bells of Ireland")
+        p.type === 'ghSow' ? 'Planting' :
+          p.type === 'transplant' ? 'Planting' :
+          p.type === 'directSeed' ? 'Planting' : 'Task',  // Category
+        new Date(p.dueDate),              // Due_Date (as Date object)
+        30,                               // Duration_Min (default)
+        'Pending',                        // Status
+        '',                               // Assigned_To
+        p.location || '',                 // Bed_ID
+        '',                               // Completed_Date
+        '',                               // Completed_By
+        `${p.daysOverdue} days overdue. Source: PLANNING_2026`,  // Notes
+        true,                             // Auto_Generated
+        now                               // Created_At
+      ];
+
+      tasksSheet.appendRow(taskRow);
+      newTasks.push({ taskId, task: p.task, daysOverdue: p.daysOverdue });
+    });
+
+    return {
+      success: true,
+      message: `Generated ${newTasks.length} new tasks from planning`,
+      created: newTasks.length,
+      tasks: newTasks
+    };
+
+  } catch (error) {
+    Logger.log('generateTasksFromPlanning error: ' + error.message);
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Sync tasks: Clear orphans and generate from planning
+ */
+function syncTasksFromPlanning() {
+  const clearResult = clearOrphanTasks();
+  const generateResult = generateTasksFromPlanning();
+
+  return {
+    success: clearResult.success && generateResult.success,
+    cleared: clearResult.cleared || 0,
+    created: generateResult.created || 0,
+    message: `Cleared ${clearResult.cleared || 0} orphan tasks, created ${generateResult.created || 0} new tasks`
+  };
+}
+
+/**
+ * Reset TASKS_2026 - clears all tasks and regenerates from planning
+ * Use with caution!
+ */
+function resetTasksFromPlanning() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let tasksSheet = ss.getSheetByName('TASKS_2026');
+
+    if (tasksSheet) {
+      // Delete all rows except header
+      const lastRow = tasksSheet.getLastRow();
+      if (lastRow > 1) {
+        tasksSheet.deleteRows(2, lastRow - 1);
+      }
+    }
+
+    // Now generate fresh
+    const generateResult = generateTasksFromPlanning();
+
+    return {
+      success: true,
+      message: `Reset complete. Generated ${generateResult.created || 0} tasks from planning`,
+      created: generateResult.created || 0,
+      tasks: generateResult.tasks || []
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
   }
 }
 
@@ -9924,7 +10375,7 @@ function getCommitmentAppHtml() {
         <div class="card history-card" id="historyCard"><div id="historyList"><div class="empty-history">No recent logs</div></div></div>
     </div>
     <script>
-        const API_URL = 'https://script.google.com/macros/s/AKfycbx8syGK5Bm60fypNO0yE60BYtTFJXxviaEtgrqENmF5GStB58UCEA4Shu_IF9r6kjf5/exec';
+        const API_URL = 'https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec';
         let currentDirection = 'OUTBOUND';
         let history = JSON.parse(localStorage.getItem('sms_log_history') || '[]');
         document.addEventListener('DOMContentLoaded', () => { renderHistory(); autoReadClipboard(); });
@@ -12813,6 +13264,30 @@ function getLaborMorningBrief(employeeId) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// AUTHORIZATION TEST FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Run this function manually to authorize FULL Drive access (read + write).
+ * Go to Apps Script editor, select this function, and click Run.
+ */
+function testDriveAccess() {
+  // Check for existing folder
+  const folders = DriveApp.getFoldersByName('TinySeed_Loan_Documents');
+
+  if (folders.hasNext()) {
+    Logger.log('Loan documents folder already exists!');
+  } else {
+    // Create the folder (this triggers write permission authorization)
+    const newFolder = DriveApp.createFolder('TinySeed_Loan_Documents');
+    Logger.log('Created loan documents folder: ' + newFolder.getUrl());
+  }
+
+  Logger.log('✅ Full Drive access (read + write) authorized!');
+  return 'Drive access authorized successfully!';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // WEB API LAYER - ALL ENDPOINTS PROPERLY WIRED
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -13366,6 +13841,16 @@ function doGet(e) {
         return jsonResponse(getSEOAPIStatusSimple());
       case 'initializeSEOAutomation':
         return jsonResponse(initializeSEOAutomation());
+      case 'initializeSEOModule':
+        return jsonResponse(initializeSEOModule());
+      case 'initializeSEOIntelligence':
+        return jsonResponse(initializeSEOIntelligence());
+      case 'initializeSEOv3':
+        return jsonResponse(initializeSEOv3());
+      case 'initializeMarketingQueue':
+        return jsonResponse(initializeMarketingQueue());
+      case 'setupTwilioCredentials':
+        return jsonResponse(setupTwilioCredentials());
       case 'fetchSerpApiRanking':
         return jsonResponse(fetchSerpApiRanking(e.parameter.keyword, e.parameter.location));
       case 'runAutomatedRankCheck':
@@ -13430,6 +13915,20 @@ function doGet(e) {
       // ============ PREDICTIVE INTELLIGENCE SYSTEM ============
       case 'getMorningBrief':
         return jsonResponse(getMorningBrief(e.parameter));
+      case 'getOverdueTasks':
+        return jsonResponse({ success: true, tasks: getOverdueTasks() });
+      case 'debugTasksSheet':
+        return jsonResponse(debugTasksSheet());
+      case 'getOverduePlantings':
+        return jsonResponse(getOverduePlantings());
+      case 'clearOrphanTasks':
+        return jsonResponse(clearOrphanTasks());
+      case 'generateTasksFromPlanning':
+        return jsonResponse(generateTasksFromPlanning());
+      case 'syncTasksFromPlanning':
+        return jsonResponse(syncTasksFromPlanning());
+      case 'resetTasksFromPlanning':
+        return jsonResponse(resetTasksFromPlanning());
       case 'getHarvestPredictions':
         return jsonResponse(getHarvestPredictions(e.parameter));
       case 'getDiseaseRisk':
@@ -13914,6 +14413,8 @@ function doGet(e) {
         return jsonResponse(getEmployeeTasks(e.parameter));
       case 'createSampleTasks':
         return jsonResponse(createSampleTasks());
+      case 'clearSampleTasks':
+        return jsonResponse(clearSampleTasks());
       case 'completeSharedTask':
         return jsonResponse(completeSharedTask(data));
       case 'completeSubtask':
@@ -20984,8 +21485,24 @@ function analyzeUnassignedPlantings(params) {
 
       if (crop && (!bedId || bedId === '' || bedId === 'Unassigned' || bedId === 'TBD')) {
         // Calculate days in field (from transplant to first harvest)
-        const transplantDate = row[13] ? new Date(row[13]) : null;
-        const harvestDate = row[15] ? new Date(row[15]) : null;
+        // Safely parse dates - check for valid Date objects
+        let transplantDate = null;
+        let harvestDate = null;
+
+        if (row[13] && row[13] instanceof Date && !isNaN(row[13].getTime())) {
+          transplantDate = row[13];
+        } else if (row[13] && typeof row[13] === 'string') {
+          const parsed = new Date(row[13]);
+          if (!isNaN(parsed.getTime())) transplantDate = parsed;
+        }
+
+        if (row[15] && row[15] instanceof Date && !isNaN(row[15].getTime())) {
+          harvestDate = row[15];
+        } else if (row[15] && typeof row[15] === 'string') {
+          const parsed = new Date(row[15]);
+          if (!isNaN(parsed.getTime())) harvestDate = parsed;
+        }
+
         let daysInField = 75; // Default to medium
 
         if (transplantDate && harvestDate && transplantDate < harvestDate) {
@@ -21013,9 +21530,9 @@ function analyzeUnassignedPlantings(params) {
           method: row[4],
           bedFeet: row[6] || 50,
           fieldStart: transplantDate ? transplantDate.toISOString() : null,
-          planTransplant: row[13],
-          firstHarvest: row[15],
-          lastHarvest: row[16],
+          planTransplant: transplantDate ? transplantDate.toISOString().split('T')[0] : (row[13] || null),
+          firstHarvest: harvestDate ? harvestDate.toISOString().split('T')[0] : (row[15] || null),
+          lastHarvest: row[16] instanceof Date && !isNaN(row[16].getTime()) ? row[16].toISOString().split('T')[0] : (row[16] || null),
           daysInField: daysInField,
           fieldTimeGroup: fieldTimeGroup,
           family: getCropFamily(crop),
@@ -42010,12 +42527,22 @@ function sendSMSCampaign(data) {
         // Get recipients
         const recipients = getAudienceRecipients(audience, audienceFilter);
 
-        // In production, integrate with Twilio here
+        // Send SMS via Twilio
         let sentCount = 0;
+        let failedCount = 0;
         recipients.forEach(r => {
-          // UrlFetchApp.fetch(TWILIO_URL, {...})
-          Logger.log('Would send SMS to: ' + r.phone + ' - ' + message);
-          sentCount++;
+          try {
+            const result = sendSMS({ to: r.phone, message: message });
+            if (result.success) {
+              sentCount++;
+            } else {
+              failedCount++;
+              Logger.log('Failed to send SMS to: ' + r.phone + ' - ' + result.error);
+            }
+          } catch (e) {
+            failedCount++;
+            Logger.log('Error sending SMS to: ' + r.phone + ' - ' + e.toString());
+          }
         });
 
         // Update campaign
@@ -42023,7 +42550,7 @@ function sendSMSCampaign(data) {
         sheet.getRange(i + 1, headers.indexOf('Status') + 1).setValue('Sent');
         sheet.getRange(i + 1, headers.indexOf('Sent_At') + 1).setValue(new Date().toISOString());
 
-        return { success: true, sentCount: sentCount };
+        return { success: true, sentCount: sentCount, failedCount: failedCount };
       }
     }
 
@@ -44847,6 +45374,52 @@ function createSampleTasks() {
   sampleTasks.forEach(task => sheet.appendRow(task));
 
   return { success: true, message: 'Created ' + sampleTasks.length + ' sample tasks including flowers and greenhouse sowing' };
+}
+
+/**
+ * Clear all sample/demo tasks from EMPLOYEE_TASKS sheet
+ * Removes tasks with IDs starting with "TASK-0" which are demo tasks
+ */
+function clearSampleTasks() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('EMPLOYEE_TASKS');
+
+  if (!sheet) {
+    return { success: false, error: 'EMPLOYEE_TASKS sheet not found' };
+  }
+
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) {
+    return { success: true, message: 'No tasks to clear', cleared: 0 };
+  }
+
+  const headers = data[0];
+  const taskIdCol = headers.indexOf('Task_ID');
+
+  if (taskIdCol === -1) {
+    return { success: false, error: 'Task_ID column not found' };
+  }
+
+  // Find rows to delete (sample tasks have IDs like TASK-001, TASK-002, etc.)
+  const rowsToDelete = [];
+  for (let i = data.length - 1; i >= 1; i--) {
+    const taskId = data[i][taskIdCol] || '';
+    // Match sample task pattern: TASK-0xx
+    if (taskId.match(/^TASK-0\d{2}$/)) {
+      rowsToDelete.push(i + 1); // +1 for 1-based row index
+    }
+  }
+
+  // Delete rows from bottom to top to preserve row indices
+  rowsToDelete.forEach(row => {
+    sheet.deleteRow(row);
+  });
+
+  return {
+    success: true,
+    message: `Cleared ${rowsToDelete.length} sample tasks`,
+    cleared: rowsToDelete.length
+  };
 }
 
 // Complete a task - marks as done for everyone, creates follow-up if needed
@@ -79920,7 +80493,7 @@ function getSystemContextForAssistant() {
   return `
 SYSTEM STATUS:
 - Tiny Seed OS is running
-- Web App URL: https://script.google.com/macros/s/AKfycbx8syGK5Bm60fypNO0yE60BYtTFJXxviaEtgrqENmF5GStB58UCEA4Shu_IF9r6kjf5/exec
+- Web App URL: https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec
 - All APIs connected
 - Triggers active for email processing
 
@@ -91744,18 +92317,51 @@ function bulkUpdateTasks(data) {
       return { success: false, error: 'Maximum 100 tasks per bulk update' };
     }
 
-    const sheet = getUnifiedTasksSheet();
-    const sheetData = sheet.getDataRange().getValues();
-    const headers = sheetData[0];
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+    // Try both UNIFIED_TASKS and TASKS_2026
+    const sheets = [
+      { sheet: getUnifiedTasksSheet(), name: 'UNIFIED_TASKS' },
+      { sheet: ss.getSheetByName('TASKS_2026'), name: 'TASKS_2026' }
+    ].filter(s => s.sheet);
+
+    // Build a map of taskId -> { sheet, sheetData, headers, headerIndex, rowIndex }
+    const taskSheetMap = {};
+
+    for (const sheetInfo of sheets) {
+      const sheetData = sheetInfo.sheet.getDataRange().getValues();
+      const headers = sheetData[0];
+      const headerIndex = {};
+      headers.forEach((h, i) => headerIndex[h] = i);
+
+      for (let i = 1; i < sheetData.length; i++) {
+        const taskId = sheetData[i][0];
+        if (taskId && !taskSheetMap[taskId]) {
+          taskSheetMap[taskId] = {
+            sheet: sheetInfo.sheet,
+            sheetName: sheetInfo.name,
+            sheetData: sheetData,
+            headers: headers,
+            headerIndex: headerIndex,
+            rowIndex: i
+          };
+        }
+      }
+    }
+
+    // For backwards compatibility, get first sheet's data for the original logic
+    const sheet = sheets[0]?.sheet;
+    const sheetData = sheet ? sheet.getDataRange().getValues() : [];
+    const headers = sheetData[0] || [];
     const headerIndex = {};
     headers.forEach((h, i) => headerIndex[h] = i);
 
-    // Build a map of taskId -> row index
+    // Build a map of taskId -> row index (for backward compatibility)
     const taskRowMap = {};
     for (let i = 1; i < sheetData.length; i++) {
       const taskId = sheetData[i][0];
       if (taskId) {
-        taskRowMap[taskId] = i; // 0-based index in data array
+        taskRowMap[taskId] = i;
       }
     }
 
@@ -91770,6 +92376,9 @@ function bulkUpdateTasks(data) {
       dueDate: 'Due_Date'
     };
 
+    // Track which sheets need updating
+    const sheetsToUpdate = new Map();
+
     // Process each update
     for (const update of data.updates) {
       if (!update.taskId) {
@@ -91777,39 +92386,49 @@ function bulkUpdateTasks(data) {
         continue;
       }
 
-      const dataRowIndex = taskRowMap[update.taskId];
-      if (dataRowIndex === undefined) {
-        results.push({ taskId: update.taskId, success: false, error: 'Not found' });
+      // Find the task in any of the sheets
+      const taskInfo = taskSheetMap[update.taskId];
+      if (!taskInfo) {
+        results.push({ taskId: update.taskId, success: false, error: 'Not found in any sheet' });
         continue;
       }
 
-      const rowIndex = dataRowIndex + 1; // 1-based for sheet operations
+      const { sheetName, sheetData: taskSheetData, headerIndex: taskHeaderIndex, rowIndex: dataRowIndex } = taskInfo;
 
       // Apply updates to this row
       for (const [dataKey, headerKey] of Object.entries(fieldMap)) {
-        if (update[dataKey] !== undefined && headerIndex[headerKey] !== undefined) {
-          sheetData[dataRowIndex][headerIndex[headerKey]] = update[dataKey];
+        if (update[dataKey] !== undefined && taskHeaderIndex[headerKey] !== undefined) {
+          taskSheetData[dataRowIndex][taskHeaderIndex[headerKey]] = update[dataKey];
         }
       }
 
       // Handle status transitions
-      if (update.status === 'in_progress' && headerIndex['Started_At'] !== undefined) {
-        sheetData[dataRowIndex][headerIndex['Started_At']] = now;
+      if (update.status === 'in_progress' && taskHeaderIndex['Started_At'] !== undefined) {
+        taskSheetData[dataRowIndex][taskHeaderIndex['Started_At']] = now;
       }
-      if (update.status === 'completed' && headerIndex['Completed_At'] !== undefined) {
-        sheetData[dataRowIndex][headerIndex['Completed_At']] = now;
+      if ((update.status === 'completed' || update.status === 'done') && taskHeaderIndex['Completed_At'] !== undefined) {
+        taskSheetData[dataRowIndex][taskHeaderIndex['Completed_At']] = now;
+      }
+      if ((update.status === 'completed' || update.status === 'done') && taskHeaderIndex['Completed_Date'] !== undefined) {
+        taskSheetData[dataRowIndex][taskHeaderIndex['Completed_Date']] = now;
       }
 
       // Update timestamp
-      if (headerIndex['Updated_At'] !== undefined) {
-        sheetData[dataRowIndex][headerIndex['Updated_At']] = now;
+      if (taskHeaderIndex['Updated_At'] !== undefined) {
+        taskSheetData[dataRowIndex][taskHeaderIndex['Updated_At']] = now;
       }
 
-      results.push({ taskId: update.taskId, success: true });
+      // Mark this sheet for update
+      sheetsToUpdate.set(sheetName, taskInfo);
+
+      results.push({ taskId: update.taskId, success: true, sheet: sheetName });
     }
 
-    // Write all data back in ONE operation (FAST)
-    sheet.getRange(1, 1, sheetData.length, headers.length).setValues(sheetData);
+    // Write all modified sheets back
+    for (const [sheetName, taskInfo] of sheetsToUpdate) {
+      const { sheet: sheetToWrite, sheetData: dataToWrite, headers: hdrs } = taskInfo;
+      sheetToWrite.getRange(1, 1, dataToWrite.length, hdrs.length).setValues(dataToWrite);
+    }
 
     // Invalidate cache
     CacheService.getScriptCache().remove('unified_tasks_all_all_all_50_0');
@@ -91819,9 +92438,11 @@ function bulkUpdateTasks(data) {
     return {
       success: true,
       processed: data.updates.length,
+      updated: successCount,
       succeeded: successCount,
       failed: data.updates.length - successCount,
       results: results,
+      sheetsModified: Array.from(sheetsToUpdate.keys()),
       _timing: { total: Date.now() - startTime }
     };
 

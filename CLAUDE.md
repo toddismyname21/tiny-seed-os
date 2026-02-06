@@ -76,6 +76,44 @@ Grep for: function name, similar keywords, related functionality
 
 ---
 
+## STEP 4B: MANDATORY SEARCH BEFORE CREATING HTML FILES
+
+**BEFORE creating ANY new .html file, you MUST run these searches:**
+
+```bash
+# Search for existing files with similar names
+Glob **/*[feature-keyword]*.html
+
+# Example: Before creating "seo_dashboard.html"
+Glob **/*seo*.html
+Glob **/*dashboard*.html
+```
+
+**EXISTING DASHBOARDS - DO NOT DUPLICATE:**
+
+| Dashboard | Location | Purpose |
+|-----------|----------|---------|
+| SEO Dashboard | `web_app/seo_dashboard.html` | SEO tracking & automation |
+| Chief of Staff | `apps_script/ChiefOfStaffDashboard.html` | AI assistant interface |
+| Field Management | `apps_script/FieldManagementDashboard.html` | Field operations |
+| Financial Dashboard (Apps) | `apps_script/FinancialDashboard.html` | Financial reports |
+| Financial Dashboard (Web) | `web_app/financial-dashboard.html` | Financial reports |
+| Irrigation Dashboard | `apps_script/IrrigationDashboard.html` | Irrigation control |
+| Reports Dashboard | `apps_script/ReportsDashboard.html` | USDA/Organic reports |
+| Routing Dashboard | `apps_script/IntelligentRoutingDashboard.html` | Delivery routing |
+| Manager Dashboard | `web_app/manager-dashboard.html` | Manager view |
+| PM Dashboard | `web_app/pm-dashboard.html` | Project management |
+| QuickBooks Dashboard | `web_app/quickbooks-dashboard.html` | Accounting integration |
+| Remote Dashboard | `web_app/remote-dashboard.html` | Remote access |
+| TinyPM Dashboard | `tinypm/web_dashboard.html` | TinyPM interface |
+
+**If you find an existing file that matches your intent: ENHANCE IT. Do not create a new one.**
+
+**VIOLATION LOG:**
+- 2026-02-04: Created duplicate `apps_script/SEODashboard.html` when `web_app/seo_dashboard.html` already existed. Deleted after user caught it. THIS MUST NOT HAPPEN AGAIN.
+
+---
+
 ## STEP 5: LOG YOUR CHANGES
 
 After completing ANY work, you MUST:
@@ -107,6 +145,8 @@ After completing ANY work, you MUST:
 10. **NEVER** use any API URL other than the one in api-config.js
 11. **NEVER** remove HTML elements without also removing/updating the JavaScript that references them
 12. **NEVER** change the frontend without checking/updating the associated backend (Apps Script)
+13. **NEVER** create a new HTML file without first running `Glob **/*[keyword]*.html` to check for existing files
+14. **NEVER** create a new dashboard - SEO, Financial, Reports, Field, Irrigation dashboards ALL EXIST (see Step 4B)
 
 ---
 
@@ -148,6 +188,173 @@ document.getElementById('briefTemp').textContent = 'Hello';
 ```
 
 **This caused a site-breaking bug on 2026-02-01. The pre-commit hook now blocks this.**
+
+---
+
+## CRITICAL: EXTERNAL WEBSITE CHANGES (Shopify, etc.)
+
+### THE GOLDEN RULE: NEVER PUBLISH WITHOUT HUMAN APPROVAL
+
+**This section exists because on 2026-02-04, wrong information was published to the live Shopify store including fake owner names, wrong addresses, and made-up content. THIS MUST NEVER HAPPEN AGAIN.**
+
+Based on industry best practices from [n8n](https://blog.n8n.io/best-practices-for-deploying-ai-agents-in-production/), [Galileo AI](https://galileo.ai/blog/production-readiness-checklist-ai-agent-reliability), [MIT Sloan](https://sloanreview.mit.edu/article/agentic-ai-security-essentials/), and [AWS](https://aws.amazon.com/blogs/machine-learning/implement-human-in-the-loop-confirmation-with-amazon-bedrock-agents/).
+
+---
+
+### BEFORE ANY EXTERNAL WEBSITE CHANGE
+
+#### Step 1: VERIFY YOU HAVE REAL INFORMATION
+- [ ] Do I have CONFIRMED facts from the user? (not assumptions)
+- [ ] If I'm missing information, have I ASKED the user?
+- [ ] Am I using ANY placeholder text, fake names, or made-up details? **IF YES, STOP.**
+
+**NEVER make up:**
+- Names of people
+- Addresses or locations
+- Prices or dates
+- Business history or stories
+- Any factual claims
+
+**If you don't know it, ASK. Do not guess. Do not hallucinate.**
+
+#### Step 2: SHOW THE USER WHAT WILL CHANGE
+Before pushing ANY content to an external website:
+1. Show the EXACT content that will be published
+2. Highlight what's NEW vs what's being REPLACED
+3. Wait for explicit approval ("go ahead", "deploy it", "yes")
+
+**Approval phrases that ARE permission:**
+- "Yes"
+- "Do it"
+- "Go ahead"
+- "Deploy"
+- "Looks good, publish it"
+
+**Phrases that are NOT permission:**
+- "Sounds good" (needs explicit action word)
+- "Ok" (ambiguous)
+- "I think so" (uncertain)
+- No response (silence is NOT consent)
+
+#### Step 3: PRE-PUBLISH CHECKLIST
+Before executing the publish command:
+
+```
+[ ] Content has been shown to user
+[ ] User gave EXPLICIT approval
+[ ] No placeholder/made-up content exists
+[ ] All facts have been verified with user
+[ ] I know how to ROLLBACK if needed
+[ ] Old content has been saved/logged
+```
+
+---
+
+### DURING PUBLISH
+
+1. **Log the old content** - Save what was there before
+2. **Execute the change** - Push the new content
+3. **Verify immediately** - Fetch the live page to confirm
+
+---
+
+### AFTER PUBLISH
+
+#### Mandatory Verification:
+1. Fetch the live URL
+2. Confirm the new content appears
+3. Report any caching issues to user
+4. If something is wrong, offer immediate rollback
+
+#### If User Reports a Problem:
+1. **STOP all other work**
+2. Investigate immediately
+3. Rollback if needed
+4. Fix and re-verify
+
+---
+
+### CONTENT QUALITY RULES
+
+#### NEVER publish content that:
+- Contains unverified facts
+- Uses placeholder text like "[INSERT NAME]" or "TBD"
+- Makes claims about the business you haven't confirmed
+- Includes personal/sensitive information without approval
+- Has spelling or grammar errors (proofread first)
+
+#### ALWAYS:
+- Use simple, clear language
+- Keep paragraphs short (3-5 sentences max)
+- Mobile-friendly formatting
+- Include clear calls-to-action
+- Match the brand voice
+
+---
+
+### SHOPIFY-SPECIFIC RULES
+
+#### Page Updates:
+```javascript
+// CORRECT WORKFLOW:
+1. Fetch current page content
+2. Show user what exists
+3. Show user what will change
+4. Get explicit approval
+5. Update page
+6. Verify update worked
+7. Report cache timing to user
+
+// WRONG:
+- Updating without showing user first
+- Assuming facts not provided
+- Not verifying after publish
+```
+
+#### Product Changes:
+- NEVER archive/delete products without explicit approval
+- ALWAYS confirm product IDs before bulk operations
+- Test with ONE item before batch operations
+
+#### Known Shopify Cache Behavior:
+- Pages cache for 2-5 minutes
+- Add `?v=X` to URL to bypass cache for verification
+- Inform user about cache delay
+
+---
+
+### EMERGENCY ROLLBACK PROCEDURE
+
+If something goes wrong:
+1. Have the old content saved (you logged it, right?)
+2. Immediately offer to restore
+3. Execute rollback on user approval
+4. Verify restoration worked
+
+---
+
+### VIOLATION LOG
+
+Track all external website mistakes here:
+
+| Date | Issue | Root Cause | Prevention |
+|------|-------|------------|------------|
+| 2026-02-04 | Wrong owner names (Matt & Samantha instead of Todd) | Content was never verified with user | Added mandatory approval step |
+| 2026-02-04 | Made-up trauma story published | AI hallucinated personal details | Added "no made-up content" rule |
+| 2026-02-04 | Wrong farm location (Glenshaw instead of Rochester) | Old cached content, unverified | Added verification checklist |
+
+---
+
+### THE BOTTOM LINE
+
+**Treat external websites like production databases:**
+- Read before write
+- Verify before commit
+- Backup before change
+- Test after deploy
+- Human approval REQUIRED
+
+**If in doubt, ASK. Never guess. Never hallucinate. Never assume.**
 
 ---
 
@@ -283,3 +490,33 @@ https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSj
 ### Shopify Store
 - Store: `tiny-seed-farmers-market.myshopify.com`
 - Owner: Todd Wilson (todd@tinyseedfarmpgh.com)
+
+### Owner Contact Info
+- **Name:** Todd Wilson
+- **Email:** todd@tinyseedfarmpgh.com
+- **Phone:** 717-725-5177
+- **Business Address:** 257 Zeigler Rd, Rochester, PA 15074 (NEW)
+- **Previous Address:** 4312 Middle Rd, Allison Park, PA 15101
+- **Google Place ID:** ChIJtdEVcwuSNIgRojepG9lq66U
+- **Service Area:** Pittsburgh metro, wide delivery area with neighborhood concentrations
+
+### CSA Stop Locations (Current)
+| Location | Pickup Type |
+|----------|-------------|
+| Rochester | Kretschmann Family Organic Farm |
+| Allison Park | St. Paul's |
+| Allison Park | Simon's Produce Stand |
+| Sewickley | Saturday Farmer's Market |
+| Oakmont | Today's Organic Market |
+| Mt. Lebanon | CSA Customer Porch |
+| Squirrel Hill | CSA Customer Porch |
+| North Side | Mayfly Market |
+| Lawrenceville | Tuesday Farmer's Market |
+| Highland Park | Bryant St. Market |
+| Bloomfield | Saturday Farmer's Market |
+| Zelienople | CSA Customer Porch |
+| North Park | CSA Customer Porch |
+| Fox Chapel | CSA Customer Porch |
+| Cranberry | CSA Customer Porch |
+
+**Note:** New locations added with 15+ members at a location.

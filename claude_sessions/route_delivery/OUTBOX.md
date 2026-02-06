@@ -695,7 +695,7 @@ https://script.google.com/macros/s/AKfycbyRK-4EFPOjYE0A-RsNDpr7-IaPOAtK1h_z9fK-V
 
 ### API Configuration Status
 
-**Current Deployment ID:** `AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp`
+**Current Deployment ID:** `AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm`
 
 All web_app files use the correct API configuration pattern:
 ```javascript

@@ -1075,6 +1075,348 @@
         }
 
         /* ============================================= */
+        /* CONTENT CALENDAR - 7-DAY VIEW */
+        /* ============================================= */
+        .content-gaps-banner {
+            background: linear-gradient(135deg, rgba(230, 57, 70, 0.2), rgba(255, 193, 7, 0.1));
+            border: 1px solid var(--danger);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .content-gaps-banner.no-gaps {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(16, 185, 129, 0.1));
+            border-color: var(--success);
+        }
+
+        .content-gaps-banner .gaps-text {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .content-gaps-banner .gaps-text i {
+            font-size: 1.5rem;
+            color: var(--danger);
+        }
+
+        .content-gaps-banner.no-gaps .gaps-text i {
+            color: var(--success);
+        }
+
+        .content-calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 1200px) {
+            .content-calendar-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .content-calendar-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .content-calendar-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .calendar-day-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 2px solid var(--border);
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+
+        .calendar-day-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+
+        .calendar-day-card.has-posts {
+            border-color: var(--success);
+        }
+
+        .calendar-day-card.needs-content {
+            border-color: var(--danger);
+        }
+
+        .calendar-day-card.few-posts {
+            border-color: var(--warning);
+        }
+
+        .calendar-day-card.is-today {
+            border-color: var(--info);
+            box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.3);
+        }
+
+        .calendar-day-header {
+            padding: 0.75rem 1rem;
+            background: rgba(0,0,0,0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .calendar-day-header .day-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .calendar-day-header .day-date {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .calendar-day-body {
+            padding: 1rem;
+            min-height: 150px;
+        }
+
+        .calendar-day-status {
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .calendar-day-status.green {
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--success);
+        }
+
+        .calendar-day-status.yellow {
+            background: rgba(233, 196, 106, 0.2);
+            color: var(--warning);
+        }
+
+        .calendar-day-status.red {
+            background: rgba(230, 57, 70, 0.2);
+            color: var(--danger);
+        }
+
+        .calendar-post-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            background: rgba(255,255,255,0.05);
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            font-size: 0.8rem;
+        }
+
+        .calendar-post-item .platform-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .calendar-post-item .post-preview {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: var(--text-secondary);
+        }
+
+        .calendar-day-footer {
+            padding: 0.75rem 1rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.75rem;
+        }
+
+        .content-mix-indicator {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .content-mix-indicator .mix-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .content-mix-indicator .mix-dot.curated { background: var(--info); }
+        .content-mix-indicator .mix-dot.original { background: var(--success); }
+        .content-mix-indicator .mix-dot.personal { background: var(--instagram); }
+
+        .add-content-btn {
+            background: transparent;
+            border: 1px dashed var(--text-secondary);
+            border-radius: 6px;
+            padding: 0.5rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.25rem;
+            width: 100%;
+            transition: all 0.2s;
+        }
+
+        .add-content-btn:hover {
+            border-color: var(--instagram);
+            color: var(--instagram);
+            background: rgba(225, 48, 108, 0.1);
+        }
+
+        /* Photo Library Grid */
+        .photo-library-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+
+        .photo-library-item {
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            aspect-ratio: 1;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .photo-library-item:hover {
+            transform: scale(1.02);
+        }
+
+        .photo-library-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .photo-library-item .photo-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            padding: 0.5rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .photo-library-item:hover .photo-overlay {
+            opacity: 1;
+        }
+
+        .photo-library-item .use-photo-btn {
+            width: 100%;
+            padding: 0.5rem;
+            background: var(--instagram);
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* Todd's Input Section */
+        .todd-input-card {
+            background: linear-gradient(135deg, rgba(155, 89, 182, 0.1), rgba(225, 48, 108, 0.1));
+            border: 1px solid rgba(155, 89, 182, 0.3);
+        }
+
+        .todd-prompt-response {
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            font-style: italic;
+            color: var(--text-secondary);
+            margin: 1rem 0;
+            border-left: 3px solid var(--purple);
+        }
+
+        .generated-posts-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .generated-post-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+        }
+
+        /* Quick Stats Bar */
+        .quick-stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .quick-stat-item {
+            background: var(--bg-card);
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .quick-stat-item .stat-icon-small {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+
+        .quick-stat-item .stat-icon-small.posts { background: rgba(67, 97, 238, 0.2); color: var(--info); }
+        .quick-stat-item .stat-icon-small.mix { background: rgba(155, 89, 182, 0.2); color: var(--purple); }
+        .quick-stat-item .stat-icon-small.platforms { background: rgba(34, 197, 94, 0.2); color: var(--success); }
+
+        .quick-stat-item .stat-details {
+            flex: 1;
+        }
+
+        .quick-stat-item .stat-details .stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .quick-stat-item .stat-details .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        /* ============================================= */
         /* BUTTONS */
         /* ============================================= */
         .btn {
@@ -1676,6 +2018,10 @@
         <button class="tab-btn" onclick="switchTab('schedule')">
             <i class="fas fa-calendar-alt"></i> Schedule
         </button>
+        <button class="tab-btn" onclick="switchTab('contentcalendar')">
+            <i class="fas fa-calendar-check"></i> Content Calendar
+            <span class="badge pending" id="contentGapsBadge" style="display:none;">0</span>
+        </button>
         <button class="tab-btn" onclick="switchTab('connections')">
             <i class="fas fa-plug"></i> Connections
         </button>
@@ -1707,6 +2053,10 @@
         </button>
         <button class="tab-btn" onclick="switchTab('crisis')">
             <i class="fas fa-shield-alt"></i> Crisis
+        </button>
+        <button class="tab-btn" onclick="switchTab('autopilot')">
+            <i class="fas fa-plane"></i> Auto-Pilot
+            <span class="badge new" style="background: var(--success);">NEW</span>
         </button>
         <button class="tab-btn" onclick="switchTab('settings')">
             <i class="fas fa-cog"></i> Settings
@@ -2487,6 +2837,162 @@
                     </div>
                 </div>
             </div>
+        </div>
+
+        <!-- CONTENT CALENDAR TAB - 7-Day Visual Calendar -->
+        <div id="contentcalendarTab" class="tab-content">
+            <!-- Content Gaps Alert Banner -->
+            <div class="content-gaps-banner" id="contentGapsBanner">
+                <div class="gaps-text">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div>
+                        <div style="font-weight: 600;">Content Gaps Detected</div>
+                        <div id="contentGapsMessage" style="font-size: 0.85rem; color: var(--text-secondary);">
+                            You need content for: <span id="gapDaysList">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="generateContentForGaps()">
+                    <i class="fas fa-magic"></i> Generate AI Content for Gaps
+                </button>
+            </div>
+
+            <!-- Quick Stats Bar -->
+            <div class="quick-stats-bar">
+                <div class="quick-stat-item">
+                    <div class="stat-icon-small posts">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <div class="stat-details">
+                        <div class="stat-value"><span id="postsThisWeek">0</span>/10</div>
+                        <div class="stat-label">Posts This Week (Target: 10)</div>
+                    </div>
+                </div>
+                <div class="quick-stat-item">
+                    <div class="stat-icon-small mix">
+                        <i class="fas fa-layer-group"></i>
+                    </div>
+                    <div class="stat-details">
+                        <div class="stat-value" id="contentMixDisplay">C:0 O:0 P:0</div>
+                        <div class="stat-label">Content Mix (5-3-2 Rule)</div>
+                    </div>
+                </div>
+                <div class="quick-stat-item">
+                    <div class="stat-icon-small platforms">
+                        <i class="fas fa-share-alt"></i>
+                    </div>
+                    <div class="stat-details">
+                        <div class="stat-value" id="platformsCovered">--</div>
+                        <div class="stat-label">Platforms Covered</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7-Day Calendar Grid -->
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-calendar-week" style="color: var(--info);"></i> 7-Day Content Calendar</h3>
+                    <div style="display: flex; gap: 0.75rem; align-items: center;">
+                        <div style="display: flex; gap: 0.5rem; font-size: 0.75rem;">
+                            <span style="display: flex; align-items: center; gap: 0.25rem;"><span style="width: 10px; height: 10px; background: var(--success); border-radius: 50%;"></span> 2+ posts</span>
+                            <span style="display: flex; align-items: center; gap: 0.25rem;"><span style="width: 10px; height: 10px; background: var(--warning); border-radius: 50%;"></span> 1 post</span>
+                            <span style="display: flex; align-items: center; gap: 0.25rem;"><span style="width: 10px; height: 10px; background: var(--danger); border-radius: 50%;"></span> No posts</span>
+                        </div>
+                        <button class="btn btn-sm btn-secondary" onclick="loadContentCalendar()">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="content-calendar-grid" id="contentCalendarGrid">
+                        <!-- Calendar days will be populated by JavaScript -->
+                        <div style="text-align: center; padding: 3rem; color: var(--text-secondary); grid-column: span 7;">
+                            <i class="fas fa-spinner fa-spin" style="font-size: 2rem;"></i>
+                            <p style="margin-top: 1rem;">Loading content calendar...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Two Column Layout: Photo Library & Todd's Input -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem;">
+                <!-- Photo Library Integration -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-images" style="color: var(--instagram);"></i> Photo Library</h3>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <select id="photoLibraryFilter" class="caption-input" style="min-height: auto; padding: 0.5rem; width: auto;" onchange="filterPhotoLibrary(this.value)">
+                                <option value="all">All Photos</option>
+                                <option value="produce">Produce</option>
+                                <option value="flowers">Flowers</option>
+                                <option value="farm">Farm Life</option>
+                                <option value="team">Team</option>
+                                <option value="unused">Unused</option>
+                            </select>
+                            <button class="btn btn-sm btn-secondary" onclick="loadPhotoLibrary()">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                        <div class="photo-library-grid" id="photoLibraryGrid">
+                            <div style="text-align: center; padding: 2rem; color: var(--text-secondary); grid-column: span 3;">
+                                <i class="fas fa-images" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                                <p>No photos loaded. Upload photos to MARKETING_FarmPics or click Refresh.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Todd's Input Section -->
+                <div class="card todd-input-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-pen-fancy" style="color: var(--purple);"></i> Todd's Input</h3>
+                        <button class="btn btn-sm btn-secondary" onclick="loadToddInput()">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+                            <i class="fas fa-quote-left"></i> Latest Writing Prompt Response:
+                        </div>
+                        <div class="todd-prompt-response" id="toddPromptResponse">
+                            <p style="text-align: center; color: var(--text-secondary);">
+                                No recent writing prompts. Todd's responses will appear here when available.
+                            </p>
+                        </div>
+
+                        <div style="margin-top: 1rem;">
+                            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+                                <i class="fas fa-robot"></i> Posts Generated From This:
+                            </div>
+                            <div class="generated-posts-list" id="generatedPostsList">
+                                <div style="text-align: center; padding: 1rem; color: var(--text-secondary); font-size: 0.85rem;">
+                                    No posts generated yet
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                            <button class="btn btn-primary" onclick="generateFromToddInput()" style="flex: 1;">
+                                <i class="fas fa-magic"></i> Generate More From This
+                            </button>
+                            <button class="btn btn-secondary" onclick="requestNewPrompt()">
+                                <i class="fas fa-paper-plane"></i> Request New Prompt
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mobile: Single Column -->
+            <style>
+                @media (max-width: 900px) {
+                    #contentcalendarTab > div:last-child {
+                        grid-template-columns: 1fr !important;
+                    }
+                }
+            </style>
         </div>
 
         <!-- CONNECTIONS TAB -->
@@ -3917,6 +4423,204 @@
             </div>
         </div>
 
+        <!-- AUTO-PILOT TAB - Marketing Automation Queue System -->
+        <div id="autopilotTab" class="tab-content">
+            <!-- Auto-Pilot Header -->
+            <div class="card" style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(16, 163, 127, 0.2)); border: 1px solid rgba(34, 197, 94, 0.4);">
+                <div class="card-body" style="padding: 2rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+                        <div>
+                            <h2 style="font-size: 1.5rem; margin-bottom: 0.5rem;">
+                                <i class="fas fa-plane" style="color: var(--success);"></i> Marketing Auto-Pilot
+                            </h2>
+                            <p style="color: var(--text-secondary); max-width: 600px; line-height: 1.6;">
+                                Queue content to post automatically when you're busy. Set it and forget it - the system posts for you!
+                            </p>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <button class="btn btn-primary" onclick="loadAutoPilotStatus()">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                            <button class="btn" onclick="generateWeekContent()" style="background: linear-gradient(135deg, var(--success), var(--primary-dark)); color: white;">
+                                <i class="fas fa-magic"></i> Generate Week
+                            </button>
+                            <button class="btn btn-secondary" onclick="processQueueNow()">
+                                <i class="fas fa-play"></i> Process Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Auto-Pilot Stats -->
+            <div class="stats-grid" style="margin-top: 1.5rem;">
+                <div class="stat-card" style="border-left: 3px solid var(--success);">
+                    <div class="stat-label">Queue Status</div>
+                    <div class="stat-value" id="queueStatus" style="color: var(--success);"><i class="fas fa-check-circle"></i></div>
+                    <div class="stat-change positive" id="queueStatusText">
+                        <i class="fas fa-plane"></i> Active
+                    </div>
+                </div>
+                <div class="stat-card" style="border-left: 3px solid var(--info);">
+                    <div class="stat-label">Pending Posts</div>
+                    <div class="stat-value" id="pendingPostsCount" style="color: var(--info);">--</div>
+                    <div class="stat-change neutral">
+                        <i class="fas fa-clock"></i> In queue
+                    </div>
+                </div>
+                <div class="stat-card" style="border-left: 3px solid var(--primary);">
+                    <div class="stat-label">Posted This Week</div>
+                    <div class="stat-value" id="postedThisWeek" style="color: var(--primary);">--</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-check"></i> Completed
+                    </div>
+                </div>
+                <div class="stat-card" style="border-left: 3px solid var(--danger);">
+                    <div class="stat-label">Failed Posts</div>
+                    <div class="stat-value" id="failedPostsCount" style="color: var(--danger);">--</div>
+                    <div class="stat-change negative">
+                        <i class="fas fa-exclamation-triangle"></i> Need attention
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Add to Queue -->
+            <div class="card" style="margin-top: 1.5rem;">
+                <div class="card-header">
+                    <h3><i class="fas fa-plus-circle" style="color: var(--success);"></i> Quick Add to Queue</h3>
+                </div>
+                <div class="card-body">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary);">Platform</label>
+                            <select id="queuePlatform" class="caption-input" style="min-height: auto; padding: 0.75rem;">
+                                <option value="instagram">Instagram</option>
+                                <option value="facebook">Facebook</option>
+                                <option value="gbp">Google Business Profile</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary);">Content Type</label>
+                            <select id="queueContentType" class="caption-input" style="min-height: auto; padding: 0.75rem;">
+                                <option value="farm_update">Farm Update</option>
+                                <option value="seasonal_highlight">Seasonal Highlight</option>
+                                <option value="csa_promo">CSA Promo</option>
+                                <option value="behind_scenes">Behind the Scenes</option>
+                                <option value="market_reminder">Market Reminder</option>
+                                <option value="recipe_share">Recipe Share</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="margin-top: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary);">Content</label>
+                        <textarea id="queueContent" class="caption-input" placeholder="Enter your post content... or click 'Generate AI Content' below" style="min-height: 120px;"></textarea>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary);">Scheduled Date & Time</label>
+                            <input type="datetime-local" id="queueScheduledDate" class="caption-input" style="min-height: auto; padding: 0.75rem;">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary);">Media URL (optional)</label>
+                            <input type="url" id="queueMediaUrl" class="caption-input" style="min-height: auto; padding: 0.75rem;" placeholder="https://...">
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
+                        <button class="btn btn-primary" onclick="addToQueue()">
+                            <i class="fas fa-plus"></i> Add to Queue
+                        </button>
+                        <button class="btn" onclick="generateAIContent()" style="background: linear-gradient(135deg, var(--purple), var(--instagram)); color: white;">
+                            <i class="fas fa-robot"></i> Generate AI Content
+                        </button>
+                        <button class="btn btn-secondary" onclick="postImmediately()">
+                            <i class="fas fa-paper-plane"></i> Post Now Instead
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upcoming Posts Queue -->
+            <div class="card" style="margin-top: 1.5rem;">
+                <div class="card-header">
+                    <h3><i class="fas fa-list-ul" style="color: var(--info);"></i> Upcoming Posts Queue</h3>
+                </div>
+                <div class="card-body">
+                    <div id="upcomingPostsList" style="display: flex; flex-direction: column; gap: 1rem;">
+                        <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                            <i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                            <p>Loading queue...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Posts -->
+            <div class="card" style="margin-top: 1.5rem;">
+                <div class="card-header">
+                    <h3><i class="fas fa-history" style="color: var(--success);"></i> Recently Posted</h3>
+                </div>
+                <div class="card-body">
+                    <div id="recentPostsList" style="display: flex; flex-direction: column; gap: 1rem;">
+                        <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                            <p>No recent posts</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Automation Settings -->
+            <div class="card" style="margin-top: 1.5rem;">
+                <div class="card-header">
+                    <h3><i class="fas fa-cog" style="color: var(--warning);"></i> Automation Settings</h3>
+                </div>
+                <div class="card-body">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+                        <div style="padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 12px;">
+                            <h4 style="margin-bottom: 0.5rem; color: var(--text-primary);">
+                                <i class="fas fa-clock" style="color: var(--info);"></i> Daily Processing
+                            </h4>
+                            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                                Queue is processed daily at 9 AM ET
+                            </p>
+                            <div id="triggerStatus" style="font-size: 0.8rem; color: var(--success);">
+                                <i class="fas fa-check-circle"></i> Trigger active
+                            </div>
+                        </div>
+                        <div style="padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 12px;">
+                            <h4 style="margin-bottom: 0.5rem; color: var(--text-primary);">
+                                <i class="fas fa-magic" style="color: var(--purple);"></i> Auto-Generation
+                            </h4>
+                            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                                Content generated every Sunday at 6 AM ET
+                            </p>
+                            <div id="genTriggerStatus" style="font-size: 0.8rem; color: var(--success);">
+                                <i class="fas fa-check-circle"></i> Trigger active
+                            </div>
+                        </div>
+                        <div style="padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 12px;">
+                            <h4 style="margin-bottom: 0.5rem; color: var(--text-primary);">
+                                <i class="fab fa-google" style="color: var(--warning);"></i> GBP Posting
+                            </h4>
+                            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                                Google Business Profile integration
+                            </p>
+                            <div id="gbpStatus" style="font-size: 0.8rem; color: var(--text-secondary);">
+                                <i class="fas fa-info-circle"></i> Check status...
+                            </div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 1.5rem; display: flex; gap: 0.75rem;">
+                        <button class="btn btn-secondary" onclick="setupAutomationTriggers()">
+                            <i class="fas fa-play-circle"></i> Setup/Reset Triggers
+                        </button>
+                        <button class="btn btn-secondary" onclick="initializeQueue()">
+                            <i class="fas fa-database"></i> Initialize Queue Sheet
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- SETTINGS TAB -->
         <div id="settingsTab" class="tab-content">
             <div class="card">
@@ -4898,6 +5602,552 @@
                     </div>
                 `;
             }).join('');
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // CONTENT CALENDAR - 7-DAY VIEW WITH GAPS DETECTION
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        let contentCalendarData = [];
+        let photoLibraryData = [];
+        let toddInputData = null;
+
+        async function loadContentCalendar() {
+            const grid = document.getElementById('contentCalendarGrid');
+            if (!grid) return;
+
+            try {
+                // Fetch queue data from API
+                const response = await fetch(`${API_URL}?action=getMarketingQueue`);
+                const result = await response.json();
+
+                if (result.success) {
+                    contentCalendarData = result.queue || [];
+                    renderContentCalendar();
+                    updateContentGaps();
+                    updateQuickStats();
+                } else {
+                    // Show empty calendar with placeholder
+                    renderEmptyContentCalendar();
+                }
+            } catch (error) {
+                console.error('Error loading content calendar:', error);
+                renderEmptyContentCalendar();
+            }
+        }
+
+        function renderContentCalendar() {
+            const grid = document.getElementById('contentCalendarGrid');
+            if (!grid) return;
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const days = [];
+
+            // Generate next 7 days
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(today);
+                date.setDate(today.getDate() + i);
+                days.push(date);
+            }
+
+            grid.innerHTML = days.map((date, index) => {
+                const dateStr = date.toISOString().split('T')[0];
+                const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+                const dayNumber = date.getDate();
+                const monthName = date.toLocaleDateString('en-US', { month: 'short' });
+                const isToday = index === 0;
+
+                // Filter posts for this day
+                const dayPosts = contentCalendarData.filter(post => {
+                    const postDate = new Date(post.scheduled_date || post.scheduledFor);
+                    return postDate.toISOString().split('T')[0] === dateStr;
+                });
+
+                const postCount = dayPosts.length;
+                let statusClass = 'needs-content';
+                let statusText = 'NEED CONTENT';
+                let statusColorClass = 'red';
+
+                if (postCount >= 2) {
+                    statusClass = 'has-posts';
+                    statusText = `${postCount} Posts Scheduled`;
+                    statusColorClass = 'green';
+                } else if (postCount === 1) {
+                    statusClass = 'few-posts';
+                    statusText = '1 Post (Need More)';
+                    statusColorClass = 'yellow';
+                }
+
+                // Calculate content mix for this day
+                const curated = dayPosts.filter(p => p.content_type === 'curated' || p.type === 'curated').length;
+                const original = dayPosts.filter(p => p.content_type === 'original' || p.type === 'original').length;
+                const personal = dayPosts.filter(p => p.content_type === 'personal' || p.type === 'personal').length;
+
+                return `
+                    <div class="calendar-day-card ${statusClass} ${isToday ? 'is-today' : ''}" data-date="${dateStr}">
+                        <div class="calendar-day-header">
+                            <div>
+                                <div class="day-name">${dayName}${isToday ? ' (Today)' : ''}</div>
+                                <div class="day-date">${monthName} ${dayNumber}</div>
+                            </div>
+                            ${isToday ? '<span style="background: var(--info); padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.65rem;">TODAY</span>' : ''}
+                        </div>
+                        <div class="calendar-day-body">
+                            <div class="calendar-day-status ${statusColorClass}">
+                                <i class="fas fa-${postCount === 0 ? 'exclamation-triangle' : postCount === 1 ? 'minus-circle' : 'check-circle'}"></i>
+                                ${statusText}
+                            </div>
+                            ${dayPosts.slice(0, 3).map(post => `
+                                <div class="calendar-post-item">
+                                    <div class="platform-icon">
+                                        <i class="${getPlatformIconClass(post.platform)}" style="color: ${getPlatformColorValue(post.platform)};"></i>
+                                    </div>
+                                    <div class="post-preview">${truncateText(post.content || post.contentPreview || 'Post content', 30)}</div>
+                                </div>
+                            `).join('')}
+                            ${dayPosts.length > 3 ? `<div style="font-size: 0.75rem; color: var(--text-secondary); text-align: center; padding: 0.25rem;">+${dayPosts.length - 3} more</div>` : ''}
+                            ${postCount === 0 ? `
+                                <button class="add-content-btn" onclick="quickAddContentForDate('${dateStr}')">
+                                    <i class="fas fa-plus"></i> Add Content
+                                </button>
+                            ` : ''}
+                        </div>
+                        <div class="calendar-day-footer">
+                            <div class="content-mix-indicator" title="Curated: ${curated}, Original: ${original}, Personal: ${personal}">
+                                ${curated > 0 ? '<span class="mix-dot curated"></span>'.repeat(Math.min(curated, 3)) : ''}
+                                ${original > 0 ? '<span class="mix-dot original"></span>'.repeat(Math.min(original, 3)) : ''}
+                                ${personal > 0 ? '<span class="mix-dot personal"></span>'.repeat(Math.min(personal, 3)) : ''}
+                                ${postCount === 0 ? '<span style="font-size: 0.7rem; color: var(--text-secondary);">No mix</span>' : ''}
+                            </div>
+                            <div style="display: flex; gap: 0.25rem;">
+                                ${getUniquePlatforms(dayPosts).map(p => `<i class="${getPlatformIconClass(p)}" style="font-size: 0.7rem; color: ${getPlatformColorValue(p)};"></i>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderEmptyContentCalendar() {
+            const grid = document.getElementById('contentCalendarGrid');
+            if (!grid) return;
+
+            const today = new Date();
+            const days = [];
+
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(today);
+                date.setDate(today.getDate() + i);
+                days.push(date);
+            }
+
+            grid.innerHTML = days.map((date, index) => {
+                const dateStr = date.toISOString().split('T')[0];
+                const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+                const dayNumber = date.getDate();
+                const monthName = date.toLocaleDateString('en-US', { month: 'short' });
+                const isToday = index === 0;
+
+                return `
+                    <div class="calendar-day-card needs-content ${isToday ? 'is-today' : ''}" data-date="${dateStr}">
+                        <div class="calendar-day-header">
+                            <div>
+                                <div class="day-name">${dayName}${isToday ? ' (Today)' : ''}</div>
+                                <div class="day-date">${monthName} ${dayNumber}</div>
+                            </div>
+                        </div>
+                        <div class="calendar-day-body">
+                            <div class="calendar-day-status red">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                NEED CONTENT
+                            </div>
+                            <button class="add-content-btn" onclick="quickAddContentForDate('${dateStr}')">
+                                <i class="fas fa-plus"></i> Add Content
+                            </button>
+                        </div>
+                        <div class="calendar-day-footer">
+                            <span style="font-size: 0.7rem; color: var(--text-secondary);">No posts</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Update gaps banner
+            updateContentGaps();
+        }
+
+        function getContentGaps() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const gaps = [];
+
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(today);
+                date.setDate(today.getDate() + i);
+                const dateStr = date.toISOString().split('T')[0];
+
+                const dayPosts = contentCalendarData.filter(post => {
+                    const postDate = new Date(post.scheduled_date || post.scheduledFor);
+                    return postDate.toISOString().split('T')[0] === dateStr;
+                });
+
+                if (dayPosts.length === 0) {
+                    gaps.push({
+                        date: date,
+                        dateStr: dateStr,
+                        dayName: date.toLocaleDateString('en-US', { weekday: 'long' })
+                    });
+                }
+            }
+
+            return gaps;
+        }
+
+        function updateContentGaps() {
+            const gaps = getContentGaps();
+            const banner = document.getElementById('contentGapsBanner');
+            const gapsList = document.getElementById('gapDaysList');
+            const badge = document.getElementById('contentGapsBadge');
+
+            if (gaps.length === 0) {
+                banner.classList.add('no-gaps');
+                banner.querySelector('.gaps-text i').className = 'fas fa-check-circle';
+                banner.querySelector('.gaps-text div div:first-child').textContent = 'All Days Covered!';
+                gapsList.textContent = 'Great job! You have content scheduled for all 7 days.';
+                banner.querySelector('.btn-primary').style.display = 'none';
+                badge.style.display = 'none';
+            } else {
+                banner.classList.remove('no-gaps');
+                banner.querySelector('.gaps-text i').className = 'fas fa-exclamation-triangle';
+                banner.querySelector('.gaps-text div div:first-child').textContent = 'Content Gaps Detected';
+                gapsList.textContent = gaps.map(g => g.dayName).join(', ');
+                banner.querySelector('.btn-primary').style.display = 'inline-flex';
+                badge.textContent = gaps.length;
+                badge.style.display = 'inline';
+            }
+        }
+
+        function updateQuickStats() {
+            // Posts this week
+            const postsThisWeek = contentCalendarData.length;
+            document.getElementById('postsThisWeek').textContent = postsThisWeek;
+
+            // Content mix
+            const curated = contentCalendarData.filter(p => p.content_type === 'curated' || p.type === 'curated').length;
+            const original = contentCalendarData.filter(p => p.content_type === 'original' || p.type === 'original').length;
+            const personal = contentCalendarData.filter(p => p.content_type === 'personal' || p.type === 'personal').length;
+            document.getElementById('contentMixDisplay').textContent = `C:${curated} O:${original} P:${personal}`;
+
+            // Platforms covered
+            const platforms = getUniquePlatforms(contentCalendarData);
+            const platformStatus = {
+                'instagram': platforms.includes('instagram') ? 'check' : 'times',
+                'facebook': platforms.includes('facebook') ? 'check' : 'times',
+                'gbp': platforms.includes('gbp') ? 'check' : 'times'
+            };
+
+            document.getElementById('platformsCovered').innerHTML = `
+                <span style="color: ${platformStatus.instagram === 'check' ? 'var(--success)' : 'var(--danger)'};">IG <i class="fas fa-${platformStatus.instagram}"></i></span>
+                <span style="color: ${platformStatus.facebook === 'check' ? 'var(--success)' : 'var(--danger)'}; margin-left: 0.5rem;">FB <i class="fas fa-${platformStatus.facebook}"></i></span>
+                <span style="color: ${platformStatus.gbp === 'check' ? 'var(--success)' : 'var(--danger)'}; margin-left: 0.5rem;">GBP <i class="fas fa-${platformStatus.gbp}"></i></span>
+            `;
+        }
+
+        async function generateContentForGaps() {
+            const gaps = getContentGaps();
+
+            if (gaps.length === 0) {
+                showToast('No content gaps to fill!', 'info');
+                return;
+            }
+
+            if (!confirm(`Generate AI content for ${gaps.length} days without posts?\n\nDays: ${gaps.map(g => g.dayName).join(', ')}`)) {
+                return;
+            }
+
+            showToast('Generating content for gaps... this may take a moment', 'info');
+
+            try {
+                const response = await fetch(`${API_URL}?action=generateContentForGaps`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'generateContentForGaps',
+                        dates: gaps.map(g => g.dateStr),
+                        platforms: ['instagram', 'facebook', 'gbp']
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast(`Generated ${result.generated || gaps.length} posts for gap days!`, 'success');
+                    await loadContentCalendar();
+                } else {
+                    showToast('Failed to generate content: ' + (result.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                console.error('Error generating content for gaps:', error);
+                showToast('Error generating content. Check console.', 'error');
+            }
+        }
+
+        function quickAddContentForDate(dateStr) {
+            // Switch to auto-pilot tab with date pre-filled
+            switchTab('autopilot');
+
+            // Pre-fill the date in the queue form
+            const dateInput = document.getElementById('queueScheduledDate');
+            if (dateInput) {
+                // Set to 10 AM on the selected date
+                dateInput.value = `${dateStr}T10:00`;
+            }
+
+            showToast(`Adding content for ${new Date(dateStr).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}`, 'info');
+        }
+
+        // Helper functions
+        function getPlatformIconClass(platform) {
+            const icons = {
+                'instagram': 'fab fa-instagram',
+                'facebook': 'fab fa-facebook',
+                'gbp': 'fab fa-google',
+                'tiktok': 'fab fa-tiktok',
+                'twitter': 'fab fa-twitter',
+                'threads': 'fas fa-at'
+            };
+            return icons[platform?.toLowerCase()] || 'fas fa-globe';
+        }
+
+        function getPlatformColorValue(platform) {
+            const colors = {
+                'instagram': '#E1306C',
+                'facebook': '#4267B2',
+                'gbp': '#4285F4',
+                'tiktok': '#fff',
+                'twitter': '#1DA1F2',
+                'threads': '#000'
+            };
+            return colors[platform?.toLowerCase()] || 'var(--text-secondary)';
+        }
+
+        function getUniquePlatforms(posts) {
+            return [...new Set(posts.map(p => p.platform?.toLowerCase()).filter(Boolean))];
+        }
+
+        function truncateText(text, maxLength) {
+            if (!text) return '';
+            if (text.length <= maxLength) return text;
+            return text.substring(0, maxLength) + '...';
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // PHOTO LIBRARY INTEGRATION
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        async function loadPhotoLibrary() {
+            const grid = document.getElementById('photoLibraryGrid');
+            if (!grid) return;
+
+            try {
+                const response = await fetch(`${API_URL}?action=getFarmPics`);
+                const result = await response.json();
+
+                if (result.success && result.photos && result.photos.length > 0) {
+                    photoLibraryData = result.photos;
+                    renderPhotoLibrary();
+                } else if (farmPicsData && farmPicsData.length > 0) {
+                    // Use existing farmPicsData if available
+                    photoLibraryData = farmPicsData;
+                    renderPhotoLibrary();
+                } else {
+                    grid.innerHTML = `
+                        <div style="text-align: center; padding: 2rem; color: var(--text-secondary); grid-column: span 3;">
+                            <i class="fas fa-images" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                            <p>No photos available. Upload photos to MARKETING_FarmPics.</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading photo library:', error);
+                // Try to use existing farmPicsData
+                if (farmPicsData && farmPicsData.length > 0) {
+                    photoLibraryData = farmPicsData;
+                    renderPhotoLibrary();
+                }
+            }
+        }
+
+        function renderPhotoLibrary(filter = 'all') {
+            const grid = document.getElementById('photoLibraryGrid');
+            if (!grid) return;
+
+            let filtered = photoLibraryData;
+
+            if (filter !== 'all') {
+                if (filter === 'unused') {
+                    filtered = photoLibraryData.filter(p => p.status !== 'used');
+                } else {
+                    filtered = photoLibraryData.filter(p => p.category === filter);
+                }
+            }
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary); grid-column: span 3;">
+                        <i class="fas fa-filter" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                        <p>No photos match this filter.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = filtered.map(photo => `
+                <div class="photo-library-item" data-id="${photo.id}">
+                    <img src="${photo.url || photo.thumbnailUrl || 'https://via.placeholder.com/150'}" alt="${photo.caption || 'Farm photo'}">
+                    <div class="photo-overlay">
+                        <button class="use-photo-btn" onclick="createPostFromPhoto('${photo.id}')">
+                            <i class="fas fa-share"></i> Use This Photo
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterPhotoLibrary(filter) {
+            renderPhotoLibrary(filter);
+        }
+
+        async function createPostFromPhoto(photoId) {
+            const photo = photoLibraryData.find(p => p.id == photoId);
+            if (!photo) {
+                showToast('Photo not found', 'error');
+                return;
+            }
+
+            // Switch to field mode with photo pre-loaded
+            switchTab('fieldmode');
+
+            // Load the photo into field mode
+            const preview = document.getElementById('uploadPreview');
+            if (preview) {
+                preview.src = photo.url || photo.thumbnailUrl;
+                preview.classList.add('visible');
+            }
+
+            const uploadIcon = document.getElementById('uploadIcon');
+            if (uploadIcon) uploadIcon.style.display = 'none';
+
+            const uploadText = document.getElementById('uploadText');
+            if (uploadText) uploadText.textContent = 'Photo from library: ' + (photo.caption || 'Farm photo');
+
+            // Store reference for posting
+            selectedFile = { name: 'photo_' + photoId, url: photo.url };
+
+            showToast('Photo loaded! Add your caption and post.', 'success');
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // TODD'S INPUT SECTION
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        async function loadToddInput() {
+            const responseEl = document.getElementById('toddPromptResponse');
+            const postsList = document.getElementById('generatedPostsList');
+
+            try {
+                const response = await fetch(`${API_URL}?action=getToddLatestInput`);
+                const result = await response.json();
+
+                if (result.success && result.input) {
+                    toddInputData = result.input;
+
+                    responseEl.innerHTML = `
+                        <p style="color: var(--text-primary);">"${result.input.response}"</p>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.5rem;">
+                            <i class="fas fa-calendar"></i> ${new Date(result.input.timestamp).toLocaleDateString()}
+                            ${result.input.prompt ? `<span style="margin-left: 1rem;"><i class="fas fa-question-circle"></i> Prompt: ${result.input.prompt}</span>` : ''}
+                        </div>
+                    `;
+
+                    // Show generated posts if any
+                    if (result.generatedPosts && result.generatedPosts.length > 0) {
+                        postsList.innerHTML = result.generatedPosts.map(post => `
+                            <div class="generated-post-item">
+                                <i class="${getPlatformIconClass(post.platform)}" style="color: ${getPlatformColorValue(post.platform)};"></i>
+                                <div style="flex: 1; font-size: 0.85rem; color: var(--text-secondary);">${truncateText(post.content, 60)}</div>
+                                <span style="font-size: 0.7rem; color: ${post.status === 'posted' ? 'var(--success)' : 'var(--warning)'};">
+                                    ${post.status === 'posted' ? 'Posted' : 'Queued'}
+                                </span>
+                            </div>
+                        `).join('');
+                    } else {
+                        postsList.innerHTML = `
+                            <div style="text-align: center; padding: 1rem; color: var(--text-secondary); font-size: 0.85rem;">
+                                No posts generated yet. Click "Generate More From This" to create posts.
+                            </div>
+                        `;
+                    }
+                } else {
+                    responseEl.innerHTML = `
+                        <p style="text-align: center; color: var(--text-secondary);">
+                            No recent writing prompts from Todd. Use the mobile app to capture thoughts!
+                        </p>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading Todd input:', error);
+                responseEl.innerHTML = `
+                    <p style="text-align: center; color: var(--text-secondary);">
+                        Could not load Todd's input. The API endpoint may need to be deployed.
+                    </p>
+                `;
+            }
+        }
+
+        async function generateFromToddInput() {
+            if (!toddInputData) {
+                showToast('No input from Todd to generate from. Load input first.', 'error');
+                return;
+            }
+
+            showToast('Generating posts from Todd\'s input...', 'info');
+
+            try {
+                const response = await fetch(`${API_URL}?action=generateFromToddInput`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'generateFromToddInput',
+                        inputId: toddInputData.id,
+                        inputText: toddInputData.response,
+                        platforms: ['instagram', 'facebook']
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast(`Generated ${result.generated || 'new'} posts from Todd's input!`, 'success');
+                    await loadToddInput();
+                    await loadContentCalendar();
+                } else {
+                    showToast('Failed to generate: ' + (result.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                console.error('Error generating from Todd input:', error);
+                showToast('Error generating content. Check console.', 'error');
+            }
+        }
+
+        function requestNewPrompt() {
+            showToast('Sending writing prompt request to Todd...', 'info');
+            // This would trigger an SMS or notification to Todd
+            // For now, show a message
+            setTimeout(() => {
+                showToast('Feature coming soon! For now, use the mobile app to capture thoughts.', 'info');
+            }, 1000);
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -5911,6 +7161,10 @@
 
             // Initialize AI Intelligence Engine with 2026 research
             initAIIntelligence();
+
+            // Initialize Content Calendar (lazy load on tab switch)
+            // Pre-load data for quick access
+            loadContentCalendar();
 
             console.log('Marketing Command Center v4.0 - STATE OF THE ART - Active!');
         });
@@ -8215,6 +9469,413 @@
             if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
             return num?.toLocaleString() || '0';
         }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // AUTO-PILOT TAB FUNCTIONALITY
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        async function loadAutoPilotStatus() {
+            try {
+                const response = await fetch(`${API_URL}?action=getMarketingAutomationStatus`);
+                const result = await response.json();
+
+                if (result.success) {
+                    // Update stats
+                    document.getElementById('pendingPostsCount').textContent = result.queue?.pending || 0;
+                    document.getElementById('postedThisWeek').textContent = result.queue?.posted || 0;
+                    document.getElementById('failedPostsCount').textContent = result.queue?.failed || 0;
+
+                    // Update status indicators
+                    if (result.status?.queueActive) {
+                        document.getElementById('queueStatus').innerHTML = '<i class="fas fa-check-circle"></i>';
+                        document.getElementById('queueStatusText').innerHTML = '<i class="fas fa-plane"></i> Active';
+                        document.getElementById('triggerStatus').innerHTML = '<i class="fas fa-check-circle"></i> Trigger active';
+                        document.getElementById('triggerStatus').style.color = 'var(--success)';
+                    } else {
+                        document.getElementById('queueStatus').innerHTML = '<i class="fas fa-pause-circle"></i>';
+                        document.getElementById('queueStatus').style.color = 'var(--warning)';
+                        document.getElementById('queueStatusText').innerHTML = '<i class="fas fa-pause"></i> Paused';
+                        document.getElementById('triggerStatus').innerHTML = '<i class="fas fa-times-circle"></i> Trigger inactive';
+                        document.getElementById('triggerStatus').style.color = 'var(--danger)';
+                    }
+
+                    if (result.status?.autoGenerationActive) {
+                        document.getElementById('genTriggerStatus').innerHTML = '<i class="fas fa-check-circle"></i> Trigger active';
+                        document.getElementById('genTriggerStatus').style.color = 'var(--success)';
+                    } else {
+                        document.getElementById('genTriggerStatus').innerHTML = '<i class="fas fa-times-circle"></i> Trigger inactive';
+                        document.getElementById('genTriggerStatus').style.color = 'var(--danger)';
+                    }
+
+                    if (result.status?.gbpConfigured) {
+                        document.getElementById('gbpStatus').innerHTML = '<i class="fas fa-check-circle"></i> Configured';
+                        document.getElementById('gbpStatus').style.color = 'var(--success)';
+                    } else {
+                        document.getElementById('gbpStatus').innerHTML = '<i class="fas fa-exclamation-circle"></i> Not configured (posts saved for manual)';
+                        document.getElementById('gbpStatus').style.color = 'var(--warning)';
+                    }
+
+                    // Load upcoming posts
+                    renderUpcomingPosts(result.upcomingPosts || []);
+                    renderRecentPosts(result.recentPosts || []);
+                }
+            } catch (error) {
+                console.error('Error loading auto-pilot status:', error);
+                showNotification('Failed to load Auto-Pilot status', 'error');
+            }
+        }
+
+        function renderUpcomingPosts(posts) {
+            const container = document.getElementById('upcomingPostsList');
+
+            if (!posts || posts.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        <i class="fas fa-inbox" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                        <p>No posts in queue. Click "Generate Week" to auto-create content!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = posts.map(post => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 12px; border-left: 3px solid ${getPlatformColor(post.platform)};">
+                    <div style="flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                            <i class="${getPlatformIcon(post.platform)}" style="color: ${getPlatformColor(post.platform)};"></i>
+                            <span style="font-weight: 600; text-transform: capitalize;">${post.platform}</span>
+                            <span style="font-size: 0.8rem; color: var(--text-secondary); padding: 0.25rem 0.5rem; background: rgba(255,255,255,0.1); border-radius: 4px;">${post.type || 'general'}</span>
+                        </div>
+                        <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.4;">${post.contentPreview}</p>
+                        <p style="font-size: 0.75rem; color: var(--info); margin-top: 0.5rem;">
+                            <i class="fas fa-clock"></i> Scheduled: ${formatScheduledDate(post.scheduledFor)}
+                        </p>
+                    </div>
+                    <button class="btn btn-sm" onclick="postQueueItemNow('${post.queueId}')" style="white-space: nowrap;">
+                        <i class="fas fa-paper-plane"></i> Post Now
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function renderRecentPosts(posts) {
+            const container = document.getElementById('recentPostsList');
+
+            if (!posts || posts.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        <p>No recent posts</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = posts.map(post => `
+                <div style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem; background: rgba(34, 197, 94, 0.1); border-radius: 8px;">
+                    <i class="${getPlatformIcon(post.platform)}" style="color: ${getPlatformColor(post.platform)};"></i>
+                    <div style="flex: 1;">
+                        <p style="font-size: 0.85rem; color: var(--text-primary);">${post.contentPreview}</p>
+                        <p style="font-size: 0.75rem; color: var(--success);">
+                            <i class="fas fa-check"></i> Posted: ${formatScheduledDate(post.postedAt)}
+                        </p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getPlatformIcon(platform) {
+            const icons = {
+                'instagram': 'fab fa-instagram',
+                'facebook': 'fab fa-facebook',
+                'gbp': 'fab fa-google',
+                'tiktok': 'fab fa-tiktok',
+                'twitter': 'fab fa-twitter'
+            };
+            return icons[platform] || 'fas fa-globe';
+        }
+
+        function getPlatformColor(platform) {
+            const colors = {
+                'instagram': '#E1306C',
+                'facebook': '#4267B2',
+                'gbp': '#4285F4',
+                'tiktok': '#000000',
+                'twitter': '#1DA1F2'
+            };
+            return colors[platform] || 'var(--primary)';
+        }
+
+        function formatScheduledDate(dateStr) {
+            if (!dateStr) return 'Not scheduled';
+            const date = new Date(dateStr);
+            const now = new Date();
+            const tomorrow = new Date(now);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+
+            if (date.toDateString() === now.toDateString()) {
+                return 'Today at ' + date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+            } else if (date.toDateString() === tomorrow.toDateString()) {
+                return 'Tomorrow at ' + date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+            }
+            return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+        }
+
+        async function addToQueue() {
+            const platform = document.getElementById('queuePlatform').value;
+            const contentType = document.getElementById('queueContentType').value;
+            const content = document.getElementById('queueContent').value;
+            const scheduledDate = document.getElementById('queueScheduledDate').value;
+            const mediaUrl = document.getElementById('queueMediaUrl').value;
+
+            if (!content) {
+                showNotification('Please enter content or generate AI content first', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}?action=addToMarketingQueue`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'addToMarketingQueue',
+                        platform: platform,
+                        content_type: contentType,
+                        content: content,
+                        scheduled_date: scheduledDate,
+                        media_url: mediaUrl,
+                        generated_by: 'manual'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showNotification('Added to queue! ' + (result.message || ''), 'success');
+                    document.getElementById('queueContent').value = '';
+                    loadAutoPilotStatus();
+                } else {
+                    showNotification('Failed to add: ' + (result.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                console.error('Error adding to queue:', error);
+                showNotification('Error adding to queue', 'error');
+            }
+        }
+
+        async function generateAIContent() {
+            const platform = document.getElementById('queuePlatform').value;
+            const contentType = document.getElementById('queueContentType').value;
+
+            showNotification('Generating AI content...', 'info');
+
+            try {
+                const response = await fetch(`${API_URL}?action=generateMarketingContent&platform=${platform}&contentType=${contentType}`);
+                const result = await response.json();
+
+                if (result.success && result.content) {
+                    document.getElementById('queueContent').value = result.content;
+                    showNotification('AI content generated!', 'success');
+                } else {
+                    showNotification('Failed to generate: ' + (result.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                console.error('Error generating content:', error);
+                showNotification('Error generating content', 'error');
+            }
+        }
+
+        async function postImmediately() {
+            const platform = document.getElementById('queuePlatform').value;
+            const content = document.getElementById('queueContent').value;
+            const mediaUrl = document.getElementById('queueMediaUrl').value;
+
+            if (!content) {
+                showNotification('Please enter content first', 'error');
+                return;
+            }
+
+            if (!confirm('Post immediately to ' + platform + '?')) return;
+
+            showNotification('Posting...', 'info');
+
+            try {
+                const response = await fetch(`${API_URL}?action=postNow`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'postNow',
+                        platform: platform,
+                        content: content,
+                        media_url: mediaUrl
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showNotification('Posted successfully!', 'success');
+                    document.getElementById('queueContent').value = '';
+                    loadAutoPilotStatus();
+                } else {
+                    showNotification('Failed to post: ' + (result.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                console.error('Error posting:', error);
+                showNotification('Error posting', 'error');
+            }
+        }
+
+        async function generateWeekContent() {
+            if (!confirm('Generate a week of content using AI? This will add 7+ posts to your queue.')) return;
+
+            showNotification('Generating content for the week... this may take a minute', 'info');
+
+            try {
+                const response = await fetch(`${API_URL}?action=generateWeeklyMarketingContent`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'generateWeeklyMarketingContent',
+                        useAI: true,
+                        platforms: ['instagram', 'facebook', 'gbp']
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showNotification(`Generated ${result.results?.generated || 0} posts, queued ${result.results?.queued || 0}!`, 'success');
+                    loadAutoPilotStatus();
+                } else {
+                    showNotification('Failed: ' + (result.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                console.error('Error generating week:', error);
+                showNotification('Error generating content', 'error');
+            }
+        }
+
+        async function processQueueNow() {
+            if (!confirm('Process all scheduled posts in the queue now?')) return;
+
+            showNotification('Processing queue...', 'info');
+
+            try {
+                const response = await fetch(`${API_URL}?action=processMarketingQueue`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'processMarketingQueue' })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showNotification(result.message || 'Queue processed!', 'success');
+                    loadAutoPilotStatus();
+                } else {
+                    showNotification('Failed: ' + (result.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                console.error('Error processing queue:', error);
+                showNotification('Error processing queue', 'error');
+            }
+        }
+
+        async function setupAutomationTriggers() {
+            if (!confirm('Set up daily automation triggers? This will enable automatic posting at 9 AM ET daily.')) return;
+
+            try {
+                const response = await fetch(`${API_URL}?action=setupMarketingAutomationTrigger`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'setupMarketingAutomationTrigger' })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showNotification('Automation triggers activated!', 'success');
+                    loadAutoPilotStatus();
+                } else {
+                    showNotification('Failed: ' + (result.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                console.error('Error setting up triggers:', error);
+                showNotification('Error setting up triggers', 'error');
+            }
+        }
+
+        async function initializeQueue() {
+            try {
+                const response = await fetch(`${API_URL}?action=initializeMarketingQueue`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'initializeMarketingQueue' })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showNotification('Queue sheet initialized!', 'success');
+                } else {
+                    showNotification('Failed: ' + (result.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                console.error('Error initializing queue:', error);
+                showNotification('Error initializing queue', 'error');
+            }
+        }
+
+        async function postQueueItemNow(queueId) {
+            if (!confirm('Post this item immediately?')) return;
+
+            showNotification('Posting...', 'info');
+
+            try {
+                const response = await fetch(`${API_URL}?action=postNow`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'postNow',
+                        queueId: queueId
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showNotification('Posted!', 'success');
+                    loadAutoPilotStatus();
+                } else {
+                    showNotification('Failed: ' + (result.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                console.error('Error posting:', error);
+                showNotification('Error posting', 'error');
+            }
+        }
+
+        // Load tab-specific data when tab is shown
+        const originalSwitchTab = switchTab;
+        switchTab = function(tabId) {
+            // Call original
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.closest('.tab-btn')?.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(tabId + 'Tab')?.classList.add('active');
+
+            // Load data for auto-pilot tab
+            if (tabId === 'autopilot') {
+                loadAutoPilotStatus();
+            }
+
+            // Load data for content calendar tab
+            if (tabId === 'contentcalendar') {
+                loadContentCalendar();
+                loadPhotoLibrary();
+                loadToddInput();
+            }
+        };
     </script>
 </body>
 </html>

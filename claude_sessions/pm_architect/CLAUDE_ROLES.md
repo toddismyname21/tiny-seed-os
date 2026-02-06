@@ -97,7 +97,7 @@ This document defines the specialized roles and responsibilities for each Claude
 ```bash
 cd /Users/samanthapollack/Documents/TIny_Seed_OS/apps_script
 clasp push
-clasp deploy -i "AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc" -d "Description"
+clasp deploy -i "AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm" -d "Description"
 ```
 
 ## OUTBOX Requirements

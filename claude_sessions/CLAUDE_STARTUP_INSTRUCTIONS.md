@@ -102,7 +102,7 @@ View all Claude activity: `web_app/claude-coordination.html`
 ## CURRENT API DEPLOYMENT
 
 ```
-Deployment ID: AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp
+Deployment ID: AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm
 Version: v201
 Live Site: https://app.tinyseedfarm.com
 ```
@@ -120,5 +120,5 @@ git push origin main
 # Deploy Apps Script (backend)
 cd /Users/samanthapollack/Documents/TIny_Seed_OS/apps_script
 PATH="/opt/homebrew/bin:$PATH" clasp push
-PATH="/opt/homebrew/bin:$PATH" clasp deploy -i "AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp" -d "v202: Description"
+PATH="/opt/homebrew/bin:$PATH" clasp deploy -i "AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm" -d "v202: Description"
 ```

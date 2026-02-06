@@ -1,0 +1,700 @@
+{
+  "registry_version": "1.0.0",
+  "created_at": "2026-02-04T00:00:00Z",
+  "description": "TinyPM Schema Registry - Canonical schemas for inter-agent communication",
+  "schemas": {
+    "scoring_contract": {
+      "1.0.0": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://tinypm.dev/schemas/scoring_contract/1.0.0",
+        "title": "Scoring Contract",
+        "description": "Contract for AI priority scoring inputs and outputs. Ensures deterministic, reproducible scoring.",
+        "type": "object",
+        "required": ["input_hash", "parameters", "calculator_id"],
+        "properties": {
+          "input_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "description": "SHA-256 hash of scoring inputs for reproducibility"
+          },
+          "parameters": {
+            "type": "object",
+            "description": "Scoring parameters used in calculation",
+            "properties": {
+              "deadline_weight": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "weather_weight": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "dependency_weight": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "revenue_weight": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "manual_weight": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "workload_weight": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            }
+          },
+          "calculator_id": {
+            "type": "string",
+            "description": "Identifier for the scoring calculator version"
+          },
+          "calculator_version": {
+            "type": "string",
+            "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+            "description": "Semantic version of the calculator"
+          },
+          "output": {
+            "type": "object",
+            "properties": {
+              "score": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100,
+                "description": "Calculated priority score (0-100)"
+              },
+              "confidence": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1,
+                "description": "Confidence in the score (0.0-1.0)"
+              },
+              "factors": {
+                "type": "object",
+                "description": "Individual factor contributions to the score"
+              }
+            },
+            "required": ["score", "confidence"]
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "decision_record": {
+      "1.0.0": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://tinypm.dev/schemas/decision_record/1.0.0",
+        "title": "Decision Record",
+        "description": "Audit record for any agent decision. Provides full traceability and forensic analysis capability.",
+        "type": "object",
+        "required": ["id", "timestamp", "agent_id", "action", "lineage_anchor"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Unique identifier for this decision"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the decision was made (ISO 8601)"
+          },
+          "agent_id": {
+            "type": "string",
+            "description": "Identifier of the agent making the decision"
+          },
+          "agent_role": {
+            "type": "string",
+            "enum": ["architect", "alchemist", "governor", "pm", "builder", "critic"],
+            "description": "Role of the agent in the system"
+          },
+          "action": {
+            "type": "string",
+            "description": "The action taken (e.g., 'approve', 'reject', 'escalate', 'assign')"
+          },
+          "action_category": {
+            "type": "string",
+            "enum": ["task", "proposal", "negotiation", "escalation", "notification", "system"],
+            "description": "Category of the action"
+          },
+          "target": {
+            "type": "object",
+            "description": "What the action was performed on",
+            "properties": {
+              "type": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              }
+            }
+          },
+          "rationale": {
+            "type": "string",
+            "description": "Human-readable explanation for the decision"
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Agent's confidence in this decision"
+          },
+          "lineage_anchor": {
+            "type": "object",
+            "description": "Cryptographic anchor for forensic traceability",
+            "required": ["input_hash", "model_id", "vault_version"],
+            "properties": {
+              "input_hash": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$",
+                "description": "SHA-256 hash of all inputs to this decision"
+              },
+              "model_id": {
+                "type": "string",
+                "description": "AI model identifier used for this decision"
+              },
+              "model_version": {
+                "type": "string",
+                "description": "Version of the AI model"
+              },
+              "vault_version": {
+                "type": "string",
+                "description": "Seed Vault version at time of decision"
+              },
+              "parent_decisions": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "description": "IDs of decisions that led to this one"
+              }
+            }
+          },
+          "context": {
+            "type": "object",
+            "description": "Additional context for the decision"
+          },
+          "outcome": {
+            "type": "object",
+            "description": "Result of the decision (filled in after execution)",
+            "properties": {
+              "success": {
+                "type": "boolean"
+              },
+              "result": {
+                "type": "object"
+              },
+              "error": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "extraction_result": {
+      "1.0.0": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://tinypm.dev/schemas/extraction_result/1.0.0",
+        "title": "Extraction Result",
+        "description": "Result of AI extraction from unstructured input (text, images, etc.)",
+        "type": "object",
+        "required": ["extraction_id", "source_type", "extracted_at", "extractor_id"],
+        "properties": {
+          "extraction_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Unique identifier for this extraction"
+          },
+          "source_type": {
+            "type": "string",
+            "enum": ["text", "image", "audio", "document", "email", "voice"],
+            "description": "Type of source that was processed"
+          },
+          "source_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "description": "SHA-256 hash of the source content"
+          },
+          "extracted_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "extractor_id": {
+            "type": "string",
+            "description": "Identifier of the extraction model/service"
+          },
+          "extractor_version": {
+            "type": "string"
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Overall confidence in the extraction"
+          },
+          "entities": {
+            "type": "array",
+            "description": "Extracted entities",
+            "items": {
+              "type": "object",
+              "required": ["type", "value"],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "description": "Entity type (e.g., 'task', 'date', 'person', 'amount')"
+                },
+                "value": {
+                  "description": "Extracted value"
+                },
+                "confidence": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "source_span": {
+                  "type": "object",
+                  "properties": {
+                    "start": { "type": "integer" },
+                    "end": { "type": "integer" }
+                  }
+                },
+                "normalized_value": {
+                  "description": "Normalized/canonical form of the value"
+                }
+              }
+            }
+          },
+          "intent": {
+            "type": "object",
+            "description": "Detected intent from the source",
+            "properties": {
+              "primary": {
+                "type": "string",
+                "description": "Primary intent (e.g., 'create_task', 'ask_question', 'report_status')"
+              },
+              "confidence": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "secondary": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "suggested_actions": {
+            "type": "array",
+            "description": "Actions suggested based on extraction",
+            "items": {
+              "type": "object",
+              "properties": {
+                "action": { "type": "string" },
+                "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+                "parameters": { "type": "object" }
+              }
+            }
+          },
+          "raw_text": {
+            "type": "string",
+            "description": "Original text if source was text-based"
+          },
+          "warnings": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Extraction warnings (e.g., low confidence, ambiguity)"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "negotiation_message": {
+      "1.0.0": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://tinypm.dev/schemas/negotiation_message/1.0.0",
+        "title": "Negotiation Message",
+        "description": "Message in the P2P negotiation protocol between Architects and Alchemists",
+        "type": "object",
+        "required": ["message_id", "channel_id", "message_type", "sender", "timestamp"],
+        "properties": {
+          "message_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Unique identifier for this message"
+          },
+          "channel_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Negotiation channel this message belongs to"
+          },
+          "thread_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Thread within the channel (for multi-topic negotiations)"
+          },
+          "message_type": {
+            "type": "string",
+            "enum": ["propose", "bid", "counter", "accept", "reject", "escalate", "clarify", "withdraw"],
+            "description": "Type of negotiation message"
+          },
+          "sender": {
+            "type": "object",
+            "required": ["agent_id", "role"],
+            "properties": {
+              "agent_id": {
+                "type": "string"
+              },
+              "role": {
+                "type": "string",
+                "enum": ["architect", "alchemist", "governor"]
+              }
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "content": {
+            "type": "object",
+            "description": "Message content varies by message_type",
+            "properties": {
+              "description": {
+                "type": "string",
+                "description": "Human-readable description of the proposal/bid/counter"
+              },
+              "technical_cost": {
+                "type": "string",
+                "enum": ["low", "medium", "high", "prohibitive"],
+                "description": "Technical cost assessment (for bids)"
+              },
+              "latency_impact_ms": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Estimated latency impact in milliseconds"
+              },
+              "complexity_score": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 10,
+                "description": "Implementation complexity (0-10)"
+              },
+              "constraints": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": { "type": "string" },
+                    "type": { "type": "string" },
+                    "description": { "type": "string" }
+                  }
+                }
+              },
+              "research_citations": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "Research citations supporting the proposal"
+              },
+              "alternatives": {
+                "type": "array",
+                "items": { "type": "object" },
+                "description": "Alternative proposals/approaches"
+              }
+            }
+          },
+          "references_message": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID of message this is responding to"
+          },
+          "seed_vault_compliance": {
+            "type": "object",
+            "description": "Seed Vault rule compliance check",
+            "properties": {
+              "checked": { "type": "boolean" },
+              "compliant": { "type": "boolean" },
+              "violations": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "vault_version": { "type": "string" }
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Additional metadata"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "task_action": {
+      "1.0.0": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://tinypm.dev/schemas/task_action/1.0.0",
+        "title": "Task Action",
+        "description": "Schema for task-related operations (create, update, assign, complete)",
+        "type": "object",
+        "required": ["action", "task_id", "actor_id", "timestamp"],
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": ["create", "update", "assign", "unassign", "start", "complete", "cancel", "reopen", "comment", "prioritize"],
+            "description": "The action being performed on the task"
+          },
+          "task_id": {
+            "type": "string",
+            "description": "Unique identifier of the task"
+          },
+          "actor_id": {
+            "type": "string",
+            "description": "ID of the agent/user performing the action"
+          },
+          "actor_type": {
+            "type": "string",
+            "enum": ["human", "agent", "system", "automation"],
+            "description": "Type of actor"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "task_data": {
+            "type": "object",
+            "description": "Task data for create/update actions",
+            "properties": {
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              },
+              "description": {
+                "type": "string",
+                "maxLength": 10000
+              },
+              "status": {
+                "type": "string",
+                "enum": ["pending", "in_progress", "blocked", "completed", "cancelled"]
+              },
+              "priority": {
+                "type": "string",
+                "enum": ["low", "medium", "high", "critical"]
+              },
+              "ai_priority_score": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "due_date": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "assignee_id": {
+                "type": "string"
+              },
+              "tags": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "dependencies": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "IDs of tasks this task depends on"
+              }
+            }
+          },
+          "changes": {
+            "type": "object",
+            "description": "For update actions, the fields that changed",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "old": {},
+                "new": {}
+              }
+            }
+          },
+          "comment": {
+            "type": "string",
+            "description": "Comment or note associated with the action"
+          },
+          "source": {
+            "type": "object",
+            "description": "Source of the action",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["web", "api", "voice", "email", "sms", "automation", "import"]
+              },
+              "reference": {
+                "type": "string"
+              }
+            }
+          },
+          "idempotency_key": {
+            "type": "string",
+            "description": "Key for idempotent operations"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "agent_handoff": {
+      "1.0.0": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://tinypm.dev/schemas/agent_handoff/1.0.0",
+        "title": "Agent Handoff",
+        "description": "Schema for handoffs between agents (PM -> Builder, etc.)",
+        "type": "object",
+        "required": ["handoff_id", "from_agent", "to_agent", "timestamp", "payload_type"],
+        "properties": {
+          "handoff_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "from_agent": {
+            "type": "object",
+            "required": ["id", "role"],
+            "properties": {
+              "id": { "type": "string" },
+              "role": { "type": "string" }
+            }
+          },
+          "to_agent": {
+            "type": "object",
+            "required": ["id", "role"],
+            "properties": {
+              "id": { "type": "string" },
+              "role": { "type": "string" }
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "payload_type": {
+            "type": "string",
+            "enum": ["task", "question", "report", "instruction", "clarification", "escalation"],
+            "description": "Type of handoff payload"
+          },
+          "payload": {
+            "type": "object",
+            "description": "The actual handoff data"
+          },
+          "context": {
+            "type": "object",
+            "description": "Context for the receiving agent",
+            "properties": {
+              "summary": { "type": "string" },
+              "urgency": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+              "related_tasks": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "memory_references": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          },
+          "expected_response": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "deadline": { "type": "string", "format": "date-time" }
+            }
+          },
+          "acknowledgement": {
+            "type": "object",
+            "description": "Filled by receiving agent",
+            "properties": {
+              "acknowledged_at": { "type": "string", "format": "date-time" },
+              "status": { "type": "string", "enum": ["accepted", "rejected", "deferred"] },
+              "response": { "type": "object" }
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "system_health": {
+      "1.0.0": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://tinypm.dev/schemas/system_health/1.0.0",
+        "title": "System Health Report",
+        "description": "Schema for system health and status reports",
+        "type": "object",
+        "required": ["report_id", "timestamp", "overall_status"],
+        "properties": {
+          "report_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "overall_status": {
+            "type": "string",
+            "enum": ["healthy", "degraded", "critical", "maintenance"]
+          },
+          "components": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "enum": ["healthy", "degraded", "critical", "unknown"]
+                },
+                "latency_ms": { "type": "number" },
+                "error_rate": { "type": "number", "minimum": 0, "maximum": 1 },
+                "last_check": { "type": "string", "format": "date-time" },
+                "message": { "type": "string" }
+              }
+            }
+          },
+          "metrics": {
+            "type": "object",
+            "properties": {
+              "validation_pass_rate": { "type": "number", "minimum": 0, "maximum": 1 },
+              "validation_kill_count": { "type": "integer", "minimum": 0 },
+              "active_negotiations": { "type": "integer", "minimum": 0 },
+              "pending_tasks": { "type": "integer", "minimum": 0 },
+              "agent_count": { "type": "integer", "minimum": 0 }
+            }
+          },
+          "alerts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "level": { "type": "string", "enum": ["info", "warning", "error", "critical"] },
+                "component": { "type": "string" },
+                "message": { "type": "string" },
+                "timestamp": { "type": "string", "format": "date-time" }
+              }
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}

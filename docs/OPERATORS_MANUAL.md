@@ -40,7 +40,7 @@ This manual documents ALL functions in the Tiny Seed OS web application and Empl
 |-------------|-----|
 | **Main OS** | https://toddismyname21.github.io/tiny-seed-os/web_app/admin.html |
 | **Employee App** | https://toddismyname21.github.io/tiny-seed-os/employee.html |
-| **API Endpoint** | https://script.google.com/macros/s/AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc/exec |
+| **API Endpoint** | https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec |
 
 ### Login
 
@@ -741,7 +741,7 @@ The module creates/uses a SprayLog sheet:
 
 ### Base URL
 ```
-https://script.google.com/macros/s/AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp/exec
+https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec
 ```
 
 ### Key Endpoints (v362)

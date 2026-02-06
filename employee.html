@@ -1703,6 +1703,7 @@
         .more-item-icon.hazard { background: var(--danger-bg); color: var(--danger); }
         .more-item-icon.weed { background: rgba(139, 92, 246, 0.2); color: #8b5cf6; }
         .more-item-icon.cultivation { background: rgba(244, 162, 97, 0.2); color: var(--secondary); }
+        .more-item-icon.fieldcapture { background: linear-gradient(135deg, #0ea5e9, #0284c7); color: white; }
         .more-item-icon.settings { background: var(--bg-elevated); color: var(--text-secondary); }
 
         .more-item-text {
@@ -9257,6 +9258,17 @@
                             <p data-i18n="more.complianceDesc">Organic & FSMA traceability</p>
                         </div>
                         <span class="compliance-badge" id="complianceBadge" style="display: none;">0</span>
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+
+                    <div class="more-item" onclick="openFieldCapture()">
+                        <div class="more-item-icon fieldcapture">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </div>
+                        <div class="more-item-text">
+                            <h3 data-i18n="more.fieldcapture">GPS Field Capture</h3>
+                            <p data-i18n="more.fieldcaptureDesc">Walk boundaries to map fields</p>
+                        </div>
                         <i class="fas fa-chevron-right"></i>
                     </div>
 
@@ -18392,6 +18404,12 @@
 
         function openSettings() {
             showToast('Settings coming soon!', 'info');
+        }
+
+        function openFieldCapture() {
+            // Navigate to the Field Boundary Capture tool
+            const baseUrl = window.location.href.split('?')[0];
+            window.location.href = baseUrl + '?page=fieldcapture';
         }
 
         // ============================================

@@ -40,6 +40,68 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-02-06 - PM_Architect (THE GOVERNOR: Central AI Operations Governance)
+
+### Files Created
+- `tinypm/governor.py` (~1,200 lines) - Central Governor class with 6-level defense-in-depth
+- `tinypm/governor_api.py` (~200 lines) - REST API handlers for Governor dashboard
+- `tinypm/governor_integration.py` (~450 lines) - Integration helpers for pm_brain, pm_orchestrator, web_server
+- `tinypm/static/js/governor-ui.js` (~650 lines) - Governor dashboard UI with status banner
+
+### Files Modified
+- `tinypm/web_dashboard.html` - Added Governor UI script, Governor command center widget in Forensic Dashboard
+
+### Classes Added
+- `Governor` in `governor.py` - Main governance engine with 6 gate levels
+- `GovernorContext` - Request context for governance decisions
+- `GovernorResult` - Result of governance checks
+- `CircuitBreaker` - Resilience pattern for validator failures
+- `ValidatorCache` - TTL-based caching for validation results
+- `GovernorAuditLogger` - Immutable audit trail
+- `GovernorMetrics` - Operational metrics tracking
+- `PolicyRule` - Custom policy rule definitions
+- `GovernorUI` (JS) - Dashboard and status banner UI
+
+### Functions Added
+- `govern_llm_operation()` - Govern LLM calls through all 4 levels
+- `govern_action()` - Govern action executions through levels 1,2,5
+- `govern_persist()` - Govern persistence operations through levels 1,2,6
+- `governed_llm_call()` - Integration helper for any LLM call
+- `governed_anthropic_call()` - Convenience wrapper for Anthropic API
+- `governed_action()` - Integration helper for actions
+- `governed_save()` - Integration helper for file persistence
+- `wrap_pm_brain_suggestion()` - Decorator for pm_brain.py
+- `wrap_pm_orchestrator_action()` - Decorator for pm_orchestrator.py
+- `loadGovernorStats()` - JS function to load Governor stats in Forensic Dashboard
+
+### Architecture
+The Governor implements 6-level defense-in-depth:
+1. **Intake Gate** - Request filtering (auth, rate limiting, safe mode)
+2. **Context Sandbox** - Data protection (RBAC, conflict detection)
+3. **Pre-LLM Guard** - Instruction constraints (prompt injection, normalization)
+4. **Post-Response Validator** - Output safety (schema, hallucination detection)
+5. **Action Gate** - Execution authorization (financial limits, override hygiene)
+6. **Persistence Gate** - State protection (transition validation, decision replay)
+
+Integrates all 11 Sovereign Seed systems:
+- Phase 1: Stable Anchors, Normalization, Overlap Validator
+- Phase 2: Structural Gate, Conflict Detector, RBAC, Circuit Breaker
+- Phase 3: ETC Pipeline, Decision Replay
+- Phase 4: Override Hygiene, Intelligent Safe Mode
+
+### Reason
+User requested research into best practices for AI governance integration, then creation of
+a Governor that automatically routes all AI operations through the 11 Sovereign Seed systems.
+Research covered: AI middleware patterns, Policy-as-Code (OPA), circuit breakers, hierarchical
+policy evaluation, and TinyPM architecture analysis for injection points.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created - Governor is a NEW central integration layer
+
+---
+
 ## 2026-02-05 - Desktop_Claude (Task Assignment & Admin Auth Fix)
 
 ### Files Modified
@@ -5678,7 +5740,7 @@ User requested ability to communicate with ALL spawned bots, not just PM/Builder
 ### Changes Made
 1. **Fixed API Endpoint** - Changed from old deployment to production API
    - Old: `AKfycbx8syGK5Bm60fypNO0yE60BYtTFJXxviaEtgrqENmF5GStB58UCEA4Shu_IF9r6kjf5`
-   - New: `AKfycbxwlNBHBKBS1sSDHXFbnmuZvhNpHlKi9qJ8crPzB2Iy39zeh0FjTcu9bCxhsz9ugBdc`
+   - New: `AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm`
 
 2. **Enhanced Quick Actions** - Exposed all 10+ tools:
    - 🚨 Urgent (what needs attention)

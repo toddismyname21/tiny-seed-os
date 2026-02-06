@@ -61,7 +61,7 @@ Added full Communications panel to `web_app/chief-of-staff.html`:
 
 **27 HTML files** with EXPIRED API URL were **FIXED**.
 
-All files now use: `AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp`
+All files now use: `AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm`
 
 Full audit report: `claude_sessions/desktop_web/AUDIT_REPORT_2026-01-22.md`
 

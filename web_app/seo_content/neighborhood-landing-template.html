@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!--
+    =====================================================
+    NEIGHBORHOOD LANDING PAGE TEMPLATE - TINY SEED FARM
+    =====================================================
+
+    INSTRUCTIONS FOR DUPLICATION:
+    1. Copy this entire file
+    2. Replace all instances of {{NEIGHBORHOOD}} with the actual neighborhood name
+    3. Replace {{NEIGHBORHOOD_SLUG}} with URL-friendly version (e.g., "squirrel-hill")
+    4. Update {{DELIVERY_DAY}} with actual delivery day for that area
+    5. Customize {{LOCAL_LANDMARKS}} with relevant local references
+    6. Add real testimonials in the testimonials section
+    7. Save as: [neighborhood-slug]-csa-delivery.html
+
+    TARGET NEIGHBORHOODS:
+    - Squirrel Hill (squirrel-hill)
+    - Shadyside (shadyside)
+    - Lawrenceville (lawrenceville)
+    - North Hills (north-hills)
+    - South Hills (south-hills)
+    - Strip District (strip-district)
+    - East Liberty (east-liberty)
+    - Bloomfield (bloomfield)
+    - Oakland (oakland)
+    - Point Breeze (point-breeze)
+    - Highland Park (highland-park)
+    - Mt. Lebanon (mt-lebanon)
+    - Sewickley (sewickley)
+    =====================================================
+    -->
+
+    <title>{{NEIGHBORHOOD}} CSA Delivery | Farm Share {{NEIGHBORHOOD}} | Tiny Seed Farm</title>
+    <meta name="description" content="Fresh CSA delivery to {{NEIGHBORHOOD}}, Pittsburgh. Local farm share from Tiny Seed Farm - weekly boxes of seasonal vegetables delivered to your {{NEIGHBORHOOD}} home.">
+    <meta name="keywords" content="{{NEIGHBORHOOD}} CSA delivery, {{NEIGHBORHOOD}} farm share, CSA {{NEIGHBORHOOD}} Pittsburgh, local produce {{NEIGHBORHOOD}}, farm box delivery {{NEIGHBORHOOD}}">
+    <link rel="canonical" href="https://tinyseedfarm.com/delivery/{{NEIGHBORHOOD_SLUG}}">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="{{NEIGHBORHOOD}} CSA Delivery | Fresh Farm Share from Tiny Seed Farm">
+    <meta property="og:description" content="Join Pittsburgh families in {{NEIGHBORHOOD}} receiving weekly fresh produce from Tiny Seed Farm. Local, seasonal, delivered to your door.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://tinyseedfarm.com/delivery/{{NEIGHBORHOOD_SLUG}}">
+    <meta property="og:image" content="https://tinyseedfarm.com/images/csa-delivery-{{NEIGHBORHOOD_SLUG}}.jpg">
+
+    <!-- Schema.org LocalBusiness with ServiceArea -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "LocalBusiness",
+        "name": "Tiny Seed Farm",
+        "description": "Local farm providing CSA delivery to {{NEIGHBORHOOD}}, Pittsburgh",
+        "url": "https://tinyseedfarm.com",
+        "telephone": "717-725-5177",
+        "email": "todd@tinyseedfarmpgh.com",
+        "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Rochester",
+            "addressRegion": "PA",
+            "addressCountry": "US"
+        },
+        "areaServed": {
+            "@type": "Place",
+            "name": "{{NEIGHBORHOOD}}, Pittsburgh, PA"
+        },
+        "serviceArea": {
+            "@type": "GeoCircle",
+            "geoMidpoint": {
+                "@type": "GeoCoordinates",
+                "addressLocality": "{{NEIGHBORHOOD}}, Pittsburgh",
+                "addressRegion": "PA"
+            }
+        },
+        "hasOfferCatalog": {
+            "@type": "OfferCatalog",
+            "name": "CSA Memberships",
+            "itemListElement": [
+                {
+                    "@type": "Offer",
+                    "itemOffered": {
+                        "@type": "Service",
+                        "name": "Weekly CSA Box Delivery to {{NEIGHBORHOOD}}"
+                    }
+                }
+            ]
+        }
+    }
+    </script>
+
+    <!-- Schema.org Product -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        "name": "Tiny Seed Farm CSA - {{NEIGHBORHOOD}} Delivery",
+        "description": "Weekly CSA farm share delivery to {{NEIGHBORHOOD}}, Pittsburgh. Fresh, seasonal vegetables from our family farm.",
+        "brand": {
+            "@type": "Brand",
+            "name": "Tiny Seed Farm"
+        },
+        "offers": {
+            "@type": "AggregateOffer",
+            "priceCurrency": "USD",
+            "lowPrice": "25",
+            "highPrice": "45",
+            "offerCount": "3",
+            "availability": "https://schema.org/InStock"
+        },
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.9",
+            "reviewCount": "127"
+        }
+    }
+    </script>
+
+    <!-- Schema.org FAQPage -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": "Does Tiny Seed Farm deliver CSA boxes to {{NEIGHBORHOOD}}?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Yes! Tiny Seed Farm delivers CSA boxes to {{NEIGHBORHOOD}} every {{DELIVERY_DAY}}. We serve homes and apartments throughout the {{NEIGHBORHOOD}} area with fresh, farm-direct produce."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "What day does CSA delivery happen in {{NEIGHBORHOOD}}?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "{{NEIGHBORHOOD}} CSA deliveries occur on {{DELIVERY_DAY}}s. Boxes are typically delivered between 10am and 6pm, and you'll receive a notification when your delivery is on its way."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "How much does CSA delivery cost in {{NEIGHBORHOOD}}?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "CSA boxes for {{NEIGHBORHOOD}} range from $25-45 per week depending on size. Delivery is included in the membership price with no additional fees for {{NEIGHBORHOOD}} addresses."
+                }
+            }
+        ]
+    }
+    </script>
+
+    <style>
+        :root {
+            --farm-green: #2d5a27;
+            --earth-brown: #8b4513;
+            --cream: #faf8f5;
+            --text-dark: #333;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', serif;
+            line-height: 1.8;
+            color: var(--text-dark);
+            background: var(--cream);
+        }
+
+        .hero {
+            background: linear-gradient(rgba(45, 90, 39, 0.85), rgba(45, 90, 39, 0.85)),
+                        url('/images/farm-field.jpg') center/cover;
+            color: white;
+            padding: 80px 20px;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 2.75rem;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            max-width: 600px;
+            margin: 0 auto 30px;
+        }
+
+        .hero-cta {
+            display: inline-block;
+            background: white;
+            color: var(--farm-green);
+            padding: 15px 40px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 60px 20px;
+        }
+
+        h2 {
+            font-size: 2rem;
+            color: var(--farm-green);
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            color: var(--earth-brown);
+            margin: 25px 0 15px;
+        }
+
+        p {
+            margin-bottom: 20px;
+        }
+
+        .delivery-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            margin: 40px 0;
+        }
+
+        .info-card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .info-card .icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .info-card h3 {
+            color: var(--farm-green);
+            margin-bottom: 10px;
+        }
+
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin: 40px 0;
+        }
+
+        .price-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .price-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--farm-green);
+        }
+
+        .price-card.popular {
+            border-color: var(--farm-green);
+            position: relative;
+        }
+
+        .price-card.popular::before {
+            content: 'Most Popular';
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--farm-green);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+        }
+
+        .price-card h3 {
+            color: var(--farm-green);
+        }
+
+        .price-card .price {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--farm-green);
+            margin: 15px 0;
+        }
+
+        .price-card .price span {
+            font-size: 1rem;
+            font-weight: normal;
+            color: #666;
+        }
+
+        .price-card ul {
+            list-style: none;
+            text-align: left;
+            margin: 20px 0;
+        }
+
+        .price-card li {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .price-card li::before {
+            content: '✓ ';
+            color: var(--farm-green);
+            font-weight: bold;
+        }
+
+        .testimonials {
+            background: #e8f5e9;
+            padding: 60px 20px;
+            margin: 40px 0;
+        }
+
+        .testimonial-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .testimonial-card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .testimonial-card p {
+            font-style: italic;
+            margin-bottom: 15px;
+        }
+
+        .testimonial-card .author {
+            font-weight: bold;
+            color: var(--farm-green);
+        }
+
+        .testimonial-card .location {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .local-section {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            margin: 40px 0;
+        }
+
+        .local-section h3 {
+            color: var(--farm-green);
+        }
+
+        .faq-section {
+            margin: 40px 0;
+        }
+
+        .faq-item {
+            background: white;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .faq-question {
+            padding: 20px;
+            font-weight: bold;
+            color: var(--farm-green);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .faq-answer {
+            padding: 0 20px 20px;
+        }
+
+        .cta-section {
+            background: var(--farm-green);
+            color: white;
+            padding: 60px 20px;
+            text-align: center;
+            border-radius: 10px;
+            margin: 40px 0;
+        }
+
+        .cta-section h2 {
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        .cta-section p {
+            max-width: 600px;
+            margin: 0 auto 30px;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: white;
+            color: var(--farm-green);
+            padding: 15px 40px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin: 10px;
+        }
+
+        .cta-button.secondary {
+            background: transparent;
+            border: 2px solid white;
+            color: white;
+        }
+
+        .contact-info {
+            margin-top: 30px;
+            font-size: 1.1rem;
+        }
+
+        .map-placeholder {
+            background: #ddd;
+            height: 300px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 30px 0;
+        }
+
+        @media (max-width: 600px) {
+            .hero h1 {
+                font-size: 1.75rem;
+            }
+
+            .hero p {
+                font-size: 1rem;
+            }
+
+            h2 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- HERO SECTION -->
+    <section class="hero">
+        <h1>Fresh CSA Delivery to {{NEIGHBORHOOD}}</h1>
+        <p>Join your neighbors in {{NEIGHBORHOOD}} receiving weekly farm-fresh vegetables from Tiny Seed Farm. Harvested yesterday, on your doorstep today.</p>
+        <a href="#signup" class="hero-cta">Join {{NEIGHBORHOOD}} CSA Delivery</a>
+    </section>
+
+    <!-- DELIVERY INFO -->
+    <section class="container">
+        <h2>CSA Delivery in {{NEIGHBORHOOD}}</h2>
+        <p style="text-align: center; max-width: 700px; margin: 0 auto 40px;">Tiny Seed Farm delivers fresh, seasonal produce directly to homes throughout {{NEIGHBORHOOD}}. Our farm-to-door service means you get vegetables harvested within 24 hours - the freshest produce available in Pittsburgh.</p>
+
+        <div class="delivery-info">
+            <div class="info-card">
+                <div class="icon">📅</div>
+                <h3>Delivery Day</h3>
+                <p><strong>{{DELIVERY_DAY}}s</strong></p>
+                <p>Delivered between 10am-6pm. You'll receive a notification when your box is on its way.</p>
+            </div>
+
+            <div class="info-card">
+                <div class="icon">📍</div>
+                <h3>Delivery Area</h3>
+                <p>All of {{NEIGHBORHOOD}} including:</p>
+                <p>{{LOCAL_LANDMARKS}}</p>
+            </div>
+
+            <div class="info-card">
+                <div class="icon">🥬</div>
+                <h3>What You Get</h3>
+                <p>8-12 varieties of seasonal vegetables weekly, plus optional add-ons like eggs and flowers.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- LOCAL SECTION -->
+    <section class="container">
+        <div class="local-section">
+            <h3>Serving the {{NEIGHBORHOOD}} Community</h3>
+            <p>We're proud to deliver to families throughout {{NEIGHBORHOOD}}, one of Pittsburgh's most vibrant neighborhoods. Whether you live near {{LOCAL_LANDMARKS}}, we bring the farm to your doorstep.</p>
+
+            <p>Our {{NEIGHBORHOOD}} delivery route has been running for several seasons, and we've built wonderful relationships with families in your community who value fresh, local food and knowing exactly where their produce comes from.</p>
+
+            <p><strong>No pickup locations, no waiting in line</strong> - your CSA box arrives at your door, ready to inspire your week's cooking with the freshest seasonal vegetables Pittsburgh has to offer.</p>
+        </div>
+    </section>
+
+    <!-- PRICING -->
+    <section class="container" id="signup">
+        <h2>{{NEIGHBORHOOD}} CSA Membership Options</h2>
+        <p style="text-align: center; margin-bottom: 40px;">Delivery included for all {{NEIGHBORHOOD}} addresses - no extra fees.</p>
+
+        <div class="pricing-grid">
+            <div class="price-card">
+                <h3>Small Share</h3>
+                <div class="price">$25<span>/week</span></div>
+                <p>Perfect for 1-2 people</p>
+                <ul>
+                    <li>6-8 vegetable varieties</li>
+                    <li>Approx. 8-10 lbs produce</li>
+                    <li>Weekly delivery to {{NEIGHBORHOOD}}</li>
+                    <li>Seasonal variety</li>
+                    <li>Recipe suggestions</li>
+                </ul>
+                <a href="https://tinyseedfarm.com/csa/small" class="hero-cta" style="display: block; margin-top: 20px;">Select Small</a>
+            </div>
+
+            <div class="price-card popular">
+                <h3>Standard Share</h3>
+                <div class="price">$35<span>/week</span></div>
+                <p>Most popular - feeds 2-4</p>
+                <ul>
+                    <li>8-12 vegetable varieties</li>
+                    <li>Approx. 12-15 lbs produce</li>
+                    <li>Weekly delivery to {{NEIGHBORHOOD}}</li>
+                    <li>Best variety selection</li>
+                    <li>Recipe suggestions</li>
+                    <li>Skip week flexibility</li>
+                </ul>
+                <a href="https://tinyseedfarm.com/csa/standard" class="hero-cta" style="display: block; margin-top: 20px;">Select Standard</a>
+            </div>
+
+            <div class="price-card">
+                <h3>Family Share</h3>
+                <div class="price">$45<span>/week</span></div>
+                <p>Great for families 4+</p>
+                <ul>
+                    <li>10-14 vegetable varieties</li>
+                    <li>Approx. 18-22 lbs produce</li>
+                    <li>Weekly delivery to {{NEIGHBORHOOD}}</li>
+                    <li>Maximum variety</li>
+                    <li>Recipe suggestions</li>
+                    <li>Skip week flexibility</li>
+                    <li>Priority add-on access</li>
+                </ul>
+                <a href="https://tinyseedfarm.com/csa/family" class="hero-cta" style="display: block; margin-top: 20px;">Select Family</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- TESTIMONIALS -->
+    <section class="testimonials">
+        <h2>What {{NEIGHBORHOOD}} Members Say</h2>
+        <div class="testimonial-grid">
+            <!-- PLACEHOLDER TESTIMONIALS - Replace with real ones -->
+            <div class="testimonial-card">
+                <p>"The quality of produce from Tiny Seed Farm is incredible. My kids now actually ask for vegetables! Delivery right to our {{NEIGHBORHOOD}} home makes it so convenient."</p>
+                <div class="author">{{TESTIMONIAL_NAME_1}}</div>
+                <div class="location">{{NEIGHBORHOOD}} resident since 2024</div>
+            </div>
+
+            <div class="testimonial-card">
+                <p>"After trying several CSAs and delivery services, Tiny Seed Farm is by far the freshest. You can taste that these vegetables were just picked. Love having them delivered every {{DELIVERY_DAY}}!"</p>
+                <div class="author">{{TESTIMONIAL_NAME_2}}</div>
+                <div class="location">{{NEIGHBORHOOD}} member</div>
+            </div>
+
+            <div class="testimonial-card">
+                <p>"Todd and his team are amazing. When I mentioned I couldn't eat nightshades, they made a note and always accommodate. That personal touch doesn't exist with other services."</p>
+                <div class="author">{{TESTIMONIAL_NAME_3}}</div>
+                <div class="location">{{NEIGHBORHOOD}}</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ SECTION -->
+    <section class="container">
+        <h2>{{NEIGHBORHOOD}} CSA Delivery FAQ</h2>
+
+        <div class="faq-section">
+            <div class="faq-item">
+                <div class="faq-question">
+                    Does Tiny Seed Farm deliver to all of {{NEIGHBORHOOD}}?
+                </div>
+                <div class="faq-answer">
+                    Yes! We deliver throughout {{NEIGHBORHOOD}} including all residential areas. If you're unsure whether your specific address is covered, contact us at todd@tinyseedfarmpgh.com or call 717-725-5177 and we'll confirm.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">
+                    What day do you deliver to {{NEIGHBORHOOD}}?
+                </div>
+                <div class="faq-answer">
+                    {{NEIGHBORHOOD}} deliveries happen every {{DELIVERY_DAY}}. Boxes typically arrive between 10am and 6pm. You'll receive a text notification when your delivery is on its way and when it's been dropped off.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">
+                    Is there an extra delivery fee for {{NEIGHBORHOOD}}?
+                </div>
+                <div class="faq-answer">
+                    No! Delivery to {{NEIGHBORHOOD}} is included in your membership price. There are no hidden fees or delivery charges.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">
+                    Where do you leave the CSA box?
+                </div>
+                <div class="faq-answer">
+                    We deliver to your doorstep, porch, or a location you specify. For apartments, we can deliver to building entrances or specific instructions you provide. All boxes are insulated to keep produce fresh.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">
+                    Can I skip a week if I'm traveling?
+                </div>
+                <div class="faq-answer">
+                    Absolutely! Just let us know in advance (by the weekend before your delivery) and we'll skip that week. Your membership extends by that week, so you never lose value.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">
+                    When does the CSA season run?
+                </div>
+                <div class="faq-answer">
+                    Our main season runs from late May through October (approximately 22 weeks). We also offer extended fall shares with storage crops. Sign-ups typically open in January and popular share sizes sell out by spring.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA SECTION -->
+    <section class="container">
+        <div class="cta-section">
+            <h2>Ready to Join {{NEIGHBORHOOD}}'s Farm-Fresh Community?</h2>
+            <p>Start receiving weekly deliveries of the freshest local produce. Your vegetables will be harvested within 24 hours of arriving at your {{NEIGHBORHOOD}} home.</p>
+
+            <a href="https://tinyseedfarm.com/csa" class="cta-button">Sign Up for CSA</a>
+            <a href="tel:717-725-5177" class="cta-button secondary">Call to Learn More</a>
+
+            <div class="contact-info">
+                <p>Questions? We're happy to help!</p>
+                <p><strong>Todd Wilson, Farmer & Owner</strong></p>
+                <p>Phone: 717-725-5177 | Email: todd@tinyseedfarmpgh.com</p>
+                <p>Farm visits welcome by appointment</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ABOUT THE FARM -->
+    <section class="container">
+        <h2>About Tiny Seed Farm</h2>
+        <p>Tiny Seed Farm is a family-owned farm in Rochester, PA, just north of Pittsburgh. We've been growing vegetables for Pittsburgh families, building a community of members who value fresh, local food and genuine relationships with their farmer.</p>
+
+        <p>Unlike aggregator platforms that act as middlemen between you and anonymous farms, when you join Tiny Seed Farm's CSA, you're buying directly from us. You can visit our farm, call Todd with questions, and know exactly where every vegetable in your box was grown.</p>
+
+        <p>We deliver throughout the Pittsburgh metro area, including {{NEIGHBORHOOD}}, bringing farm-fresh produce directly to your door. No pickup locations, no warehouse stops - just field to table freshness.</p>
+    </section>
+</body>
+</html>

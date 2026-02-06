@@ -1,0 +1,17 @@
+{
+  "entries": [
+    {
+      "entry_id": "904106de-c82f-4426-86e4-09bf8faa7140",
+      "timestamp": "2026-02-04T08:15:08.539612",
+      "action_type": "approve_expense",
+      "action_id": "b83f29f7-0d32-44dc-b9aa-24814ffdd5ac",
+      "assessment_id": "65606a57-d131-4d98-a47a-62d54aaeda7c",
+      "total_impact": "10000.0",
+      "decision": "blocked",
+      "original_trust": "auto_execute",
+      "final_trust": "inform",
+      "context_summary": "Impact $10000.00 blocks auto_execute, max is inform"
+    }
+  ],
+  "updated_at": "2026-02-04T08:15:08.539634"
+}

@@ -1,0 +1,136 @@
+{
+  "level": "lockdown",
+  "metrics": {
+    "abstain_rate": {
+      "name": "abstain_rate",
+      "current_value": 0.1,
+      "threshold_yellow": 0.3,
+      "threshold_red": 0.5,
+      "threshold_lockdown": 0.7,
+      "window_minutes": 60,
+      "last_updated": "2026-02-04T23:54:31.112696",
+      "trend": "degrading",
+      "history": [
+        {
+          "timestamp": "2026-02-04T23:54:08.698805",
+          "value": 0.35
+        },
+        {
+          "timestamp": "2026-02-04T23:54:08.705335",
+          "value": 0.0
+        },
+        {
+          "timestamp": "2026-02-04T23:54:08.716371",
+          "value": 0.0
+        },
+        {
+          "timestamp": "2026-02-04T23:54:31.109487",
+          "value": 0.35
+        },
+        {
+          "timestamp": "2026-02-04T23:54:31.112658",
+          "value": 0.0
+        },
+        {
+          "timestamp": "2026-02-04T23:54:31.112696",
+          "value": 0.1
+        }
+      ]
+    },
+    "conflict_rate": {
+      "name": "conflict_rate",
+      "current_value": 0.05,
+      "threshold_yellow": 0.15,
+      "threshold_red": 0.3,
+      "threshold_lockdown": 0.5,
+      "window_minutes": 60,
+      "last_updated": "2026-02-04T23:54:31.112701",
+      "trend": "degrading",
+      "history": [
+        {
+          "timestamp": "2026-02-04T23:54:08.712280",
+          "value": 0.0
+        },
+        {
+          "timestamp": "2026-02-04T23:54:08.716379",
+          "value": 0.0
+        },
+        {
+          "timestamp": "2026-02-04T23:54:31.109825",
+          "value": 0.55
+        },
+        {
+          "timestamp": "2026-02-04T23:54:31.112701",
+          "value": 0.05
+        }
+      ]
+    },
+    "low_confidence_rate": {
+      "name": "low_confidence_rate",
+      "current_value": 0.0,
+      "threshold_yellow": 0.4,
+      "threshold_red": 0.6,
+      "threshold_lockdown": 0.8,
+      "window_minutes": 60,
+      "last_updated": "2026-02-04T23:54:08.716391",
+      "trend": "stable",
+      "history": [
+        {
+          "timestamp": "2026-02-04T23:54:08.712305",
+          "value": 0.0
+        },
+        {
+          "timestamp": "2026-02-04T23:54:08.716391",
+          "value": 0.0
+        }
+      ]
+    },
+    "validation_failure_rate": {
+      "name": "validation_failure_rate",
+      "current_value": 0.0,
+      "threshold_yellow": 0.1,
+      "threshold_red": 0.25,
+      "threshold_lockdown": 0.4,
+      "window_minutes": 60,
+      "last_updated": "2026-02-04T23:54:08.716393",
+      "trend": "stable",
+      "history": [
+        {
+          "timestamp": "2026-02-04T23:54:08.714534",
+          "value": 0.0
+        },
+        {
+          "timestamp": "2026-02-04T23:54:08.716393",
+          "value": 0.0
+        }
+      ]
+    },
+    "circuit_breaker_rate": {
+      "name": "circuit_breaker_rate",
+      "current_value": 0.0,
+      "threshold_yellow": 0.2,
+      "threshold_red": 0.4,
+      "threshold_lockdown": 0.6,
+      "window_minutes": 60,
+      "last_updated": "2026-02-04T23:54:08.716395",
+      "trend": "stable",
+      "history": [
+        {
+          "timestamp": "2026-02-04T23:54:08.716170",
+          "value": 0.0
+        },
+        {
+          "timestamp": "2026-02-04T23:54:08.716395",
+          "value": 0.0
+        }
+      ]
+    }
+  },
+  "triggered_by": [],
+  "locked_at": "2026-02-04T23:54:31.113369",
+  "lock_reason": "Manual lockdown by admin: Security concern",
+  "can_write": false,
+  "can_auto_execute": false,
+  "requires_human": true,
+  "last_check": "2026-02-04T23:54:08.716398"
+}

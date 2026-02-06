@@ -1,0 +1,436 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-02-04",
+  "description": "Anti-pattern library for adversarial testing. These patterns are injected to verify the Seed Vault correctly rejects them.",
+  "sources": [
+    "Nielsen Norman Group UX Research",
+    "Google Material Design Guidelines",
+    "IUI 2026 Task Boundary Research",
+    "Superhuman Voice Learning Analysis",
+    "TinyPM Internal Research Reports"
+  ],
+  "categories": {
+    "ui": {
+      "name": "UI Anti-Patterns",
+      "description": "User interface design violations that harm usability"
+    },
+    "ai_behavior": {
+      "name": "AI Behavior Anti-Patterns",
+      "description": "AI agent behaviors that erode trust or cause harm"
+    },
+    "data_handling": {
+      "name": "Data Handling Anti-Patterns",
+      "description": "Data management practices that risk security or performance"
+    },
+    "accessibility": {
+      "name": "Accessibility Anti-Patterns",
+      "description": "Patterns that exclude users with disabilities"
+    },
+    "performance": {
+      "name": "Performance Anti-Patterns",
+      "description": "Patterns that degrade system performance"
+    }
+  },
+  "patterns": [
+    {
+      "id": "dropdown_instead_of_command",
+      "name": "Dropdown Instead of Command Palette",
+      "category": "ui",
+      "subcategory": "navigation",
+      "severity": "high",
+      "description": "Using nested dropdown menus instead of a searchable command palette for action selection",
+      "why_bad": "Dropdowns require visual scanning and multiple clicks. Command palettes allow keyboard-driven, O(1) access to any action.",
+      "violation": {
+        "type": "ui_pattern",
+        "pattern": "dropdown_menu",
+        "context": "action_selection"
+      },
+      "expected_rejection": "Command palette preferred over dropdowns for action-heavy interfaces",
+      "research_source": "Superhuman, Linear, VS Code command palette studies",
+      "example_bad": "File -> Export -> CSV -> Options -> Download",
+      "example_good": "Cmd+K -> 'export csv' -> Enter"
+    },
+    {
+      "id": "modal_overload",
+      "name": "Modal Dialog Overload",
+      "category": "ui",
+      "subcategory": "interaction",
+      "severity": "medium",
+      "description": "Using modal dialogs for every interaction instead of inline editing",
+      "why_bad": "Modals break flow, hide context, and require explicit dismissal. Inline editing is faster and maintains context.",
+      "violation": {
+        "type": "ui_pattern",
+        "pattern": "modal_dialog",
+        "context": "simple_edit"
+      },
+      "expected_rejection": "Inline editing preferred for simple modifications",
+      "research_source": "NN/g Modal Dialog Studies",
+      "example_bad": "Click task title -> Modal opens -> Edit -> Save -> Modal closes",
+      "example_good": "Double-click title -> Edit in place -> Click away to save"
+    },
+    {
+      "id": "infinite_scroll_crud",
+      "name": "Infinite Scroll for CRUD Operations",
+      "category": "ui",
+      "subcategory": "data_display",
+      "severity": "high",
+      "description": "Using infinite scroll for data that needs bulk operations or precise navigation",
+      "why_bad": "Infinite scroll makes it impossible to select specific ranges, loses scroll position on navigation, and prevents 'select all' operations.",
+      "violation": {
+        "type": "ui_pattern",
+        "pattern": "infinite_scroll",
+        "context": "bulk_operations"
+      },
+      "expected_rejection": "Pagination with selection preferred for bulk operations",
+      "research_source": "UX Movement Infinite Scroll Research",
+      "example_bad": "Scroll through 1000 tasks to find and select the ones from last week",
+      "example_good": "Page to date range, Shift+Click to select range, bulk action"
+    },
+    {
+      "id": "calendar_dropdown_dates",
+      "name": "Calendar Widget for Predictable Dates",
+      "category": "ui",
+      "subcategory": "input",
+      "severity": "medium",
+      "description": "Forcing calendar picker when date is predictable from context",
+      "why_bad": "Opening a calendar widget requires 3+ clicks for dates like 'tomorrow' or 'next Monday' that could be typed naturally.",
+      "violation": {
+        "type": "ui_pattern",
+        "pattern": "calendar_picker",
+        "context": "relative_date"
+      },
+      "expected_rejection": "Natural language date input preferred when context is clear",
+      "research_source": "Fantastical, Todoist natural language date parsing",
+      "example_bad": "Click date field -> Calendar opens -> Navigate month -> Click day",
+      "example_good": "Type 'tomorrow' or 'next fri' -> Parsed automatically"
+    },
+    {
+      "id": "tooltip_critical_info",
+      "name": "Critical Info Hidden in Tooltips",
+      "category": "ui",
+      "subcategory": "information_architecture",
+      "severity": "high",
+      "description": "Hiding important information behind hover-only tooltips",
+      "why_bad": "Tooltips are invisible by default, don't work on touch devices, and create discoverability problems for critical information.",
+      "violation": {
+        "type": "ui_pattern",
+        "pattern": "tooltip_info",
+        "context": "critical_data"
+      },
+      "expected_rejection": "Critical information must be visible without interaction",
+      "research_source": "NN/g Tooltip Guidelines",
+      "example_bad": "Task due date only visible on hover",
+      "example_good": "Due date badge always visible, tooltip for additional details"
+    },
+    {
+      "id": "auto_save_no_indicator",
+      "name": "Auto-Save Without Visual Feedback",
+      "category": "ui",
+      "subcategory": "feedback",
+      "severity": "medium",
+      "description": "Auto-saving user work without any visual indication",
+      "why_bad": "Users need confidence their work is saved. Silent auto-save creates anxiety about data loss.",
+      "violation": {
+        "type": "ui_pattern",
+        "pattern": "auto_save",
+        "context": "no_feedback"
+      },
+      "expected_rejection": "Auto-save requires clear visual feedback",
+      "research_source": "Google Docs, Figma save indicators",
+      "example_bad": "Edits saved silently with no indication",
+      "example_good": "'Saved' indicator that briefly appears, or 'Saving...' during save"
+    },
+    {
+      "id": "wizard_no_skip",
+      "name": "Wizard Without Skip/Back Navigation",
+      "category": "ui",
+      "subcategory": "flow",
+      "severity": "low",
+      "description": "Multi-step wizard that doesn't allow skipping or going back",
+      "why_bad": "Users often know what they want and shouldn't be forced through irrelevant steps. Back navigation prevents restart anxiety.",
+      "violation": {
+        "type": "ui_pattern",
+        "pattern": "wizard_flow",
+        "context": "no_skip"
+      },
+      "expected_rejection": "Users should be able to skip wizard steps when appropriate",
+      "research_source": "NN/g Wizard Design Guidelines"
+    },
+    {
+      "id": "destructive_action_easy",
+      "name": "Easy Destructive Actions",
+      "category": "ui",
+      "subcategory": "safety",
+      "severity": "critical",
+      "description": "Destructive actions (delete, archive, send) too easy to trigger accidentally",
+      "why_bad": "Accidental destructive actions cause data loss and erode trust. Recovery paths must exist.",
+      "violation": {
+        "type": "ui_pattern",
+        "pattern": "destructive_action",
+        "context": "no_confirmation"
+      },
+      "expected_rejection": "Destructive actions require confirmation and undo capability",
+      "research_source": "Gmail undo-send, Slack message deletion patterns",
+      "example_bad": "Single click deletes permanently with no confirmation",
+      "example_good": "Delete moves to trash + 'Undo' toast + 30-day recovery"
+    },
+    {
+      "id": "no_empty_state",
+      "name": "Missing Empty State",
+      "category": "ui",
+      "subcategory": "onboarding",
+      "severity": "medium",
+      "description": "Showing blank page when no data exists instead of helpful empty state",
+      "why_bad": "Empty screens feel broken. Empty states guide users to next action and reduce confusion.",
+      "violation": {
+        "type": "ui_pattern",
+        "pattern": "empty_view",
+        "context": "no_guidance"
+      },
+      "expected_rejection": "Empty states must guide users to next action",
+      "research_source": "Dropbox, Asana empty state patterns",
+      "example_bad": "No tasks? Show blank white screen",
+      "example_good": "No tasks? Show 'Create your first task' with illustration and CTA"
+    },
+    {
+      "id": "notification_no_action",
+      "name": "Notification Without Action Path",
+      "category": "ui",
+      "subcategory": "actionability",
+      "severity": "medium",
+      "description": "Showing notification without a clear way to act on it",
+      "why_bad": "Notifications that don't lead to action create noise and train users to ignore them.",
+      "violation": {
+        "type": "ui_pattern",
+        "pattern": "notification",
+        "context": "no_cta"
+      },
+      "expected_rejection": "Notifications should include relevant actions",
+      "research_source": "Slack, iOS notification action patterns"
+    },
+    {
+      "id": "overconfident_suggestion",
+      "name": "Overconfident AI Suggestion",
+      "category": "ai_behavior",
+      "subcategory": "calibration",
+      "severity": "high",
+      "description": "AI presents suggestion with very high confidence when underlying data is sparse or uncertain",
+      "why_bad": "Overconfident AI erodes trust when wrong. Calibrated confidence helps users make informed decisions.",
+      "violation": {
+        "type": "ai_behavior",
+        "pattern": "high_confidence",
+        "data_quality": "sparse"
+      },
+      "expected_rejection": "Confidence must be calibrated to data quality and uncertainty",
+      "research_source": "PROACTIVE_AI_RESEARCH_2026.md - Calibration section",
+      "example_bad": "95% confident about action based on 3 data points",
+      "example_good": "65% confident (limited data) - would you like to proceed?"
+    },
+    {
+      "id": "auto_execute_ambiguous",
+      "name": "Auto-Execute on Ambiguous Intent",
+      "category": "ai_behavior",
+      "subcategory": "autonomy",
+      "severity": "critical",
+      "description": "AI auto-executes action when user intent is unclear or could have multiple interpretations",
+      "why_bad": "Auto-executing on ambiguous intent causes unintended consequences and user frustration.",
+      "violation": {
+        "type": "ai_behavior",
+        "pattern": "auto_execute",
+        "intent_clarity": "low"
+      },
+      "expected_rejection": "Auto-execute requires high confidence (95%+) in user intent",
+      "research_source": "Superhuman auto-actions, Gmail smart reply studies",
+      "example_bad": "Auto-send email reply when user might want to edit",
+      "example_good": "Draft ready, one-click to send with 8s undo window"
+    },
+    {
+      "id": "no_reasoning_shown",
+      "name": "AI Decision Without Reasoning",
+      "category": "ai_behavior",
+      "subcategory": "explainability",
+      "severity": "high",
+      "description": "AI makes decision or suggestion without explaining its reasoning",
+      "why_bad": "Black-box decisions erode trust. Users need to understand why to calibrate their trust appropriately.",
+      "violation": {
+        "type": "ai_behavior",
+        "pattern": "decision",
+        "reasoning": null
+      },
+      "expected_rejection": "All AI decisions must include accessible reasoning",
+      "research_source": "IUI 2026 Explainable AI research",
+      "example_bad": "Suggested priority: High",
+      "example_good": "Suggested priority: High (due tomorrow + weather affects outdoor work + you completed similar tasks in morning)"
+    },
+    {
+      "id": "interrupt_deep_work",
+      "name": "Interrupt During Deep Work",
+      "category": "ai_behavior",
+      "subcategory": "timing",
+      "severity": "medium",
+      "description": "AI proactively interrupts user during focused work session",
+      "why_bad": "Interrupting deep work costs 23 minutes to recover focus. Task boundaries are the optimal intervention point.",
+      "violation": {
+        "type": "ai_behavior",
+        "pattern": "proactive_suggestion",
+        "user_state": "deep_work"
+      },
+      "expected_rejection": "Avoid interrupting during deep work sessions; wait for task boundaries",
+      "research_source": "IUI 2026 Task Boundary Research - 52% vs 38% engagement",
+      "example_bad": "Popup notification while user is typing",
+      "example_good": "Queue suggestion, surface when user completes current task"
+    },
+    {
+      "id": "repeated_rejected_suggestion",
+      "name": "Repeating Rejected Suggestions",
+      "category": "ai_behavior",
+      "subcategory": "learning",
+      "severity": "high",
+      "description": "AI keeps suggesting something user has rejected multiple times",
+      "why_bad": "Repeated rejected suggestions feel tone-deaf and waste user attention.",
+      "violation": {
+        "type": "ai_behavior",
+        "pattern": "suggestion",
+        "rejection_count": 3
+      },
+      "expected_rejection": "Suggestions rejected 3+ times should not repeat without significant context change",
+      "research_source": "Adaptive UI research",
+      "example_bad": "Keep suggesting 'Archive old tasks' after user dismissed 5 times",
+      "example_good": "After 3 rejections, stop suggesting or ask 'Should I stop suggesting this?'"
+    },
+    {
+      "id": "pii_in_logs",
+      "name": "PII in Debug Logs",
+      "category": "data_handling",
+      "subcategory": "privacy",
+      "severity": "critical",
+      "description": "Personal identifiable information written to logs or telemetry",
+      "why_bad": "PII in logs creates compliance risk (GDPR, CCPA) and potential for data breaches.",
+      "violation": {
+        "type": "data_handling",
+        "pattern": "logging",
+        "content": "pii"
+      },
+      "expected_rejection": "PII must never appear in logs - redact or hash before logging",
+      "research_source": "OWASP Logging Guidelines, GDPR Article 25"
+    },
+    {
+      "id": "unbounded_query",
+      "name": "Unbounded Data Query",
+      "category": "data_handling",
+      "subcategory": "performance",
+      "severity": "high",
+      "description": "Querying all records from database without pagination or limit",
+      "why_bad": "Unbounded queries can crash servers, exhaust memory, and create denial of service.",
+      "violation": {
+        "type": "data_handling",
+        "pattern": "query",
+        "limit": null
+      },
+      "expected_rejection": "All queries must have reasonable limits and pagination",
+      "research_source": "Database performance best practices"
+    },
+    {
+      "id": "no_input_validation",
+      "name": "Missing Input Validation",
+      "category": "data_handling",
+      "subcategory": "security",
+      "severity": "critical",
+      "description": "User input used without sanitization or validation",
+      "why_bad": "Unvalidated input enables injection attacks (SQL, XSS, command injection).",
+      "violation": {
+        "type": "data_handling",
+        "pattern": "user_input",
+        "validation": false
+      },
+      "expected_rejection": "All user input must be validated and sanitized before use",
+      "research_source": "OWASP Input Validation Cheat Sheet"
+    },
+    {
+      "id": "color_only_status",
+      "name": "Color-Only Status Indication",
+      "category": "accessibility",
+      "subcategory": "visual",
+      "severity": "high",
+      "description": "Using color alone to convey status (red=error, green=success)",
+      "why_bad": "8% of men have color blindness. Color-only indicators are invisible to them.",
+      "violation": {
+        "type": "accessibility",
+        "pattern": "color_only",
+        "context": "status_indication"
+      },
+      "expected_rejection": "Status must use icon or text in addition to color",
+      "research_source": "WCAG 2.1 Guideline 1.4.1"
+    },
+    {
+      "id": "no_keyboard_nav",
+      "name": "Missing Keyboard Navigation",
+      "category": "accessibility",
+      "subcategory": "motor",
+      "severity": "high",
+      "description": "Interactive element not reachable via keyboard",
+      "why_bad": "Users with motor disabilities, RSI, or power users rely on keyboard navigation.",
+      "violation": {
+        "type": "accessibility",
+        "pattern": "mouse_only",
+        "context": "interactive_element"
+      },
+      "expected_rejection": "All interactive elements must be keyboard accessible",
+      "research_source": "WCAG 2.1 Guideline 2.1"
+    },
+    {
+      "id": "memory_leak_listener",
+      "name": "Event Listener Memory Leak",
+      "category": "performance",
+      "subcategory": "memory",
+      "severity": "high",
+      "description": "Event listeners not cleaned up on component unmount",
+      "why_bad": "Leaked listeners accumulate, causing memory growth and eventual crashes in long sessions.",
+      "violation": {
+        "type": "performance",
+        "pattern": "event_listener",
+        "cleanup": false
+      },
+      "expected_rejection": "Event listeners must be removed on component cleanup",
+      "research_source": "React useEffect cleanup patterns"
+    },
+    {
+      "id": "sync_on_main_thread",
+      "name": "Heavy Sync Operation on Main Thread",
+      "category": "performance",
+      "subcategory": "responsiveness",
+      "severity": "high",
+      "description": "CPU-intensive or blocking operation on UI thread",
+      "why_bad": "Main thread blocking causes UI freezes and poor perceived performance.",
+      "violation": {
+        "type": "performance",
+        "pattern": "blocking_operation",
+        "thread": "main"
+      },
+      "expected_rejection": "Heavy operations must run async or in worker thread",
+      "research_source": "Google Web Vitals, Chrome Performance Guidelines"
+    }
+  ],
+  "severity_definitions": {
+    "critical": {
+      "description": "Must be fixed immediately. Security vulnerabilities, data loss risks, or complete usability blockers.",
+      "sla_hours": 4
+    },
+    "high": {
+      "description": "Should be fixed soon. Significant user experience degradation or potential security issues.",
+      "sla_hours": 24
+    },
+    "medium": {
+      "description": "Should be addressed. Notable UX issues that impact efficiency but don't block usage.",
+      "sla_hours": 72
+    },
+    "low": {
+      "description": "Nice to fix. Minor improvements that would enhance experience.",
+      "sla_hours": 168
+    },
+    "info": {
+      "description": "Informational. Best practice suggestions for future consideration.",
+      "sla_hours": null
+    }
+  }
+}

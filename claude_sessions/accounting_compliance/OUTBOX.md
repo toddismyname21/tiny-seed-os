@@ -17,7 +17,7 @@
 
 **Key Findings During Registration:**
 - UNIVERSAL_ACCESS.md has WRONG API URL: `AKfycbx8syGK5Bm60...`
-- Should be: `AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp`
+- Should be: `AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm`
 - This is another instance of the API URL inconsistency problem documented in my audit
 
 **Status:** REGISTERED - Ready for tasks

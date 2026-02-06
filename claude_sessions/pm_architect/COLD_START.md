@@ -1,8 +1,8 @@
 # COLD START PROTOCOL
 ## If Claude Freezes or Context Clears - READ THIS FIRST
 
-**Last Updated:** 2026-01-23
-**Current Production:** v362
+**Last Updated:** 2026-02-02
+**Current Production:** v362+
 
 ---
 
@@ -103,7 +103,7 @@ Check `/claude_sessions/pm_architect/INBOX.md` for latest tasks from owner.
 ```bash
 cd /Users/samanthapollack/Documents/TIny_Seed_OS/apps_script
 PATH="/opt/homebrew/bin:$PATH" clasp push --force
-PATH="/opt/homebrew/bin:$PATH" clasp deploy -i "AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp" -d "v361: Description"
+PATH="/opt/homebrew/bin:$PATH" clasp deploy -i "AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm" -d "v361: Description"
 ```
 
 ## Frontend (GitHub Pages)
@@ -129,12 +129,12 @@ PATH="/opt/homebrew/bin:$PATH" clasp deploy -i "PREVIOUS_DEPLOYMENT_ID" -d "ROLL
 
 ## Quick Health Check
 ```bash
-curl "https://script.google.com/macros/s/AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp/exec?action=healthCheck"
+curl "https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec?action=healthCheck"
 ```
 
 ## Test Any Endpoint
 ```bash
-curl "https://script.google.com/macros/s/AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp/exec?action=ENDPOINT_NAME"
+curl "https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec?action=ENDPOINT_NAME"
 ```
 
 ---
@@ -145,12 +145,12 @@ curl "https://script.google.com/macros/s/AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResV
 
 ## List All Sheets
 ```bash
-curl "https://script.google.com/macros/s/AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp/exec?action=listSheets"
+curl "https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec?action=listSheets"
 ```
 
 ## Read Any Sheet
 ```bash
-curl "https://script.google.com/macros/s/AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResVkR5YPXF2Z2IzgahVE9i38v063s4scAWMp/exec?action=getSheetData&sheetName=SHEET_NAME"
+curl "https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec?action=getSheetData&sheetName=SHEET_NAME"
 ```
 
 ### Common Sheets
@@ -189,18 +189,31 @@ curl "https://script.google.com/macros/s/AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResV
 
 # RECENT HISTORY (Last 7 Days)
 
-## 2026-01-23 (Today)
+## 2026-02-02 (Today)
+- Added bulk delete and bulk delegate functionality for tasks in index.html
+- Both Today's Work and Overdue Tasks sections now have full bulk actions:
+  - Complete Selected (existing)
+  - Delete Selected (NEW - marks tasks as "Skipped")
+  - Delegate Selected (NEW - opens modal to assign to employee)
+- Updated CHANGE_LOG.md with all changes
+
+## 2026-02-01
+- UX_Design_Claude: Predictive Delay Shield implementation
+- Chief of Staff performance improvements
+- Added Rule #12: Frontend/Backend sync is mandatory
+- Added orphaned element reference prevention system
+- Fixed Morning Brief + added overdue task actions
+
+## 2026-01-30
+- Chief of Staff Claude promoted to OS PM #2
+- Field Operations Claude completed Intelligent Field Planner AI
+- Employee Scheduling Calendar deployed
+
+## 2026-01-23
 - Fixed 87→82 working endpoints (overnight)
 - Fixed 7 duplicate function conflicts
-- Fixed 3 logic errors (null checks)
-- Fixed Claude Coordination page (POST→GET)
 - Created GOVERNANCE.md and COLD_START.md
-- Added NEVER GUESS - ALWAYS ASK rule (Iron Rule #2)
 - Added fields Z1 (70x450 Veg) and CL (20x120 Floral) - 212 total beds
-- Created addField API with manual bed count override
-- Created getSheetData and listSheets for universal sheet access
-- Delegated Add Field frontend to Desktop Claude
-- Deployed v359, v360, v361, v362
 
 ## 2026-01-22
 - Major system audit
@@ -254,4 +267,4 @@ curl "https://script.google.com/macros/s/AKfycbxy5DlsDXGwulhRNIHiD7q7sHQbN9kResV
 
 **You are PM_Architect. You run this operation. Get to work.**
 
-*Last updated: 2026-01-23 by PM_Architect Claude*
+*Last updated: 2026-02-02 by PM_Architect Claude*

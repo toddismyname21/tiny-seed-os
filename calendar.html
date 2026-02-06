@@ -6127,6 +6127,9 @@
                     case 'move_planting':
                         response = handleMovePlanting(intent);
                         break;
+                    case 'add_planting':
+                        response = handleAddPlanting(intent);
+                        break;
                     case 'when_to_plant':
                         response = handleWhenToPlant(intent);
                         break;
@@ -6248,16 +6251,39 @@
         }
 
         // Enhanced intent parsing with more query types
+        // Supports natural language commands like:
+        // "Add dahlia planting to cl-01 with 2 rows in the bed at 12" spacing on May 1st"
         function parseAssistantIntent(message) {
             const lowerMsg = message.toLowerCase();
+            const originalMsg = message;
             const months = ['january', 'february', 'march', 'april', 'may', 'june',
                            'july', 'august', 'september', 'october', 'november', 'december'];
+            const monthsShort = ['jan', 'feb', 'mar', 'apr', 'may', 'jun',
+                                 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 
             // Extract common entities
             function extractCrop() {
-                // Check plantings for crop names
+                // Check plantings for crop names first
                 const cropNames = [...new Set(plantings.map(p => p.crop).filter(Boolean))];
-                return cropNames.find(c => lowerMsg.includes(c.toLowerCase()));
+                let found = cropNames.find(c => lowerMsg.includes(c.toLowerCase()));
+                if (found) return found;
+
+                // Common crop names to look for
+                const commonCrops = [
+                    'dahlia', 'dahlias', 'tomato', 'tomatoes', 'pepper', 'peppers',
+                    'lettuce', 'kale', 'spinach', 'basil', 'carrot', 'carrots',
+                    'onion', 'onions', 'garlic', 'bean', 'beans', 'pea', 'peas',
+                    'cucumber', 'cucumbers', 'squash', 'zucchini', 'pumpkin',
+                    'corn', 'sunflower', 'sunflowers', 'zinnia', 'zinnias',
+                    'marigold', 'marigolds', 'cosmos', 'snapdragon', 'aster'
+                ];
+                for (const crop of commonCrops) {
+                    if (lowerMsg.includes(crop)) {
+                        // Return singular form
+                        return crop.replace(/s$/, '').charAt(0).toUpperCase() + crop.replace(/s$/, '').slice(1);
+                    }
+                }
+                return null;
             }
 
             function extractMonth() {
@@ -6265,7 +6291,117 @@
                 months.forEach((m, i) => {
                     if (lowerMsg.includes(m)) month = i;
                 });
+                if (month === null) {
+                    monthsShort.forEach((m, i) => {
+                        // Match short months but not as part of other words
+                        const regex = new RegExp('\\b' + m + '\\b', 'i');
+                        if (regex.test(lowerMsg)) month = i;
+                    });
+                }
                 return month;
+            }
+
+            function extractDay() {
+                // Match patterns like "May 1st", "May 1", "1st", "15th", etc.
+                const dayPatterns = [
+                    /(\d{1,2})(?:st|nd|rd|th)?/i,
+                    /\b(\d{1,2})\b/
+                ];
+                for (const pattern of dayPatterns) {
+                    const match = lowerMsg.match(pattern);
+                    if (match) {
+                        const day = parseInt(match[1]);
+                        if (day >= 1 && day <= 31) return day;
+                    }
+                }
+                return null;
+            }
+
+            function extractDate() {
+                const month = extractMonth();
+                const day = extractDay();
+                if (month !== null && day !== null) {
+                    const year = new Date().getFullYear();
+                    return new Date(year, month, day);
+                }
+                return null;
+            }
+
+            function extractLocation() {
+                // Match field/bed patterns like "cl-01", "F3L", "GH1", "js-6", etc.
+                const locationPatterns = [
+                    /\b([a-z]{1,3}[-_]?\d{1,2}[a-z]?)\b/gi,  // cl-01, js-6, f3l
+                    /\b(field\s*\d+)\b/gi,                     // field 1
+                    /\b(greenhouse\s*\d+)\b/gi,                // greenhouse 1
+                    /\b(gh\d+)\b/gi,                           // gh1
+                    /\b(bed\s*\d+)\b/gi                        // bed 1
+                ];
+                for (const pattern of locationPatterns) {
+                    const match = originalMsg.match(pattern);
+                    if (match) {
+                        return match[0].toUpperCase().replace(/\s+/g, '-');
+                    }
+                }
+                // Also check against known fields
+                const fieldMatch = DEFAULT_FIELDS.find(f => lowerMsg.includes(f.toLowerCase()));
+                return fieldMatch || null;
+            }
+
+            function extractRowCount() {
+                // Match "2 rows", "3 row", etc.
+                const rowPatterns = [
+                    /(\d+)\s*rows?/i,
+                    /rows?\s*[:=]?\s*(\d+)/i
+                ];
+                for (const pattern of rowPatterns) {
+                    const match = lowerMsg.match(pattern);
+                    if (match) return parseInt(match[1]);
+                }
+                return null;
+            }
+
+            function extractSpacing() {
+                // Match spacing patterns: 12", 12 inches, 12in, 6", etc.
+                const spacingPatterns = [
+                    /(\d+(?:\.\d+)?)\s*(?:"|inches?|in)\s*(?:spacing)?/i,
+                    /spacing\s*(?:of)?\s*(\d+(?:\.\d+)?)\s*(?:"|inches?|in)?/i,
+                    /at\s*(\d+(?:\.\d+)?)\s*(?:"|inches?|in)/i
+                ];
+                for (const pattern of spacingPatterns) {
+                    const match = lowerMsg.match(pattern);
+                    if (match) return parseFloat(match[1]);
+                }
+                return null;
+            }
+
+            function extractQuantity() {
+                // Match quantities: "50 plants", "100 seeds", etc.
+                const qtyPatterns = [
+                    /(\d+)\s*(?:plants?|seeds?|transplants?|starts?)/i,
+                    /plant\s*(\d+)/i,
+                    /qty\s*[:=]?\s*(\d+)/i
+                ];
+                for (const pattern of qtyPatterns) {
+                    const match = lowerMsg.match(pattern);
+                    if (match) return parseInt(match[1]);
+                }
+                return null;
+            }
+
+            // ========== INTENT DETECTION ==========
+
+            // ADD PLANTING command - "add dahlia planting to cl-01 with 2 rows at 12" spacing on May 1st"
+            if (lowerMsg.includes('add') && (lowerMsg.includes('plant') || lowerMsg.includes('seed') || lowerMsg.includes('transplant'))) {
+                return {
+                    type: 'add_planting',
+                    crop: extractCrop(),
+                    location: extractLocation(),
+                    rows: extractRowCount(),
+                    spacing: extractSpacing(),
+                    date: extractDate(),
+                    quantity: extractQuantity(),
+                    rawMessage: message
+                };
             }
 
             // "When should I plant X for Y harvest?"
@@ -6274,6 +6410,17 @@
                     type: 'when_to_plant',
                     crop: extractCrop(),
                     harvestMonth: extractMonth()
+                };
+            }
+
+            // SCHEDULE command - "schedule tomatoes for May 15th"
+            if (lowerMsg.includes('schedule') || lowerMsg.includes('plan')) {
+                return {
+                    type: 'add_planting',
+                    crop: extractCrop(),
+                    location: extractLocation(),
+                    date: extractDate(),
+                    rawMessage: message
                 };
             }
 
@@ -6305,7 +6452,7 @@
             // Move planting
             if (lowerMsg.includes('move') || lowerMsg.includes('assign') || lowerMsg.includes('put')) {
                 const cropMatch = extractCrop();
-                const fieldMatch = DEFAULT_FIELDS.find(f => lowerMsg.includes(f.toLowerCase()));
+                const fieldMatch = extractLocation();
                 return { type: 'move_planting', crop: cropMatch, field: fieldMatch };
             }
 
@@ -6395,6 +6542,128 @@
                     { label: 'View calendar', onclick: 'setZoom("month")' }
                 ]
             };
+        }
+
+        // Handle ADD PLANTING intent
+        // Supports commands like: "Add dahlia planting to cl-01 with 2 rows at 12" spacing on May 1st"
+        function handleAddPlanting(intent) {
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                               'July', 'August', 'September', 'October', 'November', 'December'];
+
+            // Build summary of what we understood
+            const understood = [];
+            const missing = [];
+
+            if (intent.crop) {
+                understood.push(`<strong>Crop:</strong> ${intent.crop}`);
+            } else {
+                missing.push('Crop name');
+            }
+
+            if (intent.location) {
+                understood.push(`<strong>Location:</strong> ${intent.location}`);
+            } else {
+                missing.push('Location/bed (e.g., CL-01, JS6)');
+            }
+
+            if (intent.date) {
+                const dateStr = `${monthNames[intent.date.getMonth()]} ${intent.date.getDate()}`;
+                understood.push(`<strong>Date:</strong> ${dateStr}`);
+            } else {
+                missing.push('Planting date');
+            }
+
+            if (intent.rows) {
+                understood.push(`<strong>Rows:</strong> ${intent.rows}`);
+            }
+
+            if (intent.spacing) {
+                understood.push(`<strong>Spacing:</strong> ${intent.spacing}"`);
+            }
+
+            if (intent.quantity) {
+                understood.push(`<strong>Quantity:</strong> ${intent.quantity} plants`);
+            }
+
+            // If we have minimum required info (crop + date or location), offer to create
+            if (intent.crop && (intent.date || intent.location)) {
+                const previewHtml = `<div class="preview-box">${understood.join('<br>')}</div>`;
+
+                // Store the intent for confirm action
+                window.pendingPlantingIntent = intent;
+
+                return {
+                    message: `🌱 **New Planting Preview**<br><br>I understood:<br>${previewHtml}${missing.length > 0 ? `<br><br>Optional info not provided: ${missing.join(', ')}` : ''}<br><br>Would you like me to create this planting?`,
+                    actions: [
+                        { label: '✅ Create planting', onclick: 'confirmAddPlanting()', primary: true },
+                        { label: '❌ Cancel', onclick: "addAssistantMessage('assistant', 'Planting cancelled.')" }
+                    ]
+                };
+            }
+
+            // Not enough info - ask for more
+            return {
+                message: `🌱 **Add Planting**<br><br>I understood:<br>${understood.length > 0 ? understood.join('<br>') : '(nothing yet)'}<br><br>I still need:<br>• ${missing.join('<br>• ')}<br><br><strong>Example:</strong> "Add dahlia planting to CL-01 with 2 rows at 12" spacing on May 1st"`,
+                actions: [
+                    { label: 'Help', onclick: "processAssistantMessage('help')" }
+                ]
+            };
+        }
+
+        // Confirm and create the planting
+        async function confirmAddPlanting() {
+            const intent = window.pendingPlantingIntent;
+            if (!intent) {
+                addAssistantMessage('assistant', 'No pending planting to create. Please try again.');
+                return;
+            }
+
+            try {
+                // Build planting data
+                const plantingData = {
+                    crop: intent.crop,
+                    field: intent.location || '',
+                    bed: intent.location || '',
+                    fieldStartDate: intent.date ? intent.date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                    rows: intent.rows || 1,
+                    spacing: intent.spacing || 12,
+                    quantity: intent.quantity || 0,
+                    notes: intent.rawMessage || ''
+                };
+
+                // If we have API access, save to backend
+                if (typeof API_URL !== 'undefined') {
+                    const params = new URLSearchParams({
+                        action: 'addPlanting',
+                        ...plantingData
+                    });
+
+                    const response = await fetch(`${API_URL}?${params}`);
+                    const result = await response.json();
+
+                    if (result.success) {
+                        addAssistantMessage('assistant', `✅ **Planting created!**<br><br>${intent.crop} has been scheduled for ${intent.date ? intent.date.toLocaleDateString() : 'today'} in ${intent.location || 'unassigned'}.<br><br>Refreshing calendar...`, [
+                            { label: 'View in calendar', onclick: 'refreshData()' }
+                        ]);
+                        // Refresh the calendar data
+                        setTimeout(() => refreshData(), 1000);
+                    } else {
+                        addAssistantMessage('assistant', `⚠️ Could not save planting: ${result.error || 'Unknown error'}. The data has been added locally.`);
+                    }
+                } else {
+                    // Add locally for now
+                    addAssistantMessage('assistant', `✅ **Planting noted!**<br><br>${intent.crop} scheduled for ${intent.date ? intent.date.toLocaleDateString() : 'today'}.<br><br>Note: Use the "Add Planting" button to save to the database.`, [
+                        { label: 'Add Planting', onclick: 'openAddPlantingModal()' }
+                    ]);
+                }
+            } catch (error) {
+                console.error('Error creating planting:', error);
+                addAssistantMessage('assistant', `⚠️ Error creating planting: ${error.message}. Please try using the Add Planting form instead.`, [
+                    { label: 'Add Planting Form', onclick: 'openAddPlantingModal()' }
+                ]);
+            }
+
+            window.pendingPlantingIntent = null;
         }
 
         function handleQueryUrgent() {
@@ -6492,6 +6761,10 @@
         function handleHelp() {
             return {
                 message: `🌱 **Planning Assistant Help**<br><br>` +
+                    `**Add Plantings:**<br>` +
+                    `• "Add dahlia planting to CL-01 with 2 rows at 12" spacing on May 1st"<br>` +
+                    `• "Add tomatoes to JS6 on April 15"<br>` +
+                    `• "Schedule lettuce for May 20"<br><br>` +
                     `**Queries:**<br>` +
                     `• "Show unassigned plantings"<br>` +
                     `• "What beds are available in May?"<br>` +
@@ -6505,6 +6778,7 @@
                     `• "Move Tomato to JS6"<br>` +
                     `• "Assign Lettuce to F3L"<br><br>` +
                     `**Tips:**<br>` +
+                    `• Include crop name, location (CL-01, JS6, etc.), date, rows, and spacing<br>` +
                     `• Click suggestions at the top for proactive alerts<br>` +
                     `• Use the sidebar to drag plantings to beds`,
                 actions: [

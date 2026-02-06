@@ -48,4 +48,16 @@ PRODUCTION_INTELLIGENCE_UPGRADE.js
 *.md
 README*
 
-# Only push: MERGED TOTAL.js and appsscript.json
+# JSON data files (not Apps Script)
+*.json
+!appsscript.json
+
+# Python scripts
+*.py
+
+# Node.js scripts that aren't Apps Script compatible
+seo_optimizer.py
+shopify_products.json
+seo_optimization_report.json
+
+# Only push: MERGED TOTAL.js, appsscript.json, and HTML files

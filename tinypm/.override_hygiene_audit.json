@@ -1,0 +1,38 @@
+{
+  "entries": [
+    {
+      "id": "d39e065e956c",
+      "action": "override_set",
+      "actor": "test_user",
+      "timestamp": "2026-02-04T23:55:33.333919",
+      "rule_key": "test.preference",
+      "details": {
+        "reason": "test reason",
+        "expires_at": null
+      },
+      "before_state": {
+        "value": null,
+        "tier": null
+      },
+      "after_state": {
+        "value": "test_value",
+        "tier": "preference"
+      }
+    },
+    {
+      "id": "29d96b01ebea",
+      "action": "rule_created",
+      "actor": "ai_learning",
+      "timestamp": "2026-02-04T23:55:33.334370",
+      "rule_key": "test.learned",
+      "details": {
+        "tier": "learned",
+        "confidence": 0.85,
+        "expires_at": "2026-03-06T23:55:33.334357"
+      },
+      "before_state": null,
+      "after_state": null
+    }
+  ],
+  "last_updated": "2026-02-04T23:55:33.334406"
+}
