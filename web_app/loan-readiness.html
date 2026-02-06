@@ -1049,15 +1049,43 @@
                 <div class="input-group" style="margin-bottom: 1rem;">
                     <label>Document Type</label>
                     <select id="uploadType">
-                        <option value="drivers_license">Driver's License</option>
-                        <option value="passport">Passport</option>
-                        <option value="ssn_card">Social Security Card</option>
-                        <option value="tax_return_2023">Tax Return 2023</option>
-                        <option value="tax_return_2024">Tax Return 2024</option>
-                        <option value="tax_return_2025">Tax Return 2025</option>
-                        <option value="balance_sheet">Balance Sheet</option>
-                        <option value="cash_flow">Cash Flow Statement</option>
-                        <option value="business_plan">Business Plan</option>
+                        <optgroup label="Personal Identification">
+                            <option value="drivers_license">Driver's License</option>
+                            <option value="passport">Passport</option>
+                            <option value="ssn_card">Social Security Card</option>
+                            <option value="birth_certificate">Birth Certificate</option>
+                            <option value="pa_residency_proof">PA Residency Proof</option>
+                        </optgroup>
+                        <optgroup label="Financial Statements">
+                            <option value="balance_sheet">Balance Sheet (Current)</option>
+                            <option value="net_worth_statement">Net Worth Statement</option>
+                            <option value="cash_flow_projection">Cash Flow Projection</option>
+                            <option value="profit_loss">Profit & Loss Statement</option>
+                            <option value="bank_statements">Bank Statements (3-6 mo)</option>
+                        </optgroup>
+                        <optgroup label="Tax Returns">
+                            <option value="tax_return_2023">Federal Tax Return 2023</option>
+                            <option value="tax_return_2024">Federal Tax Return 2024</option>
+                            <option value="tax_return_2025">Federal Tax Return 2025</option>
+                            <option value="schedule_f_2023">Schedule F 2023</option>
+                            <option value="schedule_f_2024">Schedule F 2024</option>
+                            <option value="schedule_f_2025">Schedule F 2025</option>
+                        </optgroup>
+                        <optgroup label="Farm Business Documents">
+                            <option value="business_plan">Farm Business Plan</option>
+                            <option value="production_history">Production History (3 yr)</option>
+                            <option value="marketing_plan">Marketing Plan</option>
+                            <option value="asset_schedule">Asset Schedule</option>
+                            <option value="equipment_list">Equipment Inventory</option>
+                            <option value="beginning_farmer_certification">Beginning Farmer Certification</option>
+                        </optgroup>
+                        <optgroup label="Legal Documents">
+                            <option value="llc_articles">LLC Articles of Organization</option>
+                            <option value="ein_letter">EIN Confirmation Letter</option>
+                            <option value="insurance_liability">Liability Insurance</option>
+                            <option value="insurance_property">Property Insurance</option>
+                            <option value="organic_certification">Organic Certification</option>
+                        </optgroup>
                         <option value="other">Other</option>
                     </select>
                 </div>
