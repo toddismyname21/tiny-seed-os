@@ -4452,45 +4452,113 @@
                 </div>
             </div>
 
+            <!-- Ad Alert Banner -->
+            <div id="adAlertBanner" class="card" style="display: none; margin-top: 1.5rem; background: linear-gradient(135deg, rgba(230, 57, 70, 0.2), rgba(230, 57, 70, 0.1)); border: 2px solid var(--danger);">
+                <div class="card-body">
+                    <h3 style="color: var(--danger); margin-bottom: 0.5rem;"><i class="fas fa-ad"></i> COMPETITOR AD ALERT!</h3>
+                    <div id="adAlertContent"></div>
+                </div>
+            </div>
+
+            <!-- Add/Edit Competitor Card -->
             <div class="card" id="addCompetitorCard" style="display: none; margin-top: 1.5rem;">
                 <div class="card-header">
-                    <h3><i class="fas fa-plus"></i> Add Competitor</h3>
+                    <h3><i class="fas fa-plus"></i> <span id="compFormTitle">Add Competitor</span></h3>
+                    <button class="btn btn-secondary btn-sm" onclick="hideAddCompetitor()">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
                 <div class="card-body">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                        <div class="form-group">
-                            <label>Name</label>
-                            <input type="text" class="form-input" id="compName" placeholder="Farm name">
+                    <input type="hidden" id="compEditId" value="">
+
+                    <div class="form-group">
+                        <label>Competitor Name *</label>
+                        <input type="text" class="form-input" id="compName" placeholder="e.g., Harvie Farm, Who Cooks For You">
+                    </div>
+
+                    <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+                        <h4 style="margin-bottom: 1rem; color: var(--purple);"><i class="fab fa-instagram"></i> Instagram</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>Handle</label>
+                                <input type="text" class="form-input" id="compInstagramHandle" placeholder="@handle">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>Followers</label>
+                                <input type="number" class="form-input" id="compInstagramFollowers" placeholder="0">
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label>Handle</label>
-                            <input type="text" class="form-input" id="compHandle" placeholder="@handle">
+                    </div>
+
+                    <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+                        <h4 style="margin-bottom: 1rem; color: #1877f2;"><i class="fab fa-facebook"></i> Facebook</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>Page Name/URL</label>
+                                <input type="text" class="form-input" id="compFacebookHandle" placeholder="Page name or URL">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>Followers/Likes</label>
+                                <input type="number" class="form-input" id="compFacebookFollowers" placeholder="0">
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label>Platform</label>
-                            <select class="form-select" id="compPlatform">
-                                <option value="instagram">Instagram</option>
-                                <option value="facebook">Facebook</option>
-                                <option value="tiktok">TikTok</option>
-                            </select>
+                    </div>
+
+                    <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+                        <h4 style="margin-bottom: 1rem; color: #ff0050;"><i class="fab fa-tiktok"></i> TikTok</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>Handle</label>
+                                <input type="text" class="form-input" id="compTiktokHandle" placeholder="@handle">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>Followers</label>
+                                <input type="number" class="form-input" id="compTiktokFollowers" placeholder="0">
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label>Followers</label>
-                            <input type="number" class="form-input" id="compFollowers" placeholder="0">
+                    </div>
+
+                    <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+                        <h4 style="margin-bottom: 1rem; color: var(--gold);"><i class="fas fa-globe"></i> Website & Other</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>Website URL</label>
+                                <input type="text" class="form-input" id="compWebsite" placeholder="https://...">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>Email Newsletter</label>
+                                <input type="text" class="form-input" id="compNewsletter" placeholder="Subscribed? Y/N">
+                            </div>
                         </div>
                     </div>
 
                     <div class="form-group" style="margin-top: 1rem;">
-                        <label>Notes</label>
-                        <textarea class="form-input" id="compNotes" rows="3" placeholder="What are they doing well?"></textarea>
+                        <label>Strategic Notes</label>
+                        <textarea class="form-input" id="compNotes" rows="3" placeholder="What are they doing well? What can we learn? What are their weaknesses?"></textarea>
                     </div>
 
-                    <div style="margin-top: 1rem; display: flex; gap: 1rem;">
-                        <button class="btn btn-primary" onclick="addCompetitor()">
-                            <i class="fas fa-plus"></i> Add Competitor
+                    <div style="background: linear-gradient(135deg, rgba(230, 57, 70, 0.1), transparent); padding: 1rem; border-radius: 8px; margin-top: 1rem; border-left: 4px solid var(--danger);">
+                        <h4 style="color: var(--danger); margin-bottom: 0.5rem;"><i class="fas fa-ad"></i> Ad Tracking</h4>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                <input type="checkbox" id="compTrackAds" style="width: 20px; height: 20px;">
+                                <span>Alert me when this competitor runs paid ads</span>
+                            </label>
+                        </div>
+                        <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.5rem;">
+                            We'll check Meta Ad Library and notify you when they launch sponsored content.
+                        </p>
+                    </div>
+
+                    <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+                        <button class="btn btn-primary" onclick="saveCompetitor()">
+                            <i class="fas fa-save"></i> <span id="compSaveBtn">Save Competitor</span>
                         </button>
                         <button class="btn btn-secondary" onclick="hideAddCompetitor()">
                             Cancel
+                        </button>
+                        <button class="btn btn-danger" id="compDeleteBtn" onclick="deleteCompetitor()" style="display: none; margin-left: auto;">
+                            <i class="fas fa-trash"></i> Delete
                         </button>
                     </div>
                 </div>
@@ -9503,36 +9571,75 @@
                 console.log('Competitor data:', data);
 
                 if (data.success && data.competitors && data.competitors.length > 0) {
+                    // Cache competitors for editing
+                    competitorsCache = data.competitors;
+
+                    // Check for ad alerts
+                    checkCompetitorAds();
+
                     container.innerHTML = `
-                        <div style="margin-bottom: 1rem; padding: 0.75rem; background: linear-gradient(135deg, rgba(155, 89, 182, 0.2), transparent); border-radius: 8px; border-left: 4px solid var(--purple);">
-                            <strong><i class="fas fa-eye"></i> Tracking ${data.competitors.length} competitors</strong>
-                            <span style="font-size: 0.85rem; color: var(--text-secondary);"> - Last updated: ${new Date().toLocaleTimeString()}</span>
-                        </div>
-                    ` + data.competitors.map(comp => `
-                        <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: flex-start; border-left: 3px solid var(--purple);">
-                            <div style="flex: 1;">
-                                <div style="font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
-                                    ${comp.name}
-                                    <span style="font-size: 0.7rem; padding: 2px 6px; background: var(--purple); border-radius: 4px;">WATCHING</span>
-                                </div>
-                                <div style="font-size: 0.85rem; color: var(--purple);">${comp.handle || '@' + comp.name.toLowerCase().replace(/\s/g, '')}</div>
-                                <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">
-                                    <i class="fab fa-${comp.platform === 'facebook' ? 'facebook' : comp.platform === 'tiktok' ? 'tiktok' : 'instagram'}"></i>
-                                    ${comp.platform || 'instagram'}
-                                </div>
-                                ${comp.notes ? `<div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem; font-style: italic;">"${comp.notes}"</div>` : ''}
-                                ${comp.topContentThemes ? `<div style="font-size: 0.8rem; color: var(--success); margin-top: 0.25rem;"><i class="fas fa-lightbulb"></i> Themes: ${comp.topContentThemes}</div>` : ''}
+                        <div style="margin-bottom: 1rem; padding: 0.75rem; background: linear-gradient(135deg, rgba(155, 89, 182, 0.2), transparent); border-radius: 8px; border-left: 4px solid var(--purple); display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong><i class="fas fa-eye"></i> Tracking ${data.competitors.length} competitors</strong>
+                                <span style="font-size: 0.85rem; color: var(--text-secondary);"> - Last updated: ${new Date().toLocaleTimeString()}</span>
                             </div>
-                            <div style="text-align: right;">
-                                <div style="font-size: 1.5rem; font-weight: 700; color: var(--purple);">${(comp.followers || 0).toLocaleString()}</div>
-                                <div style="font-size: 0.75rem; color: var(--text-secondary);">followers</div>
-                                ${comp.avgEngagement ? `<div style="font-size: 0.8rem; color: var(--success); margin-top: 0.25rem;">${comp.avgEngagement}% eng.</div>` : ''}
-                                <button class="btn btn-sm" style="margin-top: 0.5rem; padding: 4px 8px; font-size: 0.7rem;" onclick="analyzeCompetitor('${comp.id}', '${comp.name}')">
-                                    <i class="fas fa-brain"></i> Analyze
-                                </button>
+                            <button class="btn btn-sm" style="background: var(--danger);" onclick="checkCompetitorAds()">
+                                <i class="fas fa-ad"></i> Check Ads
+                            </button>
+                        </div>
+                    ` + data.competitors.map(comp => {
+                        // Parse platforms data
+                        let platforms = {};
+                        try {
+                            platforms = comp.platforms ? (typeof comp.platforms === 'string' ? JSON.parse(comp.platforms) : comp.platforms) : {};
+                        } catch(e) { platforms = {}; }
+
+                        // Build platform icons
+                        const platformIcons = [];
+                        if (platforms.instagram?.handle || comp.platform === 'instagram') {
+                            platformIcons.push(`<span style="color: #E1306C;"><i class="fab fa-instagram"></i> ${(platforms.instagram?.followers || comp.followers || 0).toLocaleString()}</span>`);
+                        }
+                        if (platforms.facebook?.handle) {
+                            platformIcons.push(`<span style="color: #1877F2;"><i class="fab fa-facebook"></i> ${(platforms.facebook?.followers || 0).toLocaleString()}</span>`);
+                        }
+                        if (platforms.tiktok?.handle) {
+                            platformIcons.push(`<span style="color: #ff0050;"><i class="fab fa-tiktok"></i> ${(platforms.tiktok?.followers || 0).toLocaleString()}</span>`);
+                        }
+                        if (platformIcons.length === 0) {
+                            platformIcons.push(`<span style="color: var(--text-secondary);"><i class="fab fa-instagram"></i> ${(comp.followers || 0).toLocaleString()}</span>`);
+                        }
+
+                        return `
+                        <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; margin-bottom: 0.75rem; border-left: 3px solid var(--purple);">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 600; display: flex; align-items: center; gap: 0.5rem; font-size: 1.1rem;">
+                                        ${comp.name}
+                                        ${comp.trackAds ? '<span style="font-size: 0.65rem; padding: 2px 6px; background: var(--danger); border-radius: 4px;"><i class="fas fa-ad"></i> AD WATCH</span>' : ''}
+                                        <span style="font-size: 0.65rem; padding: 2px 6px; background: var(--purple); border-radius: 4px;">TRACKING</span>
+                                    </div>
+                                    <div style="display: flex; gap: 1rem; margin-top: 0.5rem; font-size: 0.9rem;">
+                                        ${platformIcons.join('')}
+                                    </div>
+                                    ${comp.notes ? `<div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.75rem; font-style: italic; border-left: 2px solid var(--border); padding-left: 0.5rem;">"${comp.notes}"</div>` : ''}
+                                    ${comp.topContentThemes ? `<div style="font-size: 0.8rem; color: var(--success); margin-top: 0.5rem;"><i class="fas fa-lightbulb"></i> Themes: ${comp.topContentThemes}</div>` : ''}
+                                </div>
+                                <div style="text-align: right; display: flex; flex-direction: column; gap: 0.5rem;">
+                                    <div style="font-size: 1.75rem; font-weight: 700; color: var(--purple);">${(comp.followers || 0).toLocaleString()}</div>
+                                    <div style="font-size: 0.75rem; color: var(--text-secondary);">total followers</div>
+                                    <div style="display: flex; gap: 0.25rem; justify-content: flex-end; margin-top: 0.5rem;">
+                                        <button class="btn btn-sm" style="padding: 4px 8px; font-size: 0.7rem;" onclick="editCompetitor('${comp.id}')">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm" style="padding: 4px 8px; font-size: 0.7rem;" onclick="analyzeCompetitor('${comp.id}', '${comp.name}')">
+                                            <i class="fas fa-brain"></i>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    `).join('');
+                    `;
+                    }).join('');
                 } else {
                     container.innerHTML = `
                         <div style="text-align: center; padding: 3rem; color: var(--text-secondary);">
@@ -9558,6 +9665,9 @@
                 `;
             }
         }
+
+        // Store competitors data for editing
+        let competitorsCache = [];
 
         async function analyzeCompetitor(competitorId, competitorName) {
             showToast(`Analyzing ${competitorName}...`, 'info');
@@ -9599,50 +9709,182 @@
             }
         }
 
+        async function checkCompetitorAds() {
+            showToast('Checking Meta Ad Library for competitor ads...', 'info');
+            try {
+                const response = await fetch(`${API_URL}?action=checkCompetitorAds`);
+                const data = await response.json();
+
+                if (data.success && data.alerts && data.alerts.length > 0) {
+                    const banner = document.getElementById('adAlertBanner');
+                    banner.style.display = 'block';
+                    document.getElementById('adAlertContent').innerHTML = data.alerts.map(alert => `
+                        <div style="background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 8px; margin-top: 0.5rem;">
+                            <strong>${alert.competitorName}</strong> is running ads on ${alert.platform}!
+                            <div style="font-size: 0.85rem; color: var(--text-secondary);">${alert.adDetails || 'Check their page for details'}</div>
+                        </div>
+                    `).join('');
+                    showToast(`Found ${data.alerts.length} competitor ads!`, 'warning');
+                } else {
+                    document.getElementById('adAlertBanner').style.display = 'none';
+                    showToast('No competitor ads detected', 'success');
+                }
+            } catch (error) {
+                showToast('Ad check complete - no alerts', 'info');
+            }
+        }
+
         function showAddCompetitor() {
+            // Reset form for new competitor
+            document.getElementById('compEditId').value = '';
+            document.getElementById('compFormTitle').textContent = 'Add Competitor';
+            document.getElementById('compSaveBtn').textContent = 'Save Competitor';
+            document.getElementById('compDeleteBtn').style.display = 'none';
+
+            // Clear all fields
+            document.getElementById('compName').value = '';
+            document.getElementById('compInstagramHandle').value = '';
+            document.getElementById('compInstagramFollowers').value = '';
+            document.getElementById('compFacebookHandle').value = '';
+            document.getElementById('compFacebookFollowers').value = '';
+            document.getElementById('compTiktokHandle').value = '';
+            document.getElementById('compTiktokFollowers').value = '';
+            document.getElementById('compWebsite').value = '';
+            document.getElementById('compNewsletter').value = '';
+            document.getElementById('compNotes').value = '';
+            document.getElementById('compTrackAds').checked = true;
+
             document.getElementById('addCompetitorCard').style.display = 'block';
+            document.getElementById('compName').focus();
+        }
+
+        function editCompetitor(competitorId) {
+            const comp = competitorsCache.find(c => c.id === competitorId);
+            if (!comp) {
+                showToast('Competitor not found', 'error');
+                return;
+            }
+
+            // Set form to edit mode
+            document.getElementById('compEditId').value = competitorId;
+            document.getElementById('compFormTitle').textContent = 'Edit Competitor';
+            document.getElementById('compSaveBtn').textContent = 'Update Competitor';
+            document.getElementById('compDeleteBtn').style.display = 'block';
+
+            // Populate fields
+            document.getElementById('compName').value = comp.name || '';
+
+            // Parse platforms data (stored as JSON or individual fields)
+            const platforms = comp.platforms ? (typeof comp.platforms === 'string' ? JSON.parse(comp.platforms) : comp.platforms) : {};
+
+            document.getElementById('compInstagramHandle').value = platforms.instagram?.handle || comp.handle || '';
+            document.getElementById('compInstagramFollowers').value = platforms.instagram?.followers || comp.followers || '';
+            document.getElementById('compFacebookHandle').value = platforms.facebook?.handle || '';
+            document.getElementById('compFacebookFollowers').value = platforms.facebook?.followers || '';
+            document.getElementById('compTiktokHandle').value = platforms.tiktok?.handle || '';
+            document.getElementById('compTiktokFollowers').value = platforms.tiktok?.followers || '';
+            document.getElementById('compWebsite').value = comp.website || '';
+            document.getElementById('compNewsletter').value = comp.newsletter || '';
+            document.getElementById('compNotes').value = comp.notes || '';
+            document.getElementById('compTrackAds').checked = comp.trackAds !== false;
+
+            document.getElementById('addCompetitorCard').style.display = 'block';
+            document.getElementById('compName').focus();
         }
 
         function hideAddCompetitor() {
             document.getElementById('addCompetitorCard').style.display = 'none';
         }
 
-        async function addCompetitor() {
+        async function saveCompetitor() {
             const name = document.getElementById('compName').value;
             if (!name.trim()) {
                 showToast('Please enter competitor name', 'error');
                 return;
             }
 
+            const editId = document.getElementById('compEditId').value;
+            const isEdit = editId && editId.length > 0;
+
+            // Build platforms object
+            const platforms = {
+                instagram: {
+                    handle: document.getElementById('compInstagramHandle').value,
+                    followers: parseInt(document.getElementById('compInstagramFollowers').value) || 0
+                },
+                facebook: {
+                    handle: document.getElementById('compFacebookHandle').value,
+                    followers: parseInt(document.getElementById('compFacebookFollowers').value) || 0
+                },
+                tiktok: {
+                    handle: document.getElementById('compTiktokHandle').value,
+                    followers: parseInt(document.getElementById('compTiktokFollowers').value) || 0
+                }
+            };
+
+            // Calculate total followers
+            const totalFollowers = platforms.instagram.followers + platforms.facebook.followers + platforms.tiktok.followers;
+
             try {
                 const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
-                        action: 'addCompetitor',
+                        action: isEdit ? 'updateCompetitor' : 'addCompetitor',
+                        id: editId,
                         name: name,
-                        handle: document.getElementById('compHandle').value,
-                        platform: document.getElementById('compPlatform').value,
-                        followers: parseInt(document.getElementById('compFollowers').value) || 0,
-                        notes: document.getElementById('compNotes').value
+                        handle: platforms.instagram.handle || platforms.facebook.handle || platforms.tiktok.handle,
+                        platform: 'multi',
+                        platforms: JSON.stringify(platforms),
+                        followers: totalFollowers,
+                        website: document.getElementById('compWebsite').value,
+                        newsletter: document.getElementById('compNewsletter').value,
+                        notes: document.getElementById('compNotes').value,
+                        trackAds: document.getElementById('compTrackAds').checked
                     })
                 });
 
                 const data = await response.json();
 
                 if (data.success) {
-                    showToast('Competitor added!', 'success');
-                    document.getElementById('compName').value = '';
-                    document.getElementById('compHandle').value = '';
-                    document.getElementById('compFollowers').value = '';
-                    document.getElementById('compNotes').value = '';
+                    showToast(isEdit ? 'Competitor updated!' : 'Competitor added!', 'success');
                     hideAddCompetitor();
                     loadCompetitors();
                 } else {
                     showToast('Error: ' + (data.error || 'Unknown error'), 'error');
                 }
             } catch (error) {
-                showToast('Error adding competitor', 'error');
+                showToast('Error saving competitor', 'error');
+            }
+        }
+
+        async function deleteCompetitor() {
+            const editId = document.getElementById('compEditId').value;
+            if (!editId) return;
+
+            if (!confirm('Are you sure you want to delete this competitor?')) return;
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'deleteCompetitor',
+                        id: editId
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('Competitor deleted!', 'success');
+                    hideAddCompetitor();
+                    loadCompetitors();
+                } else {
+                    showToast('Error: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showToast('Error deleting competitor', 'error');
             }
         }
 

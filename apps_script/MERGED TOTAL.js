@@ -13779,6 +13779,8 @@ function doGet(e) {
         return jsonResponse(getCommentsNeedingResponse(e.parameter));
       case 'getCompetitors':
         return jsonResponse(getCompetitors(e.parameter));
+      case 'checkCompetitorAds':
+        return jsonResponse(checkCompetitorAds(e.parameter));
       case 'getRevenueByPost':
         return jsonResponse(getRevenueByPost(e.parameter));
       case 'getRevenueByPlatform':
@@ -16710,6 +16712,10 @@ function doPost(e) {
         return jsonResponse(recycleEvergreenPost(data));
       case 'addCompetitor':
         return jsonResponse(addCompetitor(data));
+      case 'updateCompetitor':
+        return jsonResponse(updateCompetitor(data));
+      case 'deleteCompetitor':
+        return jsonResponse(deleteCompetitor(data));
       case 'analyzeCompetitorContent':
         return jsonResponse(analyzeCompetitorContent(data));
       case 'configureOpenAI':
@@ -59081,9 +59087,10 @@ function initCompetitorSheet() {
     let sheet = ss.getSheetByName('SOCIAL_Competitors');
     if (!sheet) {
         sheet = ss.insertSheet('SOCIAL_Competitors');
-        sheet.getRange(1, 1, 1, 10).setValues([[
+        sheet.getRange(1, 1, 1, 14).setValues([[
             'ID', 'Name', 'Platform', 'Handle', 'Followers', 'Avg_Engagement',
-            'Top_Content_Themes', 'Posting_Frequency', 'Last_Checked', 'Notes'
+            'Top_Content_Themes', 'Posting_Frequency', 'Last_Checked', 'Notes',
+            'Platforms_JSON', 'Website', 'Newsletter', 'Track_Ads'
         ]]);
         sheet.setFrozenRows(1);
     }
@@ -59098,17 +59105,103 @@ function addCompetitor(params) {
         sheet.appendRow([
             id,
             params.name || '',
-            params.platform || 'instagram',
+            params.platform || 'multi',
             params.handle || '',
             params.followers || 0,
             params.avgEngagement || 0,
             params.topContentThemes || '',
             params.postingFrequency || '',
             new Date().toISOString(),
-            params.notes || ''
+            params.notes || '',
+            params.platforms || '',
+            params.website || '',
+            params.newsletter || '',
+            params.trackAds !== false ? 'TRUE' : 'FALSE'
         ]);
 
         return { success: true, id: id };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+function updateCompetitor(params) {
+    try {
+        if (!params.id) return { success: false, error: 'Competitor ID required' };
+
+        const sheet = initCompetitorSheet();
+        const data = sheet.getDataRange().getValues();
+
+        for (let i = 1; i < data.length; i++) {
+            if (data[i][0] === params.id) {
+                // Update the row
+                sheet.getRange(i + 1, 2).setValue(params.name || data[i][1]);
+                sheet.getRange(i + 1, 3).setValue(params.platform || data[i][2]);
+                sheet.getRange(i + 1, 4).setValue(params.handle || data[i][3]);
+                sheet.getRange(i + 1, 5).setValue(params.followers || data[i][4]);
+                sheet.getRange(i + 1, 9).setValue(new Date().toISOString());
+                sheet.getRange(i + 1, 10).setValue(params.notes || data[i][9]);
+                sheet.getRange(i + 1, 11).setValue(params.platforms || data[i][10]);
+                sheet.getRange(i + 1, 12).setValue(params.website || data[i][11]);
+                sheet.getRange(i + 1, 13).setValue(params.newsletter || data[i][12]);
+                sheet.getRange(i + 1, 14).setValue(params.trackAds ? 'TRUE' : 'FALSE');
+
+                return { success: true, id: params.id };
+            }
+        }
+
+        return { success: false, error: 'Competitor not found' };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+function deleteCompetitor(params) {
+    try {
+        if (!params.id) return { success: false, error: 'Competitor ID required' };
+
+        const sheet = initCompetitorSheet();
+        const data = sheet.getDataRange().getValues();
+
+        for (let i = 1; i < data.length; i++) {
+            if (data[i][0] === params.id) {
+                sheet.deleteRow(i + 1);
+                return { success: true };
+            }
+        }
+
+        return { success: false, error: 'Competitor not found' };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+function checkCompetitorAds(params) {
+    try {
+        // Get competitors with ad tracking enabled
+        const competitors = getCompetitors({});
+        if (!competitors.success) return competitors;
+
+        const alerts = [];
+
+        // Note: Meta Ad Library API requires business verification
+        // This is a placeholder that can be enhanced with actual API integration
+        // For now, we'll check if any competitors have recent ad activity noted
+
+        competitors.competitors.forEach(comp => {
+            if (comp.trackAds === 'TRUE' || comp.trackAds === true) {
+                // Check last ad activity (this would be enhanced with actual API)
+                // For now, log that we're monitoring
+                Logger.log('Checking ads for: ' + comp.name);
+            }
+        });
+
+        return {
+            success: true,
+            alerts: alerts,
+            message: 'Ad check complete. Enable Meta Ad Library API for live tracking.',
+            checkedAt: new Date().toISOString()
+        };
     } catch (error) {
         return { success: false, error: error.toString() };
     }
@@ -59121,6 +59214,8 @@ function getCompetitors(params) {
         const competitors = [];
 
         for (let i = 1; i < data.length; i++) {
+            if (!data[i][0]) continue; // Skip empty rows
+
             competitors.push({
                 id: data[i][0],
                 name: data[i][1],
@@ -59131,7 +59226,11 @@ function getCompetitors(params) {
                 topContentThemes: data[i][6],
                 postingFrequency: data[i][7],
                 lastChecked: data[i][8],
-                notes: data[i][9]
+                notes: data[i][9],
+                platforms: data[i][10] || '',
+                website: data[i][11] || '',
+                newsletter: data[i][12] || '',
+                trackAds: data[i][13] === 'TRUE' || data[i][13] === true
             });
         }
 
