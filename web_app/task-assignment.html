@@ -1914,13 +1914,12 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         action: 'bulkUpdateTasks',
-                        taskIds: taskIds,
-                        updates: {
-                            Assignee_ID: employeeId,
-                            Assignee_Name: employeeName,
-                            Status: 'scheduled'
-                        },
-                        sendSMS: true // Notify assignee
+                        updates: taskIds.map(id => ({
+                            taskId: id,
+                            assigneeId: employeeId,
+                            assigneeName: employeeName,
+                            status: 'scheduled'
+                        }))
                     })
                 });
 
@@ -1959,16 +1958,16 @@
                 // Get task details to check for planting tasks
                 const selectedTasksData = tasks.filter(t => taskIds.includes(t.id));
 
+                const now = new Date().toISOString();
                 const response = await fetch(API_BASE, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         action: 'bulkUpdateTasks',
-                        taskIds: taskIds,
-                        updates: {
-                            Status: 'done',
-                            Completed_At: new Date().toISOString()
-                        }
+                        updates: taskIds.map(id => ({
+                            taskId: id,
+                            status: 'done'
+                        }))
                     })
                 });
 
@@ -2040,10 +2039,10 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         action: 'bulkUpdateTasks',
-                        taskIds: taskIds,
-                        updates: {
-                            Status: 'cancelled'
-                        }
+                        updates: taskIds.map(id => ({
+                            taskId: id,
+                            status: 'cancelled'
+                        }))
                     })
                 });
 
