@@ -1463,10 +1463,22 @@
             try {
                 const response = await fetch(`${API_URL}?action=getLoanDocuments`);
                 const result = await response.json();
-                if (result.success && result.documents) {
+                if (result.success && result.data) {
                     uploadedDocuments = {};
-                    result.documents.forEach(doc => {
-                        uploadedDocuments[doc.documentType] = doc;
+                    result.data.forEach(doc => {
+                        // Backend stores document type in Subcategory field
+                        const docType = doc.Subcategory || doc.documentType || doc.Name;
+                        if (docType && docType !== 'other') {
+                            uploadedDocuments[docType] = {
+                                ...doc,
+                                documentType: docType,
+                                fileName: doc.Name,
+                                fileUrl: doc.File_URL,
+                                fileId: doc.File_ID,
+                                expiration: doc.Expires_At,
+                                uploadedAt: doc.Uploaded_At
+                            };
+                        }
                     });
                 }
             } catch (e) {
