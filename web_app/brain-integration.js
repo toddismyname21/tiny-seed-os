@@ -18,8 +18,10 @@ const BrainAPI = {
     // CONFIGURATION
     // =========================================================================
     // TinyPM Brain server (Python FastAPI - brain_bridge.py)
-    baseUrl: 'http://localhost:8000',  // Brain Bridge server port
-    sseUrl: 'http://localhost:8000/api/events',
+    // Set BRAIN_SERVER_URL in your HTML before loading this script to use cloud deployment
+    // Example: <script>window.BRAIN_SERVER_URL = 'https://tinypm-brain.onrender.com';</script>
+    baseUrl: window.BRAIN_SERVER_URL || 'http://localhost:8000',
+    get sseUrl() { return this.baseUrl + '/api/events'; },
 
     // Connection state
     connected: false,
