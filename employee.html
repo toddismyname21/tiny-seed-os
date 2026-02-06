@@ -603,6 +603,456 @@
             font-size: 15px;
         }
 
+        /* Admin Invite Section */
+        .admin-invite-section {
+            margin-bottom: 16px;
+        }
+
+        .admin-invite-btn {
+            width: 100%;
+            padding: 14px 20px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark, #1e4620));
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.2s;
+        }
+
+        .admin-invite-btn:active {
+            transform: scale(0.98);
+            filter: brightness(0.9);
+        }
+
+        .admin-pending-section {
+            background: var(--bg-elevated);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .admin-pending-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* Quick Photo Card */
+        .quick-photo-card {
+            background: linear-gradient(135deg, rgba(225, 48, 108, 0.1), rgba(155, 89, 182, 0.1));
+            border: 2px solid rgba(225, 48, 108, 0.3);
+            border-radius: 16px;
+            padding: 16px;
+            margin-top: 20px;
+        }
+
+        .quick-photo-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .quick-photo-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #E1306C, #9b59b6);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+        }
+
+        .quick-photo-text h3 {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .quick-photo-text p {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin: 2px 0 0 0;
+        }
+
+        .quick-photo-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .quick-photo-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 10px;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .quick-photo-btn.camera {
+            background: linear-gradient(135deg, #E1306C, #9b59b6);
+            color: white;
+        }
+
+        .quick-photo-btn.gallery {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .quick-photo-btn:active {
+            transform: scale(0.98);
+        }
+
+        .quick-photo-preview {
+            position: relative;
+            margin-top: 12px;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .quick-photo-preview img {
+            width: 100%;
+            max-height: 200px;
+            object-fit: cover;
+            border-radius: 12px;
+        }
+
+        .quick-photo-remove {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 32px;
+            height: 32px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .quick-photo-submit {
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .quick-photo-caption {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 14px;
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .quick-photo-send-btn {
+            padding: 14px;
+            background: linear-gradient(135deg, #E1306C, #9b59b6);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .quick-photo-send-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* Invite Employee Modal */
+        .invite-modal-content {
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .invite-section {
+            background: var(--bg-elevated);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .invite-section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .invite-section-header i {
+            font-size: 18px;
+            color: var(--primary);
+        }
+
+        .invite-section-header h3 {
+            font-size: 15px;
+            font-weight: 600;
+            margin: 0;
+            color: var(--text-primary);
+        }
+
+        .invite-phone-input {
+            display: flex;
+            gap: 10px;
+        }
+
+        .phone-input {
+            flex: 1;
+            padding: 14px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 16px;
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .invite-send-btn {
+            padding: 14px 20px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .invite-note {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 10px;
+        }
+
+        .invite-qr-container {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 180px;
+        }
+
+        .invite-qr-placeholder {
+            text-align: center;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+
+        .invite-qr-placeholder i {
+            font-size: 48px;
+            margin-bottom: 10px;
+            color: var(--primary);
+        }
+
+        .invite-link-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        .invite-link-input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 13px;
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .invite-copy-btn {
+            padding: 12px 16px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .invite-instructions {
+            background: var(--bg-elevated);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .invite-instructions-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .invite-instructions-header i {
+            font-size: 20px;
+            color: var(--primary);
+        }
+
+        .invite-instructions-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .install-guide {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+
+        .guide-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px;
+            background: var(--bg-card);
+            cursor: pointer;
+        }
+
+        .guide-header i:first-child {
+            font-size: 20px;
+        }
+
+        .guide-header .fa-apple {
+            color: #555;
+        }
+
+        .guide-header .fa-android {
+            color: #3ddc84;
+        }
+
+        .guide-header span {
+            flex: 1;
+            font-weight: 600;
+        }
+
+        .guide-arrow {
+            transition: transform 0.3s;
+        }
+
+        .guide-arrow.open {
+            transform: rotate(180deg);
+        }
+
+        .guide-steps {
+            display: none;
+            padding: 16px;
+            background: var(--bg-elevated);
+        }
+
+        .guide-steps.open {
+            display: block;
+        }
+
+        .guide-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .guide-step:last-child {
+            border-bottom: none;
+        }
+
+        .step-num {
+            width: 24px;
+            height: 24px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .guide-step.success .step-num {
+            background: var(--success);
+        }
+
+        .guide-step span:last-child {
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .invite-preview {
+            background: var(--bg-elevated);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .invite-preview-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+
+        .invite-preview-message {
+            background: #dcf8c6;
+            border-radius: 12px;
+            padding: 12px;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #111;
+        }
+
+        .invite-preview-message p {
+            margin: 0 0 8px 0;
+        }
+
+        .invite-preview-message p:last-child {
+            margin-bottom: 0;
+        }
+
+        .preview-link {
+            color: #0066cc;
+            word-break: break-all;
+        }
+
         /* ========================================
            MAIN APP LAYOUT
            ======================================== */
@@ -4581,7 +5031,7 @@
         /* Tutorial Toggle Button */
         .tutorial-toggle {
             position: fixed;
-            bottom: 90px;
+            bottom: 220px; /* Stack above voice fab and COS button */
             right: 16px;
             width: 50px;
             height: 50px;
@@ -4592,7 +5042,7 @@
             box-shadow: 0 4px 15px rgba(255, 140, 0, 0.4);
             cursor: pointer;
             z-index: 100;
-            display: flex;
+            display: none; /* Hidden by default - show only when needed */
             align-items: center;
             justify-content: center;
             font-size: 20px;
@@ -5626,17 +6076,17 @@
            ======================================== */
         .voice-fab {
             position: fixed;
-            bottom: 100px;
-            right: 20px;
-            width: 72px;
-            height: 72px;
+            bottom: 160px; /* Stack above COS button (90px + 56px + 14px gap) */
+            right: 16px;
+            width: 56px;
+            height: 56px;
             border-radius: 50%;
             background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
             border: none;
             box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4);
             cursor: pointer;
-            z-index: 9999;
-            display: flex;
+            z-index: 999;
+            display: none; /* Hidden by default - show via JS when voice enabled */
             align-items: center;
             justify-content: center;
             transition: all 0.3s;
@@ -8499,12 +8949,6 @@
         <button class="update-btn" onclick="updateApp()">Update Now</button>
     </div>
 
-    <!-- Offline Indicator -->
-    <div class="offline-indicator" id="offlineIndicator">
-        <i class="fas fa-wifi-slash"></i>
-        <span>Offline Mode</span>
-    </div>
-
     <!-- Login Screen -->
     <div id="loginScreen" class="screen active">
         <div class="login-screen">
@@ -8797,14 +9241,29 @@
                     <div class="admin-panel-header">
                         <div class="admin-panel-title">
                             <i class="fas fa-user-shield"></i>
-                            Pending Registrations
+                            Admin Tools
                         </div>
-                        <span class="pending-badge" id="pendingCount">0</span>
                     </div>
-                    <div class="pending-list" id="pendingList">
-                        <div class="no-pending">
-                            <i class="fas fa-check-circle"></i>
-                            <p>No pending registrations</p>
+
+                    <!-- Send App to Employee Button -->
+                    <div class="admin-invite-section">
+                        <button class="admin-invite-btn" onclick="openInviteEmployeeModal()">
+                            <i class="fas fa-paper-plane"></i>
+                            <span>Send App to Employee</span>
+                        </button>
+                    </div>
+
+                    <!-- Pending Registrations -->
+                    <div class="admin-pending-section">
+                        <div class="admin-pending-header">
+                            <span>Pending Registrations</span>
+                            <span class="pending-badge" id="pendingCount">0</span>
+                        </div>
+                        <div class="pending-list" id="pendingList">
+                            <div class="no-pending">
+                                <i class="fas fa-check-circle"></i>
+                                <p>No pending registrations</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -8819,6 +9278,43 @@
                         <div class="hours-value" id="hoursWeek">0.0</div>
                         <div class="hours-label" data-i18n="clock.weeklyHours">This Week</div>
                     </div>
+                </div>
+
+                <!-- Quick Photo Widget -->
+                <div class="quick-photo-card" id="quickPhotoCard">
+                    <div class="quick-photo-header">
+                        <div class="quick-photo-icon">
+                            <i class="fas fa-camera"></i>
+                        </div>
+                        <div class="quick-photo-text">
+                            <h3 data-i18n="photos.snapTitle">Snap a Farm Photo</h3>
+                            <p data-i18n="photos.snapDesc">Help with marketing & documentation</p>
+                        </div>
+                    </div>
+                    <div class="quick-photo-actions">
+                        <button class="quick-photo-btn camera" onclick="quickCapturePhoto()">
+                            <i class="fas fa-camera"></i>
+                            <span data-i18n="photos.takePhoto">Take Photo</span>
+                        </button>
+                        <button class="quick-photo-btn gallery" onclick="quickSelectPhoto()">
+                            <i class="fas fa-images"></i>
+                            <span data-i18n="photos.gallery">Gallery</span>
+                        </button>
+                    </div>
+                    <div class="quick-photo-preview" id="quickPhotoPreview" style="display: none;">
+                        <img id="quickPhotoImg" src="" alt="Photo preview">
+                        <button class="quick-photo-remove" onclick="removeQuickPhoto()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="quick-photo-submit" id="quickPhotoSubmit" style="display: none;">
+                        <input type="text" id="quickPhotoCaption" placeholder="Add a caption (optional)..." class="quick-photo-caption">
+                        <button class="quick-photo-send-btn" onclick="submitQuickPhoto()">
+                            <i class="fas fa-paper-plane"></i> Send to Marketing
+                        </button>
+                    </div>
+                    <input type="file" id="quickPhotoInput" accept="image/*" capture="environment" style="display: none;" onchange="handleQuickPhotoSelect(event)">
+                    <input type="file" id="quickGalleryInput" accept="image/*" style="display: none;" onchange="handleQuickPhotoSelect(event)">
                 </div>
 
                 <!-- Messages -->
@@ -11926,6 +12422,147 @@
         </div>
     </div>
 
+    <!-- Invite Employee Modal -->
+    <div class="feature-modal" id="inviteEmployeeModal">
+        <div class="feature-modal-content invite-modal-content">
+            <div class="feature-modal-header">
+                <button class="back-btn" onclick="closeInviteEmployeeModal()">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <h2><i class="fas fa-paper-plane"></i> Send App to Employee</h2>
+            </div>
+            <div class="feature-modal-body">
+                <!-- Send via SMS -->
+                <div class="invite-section">
+                    <div class="invite-section-header">
+                        <i class="fas fa-comment-sms"></i>
+                        <h3>Text the App Link</h3>
+                    </div>
+                    <div class="invite-phone-input">
+                        <input type="tel" id="invitePhoneNumber" placeholder="(412) 555-1234" class="phone-input" maxlength="14" oninput="formatPhoneNumber(this)">
+                        <button class="invite-send-btn" onclick="sendAppInviteSMS()">
+                            <i class="fas fa-paper-plane"></i> Send
+                        </button>
+                    </div>
+                    <p class="invite-note">Employee will receive a text with the app link and setup instructions.</p>
+                </div>
+
+                <!-- QR Code Option -->
+                <div class="invite-section">
+                    <div class="invite-section-header">
+                        <i class="fas fa-qrcode"></i>
+                        <h3>Show QR Code</h3>
+                    </div>
+                    <div class="invite-qr-container" id="inviteQRCode">
+                        <div class="invite-qr-placeholder" onclick="generateInviteQR()">
+                            <i class="fas fa-qrcode"></i>
+                            <p>Tap to generate QR code</p>
+                        </div>
+                    </div>
+                    <p class="invite-note">Employee can scan this with their phone camera.</p>
+                </div>
+
+                <!-- Copy Link Option -->
+                <div class="invite-section">
+                    <div class="invite-section-header">
+                        <i class="fas fa-link"></i>
+                        <h3>Copy App Link</h3>
+                    </div>
+                    <div class="invite-link-container">
+                        <input type="text" id="inviteAppLink" readonly class="invite-link-input" value="">
+                        <button class="invite-copy-btn" onclick="copyAppLink()">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                    </div>
+                </div>
+
+                <!-- PWA Installation Instructions -->
+                <div class="invite-instructions">
+                    <div class="invite-instructions-header">
+                        <i class="fas fa-mobile-alt"></i>
+                        <h3>How to Install as an App</h3>
+                    </div>
+
+                    <!-- iPhone Instructions -->
+                    <div class="install-guide iphone-guide">
+                        <div class="guide-header" onclick="toggleGuide('iphone')">
+                            <i class="fab fa-apple"></i>
+                            <span>iPhone / iPad</span>
+                            <i class="fas fa-chevron-down guide-arrow" id="iphoneArrow"></i>
+                        </div>
+                        <div class="guide-steps" id="iphoneSteps">
+                            <div class="guide-step">
+                                <span class="step-num">1</span>
+                                <span>Open the link in <strong>Safari</strong> (not Chrome)</span>
+                            </div>
+                            <div class="guide-step">
+                                <span class="step-num">2</span>
+                                <span>Tap the <strong>Share button</strong> <i class="fas fa-share-square"></i> at the bottom</span>
+                            </div>
+                            <div class="guide-step">
+                                <span class="step-num">3</span>
+                                <span>Scroll down and tap <strong>"Add to Home Screen"</strong></span>
+                            </div>
+                            <div class="guide-step">
+                                <span class="step-num">4</span>
+                                <span>Tap <strong>"Add"</strong> in the top right</span>
+                            </div>
+                            <div class="guide-step success">
+                                <span class="step-num"><i class="fas fa-check"></i></span>
+                                <span>The app icon will appear on your home screen!</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Android Instructions -->
+                    <div class="install-guide android-guide">
+                        <div class="guide-header" onclick="toggleGuide('android')">
+                            <i class="fab fa-android"></i>
+                            <span>Android</span>
+                            <i class="fas fa-chevron-down guide-arrow" id="androidArrow"></i>
+                        </div>
+                        <div class="guide-steps" id="androidSteps">
+                            <div class="guide-step">
+                                <span class="step-num">1</span>
+                                <span>Open the link in <strong>Chrome</strong></span>
+                            </div>
+                            <div class="guide-step">
+                                <span class="step-num">2</span>
+                                <span>Tap the <strong>menu</strong> <i class="fas fa-ellipsis-v"></i> (3 dots) in the top right</span>
+                            </div>
+                            <div class="guide-step">
+                                <span class="step-num">3</span>
+                                <span>Tap <strong>"Install app"</strong> or <strong>"Add to Home screen"</strong></span>
+                            </div>
+                            <div class="guide-step">
+                                <span class="step-num">4</span>
+                                <span>Tap <strong>"Install"</strong> to confirm</span>
+                            </div>
+                            <div class="guide-step success">
+                                <span class="step-num"><i class="fas fa-check"></i></span>
+                                <span>The app will install and appear in your apps!</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SMS Message Preview -->
+                <div class="invite-preview">
+                    <div class="invite-preview-header">
+                        <i class="fas fa-eye"></i>
+                        <span>Message Preview</span>
+                    </div>
+                    <div class="invite-preview-message">
+                        <p><strong>Tiny Seed Farm</strong></p>
+                        <p>You've been invited to use the Field App! Open this link on your phone:</p>
+                        <p class="preview-link" id="previewLink"></p>
+                        <p>To install as an app: Open in Safari (iPhone) or Chrome (Android), then use "Add to Home Screen".</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Processing Modal (for batch processing workflow) -->
     <div class="processing-modal" id="processingModal">
         <!-- Content generated dynamically by showProcessingModal() -->
@@ -12777,6 +13414,11 @@
                 'tabs.more': 'More',
                 'messages.title': 'Messages',
                 'messages.empty': 'No messages',
+                // Quick Photo Widget
+                'photos.snapTitle': 'Snap a Farm Photo',
+                'photos.snapDesc': 'Help with marketing & documentation',
+                'photos.takePhoto': 'Take Photo',
+                'photos.gallery': 'Gallery',
                 // AI Plant Doctor
                 'ai.title': 'AI Plant Doctor',
                 'ai.takePhoto': 'Take a Photo',
@@ -12922,6 +13564,11 @@
                 // Phase 8: Messages
                 'messages.acknowledge': 'Confirmar',
                 'messages.acknowledged': 'Mensaje confirmado',
+                // Quick Photo Widget
+                'photos.snapTitle': 'Toma una Foto de la Granja',
+                'photos.snapDesc': 'Ayuda con marketing y documentacion',
+                'photos.takePhoto': 'Tomar Foto',
+                'photos.gallery': 'Galeria',
                 // Safety
                 'safety.heatTitle': 'Recordatorio de Seguridad por Calor',
                 'safety.heatMessage': 'Recuerde tomar descansos, beber agua y buscar sombra.',
@@ -16569,6 +17216,181 @@
             showToast('Photo added!', 'success');
 
             // In production: Upload to storage, tag with GPS & timestamp
+        }
+
+        // ============================================
+        // QUICK PHOTO WIDGET (Home Tab)
+        // ============================================
+        const QuickPhotoState = {
+            selectedFile: null,
+            imageData: null
+        };
+
+        function quickCapturePhoto() {
+            document.getElementById('quickPhotoInput').click();
+        }
+
+        function quickSelectPhoto() {
+            document.getElementById('quickGalleryInput').click();
+        }
+
+        function handleQuickPhotoSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            QuickPhotoState.selectedFile = file;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                QuickPhotoState.imageData = e.target.result;
+                document.getElementById('quickPhotoImg').src = e.target.result;
+                document.getElementById('quickPhotoPreview').style.display = 'block';
+                document.getElementById('quickPhotoSubmit').style.display = 'flex';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeQuickPhoto() {
+            QuickPhotoState.selectedFile = null;
+            QuickPhotoState.imageData = null;
+            document.getElementById('quickPhotoImg').src = '';
+            document.getElementById('quickPhotoPreview').style.display = 'none';
+            document.getElementById('quickPhotoSubmit').style.display = 'none';
+            document.getElementById('quickPhotoCaption').value = '';
+            document.getElementById('quickPhotoInput').value = '';
+            document.getElementById('quickGalleryInput').value = '';
+        }
+
+        async function submitQuickPhoto() {
+            if (!QuickPhotoState.imageData) {
+                showToast('Please select a photo', 'error');
+                return;
+            }
+
+            showLoading();
+
+            try {
+                const caption = document.getElementById('quickPhotoCaption').value;
+
+                const response = await fetch(CONFIG.API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'submitFarmPic',
+                        employeeId: AppState.employee?.Employee_ID || 'unknown',
+                        employeeName: AppState.employee?.Name || 'Team Member',
+                        category: 'quick', // Quick capture category
+                        caption: caption,
+                        imageData: QuickPhotoState.imageData,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('Photo sent to marketing!', 'success');
+                    removeQuickPhoto();
+                } else {
+                    showToast(data.error || 'Failed to submit', 'error');
+                }
+            } catch (error) {
+                console.error('Submit quick photo error:', error);
+                showToast('Error submitting photo', 'error');
+            }
+
+            hideLoading();
+        }
+
+        // ============================================
+        // INVITE EMPLOYEE (Admin Feature)
+        // ============================================
+        function openInviteEmployeeModal() {
+            const modal = document.getElementById('inviteEmployeeModal');
+            modal.classList.add('visible');
+
+            // Set the app link
+            const appUrl = window.location.origin + '/employee.html';
+            document.getElementById('inviteAppLink').value = appUrl;
+            document.getElementById('previewLink').textContent = appUrl;
+        }
+
+        function closeInviteEmployeeModal() {
+            const modal = document.getElementById('inviteEmployeeModal');
+            modal.classList.remove('visible');
+        }
+
+        function formatPhoneNumber(input) {
+            let value = input.value.replace(/\D/g, '');
+            if (value.length > 10) value = value.slice(0, 10);
+
+            if (value.length >= 6) {
+                input.value = `(${value.slice(0,3)}) ${value.slice(3,6)}-${value.slice(6)}`;
+            } else if (value.length >= 3) {
+                input.value = `(${value.slice(0,3)}) ${value.slice(3)}`;
+            } else if (value.length > 0) {
+                input.value = `(${value}`;
+            }
+        }
+
+        function sendAppInviteSMS() {
+            const phoneInput = document.getElementById('invitePhoneNumber');
+            const phone = phoneInput.value.replace(/\D/g, '');
+
+            if (phone.length !== 10) {
+                showToast('Please enter a valid 10-digit phone number', 'error');
+                return;
+            }
+
+            const appUrl = window.location.origin + '/employee.html';
+            const message = encodeURIComponent(
+                `Tiny Seed Farm - You've been invited to use our Field App!\n\n` +
+                `Open this link on your phone:\n${appUrl}\n\n` +
+                `To install as an app:\n` +
+                `iPhone: Open in Safari, tap Share, then "Add to Home Screen"\n` +
+                `Android: Open in Chrome, tap menu (⋮), then "Install app"`
+            );
+
+            // Open SMS app with pre-filled message
+            window.location.href = `sms:${phone}?body=${message}`;
+            showToast('Opening SMS...', 'success');
+        }
+
+        function generateInviteQR() {
+            const container = document.getElementById('inviteQRCode');
+            const appUrl = window.location.origin + '/employee.html';
+
+            // Generate QR code using a simple API (no external library needed)
+            container.innerHTML = `
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(appUrl)}"
+                     alt="QR Code for Field App"
+                     style="width: 150px; height: 150px; border-radius: 8px;">
+            `;
+        }
+
+        function copyAppLink() {
+            const linkInput = document.getElementById('inviteAppLink');
+            linkInput.select();
+
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(linkInput.value)
+                    .then(() => showToast('Link copied!', 'success'))
+                    .catch(() => {
+                        document.execCommand('copy');
+                        showToast('Link copied!', 'success');
+                    });
+            } else {
+                document.execCommand('copy');
+                showToast('Link copied!', 'success');
+            }
+        }
+
+        function toggleGuide(type) {
+            const steps = document.getElementById(type + 'Steps');
+            const arrow = document.getElementById(type + 'Arrow');
+
+            steps.classList.toggle('open');
+            arrow.classList.toggle('open');
         }
 
         // ============================================
