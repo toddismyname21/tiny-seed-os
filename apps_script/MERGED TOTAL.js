@@ -62091,7 +62091,39 @@ function runAutomatedRankCheck() {
     // SQUIRREL HILL NORTH (most expensive city neighborhood $758k)
     { keyword: 'CSA squirrel hill north', target: 1, location: 'Pittsburgh, PA' },
     { keyword: 'organic delivery squirrel hill north', target: 1, location: 'Pittsburgh, PA' },
-    { keyword: 'premium CSA squirrel hill', target: 1, location: 'Pittsburgh, PA' }
+    { keyword: 'premium CSA squirrel hill', target: 1, location: 'Pittsburgh, PA' },
+
+    // FARMERS MARKET DOMINATION (new user request)
+    { keyword: 'pittsburgh farmers market', target: 1, location: 'Pittsburgh, PA' },
+    { keyword: 'farmers market pittsburgh', target: 1, location: 'Pittsburgh, PA' },
+    { keyword: 'best farmers market pittsburgh', target: 1, location: 'Pittsburgh, PA' },
+    { keyword: 'farmers market near me pittsburgh', target: 1, location: 'Pittsburgh, PA' },
+    { keyword: 'saturday farmers market pittsburgh', target: 1, location: 'Pittsburgh, PA' },
+    { keyword: 'sunday farmers market pittsburgh', target: 1, location: 'Pittsburgh, PA' },
+
+    // FARM TO TABLE DOMINATION (new user request)
+    { keyword: 'farm to table pittsburgh', target: 1, location: 'Pittsburgh, PA' },
+    { keyword: 'pittsburgh farm to table', target: 1, location: 'Pittsburgh, PA' },
+    { keyword: 'farm to table restaurant pittsburgh', target: 1, location: 'Pittsburgh, PA' },
+    { keyword: 'farm to table delivery pittsburgh', target: 1, location: 'Pittsburgh, PA' },
+    { keyword: 'farm fresh pittsburgh', target: 1, location: 'Pittsburgh, PA' },
+
+    // MUSHROOM DOMINATION (new user request)
+    { keyword: 'pittsburgh mushrooms', target: 1, location: 'Pittsburgh, PA' },
+    { keyword: 'mushrooms pittsburgh', target: 1, location: 'Pittsburgh, PA' },
+    { keyword: 'local mushrooms pittsburgh', target: 1, location: 'Pittsburgh, PA' },
+    { keyword: 'gourmet mushrooms pittsburgh', target: 1, location: 'Pittsburgh, PA' },
+    { keyword: 'farm mushrooms pittsburgh', target: 1, location: 'Pittsburgh, PA' },
+    { keyword: 'oyster mushrooms pittsburgh', target: 1, location: 'Pittsburgh, PA' },
+    { keyword: 'shiitake mushrooms pittsburgh', target: 1, location: 'Pittsburgh, PA' },
+
+    // FLORAL/FLORALS DOMINATION (new user request - augments existing flower keywords)
+    { keyword: 'pittsburgh florals', target: 1, location: 'Pittsburgh, PA' },
+    { keyword: 'florals pittsburgh', target: 1, location: 'Pittsburgh, PA' },
+    { keyword: 'local florals pittsburgh', target: 1, location: 'Pittsburgh, PA' },
+    { keyword: 'farm florals pittsburgh', target: 1, location: 'Pittsburgh, PA' },
+    { keyword: 'seasonal florals pittsburgh', target: 1, location: 'Pittsburgh, PA' },
+    { keyword: 'wedding florals pittsburgh', target: 1, location: 'Pittsburgh, PA' }
   ];
 
   const results = [];

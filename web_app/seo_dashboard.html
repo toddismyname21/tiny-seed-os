@@ -736,6 +736,143 @@
         }
 
         /* ============================================= */
+        /* WIZARD AI INTELLIGENCE CARDS */
+        /* ============================================= */
+        .wizard-card {
+            background: var(--bg-light);
+            border-radius: 12px;
+            padding: 1rem;
+            border-left: 4px solid var(--gold);
+        }
+
+        .wizard-card.priority { border-left-color: var(--danger); }
+        .wizard-card.opportunity { border-left-color: var(--gold); }
+        .wizard-card.competitor { border-left-color: var(--purple); }
+        .wizard-card.focus { border-left-color: var(--success); }
+
+        .wizard-card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            font-size: 0.9rem;
+        }
+
+        .wizard-insight {
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+
+        .wizard-insight:last-child {
+            margin-bottom: 0;
+        }
+
+        .wizard-insight i {
+            margin-top: 2px;
+            flex-shrink: 0;
+        }
+
+        .wizard-insight.urgent {
+            border: 1px solid var(--danger);
+            background: rgba(230, 57, 70, 0.1);
+        }
+
+        .wizard-insight.opportunity {
+            border: 1px solid var(--gold);
+            background: rgba(255, 215, 0, 0.1);
+        }
+
+        /* Keyword Category Tiles */
+        .category-tile {
+            background: var(--bg-light);
+            border-radius: 12px;
+            padding: 1rem;
+            border: 1px solid var(--border);
+            transition: all 0.2s;
+        }
+
+        .category-tile:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .category-tile h4 {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .category-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .category-stat {
+            text-align: center;
+        }
+
+        .category-stat .value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .category-stat .label {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+
+        .category-progress {
+            height: 6px;
+            background: var(--bg-dark);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .category-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success), var(--primary));
+            transition: width 0.5s ease;
+        }
+
+        /* Domination Meter */
+        .domination-meter {
+            position: relative;
+            height: 30px;
+            background: linear-gradient(90deg, var(--danger) 0%, var(--warning) 50%, var(--success) 100%);
+            border-radius: 15px;
+            margin: 1rem 0;
+            overflow: visible;
+        }
+
+        .domination-marker {
+            position: absolute;
+            top: -5px;
+            width: 40px;
+            height: 40px;
+            background: var(--gold);
+            border-radius: 50%;
+            border: 3px solid white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            transform: translateX(-50%);
+            transition: left 0.5s ease;
+        }
+
+        /* ============================================= */
         /* KEYBOARD SHORTCUTS HELP */
         /* ============================================= */
         .keyboard-help {
@@ -831,6 +968,75 @@
                 <div class="label">Best Ranking</div>
                 <div class="value" id="best-rank">--</div>
                 <div class="trend neutral" id="best-keyword">Loading...</div>
+            </div>
+        </div>
+
+        <!-- WIZARD AI INTELLIGENCE SECTION -->
+        <div class="card" style="margin-bottom: 1.5rem; border: 2px solid var(--gold); background: linear-gradient(135deg, var(--bg-card) 0%, rgba(255,215,0,0.1) 100%);">
+            <div class="card-header" style="background: linear-gradient(135deg, rgba(255,215,0,0.2) 0%, transparent 100%);">
+                <h3><i class="fas fa-hat-wizard"></i> Wizard's Oracle - AI Intelligence</h3>
+                <button class="btn btn-primary btn-sm" onclick="generateWizardInsights()">
+                    <i class="fas fa-magic"></i> Summon Insights
+                </button>
+            </div>
+            <div class="card-body" id="wizard-insights">
+                <div class="wizard-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
+                    <!-- Priority Actions -->
+                    <div class="wizard-card priority">
+                        <div class="wizard-card-header">
+                            <i class="fas fa-fire" style="color: var(--danger);"></i>
+                            <span>Priority Actions</span>
+                        </div>
+                        <div id="priority-actions-list">
+                            <div class="loading"><div class="spinner"></div></div>
+                        </div>
+                    </div>
+                    <!-- Opportunity Detection -->
+                    <div class="wizard-card opportunity">
+                        <div class="wizard-card-header">
+                            <i class="fas fa-gem" style="color: var(--gold);"></i>
+                            <span>Hidden Opportunities</span>
+                        </div>
+                        <div id="opportunities-list">
+                            <div class="loading"><div class="spinner"></div></div>
+                        </div>
+                    </div>
+                    <!-- Competitor Alerts -->
+                    <div class="wizard-card competitor">
+                        <div class="wizard-card-header">
+                            <i class="fas fa-chess" style="color: var(--purple);"></i>
+                            <span>Competitor Intelligence</span>
+                        </div>
+                        <div id="competitor-alerts-list">
+                            <div class="loading"><div class="spinner"></div></div>
+                        </div>
+                    </div>
+                    <!-- Weekly Focus -->
+                    <div class="wizard-card focus">
+                        <div class="wizard-card-header">
+                            <i class="fas fa-crosshairs" style="color: var(--success);"></i>
+                            <span>This Week's Focus</span>
+                        </div>
+                        <div id="weekly-focus-list">
+                            <div class="loading"><div class="spinner"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Keyword Category Grid -->
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card-header">
+                <h3><i class="fas fa-th-large"></i> Keyword Categories - DOMINATION STATUS</h3>
+                <div style="display: flex; gap: 0.5rem;">
+                    <span class="legend-badge" style="background: var(--success); padding: 4px 8px; border-radius: 4px; font-size: 0.75rem;">#1-3</span>
+                    <span class="legend-badge" style="background: var(--warning); padding: 4px 8px; border-radius: 4px; font-size: 0.75rem;">#4-10</span>
+                    <span class="legend-badge" style="background: var(--danger); padding: 4px 8px; border-radius: 4px; font-size: 0.75rem;">#11+</span>
+                </div>
+            </div>
+            <div class="card-body" id="keyword-categories-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                <div class="loading"><div class="spinner"></div></div>
             </div>
         </div>
 
@@ -937,26 +1143,83 @@
                 <h2>Log Keyword Rankings</h2>
                 <button class="modal-close" onclick="closeModal('rankings-modal')">&times;</button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
                 <p style="margin-bottom: 1rem; color: var(--text-secondary); font-size: 0.9rem;">
-                    Search each keyword in Google (incognito mode) and enter your current ranking position.
+                    Search each keyword in Google (incognito mode) and enter your current ranking position. Use Auto-Check for automated tracking!
                 </p>
                 <form id="rankings-form">
+                    <h4 style="color: var(--gold); margin: 1rem 0 0.5rem;">🥬 Core CSA</h4>
+                    <div class="form-group">
+                        <label>"CSA pittsburgh"</label>
+                        <input type="number" name="CSA_pittsburgh" min="1" max="100" placeholder="Enter rank (1-100)">
+                    </div>
+                    <div class="form-group">
+                        <label>"best CSA pittsburgh"</label>
+                        <input type="number" name="best_CSA_pittsburgh" min="1" max="100" placeholder="Enter rank (1-100)">
+                    </div>
+
+                    <h4 style="color: var(--gold); margin: 1rem 0 0.5rem;">🌾 Farm</h4>
                     <div class="form-group">
                         <label>"farm pittsburgh"</label>
                         <input type="number" name="farm_pittsburgh" min="1" max="100" placeholder="Enter rank (1-100)">
                     </div>
                     <div class="form-group">
-                        <label>"CSA pittsburgh"</label>
-                        <input type="number" name="csa_pittsburgh" min="1" max="100" placeholder="Enter rank (1-100)">
-                    </div>
-                    <div class="form-group">
                         <label>"organic farm pittsburgh"</label>
                         <input type="number" name="organic_farm_pittsburgh" min="1" max="100" placeholder="Enter rank (1-100)">
                     </div>
+
+                    <h4 style="color: var(--gold); margin: 1rem 0 0.5rem;">🏪 Farmers Market</h4>
                     <div class="form-group">
-                        <label>"local produce pittsburgh"</label>
-                        <input type="number" name="local_produce_pittsburgh" min="1" max="100" placeholder="Enter rank (1-100)">
+                        <label>"pittsburgh farmers market"</label>
+                        <input type="number" name="pittsburgh_farmers_market" min="1" max="100" placeholder="Enter rank (1-100)">
+                    </div>
+                    <div class="form-group">
+                        <label>"farmers market pittsburgh"</label>
+                        <input type="number" name="farmers_market_pittsburgh" min="1" max="100" placeholder="Enter rank (1-100)">
+                    </div>
+
+                    <h4 style="color: var(--gold); margin: 1rem 0 0.5rem;">🍽️ Farm to Table</h4>
+                    <div class="form-group">
+                        <label>"farm to table pittsburgh"</label>
+                        <input type="number" name="farm_to_table_pittsburgh" min="1" max="100" placeholder="Enter rank (1-100)">
+                    </div>
+                    <div class="form-group">
+                        <label>"pittsburgh farm to table"</label>
+                        <input type="number" name="pittsburgh_farm_to_table" min="1" max="100" placeholder="Enter rank (1-100)">
+                    </div>
+
+                    <h4 style="color: var(--gold); margin: 1rem 0 0.5rem;">🌸 Flowers & Florals</h4>
+                    <div class="form-group">
+                        <label>"flower CSA pittsburgh"</label>
+                        <input type="number" name="flower_CSA_pittsburgh" min="1" max="100" placeholder="Enter rank (1-100)">
+                    </div>
+                    <div class="form-group">
+                        <label>"florist pittsburgh"</label>
+                        <input type="number" name="florist_pittsburgh" min="1" max="100" placeholder="Enter rank (1-100)">
+                    </div>
+                    <div class="form-group">
+                        <label>"pittsburgh florals"</label>
+                        <input type="number" name="pittsburgh_florals" min="1" max="100" placeholder="Enter rank (1-100)">
+                    </div>
+
+                    <h4 style="color: var(--gold); margin: 1rem 0 0.5rem;">🍄 Mushrooms</h4>
+                    <div class="form-group">
+                        <label>"pittsburgh mushrooms"</label>
+                        <input type="number" name="pittsburgh_mushrooms" min="1" max="100" placeholder="Enter rank (1-100)">
+                    </div>
+                    <div class="form-group">
+                        <label>"local mushrooms pittsburgh"</label>
+                        <input type="number" name="local_mushrooms_pittsburgh" min="1" max="100" placeholder="Enter rank (1-100)">
+                    </div>
+
+                    <h4 style="color: var(--gold); margin: 1rem 0 0.5rem;">🚚 Delivery</h4>
+                    <div class="form-group">
+                        <label>"farm delivery pittsburgh"</label>
+                        <input type="number" name="farm_delivery_pittsburgh" min="1" max="100" placeholder="Enter rank (1-100)">
+                    </div>
+                    <div class="form-group">
+                        <label>"local produce delivery pittsburgh"</label>
+                        <input type="number" name="local_produce_delivery_pittsburgh" min="1" max="100" placeholder="Enter rank (1-100)">
                     </div>
                 </form>
             </div>
@@ -1152,14 +1415,60 @@
     <script src="api-config.js"></script>
     <script>
         // ============================================
-        // CONFIGURATION
+        // CONFIGURATION - DOMINATION KEYWORD ENGINE
         // ============================================
-        const KEYWORDS = [
-            { keyword: 'farm pittsburgh', target: 1 },
-            { keyword: 'CSA pittsburgh', target: 1 },
-            { keyword: 'organic farm pittsburgh', target: 3 },
-            { keyword: 'local produce pittsburgh', target: 5 }
-        ];
+        const KEYWORD_CATEGORIES = {
+            'Core CSA': [
+                { keyword: 'CSA pittsburgh', target: 1 },
+                { keyword: 'best CSA pittsburgh', target: 1 },
+                { keyword: 'farm share pittsburgh', target: 1 },
+                { keyword: 'pittsburgh CSA', target: 1 }
+            ],
+            'Farm': [
+                { keyword: 'farm pittsburgh', target: 1 },
+                { keyword: 'organic farm pittsburgh', target: 1 },
+                { keyword: 'local farm pittsburgh', target: 1 },
+                { keyword: 'local produce pittsburgh', target: 1 }
+            ],
+            'Farmers Market': [
+                { keyword: 'pittsburgh farmers market', target: 1 },
+                { keyword: 'farmers market pittsburgh', target: 1 },
+                { keyword: 'best farmers market pittsburgh', target: 1 },
+                { keyword: 'saturday farmers market pittsburgh', target: 1 }
+            ],
+            'Farm to Table': [
+                { keyword: 'farm to table pittsburgh', target: 1 },
+                { keyword: 'pittsburgh farm to table', target: 1 },
+                { keyword: 'farm to table delivery pittsburgh', target: 1 },
+                { keyword: 'farm fresh pittsburgh', target: 1 }
+            ],
+            'Flowers & Florals': [
+                { keyword: 'flower CSA pittsburgh', target: 1 },
+                { keyword: 'florist pittsburgh', target: 1 },
+                { keyword: 'pittsburgh florals', target: 1 },
+                { keyword: 'local flowers pittsburgh', target: 1 },
+                { keyword: 'wedding florals pittsburgh', target: 1 }
+            ],
+            'Mushrooms': [
+                { keyword: 'pittsburgh mushrooms', target: 1 },
+                { keyword: 'local mushrooms pittsburgh', target: 1 },
+                { keyword: 'gourmet mushrooms pittsburgh', target: 1 },
+                { keyword: 'oyster mushrooms pittsburgh', target: 1 }
+            ],
+            'Delivery': [
+                { keyword: 'farm delivery pittsburgh', target: 1 },
+                { keyword: 'local produce delivery pittsburgh', target: 1 },
+                { keyword: 'vegetable delivery pittsburgh', target: 3 }
+            ],
+            'Pick Your Own': [
+                { keyword: 'pick your own pittsburgh', target: 1 },
+                { keyword: 'pick your own flowers pittsburgh', target: 1 },
+                { keyword: 'u-pick farm pittsburgh', target: 1 }
+            ]
+        };
+
+        // Flatten for table display (legacy compatibility)
+        const KEYWORDS = Object.values(KEYWORD_CATEGORIES).flat();
 
         const CITATION_TIERS = [
             { name: 'Tier 1 Essential', total: 5 },
@@ -1400,6 +1709,8 @@
                 dashboardData = { rankings, reviews, citations };
 
                 renderScoreCards();
+                renderKeywordCategories();
+                generateWizardInsights();
                 renderRankingsTable();
                 renderRankingsChart();
                 renderReviews();
@@ -1432,6 +1743,235 @@
         function refreshDashboard() {
             loadDashboard();
             showToast('Dashboard refreshed');
+        }
+
+        // ============================================
+        // WIZARD AI INTELLIGENCE ENGINE
+        // ============================================
+        function generateWizardInsights() {
+            const { rankings, reviews, citations } = dashboardData || {};
+
+            // Priority Actions
+            const priorityActions = [];
+            const opportunities = [];
+            const competitorAlerts = [];
+            const weeklyFocus = [];
+
+            // Analyze rankings for priority actions
+            if (rankings?.keywords) {
+                const droppingKeywords = rankings.keywords.filter(k => k.change && k.change < 0);
+                droppingKeywords.forEach(kw => {
+                    priorityActions.push({
+                        icon: 'fa-arrow-down',
+                        text: `"${kw.keyword}" dropped ${Math.abs(kw.change)} positions - investigate!`,
+                        urgent: Math.abs(kw.change) >= 3
+                    });
+                });
+
+                // Find keywords not yet ranking
+                const notRanking = KEYWORDS.filter(kw =>
+                    !rankings.keywords.find(r => r.keyword === kw.keyword)
+                );
+                if (notRanking.length > 0) {
+                    opportunities.push({
+                        icon: 'fa-lightbulb',
+                        text: `${notRanking.length} keywords not yet tracked - start monitoring!`,
+                        opportunity: true
+                    });
+                }
+
+                // Find keywords close to #1
+                const almostTop = rankings.keywords.filter(k => k.currentRank > 1 && k.currentRank <= 5);
+                almostTop.slice(0, 3).forEach(kw => {
+                    opportunities.push({
+                        icon: 'fa-crown',
+                        text: `"${kw.keyword}" at #${kw.currentRank} - push for #1!`,
+                        opportunity: true
+                    });
+                });
+            }
+
+            // Review analysis
+            if (reviews) {
+                if ((reviews.needsResponse || 0) > 0) {
+                    priorityActions.push({
+                        icon: 'fa-comment',
+                        text: `${reviews.needsResponse} reviews need responses - reply within 24h!`,
+                        urgent: true
+                    });
+                }
+
+                if ((reviews.total || 0) < 50) {
+                    weeklyFocus.push({
+                        icon: 'fa-star',
+                        text: `Only ${reviews.total} reviews - target 5 new reviews this week`
+                    });
+                }
+
+                if ((reviews.averageRating || 0) < 4.5) {
+                    priorityActions.push({
+                        icon: 'fa-star-half-alt',
+                        text: `Average ${(reviews.averageRating || 0).toFixed(1)} stars - work to improve!`,
+                        urgent: false
+                    });
+                }
+            }
+
+            // Citation analysis
+            if (citations) {
+                const tier1Count = citations.byTier?.['Tier 1 Essential'] || 0;
+                if (tier1Count < 5) {
+                    priorityActions.push({
+                        icon: 'fa-map-marker-alt',
+                        text: `Complete Tier 1 citations (${5 - tier1Count} remaining)`,
+                        urgent: tier1Count < 3
+                    });
+                }
+
+                const totalCitations = Object.values(citations.byTier || {}).reduce((a, b) => a + b, 0);
+                if (totalCitations < 20) {
+                    weeklyFocus.push({
+                        icon: 'fa-building',
+                        text: `Build more citations - target 3 new directories this week`
+                    });
+                }
+            }
+
+            // Competitor intelligence (proactive insights)
+            competitorAlerts.push({
+                icon: 'fa-eye',
+                text: 'Run weekly competitor ranking check to track Harvie'
+            });
+            competitorAlerts.push({
+                icon: 'fa-chart-bar',
+                text: 'Monitor "CSA pittsburgh" and "best CSA pittsburgh" daily'
+            });
+
+            // Seasonal opportunities
+            const month = new Date().getMonth();
+            if (month >= 1 && month <= 3) { // Feb-Apr
+                opportunities.push({
+                    icon: 'fa-seedling',
+                    text: 'CSA signup season - boost CSA-related keywords NOW!',
+                    opportunity: true
+                });
+            }
+            if (month >= 4 && month <= 6) { // May-Jul
+                opportunities.push({
+                    icon: 'fa-sun',
+                    text: 'Peak growing season - push "farm delivery" keywords',
+                    opportunity: true
+                });
+            }
+
+            // Weekly focus recommendations
+            weeklyFocus.push({
+                icon: 'fa-pen',
+                text: 'Post 2 blog articles with target keywords'
+            });
+            weeklyFocus.push({
+                icon: 'fa-camera',
+                text: 'Add 5 new photos to Google Business Profile'
+            });
+
+            // Default messages if empty
+            if (priorityActions.length === 0) {
+                priorityActions.push({ icon: 'fa-check-circle', text: 'No urgent issues detected!' });
+            }
+            if (opportunities.length === 0) {
+                opportunities.push({ icon: 'fa-search', text: 'Run auto-check to discover opportunities' });
+            }
+
+            // Render all sections
+            renderInsightList('priority-actions-list', priorityActions);
+            renderInsightList('opportunities-list', opportunities);
+            renderInsightList('competitor-alerts-list', competitorAlerts);
+            renderInsightList('weekly-focus-list', weeklyFocus);
+        }
+
+        function renderInsightList(containerId, items) {
+            const container = document.getElementById(containerId);
+            if (!items || items.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-secondary); font-size: 0.85rem;">No insights yet</p>';
+                return;
+            }
+
+            container.innerHTML = items.map(item => `
+                <div class="wizard-insight ${item.urgent ? 'urgent' : ''} ${item.opportunity ? 'opportunity' : ''}">
+                    <i class="fas ${item.icon}"></i>
+                    <span>${item.text}</span>
+                </div>
+            `).join('');
+        }
+
+        function renderKeywordCategories() {
+            const { rankings } = dashboardData || {};
+            const container = document.getElementById('keyword-categories-grid');
+
+            const categoryStats = {};
+
+            for (const [catName, keywords] of Object.entries(KEYWORD_CATEGORIES)) {
+                let top3 = 0, top10 = 0, tracked = 0;
+
+                keywords.forEach(kw => {
+                    const rankData = rankings?.keywords?.find(r => r.keyword === kw.keyword);
+                    if (rankData?.currentRank) {
+                        tracked++;
+                        if (rankData.currentRank <= 3) top3++;
+                        else if (rankData.currentRank <= 10) top10++;
+                    }
+                });
+
+                categoryStats[catName] = {
+                    total: keywords.length,
+                    tracked,
+                    top3,
+                    top10,
+                    score: Math.round(((top3 * 100) + (top10 * 50)) / keywords.length)
+                };
+            }
+
+            container.innerHTML = Object.entries(categoryStats).map(([name, stats]) => {
+                const icon = getCategoryIcon(name);
+                const progressPct = Math.min(100, stats.score);
+
+                return `
+                    <div class="category-tile">
+                        <h4>${icon} ${name}</h4>
+                        <div class="category-stats">
+                            <div class="category-stat">
+                                <div class="value" style="color: var(--success);">${stats.top3}</div>
+                                <div class="label">Top 3</div>
+                            </div>
+                            <div class="category-stat">
+                                <div class="value" style="color: var(--warning);">${stats.top10}</div>
+                                <div class="label">Top 10</div>
+                            </div>
+                            <div class="category-stat">
+                                <div class="value" style="color: var(--text-secondary);">${stats.total}</div>
+                                <div class="label">Total</div>
+                            </div>
+                        </div>
+                        <div class="category-progress">
+                            <div class="category-progress-fill" style="width: ${progressPct}%"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getCategoryIcon(name) {
+            const icons = {
+                'Core CSA': '🥬',
+                'Farm': '🌾',
+                'Farmers Market': '🏪',
+                'Farm to Table': '🍽️',
+                'Flowers & Florals': '🌸',
+                'Mushrooms': '🍄',
+                'Delivery': '🚚',
+                'Pick Your Own': '🧺'
+            };
+            return icons[name] || '📊';
         }
 
         // ============================================
@@ -1545,45 +2085,62 @@
                 tbody.innerHTML = `
                     <tr>
                         <td colspan="5" style="text-align: center; color: var(--text-secondary); padding: 2rem;">
-                            No rankings logged yet. Click "Log Rankings" to add your first entry.
+                            No rankings logged yet. Click "Auto-Check" to fetch rankings automatically, or "Log Rankings" to add manually.
                         </td>
                     </tr>
                 `;
                 return;
             }
 
-            tbody.innerHTML = KEYWORDS.map(kw => {
-                const data = rankings.keywords.find(k => k.keyword === kw.keyword) || {};
-                const rank = data.currentRank || '--';
-                const change = data.change || 0;
-                const target = kw.target;
-                const progress = rank !== '--' ? Math.max(0, (21 - rank) / 20 * 100) : 0;
+            // Group by category and show rankings
+            let html = '';
 
-                return `
-                    <tr>
-                        <td><strong>"${kw.keyword}"</strong></td>
-                        <td>
-                            <span class="rank-badge ${rank <= 3 ? 'top3' : rank <= 10 ? 'top10' : 'below'}">
-                                ${rank}
-                            </span>
+            for (const [catName, keywords] of Object.entries(KEYWORD_CATEGORIES)) {
+                // Add category header
+                html += `
+                    <tr style="background: var(--bg-light);">
+                        <td colspan="5" style="font-weight: 600; color: var(--gold);">
+                            ${getCategoryIcon(catName)} ${catName}
                         </td>
-                        <td>
-                            ${change !== 0 ? `
-                                <span class="change-badge ${change > 0 ? 'up' : 'down'}">
-                                    <i class="fas fa-arrow-${change > 0 ? 'up' : 'down'}"></i>
-                                    ${Math.abs(change)}
-                                </span>
-                            ` : '<span style="color: var(--text-secondary)">--</span>'}
-                        </td>
-                        <td>
-                            <div class="progress-track">
-                                <div class="progress-fill" style="width: ${progress}%"></div>
-                            </div>
-                        </td>
-                        <td>Target: #${target}</td>
                     </tr>
                 `;
-            }).join('');
+
+                // Add keywords in this category
+                keywords.forEach(kw => {
+                    const data = rankings.keywords.find(k => k.keyword === kw.keyword) || {};
+                    const rank = data.currentRank || '--';
+                    const change = data.change || 0;
+                    const target = kw.target;
+                    const progress = rank !== '--' ? Math.max(0, (21 - rank) / 20 * 100) : 0;
+
+                    html += `
+                        <tr>
+                            <td><strong>"${kw.keyword}"</strong></td>
+                            <td>
+                                <span class="rank-badge ${rank <= 3 ? 'top3' : rank <= 10 ? 'top10' : 'below'}">
+                                    ${rank}
+                                </span>
+                            </td>
+                            <td>
+                                ${change !== 0 ? `
+                                    <span class="change-badge ${change > 0 ? 'up' : 'down'}">
+                                        <i class="fas fa-arrow-${change > 0 ? 'up' : 'down'}"></i>
+                                        ${Math.abs(change)}
+                                    </span>
+                                ` : '<span style="color: var(--text-secondary)">--</span>'}
+                            </td>
+                            <td>
+                                <div class="progress-track">
+                                    <div class="progress-fill" style="width: ${progress}%"></div>
+                                </div>
+                            </td>
+                            <td>Target: #${target}</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            tbody.innerHTML = html;
         }
 
         function renderRankingsChart() {
