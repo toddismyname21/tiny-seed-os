@@ -835,29 +835,29 @@
         <!-- Dashboard Tab -->
         <div id="dashboard" class="tab-content active">
             <div class="stats-grid">
-                <div class="stat-card pink">
+                <div class="stat-card pink" onclick="switchTab('database')" style="cursor: pointer;" title="View Flower Database">
                     <div class="icon"><i class="fas fa-flower-tulip"></i></div>
-                    <div class="value" id="totalVarieties">52</div>
+                    <div class="value" id="totalVarieties">--</div>
                     <div class="label">Flower Varieties</div>
                 </div>
-                <div class="stat-card purple">
+                <div class="stat-card purple" onclick="switchTab('tasks')" style="cursor: pointer;" title="View Tasks">
                     <div class="icon"><i class="fas fa-clipboard-check"></i></div>
-                    <div class="value" id="tasksDue">8</div>
+                    <div class="value" id="tasksDue">--</div>
                     <div class="label">Tasks Due Today</div>
                 </div>
-                <div class="stat-card yellow">
+                <div class="stat-card yellow" onclick="switchTab('database')" style="cursor: pointer;" title="View Flowers in Harvest">
                     <div class="icon"><i class="fas fa-sun"></i></div>
-                    <div class="value" id="inHarvest">12</div>
+                    <div class="value" id="inHarvest">--</div>
                     <div class="label">In Harvest</div>
                 </div>
-                <div class="stat-card orange">
+                <div class="stat-card orange" onclick="switchTab('calendar')" style="cursor: pointer;" title="View Critical Dates">
                     <div class="icon"><i class="fas fa-exclamation-triangle"></i></div>
-                    <div class="value" id="criticalDates">3</div>
+                    <div class="value" id="criticalDates">--</div>
                     <div class="label">Critical Dates This Week</div>
                 </div>
-                <div class="stat-card success">
+                <div class="stat-card success" onclick="switchTab('tasks')" style="cursor: pointer;" title="View Completed Tasks">
                     <div class="icon"><i class="fas fa-check-circle"></i></div>
-                    <div class="value" id="completedTasks">24</div>
+                    <div class="value" id="completedTasks">--</div>
                     <div class="label">Tasks Completed</div>
                 </div>
             </div>
@@ -868,7 +868,7 @@
                     <div class="section-header-left">
                         <i class="fas fa-calendar-day"></i>
                         <h2>Today's Tasks</h2>
-                        <span class="badge">8 tasks</span>
+                        <span class="badge" id="todaysTasksBadge">-- tasks</span>
                     </div>
                     <button class="btn btn-primary" onclick="openTaskModal()">
                         <i class="fas fa-plus"></i>
@@ -1852,26 +1852,67 @@
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.addEventListener('click', function() {
                     const tabId = this.dataset.tab;
-
-                    // Update buttons
-                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                    this.classList.add('active');
-
-                    // Update content
-                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                    document.getElementById(tabId).classList.add('active');
+                    switchTab(tabId);
                 });
             });
+        }
+
+        // Switch to a specific tab (used by stat card clicks)
+        function switchTab(tabId) {
+            // Update buttons
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            const targetBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+            if (targetBtn) targetBtn.classList.add('active');
+
+            // Update content
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
         }
 
         // Render Dashboard with AI Priority badges
         function renderDashboard() {
             // Today's tasks - sorted by priority
             const today = new Date().toISOString().split('T')[0];
-            const todaysTasks = tasks
-                .filter(t => t.dueDate <= today && !t.done)
+            const allTodaysTasks = tasks.filter(t => t.dueDate <= today && !t.done);
+            const todaysTasks = allTodaysTasks
                 .sort((a, b) => (b.priorityScore || 0) - (a.priorityScore || 0))
                 .slice(0, 5);
+
+            // Update stats from real data
+            const tasksDueCount = allTodaysTasks.length;
+            const completedCount = tasks.filter(t => t.done).length;
+
+            // Calculate real values for stat cards
+            const totalVarietiesCount = flowerDatabase.length;
+            const inHarvestCount = flowerDatabase.filter(f => f.growing).length;
+
+            // Count critical dates in current week
+            const currentMonth = new Date().toLocaleString('en-US', { month: 'long' });
+            const currentDay = new Date().getDate();
+            const monthEvents = criticalDates[currentMonth] || [];
+            // Count events from today through next 7 days
+            const criticalCount = monthEvents.filter(e => {
+                // Extract day number from date string like "Feb 15" or "Feb 1-15"
+                const match = e.date.match(/\d+/);
+                if (!match) return false;
+                const eventDay = parseInt(match[0]);
+                return eventDay >= currentDay && eventDay <= currentDay + 7;
+            }).length;
+
+            // Update stat cards
+            const totalVarietiesEl = document.getElementById('totalVarieties');
+            const tasksDueEl = document.getElementById('tasksDue');
+            const inHarvestEl = document.getElementById('inHarvest');
+            const criticalDatesEl = document.getElementById('criticalDates');
+            const completedEl = document.getElementById('completedTasks');
+            const badgeEl = document.getElementById('todaysTasksBadge');
+
+            if (totalVarietiesEl) totalVarietiesEl.textContent = totalVarietiesCount;
+            if (tasksDueEl) tasksDueEl.textContent = tasksDueCount;
+            if (inHarvestEl) inHarvestEl.textContent = inHarvestCount;
+            if (criticalDatesEl) criticalDatesEl.textContent = criticalCount;
+            if (completedEl) completedEl.textContent = completedCount;
+            if (badgeEl) badgeEl.textContent = `${tasksDueCount} task${tasksDueCount !== 1 ? 's' : ''}`;
 
             const taskHtml = todaysTasks.map(task => {
                 const priorityIcon = getPriorityIcon(task.priorityScore || 50);
