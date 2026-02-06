@@ -1112,20 +1112,27 @@
 
         /**
          * Load tasks from EMPLOYEE_TASKS and PLANNING_2026 sheets
-         * Uses getEmployeeTasks endpoint which has actual task data
+         * Uses getEmployeeTasks endpoint + getOverdueTasks for complete task view
          */
         async function loadTasks() {
             const container = document.getElementById('task-list');
             container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
 
             try {
-                // Use getEmployeeTasks which pulls from EMPLOYEE_TASKS and PLANNING_2026
-                const response = await fetch(`${API_BASE}?action=getEmployeeTasks&employeeId=`);
-                const data = await response.json();
+                // Fetch from multiple sources in parallel
+                const [employeeTasksRes, overdueTasksRes] = await Promise.all([
+                    fetch(`${API_BASE}?action=getEmployeeTasks&employeeId=`),
+                    fetch(`${API_BASE}?action=getOverdueTasks`)
+                ]);
 
-                if (data.success && data.tasks) {
-                    // Map task data to local format
-                    tasks = data.tasks.map(t => ({
+                const employeeData = await employeeTasksRes.json();
+                const overdueData = await overdueTasksRes.json();
+
+                tasks = [];
+
+                // Add employee tasks
+                if (employeeData.success && employeeData.tasks) {
+                    const empTasks = employeeData.tasks.map(t => ({
                         id: t.id || t.Task_ID,
                         title: t.crop ? `${t.type ? t.type.charAt(0).toUpperCase() + t.type.slice(1) : 'Task'}: ${t.crop}${t.variety ? ' (' + t.variety + ')' : ''}` : (t.Title || 'Untitled Task'),
                         description: t.notes || t.Description || '',
@@ -1144,9 +1151,39 @@
                         subtasksCompleted: t.subtasksCompleted || 0,
                         isTeamTask: t.isTeamTask || t.assignedTo === 'All',
                         costingMode: t.costingMode || false,
-                        // Keep full task data for updates
+                        source: 'employee',
                         _raw: t
                     }));
+                    tasks.push(...empTasks);
+                }
+
+                // Add overdue tasks from TASKS sheet (different source)
+                if (overdueData.success && overdueData.tasks) {
+                    const overdueTasks = overdueData.tasks.map((t, idx) => ({
+                        id: 'OVERDUE-' + idx,
+                        title: t.task || 'Overdue Task',
+                        description: `${t.daysOverdue} days overdue`,
+                        assignedTo: '',
+                        assignedToName: 'Unassigned',
+                        dueDate: t.dueDate,
+                        dueTime: '17:00',
+                        priority: 'high',
+                        priorityScore: 100,
+                        status: 'overdue',
+                        category: 'other',
+                        location: '',
+                        quantity: '',
+                        subtasks: [],
+                        subtasksTotal: 0,
+                        subtasksCompleted: 0,
+                        isTeamTask: false,
+                        costingMode: false,
+                        source: 'tasks_sheet',
+                        daysOverdue: t.daysOverdue,
+                        _raw: t
+                    }));
+                    tasks.push(...overdueTasks);
+                }
 
                     // Sort by date (earliest first), then overdue tasks first
                     const today = new Date();
