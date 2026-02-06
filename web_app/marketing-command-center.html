@@ -1981,11 +1981,8 @@
             </div>
         </div>
         <div class="nav-actions">
-            <a href="social-intelligence.html" class="nav-back">
-                <i class="fas fa-brain"></i> Social Intel
-            </a>
             <a href="seo_dashboard.html" class="nav-back">
-                <i class="fas fa-search"></i> SEO
+                <i class="fas fa-search"></i> SEO Dashboard
             </a>
             <a href="financial-dashboard.html" class="nav-back">
                 <i class="fas fa-chart-line"></i> Financial
@@ -2050,6 +2047,12 @@
         </button>
         <button class="tab-btn" onclick="switchTab('evergreen')">
             <i class="fas fa-recycle"></i> Evergreen
+        </button>
+        <button class="tab-btn" onclick="switchTab('revenue')">
+            <i class="fas fa-dollar-sign"></i> Revenue
+        </button>
+        <button class="tab-btn" onclick="switchTab('competitors')">
+            <i class="fas fa-binoculars"></i> Competitors
         </button>
         <button class="tab-btn" onclick="switchTab('crisis')">
             <i class="fas fa-shield-alt"></i> Crisis
@@ -2151,6 +2154,20 @@
                     <div class="stat-value" id="scheduledCount" style="color: var(--info);">--</div>
                     <div class="stat-change neutral">
                         <i class="fas fa-calendar"></i> This week
+                    </div>
+                </div>
+                <div class="stat-card" style="border-left: 3px solid var(--instagram);">
+                    <div class="stat-label">Instagram Followers</div>
+                    <div class="stat-value" id="statInstagramFollowers" style="color: var(--instagram);">--</div>
+                    <div class="stat-change neutral">
+                        <i class="fab fa-instagram"></i> @tinyseedfarm
+                    </div>
+                </div>
+                <div class="stat-card" style="border-left: 3px solid var(--facebook);">
+                    <div class="stat-label">Facebook Followers</div>
+                    <div class="stat-value" id="statFacebookFollowers" style="color: var(--facebook);">--</div>
+                    <div class="stat-change neutral">
+                        <i class="fab fa-facebook"></i> Tiny Seed Farm
                     </div>
                 </div>
             </div>
@@ -4332,6 +4349,141 @@
                             <i class="fas fa-spinner fa-spin" style="font-size: 2rem;"></i>
                             <p style="margin-top: 1rem;">Loading evergreen library...</p>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- REVENUE TAB - Social Media Revenue Attribution -->
+        <div id="revenueTab" class="tab-content">
+            <div class="stats-grid">
+                <div class="stat-card" style="border-left: 4px solid var(--success);">
+                    <div class="stat-label">Total Revenue from Social</div>
+                    <div class="stat-value" id="revTotalRevenue">$--</div>
+                </div>
+                <div class="stat-card" style="border-left: 4px solid var(--instagram);">
+                    <div class="stat-label">Instagram Revenue</div>
+                    <div class="stat-value" id="revInstagram">$--</div>
+                </div>
+                <div class="stat-card" style="border-left: 4px solid var(--facebook);">
+                    <div class="stat-label">Facebook Revenue</div>
+                    <div class="stat-value" id="revFacebook">$--</div>
+                </div>
+                <div class="stat-card" style="border-left: 4px solid var(--info);">
+                    <div class="stat-label">Total Orders</div>
+                    <div class="stat-value" id="revOrders">--</div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top: 1.5rem;">
+                <div class="card-header">
+                    <h3><i class="fas fa-chart-bar"></i> Revenue by Post</h3>
+                </div>
+                <div class="card-body" id="revenueByPostContainer">
+                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 2rem;"></i>
+                        <p style="margin-top: 1rem;">Loading revenue data...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top: 1.5rem;">
+                <div class="card-header">
+                    <h3><i class="fas fa-plus"></i> Track Attribution (Manual)</h3>
+                </div>
+                <div class="card-body">
+                    <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.85rem;">
+                        Link a Shopify order to a social post. Use UTM parameters in your links for automatic tracking.
+                    </p>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label>Order ID</label>
+                            <input type="text" class="form-input" id="attrOrderId" placeholder="Shopify order #">
+                        </div>
+                        <div class="form-group">
+                            <label>Order Total</label>
+                            <input type="number" class="form-input" id="attrOrderTotal" placeholder="0.00" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label>Platform</label>
+                            <select class="form-select" id="attrPlatform">
+                                <option value="instagram">Instagram</option>
+                                <option value="facebook">Facebook</option>
+                                <option value="tiktok">TikTok</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <label>UTM Campaign (optional)</label>
+                        <input type="text" class="form-input" id="attrUtm" placeholder="e.g., spring_sale_ig">
+                    </div>
+
+                    <button class="btn btn-primary" onclick="trackAttribution()" style="margin-top: 1rem;">
+                        <i class="fas fa-link"></i> Track Attribution
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- COMPETITORS TAB - Competitor Watch -->
+        <div id="competitorsTab" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-binoculars" style="color: var(--purple);"></i> Competitor Watch</h3>
+                    <button class="btn btn-primary btn-sm" onclick="showAddCompetitor()">
+                        <i class="fas fa-plus"></i> Add Competitor
+                    </button>
+                </div>
+                <div class="card-body" id="competitorsContainer">
+                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 2rem;"></i>
+                        <p style="margin-top: 1rem;">Loading competitors...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" id="addCompetitorCard" style="display: none; margin-top: 1.5rem;">
+                <div class="card-header">
+                    <h3><i class="fas fa-plus"></i> Add Competitor</h3>
+                </div>
+                <div class="card-body">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label>Name</label>
+                            <input type="text" class="form-input" id="compName" placeholder="Farm name">
+                        </div>
+                        <div class="form-group">
+                            <label>Handle</label>
+                            <input type="text" class="form-input" id="compHandle" placeholder="@handle">
+                        </div>
+                        <div class="form-group">
+                            <label>Platform</label>
+                            <select class="form-select" id="compPlatform">
+                                <option value="instagram">Instagram</option>
+                                <option value="facebook">Facebook</option>
+                                <option value="tiktok">TikTok</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Followers</label>
+                            <input type="number" class="form-input" id="compFollowers" placeholder="0">
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <label>Notes</label>
+                        <textarea class="form-input" id="compNotes" rows="3" placeholder="What are they doing well?"></textarea>
+                    </div>
+
+                    <div style="margin-top: 1rem; display: flex; gap: 1rem;">
+                        <button class="btn btn-primary" onclick="addCompetitor()">
+                            <i class="fas fa-plus"></i> Add Competitor
+                        </button>
+                        <button class="btn btn-secondary" onclick="hideAddCompetitor()">
+                            Cancel
+                        </button>
                     </div>
                 </div>
             </div>
@@ -9227,6 +9379,192 @@
         function recycleEvergreen(id) {
             showToast('Content loaded for recycling!', 'success');
             switchTab('fieldmode');
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // REVENUE ATTRIBUTION
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        async function loadRevenue() {
+            try {
+                const [byPost, byPlatform] = await Promise.all([
+                    fetch(`${API_URL}?action=getRevenueByPost`).then(r => r.json()),
+                    fetch(`${API_URL}?action=getRevenueByPlatform`).then(r => r.json())
+                ]);
+
+                if (byPost.success) {
+                    document.getElementById('revTotalRevenue').textContent = '$' + (byPost.totalRevenue || 0).toFixed(2);
+                    document.getElementById('revOrders').textContent = byPost.totalOrders || 0;
+
+                    const container = document.getElementById('revenueByPostContainer');
+                    if (byPost.posts && byPost.posts.length > 0) {
+                        container.innerHTML = byPost.posts.slice(0, 10).map(post => `
+                            <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-weight: 500;">${post.postId || post.utmCampaign || 'Direct'}</div>
+                                    <div style="font-size: 0.8rem; color: var(--text-secondary);">
+                                        <i class="fab fa-${post.platform === 'facebook' ? 'facebook' : post.platform === 'tiktok' ? 'tiktok' : 'instagram'}"></i>
+                                        ${post.platform} | ${post.orders || 0} orders
+                                    </div>
+                                </div>
+                                <div style="font-size: 1.25rem; font-weight: 700; color: var(--success);">$${(post.revenue || 0).toFixed(2)}</div>
+                            </div>
+                        `).join('');
+                    } else {
+                        container.innerHTML = `
+                            <div style="text-align: center; padding: 3rem; color: var(--text-secondary);">
+                                <i class="fas fa-chart-line" style="font-size: 3rem; opacity: 0.5;"></i>
+                                <p style="margin-top: 1rem;">No attribution data yet</p>
+                                <p style="font-size: 0.85rem;">Track your first sale below!</p>
+                            </div>
+                        `;
+                    }
+                }
+
+                if (byPlatform.success && byPlatform.platforms) {
+                    document.getElementById('revInstagram').textContent = '$' + (byPlatform.platforms.instagram || 0).toFixed(2);
+                    document.getElementById('revFacebook').textContent = '$' + (byPlatform.platforms.facebook || 0).toFixed(2);
+                }
+            } catch (error) {
+                console.error('Error loading revenue:', error);
+                document.getElementById('revenueByPostContainer').innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: var(--danger);">
+                        <i class="fas fa-exclamation-triangle"></i> Error loading revenue data
+                    </div>
+                `;
+            }
+        }
+
+        async function trackAttribution() {
+            const orderId = document.getElementById('attrOrderId').value;
+            const orderTotal = document.getElementById('attrOrderTotal').value;
+
+            if (!orderId || !orderTotal) {
+                showToast('Please enter order ID and total', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'trackAttribution',
+                        orderId: orderId,
+                        orderTotal: parseFloat(orderTotal),
+                        platform: document.getElementById('attrPlatform').value,
+                        utmCampaign: document.getElementById('attrUtm').value
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('Attribution tracked!', 'success');
+                    document.getElementById('attrOrderId').value = '';
+                    document.getElementById('attrOrderTotal').value = '';
+                    document.getElementById('attrUtm').value = '';
+                    loadRevenue();
+                } else {
+                    showToast('Error: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showToast('Error tracking attribution', 'error');
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // COMPETITOR WATCH
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        async function loadCompetitors() {
+            const container = document.getElementById('competitorsContainer');
+            try {
+                const response = await fetch(`${API_URL}?action=getCompetitors`);
+                const data = await response.json();
+
+                if (data.success && data.competitors && data.competitors.length > 0) {
+                    container.innerHTML = data.competitors.map(comp => `
+                        <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div>
+                                <div style="font-weight: 600;">${comp.name}</div>
+                                <div style="font-size: 0.85rem; color: var(--purple);">${comp.handle || '@' + comp.name.toLowerCase().replace(/\s/g, '')}</div>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                                    <i class="fab fa-${comp.platform === 'facebook' ? 'facebook' : comp.platform === 'tiktok' ? 'tiktok' : 'instagram'}"></i>
+                                    ${comp.platform}
+                                </div>
+                                ${comp.notes ? `<div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem; font-style: italic;">"${comp.notes}"</div>` : ''}
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 1.25rem; font-weight: 700;">${(comp.followers || 0).toLocaleString()}</div>
+                                <div style="font-size: 0.75rem; color: var(--text-secondary);">followers</div>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 3rem; color: var(--text-secondary);">
+                            <i class="fas fa-binoculars" style="font-size: 3rem; opacity: 0.5;"></i>
+                            <p style="margin-top: 1rem;">No competitors tracked yet</p>
+                            <p style="font-size: 0.85rem;">Add some to watch what they're doing!</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading competitors:', error);
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: var(--danger);">
+                        <i class="fas fa-exclamation-triangle"></i> Error loading competitors
+                    </div>
+                `;
+            }
+        }
+
+        function showAddCompetitor() {
+            document.getElementById('addCompetitorCard').style.display = 'block';
+        }
+
+        function hideAddCompetitor() {
+            document.getElementById('addCompetitorCard').style.display = 'none';
+        }
+
+        async function addCompetitor() {
+            const name = document.getElementById('compName').value;
+            if (!name.trim()) {
+                showToast('Please enter competitor name', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'addCompetitor',
+                        name: name,
+                        handle: document.getElementById('compHandle').value,
+                        platform: document.getElementById('compPlatform').value,
+                        followers: parseInt(document.getElementById('compFollowers').value) || 0,
+                        notes: document.getElementById('compNotes').value
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('Competitor added!', 'success');
+                    document.getElementById('compName').value = '';
+                    document.getElementById('compHandle').value = '';
+                    document.getElementById('compFollowers').value = '';
+                    document.getElementById('compNotes').value = '';
+                    hideAddCompetitor();
+                    loadCompetitors();
+                } else {
+                    showToast('Error: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showToast('Error adding competitor', 'error');
+            }
         }
 
         // ═══════════════════════════════════════════════════════════════════════════

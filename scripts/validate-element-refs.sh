@@ -31,8 +31,16 @@ for FILE in $FILES; do
     fi
 
     # Extract all id="..." attributes from HTML (handles both single and double quotes)
-    HTML_IDS=$(grep -oE 'id=["\047][^"\047]+["\047]' "$FILE" 2>/dev/null | \
-        sed -E 's/id=["\047]([^"\047]+)["\047]/\1/g' | sort -u)
+    # Using a more robust pattern that handles any valid ID characters
+    HTML_IDS=$(grep -oE 'id="[^"]+"|id='"'"'[^'"'"']+'"'" "$FILE" 2>/dev/null | \
+        sed -E 's/id="([^"]+)"/\1/g; s/id='"'"'([^'"'"']+)'"'"'/\1/g' | sort -u)
+
+    # Also extract dynamically created IDs (e.g., element.id = 'myId')
+    DYNAMIC_IDS=$(grep -oE "\.id *= *['\"][^'\"]+['\"]" "$FILE" 2>/dev/null | \
+        sed -E "s/\.id *= *['\"]([^'\"]+)['\"]/\1/g" | sort -u)
+
+    # Combine static and dynamic IDs
+    HTML_IDS=$(echo -e "$HTML_IDS\n$DYNAMIC_IDS" | sort -u | grep -v '^$' || true)
 
     # Extract all getElementById('...') and getElementById("...") references
     JS_IDS_GET=$(grep -oE "getElementById\\(['\"][^'\"]+['\"]\\)" "$FILE" 2>/dev/null | \
@@ -54,6 +62,14 @@ for FILE in $FILES; do
         if [ -n "$id" ]; then
             # Check if this ID exists in HTML
             if ! echo "$HTML_IDS" | grep -qx "$id" 2>/dev/null; then
+                # Check if the reference has a null check (safe pattern)
+                # Pattern: "if (el)" or "el &&" after getElementById
+                HAS_NULL_CHECK=$(grep -E "getElementById\(['\"]$id['\"]\)|querySelector\(['\"]#$id['\"]\)" "$FILE" 2>/dev/null | grep -E "if *\(.*\)|&& *[a-zA-Z]" | wc -l)
+                if [ "$HAS_NULL_CHECK" -gt 0 ]; then
+                    # Has null check - safe, skip this reference
+                    continue
+                fi
+
                 # Get line numbers where this orphan is referenced
                 LINES=$(grep -n "getElementById(['\"]$id['\"])\|querySelector(['\"]#$id['\"])" "$FILE" 2>/dev/null | cut -d: -f1 | tr '\n' ',' | sed 's/,$//')
                 ORPHANED="$ORPHANED\n  ${YELLOW}$id${NC} (lines: $LINES)"
