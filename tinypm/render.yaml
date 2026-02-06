@@ -1,11 +1,13 @@
 services:
   - type: web
     name: tinypm-brain
-    env: python
+    runtime: python
     buildCommand: pip install -r requirements_brain.txt
     startCommand: python brain_bridge.py --host 0.0.0.0 --port $PORT
     envVars:
       - key: ANTHROPIC_API_KEY
         sync: false
-      - key: PYTHON_VERSION
-        value: 3.11.0
+      - key: PYTHONUNBUFFERED
+        value: "1"
+    healthCheckPath: /api/health
+    autoDeploy: true
