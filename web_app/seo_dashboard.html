@@ -1754,7 +1754,7 @@
             items.push({
                 priority: 'low',
                 icon: '📝',
-                text: 'Check content calendar for this week',
+                text: 'Review marketing content queue',
                 action: 'viewCalendar'
             });
 
@@ -1800,7 +1800,7 @@
                     openLogRankingsModal();
                     break;
                 case 'viewCalendar':
-                    window.open('https://docs.google.com/document/d/your-calendar-doc', '_blank');
+                    window.location.href = 'marketing-command-center.html';
                     break;
             }
         }
