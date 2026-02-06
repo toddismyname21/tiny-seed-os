@@ -3295,6 +3295,16 @@
         });
 
         async function initializeAdmin() {
+            // Check if user has valid session with token
+            const session = AuthGuard.getSession();
+            if (!session || !session.token) {
+                showToast('No valid session found. Please log in.', 'error');
+                setTimeout(() => {
+                    window.location.href = '../login.html?return=' + encodeURIComponent(window.location.href);
+                }, 1500);
+                return;
+            }
+
             // Populate user info
             populateUserInfo();
 
@@ -3422,11 +3432,22 @@
                     renderUsersTable();
                     updateStats();
                 } else {
-                    showToast('Failed to load users: ' + result.error, 'error');
+                    // Check for authentication errors
+                    const errorMsg = result.error || '';
+                    if (errorMsg.includes('token') || errorMsg.includes('expired') ||
+                        errorMsg.includes('Authentication') || errorMsg.includes('Admin access')) {
+                        showToast('Session expired or invalid. Please log in again.', 'error');
+                        // Show re-login prompt
+                        if (confirm('Your session has expired. Would you like to log in again?')) {
+                            AuthGuard.logout();
+                        }
+                    } else {
+                        showToast('Failed to load users: ' + result.error, 'error');
+                    }
                 }
             } catch (error) {
                 console.error('Error loading users:', error);
-                showToast('Error loading users', 'error');
+                showToast('Error loading users. Check console for details.', 'error');
             }
         }
 
