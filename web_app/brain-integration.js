@@ -17,22 +17,18 @@ const BrainAPI = {
     // =========================================================================
     // CONFIGURATION
     // =========================================================================
-    // Use Apps Script backend instead of local server
-    baseUrl: typeof TINY_SEED_API !== 'undefined' ? TINY_SEED_API.MAIN_API : 'https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec',
-
-    // SSE not available with Apps Script - use polling instead
-    usePolling: true,
-    pollingInterval: 60000, // Check every 60 seconds
-    pollingTimer: null,
+    // TinyPM Brain server (Python FastAPI - brain_bridge.py)
+    baseUrl: 'http://localhost:8000',  // Brain Bridge server port
+    sseUrl: 'http://localhost:8000/api/events',
 
     // Connection state
     connected: false,
     connectionState: 'disconnected', // 'disconnected', 'connecting', 'connected', 'error'
     reconnectAttempts: 0,
-    maxReconnectAttempts: 3,
-    reconnectDelay: 5000,
+    maxReconnectAttempts: 5,
+    reconnectDelay: 3000,
 
-    // SSE connection (not used with Apps Script backend)
+    // SSE connection
     eventSource: null,
 
     // Session tracking for context
@@ -67,11 +63,12 @@ const BrainAPI = {
         this.sessionStart = Date.now();
         this.updateConnectionState('connecting');
 
-        // Check if Apps Script backend is available
+        // Check if brain server is available
         const available = await this.healthCheck();
 
         if (!available) {
-            console.warn('[Brain] Apps Script backend not available - running in basic mode');
+            console.warn('[Brain] TinyPM Brain not available - running in basic mode');
+            console.warn('[Brain] Start the Brain server with: cd tinypm && python brain_bridge.py');
             this.updateConnectionState('disconnected');
             this.showBasicModeIndicator();
 
@@ -80,10 +77,8 @@ const BrainAPI = {
             return false;
         }
 
-        // Start polling for proactive suggestions (SSE not available with Apps Script)
-        if (this.usePolling) {
-            this.startProactivePolling();
-        }
+        // Establish SSE connection for server-push
+        this.initSSE();
 
         // Start context sync loop
         this.startContextSync();
@@ -92,68 +87,20 @@ const BrainAPI = {
         this.reconnectAttempts = 0;
         this.updateConnectionState('connected');
 
-        console.log('[Brain] Brain connected to Apps Script backend successfully');
+        console.log('[Brain] TinyPM Brain connected successfully');
         return true;
     },
 
     /**
-     * Start polling for proactive suggestions
-     */
-    startProactivePolling() {
-        if (this.pollingTimer) {
-            clearInterval(this.pollingTimer);
-        }
-
-        // Initial check
-        setTimeout(() => this.checkProactiveSuggestions(), 5000);
-
-        // Regular polling
-        this.pollingTimer = setInterval(() => {
-            this.checkProactiveSuggestions();
-        }, this.pollingInterval);
-
-        console.log('[Brain] Proactive polling started');
-    },
-
-    /**
-     * Check for proactive suggestions from backend
-     */
-    async checkProactiveSuggestions() {
-        if (!this.connected) return;
-
-        try {
-            const response = await fetch(`${this.baseUrl}?action=proactiveTaskCheck`);
-            if (response.ok) {
-                const data = await response.json();
-                if (data.success && data.alerts && data.alerts.length > 0) {
-                    // Convert proactive alerts to suggestions
-                    data.alerts.slice(0, 3).forEach(alert => {
-                        this.handleSuggestion({
-                            id: `proactive-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                            type: alert.type || 'Proactive Alert',
-                            message: alert.message || alert.title,
-                            confidence: 0.8,
-                            autonomy_level: 1, // Inform only
-                            reasoning: alert.reasoning ? [alert.reasoning] : []
-                        });
-                    });
-                }
-            }
-        } catch (error) {
-            console.warn('[Brain] Proactive check failed:', error.message);
-        }
-    },
-
-    /**
-     * Check if Apps Script backend is healthy
+     * Check if brain server is healthy
      * @returns {Promise<boolean>}
      */
     async healthCheck() {
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout for Apps Script
+            const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second timeout
 
-            const response = await fetch(`${this.baseUrl}?action=healthCheck`, {
+            const response = await fetch(`${this.baseUrl}/api/health`, {
                 method: 'GET',
                 signal: controller.signal
             });
@@ -162,8 +109,7 @@ const BrainAPI = {
 
             if (response.ok) {
                 const data = await response.json();
-                // Apps Script returns success: true for healthCheck
-                return data.success === true || data.status === 'healthy' || data.status === 'ok';
+                return data.status === 'healthy' || data.status === 'degraded';
             }
             return false;
         } catch (error) {
@@ -173,17 +119,64 @@ const BrainAPI = {
     },
 
     // =========================================================================
-    // SERVER-SENT EVENTS (SSE) - Not used with Apps Script backend
+    // SERVER-SENT EVENTS (SSE) - Proactive Suggestions
     // =========================================================================
 
     /**
-     * Initialize SSE connection - DISABLED for Apps Script backend
-     * Apps Script doesn't support SSE, so we use polling instead
+     * Initialize SSE connection for receiving proactive suggestions
      */
     initSSE() {
-        // SSE not supported by Apps Script backend
-        // Proactive suggestions are fetched via polling in startProactivePolling()
-        console.log('[Brain] SSE disabled - using polling for Apps Script backend');
+        if (this.eventSource) {
+            this.eventSource.close();
+        }
+
+        try {
+            this.eventSource = new EventSource(this.sseUrl);
+
+            // Generic message handler
+            this.eventSource.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    this.handleBrainEvent(data);
+                } catch (e) {
+                    console.error('[Brain] Failed to parse SSE message:', e);
+                }
+            };
+
+            // Typed event handlers
+            this.eventSource.addEventListener('suggestion', (event) => {
+                const suggestion = JSON.parse(event.data);
+                this.handleSuggestion(suggestion);
+            });
+
+            this.eventSource.addEventListener('nudge', (event) => {
+                const nudge = JSON.parse(event.data);
+                this.handleNudge(nudge);
+            });
+
+            this.eventSource.addEventListener('prediction', (event) => {
+                const prediction = JSON.parse(event.data);
+                this.handlePredictionUpdate(prediction);
+            });
+
+            // Connection management
+            this.eventSource.onopen = () => {
+                console.log('[Brain] SSE connection established');
+                this.updateConnectionState('connected');
+            };
+
+            this.eventSource.onerror = (error) => {
+                console.warn('[Brain] SSE connection error:', error);
+                if (this.eventSource.readyState === EventSource.CLOSED) {
+                    this.updateConnectionState('disconnected');
+                    this.scheduleReconnect();
+                }
+            };
+
+        } catch (error) {
+            console.error('[Brain] Failed to initialize SSE:', error);
+            this.updateConnectionState('error');
+        }
     },
 
     /**
@@ -815,13 +808,6 @@ const BrainAPI = {
      * Disconnect from brain server
      */
     disconnect() {
-        // Stop polling
-        if (this.pollingTimer) {
-            clearInterval(this.pollingTimer);
-            this.pollingTimer = null;
-        }
-
-        // Close SSE if it was used
         if (this.eventSource) {
             this.eventSource.close();
             this.eventSource = null;
