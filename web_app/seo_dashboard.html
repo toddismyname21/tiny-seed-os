@@ -1440,12 +1440,28 @@
         // ============================================
         // API CALLS
         // ============================================
+        // Read-only endpoints that should use GET
+        const GET_ENDPOINTS = [
+            'getSEORankings', 'getReviewMetrics', 'getCitationStatus',
+            'getSEOAPIStatus', 'getSEOMasterDashboard', 'getSEOCompetitors',
+            'getAIShareOfVoiceMetrics', 'getVideoAnalytics', 'healthCheck'
+        ];
+
         async function callAPI(action, params) {
-            const response = await fetch(`${TINY_SEED_API.MAIN_API}?action=${action}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(params)
-            });
+            let response;
+
+            if (GET_ENDPOINTS.includes(action)) {
+                // Use GET for read-only endpoints
+                const queryParams = new URLSearchParams({ action, ...params });
+                response = await fetch(`${TINY_SEED_API.MAIN_API}?${queryParams}`);
+            } else {
+                // Use POST for write operations
+                response = await fetch(`${TINY_SEED_API.MAIN_API}?action=${action}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(params)
+                });
+            }
 
             if (!response.ok) {
                 throw new Error(`API error: ${response.status}`);

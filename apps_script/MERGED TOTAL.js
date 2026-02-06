@@ -16812,6 +16812,12 @@ function doPost(e) {
         return jsonResponse(logReview(data));
       case 'logCitation':
         return jsonResponse(logCitation(data));
+      case 'getSEORankings':
+        return jsonResponse(getSEORankings(data));
+      case 'getReviewMetrics':
+        return jsonResponse(getReviewMetrics(data));
+      case 'getCitationStatus':
+        return jsonResponse(getCitationStatus(data));
 
       // ============ SEED INVENTORY & TRACEABILITY ============
       case 'addSeedLot':
