@@ -21,7 +21,7 @@ const BrainAPI = {
     // Set BRAIN_SERVER_URL in your HTML before loading this script to use cloud deployment
     // Example: <script>window.BRAIN_SERVER_URL = 'https://tinypm-brain.onrender.com';</script>
     baseUrl: window.BRAIN_SERVER_URL || 'http://localhost:8000',
-    get sseUrl() { return this.baseUrl + '/api/events'; },
+    sseUrl: (window.BRAIN_SERVER_URL || 'http://localhost:8000') + '/api/events',
 
     // Connection state
     connected: false,
@@ -770,7 +770,8 @@ const BrainAPI = {
         };
 
         indicator.title = labels[state] || 'Unknown';
-        indicator.querySelector('.brain-status-text')?.textContent = labels[state] || '';
+        const statusText = indicator.querySelector('.brain-status-text');
+        if (statusText) statusText.textContent = labels[state] || '';
     },
 
     /**
