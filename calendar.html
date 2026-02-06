@@ -2794,6 +2794,7 @@
         <div class="gap-tooltip-header">
             <span style="font-size: 1.2rem;">📅</span>
             <span class="gap-tooltip-title">Open Field Space</span>
+            <button class="tooltip-close-btn" onclick="hideGapTooltip()" style="margin-left: auto; background: none; border: none; cursor: pointer; font-size: 1rem; color: #666;">&times;</button>
         </div>
         <div class="gap-tooltip-row">
             <span class="gap-tooltip-label">Duration:</span>
@@ -2815,10 +2816,11 @@
     <div class="tooltip" id="tooltip">
         <div class="tooltip-header">
             <span class="tooltip-icon" id="tooltipIcon">🌱</span>
-            <div>
+            <div style="flex: 1;">
                 <div class="tooltip-title" id="tooltipTitle">Crop Name</div>
                 <div class="tooltip-variety" id="tooltipVariety">Variety</div>
             </div>
+            <button class="tooltip-close-btn" onclick="hideTooltip()" style="background: none; border: none; cursor: pointer; font-size: 1.2rem; color: #666; padding: 0 4px;">&times;</button>
         </div>
         <div class="tooltip-row" id="tooltipLockRow" style="display: none; color: #e63946;">
             <span class="tooltip-label">🔒 Locked:</span>
@@ -4250,8 +4252,7 @@
                          data-end="${planting.harvestDate}"
                          style="left: ${left}px; width: ${width}px; top: ${top}px; ${barStyle} ${completedStyle} ${unassignedStyle} cursor: pointer;"
                          ondblclick="openEditModal('${planting.id}')"
-                         onmouseenter="showTooltip(event, '${planting.id}')"
-                         onmouseleave="hideTooltip()">
+                         onclick="toggleTooltip(event, '${planting.id}')">
                         <div class="resize-handle resize-handle-left" data-edge="left"></div>
                         <span class="crop-bar-icon">${unassignedIcon}${lockIcon}${icon}</span>
                         <div class="crop-bar-content">
@@ -4365,9 +4366,7 @@
                              data-end="${endStr}"
                              data-days="${gapDuration}"
                              style="left: ${left}px; width: ${width}px;"
-                             onmouseenter="showGapTooltip(event, '${safeGroupName}', '${startStr}', '${endStr}', ${gapDuration})"
-                             onmousemove="moveGapTooltip(event)"
-                             onmouseleave="hideGapTooltip()">
+                             onclick="toggleGapTooltip(event, '${safeGroupName}', '${startStr}', '${endStr}', ${gapDuration})">
                         </div>
                     `;
                 }
@@ -4376,7 +4375,32 @@
             return html;
         }
 
-        // Gap tooltip functions
+        // Gap tooltip functions - Click to toggle (not hover)
+        let currentGapTooltipId = null;
+
+        function toggleGapTooltip(event, groupName, startDate, endDate, days) {
+            event.stopPropagation(); // Prevent click from bubbling
+            const tooltip = document.getElementById('gapTooltip');
+            const cropTooltip = document.getElementById('tooltip');
+
+            // Close crop tooltip if open
+            cropTooltip.classList.remove('show');
+            currentTooltipId = null;
+
+            // Create unique ID for this gap
+            const gapId = `${groupName}-${startDate}-${endDate}`;
+
+            // If clicking the same gap, close it
+            if (currentGapTooltipId === gapId && tooltip.classList.contains('visible')) {
+                hideGapTooltip();
+                return;
+            }
+
+            // Show tooltip for this gap
+            currentGapTooltipId = gapId;
+            showGapTooltip(event, groupName, startDate, endDate, days);
+        }
+
         function showGapTooltip(event, groupName, startDate, endDate, days) {
             const tooltip = document.getElementById('gapTooltip');
 
@@ -4396,14 +4420,9 @@
             tooltip.classList.add('visible');
         }
 
-        function moveGapTooltip(event) {
-            const tooltip = document.getElementById('gapTooltip');
-            tooltip.style.left = (event.clientX + 15) + 'px';
-            tooltip.style.top = (event.clientY + 15) + 'px';
-        }
-
         function hideGapTooltip() {
             document.getElementById('gapTooltip').classList.remove('visible');
+            currentGapTooltipId = null;
         }
 
         // Get crop color from profiles or fallback
@@ -5278,7 +5297,28 @@
             if (e.key === 'Escape') closeEditModal();
         });
 
-        // Tooltip
+        // Tooltip - Click to toggle (not hover)
+        let currentTooltipId = null;
+
+        function toggleTooltip(event, id) {
+            event.stopPropagation(); // Prevent click from bubbling
+            const tooltip = document.getElementById('tooltip');
+            const gapTooltip = document.getElementById('gapTooltip');
+
+            // Close gap tooltip if open
+            gapTooltip.classList.remove('visible');
+
+            // If clicking the same crop, close it
+            if (currentTooltipId === id && tooltip.classList.contains('show')) {
+                hideTooltip();
+                return;
+            }
+
+            // Show tooltip for this crop
+            currentTooltipId = id;
+            showTooltip(event, id);
+        }
+
         function showTooltip(event, id) {
             const planting = plantings.find(p => p.id === id);
             if (!planting) return;
@@ -5318,7 +5358,7 @@
                 actions.style.color = '#e63946';
             } else {
                 lockRow.style.display = 'none';
-                actions.textContent = 'Drag to move | Resize edges to adjust dates';
+                actions.textContent = 'Double-click to edit | Drag to move';
                 actions.style.color = 'var(--text-secondary)';
             }
 
@@ -5329,7 +5369,22 @@
 
         function hideTooltip() {
             document.getElementById('tooltip').classList.remove('show');
+            currentTooltipId = null;
         }
+
+        // Close tooltips when clicking outside
+        document.addEventListener('click', function(event) {
+            const tooltip = document.getElementById('tooltip');
+            const gapTooltip = document.getElementById('gapTooltip');
+            const clickedOnCrop = event.target.closest('.crop-bar');
+            const clickedOnGap = event.target.closest('.field-gap');
+            const clickedOnTooltip = event.target.closest('.tooltip') || event.target.closest('.gap-tooltip');
+
+            if (!clickedOnCrop && !clickedOnGap && !clickedOnTooltip) {
+                hideTooltip();
+                hideGapTooltip();
+            }
+        });
 
         function formatDisplayDate(dateStr) {
             const date = new Date(dateStr);
