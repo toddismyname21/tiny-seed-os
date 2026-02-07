@@ -1066,6 +1066,156 @@
 
     <!-- AI Plan Generator Tab -->
     <div id="tab-plangen" class="tab-content">
+        <!-- Sales Data Entry - REQUIRED FOR ACCURATE PLANS -->
+        <div class="card" style="border: 2px solid var(--gold); background: linear-gradient(135deg, rgba(244, 162, 97, 0.1), rgba(231, 111, 81, 0.05));">
+            <div class="card-header">
+                <h2><i class="fas fa-database"></i> Your Sales Data (Required for Accurate Plans)</h2>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn-secondary btn-sm" onclick="loadSavedSalesData()">
+                        <i class="fas fa-sync"></i> Load Saved
+                    </button>
+                    <button class="btn btn-primary btn-sm" onclick="saveSalesData()">
+                        <i class="fas fa-save"></i> Save Data
+                    </button>
+                </div>
+            </div>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                <i class="fas fa-exclamation-triangle" style="color: var(--gold);"></i>
+                Enter your actual numbers from Shopify and QuickBooks. The AI uses this data to generate accurate, compelling business plans.
+            </p>
+
+            <!-- Year Selection -->
+            <div class="input-group" style="margin-bottom: 1.5rem; max-width: 200px;">
+                <label><i class="fas fa-calendar-alt"></i> Data Year</label>
+                <select id="salesDataYear" onchange="loadSavedSalesData()">
+                    <option value="2025">2025</option>
+                    <option value="2024">2024</option>
+                    <option value="2023">2023</option>
+                </select>
+            </div>
+
+            <!-- CSA Data -->
+            <div style="background: var(--bg-lighter); padding: 1.25rem; border-radius: 12px; margin-bottom: 1.5rem;">
+                <h4 style="color: var(--success); margin-bottom: 1rem;"><i class="fas fa-box-open"></i> CSA Program (from Shopify)</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
+                    <div class="input-group">
+                        <label>Total CSA Members</label>
+                        <input type="number" id="salesCSAMembers" placeholder="e.g., 85" />
+                    </div>
+                    <div class="input-group">
+                        <label>Full Share Members</label>
+                        <input type="number" id="salesCSAFull" placeholder="e.g., 50" />
+                    </div>
+                    <div class="input-group">
+                        <label>Half Share Members</label>
+                        <input type="number" id="salesCSAHalf" placeholder="e.g., 35" />
+                    </div>
+                    <div class="input-group">
+                        <label>Full Share Price</label>
+                        <input type="text" id="salesCSAFullPrice" placeholder="e.g., $650" />
+                    </div>
+                    <div class="input-group">
+                        <label>Half Share Price</label>
+                        <input type="text" id="salesCSAHalfPrice" placeholder="e.g., $375" />
+                    </div>
+                    <div class="input-group">
+                        <label>Total CSA Revenue</label>
+                        <input type="text" id="salesCSATotal" placeholder="e.g., $45,625" style="font-weight: bold; color: var(--success);" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Wholesale/Restaurant Data -->
+            <div style="background: var(--bg-lighter); padding: 1.25rem; border-radius: 12px; margin-bottom: 1.5rem;">
+                <h4 style="color: var(--info); margin-bottom: 1rem;"><i class="fas fa-utensils"></i> Wholesale / Restaurants (from QuickBooks)</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
+                    <div class="input-group">
+                        <label># Restaurant Accounts</label>
+                        <input type="number" id="salesRestaurantCount" placeholder="e.g., 12" />
+                    </div>
+                    <div class="input-group">
+                        <label>Avg Order Value</label>
+                        <input type="text" id="salesRestaurantAvgOrder" placeholder="e.g., $150" />
+                    </div>
+                    <div class="input-group">
+                        <label>Orders Per Week (peak)</label>
+                        <input type="number" id="salesRestaurantWeekly" placeholder="e.g., 8" />
+                    </div>
+                    <div class="input-group">
+                        <label>Season Length (weeks)</label>
+                        <input type="number" id="salesRestaurantWeeks" placeholder="e.g., 24" />
+                    </div>
+                    <div class="input-group">
+                        <label>Total Wholesale Revenue</label>
+                        <input type="text" id="salesWholesaleTotal" placeholder="e.g., $28,800" style="font-weight: bold; color: var(--info);" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Farmers Market Data -->
+            <div style="background: var(--bg-lighter); padding: 1.25rem; border-radius: 12px; margin-bottom: 1.5rem;">
+                <h4 style="color: var(--purple); margin-bottom: 1rem;"><i class="fas fa-store"></i> Farmers Markets</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
+                    <div class="input-group">
+                        <label># Markets Attended</label>
+                        <input type="number" id="salesMarketCount" placeholder="e.g., 3" />
+                    </div>
+                    <div class="input-group">
+                        <label>Market Names</label>
+                        <input type="text" id="salesMarketNames" placeholder="e.g., Lawrenceville, Sewickley" />
+                    </div>
+                    <div class="input-group">
+                        <label>Avg Sales Per Market</label>
+                        <input type="text" id="salesMarketAvg" placeholder="e.g., $800" />
+                    </div>
+                    <div class="input-group">
+                        <label>Total Market Sessions</label>
+                        <input type="number" id="salesMarketSessions" placeholder="e.g., 48" />
+                    </div>
+                    <div class="input-group">
+                        <label>Total Market Revenue</label>
+                        <input type="text" id="salesMarketTotal" placeholder="e.g., $38,400" style="font-weight: bold; color: var(--purple);" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Specialty Products -->
+            <div style="background: var(--bg-lighter); padding: 1.25rem; border-radius: 12px; margin-bottom: 1.5rem;">
+                <h4 style="color: var(--secondary); margin-bottom: 1rem;"><i class="fas fa-star"></i> Specialty Products</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
+                    <div class="input-group">
+                        <label><i class="fas fa-seedling"></i> Flowers (Fleurs) Revenue</label>
+                        <input type="text" id="salesFlowersTotal" placeholder="e.g., $8,500" />
+                    </div>
+                    <div class="input-group">
+                        <label><i class="fas fa-cloud"></i> Mushrooms (Fungi) Revenue</label>
+                        <input type="text" id="salesMushroomsTotal" placeholder="e.g., $4,200" />
+                    </div>
+                    <div class="input-group">
+                        <label><i class="fas fa-jar"></i> Value-Added Products</label>
+                        <input type="text" id="salesValueAddedTotal" placeholder="e.g., $2,500" />
+                    </div>
+                    <div class="input-group">
+                        <label><i class="fas fa-truck"></i> Direct Delivery Revenue</label>
+                        <input type="text" id="salesDeliveryTotal" placeholder="e.g., $5,000" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grand Total -->
+            <div style="background: linear-gradient(135deg, var(--success), var(--primary)); padding: 1.5rem; border-radius: 12px; text-align: center;">
+                <div style="font-size: 0.9rem; text-transform: uppercase; opacity: 0.9; margin-bottom: 0.5rem;">Total Annual Revenue</div>
+                <div id="salesGrandTotal" style="font-size: 2.5rem; font-weight: 800;">$0</div>
+                <button class="btn" style="background: rgba(255,255,255,0.2); color: white; margin-top: 1rem;" onclick="calculateTotalRevenue()">
+                    <i class="fas fa-calculator"></i> Calculate Total
+                </button>
+            </div>
+
+            <div style="margin-top: 1rem; padding: 1rem; background: rgba(67, 97, 238, 0.1); border-radius: 8px; border-left: 4px solid var(--info);">
+                <strong><i class="fas fa-lightbulb"></i> Tip:</strong> Pull these numbers from your Shopify dashboard and QuickBooks reports. The more accurate the data, the better your business plan.
+            </div>
+        </div>
+
         <!-- Business Plan Generator -->
         <div class="card">
             <div class="card-header">
@@ -1073,7 +1223,7 @@
                 <span class="badge" style="background: linear-gradient(135deg, var(--purple), var(--info));">AI-Powered</span>
             </div>
             <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
-                Generate a professional farm business plan tailored to your specific loan application. The AI will pull data from your farm records to create a comprehensive document.
+                Generate a professional farm business plan using YOUR ACTUAL SALES DATA above. The AI creates a compelling, data-driven document tailored to your lender.
             </p>
 
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
@@ -2505,6 +2655,147 @@
             showNotification('Application editing coming soon!', 'info');
         }
 
+        // ============ SALES DATA MANAGEMENT ============
+
+        const SALES_DATA_FIELDS = [
+            'salesCSAMembers', 'salesCSAFull', 'salesCSAHalf', 'salesCSAFullPrice', 'salesCSAHalfPrice', 'salesCSATotal',
+            'salesRestaurantCount', 'salesRestaurantAvgOrder', 'salesRestaurantWeekly', 'salesRestaurantWeeks', 'salesWholesaleTotal',
+            'salesMarketCount', 'salesMarketNames', 'salesMarketAvg', 'salesMarketSessions', 'salesMarketTotal',
+            'salesFlowersTotal', 'salesMushroomsTotal', 'salesValueAddedTotal', 'salesDeliveryTotal'
+        ];
+
+        function saveSalesData() {
+            const year = document.getElementById('salesDataYear').value;
+            const salesData = { year: year };
+
+            SALES_DATA_FIELDS.forEach(field => {
+                const el = document.getElementById(field);
+                if (el) salesData[field] = el.value;
+            });
+
+            // Save to localStorage
+            localStorage.setItem(`tinySeedSalesData_${year}`, JSON.stringify(salesData));
+
+            // Also save to backend
+            fetch(`${API_URL}?action=saveFarmSalesData`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(salesData)
+            }).then(r => r.json()).then(data => {
+                if (data.success) {
+                    showNotification(`Sales data for ${year} saved successfully!`, 'success');
+                }
+            }).catch(err => {
+                console.error('Error saving to backend:', err);
+                showNotification('Saved locally. Backend sync will retry later.', 'warning');
+            });
+
+            calculateTotalRevenue();
+        }
+
+        function loadSavedSalesData() {
+            const year = document.getElementById('salesDataYear').value;
+
+            // Try localStorage first
+            const localData = localStorage.getItem(`tinySeedSalesData_${year}`);
+            if (localData) {
+                const salesData = JSON.parse(localData);
+                SALES_DATA_FIELDS.forEach(field => {
+                    const el = document.getElementById(field);
+                    if (el && salesData[field]) el.value = salesData[field];
+                });
+                calculateTotalRevenue();
+                showNotification(`Loaded saved data for ${year}`, 'success');
+                return;
+            }
+
+            // Try backend
+            fetch(`${API_URL}?action=getFarmSalesData&year=${year}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.salesData) {
+                        SALES_DATA_FIELDS.forEach(field => {
+                            const el = document.getElementById(field);
+                            if (el && data.salesData[field]) el.value = data.salesData[field];
+                        });
+                        calculateTotalRevenue();
+                        showNotification(`Loaded data for ${year} from server`, 'success');
+                    } else {
+                        showNotification(`No saved data found for ${year}. Enter your numbers from Shopify/QuickBooks.`, 'info');
+                    }
+                })
+                .catch(err => {
+                    console.error('Error loading from backend:', err);
+                    showNotification(`No saved data for ${year}. Enter your numbers.`, 'info');
+                });
+        }
+
+        function parseMoneyValue(str) {
+            if (!str) return 0;
+            return parseFloat(String(str).replace(/[$,]/g, '')) || 0;
+        }
+
+        function calculateTotalRevenue() {
+            const csaTotal = parseMoneyValue(document.getElementById('salesCSATotal')?.value);
+            const wholesaleTotal = parseMoneyValue(document.getElementById('salesWholesaleTotal')?.value);
+            const marketTotal = parseMoneyValue(document.getElementById('salesMarketTotal')?.value);
+            const flowersTotal = parseMoneyValue(document.getElementById('salesFlowersTotal')?.value);
+            const mushroomsTotal = parseMoneyValue(document.getElementById('salesMushroomsTotal')?.value);
+            const valueAddedTotal = parseMoneyValue(document.getElementById('salesValueAddedTotal')?.value);
+            const deliveryTotal = parseMoneyValue(document.getElementById('salesDeliveryTotal')?.value);
+
+            const grandTotal = csaTotal + wholesaleTotal + marketTotal + flowersTotal + mushroomsTotal + valueAddedTotal + deliveryTotal;
+
+            document.getElementById('salesGrandTotal').textContent = '$' + grandTotal.toLocaleString();
+
+            return {
+                csa: csaTotal,
+                wholesale: wholesaleTotal,
+                farmersMarket: marketTotal,
+                flowers: flowersTotal,
+                mushrooms: mushroomsTotal,
+                valueAdded: valueAddedTotal,
+                delivery: deliveryTotal,
+                total: grandTotal
+            };
+        }
+
+        function getSalesDataForPlan() {
+            const year = document.getElementById('salesDataYear').value;
+            return {
+                year: year,
+                csa: {
+                    members: parseInt(document.getElementById('salesCSAMembers')?.value) || 0,
+                    fullShareMembers: parseInt(document.getElementById('salesCSAFull')?.value) || 0,
+                    halfShareMembers: parseInt(document.getElementById('salesCSAHalf')?.value) || 0,
+                    fullSharePrice: document.getElementById('salesCSAFullPrice')?.value || '',
+                    halfSharePrice: document.getElementById('salesCSAHalfPrice')?.value || '',
+                    totalRevenue: parseMoneyValue(document.getElementById('salesCSATotal')?.value)
+                },
+                wholesale: {
+                    restaurantCount: parseInt(document.getElementById('salesRestaurantCount')?.value) || 0,
+                    avgOrderValue: document.getElementById('salesRestaurantAvgOrder')?.value || '',
+                    ordersPerWeek: parseInt(document.getElementById('salesRestaurantWeekly')?.value) || 0,
+                    seasonWeeks: parseInt(document.getElementById('salesRestaurantWeeks')?.value) || 0,
+                    totalRevenue: parseMoneyValue(document.getElementById('salesWholesaleTotal')?.value)
+                },
+                farmersMarket: {
+                    marketCount: parseInt(document.getElementById('salesMarketCount')?.value) || 0,
+                    marketNames: document.getElementById('salesMarketNames')?.value || '',
+                    avgSalesPerMarket: document.getElementById('salesMarketAvg')?.value || '',
+                    totalSessions: parseInt(document.getElementById('salesMarketSessions')?.value) || 0,
+                    totalRevenue: parseMoneyValue(document.getElementById('salesMarketTotal')?.value)
+                },
+                specialty: {
+                    flowers: parseMoneyValue(document.getElementById('salesFlowersTotal')?.value),
+                    mushrooms: parseMoneyValue(document.getElementById('salesMushroomsTotal')?.value),
+                    valueAdded: parseMoneyValue(document.getElementById('salesValueAddedTotal')?.value),
+                    delivery: parseMoneyValue(document.getElementById('salesDeliveryTotal')?.value)
+                },
+                grandTotal: calculateTotalRevenue().total
+            };
+        }
+
         // ============ AI PLAN GENERATORS ============
 
         let generatedBusinessPlan = '';
@@ -2522,10 +2813,19 @@
             const term = document.getElementById('businessPlanTerm').value;
             const context = document.getElementById('businessPlanContext').value;
 
+            // Get the actual sales data from the form
+            const salesData = getSalesDataForPlan();
+
+            // Validate that we have some data
+            if (salesData.grandTotal === 0) {
+                showNotification('Please enter your sales data above before generating a plan!', 'warning');
+                return;
+            }
+
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
             output.style.display = 'block';
-            content.innerHTML = '<div style="text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 1rem;">Generating your business plan... This may take 30-60 seconds.</p></div>';
+            content.innerHTML = '<div style="text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 1rem;">Generating your business plan with your actual sales data... This may take 30-60 seconds.</p></div>';
 
             try {
                 const response = await fetch(`${API_URL}?action=generateFarmBusinessPlan`, {
@@ -2536,7 +2836,8 @@
                         purpose: purpose,
                         amount: amount,
                         term: term,
-                        context: context
+                        context: context,
+                        salesData: salesData
                     })
                 });
 
@@ -2576,10 +2877,19 @@
             const growth = document.getElementById('marketingPlanGrowth').value;
             const context = document.getElementById('marketingPlanContext').value;
 
+            // Get the actual sales data from the form
+            const salesData = getSalesDataForPlan();
+
+            // Validate that we have some data
+            if (salesData.grandTotal === 0) {
+                showNotification('Please enter your sales data above before generating a plan!', 'warning');
+                return;
+            }
+
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
             output.style.display = 'block';
-            content.innerHTML = '<div style="text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 1rem;">Generating your marketing plan... This may take 30-60 seconds.</p></div>';
+            content.innerHTML = '<div style="text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 1rem;">Generating your marketing plan with your actual sales data... This may take 30-60 seconds.</p></div>';
 
             try {
                 const response = await fetch(`${API_URL}?action=generateFarmMarketingPlan`, {
@@ -2590,7 +2900,8 @@
                         focus: focus,
                         horizon: horizon,
                         growthTarget: growth,
-                        context: context
+                        context: context,
+                        salesData: salesData
                     })
                 });
 

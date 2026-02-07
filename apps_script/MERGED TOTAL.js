@@ -16126,6 +16126,10 @@ function doGet(e) {
         return jsonResponse(generateFarmBusinessPlan(JSON.parse(e.postData?.contents || '{}')));
       case 'generateFarmMarketingPlan':
         return jsonResponse(generateFarmMarketingPlan(JSON.parse(e.postData?.contents || '{}')));
+      case 'saveFarmSalesData':
+        return jsonResponse(saveFarmSalesData(JSON.parse(e.postData?.contents || '{}')));
+      case 'getFarmSalesData':
+        return jsonResponse(getFarmSalesData(e.parameter.year));
 
       // ============ GOAL-TO-ACTION PLANNING SYSTEM (2026-02-04) ============
       // AI-powered backward planning from goals to tasks
@@ -104299,14 +104303,8 @@ function generateFarmBusinessPlan(params) {
     const amount = params.amount || '$50,000';
     const term = params.term || '7';
     const context = params.context || '';
-    const year = new Date().getFullYear();
-
-    // Gather real farm data for the plan
-    const financials = getFinancialStatement(year);
-    const production = getProductionReport(year);
-    const sales = getSalesSummaryReport(year);
-    const assets = getAssetRegister();
-    const cashFlow = getCashFlowProjection(year);
+    const salesData = params.salesData || {}; // User-entered sales data from form
+    const year = salesData.year || new Date().getFullYear();
 
     // Lender-specific requirements
     const lenderInfo = {
@@ -104354,6 +104352,12 @@ function generateFarmBusinessPlan(params) {
       consolidation: 'debt consolidation to improve cash flow and reduce interest costs'
     };
 
+    // Build sales data section from user-entered data
+    const csa = salesData.csa || {};
+    const wholesale = salesData.wholesale || {};
+    const farmersMarket = salesData.farmersMarket || {};
+    const specialty = salesData.specialty || {};
+
     const prompt = `You are a professional farm business plan writer. Create a comprehensive, professional Farm Business Plan for Tiny Seed Farm that is specifically tailored for ${lenderDetails.name}.
 
 LENDER FOCUS: ${lenderDetails.focus}
@@ -104364,64 +104368,59 @@ LOAN REQUEST:
 - Purpose: ${purposeDescriptions[purpose] || purpose}
 - Term: ${term} years
 
-REAL FARM DATA (use these actual numbers):
-${financials.success ? `
-FINANCIAL POSITION:
-- Total Assets: $${financials.assets?.total?.toLocaleString() || 'N/A'}
-- Total Liabilities: $${financials.liabilities?.total?.toLocaleString() || 'N/A'}
-- Net Worth: $${financials.equity?.ownersEquity?.toLocaleString() || 'N/A'}
-- Debt-to-Asset Ratio: ${financials.ratios?.debtToAsset || 'N/A'}%
-` : ''}
-${sales.success ? `
-SALES DATA:
-- Total Revenue: $${sales.grandTotal?.toLocaleString() || 'N/A'}
-- CSA Revenue: $${sales.csa?.total?.toLocaleString() || 'N/A'} (${sales.csa?.members || 0} members)
-- Wholesale Revenue: $${sales.wholesale?.total?.toLocaleString() || 'N/A'}
-- Farmers Market Revenue: $${sales.farmersMarket?.total?.toLocaleString() || 'N/A'}
-- Year-over-Year Growth: ${sales.yearOverYear?.changePercent || 0}%
-` : ''}
-${production.success ? `
-PRODUCTION DATA:
-- Total Crops: ${production.totalCrops || 'N/A'}
-- Total Harvested: ${production.summary?.totalHarvested?.toLocaleString() || 'N/A'} lbs
-- Top Revenue Crop: ${production.summary?.topCropByRevenue || 'N/A'}
-` : ''}
-${assets.success ? `
-ASSETS:
-- Total Asset Value: $${assets.totalValue?.toLocaleString() || 'N/A'}
-- Equipment Count: ${assets.summary?.equipmentCount || 'N/A'}
-` : ''}
-${cashFlow.success ? `
-CASH FLOW:
-- Projected Annual Revenue: $${cashFlow.summary?.totalProjectedRevenue?.toLocaleString() || 'N/A'}
-- Projected Annual Expenses: $${cashFlow.summary?.totalProjectedExpenses?.toLocaleString() || 'N/A'}
-- Net Cash Flow: $${cashFlow.summary?.netAnnualCashFlow?.toLocaleString() || 'N/A'}
-` : ''}
+ACTUAL SALES DATA FOR ${year} (from owner's records):
+
+CSA PROGRAM:
+- Total CSA Members: ${csa.members || 0}
+- Full Share Members: ${csa.fullShareMembers || 0} at ${csa.fullSharePrice || 'N/A'} each
+- Half Share Members: ${csa.halfShareMembers || 0} at ${csa.halfSharePrice || 'N/A'} each
+- Total CSA Revenue: $${(csa.totalRevenue || 0).toLocaleString()}
+
+WHOLESALE/RESTAURANT SALES:
+- Number of Restaurant Accounts: ${wholesale.restaurantCount || 0}
+- Average Order Value: ${wholesale.avgOrderValue || 'N/A'}
+- Orders Per Week (peak season): ${wholesale.ordersPerWeek || 0}
+- Season Length: ${wholesale.seasonWeeks || 0} weeks
+- Total Wholesale Revenue: $${(wholesale.totalRevenue || 0).toLocaleString()}
+
+FARMERS MARKETS:
+- Markets Attended: ${farmersMarket.marketCount || 0} (${farmersMarket.marketNames || 'N/A'})
+- Average Sales Per Market Day: ${farmersMarket.avgSalesPerMarket || 'N/A'}
+- Total Market Sessions: ${farmersMarket.totalSessions || 0}
+- Total Farmers Market Revenue: $${(farmersMarket.totalRevenue || 0).toLocaleString()}
+
+SPECIALTY PRODUCTS:
+- Flowers (Fleurs line): $${(specialty.flowers || 0).toLocaleString()}
+- Mushrooms (Fungi line): $${(specialty.mushrooms || 0).toLocaleString()}
+- Value-Added Products: $${(specialty.valueAdded || 0).toLocaleString()}
+- Direct Delivery: $${(specialty.delivery || 0).toLocaleString()}
+
+TOTAL ANNUAL REVENUE: $${(salesData.grandTotal || 0).toLocaleString()}
 
 FARM INFORMATION:
 - Name: Tiny Seed Farm
 - Owner: Todd Wilson
-- Location: Rochester, PA (Pittsburgh metro area)
+- Location: 257 Zeigler Rd, Rochester, PA 15074 (Pittsburgh metro area)
 - Type: USDA Certified Organic vegetable farm
 - Certifier: OEFFA (Ohio Ecological Food & Farm Association)
-- Markets: CSA subscriptions, wholesale to restaurants, farmers markets
-- Service Area: Greater Pittsburgh, multiple neighborhood delivery routes
+- Service Area: Greater Pittsburgh with multiple CSA pickup locations
+- Brands: Tiny Seed Farm (vegetables), Fleurs (flowers), Fungi (mushrooms)
 
 ${context ? `ADDITIONAL CONTEXT FROM OWNER: ${context}` : ''}
 
 Create a professional business plan with these sections:
-1. EXECUTIVE SUMMARY (compelling overview, loan request, key highlights)
+1. EXECUTIVE SUMMARY (compelling overview, loan request, key highlights - use the REAL revenue numbers above)
 2. BUSINESS DESCRIPTION (history, mission, operations, organic certification)
-3. MARKET ANALYSIS (target customers, competition, market opportunity)
-4. PRODUCTS AND SERVICES (crop mix, CSA program, wholesale, value-added)
-5. MARKETING AND SALES STRATEGY (how revenue is generated)
+3. MARKET ANALYSIS (target customers, competition, market opportunity in Pittsburgh)
+4. PRODUCTS AND SERVICES (crop mix, CSA program, wholesale, specialty products)
+5. MARKETING AND SALES STRATEGY (how each revenue stream is generated and grown)
 6. MANAGEMENT AND ORGANIZATION (owner qualifications, team)
-7. FINANCIAL PROJECTIONS (use real data above, show growth trajectory)
+7. FINANCIAL PROJECTIONS (use the REAL data above, project 3-5 year growth)
 8. LOAN REQUEST AND USE OF FUNDS (specific allocation of ${amount})
-9. REPAYMENT PLAN (how the loan will be repaid)
+9. REPAYMENT PLAN (how the loan will be repaid from revenue)
 10. RISK ANALYSIS AND MITIGATION (address potential concerns)
 
-Make the plan professional, data-driven, and specifically compelling for ${lenderDetails.name}. Use actual numbers from the farm data provided. Be specific about how the funds will be used and how the loan will be repaid.`;
+IMPORTANT: Use the ACTUAL revenue numbers provided above throughout the plan. Show specific calculations for growth projections. Make the plan data-driven and compelling for ${lenderDetails.name}.`;
 
     // Call Claude API
     const apiKey = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
@@ -104483,11 +104482,14 @@ function generateFarmMarketingPlan(params) {
     const horizon = params.horizon || '3';
     const growthTarget = params.growthTarget || '20';
     const context = params.context || '';
-    const year = new Date().getFullYear();
+    const salesData = params.salesData || {}; // User-entered sales data from form
+    const year = salesData.year || new Date().getFullYear();
 
-    // Gather real farm data
-    const sales = getSalesSummaryReport(year);
-    const production = getProductionReport(year);
+    // Extract sales data sections
+    const csa = salesData.csa || {};
+    const wholesale = salesData.wholesale || {};
+    const farmersMarket = salesData.farmersMarket || {};
+    const specialty = salesData.specialty || {};
 
     // Lender info
     const lenderInfo = {
@@ -104518,39 +104520,45 @@ PLANNING HORIZON: ${horizon} Year(s)
 GROWTH TARGET: ${growthTarget}% annual revenue growth
 MARKETING FOCUS: ${focusDescriptions[focus] || focus}
 
-CURRENT SALES DATA (use these real numbers):
-${sales.success ? `
-- Total Annual Revenue: $${sales.grandTotal?.toLocaleString() || 'N/A'}
-- CSA Program: $${sales.csa?.total?.toLocaleString() || 'N/A'} (${sales.csa?.members || 0} members)
-- Wholesale/Restaurant: $${sales.wholesale?.total?.toLocaleString() || 'N/A'}
-- Farmers Markets: $${sales.farmersMarket?.total?.toLocaleString() || 'N/A'}
-- Year-over-Year Change: ${sales.yearOverYear?.changePercent || 0}%
-` : ''}
-${production.success ? `
-PRODUCTION CAPACITY:
-- Total Crops Grown: ${production.totalCrops || 'N/A'}
-- Total Harvest: ${production.summary?.totalHarvested?.toLocaleString() || 'N/A'} lbs
-- Top Revenue Crop: ${production.summary?.topCropByRevenue || 'N/A'}
-` : ''}
+ACTUAL SALES DATA FOR ${year} (from owner's records):
+
+CSA PROGRAM:
+- Total CSA Members: ${csa.members || 0}
+- Full Share Members: ${csa.fullShareMembers || 0} at ${csa.fullSharePrice || 'N/A'} each
+- Half Share Members: ${csa.halfShareMembers || 0} at ${csa.halfSharePrice || 'N/A'} each
+- Total CSA Revenue: $${(csa.totalRevenue || 0).toLocaleString()}
+
+WHOLESALE/RESTAURANT SALES:
+- Number of Restaurant Accounts: ${wholesale.restaurantCount || 0}
+- Average Order Value: ${wholesale.avgOrderValue || 'N/A'}
+- Orders Per Week (peak season): ${wholesale.ordersPerWeek || 0}
+- Season Length: ${wholesale.seasonWeeks || 0} weeks
+- Total Wholesale Revenue: $${(wholesale.totalRevenue || 0).toLocaleString()}
+
+FARMERS MARKETS:
+- Markets Attended: ${farmersMarket.marketCount || 0} (${farmersMarket.marketNames || 'N/A'})
+- Average Sales Per Market Day: ${farmersMarket.avgSalesPerMarket || 'N/A'}
+- Total Market Sessions: ${farmersMarket.totalSessions || 0}
+- Total Farmers Market Revenue: $${(farmersMarket.totalRevenue || 0).toLocaleString()}
+
+SPECIALTY PRODUCTS:
+- Flowers (Fleurs line): $${(specialty.flowers || 0).toLocaleString()}
+- Mushrooms (Fungi line): $${(specialty.mushrooms || 0).toLocaleString()}
+- Value-Added Products: $${(specialty.valueAdded || 0).toLocaleString()}
+- Direct Delivery: $${(specialty.delivery || 0).toLocaleString()}
+
+TOTAL ANNUAL REVENUE: $${(salesData.grandTotal || 0).toLocaleString()}
 
 FARM INFORMATION:
 - Name: Tiny Seed Farm
-- Location: Rochester, PA (serves Greater Pittsburgh metro)
+- Owner: Todd Wilson
+- Location: 257 Zeigler Rd, Rochester, PA 15074 (Pittsburgh metro area)
 - Type: USDA Certified Organic vegetable farm
-- Unique Selling Points:
-  * Certified organic by OEFFA
-  * Local farm serving Pittsburgh neighborhoods
-  * Multiple convenient CSA pickup locations
-  * Restaurant-quality specialty produce
-  * Personal relationship with customers
-
-CURRENT MARKETING CHANNELS:
-- CSA subscriptions with neighborhood pickup locations
-- Wholesale to Pittsburgh restaurants
-- Local farmers markets
-- Direct delivery to customers
-- Online presence (Shopify store)
-- Social media (Instagram, Facebook)
+- Certifier: OEFFA (Ohio Ecological Food & Farm Association)
+- Service Area: Greater Pittsburgh with multiple CSA pickup locations
+- Brands: Tiny Seed Farm (vegetables), Fleurs (flowers), Fungi (mushrooms)
+- Website: tinyseedfarm.com (Shopify)
+- Social: @tinyseedfarm (Instagram), Tiny Seed Farm (Facebook)
 
 ${context ? `OWNER'S MARKETING GOALS: ${context}` : ''}
 
@@ -104704,6 +104712,164 @@ function logPlanGeneration(planType, lender, purpose, details) {
     ]);
   } catch (error) {
     console.error('Error logging plan generation:', error);
+  }
+}
+
+/**
+ * Save farm sales data entered by user
+ * This data is used by the AI plan generators
+ */
+function saveFarmSalesData(data) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('FARM_SALES_DATA');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('FARM_SALES_DATA');
+      sheet.appendRow([
+        'Year', 'Updated_At',
+        'CSA_Members', 'CSA_Full', 'CSA_Half', 'CSA_Full_Price', 'CSA_Half_Price', 'CSA_Total',
+        'Restaurant_Count', 'Restaurant_Avg_Order', 'Restaurant_Weekly', 'Restaurant_Weeks', 'Wholesale_Total',
+        'Market_Count', 'Market_Names', 'Market_Avg', 'Market_Sessions', 'Market_Total',
+        'Flowers_Total', 'Mushrooms_Total', 'ValueAdded_Total', 'Delivery_Total',
+        'Grand_Total'
+      ]);
+    }
+
+    const year = data.year || new Date().getFullYear();
+
+    // Check if we already have data for this year
+    const dataRange = sheet.getDataRange().getValues();
+    let existingRow = -1;
+    for (let i = 1; i < dataRange.length; i++) {
+      if (String(dataRange[i][0]) === String(year)) {
+        existingRow = i + 1;
+        break;
+      }
+    }
+
+    const rowData = [
+      year,
+      new Date().toISOString(),
+      data.salesCSAMembers || '',
+      data.salesCSAFull || '',
+      data.salesCSAHalf || '',
+      data.salesCSAFullPrice || '',
+      data.salesCSAHalfPrice || '',
+      data.salesCSATotal || '',
+      data.salesRestaurantCount || '',
+      data.salesRestaurantAvgOrder || '',
+      data.salesRestaurantWeekly || '',
+      data.salesRestaurantWeeks || '',
+      data.salesWholesaleTotal || '',
+      data.salesMarketCount || '',
+      data.salesMarketNames || '',
+      data.salesMarketAvg || '',
+      data.salesMarketSessions || '',
+      data.salesMarketTotal || '',
+      data.salesFlowersTotal || '',
+      data.salesMushroomsTotal || '',
+      data.salesValueAddedTotal || '',
+      data.salesDeliveryTotal || '',
+      calculateGrandTotal(data)
+    ];
+
+    if (existingRow > 0) {
+      sheet.getRange(existingRow, 1, 1, rowData.length).setValues([rowData]);
+    } else {
+      sheet.appendRow(rowData);
+    }
+
+    return {
+      success: true,
+      message: `Sales data for ${year} saved successfully`,
+      year: year
+    };
+
+  } catch (error) {
+    console.error('Error saving farm sales data:', error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Calculate grand total from form data
+ */
+function calculateGrandTotal(data) {
+  const parseVal = (str) => parseFloat(String(str || '0').replace(/[$,]/g, '')) || 0;
+  return parseVal(data.salesCSATotal) +
+         parseVal(data.salesWholesaleTotal) +
+         parseVal(data.salesMarketTotal) +
+         parseVal(data.salesFlowersTotal) +
+         parseVal(data.salesMushroomsTotal) +
+         parseVal(data.salesValueAddedTotal) +
+         parseVal(data.salesDeliveryTotal);
+}
+
+/**
+ * Get saved farm sales data for a specific year
+ */
+function getFarmSalesData(year) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('FARM_SALES_DATA');
+
+    if (!sheet) {
+      return { success: false, error: 'No sales data found' };
+    }
+
+    const targetYear = year || new Date().getFullYear();
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][0]) === String(targetYear)) {
+        const salesData = {};
+
+        // Map back to frontend field names
+        const fieldMap = {
+          'CSA_Members': 'salesCSAMembers',
+          'CSA_Full': 'salesCSAFull',
+          'CSA_Half': 'salesCSAHalf',
+          'CSA_Full_Price': 'salesCSAFullPrice',
+          'CSA_Half_Price': 'salesCSAHalfPrice',
+          'CSA_Total': 'salesCSATotal',
+          'Restaurant_Count': 'salesRestaurantCount',
+          'Restaurant_Avg_Order': 'salesRestaurantAvgOrder',
+          'Restaurant_Weekly': 'salesRestaurantWeekly',
+          'Restaurant_Weeks': 'salesRestaurantWeeks',
+          'Wholesale_Total': 'salesWholesaleTotal',
+          'Market_Count': 'salesMarketCount',
+          'Market_Names': 'salesMarketNames',
+          'Market_Avg': 'salesMarketAvg',
+          'Market_Sessions': 'salesMarketSessions',
+          'Market_Total': 'salesMarketTotal',
+          'Flowers_Total': 'salesFlowersTotal',
+          'Mushrooms_Total': 'salesMushroomsTotal',
+          'ValueAdded_Total': 'salesValueAddedTotal',
+          'Delivery_Total': 'salesDeliveryTotal'
+        };
+
+        headers.forEach((header, idx) => {
+          if (fieldMap[header]) {
+            salesData[fieldMap[header]] = data[i][idx];
+          }
+        });
+
+        return {
+          success: true,
+          year: targetYear,
+          salesData: salesData,
+          lastUpdated: data[i][1]
+        };
+      }
+    }
+
+    return { success: false, error: `No data found for ${targetYear}` };
+
+  } catch (error) {
+    console.error('Error getting farm sales data:', error);
+    return { success: false, error: error.toString() };
   }
 }
 
