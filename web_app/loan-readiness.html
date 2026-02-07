@@ -1587,12 +1587,14 @@
 
         // Render Functions
         function renderAll() {
+            console.log('🔄 renderAll() starting - uploadedDocuments:', Object.keys(uploadedDocuments));
             renderFinancialMetrics();
             renderLenderOverview();
             renderVault();
             renderLenderChecklists();
             renderApplications();
             updateDocCountBadge();
+            console.log('🔄 renderAll() complete');
         }
 
         function renderFinancialMetrics() {
@@ -1978,8 +1980,12 @@
                 });
                 const result = await response.json();
 
+                console.log('📤 Upload response:', result);
+
                 if (result.success) {
-                    // Update local state
+                    console.log(`✅ Upload successful! Adding ${docType} to uploadedDocuments`);
+
+                    // Update local state IMMEDIATELY
                     uploadedDocuments[docType] = {
                         documentType: docType,
                         category: category,
@@ -1991,24 +1997,41 @@
                         status: 'uploaded'
                     };
 
+                    console.log(`✅ uploadedDocuments now has ${Object.keys(uploadedDocuments).length} documents:`, Object.keys(uploadedDocuments));
+
                     // Save to localStorage as backup
                     localStorage.setItem('tsf_loan_documents', JSON.stringify(uploadedDocuments));
 
-                    closeModal('uploadModal');
-                    renderAll();
-
-                    // Calculate which lenders benefit from this upload
+                    // Calculate which lenders benefit BEFORE closing modal
                     const affectedLenderIds = getAffectedLenderIds(docType);
                     const affectedLenderNames = affectedLenderIds.map(id => LENDERS[id].shortName);
+                    console.log(`✅ Affected lenders: ${affectedLenderNames.join(', ')}`);
 
+                    // Close modal and re-render EVERYTHING
+                    closeModal('uploadModal');
+
+                    console.log('🔄 Calling renderAll() to update all views...');
+                    renderAll();
+                    console.log('🔄 renderAll() complete');
+
+                    // Show success with lender info
                     if (affectedLenderNames.length > 0) {
-                        showNotification(`Document uploaded! Updated readiness for: ${affectedLenderNames.join(', ')}`, 'success');
+                        showNotification(`✅ ${docType} uploaded! Lender checklists updated: ${affectedLenderNames.join(', ')}`, 'success');
                         // Highlight affected lender cards with pulse animation
                         highlightAffectedLenders(affectedLenderIds);
                     } else {
                         showNotification('Document uploaded to Google Drive successfully!', 'success');
                     }
+
+                    // Force switch to Lender Checklists tab to show the update
+                    console.log('📋 Lender readiness scores after upload:');
+                    Object.keys(LENDERS).forEach(id => {
+                        const r = calculateLenderReadiness(id);
+                        console.log(`   ${LENDERS[id].shortName}: ${r.score}% (${r.complete}/${r.total})`);
+                    });
+
                 } else {
+                    console.error('❌ Upload failed:', result.error);
                     throw new Error(result.error || 'Upload failed');
                 }
             } catch (e) {
