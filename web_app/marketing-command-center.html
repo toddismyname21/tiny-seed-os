@@ -4459,6 +4459,88 @@
                 </div>
             </div>
 
+            <!-- TINY SEED FARM PROFILE - Compare Against Competitors -->
+            <div class="card" style="margin-bottom: 1.5rem; border: 2px solid var(--primary); background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), transparent);">
+                <div class="card-header" style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), transparent);">
+                    <h3><i class="fas fa-seedling" style="color: var(--primary);"></i> YOUR FARM - Tiny Seed Farm</h3>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <span id="yourFarmLastUpdated" style="font-size: 0.75rem; color: var(--text-secondary);"></span>
+                        <button class="btn btn-primary btn-sm" onclick="showUpdateYourStats()">
+                            <i class="fas fa-edit"></i> Update Stats
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body" id="yourFarmContainer">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
+                        <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; text-align: center; border: 2px solid var(--instagram);">
+                            <i class="fab fa-instagram" style="font-size: 1.5rem; color: var(--instagram);"></i>
+                            <div id="yourIgFollowers" style="font-size: 1.75rem; font-weight: 700; color: var(--instagram); margin: 0.5rem 0;">--</div>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary);">Instagram</div>
+                            <div id="yourIgTrend" style="font-size: 0.7rem; margin-top: 0.25rem;"></div>
+                        </div>
+                        <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; text-align: center; border: 2px solid var(--facebook);">
+                            <i class="fab fa-facebook" style="font-size: 1.5rem; color: var(--facebook);"></i>
+                            <div id="yourFbFollowers" style="font-size: 1.75rem; font-weight: 700; color: var(--facebook); margin: 0.5rem 0;">--</div>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary);">Facebook</div>
+                            <div id="yourFbTrend" style="font-size: 0.7rem; margin-top: 0.25rem;"></div>
+                        </div>
+                        <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; text-align: center; border: 2px solid #ff0050;">
+                            <i class="fab fa-tiktok" style="font-size: 1.5rem; color: #ff0050;"></i>
+                            <div id="yourTiktokFollowers" style="font-size: 1.75rem; font-weight: 700; color: #ff0050; margin: 0.5rem 0;">--</div>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary);">TikTok</div>
+                            <div id="yourTiktokTrend" style="font-size: 0.7rem; margin-top: 0.25rem;"></div>
+                        </div>
+                        <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; text-align: center; border: 2px solid var(--primary);">
+                            <i class="fas fa-users" style="font-size: 1.5rem; color: var(--primary);"></i>
+                            <div id="yourTotalFollowers" style="font-size: 1.75rem; font-weight: 700; color: var(--primary); margin: 0.5rem 0;">--</div>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary);">Total Followers</div>
+                            <div id="yourTotalTrend" style="font-size: 0.7rem; margin-top: 0.25rem;"></div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 1rem; padding: 0.75rem; background: rgba(0,0,0,0.2); border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 0.85rem; color: var(--text-secondary);"><i class="fas fa-chart-line"></i> Monthly tracking updates on the 1st of each month</span>
+                        <button class="btn btn-sm btn-secondary" onclick="viewFollowerHistory()">
+                            <i class="fas fa-history"></i> View History
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Update Your Stats Modal -->
+            <div class="card" id="updateYourStatsCard" style="display: none; margin-bottom: 1.5rem; border: 2px solid var(--primary);">
+                <div class="card-header">
+                    <h3><i class="fas fa-edit"></i> Update Tiny Seed Farm Stats</h3>
+                    <button class="btn btn-secondary btn-sm" onclick="hideUpdateYourStats()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="card-body">
+                    <p style="margin-bottom: 1rem; color: var(--text-secondary);">Enter your current follower counts. History is tracked monthly.</p>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                        <div class="form-group">
+                            <label><i class="fab fa-instagram" style="color: var(--instagram);"></i> Instagram Followers</label>
+                            <input type="number" class="form-input" id="yourIgInput" placeholder="e.g., 2500">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fab fa-facebook" style="color: var(--facebook);"></i> Facebook Followers</label>
+                            <input type="number" class="form-input" id="yourFbInput" placeholder="e.g., 1800">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fab fa-tiktok" style="color: #ff0050;"></i> TikTok Followers</label>
+                            <input type="number" class="form-input" id="yourTiktokInput" placeholder="e.g., 500">
+                        </div>
+                    </div>
+                    <div style="margin-top: 1rem; display: flex; gap: 1rem;">
+                        <button class="btn btn-primary" onclick="saveYourStats()">
+                            <i class="fas fa-save"></i> Save Stats
+                        </button>
+                        <button class="btn btn-secondary" onclick="hideUpdateYourStats()">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <div class="card">
                 <div class="card-header">
                     <h3><i class="fas fa-binoculars" style="color: var(--purple);"></i> Competitor Watch - REAL-TIME INTEL</h3>
@@ -7405,6 +7487,7 @@
                 loadNeighborSignups(),
                 loadSocialGrowthLive(),
                 loadCompetitors(),
+                loadYourFarmStats(),
                 checkAllAPIs()
             ]);
 
@@ -9657,11 +9740,12 @@
                                 <div style="text-align: right; display: flex; flex-direction: column; gap: 0.5rem;">
                                     <div style="font-size: 1.75rem; font-weight: 700; color: var(--purple);">${(comp.followers || 0).toLocaleString()}</div>
                                     <div style="font-size: 0.75rem; color: var(--text-secondary);">total followers</div>
+                                    ${comp.lastChecked ? `<div style="font-size: 0.65rem; color: var(--text-secondary);"><i class="fas fa-clock"></i> Updated: ${new Date(comp.lastChecked).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>` : ''}
                                     <div style="display: flex; gap: 0.25rem; justify-content: flex-end; margin-top: 0.5rem;">
-                                        <button class="btn btn-sm" style="padding: 4px 8px; font-size: 0.7rem;" onclick="editCompetitor('${comp.id}')">
+                                        <button class="btn btn-sm" style="padding: 4px 8px; font-size: 0.7rem;" onclick="editCompetitor('${comp.id}')" title="Update follower counts">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <button class="btn btn-sm" style="padding: 4px 8px; font-size: 0.7rem;" onclick="analyzeCompetitor('${comp.id}', '${comp.name}')">
+                                        <button class="btn btn-sm" style="padding: 4px 8px; font-size: 0.7rem;" onclick="analyzeCompetitor('${comp.id}', '${comp.name}')" title="AI analyze content">
                                             <i class="fas fa-brain"></i>
                                         </button>
                                     </div>
@@ -9980,6 +10064,164 @@
                 }
             } catch (error) {
                 showToast('Error deleting competitor', 'error');
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // YOUR FARM STATS - Tiny Seed Farm Profile
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        async function loadYourFarmStats() {
+            try {
+                const response = await fetch(`${API_URL}?action=getYourFarmStats`);
+                const data = await response.json();
+
+                if (data.success && data.stats) {
+                    const stats = data.stats;
+                    const history = data.history || [];
+
+                    // Update current counts
+                    document.getElementById('yourIgFollowers').textContent = (stats.instagram || 0).toLocaleString();
+                    document.getElementById('yourFbFollowers').textContent = (stats.facebook || 0).toLocaleString();
+                    document.getElementById('yourTiktokFollowers').textContent = (stats.tiktok || 0).toLocaleString();
+
+                    const total = (stats.instagram || 0) + (stats.facebook || 0) + (stats.tiktok || 0);
+                    document.getElementById('yourTotalFollowers').textContent = total.toLocaleString();
+
+                    // Update last updated date
+                    if (stats.lastUpdated) {
+                        const lastDate = new Date(stats.lastUpdated);
+                        document.getElementById('yourFarmLastUpdated').textContent =
+                            'Updated: ' + lastDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    }
+
+                    // Calculate trends from history (compare to previous month)
+                    if (history.length >= 2) {
+                        const current = history[0];
+                        const previous = history[1];
+
+                        updateTrendBadge('yourIgTrend', current.instagram, previous.instagram);
+                        updateTrendBadge('yourFbTrend', current.facebook, previous.facebook);
+                        updateTrendBadge('yourTiktokTrend', current.tiktok, previous.tiktok);
+
+                        const currentTotal = (current.instagram || 0) + (current.facebook || 0) + (current.tiktok || 0);
+                        const previousTotal = (previous.instagram || 0) + (previous.facebook || 0) + (previous.tiktok || 0);
+                        updateTrendBadge('yourTotalTrend', currentTotal, previousTotal);
+                    }
+
+                    // Pre-fill edit form
+                    document.getElementById('yourIgInput').value = stats.instagram || '';
+                    document.getElementById('yourFbInput').value = stats.facebook || '';
+                    document.getElementById('yourTiktokInput').value = stats.tiktok || '';
+                }
+            } catch (error) {
+                console.error('Error loading your farm stats:', error);
+            }
+        }
+
+        function updateTrendBadge(elementId, current, previous) {
+            const element = document.getElementById(elementId);
+            if (!element || !previous) return;
+
+            const diff = current - previous;
+            const pct = previous > 0 ? ((diff / previous) * 100).toFixed(1) : 0;
+
+            if (diff > 0) {
+                element.innerHTML = `<span style="color: var(--success);"><i class="fas fa-arrow-up"></i> +${diff.toLocaleString()} (${pct}%)</span>`;
+            } else if (diff < 0) {
+                element.innerHTML = `<span style="color: var(--danger);"><i class="fas fa-arrow-down"></i> ${diff.toLocaleString()} (${pct}%)</span>`;
+            } else {
+                element.innerHTML = `<span style="color: var(--text-secondary);">No change</span>`;
+            }
+        }
+
+        function showUpdateYourStats() {
+            document.getElementById('updateYourStatsCard').style.display = 'block';
+            document.getElementById('yourIgInput').focus();
+        }
+
+        function hideUpdateYourStats() {
+            document.getElementById('updateYourStatsCard').style.display = 'none';
+        }
+
+        async function saveYourStats() {
+            const instagram = parseInt(document.getElementById('yourIgInput').value) || 0;
+            const facebook = parseInt(document.getElementById('yourFbInput').value) || 0;
+            const tiktok = parseInt(document.getElementById('yourTiktokInput').value) || 0;
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'saveYourFarmStats',
+                        instagram: instagram,
+                        facebook: facebook,
+                        tiktok: tiktok
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('Stats saved! Your follower counts have been updated.', 'success');
+                    hideUpdateYourStats();
+                    loadYourFarmStats();
+                } else {
+                    showToast('Error: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showToast('Error saving stats', 'error');
+            }
+        }
+
+        async function viewFollowerHistory() {
+            try {
+                const response = await fetch(`${API_URL}?action=getYourFarmStats`);
+                const data = await response.json();
+
+                if (data.success && data.history && data.history.length > 0) {
+                    let historyHtml = '<div style="max-height: 400px; overflow-y: auto;">';
+                    historyHtml += '<table style="width: 100%; border-collapse: collapse;">';
+                    historyHtml += '<thead><tr style="background: var(--bg-light);"><th style="padding: 0.75rem; text-align: left;">Date</th><th style="padding: 0.75rem; text-align: right;"><i class="fab fa-instagram"></i></th><th style="padding: 0.75rem; text-align: right;"><i class="fab fa-facebook"></i></th><th style="padding: 0.75rem; text-align: right;"><i class="fab fa-tiktok"></i></th><th style="padding: 0.75rem; text-align: right;">Total</th></tr></thead>';
+                    historyHtml += '<tbody>';
+
+                    data.history.forEach((entry, index) => {
+                        const date = new Date(entry.date);
+                        const total = (entry.instagram || 0) + (entry.facebook || 0) + (entry.tiktok || 0);
+                        historyHtml += `<tr style="border-bottom: 1px solid var(--border);${index === 0 ? 'background: rgba(34, 197, 94, 0.1);' : ''}">
+                            <td style="padding: 0.75rem;">${date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}${index === 0 ? ' <span style="color: var(--primary); font-size: 0.7rem;">(Current)</span>' : ''}</td>
+                            <td style="padding: 0.75rem; text-align: right; color: var(--instagram);">${(entry.instagram || 0).toLocaleString()}</td>
+                            <td style="padding: 0.75rem; text-align: right; color: var(--facebook);">${(entry.facebook || 0).toLocaleString()}</td>
+                            <td style="padding: 0.75rem; text-align: right; color: #ff0050;">${(entry.tiktok || 0).toLocaleString()}</td>
+                            <td style="padding: 0.75rem; text-align: right; font-weight: 600;">${total.toLocaleString()}</td>
+                        </tr>`;
+                    });
+
+                    historyHtml += '</tbody></table></div>';
+
+                    // Show in a modal or alert
+                    const modal = document.createElement('div');
+                    modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 10000;';
+                    modal.innerHTML = `
+                        <div style="background: var(--bg-card); padding: 2rem; border-radius: 16px; max-width: 600px; width: 90%; border: 1px solid var(--border);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                <h3><i class="fas fa-chart-line" style="color: var(--primary);"></i> Follower History</h3>
+                                <button onclick="this.closest('div').parentElement.remove()" style="background: none; border: none; color: var(--text-secondary); font-size: 1.5rem; cursor: pointer;">&times;</button>
+                            </div>
+                            ${historyHtml}
+                            <div style="margin-top: 1rem; text-align: center; color: var(--text-secondary); font-size: 0.85rem;">
+                                <i class="fas fa-info-circle"></i> Monthly snapshots are saved automatically when you update your stats
+                            </div>
+                        </div>
+                    `;
+                    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+                    document.body.appendChild(modal);
+                } else {
+                    showToast('No history yet. Update your stats to start tracking!', 'info');
+                }
+            } catch (error) {
+                showToast('Error loading history', 'error');
             }
         }
 

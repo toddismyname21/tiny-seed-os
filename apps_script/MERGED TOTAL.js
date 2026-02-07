@@ -13779,6 +13779,8 @@ function doGet(e) {
         return jsonResponse(getCommentsNeedingResponse(e.parameter));
       case 'getCompetitors':
         return jsonResponse(getCompetitors(e.parameter));
+      case 'getYourFarmStats':
+        return jsonResponse(getYourFarmStats(e.parameter));
       case 'checkCompetitorAds':
         return jsonResponse(checkCompetitorAds(e.parameter));
       case 'getAIStatus':
@@ -16720,6 +16722,8 @@ function doPost(e) {
         return jsonResponse(updateCompetitor(data));
       case 'deleteCompetitor':
         return jsonResponse(deleteCompetitor(data));
+      case 'saveYourFarmStats':
+        return jsonResponse(saveYourFarmStats(data));
       case 'analyzeCompetitorContent':
         return jsonResponse(analyzeCompetitorContent(data));
       case 'configureOpenAI':
@@ -59241,6 +59245,118 @@ function getCompetitors(params) {
         }
 
         return { success: true, competitors: competitors };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// YOUR FARM STATS - Tiny Seed Farm follower tracking with monthly history
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function initYourFarmStatsSheet() {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('SOCIAL_YourFarmStats');
+    if (!sheet) {
+        sheet = ss.insertSheet('SOCIAL_YourFarmStats');
+        sheet.getRange(1, 1, 1, 5).setValues([[
+            'Date', 'Instagram', 'Facebook', 'TikTok', 'Notes'
+        ]]);
+        sheet.setFrozenRows(1);
+    }
+    return sheet;
+}
+
+function getYourFarmStats(params) {
+    try {
+        const sheet = initYourFarmStatsSheet();
+        const data = sheet.getDataRange().getValues();
+
+        const history = [];
+        let latestStats = { instagram: 0, facebook: 0, tiktok: 0, lastUpdated: null };
+
+        // Build history (most recent first)
+        for (let i = data.length - 1; i > 0; i--) {
+            if (!data[i][0]) continue;
+            history.push({
+                date: data[i][0],
+                instagram: parseInt(data[i][1]) || 0,
+                facebook: parseInt(data[i][2]) || 0,
+                tiktok: parseInt(data[i][3]) || 0,
+                notes: data[i][4] || ''
+            });
+        }
+
+        // Get latest stats
+        if (history.length > 0) {
+            latestStats = {
+                instagram: history[0].instagram,
+                facebook: history[0].facebook,
+                tiktok: history[0].tiktok,
+                lastUpdated: history[0].date
+            };
+        }
+
+        return {
+            success: true,
+            stats: latestStats,
+            history: history.slice(0, 12) // Last 12 months
+        };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+function saveYourFarmStats(params) {
+    try {
+        const sheet = initYourFarmStatsSheet();
+        const now = new Date();
+        const currentMonth = now.toISOString().substring(0, 7); // YYYY-MM format
+
+        const data = sheet.getDataRange().getValues();
+        let existingRowForMonth = -1;
+
+        // Check if we already have an entry for this month
+        for (let i = 1; i < data.length; i++) {
+            if (data[i][0]) {
+                const entryDate = new Date(data[i][0]);
+                const entryMonth = entryDate.toISOString().substring(0, 7);
+                if (entryMonth === currentMonth) {
+                    existingRowForMonth = i + 1;
+                    break;
+                }
+            }
+        }
+
+        const instagram = parseInt(params.instagram) || 0;
+        const facebook = parseInt(params.facebook) || 0;
+        const tiktok = parseInt(params.tiktok) || 0;
+
+        if (existingRowForMonth > 0) {
+            // Update existing row for this month
+            sheet.getRange(existingRowForMonth, 1, 1, 5).setValues([[
+                now.toISOString(),
+                instagram,
+                facebook,
+                tiktok,
+                'Updated ' + now.toLocaleString()
+            ]]);
+        } else {
+            // Add new row for this month
+            sheet.appendRow([
+                now.toISOString(),
+                instagram,
+                facebook,
+                tiktok,
+                'Monthly snapshot'
+            ]);
+        }
+
+        return {
+            success: true,
+            message: 'Stats saved for ' + now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+            stats: { instagram, facebook, tiktok, lastUpdated: now.toISOString() }
+        };
     } catch (error) {
         return { success: false, error: error.toString() };
     }
