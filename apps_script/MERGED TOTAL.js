@@ -59788,10 +59788,8 @@ Provide exactly 5 specific, actionable recommendations to grow Tiny Seed Farm's 
 </body>
 </html>`;
 
-        // Send the email
-        MailApp.sendEmail({
-            to: recipientEmail,
-            subject: `🌱 Competitor Report - ${monthYear} | Tiny Seed Farm`,
+        // Send the email using GmailApp (already authorized)
+        GmailApp.sendEmail(recipientEmail, `🌱 Competitor Report - ${monthYear} | Tiny Seed Farm`, 'View in HTML', {
             htmlBody: htmlBody
         });
 
