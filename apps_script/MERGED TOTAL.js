@@ -16120,6 +16120,13 @@ function doGet(e) {
       case 'exportAllReportsPackage':
         return jsonResponse(exportAllReportsPackage(parseInt(e.parameter.year) || new Date().getFullYear()));
 
+      // ============ AI PLAN GENERATORS (2026-02-07) ============
+      // Generate business and marketing plans tailored to specific lenders
+      case 'generateFarmBusinessPlan':
+        return jsonResponse(generateFarmBusinessPlan(JSON.parse(e.postData?.contents || '{}')));
+      case 'generateFarmMarketingPlan':
+        return jsonResponse(generateFarmMarketingPlan(JSON.parse(e.postData?.contents || '{}')));
+
       // ============ GOAL-TO-ACTION PLANNING SYSTEM (2026-02-04) ============
       // AI-powered backward planning from goals to tasks
       case 'getFarmGoals':
@@ -98277,6 +98284,265 @@ function exportOrganicReportForPDF(year) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+// OEFFA ORGANIC CERTIFICATION - Email Reports & Annual Trigger
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Email USDA Organic Audit Package to OEFFA (or specified recipient)
+ * Can be triggered manually or automatically on January 1st
+ */
+function emailOrganicReportToOEFFA(params) {
+    try {
+        const props = PropertiesService.getScriptProperties();
+        const year = params?.year || new Date().getFullYear() - 1; // Default to previous year
+        const recipientEmail = params?.email || props.getProperty('OEFFA_EMAIL') || 'certification@oeffa.org';
+        const ccEmail = params?.cc || 'todd@tinyseedfarmpgh.com';
+        const certNumber = props.getProperty('ORGANIC_CERT_NUMBER') || 'OEFFA-3839';
+
+        // Generate the full audit package
+        const auditPackage = generateOrganicAuditPackage(year);
+
+        // Build beautiful HTML email
+        const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #f5f5f5;">
+<div style="max-width: 700px; margin: 0 auto; background: white;">
+
+    <!-- Header -->
+    <div style="background: linear-gradient(135deg, #2d5a27 0%, #4a7c43 100%); padding: 30px; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">🌱 Annual Organic Certification Records</h1>
+        <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">${year} Season - Tiny Seed Farm</p>
+    </div>
+
+    <!-- Certification Info -->
+    <div style="padding: 25px; background: #f9fafb; border-bottom: 1px solid #e5e7eb;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+                <td style="padding: 8px 0;"><strong>Farm Name:</strong></td>
+                <td style="padding: 8px 0;">Tiny Seed Farm LLC</td>
+            </tr>
+            <tr>
+                <td style="padding: 8px 0;"><strong>Certification Number:</strong></td>
+                <td style="padding: 8px 0;">${certNumber}</td>
+            </tr>
+            <tr>
+                <td style="padding: 8px 0;"><strong>Certifier:</strong></td>
+                <td style="padding: 8px 0;">OEFFA (Ohio Ecological Food & Farm Association)</td>
+            </tr>
+            <tr>
+                <td style="padding: 8px 0;"><strong>Location:</strong></td>
+                <td style="padding: 8px 0;">257 Zeigler Rd, Rochester, PA 15074</td>
+            </tr>
+            <tr>
+                <td style="padding: 8px 0;"><strong>Report Year:</strong></td>
+                <td style="padding: 8px 0;">${year}</td>
+            </tr>
+            <tr>
+                <td style="padding: 8px 0;"><strong>Generated:</strong></td>
+                <td style="padding: 8px 0;">${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Report Summary -->
+    <div style="padding: 25px;">
+        <h2 style="color: #2d5a27; margin: 0 0 20px 0; font-size: 18px; border-bottom: 2px solid #2d5a27; padding-bottom: 10px;">
+            📋 Report Summary
+        </h2>
+
+        ${generateReportSummaryHTML(auditPackage.reports)}
+    </div>
+
+    <!-- Compliance Statement -->
+    <div style="padding: 25px; background: linear-gradient(135deg, rgba(45,90,39,0.1) 0%, rgba(42,157,143,0.1) 100%); border-top: 1px solid #e5e7eb;">
+        <h3 style="color: #2d5a27; margin: 0 0 15px 0;">✅ Compliance Statement</h3>
+        <p style="color: #4b5563; line-height: 1.6; margin: 0;">
+            I hereby certify that all information contained in this report is accurate and complete to the best of my knowledge.
+            All organic products were produced, handled, and sold in accordance with the USDA National Organic Program (NOP) regulations.
+        </p>
+        <p style="margin-top: 20px; color: #6b7280; font-size: 14px;">
+            <strong>Todd Wilson</strong><br>
+            Owner/Operator, Tiny Seed Farm<br>
+            717-725-5177 | todd@tinyseedfarmpgh.com
+        </p>
+    </div>
+
+    <!-- Footer -->
+    <div style="padding: 20px; background: #1f2937; text-align: center;">
+        <p style="color: #9ca3af; font-size: 12px; margin: 0;">
+            This report was automatically generated by Tiny Seed Farm OS<br>
+            Full data package available upon request
+        </p>
+    </div>
+
+</div>
+</body>
+</html>`;
+
+        // Send the email
+        GmailApp.sendEmail(recipientEmail,
+            `🌱 ${year} Organic Certification Records - Tiny Seed Farm (${certNumber})`,
+            'Please view this email in HTML format.',
+            {
+                htmlBody: htmlBody,
+                cc: ccEmail,
+                name: 'Tiny Seed Farm - Organic Compliance',
+                replyTo: 'todd@tinyseedfarmpgh.com'
+            }
+        );
+
+        // Log the submission
+        logOrganicReportSubmission(year, recipientEmail);
+
+        return {
+            success: true,
+            message: `Organic report for ${year} sent to ${recipientEmail}`,
+            sentAt: new Date().toISOString(),
+            year: year,
+            certNumber: certNumber,
+            recipientEmail: recipientEmail,
+            ccEmail: ccEmail
+        };
+    } catch (error) {
+        Logger.log('Error emailing organic report: ' + error.toString());
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Helper function to generate report summary HTML
+ */
+function generateReportSummaryHTML(reports) {
+    const sections = [
+        { key: 'seedRecords', icon: '🌱', title: 'Seed Source Records', dataKey: 'totalSeeds', label: 'seed lots documented' },
+        { key: 'fieldHistory', icon: '🌾', title: 'Field History', dataKey: 'totalFields', label: 'fields tracked' },
+        { key: 'inputRecords', icon: '🧪', title: 'Input Applications', dataKey: 'totalApplications', label: 'applications logged' },
+        { key: 'harvestRecords', icon: '📦', title: 'Harvest Records', dataKey: 'totalHarvests', label: 'harvests recorded' },
+        { key: 'salesRecords', icon: '💰', title: 'Sales Records', dataKey: 'totalTransactions', label: 'transactions' },
+        { key: 'pestManagement', icon: '🐛', title: 'Pest Management', dataKey: 'totalEntries', label: 'log entries' },
+        { key: 'traceability', icon: '🔍', title: 'Traceability', dataKey: 'totalRecords', label: 'trace records' }
+    ];
+
+    return sections.map(s => {
+        const report = reports[s.key] || {};
+        const count = report[s.dataKey] || report.records?.length || 0;
+        const hasData = report.hasData !== false && count > 0;
+        const statusColor = hasData ? '#10b981' : '#f59e0b';
+        const statusText = hasData ? '✓ Complete' : '⚠ Needs Data';
+
+        return `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
+            <div>
+                <span style="font-size: 18px; margin-right: 8px;">${s.icon}</span>
+                <span style="font-weight: 500;">${s.title}</span>
+            </div>
+            <div style="text-align: right;">
+                <span style="font-weight: 600; color: #1f2937;">${count} ${s.label}</span>
+                <span style="display: block; font-size: 12px; color: ${statusColor};">${statusText}</span>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+/**
+ * Log organic report submissions for tracking
+ */
+function logOrganicReportSubmission(year, recipient) {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        let logSheet = ss.getSheetByName('LOG_OrganicReports');
+        if (!logSheet) {
+            logSheet = ss.insertSheet('LOG_OrganicReports');
+            logSheet.getRange(1, 1, 1, 5).setValues([['Timestamp', 'Year', 'Recipient', 'Sent_By', 'Status']]);
+            logSheet.setFrozenRows(1);
+        }
+        logSheet.appendRow([new Date().toISOString(), year, recipient, Session.getActiveUser().getEmail() || 'system', 'Sent']);
+    } catch (e) {
+        Logger.log('Error logging organic report: ' + e.toString());
+    }
+}
+
+/**
+ * Set up annual trigger for January 1st organic report
+ * Automatically sends previous year's report to OEFFA
+ */
+function setupAnnualOrganicReportTrigger() {
+    try {
+        // Remove existing triggers
+        const triggers = ScriptApp.getProjectTriggers();
+        triggers.forEach(trigger => {
+            if (trigger.getHandlerFunction() === 'sendAnnualOrganicReport') {
+                ScriptApp.deleteTrigger(trigger);
+            }
+        });
+
+        // Create new annual trigger - January 1st at 9 AM
+        ScriptApp.newTrigger('sendAnnualOrganicReport')
+            .timeBased()
+            .onMonthDay(1)
+            .atHour(9)
+            .create();
+
+        // Also set OEFFA email in properties
+        const props = PropertiesService.getScriptProperties();
+        if (!props.getProperty('OEFFA_EMAIL')) {
+            props.setProperty('OEFFA_EMAIL', 'certification@oeffa.org');
+        }
+        if (!props.getProperty('ORGANIC_CERT_NUMBER')) {
+            props.setProperty('ORGANIC_CERT_NUMBER', 'OEFFA-3839');
+        }
+
+        return {
+            success: true,
+            message: 'Annual organic report trigger set for January 1st at 9 AM',
+            oeffaEmail: props.getProperty('OEFFA_EMAIL'),
+            certNumber: props.getProperty('ORGANIC_CERT_NUMBER')
+        };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Wrapper function for annual trigger
+ * Called automatically on January 1st - sends previous year's report
+ */
+function sendAnnualOrganicReport() {
+    const previousYear = new Date().getFullYear() - 1;
+    const result = emailOrganicReportToOEFFA({ year: previousYear });
+
+    // Also send SMS notification to Todd
+    try {
+        const props = PropertiesService.getScriptProperties();
+        const phone = props.getProperty('OWNER_PHONE') || '717-725-5177';
+        sendSMS(phone, `🌱 Annual Organic Report for ${previousYear} has been automatically sent to OEFFA. Check your email for a copy.`);
+    } catch (e) {
+        Logger.log('SMS notification failed: ' + e.toString());
+    }
+
+    return result;
+}
+
+/**
+ * Check if annual organic report trigger is set up
+ */
+function checkOrganicReportTriggerStatus() {
+    const triggers = ScriptApp.getProjectTriggers();
+    const reportTrigger = triggers.find(t => t.getHandlerFunction() === 'sendAnnualOrganicReport');
+    const props = PropertiesService.getScriptProperties();
+
+    return {
+        success: true,
+        triggerActive: !!reportTrigger,
+        nextRun: reportTrigger ? 'January 1st at 9 AM' : 'Not scheduled',
+        oeffaEmail: props.getProperty('OEFFA_EMAIL') || 'Not set',
+        certNumber: props.getProperty('ORGANIC_CERT_NUMBER') || 'Not set'
+    };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════
 // END: USDA ORGANIC COMPLIANCE REPORTS
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════
 
@@ -104015,4 +104281,432 @@ function getPendingApprovalPosts() {
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════
 // END: WEEKLY WRITING PROMPTS SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+// AI FARM BUSINESS & MARKETING PLAN GENERATORS (2026-02-07)
+// Generates professional loan-ready documents using AI + real farm data
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Generate a Farm Business Plan tailored to a specific lender
+ * Pulls real data from farm records to create a comprehensive document
+ */
+function generateFarmBusinessPlan(params) {
+  try {
+    const lender = params.lender || 'general';
+    const purpose = params.purpose || 'operating';
+    const amount = params.amount || '$50,000';
+    const term = params.term || '7';
+    const context = params.context || '';
+    const year = new Date().getFullYear();
+
+    // Gather real farm data for the plan
+    const financials = getFinancialStatement(year);
+    const production = getProductionReport(year);
+    const sales = getSalesSummaryReport(year);
+    const assets = getAssetRegister();
+    const cashFlow = getCashFlowProjection(year);
+
+    // Lender-specific requirements
+    const lenderInfo = {
+      horizon: {
+        name: 'Horizon Farm Credit',
+        focus: 'agricultural expertise, production history, farm viability',
+        requirements: 'Beginning Farmer eligibility, production records, farm plan'
+      },
+      usda_fsa: {
+        name: 'USDA Farm Service Agency',
+        focus: 'beginning farmer support, family farm operations, environmental stewardship',
+        requirements: 'Beginning Farmer certification, cannot obtain credit elsewhere, 3-year farm plan'
+      },
+      pa_nextgen: {
+        name: 'PA Next Generation Farmer Loan Program',
+        focus: 'PA beginning farmers, tax-exempt financing, state agricultural support',
+        requirements: 'PA residency, beginning farmer status (10 years or less), age under 40 preferred'
+      },
+      bank: {
+        name: 'Traditional Bank',
+        focus: 'creditworthiness, collateral, debt service coverage, business viability',
+        requirements: 'Strong credit score, collateral, proven cash flow, business plan'
+      },
+      investor: {
+        name: 'Private Investor',
+        focus: 'growth potential, return on investment, scalability, market opportunity',
+        requirements: 'Clear exit strategy, growth metrics, market analysis, competitive advantage'
+      },
+      general: {
+        name: 'General Purpose',
+        focus: 'overall farm viability, management capability, financial stability',
+        requirements: 'Comprehensive business overview'
+      }
+    };
+
+    const lenderDetails = lenderInfo[lender] || lenderInfo.general;
+
+    // Purpose descriptions
+    const purposeDescriptions = {
+      operating: 'seasonal operating expenses including seeds, supplies, labor, and marketing',
+      equipment: 'farm equipment purchase to increase efficiency and production capacity',
+      land: 'agricultural land acquisition to expand production acreage',
+      expansion: 'farm expansion including infrastructure and increased production',
+      infrastructure: 'high tunnels, irrigation systems, and farm infrastructure improvements',
+      consolidation: 'debt consolidation to improve cash flow and reduce interest costs'
+    };
+
+    const prompt = `You are a professional farm business plan writer. Create a comprehensive, professional Farm Business Plan for Tiny Seed Farm that is specifically tailored for ${lenderDetails.name}.
+
+LENDER FOCUS: ${lenderDetails.focus}
+LENDER REQUIREMENTS: ${lenderDetails.requirements}
+
+LOAN REQUEST:
+- Amount: ${amount}
+- Purpose: ${purposeDescriptions[purpose] || purpose}
+- Term: ${term} years
+
+REAL FARM DATA (use these actual numbers):
+${financials.success ? `
+FINANCIAL POSITION:
+- Total Assets: $${financials.assets?.total?.toLocaleString() || 'N/A'}
+- Total Liabilities: $${financials.liabilities?.total?.toLocaleString() || 'N/A'}
+- Net Worth: $${financials.equity?.ownersEquity?.toLocaleString() || 'N/A'}
+- Debt-to-Asset Ratio: ${financials.ratios?.debtToAsset || 'N/A'}%
+` : ''}
+${sales.success ? `
+SALES DATA:
+- Total Revenue: $${sales.grandTotal?.toLocaleString() || 'N/A'}
+- CSA Revenue: $${sales.csa?.total?.toLocaleString() || 'N/A'} (${sales.csa?.members || 0} members)
+- Wholesale Revenue: $${sales.wholesale?.total?.toLocaleString() || 'N/A'}
+- Farmers Market Revenue: $${sales.farmersMarket?.total?.toLocaleString() || 'N/A'}
+- Year-over-Year Growth: ${sales.yearOverYear?.changePercent || 0}%
+` : ''}
+${production.success ? `
+PRODUCTION DATA:
+- Total Crops: ${production.totalCrops || 'N/A'}
+- Total Harvested: ${production.summary?.totalHarvested?.toLocaleString() || 'N/A'} lbs
+- Top Revenue Crop: ${production.summary?.topCropByRevenue || 'N/A'}
+` : ''}
+${assets.success ? `
+ASSETS:
+- Total Asset Value: $${assets.totalValue?.toLocaleString() || 'N/A'}
+- Equipment Count: ${assets.summary?.equipmentCount || 'N/A'}
+` : ''}
+${cashFlow.success ? `
+CASH FLOW:
+- Projected Annual Revenue: $${cashFlow.summary?.totalProjectedRevenue?.toLocaleString() || 'N/A'}
+- Projected Annual Expenses: $${cashFlow.summary?.totalProjectedExpenses?.toLocaleString() || 'N/A'}
+- Net Cash Flow: $${cashFlow.summary?.netAnnualCashFlow?.toLocaleString() || 'N/A'}
+` : ''}
+
+FARM INFORMATION:
+- Name: Tiny Seed Farm
+- Owner: Todd Wilson
+- Location: Rochester, PA (Pittsburgh metro area)
+- Type: USDA Certified Organic vegetable farm
+- Certifier: OEFFA (Ohio Ecological Food & Farm Association)
+- Markets: CSA subscriptions, wholesale to restaurants, farmers markets
+- Service Area: Greater Pittsburgh, multiple neighborhood delivery routes
+
+${context ? `ADDITIONAL CONTEXT FROM OWNER: ${context}` : ''}
+
+Create a professional business plan with these sections:
+1. EXECUTIVE SUMMARY (compelling overview, loan request, key highlights)
+2. BUSINESS DESCRIPTION (history, mission, operations, organic certification)
+3. MARKET ANALYSIS (target customers, competition, market opportunity)
+4. PRODUCTS AND SERVICES (crop mix, CSA program, wholesale, value-added)
+5. MARKETING AND SALES STRATEGY (how revenue is generated)
+6. MANAGEMENT AND ORGANIZATION (owner qualifications, team)
+7. FINANCIAL PROJECTIONS (use real data above, show growth trajectory)
+8. LOAN REQUEST AND USE OF FUNDS (specific allocation of ${amount})
+9. REPAYMENT PLAN (how the loan will be repaid)
+10. RISK ANALYSIS AND MITIGATION (address potential concerns)
+
+Make the plan professional, data-driven, and specifically compelling for ${lenderDetails.name}. Use actual numbers from the farm data provided. Be specific about how the funds will be used and how the loan will be repaid.`;
+
+    // Call Claude API
+    const apiKey = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
+    if (!apiKey) {
+      return { success: false, error: 'Anthropic API key not configured' };
+    }
+
+    const response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      payload: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 8000,
+        messages: [{
+          role: 'user',
+          content: prompt
+        }]
+      }),
+      muteHttpExceptions: true
+    });
+
+    const result = JSON.parse(response.getContentText());
+
+    if (result.error) {
+      return { success: false, error: result.error.message };
+    }
+
+    const businessPlan = result.content[0].text;
+
+    // Log the generation
+    logPlanGeneration('business_plan', lender, purpose, amount);
+
+    return {
+      success: true,
+      businessPlan: businessPlan,
+      lender: lenderDetails.name,
+      purpose: purpose,
+      amount: amount,
+      generatedAt: new Date().toISOString()
+    };
+
+  } catch (error) {
+    console.error('Error generating business plan:', error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Generate a Farm Marketing Plan tailored to a specific lender
+ */
+function generateFarmMarketingPlan(params) {
+  try {
+    const lender = params.lender || 'general';
+    const focus = params.focus || 'comprehensive';
+    const horizon = params.horizon || '3';
+    const growthTarget = params.growthTarget || '20';
+    const context = params.context || '';
+    const year = new Date().getFullYear();
+
+    // Gather real farm data
+    const sales = getSalesSummaryReport(year);
+    const production = getProductionReport(year);
+
+    // Lender info
+    const lenderInfo = {
+      horizon: { name: 'Horizon Farm Credit', focus: 'agricultural marketing expertise' },
+      usda_fsa: { name: 'USDA FSA', focus: 'sustainable growth, family farm success' },
+      pa_nextgen: { name: 'PA Next Generation Farmer', focus: 'PA market development' },
+      bank: { name: 'Traditional Bank', focus: 'revenue stability and growth' },
+      investor: { name: 'Private Investor', focus: 'ROI and scalability' },
+      general: { name: 'General Purpose', focus: 'overall marketing strategy' }
+    };
+
+    const lenderDetails = lenderInfo[lender] || lenderInfo.general;
+
+    // Focus areas
+    const focusDescriptions = {
+      comprehensive: 'all sales channels including CSA, wholesale, farmers markets, and direct sales',
+      csa: 'Community Supported Agriculture program growth and member retention',
+      wholesale: 'restaurant and retail wholesale account expansion',
+      farmers_market: 'farmers market sales optimization and expansion',
+      direct: 'direct-to-consumer sales including delivery and on-farm sales',
+      ecommerce: 'online sales, e-commerce, and digital marketing'
+    };
+
+    const prompt = `You are a professional agricultural marketing consultant. Create a comprehensive Marketing Plan for Tiny Seed Farm that demonstrates strong revenue growth potential to ${lenderDetails.name}.
+
+LENDER FOCUS: ${lenderDetails.focus}
+PLANNING HORIZON: ${horizon} Year(s)
+GROWTH TARGET: ${growthTarget}% annual revenue growth
+MARKETING FOCUS: ${focusDescriptions[focus] || focus}
+
+CURRENT SALES DATA (use these real numbers):
+${sales.success ? `
+- Total Annual Revenue: $${sales.grandTotal?.toLocaleString() || 'N/A'}
+- CSA Program: $${sales.csa?.total?.toLocaleString() || 'N/A'} (${sales.csa?.members || 0} members)
+- Wholesale/Restaurant: $${sales.wholesale?.total?.toLocaleString() || 'N/A'}
+- Farmers Markets: $${sales.farmersMarket?.total?.toLocaleString() || 'N/A'}
+- Year-over-Year Change: ${sales.yearOverYear?.changePercent || 0}%
+` : ''}
+${production.success ? `
+PRODUCTION CAPACITY:
+- Total Crops Grown: ${production.totalCrops || 'N/A'}
+- Total Harvest: ${production.summary?.totalHarvested?.toLocaleString() || 'N/A'} lbs
+- Top Revenue Crop: ${production.summary?.topCropByRevenue || 'N/A'}
+` : ''}
+
+FARM INFORMATION:
+- Name: Tiny Seed Farm
+- Location: Rochester, PA (serves Greater Pittsburgh metro)
+- Type: USDA Certified Organic vegetable farm
+- Unique Selling Points:
+  * Certified organic by OEFFA
+  * Local farm serving Pittsburgh neighborhoods
+  * Multiple convenient CSA pickup locations
+  * Restaurant-quality specialty produce
+  * Personal relationship with customers
+
+CURRENT MARKETING CHANNELS:
+- CSA subscriptions with neighborhood pickup locations
+- Wholesale to Pittsburgh restaurants
+- Local farmers markets
+- Direct delivery to customers
+- Online presence (Shopify store)
+- Social media (Instagram, Facebook)
+
+${context ? `OWNER'S MARKETING GOALS: ${context}` : ''}
+
+Create a professional ${horizon}-year marketing plan with these sections:
+
+1. EXECUTIVE SUMMARY
+   - Current market position
+   - Growth opportunity
+   - Key strategies
+
+2. MARKET ANALYSIS
+   - Target customer segments (with demographics)
+   - Pittsburgh local food market trends
+   - Competitive analysis
+   - Market size and opportunity
+
+3. MARKETING OBJECTIVES
+   - Specific, measurable goals for each year
+   - Revenue targets by channel (with ${growthTarget}% annual growth)
+   - Customer acquisition targets
+
+4. MARKETING STRATEGIES BY CHANNEL
+   ${focus === 'comprehensive' || focus === 'csa' ? `
+   A. CSA PROGRAM GROWTH
+      - Member acquisition strategy
+      - Retention tactics
+      - Pricing optimization
+      - Pickup location expansion
+   ` : ''}
+   ${focus === 'comprehensive' || focus === 'wholesale' ? `
+   B. WHOLESALE/RESTAURANT EXPANSION
+      - Target restaurant profiles
+      - Outreach strategy
+      - Relationship building
+      - Product mix for chefs
+   ` : ''}
+   ${focus === 'comprehensive' || focus === 'farmers_market' ? `
+   C. FARMERS MARKET OPTIMIZATION
+      - Display and presentation
+      - Customer engagement
+      - Cross-selling to CSA
+   ` : ''}
+   ${focus === 'comprehensive' || focus === 'direct' || focus === 'ecommerce' ? `
+   D. DIGITAL MARKETING
+      - Social media strategy
+      - Email marketing
+      - Online store optimization
+      - SEO and local search
+   ` : ''}
+
+5. PROMOTIONAL CALENDAR
+   - Seasonal marketing activities
+   - Key promotional periods
+   - Content themes
+
+6. BUDGET AND ROI
+   - Marketing budget allocation
+   - Expected return by channel
+   - Cost per customer acquisition
+
+7. REVENUE PROJECTIONS
+   - Year 1: [Calculate based on current revenue + ${growthTarget}%]
+   - Year 2: [Compound growth]
+   - Year 3: [Compound growth]
+   - Revenue by channel breakdown
+
+8. IMPLEMENTATION TIMELINE
+   - Quarter-by-quarter action items
+   - Key milestones
+
+9. METRICS AND KPIs
+   - How success will be measured
+   - Tracking methods
+
+10. RISK FACTORS AND CONTINGENCIES
+    - Market risks
+    - Mitigation strategies
+
+Use the real farm data provided. Make projections realistic but compelling. Show exactly how revenue will grow to repay any loan.`;
+
+    // Call Claude API
+    const apiKey = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
+    if (!apiKey) {
+      return { success: false, error: 'Anthropic API key not configured' };
+    }
+
+    const response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      payload: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 8000,
+        messages: [{
+          role: 'user',
+          content: prompt
+        }]
+      }),
+      muteHttpExceptions: true
+    });
+
+    const result = JSON.parse(response.getContentText());
+
+    if (result.error) {
+      return { success: false, error: result.error.message };
+    }
+
+    const marketingPlan = result.content[0].text;
+
+    // Log the generation
+    logPlanGeneration('marketing_plan', lender, focus, horizon + ' years');
+
+    return {
+      success: true,
+      marketingPlan: marketingPlan,
+      lender: lenderDetails.name,
+      focus: focus,
+      horizon: horizon,
+      growthTarget: growthTarget,
+      generatedAt: new Date().toISOString()
+    };
+
+  } catch (error) {
+    console.error('Error generating marketing plan:', error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Log plan generation for tracking
+ */
+function logPlanGeneration(planType, lender, purpose, details) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('PLAN_GENERATIONS');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('PLAN_GENERATIONS');
+      sheet.appendRow(['Timestamp', 'Plan_Type', 'Lender', 'Purpose', 'Details']);
+    }
+
+    sheet.appendRow([
+      new Date().toISOString(),
+      planType,
+      lender,
+      purpose,
+      details
+    ]);
+  } catch (error) {
+    console.error('Error logging plan generation:', error);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+// END: AI FARM BUSINESS & MARKETING PLAN GENERATORS
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════

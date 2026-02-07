@@ -803,6 +803,9 @@
         <button class="nav-tab" data-tab="contacts">
             <i class="fas fa-address-book"></i> Contacts
         </button>
+        <button class="nav-tab" data-tab="plangen" style="background: linear-gradient(135deg, var(--purple), var(--info)); color: white;">
+            <i class="fas fa-magic"></i> AI Plan Generator
+        </button>
     </div>
 
     <!-- Overview Tab -->
@@ -1057,6 +1060,201 @@
             </div>
             <div style="background: var(--bg-lighter); padding: 1.25rem; border-radius: 12px; font-style: italic;">
                 "Hi, I'm a small vegetable farm owner in Pennsylvania. I'm a beginning farmer interested in discussing financing options for [operating expenses / land purchase / equipment]. I've been farming for [X] years and have prepared my financial documentation. Can I schedule a consultation with a loan officer?"
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Plan Generator Tab -->
+    <div id="tab-plangen" class="tab-content">
+        <!-- Business Plan Generator -->
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fas fa-file-alt"></i> Farm Business Plan Generator</h2>
+                <span class="badge" style="background: linear-gradient(135deg, var(--purple), var(--info));">AI-Powered</span>
+            </div>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                Generate a professional farm business plan tailored to your specific loan application. The AI will pull data from your farm records to create a comprehensive document.
+            </p>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+                <div class="input-group">
+                    <label><i class="fas fa-building-columns"></i> Target Lender</label>
+                    <select id="businessPlanLender">
+                        <option value="general">General Purpose</option>
+                        <option value="horizon">Horizon Farm Credit</option>
+                        <option value="usda_fsa">USDA FSA</option>
+                        <option value="pa_nextgen">PA Next Generation Farmer</option>
+                        <option value="bank">Traditional Bank</option>
+                        <option value="investor">Private Investor</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label><i class="fas fa-bullseye"></i> Loan Purpose</label>
+                    <select id="businessPlanPurpose">
+                        <option value="operating">Operating Expenses</option>
+                        <option value="equipment">Equipment Purchase</option>
+                        <option value="land">Land Purchase</option>
+                        <option value="expansion">Farm Expansion</option>
+                        <option value="infrastructure">Infrastructure (High Tunnels, Irrigation)</option>
+                        <option value="consolidation">Debt Consolidation</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label><i class="fas fa-dollar-sign"></i> Loan Amount Requested</label>
+                    <input type="text" id="businessPlanAmount" placeholder="e.g., $50,000" />
+                </div>
+                <div class="input-group">
+                    <label><i class="fas fa-calendar"></i> Loan Term</label>
+                    <select id="businessPlanTerm">
+                        <option value="1">1 Year (Operating)</option>
+                        <option value="3">3 Years</option>
+                        <option value="5">5 Years</option>
+                        <option value="7" selected>7 Years</option>
+                        <option value="10">10 Years</option>
+                        <option value="15">15 Years</option>
+                        <option value="20">20 Years (Land)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="input-group" style="margin-bottom: 1.5rem;">
+                <label><i class="fas fa-lightbulb"></i> Additional Context (Optional)</label>
+                <textarea id="businessPlanContext" rows="3" placeholder="Any specific details to include? E.g., 'We're transitioning to organic certification' or 'Focus on our CSA growth potential'"></textarea>
+            </div>
+
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <button class="btn btn-primary" onclick="generateBusinessPlan()" id="genBusinessPlanBtn">
+                    <i class="fas fa-magic"></i> Generate Business Plan
+                </button>
+                <button class="btn btn-secondary" onclick="downloadBusinessPlan()" id="downloadBusinessPlanBtn" style="display: none;">
+                    <i class="fas fa-download"></i> Download as PDF
+                </button>
+            </div>
+
+            <div id="businessPlanOutput" style="display: none; margin-top: 1.5rem;">
+                <div class="card-header" style="margin-bottom: 1rem;">
+                    <h3><i class="fas fa-file-contract"></i> Generated Business Plan</h3>
+                    <button class="btn btn-secondary btn-sm" onclick="copyBusinessPlan()">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                </div>
+                <div id="businessPlanContent" style="background: var(--bg-lighter); padding: 1.5rem; border-radius: 12px; white-space: pre-wrap; font-family: 'Segoe UI', sans-serif; line-height: 1.8; max-height: 600px; overflow-y: auto;"></div>
+            </div>
+        </div>
+
+        <!-- Marketing Plan Generator -->
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fas fa-bullhorn"></i> Marketing Plan Generator</h2>
+                <span class="badge" style="background: linear-gradient(135deg, var(--gold), var(--danger));">AI-Powered</span>
+            </div>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                Generate a professional marketing plan that demonstrates your sales strategy and growth potential to lenders. Shows how you'll generate revenue to repay the loan.
+            </p>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+                <div class="input-group">
+                    <label><i class="fas fa-building-columns"></i> Target Lender</label>
+                    <select id="marketingPlanLender">
+                        <option value="general">General Purpose</option>
+                        <option value="horizon">Horizon Farm Credit</option>
+                        <option value="usda_fsa">USDA FSA</option>
+                        <option value="pa_nextgen">PA Next Generation Farmer</option>
+                        <option value="bank">Traditional Bank</option>
+                        <option value="investor">Private Investor</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label><i class="fas fa-chart-line"></i> Focus Area</label>
+                    <select id="marketingPlanFocus">
+                        <option value="comprehensive">Comprehensive (All Channels)</option>
+                        <option value="csa">CSA Growth</option>
+                        <option value="wholesale">Wholesale/Restaurant</option>
+                        <option value="farmers_market">Farmers Markets</option>
+                        <option value="direct">Direct-to-Consumer</option>
+                        <option value="ecommerce">E-commerce/Online</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label><i class="fas fa-calendar-alt"></i> Planning Horizon</label>
+                    <select id="marketingPlanHorizon">
+                        <option value="1">1 Year Plan</option>
+                        <option value="3" selected>3 Year Plan</option>
+                        <option value="5">5 Year Plan</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label><i class="fas fa-percentage"></i> Revenue Growth Target</label>
+                    <select id="marketingPlanGrowth">
+                        <option value="10">10% Annual Growth (Conservative)</option>
+                        <option value="15">15% Annual Growth (Moderate)</option>
+                        <option value="20" selected>20% Annual Growth (Aggressive)</option>
+                        <option value="25">25% Annual Growth (Very Aggressive)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="input-group" style="margin-bottom: 1.5rem;">
+                <label><i class="fas fa-lightbulb"></i> Additional Context (Optional)</label>
+                <textarea id="marketingPlanContext" rows="3" placeholder="Any specific marketing strategies or goals? E.g., 'We want to add 50 new CSA members' or 'Expanding to 3 new farmers markets'"></textarea>
+            </div>
+
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <button class="btn btn-primary" onclick="generateMarketingPlan()" id="genMarketingPlanBtn" style="background: linear-gradient(135deg, var(--gold), var(--danger));">
+                    <i class="fas fa-magic"></i> Generate Marketing Plan
+                </button>
+                <button class="btn btn-secondary" onclick="downloadMarketingPlan()" id="downloadMarketingPlanBtn" style="display: none;">
+                    <i class="fas fa-download"></i> Download as PDF
+                </button>
+            </div>
+
+            <div id="marketingPlanOutput" style="display: none; margin-top: 1.5rem;">
+                <div class="card-header" style="margin-bottom: 1rem;">
+                    <h3><i class="fas fa-file-contract"></i> Generated Marketing Plan</h3>
+                    <button class="btn btn-secondary btn-sm" onclick="copyMarketingPlan()">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                </div>
+                <div id="marketingPlanContent" style="background: var(--bg-lighter); padding: 1.5rem; border-radius: 12px; white-space: pre-wrap; font-family: 'Segoe UI', sans-serif; line-height: 1.8; max-height: 600px; overflow-y: auto;"></div>
+            </div>
+        </div>
+
+        <!-- Quick Tips -->
+        <div class="card" style="background: linear-gradient(135deg, rgba(155, 89, 182, 0.1), rgba(67, 97, 238, 0.1)); border-color: var(--purple);">
+            <div class="card-header">
+                <h2><i class="fas fa-lightbulb"></i> Tips for Effective Loan Documents</h2>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+                <div>
+                    <h4 style="color: var(--purple); margin-bottom: 0.5rem;"><i class="fas fa-file-alt"></i> Business Plan Tips</h4>
+                    <ul style="color: var(--text-secondary); padding-left: 1.25rem;">
+                        <li>Include specific revenue projections with data</li>
+                        <li>Show your experience and qualifications</li>
+                        <li>Detail your competitive advantages</li>
+                        <li>Explain how you'll repay the loan</li>
+                        <li>Include risk mitigation strategies</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 style="color: var(--gold); margin-bottom: 0.5rem;"><i class="fas fa-bullhorn"></i> Marketing Plan Tips</h4>
+                    <ul style="color: var(--text-secondary); padding-left: 1.25rem;">
+                        <li>Show diverse revenue streams</li>
+                        <li>Include customer retention strategies</li>
+                        <li>Detail your pricing strategy</li>
+                        <li>Explain your unique selling proposition</li>
+                        <li>Show growth trajectory with evidence</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 style="color: var(--success); margin-bottom: 0.5rem;"><i class="fas fa-check-circle"></i> Lender Expectations</h4>
+                    <ul style="color: var(--text-secondary); padding-left: 1.25rem;">
+                        <li>FSA wants to see beginning farmer focus</li>
+                        <li>Horizon values production history</li>
+                        <li>Banks want collateral details</li>
+                        <li>All lenders want cash flow clarity</li>
+                        <li>Include realistic assumptions</li>
+                    </ul>
+                </div>
             </div>
         </div>
     </div>
@@ -2305,6 +2503,178 @@
         // Edit application (placeholder)
         function editApplication(appId) {
             showNotification('Application editing coming soon!', 'info');
+        }
+
+        // ============ AI PLAN GENERATORS ============
+
+        let generatedBusinessPlan = '';
+        let generatedMarketingPlan = '';
+
+        async function generateBusinessPlan() {
+            const btn = document.getElementById('genBusinessPlanBtn');
+            const output = document.getElementById('businessPlanOutput');
+            const content = document.getElementById('businessPlanContent');
+            const downloadBtn = document.getElementById('downloadBusinessPlanBtn');
+
+            const lender = document.getElementById('businessPlanLender').value;
+            const purpose = document.getElementById('businessPlanPurpose').value;
+            const amount = document.getElementById('businessPlanAmount').value || '$50,000';
+            const term = document.getElementById('businessPlanTerm').value;
+            const context = document.getElementById('businessPlanContext').value;
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+            output.style.display = 'block';
+            content.innerHTML = '<div style="text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 1rem;">Generating your business plan... This may take 30-60 seconds.</p></div>';
+
+            try {
+                const response = await fetch(`${API_URL}?action=generateFarmBusinessPlan`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        lender: lender,
+                        purpose: purpose,
+                        amount: amount,
+                        term: term,
+                        context: context
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.businessPlan) {
+                    generatedBusinessPlan = data.businessPlan;
+                    content.innerHTML = formatPlanContent(data.businessPlan);
+                    downloadBtn.style.display = 'inline-flex';
+                    showNotification('Business plan generated successfully!', 'success');
+                } else {
+                    throw new Error(data.error || 'Failed to generate business plan');
+                }
+            } catch (error) {
+                console.error('Error generating business plan:', error);
+                content.innerHTML = `<div style="color: var(--danger); text-align: center; padding: 2rem;">
+                    <i class="fas fa-exclamation-triangle fa-2x"></i>
+                    <p style="margin-top: 1rem;">Error: ${error.message}</p>
+                    <p style="margin-top: 0.5rem; font-size: 0.9rem; color: var(--text-secondary);">Please try again or contact support.</p>
+                </div>`;
+                showNotification('Failed to generate business plan', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-magic"></i> Generate Business Plan';
+            }
+        }
+
+        async function generateMarketingPlan() {
+            const btn = document.getElementById('genMarketingPlanBtn');
+            const output = document.getElementById('marketingPlanOutput');
+            const content = document.getElementById('marketingPlanContent');
+            const downloadBtn = document.getElementById('downloadMarketingPlanBtn');
+
+            const lender = document.getElementById('marketingPlanLender').value;
+            const focus = document.getElementById('marketingPlanFocus').value;
+            const horizon = document.getElementById('marketingPlanHorizon').value;
+            const growth = document.getElementById('marketingPlanGrowth').value;
+            const context = document.getElementById('marketingPlanContext').value;
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+            output.style.display = 'block';
+            content.innerHTML = '<div style="text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 1rem;">Generating your marketing plan... This may take 30-60 seconds.</p></div>';
+
+            try {
+                const response = await fetch(`${API_URL}?action=generateFarmMarketingPlan`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        lender: lender,
+                        focus: focus,
+                        horizon: horizon,
+                        growthTarget: growth,
+                        context: context
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.marketingPlan) {
+                    generatedMarketingPlan = data.marketingPlan;
+                    content.innerHTML = formatPlanContent(data.marketingPlan);
+                    downloadBtn.style.display = 'inline-flex';
+                    showNotification('Marketing plan generated successfully!', 'success');
+                } else {
+                    throw new Error(data.error || 'Failed to generate marketing plan');
+                }
+            } catch (error) {
+                console.error('Error generating marketing plan:', error);
+                content.innerHTML = `<div style="color: var(--danger); text-align: center; padding: 2rem;">
+                    <i class="fas fa-exclamation-triangle fa-2x"></i>
+                    <p style="margin-top: 1rem;">Error: ${error.message}</p>
+                    <p style="margin-top: 0.5rem; font-size: 0.9rem; color: var(--text-secondary);">Please try again or contact support.</p>
+                </div>`;
+                showNotification('Failed to generate marketing plan', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-magic"></i> Generate Marketing Plan';
+            }
+        }
+
+        function formatPlanContent(text) {
+            // Convert markdown-style formatting to HTML
+            return text
+                .replace(/^# (.*$)/gm, '<h2 style="color: var(--primary); margin: 1.5rem 0 0.75rem 0; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem;">$1</h2>')
+                .replace(/^## (.*$)/gm, '<h3 style="color: var(--info); margin: 1.25rem 0 0.5rem 0;">$1</h3>')
+                .replace(/^### (.*$)/gm, '<h4 style="color: var(--gold); margin: 1rem 0 0.5rem 0;">$1</h4>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong style="color: var(--text);">$1</strong>')
+                .replace(/^\- (.*$)/gm, '<li style="margin-left: 1.5rem; margin-bottom: 0.25rem;">$1</li>')
+                .replace(/^\d+\. (.*$)/gm, '<li style="margin-left: 1.5rem; margin-bottom: 0.25rem;">$1</li>')
+                .replace(/\n\n/g, '</p><p style="margin-bottom: 0.75rem;">')
+                .replace(/\$[\d,]+/g, '<span style="color: var(--success); font-weight: 600;">$&</span>');
+        }
+
+        function copyBusinessPlan() {
+            if (generatedBusinessPlan) {
+                navigator.clipboard.writeText(generatedBusinessPlan);
+                showNotification('Business plan copied to clipboard!', 'success');
+            }
+        }
+
+        function copyMarketingPlan() {
+            if (generatedMarketingPlan) {
+                navigator.clipboard.writeText(generatedMarketingPlan);
+                showNotification('Marketing plan copied to clipboard!', 'success');
+            }
+        }
+
+        function downloadBusinessPlan() {
+            if (!generatedBusinessPlan) return;
+
+            const lender = document.getElementById('businessPlanLender').value;
+            const blob = new Blob([generatedBusinessPlan], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Tiny_Seed_Farm_Business_Plan_${lender}_${new Date().toISOString().split('T')[0]}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showNotification('Business plan downloaded!', 'success');
+        }
+
+        function downloadMarketingPlan() {
+            if (!generatedMarketingPlan) return;
+
+            const lender = document.getElementById('marketingPlanLender').value;
+            const blob = new Blob([generatedMarketingPlan], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Tiny_Seed_Farm_Marketing_Plan_${lender}_${new Date().toISOString().split('T')[0]}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showNotification('Marketing plan downloaded!', 'success');
         }
     </script>
 </body>

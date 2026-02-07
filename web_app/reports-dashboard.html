@@ -1,0 +1,1656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports Dashboard | Tiny Seed Farm</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="api-config.js"></script>
+    <style>
+        :root {
+            --primary: #2d5a27;
+            --primary-light: #4a7c43;
+            --primary-dark: #1e3d1a;
+            --secondary: #f4a261;
+            --accent: #e76f51;
+            --success: #2a9d8f;
+            --warning: #e9c46a;
+            --danger: #e63946;
+            --info: #4361ee;
+            --bg-dark: #1a1a2e;
+            --bg-card: #16213e;
+            --bg-light: #0f3460;
+            --text-primary: #edf2f4;
+            --text-secondary: #8d99ae;
+            --border: rgba(255,255,255,0.1);
+            --gold: #ffd700;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #0f0f1a 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* Navigation */
+        .top-nav {
+            background: rgba(22, 33, 62, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 0.75rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .nav-logo {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--success) 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .nav-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--success) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-subtitle {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .year-select {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Tab Navigation */
+        .tab-nav {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover {
+            background: var(--bg-light);
+            color: var(--text-primary);
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            border-color: transparent;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Quick Actions Banner */
+        .quick-actions-banner {
+            background: linear-gradient(135deg, rgba(45, 90, 39, 0.2) 0%, rgba(42, 157, 143, 0.2) 100%);
+            border: 1px solid var(--primary);
+            border-radius: 16px;
+            padding: 1.5rem 2rem;
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .quick-actions-info h2 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .quick-actions-info p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .quick-actions-buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        /* Status Banner */
+        .status-banner {
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            padding: 1.5rem 2rem;
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .status-info h2 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .status-info p {
+            color: var(--text-secondary);
+        }
+
+        .status-score {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .score-circle {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+
+        .score-circle.good { background: linear-gradient(135deg, var(--success), var(--primary)); }
+        .score-circle.warning { background: linear-gradient(135deg, var(--warning), var(--secondary)); }
+        .score-circle.danger { background: linear-gradient(135deg, var(--danger), var(--accent)); }
+        .score-circle.loading { background: var(--bg-light); }
+
+        .score-value { font-size: 2rem; }
+        .score-label { font-size: 0.7rem; text-transform: uppercase; opacity: 0.9; }
+
+        .grade-badge {
+            padding: 0.5rem 1.5rem;
+            border-radius: 8px;
+            font-size: 2rem;
+            font-weight: 800;
+        }
+
+        .grade-badge.A { background: var(--success); }
+        .grade-badge.B { background: var(--primary-light); }
+        .grade-badge.C { background: var(--warning); color: #000; }
+        .grade-badge.D { background: var(--danger); }
+
+        /* Report Grid */
+        .reports-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .report-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .report-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        .report-card.featured {
+            border-color: var(--primary);
+            background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-light) 100%);
+        }
+
+        .report-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .report-header h3 {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.1rem;
+        }
+
+        .report-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+
+        .report-icon.organic { background: linear-gradient(135deg, #2a9d8f, #4a7c43); }
+        .report-icon.loan { background: linear-gradient(135deg, #4361ee, #9b59b6); }
+        .report-icon.financial { background: linear-gradient(135deg, #f4a261, #e76f51); }
+        .report-icon.production { background: linear-gradient(135deg, #10b981, #059669); }
+        .report-icon.sales { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+        .report-icon.labor { background: linear-gradient(135deg, #8b5cf6, #6366f1); }
+        .report-icon.assets { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .report-icon.cashflow { background: linear-gradient(135deg, #06b6d4, #0891b2); }
+
+        .status-indicator {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+        }
+
+        .status-indicator.good { background: var(--success); }
+        .status-indicator.warning { background: var(--warning); color: #000; }
+        .status-indicator.missing { background: var(--danger); }
+        .status-indicator.loading { background: var(--bg-light); }
+
+        .report-body {
+            padding: 1.5rem;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .stat-row:last-child { border-bottom: none; }
+        .stat-label { color: var(--text-secondary); font-size: 0.9rem; }
+        .stat-value { font-weight: 600; }
+        .stat-value.good { color: var(--success); }
+        .stat-value.warning { color: var(--warning); }
+        .stat-value.danger { color: var(--danger); }
+
+        .recommendation {
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            margin-top: 1rem;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .recommendation i { color: var(--info); margin-right: 0.5rem; }
+
+        .report-actions {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.6rem 1.25rem;
+            border-radius: 8px;
+            border: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(45, 90, 39, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--bg-light);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover { background: rgba(255,255,255,0.1); }
+
+        .btn-large {
+            padding: 1rem 2rem;
+            font-size: 1rem;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success) 0%, #1d7a6e 100%);
+            color: white;
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, var(--info) 0%, #6366f1 100%);
+            color: white;
+        }
+
+        /* Data Preview Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .modal-overlay.active { display: flex; }
+
+        .modal-content {
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            max-width: 1000px;
+            width: 100%;
+            max-height: 85vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 { font-size: 1.25rem; }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+        }
+
+        .data-preview {
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            padding: 1.5rem;
+            font-family: monospace;
+            font-size: 0.85rem;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        .data-table th {
+            text-align: left;
+            padding: 0.75rem;
+            background: var(--bg-light);
+            border-bottom: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-weight: 500;
+            position: sticky;
+            top: 0;
+        }
+
+        .data-table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .data-table tr:hover { background: rgba(255,255,255,0.02); }
+
+        /* Loading State */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary-light);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 1rem;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Checklist */
+        .checklist { list-style: none; }
+
+        .checklist li {
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .checklist li:last-child { border-bottom: none; }
+
+        .check-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+        }
+
+        .check-icon.passed { background: var(--success); }
+        .check-icon.failed { background: var(--danger); }
+
+        /* Gaps List */
+        .gaps-list {
+            background: rgba(230, 57, 70, 0.1);
+            border: 1px solid rgba(230, 57, 70, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .gaps-list h4 { color: var(--danger); margin-bottom: 0.75rem; font-size: 0.9rem; }
+        .gaps-list ul { list-style: none; }
+        .gaps-list li { padding: 0.25rem 0; color: var(--text-secondary); font-size: 0.85rem; }
+        .gaps-list li::before {
+            content: "!";
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            background: var(--danger);
+            border-radius: 50%;
+            text-align: center;
+            line-height: 18px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+
+        /* Financial Summary */
+        .financial-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .summary-card {
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            padding: 1.25rem;
+            text-align: center;
+        }
+
+        .summary-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--success) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .summary-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .top-nav { padding: 0.75rem 1rem; }
+            .main-content { padding: 1rem; }
+            .status-banner { flex-direction: column; text-align: center; }
+            .reports-grid { grid-template-columns: 1fr; }
+            .btn { flex: 1; justify-content: center; }
+            .tab-nav { gap: 0.25rem; }
+            .tab-btn { padding: 0.5rem 1rem; font-size: 0.8rem; }
+        }
+
+        @media print {
+            body { background: white; color: black; }
+            .top-nav, .tab-nav, .quick-actions-banner, .report-actions { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="top-nav">
+        <div class="nav-brand">
+            <div class="nav-logo"><i class="fas fa-chart-bar"></i></div>
+            <div>
+                <div class="nav-title">Reports Dashboard</div>
+                <div class="nav-subtitle">Financial, Loan & Compliance Reports</div>
+            </div>
+        </div>
+        <div class="nav-actions">
+            <select id="yearSelect" class="year-select" onchange="loadCurrentTab()">
+                <!-- Populated by JS -->
+            </select>
+            <button class="btn btn-secondary" onclick="window.location.href='../index.html'">
+                <i class="fas fa-home"></i> Home
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Tab Navigation -->
+        <div class="tab-nav">
+            <button class="tab-btn active" onclick="switchTab('loan')" data-tab="loan">
+                <i class="fas fa-hand-holding-usd"></i> Loan Application
+            </button>
+            <button class="tab-btn" onclick="switchTab('organic')" data-tab="organic">
+                <i class="fas fa-leaf"></i> USDA Organic
+            </button>
+            <button class="tab-btn" onclick="switchTab('financial')" data-tab="financial">
+                <i class="fas fa-chart-pie"></i> Financial
+            </button>
+            <button class="tab-btn" onclick="switchTab('production')" data-tab="production">
+                <i class="fas fa-carrot"></i> Production
+            </button>
+            <button class="tab-btn" onclick="switchTab('export')" data-tab="export">
+                <i class="fas fa-file-export"></i> Quick Export
+            </button>
+        </div>
+
+        <!-- LOAN APPLICATION TAB -->
+        <div class="tab-content active" id="tab-loan">
+            <div class="quick-actions-banner">
+                <div class="quick-actions-info">
+                    <h2><i class="fas fa-file-invoice-dollar"></i> Loan Application Package</h2>
+                    <p>Generate complete documentation for FSA, USDA, and bank loan applications</p>
+                </div>
+                <div class="quick-actions-buttons">
+                    <button class="btn btn-primary btn-large" onclick="generateCompleteLoanPackage()">
+                        <i class="fas fa-download"></i> Generate Complete Package
+                    </button>
+                </div>
+            </div>
+
+            <div class="reports-grid">
+                <!-- Financial Statement -->
+                <div class="report-card featured" id="financialStatementCard">
+                    <div class="report-header">
+                        <h3>
+                            <div class="report-icon financial"><i class="fas fa-balance-scale"></i></div>
+                            Financial Statement
+                        </h3>
+                        <div class="status-indicator loading" id="finStatementStatus"><i class="fas fa-spinner fa-spin"></i></div>
+                    </div>
+                    <div class="report-body" id="finStatementBody">
+                        <div class="loading"><div class="spinner"></div> Loading...</div>
+                    </div>
+                    <div class="report-actions">
+                        <button class="btn btn-primary" onclick="viewReport('getFinancialStatement', 'Financial Statement')"><i class="fas fa-eye"></i> View</button>
+                        <button class="btn btn-secondary" onclick="downloadReport('getFinancialStatement', 'financial_statement')"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+
+                <!-- Cash Flow Projection -->
+                <div class="report-card" id="cashFlowCard">
+                    <div class="report-header">
+                        <h3>
+                            <div class="report-icon cashflow"><i class="fas fa-chart-line"></i></div>
+                            Cash Flow Projection
+                        </h3>
+                        <div class="status-indicator loading" id="cashFlowStatus"><i class="fas fa-spinner fa-spin"></i></div>
+                    </div>
+                    <div class="report-body" id="cashFlowBody">
+                        <div class="loading"><div class="spinner"></div> Loading...</div>
+                    </div>
+                    <div class="report-actions">
+                        <button class="btn btn-primary" onclick="viewReport('getCashFlowProjection', 'Cash Flow Projection')"><i class="fas fa-eye"></i> View</button>
+                        <button class="btn btn-secondary" onclick="downloadReport('getCashFlowProjection', 'cashflow_projection')"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+
+                <!-- Asset Register -->
+                <div class="report-card" id="assetCard">
+                    <div class="report-header">
+                        <h3>
+                            <div class="report-icon assets"><i class="fas fa-tractor"></i></div>
+                            Asset Register
+                        </h3>
+                        <div class="status-indicator loading" id="assetStatus"><i class="fas fa-spinner fa-spin"></i></div>
+                    </div>
+                    <div class="report-body" id="assetBody">
+                        <div class="loading"><div class="spinner"></div> Loading...</div>
+                    </div>
+                    <div class="report-actions">
+                        <button class="btn btn-primary" onclick="viewReport('getAssetRegister', 'Asset Register')"><i class="fas fa-eye"></i> View</button>
+                        <button class="btn btn-secondary" onclick="downloadReport('getAssetRegister', 'asset_register')"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+
+                <!-- Production Records -->
+                <div class="report-card" id="prodCard">
+                    <div class="report-header">
+                        <h3>
+                            <div class="report-icon production"><i class="fas fa-seedling"></i></div>
+                            Production Records
+                        </h3>
+                        <div class="status-indicator loading" id="prodStatus"><i class="fas fa-spinner fa-spin"></i></div>
+                    </div>
+                    <div class="report-body" id="prodBody">
+                        <div class="loading"><div class="spinner"></div> Loading...</div>
+                    </div>
+                    <div class="report-actions">
+                        <button class="btn btn-primary" onclick="viewReport('getProductionReport', 'Production Records')"><i class="fas fa-eye"></i> View</button>
+                        <button class="btn btn-secondary" onclick="downloadReport('getProductionReport', 'production_records')"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+
+                <!-- Sales Summary -->
+                <div class="report-card" id="salesSummaryCard">
+                    <div class="report-header">
+                        <h3>
+                            <div class="report-icon sales"><i class="fas fa-cash-register"></i></div>
+                            Sales Summary
+                        </h3>
+                        <div class="status-indicator loading" id="salesSummaryStatus"><i class="fas fa-spinner fa-spin"></i></div>
+                    </div>
+                    <div class="report-body" id="salesSummaryBody">
+                        <div class="loading"><div class="spinner"></div> Loading...</div>
+                    </div>
+                    <div class="report-actions">
+                        <button class="btn btn-primary" onclick="viewReport('getSalesSummaryReport', 'Sales Summary')"><i class="fas fa-eye"></i> View</button>
+                        <button class="btn btn-secondary" onclick="downloadReport('getSalesSummaryReport', 'sales_summary')"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+
+                <!-- Labor Report -->
+                <div class="report-card" id="laborCard">
+                    <div class="report-header">
+                        <h3>
+                            <div class="report-icon labor"><i class="fas fa-users"></i></div>
+                            Labor Report
+                        </h3>
+                        <div class="status-indicator loading" id="laborStatus"><i class="fas fa-spinner fa-spin"></i></div>
+                    </div>
+                    <div class="report-body" id="laborBody">
+                        <div class="loading"><div class="spinner"></div> Loading...</div>
+                    </div>
+                    <div class="report-actions">
+                        <button class="btn btn-primary" onclick="viewReport('getLaborReport', 'Labor Report')"><i class="fas fa-eye"></i> View</button>
+                        <button class="btn btn-secondary" onclick="downloadReport('getLaborReport', 'labor_report')"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- USDA ORGANIC TAB -->
+        <div class="tab-content" id="tab-organic">
+            <div class="quick-actions-banner">
+                <div class="quick-actions-info">
+                    <h2><i class="fas fa-leaf"></i> USDA Organic Audit Package</h2>
+                    <p>Generate complete documentation for USDA NOP certification inspections</p>
+                </div>
+                <div class="quick-actions-buttons">
+                    <button class="btn btn-success btn-large" onclick="generateOrganicPackage()">
+                        <i class="fas fa-download"></i> Generate Audit Package
+                    </button>
+                </div>
+            </div>
+
+            <!-- Status Banner -->
+            <div class="status-banner" id="organicStatusBanner">
+                <div class="status-info">
+                    <h2>Audit Readiness Status</h2>
+                    <p id="organicStatusMessage">Loading compliance data...</p>
+                </div>
+                <div class="status-score">
+                    <div class="score-circle loading" id="organicScoreCircle">
+                        <span class="score-value" id="organicScoreValue">--</span>
+                        <span class="score-label">Readiness</span>
+                    </div>
+                    <div class="grade-badge" id="organicGradeBadge" style="display:none;">--</div>
+                </div>
+            </div>
+
+            <!-- Compliance Checklist -->
+            <div class="report-card featured" style="margin-bottom: 2rem;">
+                <div class="report-header">
+                    <h3>
+                        <div class="report-icon organic"><i class="fas fa-clipboard-check"></i></div>
+                        Required Records Checklist
+                    </h3>
+                </div>
+                <div class="report-body">
+                    <ul class="checklist" id="organicChecklistContainer">
+                        <li><div class="spinner" style="width:20px;height:20px;border-width:2px;margin:0;"></div> Loading checklist...</li>
+                    </ul>
+                    <div id="organicGapsContainer"></div>
+                </div>
+            </div>
+
+            <div class="reports-grid">
+                <!-- Seed Source -->
+                <div class="report-card" id="seedCard">
+                    <div class="report-header">
+                        <h3><div class="report-icon organic"><i class="fas fa-seedling"></i></div> Seed Source Records</h3>
+                        <div class="status-indicator loading" id="seedStatus"><i class="fas fa-spinner fa-spin"></i></div>
+                    </div>
+                    <div class="report-body" id="seedBody"><div class="loading"><div class="spinner"></div> Loading...</div></div>
+                    <div class="report-actions">
+                        <button class="btn btn-primary" onclick="viewReport('getSeedSourceReport', 'Seed Source Records')"><i class="fas fa-eye"></i> View</button>
+                    </div>
+                </div>
+
+                <!-- Field History -->
+                <div class="report-card" id="fieldCard">
+                    <div class="report-header">
+                        <h3><div class="report-icon organic"><i class="fas fa-map"></i></div> Field History</h3>
+                        <div class="status-indicator loading" id="fieldStatus"><i class="fas fa-spinner fa-spin"></i></div>
+                    </div>
+                    <div class="report-body" id="fieldBody"><div class="loading"><div class="spinner"></div> Loading...</div></div>
+                    <div class="report-actions">
+                        <button class="btn btn-primary" onclick="viewReport('getFieldHistoryReport', 'Field History')"><i class="fas fa-eye"></i> View</button>
+                    </div>
+                </div>
+
+                <!-- Input Applications -->
+                <div class="report-card" id="inputCard">
+                    <div class="report-header">
+                        <h3><div class="report-icon assets"><i class="fas fa-flask"></i></div> Input Applications</h3>
+                        <div class="status-indicator loading" id="inputStatus"><i class="fas fa-spinner fa-spin"></i></div>
+                    </div>
+                    <div class="report-body" id="inputBody"><div class="loading"><div class="spinner"></div> Loading...</div></div>
+                    <div class="report-actions">
+                        <button class="btn btn-primary" onclick="viewReport('getInputApplicationReport', 'Input Applications')"><i class="fas fa-eye"></i> View</button>
+                    </div>
+                </div>
+
+                <!-- Harvest Records -->
+                <div class="report-card" id="harvestCard">
+                    <div class="report-header">
+                        <h3><div class="report-icon production"><i class="fas fa-carrot"></i></div> Harvest Records</h3>
+                        <div class="status-indicator loading" id="harvestStatus"><i class="fas fa-spinner fa-spin"></i></div>
+                    </div>
+                    <div class="report-body" id="harvestBody"><div class="loading"><div class="spinner"></div> Loading...</div></div>
+                    <div class="report-actions">
+                        <button class="btn btn-primary" onclick="viewReport('getHarvestReport', 'Harvest Records')"><i class="fas fa-eye"></i> View</button>
+                    </div>
+                </div>
+
+                <!-- Traceability -->
+                <div class="report-card" id="traceCard">
+                    <div class="report-header">
+                        <h3><div class="report-icon cashflow"><i class="fas fa-route"></i></div> Traceability Report</h3>
+                        <div class="status-indicator loading" id="traceStatus"><i class="fas fa-spinner fa-spin"></i></div>
+                    </div>
+                    <div class="report-body" id="traceBody"><div class="loading"><div class="spinner"></div> Loading...</div></div>
+                    <div class="report-actions">
+                        <button class="btn btn-primary" onclick="viewReport('getTraceabilityReport', 'Traceability Report')"><i class="fas fa-eye"></i> View</button>
+                    </div>
+                </div>
+
+                <!-- Pest Management -->
+                <div class="report-card" id="pestCard">
+                    <div class="report-header">
+                        <h3><div class="report-icon financial"><i class="fas fa-bug"></i></div> Pest Management</h3>
+                        <div class="status-indicator loading" id="pestStatus"><i class="fas fa-spinner fa-spin"></i></div>
+                    </div>
+                    <div class="report-body" id="pestBody"><div class="loading"><div class="spinner"></div> Loading...</div></div>
+                    <div class="report-actions">
+                        <button class="btn btn-primary" onclick="viewReport('getPestManagementReport', 'Pest Management')"><i class="fas fa-eye"></i> View</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FINANCIAL TAB -->
+        <div class="tab-content" id="tab-financial">
+            <div class="financial-summary" id="financialSummary">
+                <div class="summary-card">
+                    <div class="summary-value" id="totalAssets">$--</div>
+                    <div class="summary-label">Total Assets</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value" id="totalLiabilities">$--</div>
+                    <div class="summary-label">Total Liabilities</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value" id="netWorth">$--</div>
+                    <div class="summary-label">Net Worth</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value" id="totalRevenue">$--</div>
+                    <div class="summary-label">Total Revenue</div>
+                </div>
+            </div>
+
+            <div class="reports-grid">
+                <div class="report-card">
+                    <div class="report-header">
+                        <h3><div class="report-icon financial"><i class="fas fa-balance-scale"></i></div> Balance Sheet</h3>
+                    </div>
+                    <div class="report-body">
+                        <p style="color:var(--text-secondary);">Complete balance sheet with assets, liabilities, and equity breakdown.</p>
+                    </div>
+                    <div class="report-actions">
+                        <button class="btn btn-primary" onclick="viewReport('getFinancialStatement', 'Balance Sheet')"><i class="fas fa-eye"></i> View</button>
+                        <button class="btn btn-secondary" onclick="downloadReport('getFinancialStatement', 'balance_sheet')"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+
+                <div class="report-card">
+                    <div class="report-header">
+                        <h3><div class="report-icon sales"><i class="fas fa-chart-bar"></i></div> Sales Analysis</h3>
+                    </div>
+                    <div class="report-body">
+                        <p style="color:var(--text-secondary);">Detailed sales breakdown by customer type and date range.</p>
+                    </div>
+                    <div class="report-actions">
+                        <button class="btn btn-primary" onclick="viewReport('getSalesReports', 'Sales Analysis')"><i class="fas fa-eye"></i> View</button>
+                        <button class="btn btn-secondary" onclick="downloadReport('getSalesReports', 'sales_analysis')"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+
+                <div class="report-card">
+                    <div class="report-header">
+                        <h3><div class="report-icon labor"><i class="fas fa-calculator"></i></div> Labor Cost Analysis</h3>
+                    </div>
+                    <div class="report-body">
+                        <p style="color:var(--text-secondary);">Labor costs allocated by crop for contribution margin analysis.</p>
+                    </div>
+                    <div class="report-actions">
+                        <button class="btn btn-primary" onclick="viewReport('getLaborByCrop', 'Labor by Crop')"><i class="fas fa-eye"></i> View</button>
+                        <button class="btn btn-secondary" onclick="downloadReport('getLaborByCrop', 'labor_by_crop')"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PRODUCTION TAB -->
+        <div class="tab-content" id="tab-production">
+            <div class="reports-grid">
+                <div class="report-card featured">
+                    <div class="report-header">
+                        <h3><div class="report-icon production"><i class="fas fa-chart-area"></i></div> Production Summary</h3>
+                    </div>
+                    <div class="report-body">
+                        <p style="color:var(--text-secondary);">All crops with plantings, yields, revenue, and profit margins.</p>
+                    </div>
+                    <div class="report-actions">
+                        <button class="btn btn-primary" onclick="viewReport('getProductionReport', 'Production Summary')"><i class="fas fa-eye"></i> View</button>
+                        <button class="btn btn-secondary" onclick="downloadReport('getProductionReport', 'production_summary')"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+
+                <div class="report-card">
+                    <div class="report-header">
+                        <h3><div class="report-icon organic"><i class="fas fa-box-open"></i></div> Harvest Log</h3>
+                    </div>
+                    <div class="report-body">
+                        <p style="color:var(--text-secondary);">Complete harvest records with lot tracking and traceability.</p>
+                    </div>
+                    <div class="report-actions">
+                        <button class="btn btn-primary" onclick="viewReport('getHarvestReport', 'Harvest Log')"><i class="fas fa-eye"></i> View</button>
+                        <button class="btn btn-secondary" onclick="downloadReport('getHarvestReport', 'harvest_log')"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+
+                <div class="report-card">
+                    <div class="report-header">
+                        <h3><div class="report-icon sales"><i class="fas fa-shopping-basket"></i></div> Sales by Crop</h3>
+                    </div>
+                    <div class="report-body">
+                        <p style="color:var(--text-secondary);">Revenue breakdown by crop with organic certification tracking.</p>
+                    </div>
+                    <div class="report-actions">
+                        <button class="btn btn-primary" onclick="viewReport('getOrganicSalesReport', 'Organic Sales')"><i class="fas fa-eye"></i> View</button>
+                        <button class="btn btn-secondary" onclick="downloadReport('getOrganicSalesReport', 'organic_sales')"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- QUICK EXPORT TAB -->
+        <div class="tab-content" id="tab-export">
+            <div class="reports-grid">
+                <div class="report-card featured" style="grid-column: span 2;">
+                    <div class="report-header">
+                        <h3><div class="report-icon loan"><i class="fas fa-file-archive"></i></div> Complete Loan Package</h3>
+                    </div>
+                    <div class="report-body">
+                        <p>All financial documents needed for FSA, USDA, and bank loan applications in one download.</p>
+                        <ul style="margin-top:1rem;color:var(--text-secondary);font-size:0.9rem;">
+                            <li>Financial Statement (Balance Sheet)</li>
+                            <li>Cash Flow Projection (12 months)</li>
+                            <li>Production Records</li>
+                            <li>Sales Summary</li>
+                            <li>Labor Report</li>
+                            <li>Asset Register with Depreciation</li>
+                        </ul>
+                    </div>
+                    <div class="report-actions">
+                        <button class="btn btn-primary btn-large" onclick="generateCompleteLoanPackage()">
+                            <i class="fas fa-download"></i> Download Loan Package (JSON)
+                        </button>
+                        <button class="btn btn-secondary btn-large" onclick="printLoanPackage()">
+                            <i class="fas fa-print"></i> Print-Ready View
+                        </button>
+                    </div>
+                </div>
+
+                <div class="report-card featured" style="grid-column: span 2;">
+                    <div class="report-header">
+                        <h3><div class="report-icon organic"><i class="fas fa-leaf"></i></div> Complete Organic Audit Package</h3>
+                    </div>
+                    <div class="report-body">
+                        <p>All records required for USDA NOP organic certification inspection.</p>
+                        <ul style="margin-top:1rem;color:var(--text-secondary);font-size:0.9rem;">
+                            <li>Seed Source Records</li>
+                            <li>Field History (5+ years)</li>
+                            <li>Input Application Log</li>
+                            <li>Harvest Records with Lot Numbers</li>
+                            <li>Sales Records</li>
+                            <li>Pest Management Log</li>
+                            <li>Complete Traceability Chain</li>
+                        </ul>
+                    </div>
+                    <div class="report-actions">
+                        <button class="btn btn-success btn-large" onclick="generateOrganicPackage()">
+                            <i class="fas fa-download"></i> Download Organic Package (JSON)
+                        </button>
+                    </div>
+                </div>
+
+                <div class="report-card">
+                    <div class="report-header">
+                        <h3><div class="report-icon financial"><i class="fas fa-file-export"></i></div> Export All Reports</h3>
+                    </div>
+                    <div class="report-body">
+                        <p style="color:var(--text-secondary);">Complete farm data export with all financial, production, and compliance reports.</p>
+                    </div>
+                    <div class="report-actions">
+                        <button class="btn btn-info" onclick="exportAllReports()">
+                            <i class="fas fa-download"></i> Export All
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Data View Modal -->
+    <div class="modal-overlay" id="dataModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Report Data</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Data will be inserted here -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+                <button class="btn btn-secondary" onclick="copyReportData()"><i class="fas fa-copy"></i> Copy JSON</button>
+                <button class="btn btn-primary" onclick="downloadCurrentReport()"><i class="fas fa-download"></i> Download</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API Configuration - use centralized config
+        const API_URL = typeof TINY_SEED_API !== 'undefined' ? TINY_SEED_API.MAIN_API : 'https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec';
+
+        let reportCache = {};
+        let selectedYear = new Date().getFullYear();
+        let currentReportData = null;
+        let currentReportName = '';
+        let currentTab = 'loan';
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', () => {
+            populateYearSelector();
+            loadCurrentTab();
+        });
+
+        function populateYearSelector() {
+            const select = document.getElementById('yearSelect');
+            const currentYear = new Date().getFullYear();
+            for (let y = currentYear; y >= currentYear - 5; y--) {
+                const option = document.createElement('option');
+                option.value = y;
+                option.textContent = y;
+                select.appendChild(option);
+            }
+        }
+
+        async function apiCall(action, params = {}) {
+            const url = new URL(API_URL);
+            url.searchParams.append('action', action);
+            url.searchParams.append('year', selectedYear);
+            Object.entries(params).forEach(([key, value]) => {
+                url.searchParams.append(key, value);
+            });
+
+            const response = await fetch(url.toString());
+            return response.json();
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            loadCurrentTab();
+        }
+
+        function loadCurrentTab() {
+            selectedYear = parseInt(document.getElementById('yearSelect').value);
+
+            switch(currentTab) {
+                case 'loan':
+                    loadLoanReports();
+                    break;
+                case 'organic':
+                    loadOrganicReports();
+                    break;
+                case 'financial':
+                    loadFinancialSummary();
+                    break;
+                case 'production':
+                    // Production tab doesn't need auto-load
+                    break;
+            }
+        }
+
+        // LOAN REPORTS LOADING
+        async function loadLoanReports() {
+            loadFinancialStatement();
+            loadCashFlow();
+            loadAssetRegister();
+            loadProductionReport();
+            loadSalesSummary();
+            loadLaborReport();
+        }
+
+        async function loadFinancialStatement() {
+            try {
+                const data = await apiCall('getFinancialStatement');
+                reportCache.financialStatement = data;
+                updateStatus('finStatementStatus', data.success);
+
+                const body = document.getElementById('finStatementBody');
+                if (data.success && data.assets) {
+                    body.innerHTML = `
+                        <div class="stat-row"><span class="stat-label">Total Assets</span><span class="stat-value good">$${data.assets.total.toLocaleString()}</span></div>
+                        <div class="stat-row"><span class="stat-label">Total Liabilities</span><span class="stat-value">$${data.liabilities.total.toLocaleString()}</span></div>
+                        <div class="stat-row"><span class="stat-label">Net Worth</span><span class="stat-value good">$${data.equity.ownersEquity.toLocaleString()}</span></div>
+                        <div class="stat-row"><span class="stat-label">Debt-to-Asset Ratio</span><span class="stat-value">${data.ratios.debtToAsset}%</span></div>
+                    `;
+                } else {
+                    body.innerHTML = `<p style="color:var(--text-secondary);">No financial data available</p>`;
+                    if (data.recommendation) body.innerHTML += `<div class="recommendation"><i class="fas fa-lightbulb"></i> ${data.recommendation}</div>`;
+                }
+            } catch (error) {
+                console.error('Error loading financial statement:', error);
+            }
+        }
+
+        async function loadCashFlow() {
+            try {
+                const data = await apiCall('getCashFlowProjection');
+                reportCache.cashFlow = data;
+                updateStatus('cashFlowStatus', data.success && data.summary);
+
+                const body = document.getElementById('cashFlowBody');
+                if (data.success && data.summary) {
+                    body.innerHTML = `
+                        <div class="stat-row"><span class="stat-label">Projected Revenue</span><span class="stat-value good">$${data.summary.totalProjectedRevenue.toLocaleString()}</span></div>
+                        <div class="stat-row"><span class="stat-label">Projected Expenses</span><span class="stat-value">$${data.summary.totalProjectedExpenses.toLocaleString()}</span></div>
+                        <div class="stat-row"><span class="stat-label">Net Cash Flow</span><span class="stat-value ${data.summary.netAnnualCashFlow >= 0 ? 'good' : 'danger'}">$${data.summary.netAnnualCashFlow.toLocaleString()}</span></div>
+                        <div class="stat-row"><span class="stat-label">Lowest Month</span><span class="stat-value">${data.summary.lowestCashMonth}</span></div>
+                    `;
+                    if (data.recommendation) body.innerHTML += `<div class="recommendation"><i class="fas fa-info-circle"></i> ${data.recommendation}</div>`;
+                } else {
+                    body.innerHTML = `<p style="color:var(--text-secondary);">No cash flow data available</p>`;
+                }
+            } catch (error) {
+                console.error('Error loading cash flow:', error);
+            }
+        }
+
+        async function loadAssetRegister() {
+            try {
+                const data = await apiCall('getAssetRegister');
+                reportCache.assets = data;
+                updateStatus('assetStatus', data.hasData);
+
+                const body = document.getElementById('assetBody');
+                if (data.success && data.hasData) {
+                    body.innerHTML = `
+                        <div class="stat-row"><span class="stat-label">Total Assets</span><span class="stat-value">${data.assets.length}</span></div>
+                        <div class="stat-row"><span class="stat-label">Total Value</span><span class="stat-value good">$${data.totalValue.toLocaleString()}</span></div>
+                        <div class="stat-row"><span class="stat-label">Total Depreciation</span><span class="stat-value">$${data.totalDepreciation.toLocaleString()}</span></div>
+                        <div class="stat-row"><span class="stat-label">Equipment Count</span><span class="stat-value">${data.summary.equipmentCount}</span></div>
+                    `;
+                } else {
+                    body.innerHTML = `<p style="color:var(--text-secondary);">No assets tracked</p>`;
+                    if (data.recommendation) body.innerHTML += `<div class="recommendation"><i class="fas fa-lightbulb"></i> ${data.recommendation}</div>`;
+                }
+            } catch (error) {
+                console.error('Error loading assets:', error);
+            }
+        }
+
+        async function loadProductionReport() {
+            try {
+                const data = await apiCall('getProductionReport');
+                reportCache.production = data;
+                updateStatus('prodStatus', data.hasData);
+
+                const body = document.getElementById('prodBody');
+                if (data.success && data.hasData) {
+                    body.innerHTML = `
+                        <div class="stat-row"><span class="stat-label">Total Crops</span><span class="stat-value">${data.totalCrops}</span></div>
+                        <div class="stat-row"><span class="stat-label">Total Plantings</span><span class="stat-value">${data.summary.totalPlantings}</span></div>
+                        <div class="stat-row"><span class="stat-label">Total Harvested</span><span class="stat-value">${data.summary.totalHarvested.toLocaleString()} lbs</span></div>
+                        <div class="stat-row"><span class="stat-label">Top Crop</span><span class="stat-value good">${data.summary.topCropByRevenue}</span></div>
+                    `;
+                } else {
+                    body.innerHTML = `<p style="color:var(--text-secondary);">No production data for ${selectedYear}</p>`;
+                }
+            } catch (error) {
+                console.error('Error loading production:', error);
+            }
+        }
+
+        async function loadSalesSummary() {
+            try {
+                const data = await apiCall('getSalesSummaryReport');
+                reportCache.salesSummary = data;
+                updateStatus('salesSummaryStatus', data.success && data.grandTotal > 0);
+
+                const body = document.getElementById('salesSummaryBody');
+                if (data.success) {
+                    body.innerHTML = `
+                        <div class="stat-row"><span class="stat-label">Wholesale</span><span class="stat-value">$${data.wholesale.total.toLocaleString()}</span></div>
+                        <div class="stat-row"><span class="stat-label">CSA</span><span class="stat-value">$${data.csa.total.toLocaleString()} (${data.csa.members} members)</span></div>
+                        <div class="stat-row"><span class="stat-label">Farmers Market</span><span class="stat-value">$${data.farmersMarket.total.toLocaleString()}</span></div>
+                        <div class="stat-row"><span class="stat-label">Grand Total</span><span class="stat-value good">$${data.grandTotal.toLocaleString()}</span></div>
+                    `;
+                    if (data.yearOverYear.changePercent !== 0) {
+                        const changeClass = data.yearOverYear.changePercent > 0 ? 'good' : 'danger';
+                        const changeSign = data.yearOverYear.changePercent > 0 ? '+' : '';
+                        body.innerHTML += `<div class="recommendation"><i class="fas fa-chart-line"></i> YoY Change: <span class="${changeClass}">${changeSign}${data.yearOverYear.changePercent}%</span></div>`;
+                    }
+                } else {
+                    body.innerHTML = `<p style="color:var(--text-secondary);">No sales data for ${selectedYear}</p>`;
+                }
+            } catch (error) {
+                console.error('Error loading sales summary:', error);
+            }
+        }
+
+        async function loadLaborReport() {
+            try {
+                const data = await apiCall('getLaborReport');
+                reportCache.labor = data;
+                updateStatus('laborStatus', data.success && data.totalHours > 0);
+
+                const body = document.getElementById('laborBody');
+                if (data.success && data.totalHours > 0) {
+                    body.innerHTML = `
+                        <div class="stat-row"><span class="stat-label">Total Hours</span><span class="stat-value">${data.totalHours.toLocaleString()}</span></div>
+                        <div class="stat-row"><span class="stat-label">Total Labor Cost</span><span class="stat-value">$${data.totalCost.toLocaleString()}</span></div>
+                        <div class="stat-row"><span class="stat-label">Avg Hourly Rate</span><span class="stat-value">$${data.avgHourlyRate}</span></div>
+                        <div class="stat-row"><span class="stat-label">Peak Month</span><span class="stat-value">${data.productivity.peakMonth}</span></div>
+                    `;
+                } else {
+                    body.innerHTML = `<p style="color:var(--text-secondary);">No labor data for ${selectedYear}</p>`;
+                }
+            } catch (error) {
+                console.error('Error loading labor:', error);
+            }
+        }
+
+        // ORGANIC REPORTS LOADING
+        async function loadOrganicReports() {
+            loadOrganicComplianceStatus();
+            loadSeedReport();
+            loadFieldReport();
+            loadInputReport();
+            loadHarvestReport();
+            loadTraceReport();
+            loadPestReport();
+        }
+
+        async function loadOrganicComplianceStatus() {
+            try {
+                const data = await apiCall('getOrganicComplianceStatus');
+                if (data.success) {
+                    reportCache.compliance = data;
+
+                    const scoreCircle = document.getElementById('organicScoreCircle');
+                    const scoreValue = document.getElementById('organicScoreValue');
+                    const gradeBadge = document.getElementById('organicGradeBadge');
+                    const statusMessage = document.getElementById('organicStatusMessage');
+
+                    scoreValue.textContent = data.readinessPercent + '%';
+                    scoreCircle.className = 'score-circle ' +
+                        (data.readinessPercent >= 80 ? 'good' : data.readinessPercent >= 50 ? 'warning' : 'danger');
+
+                    gradeBadge.textContent = data.traceabilityGrade || '--';
+                    gradeBadge.className = 'grade-badge ' + (data.traceabilityGrade || 'D');
+                    gradeBadge.style.display = 'block';
+                    statusMessage.textContent = data.message;
+
+                    // Update checklist
+                    const container = document.getElementById('organicChecklistContainer');
+                    container.innerHTML = data.checks.map(check => `
+                        <li>
+                            <div class="check-icon ${check.status ? 'passed' : 'failed'}">
+                                <i class="fas fa-${check.status ? 'check' : 'times'}"></i>
+                            </div>
+                            <span>${check.name}</span>
+                            <span style="margin-left:auto;color:var(--text-secondary);">
+                                ${check.count} records
+                            </span>
+                        </li>
+                    `).join('');
+
+                    const gapsContainer = document.getElementById('organicGapsContainer');
+                    if (data.gaps && data.gaps.length > 0) {
+                        gapsContainer.innerHTML = `
+                            <div class="gaps-list">
+                                <h4><i class="fas fa-exclamation-triangle"></i> Compliance Gaps</h4>
+                                <ul>${data.gaps.map(gap => `<li>${gap}</li>`).join('')}</ul>
+                            </div>
+                        `;
+                    } else {
+                        gapsContainer.innerHTML = '';
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load compliance status:', error);
+            }
+        }
+
+        async function loadSeedReport() {
+            try {
+                const data = await apiCall('getSeedSourceReport');
+                reportCache.seed = data;
+                updateStatus('seedStatus', data.hasData);
+
+                const body = document.getElementById('seedBody');
+                if (data.success && data.hasData) {
+                    body.innerHTML = `
+                        <div class="stat-row"><span class="stat-label">Total Seed Lots</span><span class="stat-value">${data.totalSeeds}</span></div>
+                        <div class="stat-row"><span class="stat-label">Organic Seeds</span><span class="stat-value good">${data.organicSeeds}</span></div>
+                        <div class="stat-row"><span class="stat-label">Conventional</span><span class="stat-value ${data.conventionalSeeds > 0 ? 'warning' : 'good'}">${data.conventionalSeeds}</span></div>
+                    `;
+                } else {
+                    body.innerHTML = `<p style="color:var(--text-secondary);">No seed records found</p>`;
+                }
+            } catch (error) {
+                console.error('Error loading seed report:', error);
+            }
+        }
+
+        async function loadFieldReport() {
+            try {
+                const data = await apiCall('getFieldHistoryReport');
+                reportCache.field = data;
+                updateStatus('fieldStatus', data.hasData);
+
+                const body = document.getElementById('fieldBody');
+                if (data.success && data.hasData) {
+                    body.innerHTML = `
+                        <div class="stat-row"><span class="stat-label">Total Fields</span><span class="stat-value">${Object.keys(data.fields).length}</span></div>
+                        <div class="stat-row"><span class="stat-label">With Activity</span><span class="stat-value">${data.fieldsWithActivity}</span></div>
+                        <div class="stat-row"><span class="stat-label">Total Plantings</span><span class="stat-value good">${data.totalPlantings}</span></div>
+                    `;
+                } else {
+                    body.innerHTML = `<p style="color:var(--text-secondary);">No field records found</p>`;
+                }
+            } catch (error) {
+                console.error('Error loading field report:', error);
+            }
+        }
+
+        async function loadInputReport() {
+            try {
+                const data = await apiCall('getInputApplicationReport');
+                reportCache.input = data;
+                updateStatus('inputStatus', data.hasData);
+
+                const body = document.getElementById('inputBody');
+                if (data.success && data.hasData) {
+                    body.innerHTML = `
+                        <div class="stat-row"><span class="stat-label">Total Applications</span><span class="stat-value">${data.totalApplications}</span></div>
+                        <div class="stat-row"><span class="stat-label">OMRI Approved</span><span class="stat-value good">${data.omriApproved}</span></div>
+                        <div class="stat-row"><span class="stat-label">Non-OMRI</span><span class="stat-value ${data.nonOmriCount > 0 ? 'warning' : 'good'}">${data.nonOmriCount}</span></div>
+                    `;
+                } else {
+                    body.innerHTML = `<p style="color:var(--text-secondary);">No input records found</p>`;
+                }
+            } catch (error) {
+                console.error('Error loading input report:', error);
+            }
+        }
+
+        async function loadHarvestReport() {
+            try {
+                const data = await apiCall('getHarvestReport');
+                reportCache.harvest = data;
+                updateStatus('harvestStatus', data.hasData);
+
+                const body = document.getElementById('harvestBody');
+                if (data.success && data.hasData) {
+                    body.innerHTML = `
+                        <div class="stat-row"><span class="stat-label">Total Harvests</span><span class="stat-value">${data.totalHarvests}</span></div>
+                        <div class="stat-row"><span class="stat-label">With Lot Numbers</span><span class="stat-value good">${data.withLotNumbers}</span></div>
+                        <div class="stat-row"><span class="stat-label">Missing Lot #</span><span class="stat-value ${data.missingLotNumbers > 0 ? 'danger' : 'good'}">${data.missingLotNumbers}</span></div>
+                    `;
+                } else {
+                    body.innerHTML = `<p style="color:var(--text-secondary);">No harvest records found</p>`;
+                }
+            } catch (error) {
+                console.error('Error loading harvest report:', error);
+            }
+        }
+
+        async function loadTraceReport() {
+            try {
+                const data = await apiCall('getTraceabilityReport');
+                reportCache.trace = data;
+                updateStatus('traceStatus', data.hasData);
+
+                const body = document.getElementById('traceBody');
+                if (data.success && data.hasData) {
+                    body.innerHTML = `
+                        <div class="stat-row"><span class="stat-label">Traceability Score</span><span class="stat-value good">${data.traceabilityScore}%</span></div>
+                        <div class="stat-row"><span class="stat-label">Grade</span><span class="stat-value">${data.traceabilityGrade}</span></div>
+                        <div class="stat-row"><span class="stat-label">Gaps Found</span><span class="stat-value ${data.gaps.length > 0 ? 'warning' : 'good'}">${data.gaps.length}</span></div>
+                    `;
+                } else {
+                    body.innerHTML = `<p style="color:var(--text-secondary);">Insufficient data for traceability</p>`;
+                }
+            } catch (error) {
+                console.error('Error loading trace report:', error);
+            }
+        }
+
+        async function loadPestReport() {
+            try {
+                const data = await apiCall('getPestManagementReport');
+                reportCache.pest = data;
+                updateStatus('pestStatus', data.hasData);
+
+                const body = document.getElementById('pestBody');
+                if (data.success && data.hasData) {
+                    body.innerHTML = `
+                        <div class="stat-row"><span class="stat-label">Total Observations</span><span class="stat-value">${data.totalObservations}</span></div>
+                        <div class="stat-row"><span class="stat-label">Treatments</span><span class="stat-value">${data.treatments}</span></div>
+                        <div class="stat-row"><span class="stat-label">Observation Only</span><span class="stat-value">${data.observationsOnly}</span></div>
+                    `;
+                } else {
+                    body.innerHTML = `<p style="color:var(--text-secondary);">No pest records found</p>`;
+                }
+            } catch (error) {
+                console.error('Error loading pest report:', error);
+            }
+        }
+
+        // FINANCIAL SUMMARY
+        async function loadFinancialSummary() {
+            try {
+                const data = await apiCall('getFinancialStatement');
+                if (data.success) {
+                    document.getElementById('totalAssets').textContent = '$' + (data.assets?.total || 0).toLocaleString();
+                    document.getElementById('totalLiabilities').textContent = '$' + (data.liabilities?.total || 0).toLocaleString();
+                    document.getElementById('netWorth').textContent = '$' + (data.equity?.ownersEquity || 0).toLocaleString();
+                    document.getElementById('totalRevenue').textContent = '$' + (data.revenue?.total || 0).toLocaleString();
+                }
+            } catch (error) {
+                console.error('Error loading financial summary:', error);
+            }
+        }
+
+        // UTILITY FUNCTIONS
+        function updateStatus(elementId, hasData) {
+            const status = document.getElementById(elementId);
+            if (hasData) {
+                status.className = 'status-indicator good';
+                status.innerHTML = '<i class="fas fa-check"></i>';
+            } else {
+                status.className = 'status-indicator warning';
+                status.innerHTML = '<i class="fas fa-minus"></i>';
+            }
+        }
+
+        async function viewReport(action, title) {
+            const modal = document.getElementById('dataModal');
+            const modalBody = document.getElementById('modalBody');
+            document.getElementById('modalTitle').textContent = title;
+            currentReportName = action;
+
+            modal.classList.add('active');
+            modalBody.innerHTML = '<div class="loading"><div class="spinner"></div> Loading report...</div>';
+
+            try {
+                const data = await apiCall(action);
+                currentReportData = data;
+
+                modalBody.innerHTML = `<div class="data-preview">${JSON.stringify(data, null, 2)}</div>`;
+            } catch (error) {
+                modalBody.innerHTML = `<p style="color:var(--danger);">Error loading report: ${error.message}</p>`;
+            }
+        }
+
+        async function downloadReport(action, filename) {
+            try {
+                const data = await apiCall(action);
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${filename}_${selectedYear}_${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                alert('Error downloading report: ' + error.message);
+            }
+        }
+
+        async function generateCompleteLoanPackage() {
+            try {
+                const data = await apiCall('generateComprehensiveLoanPackage');
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `loan_package_${selectedYear}_${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                alert('Loan package generated successfully!');
+            } catch (error) {
+                alert('Error generating loan package: ' + error.message);
+            }
+        }
+
+        async function generateOrganicPackage() {
+            try {
+                const data = await apiCall('generateOrganicAuditPackage');
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `organic_audit_package_${selectedYear}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                alert('Organic audit package generated successfully!');
+            } catch (error) {
+                alert('Error generating organic package: ' + error.message);
+            }
+        }
+
+        async function exportAllReports() {
+            try {
+                const data = await apiCall('exportAllReportsPackage');
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `all_reports_${selectedYear}_${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                alert('All reports exported successfully!');
+            } catch (error) {
+                alert('Error exporting reports: ' + error.message);
+            }
+        }
+
+        async function printLoanPackage() {
+            // Open loan package in viewer for print
+            await viewReport('generateLoanPackage', 'Complete Loan Package');
+            setTimeout(() => window.print(), 500);
+        }
+
+        function closeModal() {
+            document.getElementById('dataModal').classList.remove('active');
+            currentReportData = null;
+        }
+
+        function copyReportData() {
+            if (currentReportData) {
+                navigator.clipboard.writeText(JSON.stringify(currentReportData, null, 2));
+                alert('Report data copied to clipboard!');
+            }
+        }
+
+        function downloadCurrentReport() {
+            if (currentReportData) {
+                const blob = new Blob([JSON.stringify(currentReportData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${currentReportName}_${selectedYear}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+        }
+
+        // Close modal on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+
+        // Close modal on overlay click
+        document.getElementById('dataModal').addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal-overlay')) closeModal();
+        });
+    </script>
+</body>
+</html>
