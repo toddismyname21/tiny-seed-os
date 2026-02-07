@@ -905,7 +905,16 @@
         <div class="card">
             <div class="card-header">
                 <h2><i class="fas fa-building-columns"></i> Lender-Specific Requirements</h2>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <span id="lenderDocCount" style="background: var(--primary); padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.8rem;">0 docs tracked</span>
+                    <button class="btn btn-secondary btn-sm" onclick="syncDocuments()">
+                        <i class="fas fa-sync-alt"></i> Sync
+                    </button>
+                </div>
             </div>
+            <p style="margin-bottom: 1rem; color: var(--text-secondary); font-size: 0.9rem;">
+                <i class="fas fa-info-circle"></i> Mark documents as "Have" in the Document Vault tab, then come back here to see your updated readiness scores.
+            </p>
             <div class="lenders-grid" id="lenderChecklists">
                 <!-- Populated by JavaScript -->
             </div>
@@ -1705,12 +1714,16 @@
         }
 
         function renderLenderChecklists() {
+            console.log('🏦 Rendering lender checklists...');
+            console.log('🏦 Current uploadedDocuments:', Object.keys(uploadedDocuments));
+
             const container = document.getElementById('lenderChecklists');
             container.innerHTML = '';
 
             Object.keys(LENDERS).forEach(lenderId => {
                 const lender = LENDERS[lenderId];
                 const readiness = calculateLenderReadiness(lenderId);
+                console.log(`🏦 ${lender.shortName}: ${readiness.score}% (${readiness.complete}/${readiness.total})`);
 
                 const card = document.createElement('div');
                 card.className = 'lender-card';
@@ -2157,13 +2170,23 @@
             }
         }
 
-        // Update the document count badge
+        // Update the document count badges
         function updateDocCountBadge() {
-            const badge = document.getElementById('docCountBadge');
-            if (badge) {
-                const count = Object.keys(uploadedDocuments).length;
-                badge.textContent = `${count} doc${count !== 1 ? 's' : ''}`;
+            const count = Object.keys(uploadedDocuments).length;
+
+            const vaultBadge = document.getElementById('docCountBadge');
+            if (vaultBadge) {
+                vaultBadge.textContent = `${count} doc${count !== 1 ? 's' : ''}`;
             }
+
+            const lenderBadge = document.getElementById('lenderDocCount');
+            if (lenderBadge) {
+                lenderBadge.textContent = `${count} doc${count !== 1 ? 's' : ''} tracked`;
+            }
+
+            // Log for debugging
+            console.log(`📊 Document count updated: ${count} documents`);
+            console.log('📊 Document IDs:', Object.keys(uploadedDocuments));
         }
 
         // Mark a document as "have" without uploading
