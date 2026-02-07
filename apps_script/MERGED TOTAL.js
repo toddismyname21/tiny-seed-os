@@ -13761,6 +13761,8 @@ function doGet(e) {
         return jsonResponse(getOptimalSendTime(e.parameter));
       case 'getInstagramInsights':
         return jsonResponse(getInstagramInsights(e.parameter));
+      case 'debugInstagramTokens':
+        return jsonResponse(debugInstagramTokens());
       case 'getNeighborSignups':
         return jsonResponse(getNeighborSignups(e.parameter));
       case 'getSocialStats':
@@ -58036,6 +58038,67 @@ function testInstagramPost() {
     });
     Logger.log(JSON.stringify(result, null, 2));
     return result;
+}
+
+/**
+ * Get current Instagram configuration status AND test tokens
+ * Callable via API: ?action=debugInstagramTokens
+ */
+function debugInstagramTokens() {
+    const props = PropertiesService.getScriptProperties();
+    const accounts = JSON.parse(props.getProperty('instagram_accounts') || '[]');
+    const results = [];
+
+    for (let i = 0; i < accounts.length; i++) {
+        const account = accounts[i];
+        const token = props.getProperty(`ig_token_${i}`);
+        const result = {
+            index: i,
+            name: account.name,
+            igUserId: account.igUserId,
+            hasToken: !!token,
+            tokenPreview: token ? token.substring(0, 20) + '...' : 'MISSING',
+            status: 'unknown',
+            followers: null,
+            error: null
+        };
+
+        if (token && account.igUserId) {
+            try {
+                const apiResult = JSON.parse(UrlFetchApp.fetch(
+                    `https://graph.facebook.com/v24.0/${account.igUserId}?fields=id,username,followers_count&access_token=${token}`,
+                    { muteHttpExceptions: true }
+                ).getContentText());
+
+                if (apiResult.error) {
+                    result.status = 'TOKEN_EXPIRED';
+                    result.error = apiResult.error.message;
+                } else {
+                    result.status = 'VALID';
+                    result.followers = apiResult.followers_count;
+                    result.username = apiResult.username;
+                }
+            } catch (e) {
+                result.status = 'API_ERROR';
+                result.error = e.toString();
+            }
+        } else {
+            result.status = token ? 'MISSING_USER_ID' : 'MISSING_TOKEN';
+        }
+
+        results.push(result);
+    }
+
+    return {
+        success: true,
+        accountsConfigured: accounts.length,
+        accounts: results,
+        recommendation: results.some(r => r.status === 'TOKEN_EXPIRED')
+            ? 'Some tokens are expired. Go to Meta Developer Console to generate new tokens.'
+            : results.every(r => r.status === 'VALID')
+                ? 'All tokens are valid!'
+                : 'Check account configuration'
+    };
 }
 
 /**
