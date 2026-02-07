@@ -387,6 +387,30 @@
             color: var(--success);
         }
 
+        /* Action buttons in rankings table */
+        .rank-action-btn {
+            padding: 0.35rem 0.7rem;
+            background: linear-gradient(135deg, var(--primary), var(--success));
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+        .rank-action-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px rgba(34, 197, 94, 0.4);
+        }
+        .rank-action-btn i {
+            font-size: 0.65rem;
+        }
+
         /* Citation Tiers */
         .tier-item {
             display: flex;
@@ -760,7 +784,7 @@
         }
 
         .wizard-insight {
-            padding: 0.5rem;
+            padding: 0.75rem;
             margin-bottom: 0.5rem;
             background: rgba(0,0,0,0.2);
             border-radius: 8px;
@@ -768,6 +792,22 @@
             display: flex;
             align-items: flex-start;
             gap: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+
+        .wizard-insight:hover {
+            background: rgba(255,255,255,0.1);
+            transform: translateX(4px);
+            border-color: var(--primary);
+        }
+
+        .wizard-insight::after {
+            content: '→';
+            margin-left: auto;
+            opacity: 0.5;
+            font-size: 0.9rem;
         }
 
         .wizard-insight:last-child {
@@ -787,6 +827,177 @@
         .wizard-insight.opportunity {
             border: 1px solid var(--gold);
             background: rgba(255, 215, 0, 0.1);
+        }
+
+        /* ACTION PANEL - Slide out with step-by-step instructions */
+        .action-panel-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .action-panel-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .action-panel {
+            position: fixed;
+            top: 0;
+            right: -500px;
+            width: 480px;
+            max-width: 100%;
+            height: 100vh;
+            background: var(--bg-card);
+            z-index: 1000;
+            transition: right 0.3s ease;
+            overflow-y: auto;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+        }
+
+        .action-panel.active {
+            right: 0;
+        }
+
+        .action-panel-header {
+            padding: 1.5rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--success) 100%);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .action-panel-header h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .action-panel-header p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .action-panel-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.25rem;
+        }
+
+        .action-panel-body {
+            padding: 1.5rem;
+        }
+
+        .action-step {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .action-step:last-child {
+            border-bottom: none;
+        }
+
+        .step-number {
+            width: 32px;
+            height: 32px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .step-content h4 {
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .step-content p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .step-content a {
+            color: var(--primary);
+            text-decoration: underline;
+        }
+
+        .action-panel-footer {
+            padding: 1.5rem;
+            background: var(--bg-light);
+            position: sticky;
+            bottom: 0;
+        }
+
+        .action-panel-footer .btn {
+            width: 100%;
+            padding: 1rem;
+            font-size: 1rem;
+        }
+
+        .time-estimate {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(255,255,255,0.1);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Ranking action buttons */
+        .ranking-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .ranking-action-btn {
+            padding: 4px 8px;
+            font-size: 0.7rem;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .ranking-action-btn.improve {
+            background: var(--primary);
+            color: white;
+        }
+
+        .ranking-action-btn.blog {
+            background: var(--info);
+            color: white;
+        }
+
+        .ranking-action-btn.gbp {
+            background: var(--warning);
+            color: black;
         }
 
         /* Keyword Category Tiles */
@@ -1494,26 +1705,48 @@
         // API STATUS & AUTOMATION
         // ============================================
         async function checkAPIStatus() {
+            const serpBadge = document.getElementById('serpapi-status');
+            const triggerBadge = document.getElementById('trigger-status');
+
             try {
                 const status = await callAPI('getSEOAPIStatus', {});
 
                 // SerpAPI Status
-                const serpBadge = document.getElementById('serpapi-status');
                 if (status.serpapi) {
                     serpBadge.innerHTML = '<i class="fas fa-circle" style="color: var(--success);"></i> SerpAPI: Connected';
                 } else {
-                    serpBadge.innerHTML = '<i class="fas fa-circle" style="color: var(--danger);"></i> SerpAPI: Not configured';
+                    serpBadge.innerHTML = '<i class="fas fa-circle" style="color: var(--danger);"></i> SerpAPI: Not configured <button onclick="initializeSEO()" style="margin-left:8px;padding:2px 8px;background:var(--primary);border:none;border-radius:4px;color:white;cursor:pointer;font-size:11px;">Initialize</button>';
                 }
 
                 // Daily Trigger Status
-                const triggerBadge = document.getElementById('trigger-status');
                 if (status.dailyTriggerActive) {
                     triggerBadge.innerHTML = '<i class="fas fa-circle" style="color: var(--success);"></i> Daily Check: Active (7 AM)';
                 } else {
                     triggerBadge.innerHTML = '<i class="fas fa-circle" style="color: var(--warning);"></i> Daily Check: Not scheduled';
                 }
             } catch (e) {
-                console.log('Could not check API status');
+                console.error('API Status check failed:', e);
+                serpBadge.innerHTML = '<i class="fas fa-circle" style="color: var(--warning);"></i> Checking... <button onclick="initializeSEO()" style="margin-left:8px;padding:2px 8px;background:var(--primary);border:none;border-radius:4px;color:white;cursor:pointer;font-size:11px;">Initialize</button>';
+                triggerBadge.innerHTML = '<i class="fas fa-clock"></i> Status unavailable';
+            }
+        }
+
+        async function initializeSEO() {
+            const serpBadge = document.getElementById('serpapi-status');
+            serpBadge.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Initializing...';
+
+            try {
+                const result = await callAPI('initializeSEOAutomation', {});
+                if (result.success) {
+                    showToast('SEO Automation initialized! SerpAPI is now connected.');
+                    checkAPIStatus();
+                } else {
+                    showToast('Initialization failed: ' + (result.error || 'Unknown error'));
+                    serpBadge.innerHTML = '<i class="fas fa-circle" style="color: var(--danger);"></i> Init failed - check settings';
+                }
+            } catch (e) {
+                showToast('Error: ' + e.message);
+                serpBadge.innerHTML = '<i class="fas fa-circle" style="color: var(--danger);"></i> Error - <button onclick="initializeSEO()" style="margin-left:4px;padding:2px 8px;background:var(--primary);border:none;border-radius:4px;color:white;cursor:pointer;font-size:11px;">Retry</button>';
             }
         }
 
@@ -1764,7 +1997,9 @@
                     priorityActions.push({
                         icon: 'fa-arrow-down',
                         text: `"${kw.keyword}" dropped ${Math.abs(kw.change)} positions - investigate!`,
-                        urgent: Math.abs(kw.change) >= 3
+                        urgent: Math.abs(kw.change) >= 3,
+                        actionType: 'keyword_drop',
+                        keyword: kw.keyword
                     });
                 });
 
@@ -1776,7 +2011,8 @@
                     opportunities.push({
                         icon: 'fa-lightbulb',
                         text: `${notRanking.length} keywords not yet tracked - start monitoring!`,
-                        opportunity: true
+                        opportunity: true,
+                        actionType: 'general'
                     });
                 }
 
@@ -1786,7 +2022,9 @@
                     opportunities.push({
                         icon: 'fa-crown',
                         text: `"${kw.keyword}" at #${kw.currentRank} - push for #1!`,
-                        opportunity: true
+                        opportunity: true,
+                        actionType: 'push_for_top',
+                        keyword: kw.keyword
                     });
                 });
             }
@@ -1797,14 +2035,16 @@
                     priorityActions.push({
                         icon: 'fa-comment',
                         text: `${reviews.needsResponse} reviews need responses - reply within 24h!`,
-                        urgent: true
+                        urgent: true,
+                        actionType: 'respond_reviews'
                     });
                 }
 
                 if ((reviews.total || 0) < 50) {
                     weeklyFocus.push({
                         icon: 'fa-star',
-                        text: `Only ${reviews.total} reviews - target 5 new reviews this week`
+                        text: `Only ${reviews.total} reviews - target 5 new reviews this week`,
+                        actionType: 'get_reviews'
                     });
                 }
 
@@ -1812,7 +2052,8 @@
                     priorityActions.push({
                         icon: 'fa-star-half-alt',
                         text: `Average ${(reviews.averageRating || 0).toFixed(1)} stars - work to improve!`,
-                        urgent: false
+                        urgent: false,
+                        actionType: 'respond_reviews'
                     });
                 }
             }
@@ -1824,7 +2065,8 @@
                     priorityActions.push({
                         icon: 'fa-map-marker-alt',
                         text: `Complete Tier 1 citations (${5 - tier1Count} remaining)`,
-                        urgent: tier1Count < 3
+                        urgent: tier1Count < 3,
+                        actionType: 'build_citations'
                     });
                 }
 
@@ -1832,7 +2074,8 @@
                 if (totalCitations < 20) {
                     weeklyFocus.push({
                         icon: 'fa-building',
-                        text: `Build more citations - target 3 new directories this week`
+                        text: `Build more citations - target 3 new directories this week`,
+                        actionType: 'build_citations'
                     });
                 }
             }
@@ -1840,11 +2083,13 @@
             // Competitor intelligence (proactive insights)
             competitorAlerts.push({
                 icon: 'fa-eye',
-                text: 'Run weekly competitor ranking check to track Harvie'
+                text: 'Run weekly competitor ranking check to track Harvie',
+                actionType: 'general'
             });
             competitorAlerts.push({
                 icon: 'fa-chart-bar',
-                text: 'Monitor "CSA pittsburgh" and "best CSA pittsburgh" daily'
+                text: 'Monitor "CSA pittsburgh" and "best CSA pittsburgh" daily',
+                actionType: 'general'
             });
 
             // Seasonal opportunities
@@ -1853,25 +2098,29 @@
                 opportunities.push({
                     icon: 'fa-seedling',
                     text: 'CSA signup season - boost CSA-related keywords NOW!',
-                    opportunity: true
+                    opportunity: true,
+                    actionType: 'seasonal_push'
                 });
             }
             if (month >= 4 && month <= 6) { // May-Jul
                 opportunities.push({
                     icon: 'fa-sun',
                     text: 'Peak growing season - push "farm delivery" keywords',
-                    opportunity: true
+                    opportunity: true,
+                    actionType: 'seasonal_push'
                 });
             }
 
             // Weekly focus recommendations
             weeklyFocus.push({
                 icon: 'fa-pen',
-                text: 'Post 2 blog articles with target keywords'
+                text: 'Post 2 blog articles with target keywords',
+                actionType: 'write_blog'
             });
             weeklyFocus.push({
                 icon: 'fa-camera',
-                text: 'Add 5 new photos to Google Business Profile'
+                text: 'Add 5 new photos to Google Business Profile',
+                actionType: 'add_photos_gbp'
             });
 
             // Default messages if empty
@@ -1896,12 +2145,185 @@
                 return;
             }
 
-            container.innerHTML = items.map(item => `
-                <div class="wizard-insight ${item.urgent ? 'urgent' : ''} ${item.opportunity ? 'opportunity' : ''}">
+            container.innerHTML = items.map((item, index) => `
+                <div class="wizard-insight ${item.urgent ? 'urgent' : ''} ${item.opportunity ? 'opportunity' : ''}"
+                     onclick="openActionGuide('${item.actionType || 'general'}', '${encodeURIComponent(item.text)}', '${item.keyword || ''}')">
                     <i class="fas ${item.icon}"></i>
                     <span>${item.text}</span>
                 </div>
             `).join('');
+        }
+
+        // ============================================
+        // ACTION GUIDES - Step-by-step instructions for each action type
+        // ============================================
+        const ACTION_GUIDES = {
+            'keyword_drop': {
+                title: 'Fix Keyword Ranking Drop',
+                subtitle: 'Recover your lost ranking position',
+                time: '30-60 minutes',
+                startUrl: 'https://business.google.com',
+                steps: [
+                    { title: 'Check for Technical Issues', desc: 'Open Google Search Console → Coverage → Look for errors. Fix any crawl or indexing issues first.' },
+                    { title: 'Update Your Content', desc: 'Find the page ranking for this keyword. Add 200-500 more words of helpful content. Include the keyword naturally 2-3 more times.' },
+                    { title: 'Add Fresh Media', desc: 'Upload 2-3 new photos to that page. Add alt text containing your keyword. Consider adding a short video.' },
+                    { title: 'Build Internal Links', desc: 'Link to this page from 3-5 other pages on your site. Use the keyword as anchor text.' },
+                    { title: 'Post to Google Business Profile', desc: 'Create a GBP post mentioning this topic/keyword. Add a photo and call-to-action.' }
+                ]
+            },
+            'push_for_top': {
+                title: 'Push to #1 Position',
+                subtitle: 'You\'re close - here\'s how to claim the top spot',
+                time: '2-3 hours',
+                startUrl: 'https://business.google.com',
+                steps: [
+                    { title: 'Analyze the #1 Competitor', desc: 'Search this keyword → Click the #1 result → Note: How long is their content? What topics do they cover? What\'s their page structure?' },
+                    { title: 'Create 10x Better Content', desc: 'Your page must be MORE helpful. Add comprehensive FAQ section, include more details, add customer testimonials about this topic.' },
+                    { title: 'Get 3-5 New Reviews Mentioning This', desc: 'Ask recent customers to leave Google reviews. Prompt them to mention the specific product/service related to this keyword.' },
+                    { title: 'Build 2-3 Local Backlinks', desc: 'Reach out to local Pittsburgh blogs, food websites, or partner businesses. Ask them to link to your page.' },
+                    { title: 'Create Supporting Content', desc: 'Write 2 blog posts related to this keyword. Link them to your main page. This builds "topic authority".' }
+                ]
+            },
+            'respond_reviews': {
+                title: 'Respond to Customer Reviews',
+                subtitle: 'Reviews need response within 24 hours for best SEO impact',
+                time: '10-15 minutes',
+                startUrl: 'https://business.google.com',
+                steps: [
+                    { title: 'Open Google Business Profile', desc: 'Go to business.google.com → Reviews. Sort by "Haven\'t replied" to see pending reviews.' },
+                    { title: 'Reply to Positive Reviews', desc: 'Thank them by name. Mention the specific product/service they loved. Keep it personal, not generic.' },
+                    { title: 'Handle Negative Reviews Carefully', desc: 'Apologize sincerely. Offer to make it right. Provide contact info to resolve offline. Never argue publicly.' },
+                    { title: 'Include Keywords Naturally', desc: 'In your response, naturally mention "organic vegetables" or "Pittsburgh CSA" - this helps SEO!' }
+                ]
+            },
+            'get_reviews': {
+                title: 'Get More Customer Reviews',
+                subtitle: 'Reviews are the #1 local ranking factor',
+                time: '15 minutes setup, ongoing',
+                startUrl: null,
+                steps: [
+                    { title: 'Create a Review Link', desc: 'Search "Google review link generator" → Enter your business → Copy the direct review link.' },
+                    { title: 'Add to Email Signature', desc: 'Add a line like: "Love our produce? Leave us a Google review!" with the link.' },
+                    { title: 'Text/Email Recent Customers', desc: 'After delivery, send: "Hi [Name]! Hope you\'re enjoying your veggies. If you have 2 minutes, a Google review would mean the world to us: [link]"' },
+                    { title: 'Add QR Code to Packaging', desc: 'Create a QR code linking to your review page. Print on CSA box inserts or market receipts.' },
+                    { title: 'Set Weekly Goal', desc: 'Aim for 2-3 new reviews per week. Track in a spreadsheet. Celebrate when you hit milestones!' }
+                ]
+            },
+            'build_citations': {
+                title: 'Build Local Citations',
+                subtitle: 'Get listed in directories to boost local SEO',
+                time: '20-30 minutes per citation',
+                startUrl: 'https://www.localharvest.org/farmers-markets/',
+                steps: [
+                    { title: 'Start with Essential Directories', desc: 'These are must-haves: LocalHarvest.org, EatWild.com, Yelp, Facebook Business, Bing Places.' },
+                    { title: 'Ensure NAP Consistency', desc: 'NAP = Name, Address, Phone. Must be EXACTLY the same everywhere. Even "Street" vs "St." matters!' },
+                    { title: 'Add Complete Information', desc: 'For each listing: Add photos, business hours, description (use keywords), website link, all services.' },
+                    { title: 'Claim Existing Listings', desc: 'Search your farm name on Google. If you find listings you didn\'t create, claim them and correct the info.' },
+                    { title: 'Track Your Citations', desc: 'Keep a spreadsheet: Directory name, URL, date added, login info. Check quarterly for accuracy.' }
+                ]
+            },
+            'add_photos_gbp': {
+                title: 'Add Photos to Google Business Profile',
+                subtitle: 'Businesses with photos get 42% more direction requests',
+                time: '15-20 minutes',
+                startUrl: 'https://business.google.com',
+                steps: [
+                    { title: 'Take Fresh Photos This Week', desc: 'Best types: Fresh produce close-ups, farmers at work, CSA boxes being packed, happy customers (with permission), farm landscapes.' },
+                    { title: 'Optimize Before Uploading', desc: 'Rename files with keywords: "organic-tomatoes-pittsburgh-tiny-seed-farm.jpg". Compress to under 1MB.' },
+                    { title: 'Upload to Correct Categories', desc: 'Logo, Cover photo, Interior (farm), Exterior, Products, Team. Fill each category.' },
+                    { title: 'Add to Google Posts Too', desc: 'Every GBP post should include a photo. Post 2-3 times per week for best results.' },
+                    { title: 'Geo-tag Your Photos', desc: 'If possible, enable location on your phone camera. Google values photos taken at your business location.' }
+                ]
+            },
+            'write_blog': {
+                title: 'Write an SEO-Optimized Blog Post',
+                subtitle: 'Content is still king - here\'s how to do it right',
+                time: '1-2 hours',
+                startUrl: null,
+                steps: [
+                    { title: 'Choose Your Target Keyword', desc: 'Pick ONE main keyword (e.g., "organic vegetables Pittsburgh"). Use it in: title, URL, first paragraph, 2-3 subheadings.' },
+                    { title: 'Write 1,500+ Words', desc: 'Longer content ranks better. Include: Introduction, 5-7 sections with H2 headings, FAQ section, conclusion with CTA.' },
+                    { title: 'Add Rich Media', desc: 'Include 3-5 original photos. Add a video if possible. Create an infographic or table. Use descriptive alt text.' },
+                    { title: 'Optimize Technical Elements', desc: 'Meta title (60 chars), meta description (155 chars), URL slug with keyword, internal links to 3-5 other pages.' },
+                    { title: 'Promote After Publishing', desc: 'Share on social media. Email to your list. Create a GBP post about it. This drives initial traffic signals.' }
+                ]
+            },
+            'seasonal_push': {
+                title: 'Seasonal SEO Push',
+                subtitle: 'Capitalize on seasonal search demand',
+                time: '2-3 hours',
+                startUrl: null,
+                steps: [
+                    { title: 'Update Seasonal Landing Pages', desc: 'Update your CSA signup page with current year dates, pricing, and photos. Refresh the content so Google sees it\'s current.' },
+                    { title: 'Create Seasonal Blog Content', desc: 'Write about what\'s in season NOW. "What to Expect in Your February CSA Box" - these get searched!' },
+                    { title: 'Update Google Business Profile', desc: 'Change your GBP description for the season. Update hours if they change. Add seasonal photos.' },
+                    { title: 'Run a GBP Post Campaign', desc: 'Post 3x per week during peak season. Include seasonal keywords, photos of current produce.' },
+                    { title: 'Email Your List with SEO Benefits', desc: 'Emails drive traffic → Traffic signals help SEO. Include links to your seasonal pages.' }
+                ]
+            },
+            'general': {
+                title: 'SEO Action Guide',
+                subtitle: 'General steps to improve your search rankings',
+                time: '30 minutes',
+                startUrl: 'https://business.google.com',
+                steps: [
+                    { title: 'Check Google Business Profile', desc: 'Log in to business.google.com. Make sure all information is current and complete.' },
+                    { title: 'Look for Quick Wins', desc: 'Check for: Unanswered reviews, outdated photos, missing business hours, incomplete descriptions.' },
+                    { title: 'Post Fresh Content', desc: 'Create a new GBP post with a photo. Share what\'s happening at the farm this week.' },
+                    { title: 'Review Your Website', desc: 'Is content up to date? Are there broken links? Is it mobile-friendly? Test on your phone.' },
+                    { title: 'Track Your Progress', desc: 'Check rankings weekly. Note what you changed. Celebrate improvements!' }
+                ]
+            }
+        };
+
+        function openActionGuide(actionType, text, keyword) {
+            const guide = ACTION_GUIDES[actionType] || ACTION_GUIDES['general'];
+            const decodedText = decodeURIComponent(text);
+
+            document.getElementById('actionTitle').innerHTML = `<i class="fas fa-tasks"></i> ${guide.title}`;
+            document.getElementById('actionSubtitle').textContent = guide.subtitle;
+
+            let bodyHtml = `
+                <div class="time-estimate">
+                    <i class="fas fa-clock"></i> ${guide.time}
+                </div>
+                <p style="margin-bottom: 1.5rem; padding: 1rem; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                    <strong>Triggered by:</strong> ${decodedText}
+                </p>
+            `;
+
+            guide.steps.forEach((step, index) => {
+                bodyHtml += `
+                    <div class="action-step">
+                        <div class="step-number">${index + 1}</div>
+                        <div class="step-content">
+                            <h4>${step.title}</h4>
+                            <p>${step.desc}</p>
+                        </div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('actionBody').innerHTML = bodyHtml;
+
+            // Update start button
+            const startBtn = document.getElementById('actionStartBtn');
+            if (guide.startUrl) {
+                startBtn.onclick = () => window.open(guide.startUrl, '_blank');
+                startBtn.innerHTML = '<i class="fas fa-external-link-alt"></i> Open Google Business Profile';
+            } else {
+                startBtn.onclick = () => closeActionPanel();
+                startBtn.innerHTML = '<i class="fas fa-check"></i> Got It!';
+            }
+
+            // Show panel
+            document.getElementById('actionOverlay').classList.add('active');
+            document.getElementById('actionPanel').classList.add('active');
+        }
+
+        function closeActionPanel() {
+            document.getElementById('actionOverlay').classList.remove('active');
+            document.getElementById('actionPanel').classList.remove('active');
         }
 
         function renderKeywordCategories() {
@@ -2113,6 +2535,23 @@
                     const target = kw.target;
                     const progress = rank !== '--' ? Math.max(0, (21 - rank) / 20 * 100) : 0;
 
+                    // Determine the right action based on rank
+                    let actionType = 'general';
+                    let actionLabel = 'Improve';
+                    if (rank === '--' || rank > 20) {
+                        actionType = 'write_blog';
+                        actionLabel = 'Get Ranked';
+                    } else if (rank <= 5) {
+                        actionType = 'push_for_top';
+                        actionLabel = 'Push to #1';
+                    } else if (rank <= 10) {
+                        actionType = 'push_for_top';
+                        actionLabel = 'Top 5';
+                    } else {
+                        actionType = 'keyword_drop';
+                        actionLabel = 'Boost';
+                    }
+
                     html += `
                         <tr>
                             <td><strong>"${kw.keyword}"</strong></td>
@@ -2134,7 +2573,12 @@
                                     <div class="progress-fill" style="width: ${progress}%"></div>
                                 </div>
                             </td>
-                            <td>Target: #${target}</td>
+                            <td style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="white-space: nowrap;">Target: #${target}</span>
+                                <button class="rank-action-btn" onclick="openActionGuide('${actionType}', 'Improve ranking for: ${kw.keyword.replace(/'/g, "\\'")}', '${kw.keyword.replace(/'/g, "\\'")}')">
+                                    <i class="fas fa-rocket"></i> ${actionLabel}
+                                </button>
+                            </td>
                         </tr>
                     `;
                 });
@@ -2503,6 +2947,24 @@
         <div><kbd>H</kbd> Home</div>
         <div><kbd>?</kbd> Toggle help</div>
         <div><kbd>Esc</kbd> Close help</div>
+    </div>
+
+    <!-- ACTION PANEL - Step-by-step guides -->
+    <div class="action-panel-overlay" id="actionOverlay" onclick="closeActionPanel()"></div>
+    <div class="action-panel" id="actionPanel">
+        <div class="action-panel-header">
+            <button class="action-panel-close" onclick="closeActionPanel()">&times;</button>
+            <h3 id="actionTitle"><i class="fas fa-tasks"></i> Action Guide</h3>
+            <p id="actionSubtitle">Follow these steps to complete this task</p>
+        </div>
+        <div class="action-panel-body" id="actionBody">
+            <!-- Steps will be dynamically inserted here -->
+        </div>
+        <div class="action-panel-footer">
+            <button class="btn btn-primary" id="actionStartBtn" onclick="startAction()">
+                <i class="fas fa-rocket"></i> Start Now
+            </button>
+        </div>
     </div>
 </body>
 </html>

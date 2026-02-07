@@ -13783,6 +13783,8 @@ function doGet(e) {
         return jsonResponse(checkCompetitorAds(e.parameter));
       case 'getAIStatus':
         return jsonResponse(getAIStatus(e.parameter));
+      case 'testClaudeConnection':
+        return jsonResponse(testClaudeConnection());
       case 'getRevenueByPost':
         return jsonResponse(getRevenueByPost(e.parameter));
       case 'getRevenueByPlatform':
@@ -59247,27 +59249,33 @@ function getCompetitors(params) {
 function analyzeCompetitorContent(params) {
     try {
         const props = PropertiesService.getScriptProperties();
-        const apiKey = props.getProperty('OPENAI_API_KEY');
-        if (!apiKey) return { success: false, error: 'OpenAI API key not configured' };
+        // Use Anthropic/Claude API instead of OpenAI
+        const apiKey = props.getProperty('ANTHROPIC_API_KEY');
+        if (!apiKey) return { success: false, error: 'Claude API key not configured. Please configure your Anthropic API key.' };
 
-        const response = UrlFetchApp.fetch('https://api.openai.com/v1/chat/completions', {
+        const systemPrompt = `You are a social media marketing analyst for Tiny Seed Farm, a Pittsburgh-area organic farm. Analyze competitor social media content and identify:
+1. Content themes that work well
+2. Posting patterns and timing
+3. Engagement drivers (what gets likes, comments, shares)
+4. Gaps and opportunities for Tiny Seed Farm to differentiate
+
+Return your analysis as JSON in this exact format:
+{"themes": ["theme1", "theme2"], "patterns": ["pattern1", "pattern2"], "drivers": ["driver1", "driver2"], "opportunities": ["opportunity1", "opportunity2"], "recommendation": "One key actionable recommendation"}`;
+
+        const response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
             headers: {
-                'Authorization': 'Bearer ' + apiKey,
+                'x-api-key': apiKey,
+                'anthropic-version': '2023-06-01',
                 'Content-Type': 'application/json'
             },
             payload: JSON.stringify({
-                model: 'gpt-4o',
+                model: 'claude-sonnet-4-20250514',
+                max_tokens: 1024,
+                system: systemPrompt,
                 messages: [
-                    { role: 'system', content: `Analyze competitor social media content. Identify:
-1. Content themes that work
-2. Posting patterns
-3. Engagement drivers
-4. Gaps/opportunities for Tiny Seed Farm
-Return JSON: {"themes": [], "patterns": [], "drivers": [], "opportunities": [], "recommendation": "string"}` },
                     { role: 'user', content: `Analyze this competitor content from ${params.competitorName}:\n\n${params.content}` }
-                ],
-                temperature: 0.5
+                ]
             }),
             muteHttpExceptions: true
         });
@@ -59276,10 +59284,12 @@ Return JSON: {"themes": [], "patterns": [], "drivers": [], "opportunities": [], 
         if (result.error) return { success: false, error: result.error.message };
 
         try {
-            const analysis = JSON.parse(result.choices[0].message.content.replace(/```json\n?|\n?```/g, ''));
-            return { success: true, ...analysis };
+            // Claude returns content in result.content[0].text
+            const content = result.content[0].text;
+            const analysis = JSON.parse(content.replace(/```json\n?|\n?```/g, ''));
+            return { success: true, ...analysis, aiProvider: 'Claude' };
         } catch (e) {
-            return { success: true, rawAnalysis: result.choices[0].message.content };
+            return { success: true, rawAnalysis: result.content[0].text, aiProvider: 'Claude' };
         }
     } catch (error) {
         return { success: false, error: error.toString() };
@@ -59388,11 +59398,13 @@ function getAIStatus(params) {
         const props = PropertiesService.getScriptProperties();
         const openaiKey = props.getProperty('OPENAI_API_KEY');
         const anthropicKey = props.getProperty('ANTHROPIC_API_KEY');
+        const isAnthropicConfigured = !!(anthropicKey && anthropicKey.length > 10);
 
         return {
             success: true,
             openaiConfigured: !!(openaiKey && openaiKey.length > 10 && openaiKey.startsWith('sk-')),
-            anthropicConfigured: !!(anthropicKey && anthropicKey.length > 10),
+            anthropicConfigured: isAnthropicConfigured,
+            claudeConfigured: isAnthropicConfigured,  // Alias for frontend
             openaiKeyPreview: openaiKey ? 'sk-...' + openaiKey.slice(-4) : null,
             anthropicKeyPreview: anthropicKey ? anthropicKey.slice(0, 10) + '...' : null
         };
