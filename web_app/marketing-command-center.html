@@ -4497,11 +4497,28 @@
                             <div id="yourTotalTrend" style="font-size: 0.7rem; margin-top: 0.25rem;"></div>
                         </div>
                     </div>
-                    <div style="margin-top: 1rem; padding: 0.75rem; background: rgba(0,0,0,0.2); border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-size: 0.85rem; color: var(--text-secondary);"><i class="fas fa-chart-line"></i> Monthly tracking updates on the 1st of each month</span>
-                        <button class="btn btn-sm btn-secondary" onclick="viewFollowerHistory()">
-                            <i class="fas fa-history"></i> View History
-                        </button>
+                    <div style="margin-top: 1rem; padding: 0.75rem; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                            <div>
+                                <span id="autoSyncStatus" style="font-size: 0.85rem; color: var(--text-secondary);"><i class="fas fa-sync"></i> Checking auto-sync status...</span>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button class="btn btn-sm btn-primary" onclick="syncFollowersNow()" id="syncNowBtn">
+                                    <i class="fas fa-sync-alt"></i> Sync Now
+                                </button>
+                                <button class="btn btn-sm btn-secondary" onclick="viewFollowerHistory()">
+                                    <i class="fas fa-history"></i> History
+                                </button>
+                            </div>
+                        </div>
+                        <div id="autoSyncSetup" style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border); display: none;">
+                            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                                <i class="fas fa-info-circle"></i> Auto-sync pulls Instagram followers from the API on the 1st of each month.
+                            </p>
+                            <button class="btn btn-sm btn-success" onclick="setupAutoSync()">
+                                <i class="fas fa-clock"></i> Enable Monthly Auto-Sync
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -10114,8 +10131,69 @@
                     document.getElementById('yourFbInput').value = stats.facebook || '';
                     document.getElementById('yourTiktokInput').value = stats.tiktok || '';
                 }
+
+                // Check auto-sync status
+                checkAutoSyncStatus();
             } catch (error) {
                 console.error('Error loading your farm stats:', error);
+            }
+        }
+
+        async function checkAutoSyncStatus() {
+            try {
+                const response = await fetch(`${API_URL}?action=checkMonthlyFollowerSyncStatus`);
+                const data = await response.json();
+                const statusEl = document.getElementById('autoSyncStatus');
+                const setupEl = document.getElementById('autoSyncSetup');
+
+                if (data.success && data.active) {
+                    statusEl.innerHTML = '<i class="fas fa-check-circle" style="color: var(--success);"></i> Auto-sync active - Updates on 1st of each month';
+                    setupEl.style.display = 'none';
+                } else {
+                    statusEl.innerHTML = '<i class="fas fa-exclamation-circle" style="color: var(--warning);"></i> Auto-sync not configured';
+                    setupEl.style.display = 'block';
+                }
+            } catch (error) {
+                document.getElementById('autoSyncStatus').innerHTML = '<i class="fas fa-sync"></i> Pulls from Instagram API automatically';
+            }
+        }
+
+        async function syncFollowersNow() {
+            const btn = document.getElementById('syncNowBtn');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(`${API_URL}?action=autoSyncYourFarmStats`);
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast(`Synced! Instagram: ${data.stats.instagram?.toLocaleString() || 0}, Facebook: ${data.stats.facebook?.toLocaleString() || 0}`, 'success');
+                    loadYourFarmStats();
+                } else {
+                    showToast('Sync failed: ' + (data.error || 'Check Instagram API tokens'), 'error');
+                }
+            } catch (error) {
+                showToast('Sync error: ' + error.message, 'error');
+            }
+
+            btn.innerHTML = '<i class="fas fa-sync-alt"></i> Sync Now';
+            btn.disabled = false;
+        }
+
+        async function setupAutoSync() {
+            try {
+                const response = await fetch(`${API_URL}?action=setupMonthlyFollowerSync`);
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('Monthly auto-sync enabled! Stats will update on the 1st of each month.', 'success');
+                    checkAutoSyncStatus();
+                } else {
+                    showToast('Setup failed: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showToast('Setup error: ' + error.message, 'error');
             }
         }
 

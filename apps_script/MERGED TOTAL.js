@@ -13781,6 +13781,12 @@ function doGet(e) {
         return jsonResponse(getCompetitors(e.parameter));
       case 'getYourFarmStats':
         return jsonResponse(getYourFarmStats(e.parameter));
+      case 'autoSyncYourFarmStats':
+        return jsonResponse(autoSyncYourFarmStats());
+      case 'setupMonthlyFollowerSync':
+        return jsonResponse(setupMonthlyFollowerSync());
+      case 'checkMonthlyFollowerSyncStatus':
+        return jsonResponse(checkMonthlyFollowerSyncStatus());
       case 'checkCompetitorAds':
         return jsonResponse(checkCompetitorAds(e.parameter));
       case 'getAIStatus':
@@ -59339,7 +59345,7 @@ function saveYourFarmStats(params) {
                 instagram,
                 facebook,
                 tiktok,
-                'Updated ' + now.toLocaleString()
+                params.source || 'Updated ' + now.toLocaleString()
             ]]);
         } else {
             // Add new row for this month
@@ -59348,7 +59354,7 @@ function saveYourFarmStats(params) {
                 instagram,
                 facebook,
                 tiktok,
-                'Monthly snapshot'
+                params.source || 'Monthly snapshot'
             ]);
         }
 
@@ -59360,6 +59366,152 @@ function saveYourFarmStats(params) {
     } catch (error) {
         return { success: false, error: error.toString() };
     }
+}
+
+/**
+ * AUTO-SYNC: Fetch follower counts from Instagram/Facebook APIs and save automatically
+ * This runs on the 1st of each month via trigger
+ */
+function autoSyncYourFarmStats() {
+    try {
+        const props = PropertiesService.getScriptProperties();
+        let instagramTotal = 0;
+        let facebookTotal = 0;
+        let tiktokTotal = 0;
+        const details = [];
+
+        // Fetch Instagram follower counts from Graph API
+        const accounts = JSON.parse(props.getProperty('instagram_accounts') || '[]');
+        for (let i = 0; i < accounts.length; i++) {
+            const account = accounts[i];
+            const accessToken = props.getProperty(`ig_token_${i}`);
+            if (accessToken && account.igUserId) {
+                try {
+                    const result = JSON.parse(UrlFetchApp.fetch(
+                        `https://graph.facebook.com/v24.0/${account.igUserId}?fields=followers_count,username&access_token=${accessToken}`,
+                        { muteHttpExceptions: true }
+                    ).getContentText());
+
+                    if (!result.error && result.followers_count) {
+                        instagramTotal += result.followers_count;
+                        details.push(`IG @${result.username || account.name}: ${result.followers_count}`);
+                        Logger.log(`Instagram ${account.name}: ${result.followers_count} followers`);
+                    } else if (result.error) {
+                        Logger.log(`Instagram API error for ${account.name}: ${JSON.stringify(result.error)}`);
+                    }
+                } catch (apiError) {
+                    Logger.log('Instagram API error for ' + account.name + ': ' + apiError.toString());
+                }
+            }
+        }
+
+        // Fetch Facebook Page followers if configured
+        const fbPageId = props.getProperty('FACEBOOK_PAGE_ID');
+        const fbToken = props.getProperty('FACEBOOK_PAGE_TOKEN');
+        if (fbPageId && fbToken) {
+            try {
+                const fbResult = JSON.parse(UrlFetchApp.fetch(
+                    `https://graph.facebook.com/v24.0/${fbPageId}?fields=followers_count,fan_count,name&access_token=${fbToken}`,
+                    { muteHttpExceptions: true }
+                ).getContentText());
+
+                if (!fbResult.error) {
+                    facebookTotal = fbResult.followers_count || fbResult.fan_count || 0;
+                    details.push(`FB ${fbResult.name}: ${facebookTotal}`);
+                    Logger.log(`Facebook: ${facebookTotal} followers`);
+                }
+            } catch (fbError) {
+                Logger.log('Facebook API error: ' + fbError.toString());
+            }
+        }
+
+        // TikTok API requires different auth - for now log that it needs manual update or use stored value
+        // TikTok Business API is more complex - keeping manual for now
+        const lastStats = getYourFarmStats({});
+        if (lastStats.success && lastStats.stats) {
+            tiktokTotal = lastStats.stats.tiktok || 0; // Keep previous TikTok value
+        }
+
+        // Save the auto-fetched stats
+        const saveResult = saveYourFarmStats({
+            instagram: instagramTotal,
+            facebook: facebookTotal,
+            tiktok: tiktokTotal,
+            source: 'Auto-sync: ' + details.join(', ')
+        });
+
+        // Send SMS notification about the sync
+        const alertPhone = props.getProperty('SEO_ALERT_PHONE') || props.getProperty('OWNER_PHONE');
+        if (alertPhone && instagramTotal > 0) {
+            try {
+                sendSMS(alertPhone, `📊 Monthly Social Stats Update:\n` +
+                    `Instagram: ${instagramTotal.toLocaleString()}\n` +
+                    `Facebook: ${facebookTotal.toLocaleString()}\n` +
+                    `TikTok: ${tiktokTotal.toLocaleString()} (manual)\n` +
+                    `Total: ${(instagramTotal + facebookTotal + tiktokTotal).toLocaleString()}`);
+            } catch (smsError) {
+                Logger.log('SMS notification failed: ' + smsError.toString());
+            }
+        }
+
+        return {
+            success: true,
+            message: 'Auto-sync complete',
+            stats: {
+                instagram: instagramTotal,
+                facebook: facebookTotal,
+                tiktok: tiktokTotal,
+                total: instagramTotal + facebookTotal + tiktokTotal
+            },
+            details: details
+        };
+    } catch (error) {
+        Logger.log('Auto-sync error: ' + error.toString());
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Set up monthly trigger for auto-syncing follower stats
+ * Runs on the 1st of each month at 9 AM
+ */
+function setupMonthlyFollowerSync() {
+    try {
+        // Remove existing triggers for this function
+        const triggers = ScriptApp.getProjectTriggers();
+        triggers.forEach(trigger => {
+            if (trigger.getHandlerFunction() === 'autoSyncYourFarmStats') {
+                ScriptApp.deleteTrigger(trigger);
+            }
+        });
+
+        // Create new monthly trigger - runs on 1st of month at 9 AM
+        ScriptApp.newTrigger('autoSyncYourFarmStats')
+            .timeBased()
+            .onMonthDay(1)
+            .atHour(9)
+            .create();
+
+        return {
+            success: true,
+            message: 'Monthly follower sync scheduled for the 1st of each month at 9 AM'
+        };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Check if monthly sync trigger is active
+ */
+function checkMonthlyFollowerSyncStatus() {
+    const triggers = ScriptApp.getProjectTriggers();
+    const syncTrigger = triggers.find(t => t.getHandlerFunction() === 'autoSyncYourFarmStats');
+    return {
+        success: true,
+        active: !!syncTrigger,
+        nextRun: syncTrigger ? 'Next run: 1st of the month at 9 AM' : 'Not scheduled'
+    };
 }
 
 function analyzeCompetitorContent(params) {
