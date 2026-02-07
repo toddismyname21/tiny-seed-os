@@ -4561,12 +4561,15 @@
             <div class="card">
                 <div class="card-header">
                     <h3><i class="fas fa-binoculars" style="color: var(--purple);"></i> Competitor Watch - REAL-TIME INTEL</h3>
-                    <div style="display: flex; gap: 0.5rem;">
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                         <button class="btn btn-secondary btn-sm" onclick="loadCompetitors()">
                             <i class="fas fa-sync-alt"></i> Refresh
                         </button>
                         <button class="btn btn-secondary btn-sm" onclick="analyzeAllCompetitors()">
                             <i class="fas fa-brain"></i> AI Analyze
+                        </button>
+                        <button class="btn btn-sm" style="background: linear-gradient(135deg, #ffd700, #f4a261); color: #000;" onclick="sendCompetitorReport()" id="sendReportBtn">
+                            <i class="fas fa-envelope"></i> Email Report
                         </button>
                         <button class="btn btn-primary btn-sm" onclick="showAddCompetitor()">
                             <i class="fas fa-plus"></i> Add
@@ -10189,6 +10192,43 @@
                 if (data.success) {
                     showToast('Monthly auto-sync enabled! Stats will update on the 1st of each month.', 'success');
                     checkAutoSyncStatus();
+                } else {
+                    showToast('Setup failed: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showToast('Setup error: ' + error.message, 'error');
+            }
+        }
+
+        async function sendCompetitorReport() {
+            const btn = document.getElementById('sendReportBtn');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(`${API_URL}?action=generateMonthlyCompetitorReport&email=todd@tinyseedfarmpgh.com`);
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('📧 Competitor report sent to todd@tinyseedfarmpgh.com!', 'success');
+                } else {
+                    showToast('Report failed: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showToast('Error sending report: ' + error.message, 'error');
+            }
+
+            btn.innerHTML = '<i class="fas fa-envelope"></i> Email Report';
+            btn.disabled = false;
+        }
+
+        async function setupMonthlyReport() {
+            try {
+                const response = await fetch(`${API_URL}?action=setupMonthlyCompetitorReport`);
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('Monthly competitor report scheduled! You\'ll receive it on the 1st of each month.', 'success');
                 } else {
                     showToast('Setup failed: ' + (data.error || 'Unknown error'), 'error');
                 }

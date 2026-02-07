@@ -13787,6 +13787,10 @@ function doGet(e) {
         return jsonResponse(setupMonthlyFollowerSync());
       case 'checkMonthlyFollowerSyncStatus':
         return jsonResponse(checkMonthlyFollowerSyncStatus());
+      case 'generateMonthlyCompetitorReport':
+        return jsonResponse(generateMonthlyCompetitorReport(e.parameter));
+      case 'setupMonthlyCompetitorReport':
+        return jsonResponse(setupMonthlyCompetitorReport());
       case 'checkCompetitorAds':
         return jsonResponse(checkCompetitorAds(e.parameter));
       case 'getAIStatus':
@@ -59512,6 +59516,271 @@ function checkMonthlyFollowerSyncStatus() {
         active: !!syncTrigger,
         nextRun: syncTrigger ? 'Next run: 1st of the month at 9 AM' : 'Not scheduled'
     };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MONTHLY COMPETITOR REPORT - Beautiful HTML email with AI recommendations
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function generateMonthlyCompetitorReport(params) {
+    try {
+        const props = PropertiesService.getScriptProperties();
+        const recipientEmail = params?.email || 'todd@tinyseedfarmpgh.com';
+
+        // Get your farm stats
+        const yourStats = getYourFarmStats({});
+        const yourData = yourStats.success ? yourStats.stats : { instagram: 0, facebook: 0, tiktok: 0 };
+        const yourHistory = yourStats.history || [];
+
+        // Get competitor data
+        const competitorData = getCompetitors({});
+        const competitors = competitorData.success ? competitorData.competitors : [];
+
+        // Calculate your totals and growth
+        const yourTotal = (yourData.instagram || 0) + (yourData.facebook || 0) + (yourData.tiktok || 0);
+        let yourGrowth = 0;
+        if (yourHistory.length >= 2) {
+            const prevTotal = (yourHistory[1].instagram || 0) + (yourHistory[1].facebook || 0) + (yourHistory[1].tiktok || 0);
+            yourGrowth = prevTotal > 0 ? ((yourTotal - prevTotal) / prevTotal * 100).toFixed(1) : 0;
+        }
+
+        // Sort competitors by followers
+        competitors.sort((a, b) => (b.followers || 0) - (a.followers || 0));
+
+        // Generate AI recommendations using Claude
+        let aiRecommendations = [];
+        const apiKey = props.getProperty('ANTHROPIC_API_KEY');
+        if (apiKey && competitors.length > 0) {
+            try {
+                const competitorSummary = competitors.map(c =>
+                    `${c.name}: ${c.followers || 0} followers, themes: ${c.topContentThemes || 'unknown'}`
+                ).join('\n');
+
+                const prompt = `You are a social media strategist for Tiny Seed Farm, a Pittsburgh organic farm with ${yourTotal} total followers.
+
+Here are the competitors:
+${competitorSummary}
+
+Tiny Seed Farm's current stats:
+- Instagram: ${yourData.instagram || 0}
+- Facebook: ${yourData.facebook || 0}
+- TikTok: ${yourData.tiktok || 0}
+- Monthly growth: ${yourGrowth}%
+
+Provide exactly 5 specific, actionable recommendations to grow Tiny Seed Farm's social media presence and beat competitors. Format as JSON array: ["recommendation 1", "recommendation 2", ...]`;
+
+                const response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+                    method: 'POST',
+                    headers: {
+                        'x-api-key': apiKey,
+                        'anthropic-version': '2023-06-01',
+                        'Content-Type': 'application/json'
+                    },
+                    payload: JSON.stringify({
+                        model: 'claude-sonnet-4-20250514',
+                        max_tokens: 500,
+                        messages: [{ role: 'user', content: prompt }]
+                    }),
+                    muteHttpExceptions: true
+                });
+
+                const result = JSON.parse(response.getContentText());
+                if (result.content && result.content[0]) {
+                    const text = result.content[0].text;
+                    const jsonMatch = text.match(/\[[\s\S]*\]/);
+                    if (jsonMatch) {
+                        aiRecommendations = JSON.parse(jsonMatch[0]);
+                    }
+                }
+            } catch (aiError) {
+                Logger.log('AI recommendation error: ' + aiError.toString());
+                aiRecommendations = [
+                    'Post more behind-the-scenes farm content to build authentic connection',
+                    'Engage with local food bloggers and Pittsburgh influencers',
+                    'Create seasonal content series highlighting what\'s growing now',
+                    'Use trending audio on Reels and TikTok to boost discoverability',
+                    'Run a monthly giveaway to accelerate follower growth'
+                ];
+            }
+        } else {
+            aiRecommendations = [
+                'Post consistently 4-5 times per week across all platforms',
+                'Engage with followers within 1 hour of posting for better algorithm reach',
+                'Create shareable content like recipe cards and farm tips',
+                'Collaborate with local restaurants and chefs for cross-promotion',
+                'Use location tags and Pittsburgh-specific hashtags'
+            ];
+        }
+
+        // Build the beautiful HTML email
+        const now = new Date();
+        const monthYear = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+        const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #1a1a2e;">
+    <div style="max-width: 650px; margin: 0 auto; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);">
+
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); padding: 30px; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 28px;">🌱 Competitor Intelligence Report</h1>
+            <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">${monthYear}</p>
+        </div>
+
+        <!-- Your Farm Stats -->
+        <div style="padding: 25px; background: #16213e;">
+            <h2 style="color: #22c55e; margin: 0 0 20px 0; font-size: 20px; border-bottom: 2px solid #22c55e; padding-bottom: 10px;">
+                📊 YOUR FARM - Tiny Seed Farm
+            </h2>
+            <div style="display: flex; justify-content: space-between; flex-wrap: wrap;">
+                <div style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 20px; margin: 5px; flex: 1; min-width: 120px; text-align: center; border: 2px solid #E1306C;">
+                    <div style="font-size: 12px; color: #8d99ae; text-transform: uppercase;">Instagram</div>
+                    <div style="font-size: 28px; font-weight: 700; color: #E1306C;">${(yourData.instagram || 0).toLocaleString()}</div>
+                </div>
+                <div style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 20px; margin: 5px; flex: 1; min-width: 120px; text-align: center; border: 2px solid #4267B2;">
+                    <div style="font-size: 12px; color: #8d99ae; text-transform: uppercase;">Facebook</div>
+                    <div style="font-size: 28px; font-weight: 700; color: #4267B2;">${(yourData.facebook || 0).toLocaleString()}</div>
+                </div>
+                <div style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 20px; margin: 5px; flex: 1; min-width: 120px; text-align: center; border: 2px solid #ff0050;">
+                    <div style="font-size: 12px; color: #8d99ae; text-transform: uppercase;">TikTok</div>
+                    <div style="font-size: 28px; font-weight: 700; color: #ff0050;">${(yourData.tiktok || 0).toLocaleString()}</div>
+                </div>
+            </div>
+            <div style="background: linear-gradient(135deg, rgba(34,197,94,0.2), rgba(34,197,94,0.1)); border-radius: 12px; padding: 20px; margin-top: 15px; text-align: center; border: 2px solid #22c55e;">
+                <div style="font-size: 14px; color: #8d99ae;">TOTAL FOLLOWERS</div>
+                <div style="font-size: 42px; font-weight: 800; color: #22c55e;">${yourTotal.toLocaleString()}</div>
+                <div style="font-size: 16px; color: ${parseFloat(yourGrowth) >= 0 ? '#22c55e' : '#e63946'};">
+                    ${parseFloat(yourGrowth) >= 0 ? '↑' : '↓'} ${Math.abs(yourGrowth)}% vs last month
+                </div>
+            </div>
+        </div>
+
+        <!-- Competitor Leaderboard -->
+        <div style="padding: 25px; background: #0f3460;">
+            <h2 style="color: #9b59b6; margin: 0 0 20px 0; font-size: 20px; border-bottom: 2px solid #9b59b6; padding-bottom: 10px;">
+                🔍 COMPETITOR LEADERBOARD
+            </h2>
+            ${competitors.length > 0 ? competitors.map((comp, index) => {
+                let platforms = {};
+                try {
+                    platforms = comp.platforms ? (typeof comp.platforms === 'string' ? JSON.parse(comp.platforms) : comp.platforms) : {};
+                } catch(e) { platforms = {}; }
+
+                const medalEmoji = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '•';
+                const vsYou = (comp.followers || 0) - yourTotal;
+                const vsText = vsYou > 0 ? `<span style="color: #e63946;">+${vsYou.toLocaleString()} ahead</span>` : `<span style="color: #22c55e;">${Math.abs(vsYou).toLocaleString()} behind you</span>`;
+
+                return `
+                <div style="background: rgba(0,0,0,0.3); border-radius: 10px; padding: 15px; margin-bottom: 10px; border-left: 4px solid #9b59b6;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <span style="font-size: 20px;">${medalEmoji}</span>
+                            <span style="color: #edf2f4; font-weight: 600; font-size: 16px; margin-left: 8px;">${comp.name}</span>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 22px; font-weight: 700; color: #9b59b6;">${(comp.followers || 0).toLocaleString()}</div>
+                            <div style="font-size: 11px; color: #8d99ae;">${vsText}</div>
+                        </div>
+                    </div>
+                    ${comp.topContentThemes ? `<div style="font-size: 12px; color: #2a9d8f; margin-top: 8px;">💡 Themes: ${comp.topContentThemes}</div>` : ''}
+                </div>`;
+            }).join('') : '<p style="color: #8d99ae; text-align: center;">No competitors tracked yet</p>'}
+        </div>
+
+        <!-- AI Recommendations -->
+        <div style="padding: 25px; background: #16213e;">
+            <h2 style="color: #ffd700; margin: 0 0 20px 0; font-size: 20px; border-bottom: 2px solid #ffd700; padding-bottom: 10px;">
+                🎯 AI-POWERED ACTION PLAN
+            </h2>
+            ${aiRecommendations.map((rec, i) => `
+                <div style="background: rgba(255,215,0,0.1); border-radius: 10px; padding: 15px; margin-bottom: 10px; border-left: 4px solid #ffd700;">
+                    <div style="display: flex; align-items: flex-start;">
+                        <span style="background: #ffd700; color: #1a1a2e; width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; margin-right: 12px; flex-shrink: 0;">${i + 1}</span>
+                        <span style="color: #edf2f4; font-size: 14px; line-height: 1.5;">${rec}</span>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+
+        <!-- Footer -->
+        <div style="padding: 25px; background: #0f0f1a; text-align: center;">
+            <p style="color: #8d99ae; font-size: 12px; margin: 0;">
+                Generated by Tiny Seed OS Marketing Intelligence<br>
+                ${now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            </p>
+            <p style="margin: 15px 0 0 0;">
+                <a href="https://toddismyname21.github.io/tiny-seed-os/web_app/marketing-command-center.html"
+                   style="color: #22c55e; text-decoration: none; font-weight: 600;">
+                    Open Marketing Command Center →
+                </a>
+            </p>
+        </div>
+
+    </div>
+</body>
+</html>`;
+
+        // Send the email
+        MailApp.sendEmail({
+            to: recipientEmail,
+            subject: `🌱 Competitor Report - ${monthYear} | Tiny Seed Farm`,
+            htmlBody: htmlBody
+        });
+
+        return {
+            success: true,
+            message: `Report sent to ${recipientEmail}`,
+            sentAt: now.toISOString(),
+            yourTotal: yourTotal,
+            competitorCount: competitors.length,
+            recommendationCount: aiRecommendations.length
+        };
+    } catch (error) {
+        Logger.log('Competitor report error: ' + error.toString());
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Set up monthly trigger for competitor report
+ * Runs on the 1st of each month at 10 AM (after follower sync)
+ */
+function setupMonthlyCompetitorReport() {
+    try {
+        // Remove existing triggers
+        const triggers = ScriptApp.getProjectTriggers();
+        triggers.forEach(trigger => {
+            if (trigger.getHandlerFunction() === 'sendMonthlyCompetitorReport') {
+                ScriptApp.deleteTrigger(trigger);
+            }
+        });
+
+        // Create new monthly trigger - runs on 1st of month at 10 AM
+        ScriptApp.newTrigger('sendMonthlyCompetitorReport')
+            .timeBased()
+            .onMonthDay(1)
+            .atHour(10)
+            .create();
+
+        return {
+            success: true,
+            message: 'Monthly competitor report scheduled for the 1st of each month at 10 AM'
+        };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Wrapper function for trigger - sends to Todd
+ */
+function sendMonthlyCompetitorReport() {
+    return generateMonthlyCompetitorReport({ email: 'todd@tinyseedfarmpgh.com' });
 }
 
 function analyzeCompetitorContent(params) {
