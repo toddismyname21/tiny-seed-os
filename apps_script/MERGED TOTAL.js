@@ -13781,6 +13781,8 @@ function doGet(e) {
         return jsonResponse(getCompetitors(e.parameter));
       case 'checkCompetitorAds':
         return jsonResponse(checkCompetitorAds(e.parameter));
+      case 'getAIStatus':
+        return jsonResponse(getAIStatus(e.parameter));
       case 'getRevenueByPost':
         return jsonResponse(getRevenueByPost(e.parameter));
       case 'getRevenueByPlatform':
@@ -16720,6 +16722,8 @@ function doPost(e) {
         return jsonResponse(analyzeCompetitorContent(data));
       case 'configureOpenAI':
         return jsonResponse(configureOpenAI(data));
+      case 'testOpenAIKey':
+        return jsonResponse(testOpenAIKey(data));
       case 'configureStabilityAI':
         return jsonResponse(configureStabilityAI(data));
       case 'configurePhotoroom':
@@ -59374,6 +59378,56 @@ function configureOpenAI(params) {
         const props = PropertiesService.getScriptProperties();
         props.setProperty('OPENAI_API_KEY', params.apiKey);
         return { success: true, message: 'OpenAI API key configured' };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+function getAIStatus(params) {
+    try {
+        const props = PropertiesService.getScriptProperties();
+        const openaiKey = props.getProperty('OPENAI_API_KEY');
+        const anthropicKey = props.getProperty('ANTHROPIC_API_KEY');
+
+        return {
+            success: true,
+            openaiConfigured: !!(openaiKey && openaiKey.length > 10 && openaiKey.startsWith('sk-')),
+            anthropicConfigured: !!(anthropicKey && anthropicKey.length > 10),
+            openaiKeyPreview: openaiKey ? 'sk-...' + openaiKey.slice(-4) : null,
+            anthropicKeyPreview: anthropicKey ? anthropicKey.slice(0, 10) + '...' : null
+        };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+function testOpenAIKey(params) {
+    try {
+        const props = PropertiesService.getScriptProperties();
+        const apiKey = props.getProperty('OPENAI_API_KEY');
+
+        if (!apiKey) {
+            return { success: false, error: 'OpenAI API key not configured' };
+        }
+
+        // Make a simple test call to OpenAI
+        const response = UrlFetchApp.fetch('https://api.openai.com/v1/models', {
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + apiKey
+            },
+            muteHttpExceptions: true
+        });
+
+        const statusCode = response.getResponseCode();
+
+        if (statusCode === 200) {
+            return { success: true, message: 'API key is valid!' };
+        } else if (statusCode === 401) {
+            return { success: false, error: 'Invalid API key' };
+        } else {
+            return { success: false, error: 'API error: ' + statusCode };
+        }
     } catch (error) {
         return { success: false, error: error.toString() };
     }
