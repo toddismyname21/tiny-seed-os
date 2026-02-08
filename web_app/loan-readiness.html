@@ -1724,6 +1724,46 @@
                     </div>
                 </div>
 
+                <!-- Flower Sales (Non-Subscription) Category -->
+                <div class="sales-category" id="categoryFlowerSales">
+                    <div class="sales-category-header" onclick="toggleSalesCategory('flowerSales')">
+                        <div class="sales-category-title">
+                            <i class="fas fa-spa" style="color: #e91e63;"></i>
+                            <span>FLOWER SALES</span>
+                        </div>
+                        <div class="sales-category-total">
+                            <span id="flowerSalesTotalAmount">$0</span>
+                            <span id="flowerSalesTotalNote" class="member-count">(bouquets, dried, etc.)</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                    <div class="sales-category-items" id="flowerSalesItems">
+                        <div id="flowerSalesProductsList" style="padding: 0.5rem;">
+                            <p style="color: var(--text-secondary); font-size: 0.85rem;">Individual bouquets, DIY bloom buckets, dried flowers, wreaths - parsed from uploaded data</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Farm Events / Agritourism Category -->
+                <div class="sales-category" id="categoryEvents">
+                    <div class="sales-category-header" onclick="toggleSalesCategory('events')">
+                        <div class="sales-category-title">
+                            <i class="fas fa-tractor" style="color: #8bc34a;"></i>
+                            <span>FARM EVENTS</span>
+                        </div>
+                        <div class="sales-category-total">
+                            <span id="eventsTotalAmount">$0</span>
+                            <span id="eventsTotalNote" class="member-count">(agritourism)</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                    <div class="sales-category-items" id="eventsItems">
+                        <div id="eventsProductsList" style="padding: 0.5rem;">
+                            <p style="color: var(--text-secondary); font-size: 0.85rem;">U-Pick, Pick Your Own, workshops, experiences - parsed from uploaded data</p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Farmers Markets Category -->
                 <div class="sales-category" id="categoryMarkets">
                     <div class="sales-category-header" onclick="toggleSalesCategory('markets')">
@@ -3478,11 +3518,21 @@
             document.getElementById('csaTotalMembers').textContent = '(0 members)';
             document.getElementById('flowersTotalAmount').textContent = '$0';
             document.getElementById('flowersTotalSubs').textContent = '(0 subscribers)';
+            document.getElementById('flowerSalesTotalAmount').textContent = '$0';
+            document.getElementById('flowerSalesTotalNote').textContent = '(bouquets, dried, etc.)';
+            document.getElementById('eventsTotalAmount').textContent = '$0';
+            document.getElementById('eventsTotalNote').textContent = '(agritourism)';
             document.getElementById('addonsTotalAmount').textContent = '$0';
             document.getElementById('addonsTotalSubs').textContent = '(0 subscribers)';
             document.getElementById('marketsTotalAmount').textContent = '$0';
             document.getElementById('wholesaleTotalAmount').textContent = '$0';
             document.getElementById('salesGrandTotal').textContent = '$0';
+
+            // Clear product lists
+            const flowerSalesList = document.getElementById('flowerSalesProductsList');
+            if (flowerSalesList) flowerSalesList.innerHTML = '<p style="color: var(--text-secondary); font-size: 0.85rem;">Individual bouquets, DIY bloom buckets, dried flowers, wreaths - parsed from uploaded data</p>';
+            const eventsList = document.getElementById('eventsProductsList');
+            if (eventsList) eventsList.innerHTML = '<p style="color: var(--text-secondary); font-size: 0.85rem;">U-Pick, Pick Your Own, workshops, experiences - parsed from uploaded data</p>';
 
             // Clear stored data
             salesDataByYear = {};
@@ -3788,8 +3838,10 @@
             return {
                 csa: { summer: { amount: 0, count: 0 }, spring: { amount: 0, count: 0 }, fall: { amount: 0, count: 0 }, thanksgiving: { amount: 0, count: 0 }, total: 0, totalCount: 0, products: [] },
                 flowers: { standard: { amount: 0, count: 0 }, fullBloom: { amount: 0, count: 0 }, petiteBloom: { amount: 0, count: 0 }, dahlia: { amount: 0, count: 0 }, total: 0, totalCount: 0, products: [] },
+                flowerSales: { total: 0, totalCount: 0, products: [] },  // Non-subscription flower sales (bouquets, dried, DIY buckets)
+                events: { total: 0, totalCount: 0, products: [] },  // Farm Events / Agritourism (U-Pick, workshops, experiences)
                 addons: { mushrooms: { amount: 0, count: 0 }, bread: { amount: 0, count: 0 }, cheese: { amount: 0, count: 0 }, coffee: { amount: 0, count: 0 }, total: 0, totalCount: 0, products: [] },
-                markets: { total: 0, totalCount: 0, products: [] },  // Farmers Market POS sales (individual produce, bouquets, etc.)
+                markets: { total: 0, totalCount: 0, products: [] },  // Farmers Market POS sales (produce, etc.)
                 wholesale: { total: 0, totalCount: 0, products: [] },
                 grandTotal: 0
             };
@@ -3956,8 +4008,31 @@
                     categorized = true;
                 }
 
+                // ===== FARM EVENTS / AGRITOURISM =====
+                // Pick Your Own, U-Pick, Workshops, Experiences
+                else if (title.includes('pick your own') || title.includes('u-pick') ||
+                         title.includes('workshop') || title.includes('experience') ||
+                         title.includes('field to vase') || title.includes('pick your own pass')) {
+                    result.events.total += sales;
+                    result.events.totalCount += qty;
+                    result.events.products.push({ title: originalTitle, sales, qty });
+                    categorized = true;
+                }
+
+                // ===== FLOWER SALES (Non-Subscription) =====
+                // Individual bouquets, DIY buckets, dried flowers, wreaths - NOT subscriptions
+                else if (title.includes('bouquet') || title.includes('bloom bucket') ||
+                         title.includes('dried') || title.includes('fleur') ||
+                         title.includes('wreath') || title.includes('arrangement') ||
+                         (title.includes('flower') && !title.includes('subscription') && !title.includes('edible'))) {
+                    result.flowerSales.total += sales;
+                    result.flowerSales.totalCount += qty;
+                    result.flowerSales.products.push({ title: originalTitle, sales, qty });
+                    categorized = true;
+                }
+
                 // ===== FARMERS MARKET / DIRECT SALES =====
-                // Everything else: individual produce, bouquets, workshops, U-Pick, etc.
+                // Everything else: individual produce, seedlings, etc.
                 if (!categorized) {
                     result.markets.total += sales;
                     result.markets.totalCount += qty;
@@ -3965,10 +4040,9 @@
                 }
             });
 
-            // Calculate grand total (CSA + Flowers + Add-ons + Markets)
-            // NOTE: We count subscriptions + farmers market sales
-            // We do NOT double-count Flex CSA redemptions (they show as $0 or aren't in this report)
-            result.grandTotal = result.csa.total + result.flowers.total + result.addons.total + result.markets.total + result.wholesale.total;
+            // Calculate grand total
+            result.grandTotal = result.csa.total + result.flowers.total + result.flowerSales.total +
+                               result.events.total + result.addons.total + result.markets.total + result.wholesale.total;
 
             // Log warning if Flex CSA detected
             if (hasFlexCSA) {
@@ -3978,6 +4052,8 @@
             console.log('📊 Categorization complete:', {
                 'CSA Subscriptions': formatMoney(result.csa.total),
                 'Flower Subscriptions': formatMoney(result.flowers.total),
+                'Flower Sales': formatMoney(result.flowerSales.total),
+                'Farm Events': formatMoney(result.events.total),
                 'Partner Add-Ons': formatMoney(result.addons.total),
                 'Farmers Market Sales': formatMoney(result.markets.total),
                 'TOTAL': formatMoney(result.grandTotal)
@@ -4037,6 +4113,16 @@
             target.addons.total += source.addons.total;
             target.addons.totalCount += source.addons.totalCount;
             target.addons.products = target.addons.products.concat(source.addons.products);
+
+            // Merge Flower Sales (non-subscription)
+            target.flowerSales.total += source.flowerSales.total;
+            target.flowerSales.totalCount += source.flowerSales.totalCount;
+            target.flowerSales.products = target.flowerSales.products.concat(source.flowerSales.products);
+
+            // Merge Farm Events (agritourism)
+            target.events.total += source.events.total;
+            target.events.totalCount += source.events.totalCount;
+            target.events.products = target.events.products.concat(source.events.products);
 
             // Merge Markets (Farmers Market POS sales)
             target.markets.total += source.markets.total;
@@ -4106,6 +4192,26 @@
             updateCategoryTotal('addons');
             updateCategoryTotal('wholesale');
 
+            // Set Flower Sales (non-subscription) total
+            document.getElementById('flowerSalesTotalAmount').textContent = formatMoney(data.flowerSales.total);
+            const flowerSalesNote = document.getElementById('flowerSalesTotalNote');
+            if (flowerSalesNote) {
+                flowerSalesNote.textContent = data.flowerSales.totalCount > 0 ? `(${data.flowerSales.totalCount} items)` : '(bouquets, dried, etc.)';
+            }
+            if (data.flowerSales.products && data.flowerSales.products.length > 0) {
+                displayProductsList('flowerSalesProductsList', data.flowerSales.products);
+            }
+
+            // Set Farm Events total
+            document.getElementById('eventsTotalAmount').textContent = formatMoney(data.events.total);
+            const eventsNote = document.getElementById('eventsTotalNote');
+            if (eventsNote) {
+                eventsNote.textContent = data.events.totalCount > 0 ? `(${data.events.totalCount} tickets/passes)` : '(agritourism)';
+            }
+            if (data.events.products && data.events.products.length > 0) {
+                displayProductsList('eventsProductsList', data.events.products);
+            }
+
             // Set markets total directly from parsed data (not from input fields)
             document.getElementById('marketsTotalAmount').textContent = formatMoney(data.markets.total);
             const marketsNote = document.getElementById('marketsTotalNote');
@@ -4127,6 +4233,22 @@
 
             // Expand CSA section to show data
             document.getElementById('categoryCsa').classList.add('expanded');
+        }
+
+        function displayProductsList(containerId, products) {
+            const container = document.getElementById(containerId);
+            if (!container || !products.length) return;
+
+            let html = '';
+            products.sort((a, b) => b.sales - a.sales).forEach(p => {
+                html += `
+                    <div style="display: flex; justify-content: space-between; padding: 0.4rem 0; font-size: 0.85rem; border-bottom: 1px solid var(--border);">
+                        <span style="color: var(--text-secondary);">${p.title}</span>
+                        <span style="font-weight: 500;">${formatMoney(p.sales)}</span>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
         }
 
         function displayMarketsBreakdown(products) {
@@ -4239,6 +4361,14 @@
                                 <tr style="border-bottom: 1px solid var(--border);">
                                     <td style="padding: 0.5rem;"><strong>Flower Subscriptions</strong></td>
                                     ${years.map(y => `<td style="text-align: right; padding: 0.5rem; color: var(--warning);">${formatMoney(byYear[y].flowers.total)}</td>`).join('')}
+                                </tr>
+                                <tr style="border-bottom: 1px solid var(--border);">
+                                    <td style="padding: 0.5rem;"><strong>Flower Sales</strong></td>
+                                    ${years.map(y => `<td style="text-align: right; padding: 0.5rem; color: #e91e63;">${formatMoney(byYear[y].flowerSales?.total || 0)}</td>`).join('')}
+                                </tr>
+                                <tr style="border-bottom: 1px solid var(--border);">
+                                    <td style="padding: 0.5rem;"><strong>Farm Events</strong></td>
+                                    ${years.map(y => `<td style="text-align: right; padding: 0.5rem; color: #8bc34a;">${formatMoney(byYear[y].events?.total || 0)}</td>`).join('')}
                                 </tr>
                                 <tr style="border-bottom: 1px solid var(--border);">
                                     <td style="padding: 0.5rem;"><strong>Partner Add-Ons</strong></td>
@@ -4782,6 +4912,16 @@
             grandTotal += parseMoneyValue(document.getElementById('addonsBreadAmount')?.value);
             grandTotal += parseMoneyValue(document.getElementById('addonsCheeseAmount')?.value);
             grandTotal += parseMoneyValue(document.getElementById('addonsCoffeeAmount')?.value);
+
+            // Flower Sales (non-subscription) - from parsed data
+            if (parsedSalesData && parsedSalesData.flowerSales) {
+                grandTotal += parsedSalesData.flowerSales.total || 0;
+            }
+
+            // Farm Events (agritourism) - from parsed data
+            if (parsedSalesData && parsedSalesData.events) {
+                grandTotal += parsedSalesData.events.total || 0;
+            }
 
             // Markets total - check parsed data first, then input fields
             if (parsedSalesData && parsedSalesData.markets) {
