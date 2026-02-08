@@ -1,0 +1,527 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-02-07",
+  "description": "Universal Sales Parser configuration for Tiny Seed Farm - multi-format sales data categorization",
+
+  "categories": {
+    "CSA_VEGETABLE": {
+      "displayName": "CSA Subscriptions",
+      "icon": "fa-box-open",
+      "color": "#2a9d8f",
+      "description": "Community Supported Agriculture vegetable shares",
+      "isSubscription": true,
+      "subcategories": {
+        "SUMMER": {
+          "displayName": "Summer CSA",
+          "typicalMonths": [5, 6, 7, 8, 9, 10],
+          "description": "Main season vegetable shares (May-October)"
+        },
+        "SPRING": {
+          "displayName": "Spring CSA",
+          "typicalMonths": [3, 4, 5],
+          "description": "Early season shares focusing on greens and cool-weather crops"
+        },
+        "FALL": {
+          "displayName": "Fall CSA",
+          "typicalMonths": [9, 10, 11],
+          "description": "Late season shares with storage crops and fall harvest"
+        },
+        "THANKSGIVING": {
+          "displayName": "Thanksgiving",
+          "typicalMonths": [11],
+          "description": "Special holiday vegetable box"
+        },
+        "WINTER": {
+          "displayName": "Winter CSA",
+          "typicalMonths": [11, 12, 1, 2],
+          "description": "Winter storage and greenhouse crops"
+        }
+      },
+      "sizes": {
+        "FAMILY": {
+          "displayName": "Family/Friends & Family",
+          "keywords": ["family", "friends and family", "f&f", "large", "full"],
+          "typicalPriceRange": [600, 900]
+        },
+        "STANDARD": {
+          "displayName": "Standard",
+          "keywords": ["standard", "regular", "medium"],
+          "typicalPriceRange": [400, 600]
+        },
+        "SMALL": {
+          "displayName": "Small",
+          "keywords": ["small", "single", "petite", "mini", "tiny"],
+          "typicalPriceRange": [250, 400]
+        },
+        "FLEX": {
+          "displayName": "Flex",
+          "keywords": ["flex", "flexible"],
+          "typicalPriceRange": [300, 500]
+        }
+      },
+      "frequency": {
+        "WEEKLY": {
+          "displayName": "Weekly",
+          "keywords": ["weekly", "every week", "each week"],
+          "deliveriesPerSeason": 20
+        },
+        "BIWEEKLY": {
+          "displayName": "Biweekly",
+          "keywords": ["biweekly", "bi-weekly", "every other", "alternate", "eow"],
+          "deliveriesPerSeason": 10
+        }
+      },
+      "patterns": [
+        "summer csa",
+        "spring csa",
+        "fall csa",
+        "winter csa",
+        "thanksgiving",
+        "vegetable share",
+        "veggie share",
+        "farm share",
+        "tiny seed farm.*csa",
+        "csa share",
+        "produce share",
+        "community supported",
+        "farm vegetables"
+      ],
+      "excludePatterns": [
+        "flower",
+        "fleur",
+        "floral",
+        "dahlia",
+        "bouquet",
+        "bloom",
+        "add-on",
+        "add on",
+        "addon",
+        "mushroom",
+        "bread",
+        "cheese",
+        "coffee",
+        "honey",
+        "eggs"
+      ]
+    },
+
+    "FLOWER_SUBSCRIPTION": {
+      "displayName": "Flower Subscriptions",
+      "icon": "fa-seedling",
+      "color": "#e76f51",
+      "description": "Recurring flower bouquet subscriptions",
+      "isSubscription": true,
+      "subcategories": {
+        "FULL_BLOOM": {
+          "displayName": "Full Bloom",
+          "keywords": ["full bloom", "fullbloom", "premium", "large bouquet"],
+          "typicalPriceRange": [25, 35],
+          "description": "Premium large arrangement bouquet"
+        },
+        "PETITE_BLOOM": {
+          "displayName": "Petite Bloom",
+          "keywords": ["petite bloom", "petite", "petit", "small bouquet"],
+          "typicalPriceRange": [15, 22],
+          "description": "Smaller, more affordable bouquet option"
+        },
+        "STANDARD": {
+          "displayName": "Standard",
+          "keywords": ["standard", "regular", "weekly bouquet"],
+          "typicalPriceRange": [18, 28],
+          "description": "Standard flower subscription"
+        },
+        "DAHLIA": {
+          "displayName": "Dahlia CSA",
+          "keywords": ["dahlia"],
+          "isSpecialty": true,
+          "description": "Specialty dahlia-focused subscription"
+        }
+      },
+      "patterns": [
+        "flower subscription",
+        "floral subscription",
+        "fleurs",
+        "bouquet share",
+        "bloom share",
+        "dahlia csa",
+        "flower csa",
+        "tiny seed fleurs",
+        "full bloom",
+        "petite bloom"
+      ],
+      "excludePatterns": [
+        "vegetable",
+        "veggie",
+        "produce"
+      ]
+    },
+
+    "PARTNER_ADDON": {
+      "displayName": "Partner Add-Ons",
+      "icon": "fa-handshake",
+      "color": "#f4a261",
+      "description": "Resold products from local partners bundled with CSA",
+      "isSubscription": false,
+      "trackMargin": true,
+      "subcategories": {
+        "MUSHROOM": {
+          "displayName": "Mushroom Add-On",
+          "partnerName": "Local Mushroom Grower",
+          "typicalMarginPercent": 15
+        },
+        "BREAD": {
+          "displayName": "Bread Add-On",
+          "partnerName": "Local Bakery",
+          "typicalMarginPercent": 10
+        },
+        "CHEESE": {
+          "displayName": "Cheese Add-On",
+          "partnerName": "Goat Rodeo",
+          "typicalMarginPercent": 12
+        },
+        "COFFEE": {
+          "displayName": "Coffee Add-On",
+          "partnerName": "Redhawk Coffee",
+          "typicalMarginPercent": 15
+        },
+        "EGGS": {
+          "displayName": "Eggs Add-On",
+          "partnerName": "Local Farm",
+          "typicalMarginPercent": 20
+        },
+        "HONEY": {
+          "displayName": "Honey Add-On",
+          "partnerName": "Local Apiary",
+          "typicalMarginPercent": 15
+        },
+        "PASTA": {
+          "displayName": "Pasta Add-On",
+          "partnerName": "Local Pasta Maker",
+          "typicalMarginPercent": 12
+        }
+      },
+      "patterns": [
+        "add-on",
+        "addon",
+        "add on",
+        "mushroom.*csa",
+        "bread.*csa",
+        "cheese.*csa",
+        "coffee.*csa",
+        "goat rodeo",
+        "redhawk"
+      ],
+      "excludePatterns": []
+    },
+
+    "FARMERS_MARKET": {
+      "displayName": "Farmers Market Sales",
+      "icon": "fa-store",
+      "color": "#4361ee",
+      "description": "POS transactions at farmers markets",
+      "isSubscription": false,
+      "requiresLocation": true,
+      "subcategories": {
+        "LAWRENCEVILLE": {
+          "displayName": "Lawrenceville Market",
+          "dayOfWeek": "Tuesday",
+          "locationId": "lawrenceville_market"
+        },
+        "SEWICKLEY": {
+          "displayName": "Sewickley Market",
+          "dayOfWeek": "Saturday",
+          "locationId": "sewickley_market"
+        },
+        "BLOOMFIELD": {
+          "displayName": "Bloomfield Market",
+          "dayOfWeek": "Saturday",
+          "locationId": "bloomfield_market"
+        },
+        "SQUIRREL_HILL": {
+          "displayName": "Squirrel Hill Market",
+          "dayOfWeek": "Sunday",
+          "locationId": "squirrel_hill_market"
+        },
+        "HIGHLAND_PARK": {
+          "displayName": "Highland Park/Bryant St",
+          "dayOfWeek": "Saturday",
+          "locationId": "highland_park_market"
+        },
+        "NORTH_SIDE": {
+          "displayName": "North Side/Mayfly",
+          "dayOfWeek": "Saturday",
+          "locationId": "north_side_market"
+        }
+      },
+      "productCategories": {
+        "VEGETABLE": ["tomato", "pepper", "cucumber", "squash", "zucchini", "lettuce", "kale", "spinach", "chard", "carrot", "beet", "radish", "turnip", "cabbage", "broccoli", "cauliflower", "onion", "garlic", "potato", "corn", "beans", "peas", "eggplant", "celery", "bok choy", "arugula", "salad", "greens"],
+        "LEAFY_GREENS": ["lettuce", "kale", "spinach", "chard", "arugula", "collards", "mustard greens", "salad mix"],
+        "ROOT_VEGETABLES": ["carrot", "beet", "radish", "turnip", "potato", "celeriac", "parsnip"],
+        "FLOWER": ["flower", "bouquet", "sunflower", "zinnia", "dahlia", "marigold", "bloom", "wreath", "dried"],
+        "HERB": ["basil", "cilantro", "parsley", "dill", "mint", "oregano", "thyme", "rosemary"],
+        "PREPARED": ["jam", "pickle", "sauce", "pesto", "prepared", "preserved", "canned"],
+        "SEEDLINGS": ["seedling", "4 pack", "4-pack", "plant", "starter", "single pot"]
+      },
+      "patterns": [
+        "pos",
+        "market",
+        "farmers market",
+        "cash sale",
+        "square",
+        "shopify pos"
+      ],
+      "excludePatterns": []
+    },
+
+    "WHOLESALE_RESTAURANT": {
+      "displayName": "Wholesale/Restaurant",
+      "icon": "fa-building",
+      "color": "#9b59b6",
+      "description": "B2B sales to restaurants and commercial accounts",
+      "isSubscription": false,
+      "defaultPaymentTerms": "Net 30",
+      "subcategories": {
+        "RESTAURANT": {
+          "displayName": "Restaurant Sales",
+          "keywords": ["restaurant", "chef", "kitchen"]
+        },
+        "GROCERY": {
+          "displayName": "Grocery/Retail",
+          "keywords": ["grocery", "retail", "store", "market"]
+        },
+        "INSTITUTION": {
+          "displayName": "Institutional",
+          "keywords": ["school", "hospital", "university", "cafeteria"]
+        }
+      },
+      "patterns": [
+        "wholesale",
+        "restaurant",
+        "chef",
+        "commercial",
+        "bulk",
+        "invoice"
+      ],
+      "excludePatterns": []
+    },
+
+    "DIRECT_SALES": {
+      "displayName": "Direct Sales",
+      "icon": "fa-shopping-cart",
+      "color": "#2ecc71",
+      "description": "Farm stand, online orders, and one-time purchases",
+      "isSubscription": false,
+      "isDefault": true,
+      "patterns": [
+        "online order",
+        "farm stand",
+        "one-time",
+        "single purchase"
+      ],
+      "excludePatterns": []
+    }
+  },
+
+  "sourceFormats": {
+    "shopify_sales": {
+      "name": "Shopify Sales by Product",
+      "description": "Product-level sales export from Shopify Analytics",
+      "requiredColumns": ["Product title", "Total sales"],
+      "optionalColumns": ["Year", "Quantity ordered", "Net quantity", "Net sales", "Variant title"],
+      "columnMappings": {
+        "Product title": "productName",
+        "Total sales": "revenue",
+        "Net sales": "netRevenue",
+        "Quantity ordered": "quantity",
+        "Net quantity": "netQuantity",
+        "Year": "year",
+        "Variant title": "variant"
+      },
+      "amountFormat": {
+        "prefix": "$",
+        "thousandsSeparator": ",",
+        "decimalSeparator": "."
+      },
+      "dateFormats": ["YYYY", "YYYY-MM-DD", "MM/DD/YYYY"]
+    },
+
+    "shopify_orders": {
+      "name": "Shopify Orders Export",
+      "description": "Individual order export from Shopify",
+      "requiredColumns": ["Name", "Total", "Created at"],
+      "optionalColumns": ["Lineitem name", "Lineitem quantity", "Lineitem price", "Email", "Billing Name", "Shipping Name"],
+      "columnMappings": {
+        "Name": "orderId",
+        "Lineitem name": "productName",
+        "Lineitem quantity": "quantity",
+        "Lineitem price": "lineItemPrice",
+        "Total": "orderTotal",
+        "Created at": "orderDate",
+        "Email": "customerEmail",
+        "Billing Name": "customerName",
+        "Shipping Name": "shippingName"
+      },
+      "dateFormats": ["YYYY-MM-DD HH:mm:ss", "YYYY-MM-DDTHH:mm:ssZ"]
+    },
+
+    "shopify_pos": {
+      "name": "Shopify POS Transactions",
+      "description": "Point of sale transactions from farmers markets",
+      "requiredColumns": ["Order", "Date", "Total"],
+      "optionalColumns": ["Location", "Product", "Quantity", "Payment Type", "Staff"],
+      "columnMappings": {
+        "Order": "orderId",
+        "Date": "transactionDate",
+        "Total": "amount",
+        "Location": "location",
+        "Product": "productName",
+        "Quantity": "quantity",
+        "Payment Type": "paymentMethod",
+        "Staff": "staffMember"
+      },
+      "defaultCategory": "FARMERS_MARKET",
+      "dateFormats": ["YYYY-MM-DD", "MM/DD/YYYY", "M/D/YYYY"]
+    },
+
+    "quickbooks_sales": {
+      "name": "QuickBooks Sales Report",
+      "description": "Sales by Customer/Product report from QuickBooks",
+      "requiredColumns": ["Date", "Amount"],
+      "optionalColumns": ["Customer", "Product/Service", "Qty", "Memo", "Class", "Account"],
+      "columnMappings": {
+        "Date": "transactionDate",
+        "Amount": "amount",
+        "Customer": "customerName",
+        "Product/Service": "productName",
+        "Qty": "quantity",
+        "Memo": "description",
+        "Class": "category",
+        "Account": "account"
+      },
+      "amountFormat": {
+        "prefix": "",
+        "thousandsSeparator": ",",
+        "decimalSeparator": ".",
+        "negativeFormat": "parentheses"
+      },
+      "dateFormats": ["MM/DD/YYYY", "YYYY-MM-DD", "M/D/YY"]
+    },
+
+    "quickbooks_profit_loss": {
+      "name": "QuickBooks Profit & Loss",
+      "description": "P&L detail report from QuickBooks",
+      "requiredColumns": ["Account", "Amount"],
+      "optionalColumns": ["Date", "Memo", "Name", "Class"],
+      "columnMappings": {
+        "Account": "account",
+        "Amount": "amount",
+        "Date": "transactionDate",
+        "Memo": "description",
+        "Name": "customerName",
+        "Class": "category"
+      },
+      "dateFormats": ["MM/DD/YYYY"]
+    },
+
+    "square_transactions": {
+      "name": "Square Transaction History",
+      "description": "Transaction export from Square POS",
+      "requiredColumns": ["Date", "Gross Sales"],
+      "optionalColumns": ["Time", "Net Sales", "Item", "Qty", "Location", "Payment Method"],
+      "columnMappings": {
+        "Date": "transactionDate",
+        "Time": "transactionTime",
+        "Gross Sales": "grossAmount",
+        "Net Sales": "netAmount",
+        "Item": "productName",
+        "Qty": "quantity",
+        "Location": "location",
+        "Payment Method": "paymentMethod"
+      },
+      "defaultCategory": "FARMERS_MARKET",
+      "dateFormats": ["MM/DD/YYYY", "YYYY-MM-DD"]
+    },
+
+    "generic_csv": {
+      "name": "Generic CSV",
+      "description": "Auto-detect column mappings using AI",
+      "requiredColumns": [],
+      "optionalColumns": [],
+      "columnMappings": {},
+      "useAIInference": true
+    }
+  },
+
+  "classificationPriority": [
+    "CSA_VEGETABLE",
+    "FLOWER_SUBSCRIPTION",
+    "PARTNER_ADDON",
+    "WHOLESALE_RESTAURANT",
+    "FARMERS_MARKET",
+    "DIRECT_SALES"
+  ],
+
+  "fuzzyMatching": {
+    "enabled": true,
+    "minSimilarityThreshold": 0.8,
+    "normalizeRules": {
+      "removeWords": ["tiny seed", "farm", "pittsburgh", "local", "fresh", "generic", "retail", "pgh"],
+      "removePunctuation": true,
+      "lowercase": true,
+      "collapseWhitespace": true
+    }
+  },
+
+  "yearExtraction": {
+    "pattern": "\\b(20\\d{2})\\b",
+    "defaultToCurrent": true
+  },
+
+  "revenueAttribution": {
+    "CSA_VEGETABLE": {
+      "recognitionMethod": "full_at_signup",
+      "supportsSeasonSpread": true,
+      "description": "Revenue recognized when customer signs up for CSA"
+    },
+    "FLOWER_SUBSCRIPTION": {
+      "recognitionMethod": "full_at_signup",
+      "supportsSeasonSpread": true,
+      "description": "Revenue recognized when customer signs up for flower subscription"
+    },
+    "PARTNER_ADDON": {
+      "recognitionMethod": "at_delivery",
+      "trackPartnerMargin": true,
+      "description": "Revenue recognized at each delivery, margin tracked separately"
+    },
+    "FARMERS_MARKET": {
+      "recognitionMethod": "daily_settlement",
+      "description": "Revenue recognized daily at market close"
+    },
+    "WHOLESALE_RESTAURANT": {
+      "recognitionMethod": "at_invoice",
+      "defaultPaymentTerms": "Net 30",
+      "description": "Revenue recognized when invoice is issued"
+    },
+    "DIRECT_SALES": {
+      "recognitionMethod": "at_transaction",
+      "description": "Revenue recognized immediately at point of sale"
+    }
+  },
+
+  "validation": {
+    "requiredFields": ["productName"],
+    "recommendedFields": ["transactionDate", "amount", "source"],
+    "warnings": {
+      "missingYear": "No year detected in product name - will use current year",
+      "missingAmount": "No amount/revenue found - row will be counted but not summed",
+      "unknownCategory": "Product could not be categorized - marked as DIRECT_SALES"
+    }
+  },
+
+  "reporting": {
+    "defaultGroupBy": ["year", "category"],
+    "availableGroupings": ["year", "category", "subcategory", "season", "month", "source"],
+    "defaultMetrics": ["totalRevenue", "transactionCount", "averageOrderValue"],
+    "availableMetrics": ["totalRevenue", "netRevenue", "transactionCount", "quantity", "averageOrderValue", "margin"]
+  }
+}

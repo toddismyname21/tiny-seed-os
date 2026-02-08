@@ -520,3 +520,108 @@ https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSj
 | Cranberry | CSA Customer Porch |
 
 **Note:** New locations added with 15+ members at a location.
+
+---
+
+## Universal Sales Parser
+
+The Universal Sales Parser is a system for importing, categorizing, and analyzing sales data from multiple sources (Shopify, QuickBooks, POS systems) into standardized categories for business reporting and loan applications.
+
+### Configuration Files
+
+| File | Purpose |
+|------|---------|
+| `config/sales_parser_config.json` | Main configuration: category definitions, source formats, patterns |
+| `config/product_name_mappings.json` | Historical product name to category mappings for exact matching |
+| `config/parser_prompts.json` | AI prompt templates for categorization and schema inference |
+
+### Categories
+
+The parser categorizes sales into these main categories:
+
+| Category | Description | Icon |
+|----------|-------------|------|
+| `CSA_VEGETABLE` | Community Supported Agriculture vegetable shares | fa-box-open |
+| `FLOWER_SUBSCRIPTION` | Recurring flower bouquet subscriptions | fa-seedling |
+| `PARTNER_ADDON` | Partner products (mushroom, bread, cheese, coffee) | fa-handshake |
+| `FARMERS_MARKET` | POS transactions at farmers markets | fa-store |
+| `WHOLESALE_RESTAURANT` | B2B restaurant and commercial sales | fa-building |
+| `DIRECT_SALES` | Farm stand and one-time online orders | fa-shopping-cart |
+
+### Supported Source Formats
+
+- **Shopify Sales by Product** - Product-level analytics export
+- **Shopify Orders Export** - Individual order export
+- **Shopify POS** - Point of sale transactions
+- **QuickBooks Sales Report** - Sales by customer/product
+- **QuickBooks P&L** - Profit and loss detail
+- **Square Transactions** - Square POS export
+- **Generic CSV** - Auto-detected using AI
+
+### How It Works
+
+1. **Upload**: User uploads any supported sales file (CSV)
+2. **Format Detection**: Parser detects source format from column headers
+3. **Schema Mapping**: Columns mapped to standard fields (productName, revenue, etc.)
+4. **Categorization**: Each product categorized using:
+   - Exact match against `product_name_mappings.json`
+   - Pattern matching from `sales_parser_config.json`
+   - AI categorization as fallback
+5. **Aggregation**: Results grouped by year and category
+6. **Storage**: Data saved for business plan and loan application use
+
+### Frontend Integration
+
+The parser is used in:
+- `web_app/loan-readiness.html` - Loan readiness command center
+- Business plan generation workflows
+
+### Adding New Categories
+
+Edit `config/sales_parser_config.json`:
+```json
+{
+  "categories": {
+    "NEW_CATEGORY": {
+      "displayName": "Display Name",
+      "icon": "fa-icon-name",
+      "color": "#hexcolor",
+      "patterns": ["regex patterns"],
+      "excludePatterns": ["exclude patterns"]
+    }
+  }
+}
+```
+
+### Adding Known Products
+
+Edit `config/product_name_mappings.json`:
+```json
+{
+  "CSA_VEGETABLE": {
+    "SUMMER": {
+      "2026": [
+        "Exact Product Name As It Appears In Source"
+      ]
+    }
+  }
+}
+```
+
+### AI Prompt Customization
+
+Edit `config/parser_prompts.json` to modify:
+- `categorizeProduct` - Single product categorization
+- `inferSchema` - CSV column detection
+- `normalizeProductName` - Extract structured fields
+- `batchCategorize` - Bulk categorization
+
+### Classification Priority
+
+When multiple categories match, the parser uses this priority order:
+1. CSA_VEGETABLE
+2. FLOWER_SUBSCRIPTION
+3. PARTNER_ADDON
+4. WHOLESALE_RESTAURANT
+5. FARMERS_MARKET
+6. DIRECT_SALES (default fallback)

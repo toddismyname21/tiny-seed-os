@@ -1,0 +1,315 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-02-07",
+  "description": "Historical product name mappings for exact matching - bypasses AI categorization",
+
+  "CSA_VEGETABLE": {
+    "SUMMER": {
+      "2026": [
+        "2026 Summer CSA Share - Flex Weekly Farm Vegetables Pittsburgh",
+        "2026 Summer CSA Share - Small Biweekly Farm Vegetables Pittsburgh",
+        "2026 Summer CSA Share - Small Weekly Farm Vegetables Pittsburgh",
+        "2026 Summer CSA Share - Friends & Family (Large) Biweekly Farm Vegetables Pittsburgh",
+        "2026 Summer CSA Share - Friends & Family (Large) Weekly Farm Vegetables Pittsburgh",
+        "2026 Summer CSA Share - Standard Biweekly Farm Vegetables Pittsburgh",
+        "2026 Summer CSA Share - Standard Weekly Farm Vegetables Pittsburgh",
+        "2026 Tiny Seed Farm Summer CSA Share (Weekly)",
+        "2026 Tiny Seed Farm Summer CSA Share (Biweekly)",
+        "2026 Friends and Family Summer CSA Share (WEEKLY)",
+        "2026 Friends and Family Summer CSA Share (BIWEEKLY)",
+        "2026 Small Summer CSA Share (WEEKLY)",
+        "2026 Small Summer CSA Share (BIWEEKLY)"
+      ],
+      "2025": [
+        "2025 Summer CSA Share - Standard Weekly Farm Vegetables Pittsburgh",
+        "2025 Summer CSA Share - Standard Biweekly Farm Vegetables Pittsburgh",
+        "2025 Summer CSA Share - Small Weekly Farm Vegetables Pittsburgh",
+        "2025 Summer CSA Share - Friends & Family Weekly Farm Vegetables Pittsburgh",
+        "2025 Tiny Seed Farm Summer CSA Share (Weekly)",
+        "2025 Tiny Seed Farm Summer CSA Share (Biweekly)"
+      ],
+      "2024": [
+        "2024 Tiny Seed Farm Summer CSA - Tiny Seed Farm Pittsburgh",
+        "2024 Summer CSA Share - Tiny Seed Farm Pittsburgh",
+        "2024 Summer CSA - Standard Weekly",
+        "2024 Summer CSA - Friends & Family Weekly"
+      ],
+      "2023": [
+        "2023 Tiny Seed Farm CSA - Tiny Seed Farm Pittsburgh",
+        "2023 Summer CSA Share - Tiny Seed Farm Pittsburgh"
+      ]
+    },
+    "SPRING": {
+      "2026": [
+        "2026 Spring CSA Share - Standard Weekly Farm Vegetables Pittsburgh",
+        "2026 Spring CSA Share - Standard Biweekly Farm Vegetables Pittsburgh",
+        "2026 Spring CSA Share - Small Weekly Farm Vegetables Pittsburgh",
+        "2026 Tiny Seed Farm Spring CSA Share (Weekly)"
+      ],
+      "2025": [
+        "2025 Spring CSA Share - Standard Weekly Farm Vegetables Pittsburgh",
+        "2025 Spring CSA Share - Standard Biweekly Farm Vegetables Pittsburgh"
+      ],
+      "2024": [
+        "2024 Spring CSA Share - Tiny Seed Farm Pittsburgh"
+      ]
+    },
+    "FALL": {
+      "2025": [
+        "2025 Fall CSA Share - Standard Weekly Farm Vegetables Pittsburgh",
+        "2025 Fall CSA Share - Standard Biweekly Farm Vegetables Pittsburgh"
+      ],
+      "2024": [
+        "2024 Fall CSA Share - Tiny Seed Farm Pittsburgh"
+      ]
+    },
+    "THANKSGIVING": {
+      "2025": [
+        "2025 Thanksgiving Box - Tiny Seed Farm Pittsburgh",
+        "2025 Thanksgiving Vegetable Box"
+      ],
+      "2024": [
+        "2024 Thanksgiving Box - Tiny Seed Farm Pittsburgh"
+      ]
+    }
+  },
+
+  "FLOWER_SUBSCRIPTION": {
+    "FULL_BLOOM": {
+      "2026": [
+        "2026 Summer Flower Subscription - Full Bloom Biweekly Bouquets Pittsburgh",
+        "2026 Summer Flower Subscription - Full Bloom Weekly Bouquets Pittsburgh",
+        "2026 Spring Flower Subscription - Full Bloom Weekly Bouquets Pittsburgh",
+        "2026 Tiny Seed Fleurs Full Bloom Bouquet Share (WEEKLY)",
+        "2026 Tiny Seed Fleurs Full Bloom Bouquet Share (BIWEEKLY)"
+      ],
+      "2025": [
+        "2025 Summer Flower Subscription - Full Bloom Weekly Bouquets Pittsburgh",
+        "2025 Summer Flower Subscription - Full Bloom Biweekly Bouquets Pittsburgh",
+        "2025 Spring Flower Subscription - Full Bloom Weekly Bouquets Pittsburgh"
+      ],
+      "2024": [
+        "2024 Summer Flower Subscription - Full Bloom Weekly Bouquets Pittsburgh"
+      ]
+    },
+    "PETITE_BLOOM": {
+      "2026": [
+        "2026 Summer Flower Subscription - Petite Bloom Weekly Bouquets Pittsburgh",
+        "2026 Summer Flower Subscription - Petite Bloom Biweekly Bouquets Pittsburgh",
+        "2026 Spring Flower Subscription - Petite Bloom Weekly Bouquets Pittsburgh",
+        "2026 Tiny Seed Fleurs Petite Bloom Bouquet Share (WEEKLY)",
+        "2026 Tiny Seed Fleurs Petite Bloom Bouquet Share (BIWEEKLY)"
+      ],
+      "2025": [
+        "2025 Summer Flower Subscription - Petite Bloom Biweekly Bouquets Pittsburgh",
+        "2025 Summer Flower Subscription - Petite Bloom Weekly Bouquets Pittsburgh"
+      ],
+      "2024": [
+        "2024 Petite Bloom Flower Subscription - Tiny Seed Farm Pittsburgh"
+      ]
+    },
+    "STANDARD": {
+      "2025": [
+        "2025 Spring Flower Subscription - Standard Weekly Bouquets Pittsburgh"
+      ],
+      "2024": [
+        "2024 Summer Flower Subscription - Standard Weekly Bouquets Pittsburgh",
+        "2024 Spring Flower Subscription - Standard Weekly Bouquets Pittsburgh"
+      ]
+    },
+    "DAHLIA": {
+      "2025": [
+        "2025 Dahlia CSA Share - Tiny Seed Farm Pittsburgh"
+      ],
+      "2024": [
+        "2024 Dahlia CSA Share - Tiny Seed Farm Pittsburgh"
+      ]
+    }
+  },
+
+  "PARTNER_ADDON": {
+    "MUSHROOM": {
+      "2026": [
+        "2026 Mushroom CSA Add-On - Biweekly",
+        "2026 Mushroom CSA Add-On - Weekly",
+        "2026 MUSHROOM CSA ADD ON (WEEKLY)",
+        "2026 MUSHROOM CSA ADD ON (BIWEEKLY)",
+        "2026 Local Mushroom CSA Add-On - Weekly",
+        "2026 Local Mushroom CSA Add-On - Biweekly"
+      ],
+      "2025": [
+        "2025 Mushroom CSA Add-On - Weekly",
+        "2025 Mushroom CSA Add-On - Biweekly"
+      ]
+    },
+    "BREAD": {
+      "2026": [
+        "2026 Local Bread CSA Add-On - Biweekly",
+        "2026 Local Bread CSA Add-On - Weekly",
+        "2026 BREAD CSA ADD ON (WEEKLY)",
+        "2026 BREAD CSA ADD ON (BIWEEKLY)",
+        "2026 Artisan Bread Add-On - Weekly",
+        "2026 Artisan Bread Add-On - Biweekly"
+      ],
+      "2025": [
+        "2025 Local Bread CSA Add-On - Weekly",
+        "2025 Local Bread CSA Add-On - Biweekly"
+      ]
+    },
+    "CHEESE": {
+      "2026": [
+        "2026 Local Cheese CSA Add-On - Biweekly (Goat Rodeo)",
+        "2026 Local Cheese CSA Add-On - Weekly (Goat Rodeo)",
+        "2026 CHEESE CSA ADD ON (WEEKLY)",
+        "2026 CHEESE CSA ADD ON (BIWEEKLY)",
+        "2026 Goat Rodeo Cheese Add-On - Weekly",
+        "2026 Goat Rodeo Cheese Add-On - Biweekly"
+      ],
+      "2025": [
+        "2025 Goat Rodeo Cheese Add-On - Weekly",
+        "2025 Local Cheese CSA Add-On - Weekly"
+      ]
+    },
+    "COFFEE": {
+      "2026": [
+        "2026 Local Coffee CSA Add-On - Biweekly (Redhawk)",
+        "2026 Local Coffee CSA Add-On - Weekly (Redhawk)",
+        "2026 LOCAL REDHAWK COFFEE CSA ADD ON (BIWEEKLY)",
+        "2026 LOCAL REDHAWK COFFEE CSA ADD ON (WEEKLY)",
+        "2026 Redhawk Coffee Add-On - Weekly",
+        "2026 Redhawk Coffee Add-On - Biweekly"
+      ],
+      "2025": [
+        "2025 Redhawk Coffee Add-On - Biweekly",
+        "2025 Local Coffee CSA Add-On - Biweekly"
+      ]
+    },
+    "EGGS": {
+      "2026": [
+        "2026 Local Eggs CSA Add-On - Weekly",
+        "2026 Local Eggs CSA Add-On - Biweekly",
+        "2026 EGGS CSA ADD ON (WEEKLY)",
+        "2026 Farm Fresh Eggs Add-On - Weekly"
+      ],
+      "2025": [
+        "2025 Local Eggs CSA Add-On - Weekly"
+      ]
+    },
+    "HONEY": {
+      "2026": [
+        "2026 Local Honey CSA Add-On - Monthly",
+        "2026 HONEY CSA ADD ON (MONTHLY)"
+      ],
+      "2025": [
+        "2025 Local Honey Add-On - Monthly"
+      ]
+    },
+    "PASTA": {
+      "2026": [
+        "2026 Local Pasta CSA Add-On - Weekly",
+        "2026 Local Pasta CSA Add-On - Biweekly",
+        "2026 Fresh Pasta Add-On - Weekly"
+      ]
+    }
+  },
+
+  "FARMERS_MARKET": {
+    "LAWRENCEVILLE": [
+      "Lawrenceville Farmers Market",
+      "Lawrenceville Market",
+      "LVille Market"
+    ],
+    "SEWICKLEY": [
+      "Sewickley Farmers Market",
+      "Sewickley Market"
+    ],
+    "BLOOMFIELD": [
+      "Bloomfield Farmers Market",
+      "Bloomfield Saturday Market"
+    ],
+    "SQUIRREL_HILL": [
+      "Squirrel Hill Farmers Market",
+      "Squirrel Hill Market"
+    ],
+    "HIGHLAND_PARK": [
+      "Highland Park Farmers Market",
+      "Bryant Street Market",
+      "Bryant St Market"
+    ],
+    "NORTH_SIDE": [
+      "North Side Farmers Market",
+      "Mayfly Market",
+      "Northside Market"
+    ]
+  },
+
+  "WHOLESALE_RESTAURANT": {
+    "RESTAURANT": [
+      "Chef Order",
+      "Restaurant Order",
+      "Wholesale - Restaurant"
+    ],
+    "GROCERY": [
+      "Retail Order",
+      "Grocery Store Order",
+      "Store Order"
+    ]
+  },
+
+  "aliases": {
+    "CSA": "CSA_VEGETABLE",
+    "Veggie Share": "CSA_VEGETABLE",
+    "Vegetable Share": "CSA_VEGETABLE",
+    "Farm Share": "CSA_VEGETABLE",
+    "Produce Share": "CSA_VEGETABLE",
+    "Flower Share": "FLOWER_SUBSCRIPTION",
+    "Bouquet Share": "FLOWER_SUBSCRIPTION",
+    "Fleurs": "FLOWER_SUBSCRIPTION",
+    "Add-On": "PARTNER_ADDON",
+    "Add On": "PARTNER_ADDON",
+    "Addon": "PARTNER_ADDON",
+    "Market": "FARMERS_MARKET",
+    "POS": "FARMERS_MARKET",
+    "Wholesale": "WHOLESALE_RESTAURANT",
+    "Restaurant": "WHOLESALE_RESTAURANT",
+    "Chef": "WHOLESALE_RESTAURANT"
+  },
+
+  "sizeAliases": {
+    "Friends & Family": "FAMILY",
+    "Friends and Family": "FAMILY",
+    "F&F": "FAMILY",
+    "Large": "FAMILY",
+    "Full": "FAMILY",
+    "Regular": "STANDARD",
+    "Medium": "STANDARD",
+    "Single": "SMALL",
+    "Petite": "SMALL",
+    "Mini": "SMALL",
+    "Tiny": "SMALL"
+  },
+
+  "frequencyAliases": {
+    "Every Week": "WEEKLY",
+    "Each Week": "WEEKLY",
+    "Every Other Week": "BIWEEKLY",
+    "Bi-Weekly": "BIWEEKLY",
+    "EOW": "BIWEEKLY",
+    "Alternate": "BIWEEKLY"
+  },
+
+  "metadata": {
+    "totalMappings": 150,
+    "lastVerified": "2026-02-07",
+    "sources": [
+      "Shopify Sales by Product exports 2023-2026",
+      "Historical order data",
+      "Product catalog review"
+    ],
+    "notes": [
+      "Product names from Shopify include location suffix (Pittsburgh)",
+      "Older products (2023-2024) use simpler naming convention",
+      "2025+ products use standardized format: Year + Product + Size + Frequency + Location"
+    ]
+  }
+}

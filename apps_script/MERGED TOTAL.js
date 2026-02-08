@@ -16197,6 +16197,16 @@ function doGet(e) {
       case 'getTrafficOptimizationAnalytics':
         return jsonResponse(getTrafficOptimizationAnalytics(e.parameter));
 
+      // ============ UNIVERSAL DOCUMENT PARSER (GET) (2026-02-07) ============
+      case 'getSalesDataSummary':
+        return jsonResponse(typeof getSalesDataSummary === 'function' ? getSalesDataSummary(e.parameter) : { success: false, error: 'UniversalParser not loaded' });
+      case 'getParsedSalesData':
+        return jsonResponse(typeof getParsedSalesData === 'function' ? getParsedSalesData(e.parameter) : { success: false, error: 'UniversalParser not loaded' });
+      case 'getParserStatus':
+        return jsonResponse(typeof getParserStatus === 'function' ? getParserStatus() : { success: false, error: 'UniversalParser not loaded' });
+      case 'getParseErrors':
+        return jsonResponse(typeof getParseErrors === 'function' ? getParseErrors(e.parameter) : { success: false, error: 'UniversalParser not loaded' });
+
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
     }
@@ -17066,6 +17076,20 @@ function doPost(e) {
         return jsonResponse(setupWeeklyPromptTrigger());
       case 'getWritingResponses':
         return jsonResponse(getWritingResponses(data));
+
+      // ============ UNIVERSAL DOCUMENT PARSER (POST) (2026-02-07) ============
+      case 'parseUniversalDocument':
+        return jsonResponse(typeof parseUniversalDocument === 'function' ? parseUniversalDocument(data) : { success: false, error: 'UniversalParser not loaded' });
+      case 'categorizeSalesData':
+        return jsonResponse(typeof categorizeSalesData === 'function' ? categorizeSalesData(data) : { success: false, error: 'UniversalParser not loaded' });
+      case 'storeParsedSalesData':
+        return jsonResponse(typeof storeParsedSalesData === 'function' ? storeParsedSalesData(data) : { success: false, error: 'UniversalParser not loaded' });
+      case 'initializeParserSheets':
+        return jsonResponse(typeof initializeParserSheets === 'function' ? initializeParserSheets() : { success: false, error: 'UniversalParser not loaded' });
+      case 'resolveParseError':
+        return jsonResponse(typeof resolveParseError === 'function' ? resolveParseError(data) : { success: false, error: 'UniversalParser not loaded' });
+      case 'clearParsedData':
+        return jsonResponse(typeof clearParsedData === 'function' ? clearParsedData(data) : { success: false, error: 'UniversalParser not loaded' });
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);

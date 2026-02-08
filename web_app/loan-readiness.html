@@ -756,6 +756,346 @@
             to { transform: rotate(360deg); }
         }
 
+        /* ====== UNIVERSAL SALES DATA PARSER STYLES ====== */
+
+        /* Sales Upload Zone */
+        .sales-upload-zone {
+            border: 3px dashed var(--border);
+            border-radius: 16px;
+            padding: 3rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--bg-lighter);
+        }
+
+        .sales-upload-zone:hover,
+        .sales-upload-zone.drag-over {
+            border-color: var(--primary);
+            background: rgba(42, 157, 143, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .sales-upload-zone i {
+            font-size: 4rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .sales-upload-zone h3 {
+            font-size: 1.4rem;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+        }
+
+        /* File Cards */
+        .file-card {
+            background: var(--bg-lighter);
+            border-radius: 10px;
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            border: 1px solid var(--border);
+        }
+
+        .file-card.processing {
+            border-color: var(--warning);
+            animation: pulse 2s infinite;
+        }
+
+        .file-card.complete {
+            border-color: var(--success);
+        }
+
+        .file-card.error {
+            border-color: var(--danger);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .file-card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .file-card-icon.csv { background: rgba(42, 157, 143, 0.2); color: var(--success); }
+        .file-card-icon.excel { background: rgba(34, 139, 34, 0.2); color: #228B22; }
+        .file-card-icon.pdf { background: rgba(220, 53, 69, 0.2); color: #dc3545; }
+
+        .file-card-info {
+            flex: 1;
+        }
+
+        .file-card-info h4 {
+            margin: 0 0 0.25rem 0;
+            font-size: 0.95rem;
+        }
+
+        .file-card-info p {
+            margin: 0;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .file-card-status {
+            padding: 0.35rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .file-card-status.processing { background: rgba(244, 162, 97, 0.2); color: var(--warning); }
+        .file-card-status.complete { background: rgba(42, 157, 143, 0.2); color: var(--success); }
+        .file-card-status.error { background: rgba(231, 111, 81, 0.2); color: var(--danger); }
+
+        /* Processing Steps */
+        .processing-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .processing-step {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            padding: 0.5rem 0;
+        }
+
+        .processing-step i {
+            font-size: 0.6rem;
+            width: 20px;
+            text-align: center;
+        }
+
+        .processing-step.active {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .processing-step.active i {
+            animation: pulse 1s infinite;
+        }
+
+        .processing-step.complete {
+            color: var(--success);
+        }
+
+        .processing-step.complete i:before {
+            content: "\f00c";
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+        }
+
+        /* Year Filter Select */
+        .year-filter-select {
+            padding: 0.5rem 1rem;
+            background: var(--bg-lighter);
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .year-filter-select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* Sales Category Accordion */
+        .sales-category {
+            background: var(--bg-lighter);
+            border-radius: 12px;
+            margin-bottom: 0.75rem;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .sales-category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.25rem;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .sales-category-header:hover {
+            background: rgba(42, 157, 143, 0.05);
+        }
+
+        .sales-category-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 700;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .sales-category-total {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .sales-category-total .member-count {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        .sales-category-total i {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            transition: transform 0.3s ease;
+        }
+
+        .sales-category.expanded .sales-category-total i {
+            transform: rotate(180deg);
+        }
+
+        .sales-category-items {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            padding: 0 1.25rem;
+        }
+
+        .sales-category.expanded .sales-category-items {
+            max-height: 500px;
+            padding-bottom: 1rem;
+        }
+
+        /* Sales Item Row */
+        .sales-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.65rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sales-item:last-child {
+            border-bottom: none;
+        }
+
+        .sales-item.add-market-row {
+            justify-content: flex-start;
+            padding-top: 0.75rem;
+        }
+
+        .item-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--text);
+        }
+
+        .tree-branch {
+            width: 12px;
+            height: 12px;
+            border-left: 2px solid var(--border);
+            border-bottom: 2px solid var(--border);
+            margin-right: 0.25rem;
+        }
+
+        .item-values {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .sales-amount-input {
+            width: 100px;
+            padding: 0.4rem 0.6rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-align: right;
+        }
+
+        .sales-amount-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .sales-count-input {
+            width: 60px;
+            padding: 0.4rem 0.5rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        .sales-count-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .count-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            min-width: 50px;
+        }
+
+        /* Grand Total */
+        .sales-grand-total {
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+        }
+
+        .total-divider {
+            height: 2px;
+            background: linear-gradient(90deg, var(--border), var(--primary), var(--border));
+            margin-bottom: 1rem;
+        }
+
+        .grand-total-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem;
+            background: linear-gradient(135deg, var(--success), var(--primary));
+            border-radius: 12px;
+        }
+
+        .total-label {
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .total-amount {
+            font-size: 2rem;
+            font-weight: 800;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .header h1 {
@@ -773,6 +1113,42 @@
 
             .lenders-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .sales-upload-zone {
+                padding: 2rem 1rem;
+            }
+
+            .sales-upload-zone i {
+                font-size: 3rem;
+            }
+
+            .sales-category-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+
+            .sales-category-total {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .sales-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+
+            .item-values {
+                width: 100%;
+                justify-content: flex-end;
+            }
+
+            .grand-total-row {
+                flex-direction: column;
+                gap: 0.5rem;
+                text-align: center;
             }
         }
     </style>
@@ -1066,161 +1442,362 @@
 
     <!-- AI Plan Generator Tab -->
     <div id="tab-plangen" class="tab-content">
-        <!-- Sales Data Entry - REQUIRED FOR ACCURATE PLANS -->
-        <div class="card" style="border: 2px solid var(--gold); background: linear-gradient(135deg, rgba(244, 162, 97, 0.1), rgba(231, 111, 81, 0.05));">
+        <!-- Universal Sales Data Parser - AI-Powered Import -->
+        <div class="card" id="salesDataCard" style="border: 2px solid var(--gold); background: linear-gradient(135deg, rgba(244, 162, 97, 0.1), rgba(231, 111, 81, 0.05));">
             <div class="card-header">
-                <h2><i class="fas fa-database"></i> Your Sales Data (Required for Accurate Plans)</h2>
-                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                    <input type="file" id="csvImport" accept=".csv" style="display: none;" onchange="importCSVData(this)">
-                    <button class="btn btn-success btn-sm" onclick="document.getElementById('csvImport').click()">
-                        <i class="fas fa-file-csv"></i> Import Shopify CSV
-                    </button>
-                    <button class="btn btn-secondary btn-sm" onclick="loadSavedSalesData()">
-                        <i class="fas fa-sync"></i> Load Saved
-                    </button>
-                    <button class="btn btn-primary btn-sm" onclick="saveSalesData()">
-                        <i class="fas fa-save"></i> Save Data
+                <h2><i class="fas fa-robot"></i> AI-Powered Sales Data Parser</h2>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+                    <span id="salesDataLastUpdated" style="font-size: 0.8rem; color: var(--text-secondary);"></span>
+                    <button class="btn btn-secondary btn-sm" onclick="loadSalesData()">
+                        <i class="fas fa-sync"></i> Refresh
                     </button>
                 </div>
             </div>
+
             <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
-                <i class="fas fa-exclamation-triangle" style="color: var(--gold);"></i>
-                Enter your actual numbers from Shopify and QuickBooks. The AI uses this data to generate accurate, compelling business plans.
+                <i class="fas fa-magic" style="color: var(--gold);"></i>
+                Drop any sales file - Shopify CSV, QuickBooks export, POS data, or Excel. Our AI automatically detects the format, categorizes products, and aggregates by year.
             </p>
 
-            <!-- Year Selection -->
-            <div class="input-group" style="margin-bottom: 1.5rem; max-width: 200px;">
-                <label><i class="fas fa-calendar-alt"></i> Data Year</label>
-                <select id="salesDataYear" onchange="loadSavedSalesData()">
-                    <option value="2025">2025</option>
-                    <option value="2024">2024</option>
-                    <option value="2023">2023</option>
-                </select>
-            </div>
-
-            <!-- CSA Data -->
-            <div style="background: var(--bg-lighter); padding: 1.25rem; border-radius: 12px; margin-bottom: 1.5rem;">
-                <h4 style="color: var(--success); margin-bottom: 1rem;"><i class="fas fa-box-open"></i> CSA Program (from Shopify)</h4>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
-                    <div class="input-group">
-                        <label>Total CSA Members</label>
-                        <input type="number" id="salesCSAMembers" placeholder="e.g., 85" />
-                    </div>
-                    <div class="input-group">
-                        <label>Full Share Members</label>
-                        <input type="number" id="salesCSAFull" placeholder="e.g., 50" />
-                    </div>
-                    <div class="input-group">
-                        <label>Half Share Members</label>
-                        <input type="number" id="salesCSAHalf" placeholder="e.g., 35" />
-                    </div>
-                    <div class="input-group">
-                        <label>Full Share Price</label>
-                        <input type="text" id="salesCSAFullPrice" placeholder="e.g., $650" />
-                    </div>
-                    <div class="input-group">
-                        <label>Half Share Price</label>
-                        <input type="text" id="salesCSAHalfPrice" placeholder="e.g., $375" />
-                    </div>
-                    <div class="input-group">
-                        <label>Total CSA Revenue</label>
-                        <input type="text" id="salesCSATotal" placeholder="e.g., $45,625" style="font-weight: bold; color: var(--success);" />
-                    </div>
-                </div>
-            </div>
-
-            <!-- Wholesale/Restaurant Data -->
-            <div style="background: var(--bg-lighter); padding: 1.25rem; border-radius: 12px; margin-bottom: 1.5rem;">
-                <h4 style="color: var(--info); margin-bottom: 1rem;"><i class="fas fa-utensils"></i> Wholesale / Restaurants (from QuickBooks)</h4>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
-                    <div class="input-group">
-                        <label># Restaurant Accounts</label>
-                        <input type="number" id="salesRestaurantCount" placeholder="e.g., 12" />
-                    </div>
-                    <div class="input-group">
-                        <label>Avg Order Value</label>
-                        <input type="text" id="salesRestaurantAvgOrder" placeholder="e.g., $150" />
-                    </div>
-                    <div class="input-group">
-                        <label>Orders Per Week (peak)</label>
-                        <input type="number" id="salesRestaurantWeekly" placeholder="e.g., 8" />
-                    </div>
-                    <div class="input-group">
-                        <label>Season Length (weeks)</label>
-                        <input type="number" id="salesRestaurantWeeks" placeholder="e.g., 24" />
-                    </div>
-                    <div class="input-group">
-                        <label>Total Wholesale Revenue</label>
-                        <input type="text" id="salesWholesaleTotal" placeholder="e.g., $28,800" style="font-weight: bold; color: var(--info);" />
-                    </div>
-                </div>
-            </div>
-
-            <!-- Farmers Market Data -->
-            <div style="background: var(--bg-lighter); padding: 1.25rem; border-radius: 12px; margin-bottom: 1.5rem;">
-                <h4 style="color: var(--purple); margin-bottom: 1rem;"><i class="fas fa-store"></i> Farmers Markets</h4>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
-                    <div class="input-group">
-                        <label># Markets Attended</label>
-                        <input type="number" id="salesMarketCount" placeholder="e.g., 3" />
-                    </div>
-                    <div class="input-group">
-                        <label>Market Names</label>
-                        <input type="text" id="salesMarketNames" placeholder="e.g., Lawrenceville, Sewickley" />
-                    </div>
-                    <div class="input-group">
-                        <label>Avg Sales Per Market</label>
-                        <input type="text" id="salesMarketAvg" placeholder="e.g., $800" />
-                    </div>
-                    <div class="input-group">
-                        <label>Total Market Sessions</label>
-                        <input type="number" id="salesMarketSessions" placeholder="e.g., 48" />
-                    </div>
-                    <div class="input-group">
-                        <label>Total Market Revenue</label>
-                        <input type="text" id="salesMarketTotal" placeholder="e.g., $38,400" style="font-weight: bold; color: var(--purple);" />
-                    </div>
-                </div>
-            </div>
-
-            <!-- Specialty Products -->
-            <div style="background: var(--bg-lighter); padding: 1.25rem; border-radius: 12px; margin-bottom: 1.5rem;">
-                <h4 style="color: var(--secondary); margin-bottom: 1rem;"><i class="fas fa-star"></i> Specialty Products</h4>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
-                    <div class="input-group">
-                        <label><i class="fas fa-seedling"></i> Flowers (Fleurs) Revenue</label>
-                        <input type="text" id="salesFlowersTotal" placeholder="e.g., $8,500" />
-                    </div>
-                    <div class="input-group">
-                        <label><i class="fas fa-cloud"></i> Mushrooms (Fungi) Revenue</label>
-                        <input type="text" id="salesMushroomsTotal" placeholder="e.g., $4,200" />
-                    </div>
-                    <div class="input-group">
-                        <label><i class="fas fa-jar"></i> Value-Added Products</label>
-                        <input type="text" id="salesValueAddedTotal" placeholder="e.g., $2,500" />
-                    </div>
-                    <div class="input-group">
-                        <label><i class="fas fa-truck"></i> Direct Delivery Revenue</label>
-                        <input type="text" id="salesDeliveryTotal" placeholder="e.g., $5,000" />
-                    </div>
-                </div>
-            </div>
-
-            <!-- Grand Total -->
-            <div style="background: linear-gradient(135deg, var(--success), var(--primary)); padding: 1.5rem; border-radius: 12px; text-align: center;">
-                <div style="font-size: 0.9rem; text-transform: uppercase; opacity: 0.9; margin-bottom: 0.5rem;">Total Annual Revenue</div>
-                <div id="salesGrandTotal" style="font-size: 2.5rem; font-weight: 800;">$0</div>
-                <button class="btn" style="background: rgba(255,255,255,0.2); color: white; margin-top: 1rem;" onclick="calculateTotalRevenue()">
-                    <i class="fas fa-calculator"></i> Calculate Total
+            <!-- File Upload Zone -->
+            <div id="salesUploadZone" class="sales-upload-zone" ondrop="handleSalesFileDrop(event)" ondragover="handleSalesDragOver(event)" ondragleave="handleSalesDragLeave(event)">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <h3>Drop Any Sales File Here</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1rem;">Supports: Shopify CSV, QuickBooks Export, POS Sales, Excel (.xlsx, .xls), PDF</p>
+                <input type="file" id="salesFileInput" accept=".csv,.xlsx,.xls,.pdf" multiple style="display: none;" onchange="handleSalesFileSelect(event)">
+                <button class="btn btn-primary" onclick="document.getElementById('salesFileInput').click()">
+                    <i class="fas fa-folder-open"></i> Or Click to Browse
                 </button>
             </div>
 
-            <div style="margin-top: 1rem; padding: 1rem; background: rgba(67, 97, 238, 0.1); border-radius: 8px; border-left: 4px solid var(--info);">
-                <strong><i class="fas fa-lightbulb"></i> How to use:</strong>
+            <!-- Uploaded Files List -->
+            <div id="uploadedFilesList" style="display: none; margin-top: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h4 style="margin: 0;"><i class="fas fa-file-alt"></i> Uploaded Files</h4>
+                    <button class="btn btn-success btn-sm" onclick="mergeAllYears()" id="mergeYearsBtn" style="display: none;">
+                        <i class="fas fa-layer-group"></i> Merge All Years
+                    </button>
+                </div>
+                <div id="fileCardsContainer" style="display: grid; gap: 0.75rem;"></div>
+            </div>
+
+            <!-- Processing Indicator -->
+            <div id="processingIndicator" style="display: none; margin-top: 1.5rem; background: var(--bg-lighter); padding: 1.5rem; border-radius: 12px;">
+                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 1.5rem; color: var(--primary);"></i>
+                    <div>
+                        <div id="processingStatus" style="font-weight: 600;">Processing...</div>
+                        <div id="processingDetail" style="font-size: 0.85rem; color: var(--text-secondary);"></div>
+                    </div>
+                </div>
+                <div class="processing-steps" id="processingSteps">
+                    <div class="processing-step" data-step="1">
+                        <i class="fas fa-circle"></i> Uploading file...
+                    </div>
+                    <div class="processing-step" data-step="2">
+                        <i class="fas fa-circle"></i> Detecting format...
+                    </div>
+                    <div class="processing-step" data-step="3">
+                        <i class="fas fa-circle"></i> AI categorizing products...
+                    </div>
+                    <div class="processing-step" data-step="4">
+                        <i class="fas fa-circle"></i> Aggregating by year...
+                    </div>
+                    <div class="processing-step" data-step="5">
+                        <i class="fas fa-circle"></i> Complete!
+                    </div>
+                </div>
+            </div>
+
+            <!-- Year Filter -->
+            <div id="yearFilterSection" style="display: none; margin-top: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3 style="margin: 0;"><i class="fas fa-chart-bar"></i> Sales Data Summary</h3>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <select id="salesYearFilter" class="year-filter-select" onchange="filterByYear(this.value)">
+                            <option value="2026">2026</option>
+                            <option value="2025" selected>2025</option>
+                            <option value="2024">2024</option>
+                            <option value="2023">2023</option>
+                            <option value="all">All Years</option>
+                        </select>
+                        <button class="btn btn-secondary btn-sm" onclick="saveSalesData()">
+                            <i class="fas fa-save"></i> Save
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sales Summary Dashboard -->
+            <div id="salesSummaryDashboard" style="display: none; margin-top: 1rem;">
+                <!-- CSA Subscriptions Category -->
+                <div class="sales-category" id="categoryCsa">
+                    <div class="sales-category-header" onclick="toggleSalesCategory('csa')">
+                        <div class="sales-category-title">
+                            <i class="fas fa-box-open" style="color: var(--success);"></i>
+                            <span>CSA SUBSCRIPTIONS</span>
+                        </div>
+                        <div class="sales-category-total">
+                            <span id="csaTotalAmount">$0</span>
+                            <span id="csaTotalMembers" class="member-count">(0 members)</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                    <div class="sales-category-items" id="csaItems">
+                        <div class="sales-item" data-key="summerCsa">
+                            <span class="item-label"><span class="tree-branch"></span> Summer CSA</span>
+                            <div class="item-values">
+                                <input type="text" class="sales-amount-input" id="csaSummerAmount" placeholder="$0" onchange="updateCategoryTotal('csa')">
+                                <input type="number" class="sales-count-input" id="csaSummerMembers" placeholder="0" onchange="updateCategoryTotal('csa')">
+                                <span class="count-label">members</span>
+                            </div>
+                        </div>
+                        <div class="sales-item" data-key="springCsa">
+                            <span class="item-label"><span class="tree-branch"></span> Spring CSA</span>
+                            <div class="item-values">
+                                <input type="text" class="sales-amount-input" id="csaSpringAmount" placeholder="$0" onchange="updateCategoryTotal('csa')">
+                                <input type="number" class="sales-count-input" id="csaSpringMembers" placeholder="0" onchange="updateCategoryTotal('csa')">
+                                <span class="count-label">members</span>
+                            </div>
+                        </div>
+                        <div class="sales-item" data-key="fallCsa">
+                            <span class="item-label"><span class="tree-branch"></span> Fall CSA</span>
+                            <div class="item-values">
+                                <input type="text" class="sales-amount-input" id="csaFallAmount" placeholder="$0" onchange="updateCategoryTotal('csa')">
+                                <input type="number" class="sales-count-input" id="csaFallMembers" placeholder="0" onchange="updateCategoryTotal('csa')">
+                                <span class="count-label">members</span>
+                            </div>
+                        </div>
+                        <div class="sales-item" data-key="thanksgivingCsa">
+                            <span class="item-label"><span class="tree-branch"></span> Thanksgiving CSA</span>
+                            <div class="item-values">
+                                <input type="text" class="sales-amount-input" id="csaThanksgivingAmount" placeholder="$0" onchange="updateCategoryTotal('csa')">
+                                <input type="number" class="sales-count-input" id="csaThanksgivingMembers" placeholder="0" onchange="updateCategoryTotal('csa')">
+                                <span class="count-label">orders</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Flower Subscriptions Category -->
+                <div class="sales-category" id="categoryFlowers">
+                    <div class="sales-category-header" onclick="toggleSalesCategory('flowers')">
+                        <div class="sales-category-title">
+                            <i class="fas fa-seedling" style="color: var(--secondary);"></i>
+                            <span>FLOWER SUBSCRIPTIONS</span>
+                        </div>
+                        <div class="sales-category-total">
+                            <span id="flowersTotalAmount">$0</span>
+                            <span id="flowersTotalSubs" class="member-count">(0 subscribers)</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                    <div class="sales-category-items" id="flowersItems">
+                        <div class="sales-item" data-key="standardWeekly">
+                            <span class="item-label"><span class="tree-branch"></span> Standard Weekly</span>
+                            <div class="item-values">
+                                <input type="text" class="sales-amount-input" id="flowersStandardAmount" placeholder="$0" onchange="updateCategoryTotal('flowers')">
+                                <input type="number" class="sales-count-input" id="flowersStandardSubs" placeholder="0" onchange="updateCategoryTotal('flowers')">
+                                <span class="count-label">subs</span>
+                            </div>
+                        </div>
+                        <div class="sales-item" data-key="fullBloom">
+                            <span class="item-label"><span class="tree-branch"></span> Full Bloom</span>
+                            <div class="item-values">
+                                <input type="text" class="sales-amount-input" id="flowersFullBloomAmount" placeholder="$0" onchange="updateCategoryTotal('flowers')">
+                                <input type="number" class="sales-count-input" id="flowersFullBloomSubs" placeholder="0" onchange="updateCategoryTotal('flowers')">
+                                <span class="count-label">subs</span>
+                            </div>
+                        </div>
+                        <div class="sales-item" data-key="petiteBloom">
+                            <span class="item-label"><span class="tree-branch"></span> Petite Bloom</span>
+                            <div class="item-values">
+                                <input type="text" class="sales-amount-input" id="flowersPetiteAmount" placeholder="$0" onchange="updateCategoryTotal('flowers')">
+                                <input type="number" class="sales-count-input" id="flowersPetiteSubs" placeholder="0" onchange="updateCategoryTotal('flowers')">
+                                <span class="count-label">subs</span>
+                            </div>
+                        </div>
+                        <div class="sales-item" data-key="dahliaCsa">
+                            <span class="item-label"><span class="tree-branch"></span> Dahlia CSA</span>
+                            <div class="item-values">
+                                <input type="text" class="sales-amount-input" id="flowersDahliaAmount" placeholder="$0" onchange="updateCategoryTotal('flowers')">
+                                <input type="number" class="sales-count-input" id="flowersDahliaSubs" placeholder="0" onchange="updateCategoryTotal('flowers')">
+                                <span class="count-label">subs</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Partner Add-Ons Category -->
+                <div class="sales-category" id="categoryAddons">
+                    <div class="sales-category-header" onclick="toggleSalesCategory('addons')">
+                        <div class="sales-category-title">
+                            <i class="fas fa-handshake" style="color: var(--info);"></i>
+                            <span>PARTNER ADD-ONS</span>
+                        </div>
+                        <div class="sales-category-total">
+                            <span id="addonsTotalAmount">$0</span>
+                            <span id="addonsTotalSubs" class="member-count">(0 subscribers)</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                    <div class="sales-category-items" id="addonsItems">
+                        <div class="sales-item" data-key="mushrooms">
+                            <span class="item-label"><span class="tree-branch"></span> Mushrooms</span>
+                            <div class="item-values">
+                                <input type="text" class="sales-amount-input" id="addonsMushroomsAmount" placeholder="$0" onchange="updateCategoryTotal('addons')">
+                                <input type="number" class="sales-count-input" id="addonsMushroomsSubs" placeholder="0" onchange="updateCategoryTotal('addons')">
+                                <span class="count-label">subs</span>
+                            </div>
+                        </div>
+                        <div class="sales-item" data-key="bread">
+                            <span class="item-label"><span class="tree-branch"></span> Bread</span>
+                            <div class="item-values">
+                                <input type="text" class="sales-amount-input" id="addonsBreadAmount" placeholder="$0" onchange="updateCategoryTotal('addons')">
+                                <input type="number" class="sales-count-input" id="addonsBreadSubs" placeholder="0" onchange="updateCategoryTotal('addons')">
+                                <span class="count-label">subs</span>
+                            </div>
+                        </div>
+                        <div class="sales-item" data-key="cheese">
+                            <span class="item-label"><span class="tree-branch"></span> Cheese</span>
+                            <div class="item-values">
+                                <input type="text" class="sales-amount-input" id="addonsCheeseAmount" placeholder="$0" onchange="updateCategoryTotal('addons')">
+                                <input type="number" class="sales-count-input" id="addonsCheeseSubs" placeholder="0" onchange="updateCategoryTotal('addons')">
+                                <span class="count-label">subs</span>
+                            </div>
+                        </div>
+                        <div class="sales-item" data-key="coffee">
+                            <span class="item-label"><span class="tree-branch"></span> Coffee</span>
+                            <div class="item-values">
+                                <input type="text" class="sales-amount-input" id="addonsCoffeeAmount" placeholder="$0" onchange="updateCategoryTotal('addons')">
+                                <input type="number" class="sales-count-input" id="addonsCoffeeSubs" placeholder="0" onchange="updateCategoryTotal('addons')">
+                                <span class="count-label">subs</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Farmers Markets Category -->
+                <div class="sales-category" id="categoryMarkets">
+                    <div class="sales-category-header" onclick="toggleSalesCategory('markets')">
+                        <div class="sales-category-title">
+                            <i class="fas fa-store" style="color: var(--purple);"></i>
+                            <span>FARMERS MARKETS</span>
+                        </div>
+                        <div class="sales-category-total">
+                            <span id="marketsTotalAmount">$0</span>
+                            <span id="marketsTotalNote" class="member-count">(no data yet)</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                    <div class="sales-category-items" id="marketsItems">
+                        <div class="sales-item" data-key="lawrenceville">
+                            <span class="item-label"><span class="tree-branch"></span> Lawrenceville</span>
+                            <div class="item-values">
+                                <input type="text" class="sales-amount-input" id="marketsLawrencevilleAmount" placeholder="$0" onchange="updateCategoryTotal('markets')">
+                                <input type="number" class="sales-count-input" id="marketsLawrencevilleSessions" placeholder="0" onchange="updateCategoryTotal('markets')">
+                                <span class="count-label">sessions</span>
+                            </div>
+                        </div>
+                        <div class="sales-item" data-key="sewickley">
+                            <span class="item-label"><span class="tree-branch"></span> Sewickley</span>
+                            <div class="item-values">
+                                <input type="text" class="sales-amount-input" id="marketsSewickleyAmount" placeholder="$0" onchange="updateCategoryTotal('markets')">
+                                <input type="number" class="sales-count-input" id="marketsSewickleySessions" placeholder="0" onchange="updateCategoryTotal('markets')">
+                                <span class="count-label">sessions</span>
+                            </div>
+                        </div>
+                        <div class="sales-item" data-key="bloomfield">
+                            <span class="item-label"><span class="tree-branch"></span> Bloomfield</span>
+                            <div class="item-values">
+                                <input type="text" class="sales-amount-input" id="marketsBloomfieldAmount" placeholder="$0" onchange="updateCategoryTotal('markets')">
+                                <input type="number" class="sales-count-input" id="marketsBloomfieldSessions" placeholder="0" onchange="updateCategoryTotal('markets')">
+                                <span class="count-label">sessions</span>
+                            </div>
+                        </div>
+                        <div class="sales-item add-market-row">
+                            <button class="btn btn-secondary btn-sm" onclick="addMarketRow()">
+                                <i class="fas fa-plus"></i> Add Market
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Wholesale/Restaurants Category -->
+                <div class="sales-category" id="categoryWholesale">
+                    <div class="sales-category-header" onclick="toggleSalesCategory('wholesale')">
+                        <div class="sales-category-title">
+                            <i class="fas fa-utensils" style="color: var(--warning);"></i>
+                            <span>WHOLESALE / RESTAURANTS</span>
+                        </div>
+                        <div class="sales-category-total">
+                            <span id="wholesaleTotalAmount">$0</span>
+                            <span id="wholesaleTotalNote" class="member-count">(no data yet)</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                    <div class="sales-category-items" id="wholesaleItems">
+                        <div class="sales-item" data-key="restaurants">
+                            <span class="item-label"><span class="tree-branch"></span> Restaurant Accounts</span>
+                            <div class="item-values">
+                                <input type="text" class="sales-amount-input" id="wholesaleRestaurantsAmount" placeholder="$0" onchange="updateCategoryTotal('wholesale')">
+                                <input type="number" class="sales-count-input" id="wholesaleRestaurantsCount" placeholder="0" onchange="updateCategoryTotal('wholesale')">
+                                <span class="count-label">accounts</span>
+                            </div>
+                        </div>
+                        <div class="sales-item" data-key="grocery">
+                            <span class="item-label"><span class="tree-branch"></span> Grocery/Retail</span>
+                            <div class="item-values">
+                                <input type="text" class="sales-amount-input" id="wholesaleGroceryAmount" placeholder="$0" onchange="updateCategoryTotal('wholesale')">
+                                <input type="number" class="sales-count-input" id="wholesaleGroceryCount" placeholder="0" onchange="updateCategoryTotal('wholesale')">
+                                <span class="count-label">accounts</span>
+                            </div>
+                        </div>
+                        <div class="sales-item" data-key="directDelivery">
+                            <span class="item-label"><span class="tree-branch"></span> Direct Delivery</span>
+                            <div class="item-values">
+                                <input type="text" class="sales-amount-input" id="wholesaleDeliveryAmount" placeholder="$0" onchange="updateCategoryTotal('wholesale')">
+                                <input type="number" class="sales-count-input" id="wholesaleDeliveryCount" placeholder="0" onchange="updateCategoryTotal('wholesale')">
+                                <span class="count-label">customers</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Grand Total -->
+                <div class="sales-grand-total">
+                    <div class="total-divider"></div>
+                    <div class="grand-total-row">
+                        <span class="total-label">TOTAL REVENUE</span>
+                        <span id="salesGrandTotal" class="total-amount">$0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Missing Data Section (shown when no data in certain categories) -->
+            <div id="addMissingDataSection" style="display: none; margin-top: 1.5rem; padding: 1rem; background: rgba(244, 162, 97, 0.1); border-radius: 8px; border-left: 4px solid var(--warning);">
+                <h4 style="margin: 0 0 0.5rem 0; color: var(--warning);"><i class="fas fa-plus-circle"></i> Add Missing Data</h4>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+                    Some sales channels may not be in your Shopify export. Add them manually:
+                </p>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <button class="btn btn-secondary btn-sm" onclick="showManualEntry('markets')">
+                        <i class="fas fa-store"></i> Add Farmers Market Data
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="showManualEntry('wholesale')">
+                        <i class="fas fa-utensils"></i> Add Wholesale/Restaurant Data
+                    </button>
+                </div>
+            </div>
+
+            <!-- How to Use Tips -->
+            <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(67, 97, 238, 0.1); border-radius: 8px; border-left: 4px solid var(--info);">
+                <strong><i class="fas fa-lightbulb"></i> How it works:</strong>
                 <ol style="margin: 0.5rem 0 0 1.25rem; color: var(--text-secondary);">
-                    <li><strong>Import Shopify CSV</strong> - Downloads from Shopify Analytics → Sales by Product. Auto-fills CSA, Flowers, and Add-ons.</li>
-                    <li><strong>Add QuickBooks data</strong> - Manually enter Wholesale/Restaurant and Farmers Market revenue from QuickBooks reports.</li>
-                    <li><strong>Save Data</strong> - Click to save for future use.</li>
+                    <li><strong>Drop any sales file</strong> - Shopify exports, QuickBooks reports, Square POS, Excel spreadsheets, even PDFs</li>
+                    <li><strong>AI auto-categorizes</strong> - Products are automatically sorted into CSA, Flowers, Add-ons, Markets, and Wholesale</li>
+                    <li><strong>Edit if needed</strong> - Click any value to manually adjust. Add Farmers Market and Wholesale data that is not in Shopify.</li>
+                    <li><strong>Save &amp; Generate Plans</strong> - Your data is saved and used to create accurate loan documents</li>
                 </ol>
             </div>
         </div>
@@ -2664,333 +3241,293 @@
             showNotification('Application editing coming soon!', 'info');
         }
 
-        // ============ SALES DATA MANAGEMENT ============
+        // ============ UNIVERSAL SALES DATA PARSER ============
 
-        const SALES_DATA_FIELDS = [
-            'salesCSAMembers', 'salesCSAFull', 'salesCSAHalf', 'salesCSAFullPrice', 'salesCSAHalfPrice', 'salesCSATotal',
-            'salesRestaurantCount', 'salesRestaurantAvgOrder', 'salesRestaurantWeekly', 'salesRestaurantWeeks', 'salesWholesaleTotal',
-            'salesMarketCount', 'salesMarketNames', 'salesMarketAvg', 'salesMarketSessions', 'salesMarketTotal',
-            'salesFlowersTotal', 'salesMushroomsTotal', 'salesValueAddedTotal', 'salesDeliveryTotal'
-        ];
+        // State for sales data parser
+        let uploadedSalesFiles = [];
+        let parsedSalesData = {
+            csa: { summer: { amount: 0, count: 0 }, spring: { amount: 0, count: 0 }, fall: { amount: 0, count: 0 }, thanksgiving: { amount: 0, count: 0 } },
+            flowers: { standard: { amount: 0, count: 0 }, fullBloom: { amount: 0, count: 0 }, petiteBloom: { amount: 0, count: 0 }, dahlia: { amount: 0, count: 0 } },
+            addons: { mushrooms: { amount: 0, count: 0 }, bread: { amount: 0, count: 0 }, cheese: { amount: 0, count: 0 }, coffee: { amount: 0, count: 0 } },
+            markets: { lawrenceville: { amount: 0, count: 0 }, sewickley: { amount: 0, count: 0 }, bloomfield: { amount: 0, count: 0 } },
+            wholesale: { restaurants: { amount: 0, count: 0 }, grocery: { amount: 0, count: 0 }, directDelivery: { amount: 0, count: 0 } }
+        };
+        let salesDataByYear = {};
+        let currentSalesYear = '2025';
 
-        function saveSalesData() {
-            const year = document.getElementById('salesDataYear').value;
-            const salesData = { year: year };
-
-            SALES_DATA_FIELDS.forEach(field => {
-                const el = document.getElementById(field);
-                if (el) salesData[field] = el.value;
-            });
-
-            // Save to localStorage
-            localStorage.setItem(`tinySeedSalesData_${year}`, JSON.stringify(salesData));
-
-            // Also save to backend
-            fetch(`${API_URL}?action=saveFarmSalesData`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(salesData)
-            }).then(r => r.json()).then(data => {
-                if (data.success) {
-                    showNotification(`Sales data for ${year} saved successfully!`, 'success');
-                }
-            }).catch(err => {
-                console.error('Error saving to backend:', err);
-                showNotification('Saved locally. Backend sync will retry later.', 'warning');
-            });
-
-            calculateTotalRevenue();
+        // Initialize sales data parser on page load
+        function initSalesDataParser() {
+            loadSalesData();
+            updateLastUpdatedIndicator();
         }
 
-        function loadSavedSalesData() {
-            const year = document.getElementById('salesDataYear').value;
+        // ====== FILE UPLOAD HANDLERS ======
 
-            // Try localStorage first
-            const localData = localStorage.getItem(`tinySeedSalesData_${year}`);
-            if (localData) {
-                const salesData = JSON.parse(localData);
-                SALES_DATA_FIELDS.forEach(field => {
-                    const el = document.getElementById(field);
-                    if (el && salesData[field]) el.value = salesData[field];
-                });
-                calculateTotalRevenue();
-                showNotification(`Loaded saved data for ${year}`, 'success');
-                return;
+        function handleSalesDragOver(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            document.getElementById('salesUploadZone').classList.add('drag-over');
+        }
+
+        function handleSalesDragLeave(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            document.getElementById('salesUploadZone').classList.remove('drag-over');
+        }
+
+        function handleSalesFileDrop(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            document.getElementById('salesUploadZone').classList.remove('drag-over');
+
+            const files = event.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileUpload(Array.from(files));
+            }
+        }
+
+        function handleSalesFileSelect(event) {
+            const files = event.target.files;
+            if (files.length > 0) {
+                handleFileUpload(Array.from(files));
+            }
+        }
+
+        // Main file upload handler
+        async function handleFileUpload(files) {
+            console.log('Handling file upload:', files.map(f => f.name));
+
+            // Show uploaded files section
+            document.getElementById('uploadedFilesList').style.display = 'block';
+
+            for (const file of files) {
+                // Add file card
+                addFileCard(file);
+
+                // Parse the file
+                await parseFile(file);
             }
 
-            // Try backend
-            fetch(`${API_URL}?action=getFarmSalesData&year=${year}`)
-                .then(r => r.json())
-                .then(data => {
-                    if (data.success && data.salesData) {
-                        SALES_DATA_FIELDS.forEach(field => {
-                            const el = document.getElementById(field);
-                            if (el && data.salesData[field]) el.value = data.salesData[field];
-                        });
-                        calculateTotalRevenue();
-                        showNotification(`Loaded data for ${year} from server`, 'success');
-                    } else {
-                        showNotification(`No saved data found for ${year}. Enter your numbers from Shopify/QuickBooks.`, 'info');
+            // Show merge button if multiple files
+            if (uploadedSalesFiles.length > 1) {
+                document.getElementById('mergeYearsBtn').style.display = 'inline-flex';
+            }
+        }
+
+        function addFileCard(file) {
+            const container = document.getElementById('fileCardsContainer');
+            const fileId = 'file_' + Date.now();
+
+            // Determine file type icon
+            let iconClass = 'csv';
+            let iconName = 'fa-file-csv';
+            if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+                iconClass = 'excel';
+                iconName = 'fa-file-excel';
+            } else if (file.name.endsWith('.pdf')) {
+                iconClass = 'pdf';
+                iconName = 'fa-file-pdf';
+            }
+
+            const card = document.createElement('div');
+            card.className = 'file-card processing';
+            card.id = fileId;
+            card.innerHTML = `
+                <div class="file-card-icon ${iconClass}">
+                    <i class="fas ${iconName}"></i>
+                </div>
+                <div class="file-card-info">
+                    <h4>${file.name}</h4>
+                    <p>${formatFileSize(file.size)} - Detecting format...</p>
+                </div>
+                <span class="file-card-status processing">Processing</span>
+            `;
+            container.appendChild(card);
+
+            // Store file reference
+            uploadedSalesFiles.push({ id: fileId, file, status: 'processing' });
+
+            return fileId;
+        }
+
+        function updateFileCard(fileId, status, message) {
+            const card = document.getElementById(fileId);
+            if (!card) return;
+
+            card.className = 'file-card ' + status;
+            const statusBadge = card.querySelector('.file-card-status');
+            statusBadge.className = 'file-card-status ' + status;
+            statusBadge.textContent = status === 'complete' ? 'Complete' : status === 'error' ? 'Error' : 'Processing';
+
+            const info = card.querySelector('.file-card-info p');
+            if (info && message) {
+                info.textContent = message;
+            }
+        }
+
+        // ====== FILE PARSING ======
+
+        async function parseFile(file) {
+            const fileEntry = uploadedSalesFiles.find(f => f.file === file);
+            if (!fileEntry) return;
+
+            showProcessingIndicator(true);
+            updateProcessingStep(1);
+
+            try {
+                // Step 1: Upload
+                await sleep(300);
+                updateProcessingStep(2);
+
+                // Step 2: Detect format
+                const fileType = detectFileFormat(file);
+                await sleep(300);
+                updateProcessingStep(3);
+
+                // Step 3: Parse and categorize
+                let rawData;
+                if (fileType === 'csv') {
+                    rawData = await parseCSVFile(file);
+                } else if (fileType === 'excel') {
+                    rawData = await parseExcelFile(file);
+                } else if (fileType === 'pdf') {
+                    rawData = await parsePDFFile(file);
+                }
+
+                await sleep(300);
+                updateProcessingStep(4);
+
+                // Step 4: Aggregate by year
+                const categorizedData = categorizeSalesData(rawData);
+                await sleep(300);
+                updateProcessingStep(5);
+
+                // Step 5: Complete
+                fileEntry.status = 'complete';
+                fileEntry.data = categorizedData;
+                updateFileCard(fileEntry.id, 'complete', `Processed - ${categorizedData.totalProducts || 0} products found`);
+
+                // Display results
+                displayParsedData(categorizedData);
+
+                showNotification('File parsed successfully!', 'success');
+
+            } catch (error) {
+                console.error('Error parsing file:', error);
+                fileEntry.status = 'error';
+                updateFileCard(fileEntry.id, 'error', 'Failed to parse: ' + error.message);
+                showNotification('Error parsing file: ' + error.message, 'error');
+            }
+
+            showProcessingIndicator(false);
+        }
+
+        function detectFileFormat(file) {
+            const name = file.name.toLowerCase();
+            if (name.endsWith('.csv')) return 'csv';
+            if (name.endsWith('.xlsx') || name.endsWith('.xls')) return 'excel';
+            if (name.endsWith('.pdf')) return 'pdf';
+            return 'unknown';
+        }
+
+        async function parseCSVFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const csvText = e.target.result;
+                        const lines = csvText.split('\n');
+                        if (lines.length < 2) {
+                            reject(new Error('CSV file appears empty'));
+                            return;
+                        }
+
+                        const header = parseCSVLine(lines[0]);
+                        const titleIdx = header.findIndex(h => h.toLowerCase().includes('product') || h.toLowerCase().includes('title') || h.toLowerCase().includes('item'));
+                        const salesIdx = header.findIndex(h => h.toLowerCase().includes('sales') || h.toLowerCase().includes('total') || h.toLowerCase().includes('amount') || h.toLowerCase().includes('revenue'));
+                        const qtyIdx = header.findIndex(h => h.toLowerCase().includes('quantity') || h.toLowerCase().includes('qty') || h.toLowerCase().includes('count'));
+                        const dateIdx = header.findIndex(h => h.toLowerCase().includes('date') || h.toLowerCase().includes('year'));
+
+                        const products = [];
+                        for (let i = 1; i < lines.length; i++) {
+                            if (!lines[i].trim()) continue;
+                            const row = parseCSVLine(lines[i]);
+                            products.push({
+                                title: row[titleIdx] || row[0] || '',
+                                sales: parseFloat((row[salesIdx] || row[1] || '0').replace(/[,$]/g, '')) || 0,
+                                quantity: parseInt(row[qtyIdx] || row[2]) || 1,
+                                date: row[dateIdx] || ''
+                            });
+                        }
+
+                        resolve({ products, source: 'csv', totalProducts: products.length });
+                    } catch (err) {
+                        reject(err);
                     }
-                })
-                .catch(err => {
-                    console.error('Error loading from backend:', err);
-                    showNotification(`No saved data for ${year}. Enter your numbers.`, 'info');
-                });
-        }
-
-        function parseMoneyValue(str) {
-            if (!str) return 0;
-            return parseFloat(String(str).replace(/[$,]/g, '')) || 0;
-        }
-
-        // ============ CSV IMPORT FOR SHOPIFY DATA ============
-
-        function importCSVData(input) {
-            const file = input.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const csvText = e.target.result;
-                parseShopifyCSV(csvText);
-            };
-            reader.readAsText(file);
-        }
-
-        function parseShopifyCSV(csvText) {
-            // Parse CSV
-            const lines = csvText.split('\n');
-            if (lines.length < 2) {
-                showNotification('CSV file appears empty', 'error');
-                return;
-            }
-
-            // Parse header to find column indices
-            const header = parseCSVLine(lines[0]);
-            const titleIdx = header.findIndex(h => h.toLowerCase().includes('product title') || h.toLowerCase() === 'product title');
-            const yearIdx = header.findIndex(h => h.toLowerCase().includes('year'));
-            const salesIdx = header.findIndex(h => h.toLowerCase().includes('total sales'));
-            const qtyIdx = header.findIndex(h => h.toLowerCase().includes('quantity'));
-
-            if (titleIdx === -1 || salesIdx === -1) {
-                showNotification('CSV format not recognized. Expected columns: Product title, Total sales', 'error');
-                return;
-            }
-
-            // Parse all data rows
-            const products = [];
-            for (let i = 1; i < lines.length; i++) {
-                if (!lines[i].trim()) continue;
-                const row = parseCSVLine(lines[i]);
-                if (row.length > salesIdx) {
-                    products.push({
-                        title: row[titleIdx] || '',
-                        year: row[yearIdx] || '',
-                        sales: parseFloat(row[salesIdx]?.replace(/[,$]/g, '')) || 0,
-                        quantity: parseInt(row[qtyIdx]) || 0
-                    });
-                }
-            }
-
-            // Aggregate by category and year
-            const yearSelect = document.getElementById('salesDataYear');
-            const selectedYear = yearSelect.value;
-
-            // Detailed category tracking for all Tiny Seed products
-            const csaData = {
-                total: 0,
-                members: 0,
-                summer: { sales: 0, qty: 0 },
-                spring: { sales: 0, qty: 0 },
-                fall: { sales: 0, qty: 0 },
-                thanksgiving: { sales: 0, qty: 0 },
-                shares: []
-            };
-            const flowerData = {
-                total: 0,
-                subscribers: 0,
-                standard: { sales: 0, qty: 0 },
-                fullBloom: { sales: 0, qty: 0 },
-                petiteBloom: { sales: 0, qty: 0 },
-                dahlia: { sales: 0, qty: 0 }
-            };
-            const addOnData = {
-                mushrooms: { sales: 0, qty: 0 },
-                bread: { sales: 0, qty: 0 },
-                cheese: { sales: 0, qty: 0 },
-                coffee: { sales: 0, qty: 0 }
-            };
-
-            products.forEach(p => {
-                const title = p.title.toLowerCase();
-
-                // Match based on product season year in title (e.g., "2024 Tiny Seed Farm Summer CSA")
-                const yearMatch = title.match(/^(\d{4})/);
-                const productYear = yearMatch ? yearMatch[1] : '';
-
-                // CSA products for year X are often sold in year X-1 (pre-sales)
-                // So "2025 Summer CSA" sales in 2024 count as 2024 revenue
-                // But "2026 Summer CSA" sales in 2025 count as 2025 revenue
-                const isRelevant = selectedYear === '2025' ?
-                    (productYear === '2025' || productYear === '2026') :
-                    selectedYear === '2024' ?
-                    (productYear === '2024' || productYear === '2025') :
-                    selectedYear === '2023' ?
-                    (productYear === '2023' || productYear === '2024') :
-                    productYear === selectedYear;
-
-                // For products without year prefix (like "Thanksgiving CSA"), include them
-                if (!isRelevant && productYear) return;
-
-                // ===== VEGETABLE CSA SHARES =====
-                // Summer CSA (Flex Weekly, Small Biweekly, Small Weekly, Friends & Family, Standard)
-                if ((title.includes('summer csa') || (title.includes('csa') && title.includes('seed farm'))) &&
-                    !title.includes('flower') && !title.includes('add-on') && !title.includes('dahlia')) {
-                    csaData.summer.sales += p.sales;
-                    csaData.summer.qty += p.quantity;
-                    csaData.total += p.sales;
-                    csaData.members += p.quantity;
-                    csaData.shares.push({ title: p.title, sales: p.sales, qty: p.quantity, type: 'summer' });
-                }
-                // Spring CSA
-                else if (title.includes('spring csa') && !title.includes('flower')) {
-                    csaData.spring.sales += p.sales;
-                    csaData.spring.qty += p.quantity;
-                    csaData.total += p.sales;
-                    csaData.members += p.quantity;
-                    csaData.shares.push({ title: p.title, sales: p.sales, qty: p.quantity, type: 'spring' });
-                }
-                // Fall CSA
-                else if (title.includes('fall csa') && !title.includes('flower')) {
-                    csaData.fall.sales += p.sales;
-                    csaData.fall.qty += p.quantity;
-                    csaData.total += p.sales;
-                    csaData.members += p.quantity;
-                    csaData.shares.push({ title: p.title, sales: p.sales, qty: p.quantity, type: 'fall' });
-                }
-                // Thanksgiving CSA
-                else if (title.includes('thanksgiving')) {
-                    csaData.thanksgiving.sales += p.sales;
-                    csaData.thanksgiving.qty += p.quantity;
-                    csaData.total += p.sales;
-                    csaData.members += p.quantity;
-                    csaData.shares.push({ title: p.title, sales: p.sales, qty: p.quantity, type: 'thanksgiving' });
-                }
-
-                // ===== FLOWER SUBSCRIPTIONS =====
-                // Dahlia CSA
-                else if (title.includes('dahlia')) {
-                    flowerData.dahlia.sales += p.sales;
-                    flowerData.dahlia.qty += p.quantity;
-                    flowerData.total += p.sales;
-                    flowerData.subscribers += p.quantity;
-                }
-                // Full Bloom (Weekly/Biweekly)
-                else if (title.includes('full bloom')) {
-                    flowerData.fullBloom.sales += p.sales;
-                    flowerData.fullBloom.qty += p.quantity;
-                    flowerData.total += p.sales;
-                    flowerData.subscribers += p.quantity;
-                }
-                // Petite Bloom (Weekly/Biweekly)
-                else if (title.includes('petite bloom')) {
-                    flowerData.petiteBloom.sales += p.sales;
-                    flowerData.petiteBloom.qty += p.quantity;
-                    flowerData.total += p.sales;
-                    flowerData.subscribers += p.quantity;
-                }
-                // Standard Weekly Bouquets (catch-all for flower subscriptions)
-                else if (title.includes('flower') || title.includes('bouquet')) {
-                    flowerData.standard.sales += p.sales;
-                    flowerData.standard.qty += p.quantity;
-                    flowerData.total += p.sales;
-                    flowerData.subscribers += p.quantity;
-                }
-
-                // ===== ADD-ON PRODUCTS =====
-                // Mushroom CSA Add-On (Weekly/Biweekly)
-                else if (title.includes('mushroom')) {
-                    addOnData.mushrooms.sales += p.sales;
-                    addOnData.mushrooms.qty += p.quantity;
-                }
-                // Local Bread CSA Add-On (Weekly/Biweekly)
-                else if (title.includes('bread')) {
-                    addOnData.bread.sales += p.sales;
-                    addOnData.bread.qty += p.quantity;
-                }
-                // Local Cheese CSA Add-On (Goat Rodeo) (Weekly/Biweekly)
-                else if (title.includes('cheese') || title.includes('goat rodeo')) {
-                    addOnData.cheese.sales += p.sales;
-                    addOnData.cheese.qty += p.quantity;
-                }
-                // Local Coffee CSA Add-On (Redhawk) (Biweekly)
-                else if (title.includes('coffee') || title.includes('redhawk')) {
-                    addOnData.coffee.sales += p.sales;
-                    addOnData.coffee.qty += p.quantity;
-                }
+                };
+                reader.onerror = () => reject(new Error('Failed to read file'));
+                reader.readAsText(file);
             });
+        }
 
-            // Fill in the form fields
-            // CSA - Total members and revenue
-            document.getElementById('salesCSAMembers').value = csaData.members;
-            document.getElementById('salesCSATotal').value = '$' + csaData.total.toLocaleString();
+        async function parseExcelFile(file) {
+            // For Excel files, we would need to send to backend or use SheetJS
+            // For now, return a placeholder that prompts user to convert to CSV
+            showNotification('Excel files will be sent to AI for parsing. This may take longer.', 'info');
 
-            // Flowers - Total
-            document.getElementById('salesFlowersTotal').value = flowerData.total > 0 ? '$' + flowerData.total.toLocaleString() : '';
+            try {
+                const base64 = await fileToBase64(file);
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'parseUniversalDocument',
+                        base64: base64,
+                        fileName: file.name,
+                        mimeType: file.type
+                    })
+                });
+                const result = await response.json();
 
-            // Mushrooms
-            document.getElementById('salesMushroomsTotal').value = addOnData.mushrooms.sales > 0 ? '$' + addOnData.mushrooms.sales.toLocaleString() : '';
+                if (result.success && result.data) {
+                    return result.data;
+                } else {
+                    throw new Error(result.error || 'Failed to parse Excel file');
+                }
+            } catch (err) {
+                // Fallback: suggest CSV conversion
+                throw new Error('Please export as CSV for best results');
+            }
+        }
 
-            // Value-Added (bread, cheese, coffee are resold partner products)
-            const valueAddedTotal = addOnData.bread.sales + addOnData.cheese.sales + addOnData.coffee.sales;
-            document.getElementById('salesValueAddedTotal').value = valueAddedTotal > 0 ? '$' + valueAddedTotal.toLocaleString() : '';
+        async function parsePDFFile(file) {
+            showNotification('PDF files will be sent to AI for parsing. This may take longer.', 'info');
 
-            // Calculate total
-            calculateTotalRevenue();
+            try {
+                const base64 = await fileToBase64(file);
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'parseUniversalDocument',
+                        base64: base64,
+                        fileName: file.name,
+                        mimeType: 'application/pdf'
+                    })
+                });
+                const result = await response.json();
 
-            // Build detailed summary
-            let summary = `CSV IMPORT COMPLETE FOR ${selectedYear}\n${'='.repeat(40)}\n\n`;
-
-            summary += `VEGETABLE CSA SHARES\n`;
-            summary += `${'─'.repeat(30)}\n`;
-            if (csaData.summer.qty > 0) summary += `  Summer CSA: ${csaData.summer.qty} members, $${csaData.summer.sales.toLocaleString()}\n`;
-            if (csaData.spring.qty > 0) summary += `  Spring CSA: ${csaData.spring.qty} members, $${csaData.spring.sales.toLocaleString()}\n`;
-            if (csaData.fall.qty > 0) summary += `  Fall CSA: ${csaData.fall.qty} members, $${csaData.fall.sales.toLocaleString()}\n`;
-            if (csaData.thanksgiving.qty > 0) summary += `  Thanksgiving: ${csaData.thanksgiving.qty} orders, $${csaData.thanksgiving.sales.toLocaleString()}\n`;
-            summary += `  TOTAL CSA: ${csaData.members} members, $${csaData.total.toLocaleString()}\n\n`;
-
-            summary += `FLOWER SUBSCRIPTIONS\n`;
-            summary += `${'─'.repeat(30)}\n`;
-            if (flowerData.standard.qty > 0) summary += `  Standard Weekly: ${flowerData.standard.qty} subs, $${flowerData.standard.sales.toLocaleString()}\n`;
-            if (flowerData.fullBloom.qty > 0) summary += `  Full Bloom: ${flowerData.fullBloom.qty} subs, $${flowerData.fullBloom.sales.toLocaleString()}\n`;
-            if (flowerData.petiteBloom.qty > 0) summary += `  Petite Bloom: ${flowerData.petiteBloom.qty} subs, $${flowerData.petiteBloom.sales.toLocaleString()}\n`;
-            if (flowerData.dahlia.qty > 0) summary += `  Dahlia CSA: ${flowerData.dahlia.qty} subs, $${flowerData.dahlia.sales.toLocaleString()}\n`;
-            summary += `  TOTAL FLOWERS: ${flowerData.subscribers} subs, $${flowerData.total.toLocaleString()}\n\n`;
-
-            summary += `PARTNER ADD-ONS\n`;
-            summary += `${'─'.repeat(30)}\n`;
-            if (addOnData.mushrooms.qty > 0) summary += `  Mushrooms: ${addOnData.mushrooms.qty} subs, $${addOnData.mushrooms.sales.toLocaleString()}\n`;
-            if (addOnData.bread.qty > 0) summary += `  Bread (Local): ${addOnData.bread.qty} subs, $${addOnData.bread.sales.toLocaleString()}\n`;
-            if (addOnData.cheese.qty > 0) summary += `  Cheese (Goat Rodeo): ${addOnData.cheese.qty} subs, $${addOnData.cheese.sales.toLocaleString()}\n`;
-            if (addOnData.coffee.qty > 0) summary += `  Coffee (Redhawk): ${addOnData.coffee.qty} subs, $${addOnData.coffee.sales.toLocaleString()}\n`;
-            summary += `  TOTAL ADD-ONS: $${(addOnData.mushrooms.sales + valueAddedTotal).toLocaleString()}\n\n`;
-
-            const grandTotal = csaData.total + flowerData.total + addOnData.mushrooms.sales + valueAddedTotal;
-            summary += `${'='.repeat(40)}\n`;
-            summary += `SHOPIFY TOTAL: $${grandTotal.toLocaleString()}\n`;
-            summary += `${'='.repeat(40)}\n\n`;
-            summary += `NOTE: Farmers Market and Wholesale/Restaurant\ndata not in Shopify - enter manually from QuickBooks.`;
-
-            showNotification('CSV imported successfully!', 'success');
-            alert(summary);
-
-            // Reset file input
-            document.getElementById('csvImport').value = '';
+                if (result.success && result.data) {
+                    return result.data;
+                } else {
+                    throw new Error(result.error || 'Failed to parse PDF file');
+                }
+            } catch (err) {
+                throw new Error('PDF parsing requires backend AI processing');
+            }
         }
 
         function parseCSVLine(line) {
-            // Handle quoted values with commas inside
             const result = [];
             let current = '';
             let inQuotes = false;
@@ -3010,66 +3547,721 @@
             return result;
         }
 
-        function calculateTotalRevenue() {
-            const csaTotal = parseMoneyValue(document.getElementById('salesCSATotal')?.value);
-            const wholesaleTotal = parseMoneyValue(document.getElementById('salesWholesaleTotal')?.value);
-            const marketTotal = parseMoneyValue(document.getElementById('salesMarketTotal')?.value);
-            const flowersTotal = parseMoneyValue(document.getElementById('salesFlowersTotal')?.value);
-            const mushroomsTotal = parseMoneyValue(document.getElementById('salesMushroomsTotal')?.value);
-            const valueAddedTotal = parseMoneyValue(document.getElementById('salesValueAddedTotal')?.value);
-            const deliveryTotal = parseMoneyValue(document.getElementById('salesDeliveryTotal')?.value);
+        // ====== DATA CATEGORIZATION ======
 
-            const grandTotal = csaTotal + wholesaleTotal + marketTotal + flowersTotal + mushroomsTotal + valueAddedTotal + deliveryTotal;
-
-            document.getElementById('salesGrandTotal').textContent = '$' + grandTotal.toLocaleString();
-
-            return {
-                csa: csaTotal,
-                wholesale: wholesaleTotal,
-                farmersMarket: marketTotal,
-                flowers: flowersTotal,
-                mushrooms: mushroomsTotal,
-                valueAdded: valueAddedTotal,
-                delivery: deliveryTotal,
-                total: grandTotal
+        function categorizeSalesData(rawData) {
+            const products = rawData.products || [];
+            const result = {
+                csa: { summer: { amount: 0, count: 0 }, spring: { amount: 0, count: 0 }, fall: { amount: 0, count: 0 }, thanksgiving: { amount: 0, count: 0 }, total: 0, totalCount: 0 },
+                flowers: { standard: { amount: 0, count: 0 }, fullBloom: { amount: 0, count: 0 }, petiteBloom: { amount: 0, count: 0 }, dahlia: { amount: 0, count: 0 }, total: 0, totalCount: 0 },
+                addons: { mushrooms: { amount: 0, count: 0 }, bread: { amount: 0, count: 0 }, cheese: { amount: 0, count: 0 }, coffee: { amount: 0, count: 0 }, total: 0, totalCount: 0 },
+                markets: { total: 0, totalCount: 0 },
+                wholesale: { total: 0, totalCount: 0 },
+                grandTotal: 0,
+                totalProducts: products.length
             };
+
+            products.forEach(p => {
+                const title = (p.title || '').toLowerCase();
+                const sales = p.sales || 0;
+                const qty = p.quantity || 1;
+
+                // CSA Products
+                if (title.includes('summer csa') || (title.includes('csa') && !title.includes('flower') && !title.includes('dahlia') && title.includes('summer'))) {
+                    result.csa.summer.amount += sales;
+                    result.csa.summer.count += qty;
+                    result.csa.total += sales;
+                    result.csa.totalCount += qty;
+                } else if (title.includes('spring csa') || (title.includes('spring') && title.includes('csa'))) {
+                    result.csa.spring.amount += sales;
+                    result.csa.spring.count += qty;
+                    result.csa.total += sales;
+                    result.csa.totalCount += qty;
+                } else if (title.includes('fall csa') || (title.includes('fall') && title.includes('csa'))) {
+                    result.csa.fall.amount += sales;
+                    result.csa.fall.count += qty;
+                    result.csa.total += sales;
+                    result.csa.totalCount += qty;
+                } else if (title.includes('thanksgiving')) {
+                    result.csa.thanksgiving.amount += sales;
+                    result.csa.thanksgiving.count += qty;
+                    result.csa.total += sales;
+                    result.csa.totalCount += qty;
+                }
+                // Flower Products
+                else if (title.includes('dahlia')) {
+                    result.flowers.dahlia.amount += sales;
+                    result.flowers.dahlia.count += qty;
+                    result.flowers.total += sales;
+                    result.flowers.totalCount += qty;
+                } else if (title.includes('full bloom')) {
+                    result.flowers.fullBloom.amount += sales;
+                    result.flowers.fullBloom.count += qty;
+                    result.flowers.total += sales;
+                    result.flowers.totalCount += qty;
+                } else if (title.includes('petite bloom') || title.includes('petite')) {
+                    result.flowers.petiteBloom.amount += sales;
+                    result.flowers.petiteBloom.count += qty;
+                    result.flowers.total += sales;
+                    result.flowers.totalCount += qty;
+                } else if (title.includes('flower') || title.includes('bouquet') || title.includes('fleur')) {
+                    result.flowers.standard.amount += sales;
+                    result.flowers.standard.count += qty;
+                    result.flowers.total += sales;
+                    result.flowers.totalCount += qty;
+                }
+                // Add-ons
+                else if (title.includes('mushroom') || title.includes('fungi')) {
+                    result.addons.mushrooms.amount += sales;
+                    result.addons.mushrooms.count += qty;
+                    result.addons.total += sales;
+                    result.addons.totalCount += qty;
+                } else if (title.includes('bread')) {
+                    result.addons.bread.amount += sales;
+                    result.addons.bread.count += qty;
+                    result.addons.total += sales;
+                    result.addons.totalCount += qty;
+                } else if (title.includes('cheese') || title.includes('goat rodeo')) {
+                    result.addons.cheese.amount += sales;
+                    result.addons.cheese.count += qty;
+                    result.addons.total += sales;
+                    result.addons.totalCount += qty;
+                } else if (title.includes('coffee') || title.includes('redhawk')) {
+                    result.addons.coffee.amount += sales;
+                    result.addons.coffee.count += qty;
+                    result.addons.total += sales;
+                    result.addons.totalCount += qty;
+                }
+                // Catch CSA without season specification
+                else if (title.includes('csa') && !title.includes('flower')) {
+                    result.csa.summer.amount += sales;
+                    result.csa.summer.count += qty;
+                    result.csa.total += sales;
+                    result.csa.totalCount += qty;
+                }
+            });
+
+            result.grandTotal = result.csa.total + result.flowers.total + result.addons.total + result.markets.total + result.wholesale.total;
+
+            return result;
         }
 
+        // ====== DISPLAY FUNCTIONS ======
+
+        function displayParsedData(data) {
+            // Show the dashboard sections
+            document.getElementById('yearFilterSection').style.display = 'block';
+            document.getElementById('salesSummaryDashboard').style.display = 'block';
+            document.getElementById('addMissingDataSection').style.display = 'block';
+
+            // Update CSA fields
+            setInputValue('csaSummerAmount', formatMoney(data.csa.summer.amount));
+            setInputValue('csaSummerMembers', data.csa.summer.count);
+            setInputValue('csaSpringAmount', formatMoney(data.csa.spring.amount));
+            setInputValue('csaSpringMembers', data.csa.spring.count);
+            setInputValue('csaFallAmount', formatMoney(data.csa.fall.amount));
+            setInputValue('csaFallMembers', data.csa.fall.count);
+            setInputValue('csaThanksgivingAmount', formatMoney(data.csa.thanksgiving.amount));
+            setInputValue('csaThanksgivingMembers', data.csa.thanksgiving.count);
+
+            // Update Flower fields
+            setInputValue('flowersStandardAmount', formatMoney(data.flowers.standard.amount));
+            setInputValue('flowersStandardSubs', data.flowers.standard.count);
+            setInputValue('flowersFullBloomAmount', formatMoney(data.flowers.fullBloom.amount));
+            setInputValue('flowersFullBloomSubs', data.flowers.fullBloom.count);
+            setInputValue('flowersPetiteAmount', formatMoney(data.flowers.petiteBloom.amount));
+            setInputValue('flowersPetiteSubs', data.flowers.petiteBloom.count);
+            setInputValue('flowersDahliaAmount', formatMoney(data.flowers.dahlia.amount));
+            setInputValue('flowersDahliaSubs', data.flowers.dahlia.count);
+
+            // Update Add-on fields
+            setInputValue('addonsMushroomsAmount', formatMoney(data.addons.mushrooms.amount));
+            setInputValue('addonsMushroomsSubs', data.addons.mushrooms.count);
+            setInputValue('addonsBreadAmount', formatMoney(data.addons.bread.amount));
+            setInputValue('addonsBreadSubs', data.addons.bread.count);
+            setInputValue('addonsCheeseAmount', formatMoney(data.addons.cheese.amount));
+            setInputValue('addonsCheeseSubs', data.addons.cheese.count);
+            setInputValue('addonsCoffeeAmount', formatMoney(data.addons.coffee.amount));
+            setInputValue('addonsCoffeeSubs', data.addons.coffee.count);
+
+            // Update category totals
+            updateCategoryTotal('csa');
+            updateCategoryTotal('flowers');
+            updateCategoryTotal('addons');
+            updateCategoryTotal('markets');
+            updateCategoryTotal('wholesale');
+
+            // Update grand total
+            calculateTotalRevenue();
+
+            // Store parsed data
+            parsedSalesData = data;
+            salesDataByYear[currentSalesYear] = data;
+
+            // Expand CSA section to show data
+            document.getElementById('categoryCsa').classList.add('expanded');
+        }
+
+        function setInputValue(id, value) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.value = value || '';
+            }
+        }
+
+        function updateCategoryTotal(category) {
+            let totalAmount = 0;
+            let totalCount = 0;
+            let countLabel = 'members';
+
+            if (category === 'csa') {
+                totalAmount += parseMoneyValue(document.getElementById('csaSummerAmount')?.value);
+                totalAmount += parseMoneyValue(document.getElementById('csaSpringAmount')?.value);
+                totalAmount += parseMoneyValue(document.getElementById('csaFallAmount')?.value);
+                totalAmount += parseMoneyValue(document.getElementById('csaThanksgivingAmount')?.value);
+                totalCount += parseInt(document.getElementById('csaSummerMembers')?.value) || 0;
+                totalCount += parseInt(document.getElementById('csaSpringMembers')?.value) || 0;
+                totalCount += parseInt(document.getElementById('csaFallMembers')?.value) || 0;
+                totalCount += parseInt(document.getElementById('csaThanksgivingMembers')?.value) || 0;
+                countLabel = 'members';
+                document.getElementById('csaTotalAmount').textContent = formatMoney(totalAmount);
+                document.getElementById('csaTotalMembers').textContent = `(${totalCount} ${countLabel})`;
+            } else if (category === 'flowers') {
+                totalAmount += parseMoneyValue(document.getElementById('flowersStandardAmount')?.value);
+                totalAmount += parseMoneyValue(document.getElementById('flowersFullBloomAmount')?.value);
+                totalAmount += parseMoneyValue(document.getElementById('flowersPetiteAmount')?.value);
+                totalAmount += parseMoneyValue(document.getElementById('flowersDahliaAmount')?.value);
+                totalCount += parseInt(document.getElementById('flowersStandardSubs')?.value) || 0;
+                totalCount += parseInt(document.getElementById('flowersFullBloomSubs')?.value) || 0;
+                totalCount += parseInt(document.getElementById('flowersPetiteSubs')?.value) || 0;
+                totalCount += parseInt(document.getElementById('flowersDahliaSubs')?.value) || 0;
+                countLabel = 'subscribers';
+                document.getElementById('flowersTotalAmount').textContent = formatMoney(totalAmount);
+                document.getElementById('flowersTotalSubs').textContent = `(${totalCount} ${countLabel})`;
+            } else if (category === 'addons') {
+                totalAmount += parseMoneyValue(document.getElementById('addonsMushroomsAmount')?.value);
+                totalAmount += parseMoneyValue(document.getElementById('addonsBreadAmount')?.value);
+                totalAmount += parseMoneyValue(document.getElementById('addonsCheeseAmount')?.value);
+                totalAmount += parseMoneyValue(document.getElementById('addonsCoffeeAmount')?.value);
+                totalCount += parseInt(document.getElementById('addonsMushroomsSubs')?.value) || 0;
+                totalCount += parseInt(document.getElementById('addonsBreadSubs')?.value) || 0;
+                totalCount += parseInt(document.getElementById('addonsCheeseSubs')?.value) || 0;
+                totalCount += parseInt(document.getElementById('addonsCoffeeSubs')?.value) || 0;
+                countLabel = 'subscribers';
+                document.getElementById('addonsTotalAmount').textContent = formatMoney(totalAmount);
+                document.getElementById('addonsTotalSubs').textContent = `(${totalCount} ${countLabel})`;
+            } else if (category === 'markets') {
+                totalAmount += parseMoneyValue(document.getElementById('marketsLawrencevilleAmount')?.value);
+                totalAmount += parseMoneyValue(document.getElementById('marketsSewickleyAmount')?.value);
+                totalAmount += parseMoneyValue(document.getElementById('marketsBloomfieldAmount')?.value);
+                totalCount += parseInt(document.getElementById('marketsLawrencevilleSessions')?.value) || 0;
+                totalCount += parseInt(document.getElementById('marketsSewickleySessions')?.value) || 0;
+                totalCount += parseInt(document.getElementById('marketsBloomfieldSessions')?.value) || 0;
+                document.getElementById('marketsTotalAmount').textContent = formatMoney(totalAmount);
+                document.getElementById('marketsTotalNote').textContent = totalAmount > 0 ? `(${totalCount} sessions)` : '(no data yet)';
+            } else if (category === 'wholesale') {
+                totalAmount += parseMoneyValue(document.getElementById('wholesaleRestaurantsAmount')?.value);
+                totalAmount += parseMoneyValue(document.getElementById('wholesaleGroceryAmount')?.value);
+                totalAmount += parseMoneyValue(document.getElementById('wholesaleDeliveryAmount')?.value);
+                totalCount += parseInt(document.getElementById('wholesaleRestaurantsCount')?.value) || 0;
+                totalCount += parseInt(document.getElementById('wholesaleGroceryCount')?.value) || 0;
+                totalCount += parseInt(document.getElementById('wholesaleDeliveryCount')?.value) || 0;
+                document.getElementById('wholesaleTotalAmount').textContent = formatMoney(totalAmount);
+                document.getElementById('wholesaleTotalNote').textContent = totalAmount > 0 ? `(${totalCount} accounts)` : '(no data yet)';
+            }
+
+            // Recalculate grand total
+            calculateTotalRevenue();
+        }
+
+        function toggleSalesCategory(category) {
+            const el = document.getElementById('category' + category.charAt(0).toUpperCase() + category.slice(1));
+            if (el) {
+                el.classList.toggle('expanded');
+            }
+        }
+
+        function showManualEntry(category) {
+            // Expand the relevant category and scroll to it
+            const el = document.getElementById('category' + category.charAt(0).toUpperCase() + category.slice(1));
+            if (el) {
+                el.classList.add('expanded');
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        function addMarketRow() {
+            const container = document.getElementById('marketsItems');
+            const addBtn = container.querySelector('.add-market-row');
+            const marketCount = container.querySelectorAll('.sales-item:not(.add-market-row)').length;
+            const marketId = 'market' + (marketCount + 1);
+
+            const newRow = document.createElement('div');
+            newRow.className = 'sales-item';
+            newRow.setAttribute('data-key', marketId);
+            newRow.innerHTML = `
+                <span class="item-label">
+                    <span class="tree-branch"></span>
+                    <input type="text" placeholder="Market name" style="background: transparent; border: none; color: var(--text); width: 120px;" id="markets${marketId}Name">
+                </span>
+                <div class="item-values">
+                    <input type="text" class="sales-amount-input" id="markets${marketId}Amount" placeholder="$0" onchange="updateCategoryTotal('markets')">
+                    <input type="number" class="sales-count-input" id="markets${marketId}Sessions" placeholder="0" onchange="updateCategoryTotal('markets')">
+                    <span class="count-label">sessions</span>
+                </div>
+            `;
+            container.insertBefore(newRow, addBtn);
+        }
+
+        // ====== YEAR FILTER ======
+
+        function filterByYear(year) {
+            currentSalesYear = year;
+
+            if (salesDataByYear[year]) {
+                displayParsedData(salesDataByYear[year]);
+            } else {
+                // Clear display for years with no data
+                resetSalesDisplay();
+            }
+        }
+
+        function resetSalesDisplay() {
+            const inputs = document.querySelectorAll('.sales-amount-input, .sales-count-input');
+            inputs.forEach(input => input.value = '');
+
+            ['csa', 'flowers', 'addons', 'markets', 'wholesale'].forEach(cat => {
+                updateCategoryTotal(cat);
+            });
+        }
+
+        function mergeAllYears() {
+            // Combine data from all parsed files
+            const merged = {
+                csa: { summer: { amount: 0, count: 0 }, spring: { amount: 0, count: 0 }, fall: { amount: 0, count: 0 }, thanksgiving: { amount: 0, count: 0 }, total: 0, totalCount: 0 },
+                flowers: { standard: { amount: 0, count: 0 }, fullBloom: { amount: 0, count: 0 }, petiteBloom: { amount: 0, count: 0 }, dahlia: { amount: 0, count: 0 }, total: 0, totalCount: 0 },
+                addons: { mushrooms: { amount: 0, count: 0 }, bread: { amount: 0, count: 0 }, cheese: { amount: 0, count: 0 }, coffee: { amount: 0, count: 0 }, total: 0, totalCount: 0 },
+                markets: { total: 0, totalCount: 0 },
+                wholesale: { total: 0, totalCount: 0 },
+                grandTotal: 0
+            };
+
+            Object.values(salesDataByYear).forEach(yearData => {
+                if (!yearData) return;
+
+                // Merge CSA
+                ['summer', 'spring', 'fall', 'thanksgiving'].forEach(season => {
+                    if (yearData.csa && yearData.csa[season]) {
+                        merged.csa[season].amount += yearData.csa[season].amount || 0;
+                        merged.csa[season].count += yearData.csa[season].count || 0;
+                    }
+                });
+                merged.csa.total += yearData.csa?.total || 0;
+                merged.csa.totalCount += yearData.csa?.totalCount || 0;
+
+                // Merge Flowers
+                ['standard', 'fullBloom', 'petiteBloom', 'dahlia'].forEach(type => {
+                    if (yearData.flowers && yearData.flowers[type]) {
+                        merged.flowers[type].amount += yearData.flowers[type].amount || 0;
+                        merged.flowers[type].count += yearData.flowers[type].count || 0;
+                    }
+                });
+                merged.flowers.total += yearData.flowers?.total || 0;
+                merged.flowers.totalCount += yearData.flowers?.totalCount || 0;
+
+                // Merge Add-ons
+                ['mushrooms', 'bread', 'cheese', 'coffee'].forEach(type => {
+                    if (yearData.addons && yearData.addons[type]) {
+                        merged.addons[type].amount += yearData.addons[type].amount || 0;
+                        merged.addons[type].count += yearData.addons[type].count || 0;
+                    }
+                });
+                merged.addons.total += yearData.addons?.total || 0;
+                merged.addons.totalCount += yearData.addons?.totalCount || 0;
+
+                merged.markets.total += yearData.markets?.total || 0;
+                merged.wholesale.total += yearData.wholesale?.total || 0;
+            });
+
+            merged.grandTotal = merged.csa.total + merged.flowers.total + merged.addons.total + merged.markets.total + merged.wholesale.total;
+
+            salesDataByYear['all'] = merged;
+            document.getElementById('salesYearFilter').value = 'all';
+            displayParsedData(merged);
+
+            showNotification('All years merged successfully!', 'success');
+        }
+
+        // ====== PROCESSING INDICATOR ======
+
+        function showProcessingIndicator(show) {
+            document.getElementById('processingIndicator').style.display = show ? 'block' : 'none';
+            if (show) {
+                // Reset all steps
+                document.querySelectorAll('.processing-step').forEach(step => {
+                    step.classList.remove('active', 'complete');
+                });
+            }
+        }
+
+        function updateProcessingStep(stepNum) {
+            document.querySelectorAll('.processing-step').forEach(step => {
+                const num = parseInt(step.getAttribute('data-step'));
+                if (num < stepNum) {
+                    step.classList.remove('active');
+                    step.classList.add('complete');
+                } else if (num === stepNum) {
+                    step.classList.add('active');
+                    step.classList.remove('complete');
+                } else {
+                    step.classList.remove('active', 'complete');
+                }
+            });
+
+            const statusEl = document.getElementById('processingStatus');
+            const steps = ['', 'Uploading file...', 'Detecting format...', 'AI categorizing products...', 'Aggregating by year...', 'Complete!'];
+            if (statusEl && steps[stepNum]) {
+                statusEl.textContent = steps[stepNum];
+            }
+        }
+
+        // ====== SAVE/LOAD ======
+
+        async function saveSalesData() {
+            const year = document.getElementById('salesYearFilter')?.value || currentSalesYear;
+
+            // Collect all data from the form
+            const salesData = {
+                year: year,
+                csa: {
+                    summer: { amount: parseMoneyValue(document.getElementById('csaSummerAmount')?.value), count: parseInt(document.getElementById('csaSummerMembers')?.value) || 0 },
+                    spring: { amount: parseMoneyValue(document.getElementById('csaSpringAmount')?.value), count: parseInt(document.getElementById('csaSpringMembers')?.value) || 0 },
+                    fall: { amount: parseMoneyValue(document.getElementById('csaFallAmount')?.value), count: parseInt(document.getElementById('csaFallMembers')?.value) || 0 },
+                    thanksgiving: { amount: parseMoneyValue(document.getElementById('csaThanksgivingAmount')?.value), count: parseInt(document.getElementById('csaThanksgivingMembers')?.value) || 0 }
+                },
+                flowers: {
+                    standard: { amount: parseMoneyValue(document.getElementById('flowersStandardAmount')?.value), count: parseInt(document.getElementById('flowersStandardSubs')?.value) || 0 },
+                    fullBloom: { amount: parseMoneyValue(document.getElementById('flowersFullBloomAmount')?.value), count: parseInt(document.getElementById('flowersFullBloomSubs')?.value) || 0 },
+                    petiteBloom: { amount: parseMoneyValue(document.getElementById('flowersPetiteAmount')?.value), count: parseInt(document.getElementById('flowersPetiteSubs')?.value) || 0 },
+                    dahlia: { amount: parseMoneyValue(document.getElementById('flowersDahliaAmount')?.value), count: parseInt(document.getElementById('flowersDahliaSubs')?.value) || 0 }
+                },
+                addons: {
+                    mushrooms: { amount: parseMoneyValue(document.getElementById('addonsMushroomsAmount')?.value), count: parseInt(document.getElementById('addonsMushroomsSubs')?.value) || 0 },
+                    bread: { amount: parseMoneyValue(document.getElementById('addonsBreadAmount')?.value), count: parseInt(document.getElementById('addonsBreadSubs')?.value) || 0 },
+                    cheese: { amount: parseMoneyValue(document.getElementById('addonsCheeseAmount')?.value), count: parseInt(document.getElementById('addonsCheeseSubs')?.value) || 0 },
+                    coffee: { amount: parseMoneyValue(document.getElementById('addonsCoffeeAmount')?.value), count: parseInt(document.getElementById('addonsCoffeeSubs')?.value) || 0 }
+                },
+                markets: {
+                    lawrenceville: { amount: parseMoneyValue(document.getElementById('marketsLawrencevilleAmount')?.value), count: parseInt(document.getElementById('marketsLawrencevilleSessions')?.value) || 0 },
+                    sewickley: { amount: parseMoneyValue(document.getElementById('marketsSewickleyAmount')?.value), count: parseInt(document.getElementById('marketsSewickleySessions')?.value) || 0 },
+                    bloomfield: { amount: parseMoneyValue(document.getElementById('marketsBloomfieldAmount')?.value), count: parseInt(document.getElementById('marketsBloomfieldSessions')?.value) || 0 }
+                },
+                wholesale: {
+                    restaurants: { amount: parseMoneyValue(document.getElementById('wholesaleRestaurantsAmount')?.value), count: parseInt(document.getElementById('wholesaleRestaurantsCount')?.value) || 0 },
+                    grocery: { amount: parseMoneyValue(document.getElementById('wholesaleGroceryAmount')?.value), count: parseInt(document.getElementById('wholesaleGroceryCount')?.value) || 0 },
+                    directDelivery: { amount: parseMoneyValue(document.getElementById('wholesaleDeliveryAmount')?.value), count: parseInt(document.getElementById('wholesaleDeliveryCount')?.value) || 0 }
+                },
+                updatedAt: new Date().toISOString()
+            };
+
+            // Save to localStorage
+            localStorage.setItem(`tinySeedSalesData_v2_${year}`, JSON.stringify(salesData));
+
+            // Also try to save to backend
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'saveFarmSalesData',
+                        salesData: salesData
+                    })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    showNotification(`Sales data for ${year} saved to server!`, 'success');
+                } else {
+                    showNotification(`Saved locally. Server sync failed: ${result.error}`, 'warning');
+                }
+            } catch (err) {
+                console.error('Error saving to backend:', err);
+                showNotification('Saved locally. Server sync will retry later.', 'warning');
+            }
+
+            updateLastUpdatedIndicator();
+        }
+
+        async function loadSalesData() {
+            const year = document.getElementById('salesYearFilter')?.value || currentSalesYear;
+
+            // Try localStorage first (v2 format)
+            const localData = localStorage.getItem(`tinySeedSalesData_v2_${year}`);
+            if (localData) {
+                try {
+                    const salesData = JSON.parse(localData);
+                    applyLoadedSalesData(salesData);
+                    showNotification(`Loaded saved data for ${year}`, 'success');
+                    return;
+                } catch (e) {
+                    console.error('Error parsing local data:', e);
+                }
+            }
+
+            // Try backend
+            try {
+                const response = await fetch(`${API_URL}?action=getFarmSalesData&year=${year}`);
+                const result = await response.json();
+
+                if (result.success && result.salesData) {
+                    applyLoadedSalesData(result.salesData);
+                    // Cache locally
+                    localStorage.setItem(`tinySeedSalesData_v2_${year}`, JSON.stringify(result.salesData));
+                    showNotification(`Loaded data for ${year} from server`, 'success');
+                } else {
+                    // Show empty dashboard ready for input
+                    document.getElementById('yearFilterSection').style.display = 'block';
+                    document.getElementById('salesSummaryDashboard').style.display = 'block';
+                    showNotification(`No saved data for ${year}. Upload a file or enter data manually.`, 'info');
+                }
+            } catch (err) {
+                console.error('Error loading from backend:', err);
+                // Show empty dashboard ready for input
+                document.getElementById('yearFilterSection').style.display = 'block';
+                document.getElementById('salesSummaryDashboard').style.display = 'block';
+                showNotification(`No saved data for ${year}. Upload a file or enter data manually.`, 'info');
+            }
+        }
+
+        function applyLoadedSalesData(data) {
+            document.getElementById('yearFilterSection').style.display = 'block';
+            document.getElementById('salesSummaryDashboard').style.display = 'block';
+
+            // Apply CSA data
+            if (data.csa) {
+                setInputValue('csaSummerAmount', formatMoney(data.csa.summer?.amount));
+                setInputValue('csaSummerMembers', data.csa.summer?.count);
+                setInputValue('csaSpringAmount', formatMoney(data.csa.spring?.amount));
+                setInputValue('csaSpringMembers', data.csa.spring?.count);
+                setInputValue('csaFallAmount', formatMoney(data.csa.fall?.amount));
+                setInputValue('csaFallMembers', data.csa.fall?.count);
+                setInputValue('csaThanksgivingAmount', formatMoney(data.csa.thanksgiving?.amount));
+                setInputValue('csaThanksgivingMembers', data.csa.thanksgiving?.count);
+            }
+
+            // Apply Flower data
+            if (data.flowers) {
+                setInputValue('flowersStandardAmount', formatMoney(data.flowers.standard?.amount));
+                setInputValue('flowersStandardSubs', data.flowers.standard?.count);
+                setInputValue('flowersFullBloomAmount', formatMoney(data.flowers.fullBloom?.amount));
+                setInputValue('flowersFullBloomSubs', data.flowers.fullBloom?.count);
+                setInputValue('flowersPetiteAmount', formatMoney(data.flowers.petiteBloom?.amount));
+                setInputValue('flowersPetiteSubs', data.flowers.petiteBloom?.count);
+                setInputValue('flowersDahliaAmount', formatMoney(data.flowers.dahlia?.amount));
+                setInputValue('flowersDahliaSubs', data.flowers.dahlia?.count);
+            }
+
+            // Apply Add-on data
+            if (data.addons) {
+                setInputValue('addonsMushroomsAmount', formatMoney(data.addons.mushrooms?.amount));
+                setInputValue('addonsMushroomsSubs', data.addons.mushrooms?.count);
+                setInputValue('addonsBreadAmount', formatMoney(data.addons.bread?.amount));
+                setInputValue('addonsBreadSubs', data.addons.bread?.count);
+                setInputValue('addonsCheeseAmount', formatMoney(data.addons.cheese?.amount));
+                setInputValue('addonsCheeseSubs', data.addons.cheese?.count);
+                setInputValue('addonsCoffeeAmount', formatMoney(data.addons.coffee?.amount));
+                setInputValue('addonsCoffeeSubs', data.addons.coffee?.count);
+            }
+
+            // Apply Market data
+            if (data.markets) {
+                setInputValue('marketsLawrencevilleAmount', formatMoney(data.markets.lawrenceville?.amount));
+                setInputValue('marketsLawrencevilleSessions', data.markets.lawrenceville?.count);
+                setInputValue('marketsSewickleyAmount', formatMoney(data.markets.sewickley?.amount));
+                setInputValue('marketsSewickleySessions', data.markets.sewickley?.count);
+                setInputValue('marketsBloomfieldAmount', formatMoney(data.markets.bloomfield?.amount));
+                setInputValue('marketsBloomfieldSessions', data.markets.bloomfield?.count);
+            }
+
+            // Apply Wholesale data
+            if (data.wholesale) {
+                setInputValue('wholesaleRestaurantsAmount', formatMoney(data.wholesale.restaurants?.amount));
+                setInputValue('wholesaleRestaurantsCount', data.wholesale.restaurants?.count);
+                setInputValue('wholesaleGroceryAmount', formatMoney(data.wholesale.grocery?.amount));
+                setInputValue('wholesaleGroceryCount', data.wholesale.grocery?.count);
+                setInputValue('wholesaleDeliveryAmount', formatMoney(data.wholesale.directDelivery?.amount));
+                setInputValue('wholesaleDeliveryCount', data.wholesale.directDelivery?.count);
+            }
+
+            // Update all totals
+            ['csa', 'flowers', 'addons', 'markets', 'wholesale'].forEach(cat => {
+                updateCategoryTotal(cat);
+            });
+
+            if (data.updatedAt) {
+                updateLastUpdatedIndicator(data.updatedAt);
+            }
+        }
+
+        function updateLastUpdatedIndicator(dateStr) {
+            const el = document.getElementById('salesDataLastUpdated');
+            if (!el) return;
+
+            if (dateStr) {
+                const date = new Date(dateStr);
+                el.textContent = `Last updated: ${date.toLocaleDateString()}`;
+            } else {
+                // Check localStorage for most recent update
+                const year = document.getElementById('salesYearFilter')?.value || currentSalesYear;
+                const localData = localStorage.getItem(`tinySeedSalesData_v2_${year}`);
+                if (localData) {
+                    try {
+                        const data = JSON.parse(localData);
+                        if (data.updatedAt) {
+                            const date = new Date(data.updatedAt);
+                            el.textContent = `Last updated: ${date.toLocaleDateString()}`;
+                            return;
+                        }
+                    } catch (e) {}
+                }
+                el.textContent = '';
+            }
+        }
+
+        // ====== HELPER FUNCTIONS ======
+
+        function parseMoneyValue(str) {
+            if (!str) return 0;
+            return parseFloat(String(str).replace(/[$,]/g, '')) || 0;
+        }
+
+        function formatMoney(amount) {
+            if (!amount || amount === 0) return '';
+            return '$' + Math.round(amount).toLocaleString();
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // ====== CALCULATE TOTAL REVENUE ======
+
+        function calculateTotalRevenue() {
+            let grandTotal = 0;
+
+            // CSA total
+            grandTotal += parseMoneyValue(document.getElementById('csaSummerAmount')?.value);
+            grandTotal += parseMoneyValue(document.getElementById('csaSpringAmount')?.value);
+            grandTotal += parseMoneyValue(document.getElementById('csaFallAmount')?.value);
+            grandTotal += parseMoneyValue(document.getElementById('csaThanksgivingAmount')?.value);
+
+            // Flowers total
+            grandTotal += parseMoneyValue(document.getElementById('flowersStandardAmount')?.value);
+            grandTotal += parseMoneyValue(document.getElementById('flowersFullBloomAmount')?.value);
+            grandTotal += parseMoneyValue(document.getElementById('flowersPetiteAmount')?.value);
+            grandTotal += parseMoneyValue(document.getElementById('flowersDahliaAmount')?.value);
+
+            // Add-ons total
+            grandTotal += parseMoneyValue(document.getElementById('addonsMushroomsAmount')?.value);
+            grandTotal += parseMoneyValue(document.getElementById('addonsBreadAmount')?.value);
+            grandTotal += parseMoneyValue(document.getElementById('addonsCheeseAmount')?.value);
+            grandTotal += parseMoneyValue(document.getElementById('addonsCoffeeAmount')?.value);
+
+            // Markets total
+            grandTotal += parseMoneyValue(document.getElementById('marketsLawrencevilleAmount')?.value);
+            grandTotal += parseMoneyValue(document.getElementById('marketsSewickleyAmount')?.value);
+            grandTotal += parseMoneyValue(document.getElementById('marketsBloomfieldAmount')?.value);
+
+            // Wholesale total
+            grandTotal += parseMoneyValue(document.getElementById('wholesaleRestaurantsAmount')?.value);
+            grandTotal += parseMoneyValue(document.getElementById('wholesaleGroceryAmount')?.value);
+            grandTotal += parseMoneyValue(document.getElementById('wholesaleDeliveryAmount')?.value);
+
+            document.getElementById('salesGrandTotal').textContent = '$' + Math.round(grandTotal).toLocaleString();
+
+            return { total: grandTotal };
+        }
+
+        // ====== GET SALES DATA FOR PLAN GENERATION ======
+
         function getSalesDataForPlan() {
-            const year = document.getElementById('salesDataYear').value;
+            const year = document.getElementById('salesYearFilter')?.value || currentSalesYear;
+
+            const csaTotal = parseMoneyValue(document.getElementById('csaSummerAmount')?.value) +
+                            parseMoneyValue(document.getElementById('csaSpringAmount')?.value) +
+                            parseMoneyValue(document.getElementById('csaFallAmount')?.value) +
+                            parseMoneyValue(document.getElementById('csaThanksgivingAmount')?.value);
+
+            const csaMembers = (parseInt(document.getElementById('csaSummerMembers')?.value) || 0) +
+                              (parseInt(document.getElementById('csaSpringMembers')?.value) || 0) +
+                              (parseInt(document.getElementById('csaFallMembers')?.value) || 0) +
+                              (parseInt(document.getElementById('csaThanksgivingMembers')?.value) || 0);
+
+            const flowersTotal = parseMoneyValue(document.getElementById('flowersStandardAmount')?.value) +
+                                parseMoneyValue(document.getElementById('flowersFullBloomAmount')?.value) +
+                                parseMoneyValue(document.getElementById('flowersPetiteAmount')?.value) +
+                                parseMoneyValue(document.getElementById('flowersDahliaAmount')?.value);
+
+            const addonsTotal = parseMoneyValue(document.getElementById('addonsMushroomsAmount')?.value) +
+                               parseMoneyValue(document.getElementById('addonsBreadAmount')?.value) +
+                               parseMoneyValue(document.getElementById('addonsCheeseAmount')?.value) +
+                               parseMoneyValue(document.getElementById('addonsCoffeeAmount')?.value);
+
+            const marketsTotal = parseMoneyValue(document.getElementById('marketsLawrencevilleAmount')?.value) +
+                                parseMoneyValue(document.getElementById('marketsSewickleyAmount')?.value) +
+                                parseMoneyValue(document.getElementById('marketsBloomfieldAmount')?.value);
+
+            const wholesaleTotal = parseMoneyValue(document.getElementById('wholesaleRestaurantsAmount')?.value) +
+                                  parseMoneyValue(document.getElementById('wholesaleGroceryAmount')?.value) +
+                                  parseMoneyValue(document.getElementById('wholesaleDeliveryAmount')?.value);
+
             return {
                 year: year,
                 csa: {
-                    members: parseInt(document.getElementById('salesCSAMembers')?.value) || 0,
-                    fullShareMembers: parseInt(document.getElementById('salesCSAFull')?.value) || 0,
-                    halfShareMembers: parseInt(document.getElementById('salesCSAHalf')?.value) || 0,
-                    fullSharePrice: document.getElementById('salesCSAFullPrice')?.value || '',
-                    halfSharePrice: document.getElementById('salesCSAHalfPrice')?.value || '',
-                    totalRevenue: parseMoneyValue(document.getElementById('salesCSATotal')?.value)
+                    members: csaMembers,
+                    totalRevenue: csaTotal,
+                    summer: parseMoneyValue(document.getElementById('csaSummerAmount')?.value),
+                    spring: parseMoneyValue(document.getElementById('csaSpringAmount')?.value),
+                    fall: parseMoneyValue(document.getElementById('csaFallAmount')?.value),
+                    thanksgiving: parseMoneyValue(document.getElementById('csaThanksgivingAmount')?.value)
                 },
-                wholesale: {
-                    restaurantCount: parseInt(document.getElementById('salesRestaurantCount')?.value) || 0,
-                    avgOrderValue: document.getElementById('salesRestaurantAvgOrder')?.value || '',
-                    ordersPerWeek: parseInt(document.getElementById('salesRestaurantWeekly')?.value) || 0,
-                    seasonWeeks: parseInt(document.getElementById('salesRestaurantWeeks')?.value) || 0,
-                    totalRevenue: parseMoneyValue(document.getElementById('salesWholesaleTotal')?.value)
+                flowers: {
+                    totalRevenue: flowersTotal,
+                    subscribers: (parseInt(document.getElementById('flowersStandardSubs')?.value) || 0) +
+                                (parseInt(document.getElementById('flowersFullBloomSubs')?.value) || 0) +
+                                (parseInt(document.getElementById('flowersPetiteSubs')?.value) || 0) +
+                                (parseInt(document.getElementById('flowersDahliaSubs')?.value) || 0)
+                },
+                addons: {
+                    totalRevenue: addonsTotal,
+                    mushrooms: parseMoneyValue(document.getElementById('addonsMushroomsAmount')?.value),
+                    bread: parseMoneyValue(document.getElementById('addonsBreadAmount')?.value),
+                    cheese: parseMoneyValue(document.getElementById('addonsCheeseAmount')?.value),
+                    coffee: parseMoneyValue(document.getElementById('addonsCoffeeAmount')?.value)
                 },
                 farmersMarket: {
-                    marketCount: parseInt(document.getElementById('salesMarketCount')?.value) || 0,
-                    marketNames: document.getElementById('salesMarketNames')?.value || '',
-                    avgSalesPerMarket: document.getElementById('salesMarketAvg')?.value || '',
-                    totalSessions: parseInt(document.getElementById('salesMarketSessions')?.value) || 0,
-                    totalRevenue: parseMoneyValue(document.getElementById('salesMarketTotal')?.value)
+                    totalRevenue: marketsTotal
                 },
-                specialty: {
-                    flowers: parseMoneyValue(document.getElementById('salesFlowersTotal')?.value),
-                    mushrooms: parseMoneyValue(document.getElementById('salesMushroomsTotal')?.value),
-                    valueAdded: parseMoneyValue(document.getElementById('salesValueAddedTotal')?.value),
-                    delivery: parseMoneyValue(document.getElementById('salesDeliveryTotal')?.value)
+                wholesale: {
+                    totalRevenue: wholesaleTotal,
+                    restaurantCount: parseInt(document.getElementById('wholesaleRestaurantsCount')?.value) || 0
                 },
                 grandTotal: calculateTotalRevenue().total
             };
         }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Existing initialization code runs first
+            // Then initialize sales data parser
+            setTimeout(initSalesDataParser, 500);
+        });
 
         // ============ AI PLAN GENERATORS ============
 

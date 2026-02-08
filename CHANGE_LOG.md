@@ -40,6 +40,79 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-02-07 - Backend_Claude (Universal Document Parser)
+
+### Files Created
+- `apps_script/UniversalParser.js` (~1,400 lines) - Production-ready universal document parser for sales data
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Added 10 new API endpoints for Universal Parser
+
+### Functions Added (UniversalParser.js)
+- `parseUniversalDocument(params)` - Main entry point for parsing any uploaded file (CSV, Excel, PDF)
+- `categorizeSalesData(params)` - AI-powered product categorization using Claude
+- `getSalesDataSummary(params)` - Get aggregated sales summary by category
+- `getParsedSalesData(params)` - Get parsed data with pagination and filtering
+- `storeParsedSalesData(params)` - Store categorized data to PARSED_SALES_DATA sheet
+- `initializeParserSheets()` - Initialize all parser sheets
+- `detectFileType(content, fileName, mimeType)` - Detect file type from content/headers
+- `parseCSVContent(base64Content, encoding, delimiter)` - Parse CSV with proper quote handling
+- `parseExcelContent(base64Content)` - Parse Excel via Drive API conversion
+- `parsePDFContent(base64Content)` - Parse PDF via Drive OCR
+- `normalizeData(rawData)` - Normalize data from different sources (Shopify, QuickBooks, POS)
+- `categorizeByRules(productName)` - Rule-based product categorization
+- `categorizeWithAI(products, year)` - Claude AI batch categorization
+- `loadCategoryCache()` / `cacheCategory()` - Category caching for performance
+- `logParseAttempt()` / `logParseError()` - Comprehensive error logging
+- `getParseErrors()` / `resolveParseError()` - Error management
+- `getParserStatus()` - Get parser system status
+- `testUniversalParser()` - Testing function
+
+### API Endpoints Added (MERGED TOTAL.js)
+GET Endpoints:
+- `getSalesDataSummary` - Get aggregated sales data by category
+- `getParsedSalesData` - Get parsed records with pagination
+- `getParserStatus` - Get parser system status
+- `getParseErrors` - Get errors for review
+
+POST Endpoints:
+- `parseUniversalDocument` - Parse uploaded file
+- `categorizeSalesData` - Categorize products with AI
+- `storeParsedSalesData` - Store data to sheet
+- `initializeParserSheets` - Initialize sheets
+- `resolveParseError` - Mark error as resolved
+- `clearParsedData` - Clear all parsed data
+
+### Sheets Created (by initializeParserSheets)
+- `PARSED_SALES_DATA` - Stores parsed and categorized sales records
+- `PARSE_LOGS` - Logs all parse attempts
+- `PARSE_ERRORS` - Stores failed parses for review
+- `PARSER_CategoryCache` - Caches AI categorization results
+
+### Categories Supported
+- CSA_VEGETABLE - Summer/Spring/Fall/Winter CSA shares
+- FLOWER_SUBSCRIPTION - Flower subscriptions (Full Bloom, Petite Bloom, etc.)
+- PARTNER_ADDON - Mushrooms, Bread, Cheese, Coffee, etc.
+- FARMERS_MARKET - POS sales at various markets
+- WHOLESALE - Restaurant and bulk sales
+- DIRECT_SALES - Farm stand, online orders
+
+### Source Formats Supported
+- Shopify Sales Export (Product title, Total sales, Quantity)
+- QuickBooks Export (Date, Type, Num, Name, Amount)
+- Shopify POS Export (Order, Created at, Total, Source)
+- Generic CSV (auto-detected)
+
+### Reason
+Built complete backend infrastructure for the Universal Document Parser feature to support business plan generation and loan applications by intelligently parsing and categorizing sales data from multiple sources.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md - No existing universal parser
+- [x] Searched for similar functions - ShopifySalesSync.js handles Shopify API, not file uploads
+- [x] No duplicates created - This is new functionality
+
+---
+
 ## 2026-02-06 - PM_Architect (THE GOVERNOR: Central AI Operations Governance)
 
 ### Files Created

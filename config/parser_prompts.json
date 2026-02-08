@@ -1,0 +1,173 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-02-07",
+  "description": "AI prompt templates for Universal Sales Parser",
+
+  "categorizeProduct": {
+    "system": "You are a farm sales data categorizer for Tiny Seed Farm, a small vegetable and flower farm in Pittsburgh, PA. You categorize product names from sales data into predefined categories with high accuracy. Be precise and consistent.",
+    "prompt": "Categorize this product into ONE of these categories:\n\n1. CSA_VEGETABLE - Community Supported Agriculture vegetable shares (look for: CSA, share, vegetable, farm share, summer/spring/fall season)\n2. FLOWER_SUBSCRIPTION - Flower bouquet subscriptions (look for: flower, fleur, bouquet, bloom, dahlia)\n3. PARTNER_ADDON - Add-on products from partners (look for: add-on, mushroom, bread, cheese, coffee, eggs, honey)\n4. FARMERS_MARKET - Farmers market sales (look for: market location names, POS, cash sale)\n5. WHOLESALE_RESTAURANT - Restaurant/wholesale orders (look for: wholesale, restaurant, chef, bulk)\n6. DIRECT_SALES - Any other direct sales that don't fit above categories\n\nProduct Name: {{productName}}\n\nRespond with ONLY a JSON object:\n{\n  \"category\": \"CATEGORY_NAME\",\n  \"subcategory\": \"SUBCATEGORY_NAME_OR_NULL\",\n  \"confidence\": 0.0-1.0,\n  \"reasoning\": \"brief explanation\"\n}",
+    "temperature": 0.1,
+    "maxTokens": 150,
+    "examples": [
+      {
+        "input": "2026 Summer CSA Share - Standard Weekly Farm Vegetables Pittsburgh",
+        "output": {
+          "category": "CSA_VEGETABLE",
+          "subcategory": "SUMMER",
+          "confidence": 0.99,
+          "reasoning": "Contains 'Summer CSA Share' and 'Vegetables' - clearly a summer vegetable CSA subscription"
+        }
+      },
+      {
+        "input": "2026 Summer Flower Subscription - Full Bloom Weekly Bouquets Pittsburgh",
+        "output": {
+          "category": "FLOWER_SUBSCRIPTION",
+          "subcategory": "FULL_BLOOM",
+          "confidence": 0.99,
+          "reasoning": "Contains 'Flower Subscription' and 'Full Bloom' - premium flower subscription"
+        }
+      },
+      {
+        "input": "2026 Mushroom CSA Add-On - Weekly",
+        "output": {
+          "category": "PARTNER_ADDON",
+          "subcategory": "MUSHROOM",
+          "confidence": 0.99,
+          "reasoning": "Contains 'Add-On' and 'Mushroom' - partner mushroom add-on product"
+        }
+      },
+      {
+        "input": "Mixed Greens Bunch",
+        "output": {
+          "category": "FARMERS_MARKET",
+          "subcategory": "VEGETABLE",
+          "confidence": 0.7,
+          "reasoning": "Simple produce item without subscription indicators - likely farmers market sale"
+        }
+      }
+    ]
+  },
+
+  "inferSchema": {
+    "system": "You are a CSV schema inference expert. You analyze column headers and sample data to determine the data format and create column mappings for a farm sales data parser.",
+    "prompt": "Analyze these CSV column headers and first 5 rows of data. Identify:\n1. Which format this matches (Shopify Sales, Shopify Orders, QuickBooks, Square, or Unknown)\n2. Map each column to our standard fields: productName, revenue, netRevenue, quantity, year, transactionDate, customerName, orderId, location, category\n\nColumn Headers:\n{{headers}}\n\nSample Rows:\n{{sampleRows}}\n\nRespond with ONLY a JSON object:\n{\n  \"detectedFormat\": \"format_name\",\n  \"confidence\": 0.0-1.0,\n  \"columnMappings\": {\n    \"Original Column Name\": \"standardFieldName\"\n  },\n  \"dateFormat\": \"detected_date_format\",\n  \"amountFormat\": {\n    \"hasPrefix\": true/false,\n    \"prefix\": \"$\",\n    \"hasThousandsSeparator\": true/false\n  },\n  \"notes\": \"any important observations\"\n}",
+    "temperature": 0.2,
+    "maxTokens": 500,
+    "examples": [
+      {
+        "input": {
+          "headers": ["Product title", "Total sales", "Net sales", "Quantity ordered", "Year"],
+          "sampleRows": [
+            ["2026 Summer CSA Share", "$5,250.00", "$5,100.00", "15", "2026"],
+            ["2026 Flower Subscription", "$1,200.00", "$1,150.00", "8", "2026"]
+          ]
+        },
+        "output": {
+          "detectedFormat": "shopify_sales",
+          "confidence": 0.95,
+          "columnMappings": {
+            "Product title": "productName",
+            "Total sales": "revenue",
+            "Net sales": "netRevenue",
+            "Quantity ordered": "quantity",
+            "Year": "year"
+          },
+          "dateFormat": "YYYY",
+          "amountFormat": {
+            "hasPrefix": true,
+            "prefix": "$",
+            "hasThousandsSeparator": true
+          },
+          "notes": "Standard Shopify Sales by Product export format"
+        }
+      }
+    ]
+  },
+
+  "normalizeProductName": {
+    "system": "You extract structured information from farm product names. Be precise about extracting year, season, product type, size, and frequency.",
+    "prompt": "Extract structured fields from this product name:\n\nProduct Name: {{productName}}\n\nExtract the following fields (use null if not found):\n- year: 4-digit year (e.g., 2026)\n- season: SUMMER, SPRING, FALL, WINTER, or null\n- productType: CSA, FLOWER, ADDON, MARKET, etc.\n- productSubtype: specific product (e.g., MUSHROOM for add-ons, FULL_BLOOM for flowers)\n- size: FAMILY, STANDARD, SMALL, FLEX, or null\n- frequency: WEEKLY, BIWEEKLY, MONTHLY, or null\n- location: extracted location if present\n\nRespond with ONLY a JSON object:\n{\n  \"year\": 2026,\n  \"season\": \"SUMMER\",\n  \"productType\": \"CSA\",\n  \"productSubtype\": null,\n  \"size\": \"STANDARD\",\n  \"frequency\": \"WEEKLY\",\n  \"location\": \"Pittsburgh\",\n  \"normalizedName\": \"Summer CSA - Standard Weekly\"\n}",
+    "temperature": 0.1,
+    "maxTokens": 200,
+    "examples": [
+      {
+        "input": "2026 Summer CSA Share - Friends & Family (Large) Weekly Farm Vegetables Pittsburgh",
+        "output": {
+          "year": 2026,
+          "season": "SUMMER",
+          "productType": "CSA",
+          "productSubtype": null,
+          "size": "FAMILY",
+          "frequency": "WEEKLY",
+          "location": "Pittsburgh",
+          "normalizedName": "Summer CSA - Family Weekly"
+        }
+      },
+      {
+        "input": "2026 Local Coffee CSA Add-On - Biweekly (Redhawk)",
+        "output": {
+          "year": 2026,
+          "season": null,
+          "productType": "ADDON",
+          "productSubtype": "COFFEE",
+          "size": null,
+          "frequency": "BIWEEKLY",
+          "location": null,
+          "normalizedName": "Coffee Add-On - Biweekly (Redhawk)"
+        }
+      }
+    ]
+  },
+
+  "resolveAmbiguous": {
+    "system": "You help resolve ambiguous product categorizations by considering context and making the most reasonable choice for a small farm's sales data.",
+    "prompt": "This product could not be definitively categorized. Consider the context and make the best choice.\n\nProduct Name: {{productName}}\nPossible Categories: {{possibleCategories}}\nAdditional Context: {{context}}\n\nRules:\n1. If it mentions any subscription/share keywords, prefer CSA_VEGETABLE or FLOWER_SUBSCRIPTION\n2. If it's a simple produce item (tomatoes, lettuce, etc.), prefer FARMERS_MARKET\n3. If it mentions a partner product (mushroom, bread, cheese, coffee), prefer PARTNER_ADDON\n4. When truly ambiguous, prefer DIRECT_SALES as the catch-all\n\nRespond with ONLY a JSON object:\n{\n  \"category\": \"CHOSEN_CATEGORY\",\n  \"subcategory\": \"SUBCATEGORY_OR_NULL\",\n  \"confidence\": 0.0-1.0,\n  \"reasoning\": \"explanation of choice\"\n}",
+    "temperature": 0.3,
+    "maxTokens": 150
+  },
+
+  "batchCategorize": {
+    "system": "You categorize multiple farm products at once for efficiency. Apply consistent logic across all products.",
+    "prompt": "Categorize each of these products into the appropriate category. Apply the same rules consistently.\n\nCategories:\n- CSA_VEGETABLE: Vegetable CSA shares\n- FLOWER_SUBSCRIPTION: Flower subscriptions\n- PARTNER_ADDON: Partner add-on products\n- FARMERS_MARKET: Market sales\n- WHOLESALE_RESTAURANT: Wholesale/restaurant orders\n- DIRECT_SALES: Other direct sales\n\nProducts to categorize:\n{{products}}\n\nRespond with ONLY a JSON array:\n[\n  {\n    \"productName\": \"original name\",\n    \"category\": \"CATEGORY\",\n    \"subcategory\": \"SUBCATEGORY_OR_NULL\",\n    \"confidence\": 0.0-1.0\n  }\n]",
+    "temperature": 0.1,
+    "maxTokens": 2000
+  },
+
+  "generateSummary": {
+    "system": "You create clear, concise summaries of categorized farm sales data for business reporting.",
+    "prompt": "Generate a summary of this categorized sales data for a farm loan application or business plan.\n\nCategorized Data:\n{{categorizedData}}\n\nInclude:\n1. Total revenue by category\n2. Year-over-year growth trends\n3. Key insights about the business mix\n4. Subscription vs. one-time sale ratio\n\nFormat the response as a professional summary suitable for a bank loan officer.",
+    "temperature": 0.4,
+    "maxTokens": 800
+  },
+
+  "validateData": {
+    "system": "You validate farm sales data for completeness and accuracy, identifying potential issues.",
+    "prompt": "Review this sales data for potential issues:\n\nData:\n{{data}}\n\nCheck for:\n1. Missing required fields (product name, amount)\n2. Unusual amounts (too high or negative)\n3. Date range issues\n4. Duplicate entries\n5. Categorization inconsistencies\n\nRespond with ONLY a JSON object:\n{\n  \"isValid\": true/false,\n  \"issues\": [\n    {\n      \"type\": \"ISSUE_TYPE\",\n      \"severity\": \"error|warning|info\",\n      \"description\": \"description\",\n      \"affectedRows\": [row_numbers]\n    }\n  ],\n  \"suggestions\": [\"list of suggestions\"]\n}",
+    "temperature": 0.2,
+    "maxTokens": 500
+  },
+
+  "errorHandling": {
+    "fallbackCategory": "DIRECT_SALES",
+    "lowConfidenceThreshold": 0.6,
+    "retryOnError": true,
+    "maxRetries": 2,
+    "logUncategorized": true
+  },
+
+  "apiConfig": {
+    "provider": "anthropic",
+    "model": "claude-3-5-sonnet-20241022",
+    "fallbackModel": "claude-3-haiku-20240307",
+    "rateLimit": {
+      "requestsPerMinute": 50,
+      "tokensPerMinute": 40000
+    },
+    "timeout": 30000,
+    "caching": {
+      "enabled": true,
+      "ttlSeconds": 86400,
+      "cacheKey": "productName"
+    }
+  }
+}

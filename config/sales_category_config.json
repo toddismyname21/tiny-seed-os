@@ -1,0 +1,320 @@
+{
+  "version": "1.0",
+  "last_updated": "2026-02-07",
+  "description": "Tiny Seed Farm sales categorization configuration for AI parser",
+
+  "categories": {
+    "CSA_SUBSCRIPTION": {
+      "display_name": "CSA Subscriptions",
+      "description": "Community Supported Agriculture vegetable shares",
+      "is_subscription": true,
+      "primary_keywords": ["csa", "share", "subscription", "veggie share", "vegetable share", "farm share", "produce share", "community supported"],
+      "exclude_if_contains": ["flower", "floral", "fleurs", "bouquet", "bloom", "dahlia", "add-on", "addon", "mushroom", "bread", "cheese", "coffee"]
+    },
+
+    "FLOWER_SUBSCRIPTION": {
+      "display_name": "Flower Subscriptions",
+      "description": "Recurring flower bouquet deliveries",
+      "is_subscription": true,
+      "primary_keywords": ["flower subscription", "floral subscription", "fleurs", "bouquet share", "bloom share", "dahlia csa", "flower csa"]
+    },
+
+    "PARTNER_ADDON": {
+      "display_name": "Partner Add-Ons",
+      "description": "Resold products from local partners",
+      "is_subscription": false,
+      "primary_keywords": ["add-on", "addon", "add on"],
+      "margin_tracking": true
+    },
+
+    "FARMERS_MARKET": {
+      "display_name": "Farmers Market Sales",
+      "description": "POS transactions at farmers markets",
+      "is_subscription": false,
+      "source_identifiers": ["pos"],
+      "requires_location": true
+    },
+
+    "WHOLESALE_RESTAURANT": {
+      "display_name": "Wholesale/Restaurant",
+      "description": "B2B sales to restaurants and commercial accounts",
+      "is_subscription": false,
+      "customer_type_identifiers": ["wholesale", "restaurant", "chef", "commercial"]
+    },
+
+    "DIRECT_SALES": {
+      "display_name": "Direct Sales",
+      "description": "Farm stand and online orders",
+      "is_subscription": false,
+      "is_default": true
+    }
+  },
+
+  "subcategories": {
+    "CSA_SUBSCRIPTION": {
+      "seasons": {
+        "SUMMER": {
+          "keywords": ["summer", "smr"],
+          "typical_months": [5, 6, 7, 8, 9, 10]
+        },
+        "FALL": {
+          "keywords": ["fall", "autumn", "thanksgiving"],
+          "typical_months": [9, 10, 11]
+        },
+        "SPRING": {
+          "keywords": ["spring", "spr"],
+          "typical_months": [3, 4, 5]
+        },
+        "WINTER": {
+          "keywords": ["winter", "holiday"],
+          "typical_months": [11, 12, 1, 2]
+        }
+      },
+      "sizes": {
+        "FAMILY": {
+          "keywords": ["family", "friends and family", "f&f", "large", "full"],
+          "display_name": "Family/Full Share",
+          "typical_price_range": [600, 900]
+        },
+        "HALF": {
+          "keywords": ["half", "medium", "regular", "standard", "couple"],
+          "display_name": "Half/Standard Share",
+          "typical_price_range": [350, 550]
+        },
+        "SMALL": {
+          "keywords": ["small", "single", "petite", "mini"],
+          "display_name": "Small/Single Share",
+          "typical_price_range": [200, 350]
+        },
+        "FLEX": {
+          "keywords": ["flex"],
+          "display_name": "Flex Share",
+          "typical_price_range": [300, 500]
+        }
+      },
+      "frequency": {
+        "WEEKLY": {
+          "keywords": ["weekly", "every week", "each week"],
+          "deliveries_per_season": 20
+        },
+        "BIWEEKLY": {
+          "keywords": ["biweekly", "bi-weekly", "every other", "alternate", "eow"],
+          "deliveries_per_season": 10
+        }
+      },
+      "delivery_type": {
+        "HOME_DELIVERY": {
+          "keywords": ["home delivery", "delivery", "delivered"],
+          "has_delivery_fee": true
+        },
+        "PICKUP": {
+          "keywords": ["pickup", "pick up", "pick-up"],
+          "has_delivery_fee": false
+        }
+      }
+    },
+
+    "FLOWER_SUBSCRIPTION": {
+      "types": {
+        "FULL_BLOOM": {
+          "keywords": ["full bloom", "fullbloom", "premium"],
+          "display_name": "Full Bloom (Premium)",
+          "typical_price_range": [25, 35]
+        },
+        "PETITE_BLOOM": {
+          "keywords": ["petite bloom", "petite", "petit"],
+          "display_name": "Petite Bloom",
+          "typical_price_range": [15, 22]
+        },
+        "STANDARD": {
+          "keywords": ["standard", "regular", "weekly bouquet"],
+          "display_name": "Standard Bouquet",
+          "typical_price_range": [18, 28]
+        },
+        "DAHLIA": {
+          "keywords": ["dahlia"],
+          "display_name": "Dahlia CSA",
+          "is_specialty": true
+        }
+      }
+    },
+
+    "PARTNER_ADDON": {
+      "products": {
+        "MUSHROOM": {
+          "keywords": ["mushroom", "shroom"],
+          "partner_name": "Local Mushroom Grower",
+          "typical_margin_percent": 15
+        },
+        "BREAD": {
+          "keywords": ["bread", "loaf", "bakery"],
+          "partner_name": "Local Bakery",
+          "typical_margin_percent": 10
+        },
+        "CHEESE": {
+          "keywords": ["cheese", "goat rodeo", "dairy"],
+          "partner_name": "Goat Rodeo",
+          "typical_margin_percent": 12
+        },
+        "COFFEE": {
+          "keywords": ["coffee", "redhawk"],
+          "partner_name": "Redhawk Coffee",
+          "typical_margin_percent": 15
+        },
+        "EGGS": {
+          "keywords": ["egg", "dozen"],
+          "partner_name": "Local Farm",
+          "typical_margin_percent": 20
+        },
+        "HONEY": {
+          "keywords": ["honey", "bee", "apiary"],
+          "partner_name": "Local Apiary",
+          "typical_margin_percent": 15
+        }
+      }
+    },
+
+    "FARMERS_MARKET": {
+      "locations": {
+        "LAWRENCEVILLE": {
+          "keywords": ["lawrenceville", "lawv", "lville"],
+          "day_of_week": "Tuesday",
+          "location_id": "lawrenceville_market"
+        },
+        "SEWICKLEY": {
+          "keywords": ["sewickley", "swick"],
+          "day_of_week": "Saturday",
+          "location_id": "sewickley_market"
+        },
+        "BLOOMFIELD": {
+          "keywords": ["bloomfield", "bloom"],
+          "day_of_week": "Saturday",
+          "location_id": "bloomfield_market"
+        },
+        "SQUIRREL_HILL": {
+          "keywords": ["squirrel hill", "squirrel", "sq hill"],
+          "day_of_week": "Sunday",
+          "location_id": "squirrel_hill_market"
+        },
+        "HIGHLAND_PARK": {
+          "keywords": ["highland park", "highland", "bryant"],
+          "day_of_week": "Saturday",
+          "location_id": "highland_park_market"
+        },
+        "NORTH_SIDE": {
+          "keywords": ["north side", "northside", "mayfly"],
+          "day_of_week": "Saturday",
+          "location_id": "north_side_market"
+        }
+      },
+      "product_categories": {
+        "VEGETABLE": {
+          "keywords": ["tomato", "pepper", "cucumber", "squash", "zucchini", "lettuce", "kale", "spinach", "chard", "carrot", "beet", "radish", "turnip", "cabbage", "broccoli", "cauliflower", "onion", "garlic", "potato", "corn", "beans", "peas", "eggplant", "celery", "bok choy", "arugula", "salad", "greens", "veg"]
+        },
+        "LEAFY_GREENS": {
+          "keywords": ["lettuce", "kale", "spinach", "chard", "arugula", "collards", "mustard greens", "greens", "salad mix", "bunched greens"]
+        },
+        "ROOT_VEGETABLES": {
+          "keywords": ["carrot", "beet", "radish", "turnip", "potato", "celeriac", "parsnip", "root"]
+        },
+        "FLOWER": {
+          "keywords": ["flower", "bouquet", "sunflower", "zinnia", "dahlia", "marigold", "bloom", "floral", "wreath", "dried"]
+        },
+        "HERB": {
+          "keywords": ["basil", "cilantro", "parsley", "dill", "mint", "oregano", "thyme", "rosemary", "herb"]
+        },
+        "PREPARED": {
+          "keywords": ["jam", "pickle", "sauce", "pesto", "prepared", "preserved", "canned"]
+        },
+        "SEEDLINGS": {
+          "keywords": ["seedling", "4 pack", "4-pack", "plant", "starter", "single pot"]
+        }
+      }
+    }
+  },
+
+  "fuzzy_matching": {
+    "enabled": true,
+    "min_similarity_threshold": 0.8,
+    "normalize_rules": {
+      "remove_words": ["tiny seed", "farm", "pittsburgh", "local", "fresh", "generic", "retail"],
+      "remove_punctuation": true,
+      "lowercase": true,
+      "collapse_whitespace": true
+    }
+  },
+
+  "year_extraction": {
+    "pattern": "\\b(20\\d{2})\\b",
+    "default_to_current": true
+  },
+
+  "classification_priority": [
+    "CSA_SUBSCRIPTION",
+    "FLOWER_SUBSCRIPTION",
+    "PARTNER_ADDON",
+    "WHOLESALE_RESTAURANT",
+    "FARMERS_MARKET",
+    "DIRECT_SALES"
+  ],
+
+  "revenue_attribution": {
+    "CSA_SUBSCRIPTION": {
+      "recognition_method": "full_at_signup",
+      "supports_season_spread": true
+    },
+    "FLOWER_SUBSCRIPTION": {
+      "recognition_method": "full_at_signup",
+      "supports_season_spread": true
+    },
+    "PARTNER_ADDON": {
+      "recognition_method": "at_delivery",
+      "track_partner_margin": true
+    },
+    "FARMERS_MARKET": {
+      "recognition_method": "daily_settlement"
+    },
+    "WHOLESALE_RESTAURANT": {
+      "recognition_method": "at_invoice",
+      "default_payment_terms": "Net 30"
+    },
+    "DIRECT_SALES": {
+      "recognition_method": "at_transaction"
+    }
+  },
+
+  "validation": {
+    "required_fields": ["product_name", "transaction_date", "total_amount"],
+    "recommended_fields": ["source_name", "customer_id", "location_id"]
+  },
+
+  "known_product_mappings": {
+    "2026 Friends and Family Summer CSA Share (BIWEEKLY)": {
+      "category": "CSA_SUBSCRIPTION",
+      "season": "SUMMER",
+      "size": "FAMILY",
+      "frequency": "BIWEEKLY"
+    },
+    "2026 Small Summer CSA Share (WEEKLY)": {
+      "category": "CSA_SUBSCRIPTION",
+      "season": "SUMMER",
+      "size": "SMALL",
+      "frequency": "WEEKLY"
+    },
+    "2026 Tiny Seed Fleurs Full Bloom Bouquet Share (WEEKLY)": {
+      "category": "FLOWER_SUBSCRIPTION",
+      "type": "FULL_BLOOM",
+      "frequency": "WEEKLY"
+    },
+    "2026 MUSHROOM CSA ADD ON (WEEKLY)": {
+      "category": "PARTNER_ADDON",
+      "product": "MUSHROOM",
+      "frequency": "WEEKLY"
+    },
+    "2026 LOCAL REDHAWK COFFEE CSA ADD ON (BIWEEKLY)": {
+      "category": "PARTNER_ADDON",
+      "product": "COFFEE",
+      "frequency": "BIWEEKLY"
+    }
+  }
+}
