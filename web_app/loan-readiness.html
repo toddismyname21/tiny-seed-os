@@ -3845,26 +3845,22 @@
                 }
             }
 
-            // Merge all results if we have multiple files
+            // Process results - merge if multiple files, or just display single file
             if (allParsedData.length > 1) {
                 console.log('%c MERGING DATA FROM ALL FILES ', 'background: #9b59b6; color: white; font-size: 14px; padding: 4px 8px;');
                 accumulatedSalesData = mergeAllParsedData(allParsedData);
+            } else if (allParsedData.length === 1) {
+                // Single file
+                accumulatedSalesData = allParsedData[0].data;
+            }
+
+            // Display the final merged/single result
+            if (accumulatedSalesData) {
                 displayParsedData(accumulatedSalesData);
 
-                // Show success celebration for multi-file merge
+                // Show success celebration
                 showImportSuccess({
                     files: allParsedData.length,
-                    products: accumulatedSalesData.totalProducts || 0,
-                    revenue: accumulatedSalesData.grandTotal || 0,
-                    years: accumulatedSalesData.availableYears?.length || 0
-                });
-            } else if (allParsedData.length === 1) {
-                // Single file - just display it
-                accumulatedSalesData = allParsedData[0].data;
-
-                // Show success for single file
-                showImportSuccess({
-                    files: 1,
                     products: accumulatedSalesData.totalProducts || 0,
                     revenue: accumulatedSalesData.grandTotal || 0,
                     years: accumulatedSalesData.availableYears?.length || 0
@@ -4135,8 +4131,8 @@
                 fileEntry.data = categorizedData;
                 updateFileCard(fileEntry.id, 'complete', `Processed - ${categorizedData.totalProducts || 0} products found`);
 
-                // Display results immediately for single file (will be overwritten if merged later)
-                displayParsedData(categorizedData);
+                // DON'T display here - wait for merge in handleFileUpload
+                // The handleFileUpload function will display merged results
 
                 showNotification(`${file.name}: Parsed successfully!`, 'success');
                 showProcessingIndicator(false);
@@ -4614,13 +4610,48 @@
 
                 let productYear = null;
 
-                // For QuickBooks data (has customerCategory), extract year from date field
+                // For QuickBooks data (has customerCategory), handle multi-year date ranges
                 if (hasCustomerCategory) {
-                    // QuickBooks: extract year from dateRange like "January 1, 2023 - December 31, 2024"
+                    // QuickBooks: extract ALL years from dateRange like "January 1, 2023 - December 31, 2025"
                     const dateYears = (p.date || '').match(/\b(202[3-9]|203[0-9])\b/g);
                     if (dateYears && dateYears.length > 0) {
-                        // Use the most recent year in the range for categorization
-                        productYear = dateYears[dateYears.length - 1];
+                        // Get unique years
+                        const uniqueYears = [...new Set(dateYears)].sort();
+
+                        if (uniqueYears.length > 1) {
+                            // MULTI-YEAR: Distribute sales across all years in range
+                            const startYear = parseInt(uniqueYears[0]);
+                            const endYear = parseInt(uniqueYears[uniqueYears.length - 1]);
+                            const allYears = [];
+                            for (let y = startYear; y <= endYear; y++) {
+                                allYears.push(y.toString());
+                            }
+
+                            // Split the sales evenly across years
+                            const salesPerYear = p.sales / allYears.length;
+                            const qtyPerYear = Math.ceil(p.quantity / allYears.length);
+
+                            console.log(`📊 QuickBooks Multi-Year: ${title} → Splitting $${p.sales} across ${allYears.join(', ')}`);
+
+                            // Add this customer to EACH year
+                            allYears.forEach(year => {
+                                if (!byProductYear[year]) {
+                                    byProductYear[year] = [];
+                                }
+                                byProductYear[year].push({
+                                    ...p,
+                                    sales: salesPerYear,
+                                    quantity: qtyPerYear,
+                                    productYear: year,
+                                    originalSales: p.sales,
+                                    distributedAcrossYears: allYears.length
+                                });
+                            });
+                            return; // Skip the normal year assignment below
+                        } else {
+                            // Single year in range
+                            productYear = uniqueYears[0];
+                        }
                     }
                     console.log('📊 QuickBooks:', title, '→ Year:', productYear, 'from date:', p.date);
                 }
