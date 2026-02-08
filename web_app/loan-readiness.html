@@ -769,13 +769,27 @@
             cursor: pointer;
             transition: all 0.3s ease;
             background: var(--bg-lighter);
+            min-height: 200px;
+            position: relative;
         }
 
         .sales-upload-zone:hover,
         .sales-upload-zone.drag-over {
             border-color: var(--primary);
-            background: rgba(42, 157, 143, 0.1);
-            transform: translateY(-2px);
+            background: rgba(42, 157, 143, 0.15);
+            transform: scale(1.01);
+            box-shadow: 0 8px 32px rgba(42, 157, 143, 0.2);
+        }
+
+        .sales-upload-zone.file-accepted {
+            border-color: var(--success);
+            background: rgba(42, 157, 143, 0.2);
+            border-style: solid;
+        }
+
+        .sales-upload-zone.file-rejected {
+            border-color: var(--danger);
+            background: rgba(231, 111, 81, 0.1);
         }
 
         .sales-upload-zone i {
@@ -783,12 +797,293 @@
             color: var(--primary);
             margin-bottom: 1rem;
             display: block;
+            transition: transform 0.3s ease;
+        }
+
+        .sales-upload-zone:hover i,
+        .sales-upload-zone.drag-over i {
+            transform: scale(1.1) translateY(-5px);
         }
 
         .sales-upload-zone h3 {
             font-size: 1.4rem;
             margin-bottom: 0.5rem;
             color: var(--text);
+        }
+
+        /* Live Preview During Parsing */
+        .parsing-preview {
+            background: var(--bg-lighter);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            border: 1px solid var(--border);
+        }
+
+        .parsing-preview .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .parsing-preview .preview-badge {
+            background: var(--primary);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            animation: pulse 1.5s infinite;
+        }
+
+        .parsing-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .parsing-stats .stat {
+            text-align: center;
+        }
+
+        .parsing-stats .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            display: block;
+        }
+
+        .parsing-stats .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Confidence Badges */
+        .confidence-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .confidence-badge.high {
+            background: rgba(42, 157, 143, 0.2);
+            color: #2a9d8f;
+        }
+
+        .confidence-badge.medium {
+            background: rgba(244, 162, 97, 0.2);
+            color: #f4a261;
+        }
+
+        .confidence-badge.low {
+            background: rgba(231, 111, 81, 0.2);
+            color: #e76f51;
+        }
+
+        /* Progress Bar Enhancement */
+        .progress-container {
+            background: var(--bg-lighter);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .progress-stage {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .progress-percent {
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: var(--bg);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--primary-light));
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-details {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        /* Success Animation */
+        .success-celebration {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .success-checkmark {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1.5rem;
+            position: relative;
+        }
+
+        .success-checkmark svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .checkmark-circle {
+            fill: none;
+            stroke: var(--success);
+            stroke-width: 3;
+            stroke-dasharray: 166;
+            stroke-dashoffset: 166;
+            animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+        }
+
+        .checkmark-check {
+            fill: none;
+            stroke: var(--success);
+            stroke-width: 3;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-dasharray: 48;
+            stroke-dashoffset: 48;
+            animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.6s forwards;
+        }
+
+        @keyframes stroke {
+            100% { stroke-dashoffset: 0; }
+        }
+
+        /* Year Breakdown Cards */
+        .year-breakdown-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .year-card {
+            background: var(--bg-lighter);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 2px solid var(--border);
+            transition: all 0.3s ease;
+        }
+
+        .year-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+        }
+
+        .year-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .year-card-header h3 {
+            font-size: 1.5rem;
+            color: var(--primary);
+            margin: 0;
+        }
+
+        .year-card-trend {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-weight: 600;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+        }
+
+        .year-card-trend.positive {
+            background: rgba(42, 157, 143, 0.2);
+            color: var(--success);
+        }
+
+        .year-card-trend.negative {
+            background: rgba(231, 111, 81, 0.2);
+            color: var(--danger);
+        }
+
+        .year-card-category {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .year-card-category:last-child {
+            border-bottom: none;
+        }
+
+        .year-card-category-name {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-secondary);
+        }
+
+        .year-card-category-value {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .year-card-total {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 2px solid var(--primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .year-card-total-label {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .year-card-total-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        /* Wholesale Breakdown Scrollable */
+        #wholesaleProductsList {
+            max-height: none !important;
+            overflow: visible !important;
         }
 
         /* File Cards */
@@ -818,6 +1113,33 @@
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.7; }
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOutRight {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+
+        @keyframes countUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .file-card-icon {
@@ -1534,11 +1856,19 @@
             <div id="processingIndicator" style="display: none; margin-top: 1.5rem; background: var(--bg-lighter); padding: 1.5rem; border-radius: 12px;">
                 <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
                     <i class="fas fa-spinner fa-spin" style="font-size: 1.5rem; color: var(--primary);"></i>
-                    <div>
+                    <div style="flex: 1;">
                         <div id="processingStatus" style="font-weight: 600;">Processing...</div>
                         <div id="processingDetail" style="font-size: 0.85rem; color: var(--text-secondary);"></div>
                     </div>
+                    <div id="processingPercent" style="font-size: 1.5rem; font-weight: 700; color: var(--primary);">0%</div>
                 </div>
+
+                <!-- Progress Bar -->
+                <div class="progress-bar" style="margin-bottom: 1rem;">
+                    <div id="processingProgressFill" class="progress-fill" style="width: 0%;"></div>
+                </div>
+
+                <!-- Processing Steps -->
                 <div class="processing-steps" id="processingSteps">
                     <div class="processing-step" data-step="1">
                         <i class="fas fa-circle"></i> Uploading file...
@@ -1547,13 +1877,33 @@
                         <i class="fas fa-circle"></i> Detecting format...
                     </div>
                     <div class="processing-step" data-step="3">
-                        <i class="fas fa-circle"></i> AI categorizing products...
+                        <i class="fas fa-circle"></i> Smart categorizing...
                     </div>
                     <div class="processing-step" data-step="4">
                         <i class="fas fa-circle"></i> Aggregating by year...
                     </div>
                     <div class="processing-step" data-step="5">
                         <i class="fas fa-circle"></i> Complete!
+                    </div>
+                </div>
+
+                <!-- Real-Time Parsing Stats -->
+                <div id="parsingStats" class="parsing-stats" style="display: none;">
+                    <div class="stat">
+                        <span class="stat-value" id="parsedRowsCount">0</span>
+                        <span class="stat-label">Rows Processed</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-value" id="parsedCategoriesCount">0</span>
+                        <span class="stat-label">Categories</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-value" id="parsedRevenueTotal">$0</span>
+                        <span class="stat-label">Total Revenue</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-value" id="parsedYearsCount">0</span>
+                        <span class="stat-label">Years Detected</span>
                     </div>
                 </div>
             </div>
@@ -3364,35 +3714,113 @@
 
         // ====== FILE UPLOAD HANDLERS ======
 
+        // Accepted file types
+        const ACCEPTED_TYPES = {
+            'csv': ['text/csv', 'application/csv', '.csv'],
+            'excel': ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel', '.xlsx', '.xls'],
+            'pdf': ['application/pdf', '.pdf']
+        };
+        const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+        function isValidFileType(file) {
+            const name = file.name.toLowerCase();
+            const type = file.type.toLowerCase();
+            return name.endsWith('.csv') || name.endsWith('.xlsx') || name.endsWith('.xls') || name.endsWith('.pdf') ||
+                   type.includes('csv') || type.includes('spreadsheet') || type.includes('excel') || type === 'application/pdf';
+        }
+
         function handleSalesDragOver(event) {
             event.preventDefault();
             event.stopPropagation();
-            document.getElementById('salesUploadZone').classList.add('drag-over');
+
+            const zone = document.getElementById('salesUploadZone');
+            zone.classList.add('drag-over');
+
+            // Real-time validation during drag
+            const items = event.dataTransfer.items;
+            if (items && items.length > 0) {
+                let allValid = true;
+                for (let i = 0; i < items.length; i++) {
+                    const item = items[i];
+                    // Basic type check during drag
+                    if (item.kind === 'file') {
+                        const type = item.type.toLowerCase();
+                        if (!type.includes('csv') && !type.includes('spreadsheet') && !type.includes('excel') && type !== 'application/pdf') {
+                            // Can't fully validate during drag, but check what we can
+                            allValid = false;
+                        }
+                    }
+                }
+                zone.classList.toggle('file-accepted', allValid);
+                zone.classList.toggle('file-rejected', !allValid);
+            }
         }
 
         function handleSalesDragLeave(event) {
             event.preventDefault();
             event.stopPropagation();
-            document.getElementById('salesUploadZone').classList.remove('drag-over');
+
+            const zone = document.getElementById('salesUploadZone');
+            zone.classList.remove('drag-over', 'file-accepted', 'file-rejected');
         }
 
         function handleSalesFileDrop(event) {
             event.preventDefault();
             event.stopPropagation();
-            document.getElementById('salesUploadZone').classList.remove('drag-over');
+
+            const zone = document.getElementById('salesUploadZone');
+            zone.classList.remove('drag-over', 'file-accepted', 'file-rejected');
 
             const files = event.dataTransfer.files;
             if (files.length > 0) {
-                handleFileUpload(Array.from(files));
+                // Validate files before processing
+                const validFiles = [];
+                const invalidFiles = [];
+
+                for (const file of files) {
+                    if (!isValidFileType(file)) {
+                        invalidFiles.push({ file, reason: `Unsupported file type: ${file.name}` });
+                    } else if (file.size > MAX_FILE_SIZE) {
+                        invalidFiles.push({ file, reason: `File too large: ${file.name} (max 10MB)` });
+                    } else {
+                        validFiles.push(file);
+                    }
+                }
+
+                // Show errors for invalid files
+                if (invalidFiles.length > 0) {
+                    const errors = invalidFiles.map(f => f.reason).join('\n');
+                    showNotification(`Some files couldn't be added:\n${errors}`, 'warning');
+                }
+
+                // Process valid files
+                if (validFiles.length > 0) {
+                    handleFileUpload(validFiles);
+                }
             }
         }
 
         function handleSalesFileSelect(event) {
             const files = event.target.files;
             if (files.length > 0) {
-                handleFileUpload(Array.from(files));
+                // Same validation as drop
+                const validFiles = [];
+                for (const file of files) {
+                    if (isValidFileType(file) && file.size <= MAX_FILE_SIZE) {
+                        validFiles.push(file);
+                    }
+                }
+
+                if (validFiles.length > 0) {
+                    handleFileUpload(validFiles);
+                } else {
+                    showNotification('No valid files selected. Please use CSV, Excel, or PDF files.', 'error');
+                }
             }
         }
+
+        // Accumulated results from all files
+        let accumulatedSalesData = null;
 
         // Main file upload handler
         async function handleFileUpload(files) {
@@ -3401,18 +3829,126 @@
             // Show uploaded files section
             document.getElementById('uploadedFilesList').style.display = 'block';
 
+            // Reset accumulated data when new files are uploaded
+            accumulatedSalesData = null;
+
+            // Parse all files and accumulate results
+            const allParsedData = [];
             for (const file of files) {
                 // Add file card
                 addFileCard(file);
 
-                // Parse the file
-                await parseFile(file);
+                // Parse the file and collect result
+                const fileData = await parseFile(file);
+                if (fileData) {
+                    allParsedData.push({ fileName: file.name, data: fileData });
+                }
             }
 
-            // Show merge button if multiple files
-            if (uploadedSalesFiles.length > 1) {
-                document.getElementById('mergeYearsBtn').style.display = 'inline-flex';
+            // Merge all results if we have multiple files
+            if (allParsedData.length > 1) {
+                console.log('%c MERGING DATA FROM ALL FILES ', 'background: #9b59b6; color: white; font-size: 14px; padding: 4px 8px;');
+                accumulatedSalesData = mergeAllParsedData(allParsedData);
+                displayParsedData(accumulatedSalesData);
+
+                // Show success celebration for multi-file merge
+                showImportSuccess({
+                    files: allParsedData.length,
+                    products: accumulatedSalesData.totalProducts || 0,
+                    revenue: accumulatedSalesData.grandTotal || 0,
+                    years: accumulatedSalesData.availableYears?.length || 0
+                });
+            } else if (allParsedData.length === 1) {
+                // Single file - just display it
+                accumulatedSalesData = allParsedData[0].data;
+
+                // Show success for single file
+                showImportSuccess({
+                    files: 1,
+                    products: accumulatedSalesData.totalProducts || 0,
+                    revenue: accumulatedSalesData.grandTotal || 0,
+                    years: accumulatedSalesData.availableYears?.length || 0
+                });
             }
+
+            // Hide merge button (auto-merge now happens)
+            document.getElementById('mergeYearsBtn').style.display = 'none';
+        }
+
+        // Success celebration animation
+        function showImportSuccess(stats) {
+            const notification = document.createElement('div');
+            notification.className = 'import-success-toast';
+            notification.innerHTML = `
+                <div class="success-celebration" style="padding: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <div style="font-size: 2rem; color: var(--success);">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div>
+                            <h4 style="margin: 0 0 0.25rem 0; color: var(--success);">Import Complete!</h4>
+                            <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">
+                                ${stats.products.toLocaleString()} products from ${stats.files} file${stats.files > 1 ? 's' : ''} •
+                                ${stats.years} year${stats.years > 1 ? 's' : ''} •
+                                <strong style="color: var(--primary);">${formatMoney(stats.revenue)}</strong> total revenue
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            notification.style.cssText = `
+                position: fixed;
+                bottom: 2rem;
+                right: 2rem;
+                background: var(--bg-lighter);
+                border: 2px solid var(--success);
+                border-radius: 12px;
+                box-shadow: 0 8px 32px rgba(42, 157, 143, 0.3);
+                z-index: 10000;
+                animation: slideInRight 0.5s ease-out;
+            `;
+
+            document.body.appendChild(notification);
+
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                notification.style.animation = 'slideOutRight 0.5s ease-in';
+                setTimeout(() => notification.remove(), 500);
+            }, 5000);
+        }
+
+        // Merge parsed data from multiple files
+        function mergeAllParsedData(allData) {
+            const merged = createEmptyResult();
+            merged.byYear = {};
+            merged.availableYears = new Set();
+            let totalProducts = 0;
+
+            allData.forEach(({ fileName, data }) => {
+                console.log(`Merging data from ${fileName}:`, data);
+
+                // Add to totals
+                mergeResults(merged, data);
+                totalProducts += data.totalProducts || 0;
+
+                // Merge by-year data
+                if (data.byYear) {
+                    Object.keys(data.byYear).forEach(year => {
+                        merged.availableYears.add(year);
+                        if (!merged.byYear[year]) {
+                            merged.byYear[year] = createEmptyResult();
+                            merged.byYear[year].productYear = year;
+                        }
+                        mergeResults(merged.byYear[year], data.byYear[year]);
+                    });
+                }
+            });
+
+            merged.availableYears = Array.from(merged.availableYears).sort();
+            merged.totalProducts = totalProducts;
+
+            console.log('📊 Merged result:', merged);
+            return merged;
         }
 
         function addFileCard(file) {
@@ -3555,7 +4091,7 @@
 
         async function parseFile(file) {
             const fileEntry = uploadedSalesFiles.find(f => f.file === file);
-            if (!fileEntry) return;
+            if (!fileEntry) return null;
 
             showProcessingIndicator(true);
             updateProcessingStep(1);
@@ -3580,6 +4116,12 @@
                     rawData = await parsePDFFile(file);
                 }
 
+                if (!rawData || !rawData.products) {
+                    throw new Error('No data parsed from file');
+                }
+
+                console.log(`📁 ${file.name}: Parsed ${rawData.products.length} products from ${rawData.source}`);
+
                 await sleep(300);
                 updateProcessingStep(4);
 
@@ -3593,19 +4135,22 @@
                 fileEntry.data = categorizedData;
                 updateFileCard(fileEntry.id, 'complete', `Processed - ${categorizedData.totalProducts || 0} products found`);
 
-                // Display results
+                // Display results immediately for single file (will be overwritten if merged later)
                 displayParsedData(categorizedData);
 
-                showNotification('File parsed successfully!', 'success');
+                showNotification(`${file.name}: Parsed successfully!`, 'success');
+                showProcessingIndicator(false);
+
+                return categorizedData;
 
             } catch (error) {
                 console.error('Error parsing file:', error);
                 fileEntry.status = 'error';
                 updateFileCard(fileEntry.id, 'error', 'Failed to parse: ' + error.message);
                 showNotification('Error parsing file: ' + error.message, 'error');
+                showProcessingIndicator(false);
+                return null;
             }
-
-            showProcessingIndicator(false);
         }
 
         function detectFileFormat(file) {
@@ -3622,42 +4167,117 @@
                 reader.onload = function(e) {
                     try {
                         const csvText = e.target.result;
-                        const lines = csvText.split('\n');
+                        // Handle both \n and \r\n line endings
+                        const lines = csvText.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+
+                        console.log('📊 CSV file loaded:', lines.length, 'lines');
+
                         if (lines.length < 2) {
                             reject(new Error('CSV file appears empty'));
                             return;
                         }
 
-                        const header = parseCSVLine(lines[0]);
-                        const headerLower = header.map(h => h.toLowerCase());
+                        // Check for BOM and strip it
+                        let headerLine = lines[0];
+                        if (headerLine.charCodeAt(0) === 0xFEFF) {
+                            headerLine = headerLine.slice(1);
+                            console.log('📊 Stripped BOM from header');
+                        }
 
-                        // Find column indices
-                        const titleIdx = headerLower.findIndex(h => h.includes('product') || h.includes('title') || h.includes('item'));
-                        const salesIdx = headerLower.findIndex(h => h.includes('sales') || h.includes('total') || h.includes('amount') || h.includes('revenue'));
-                        const qtyIdx = headerLower.findIndex(h => h.includes('quantity') || h.includes('qty') || h.includes('count'));
-                        const dateIdx = headerLower.findIndex(h => h.includes('date') || h.includes('year'));
+                        const header = parseCSVLine(headerLine);
+                        const headerLower = header.map(h => h.toLowerCase().trim());
+
+                        // Find column indices - be careful with order to avoid false matches
+                        const titleIdx = headerLower.findIndex(h => h.includes('product') && h.includes('title'));
+                        const titleIdxAlt = titleIdx >= 0 ? titleIdx : headerLower.findIndex(h => h.includes('product') || h.includes('title') || h.includes('item'));
+
+                        // Sales column - look for "total sales" first, then fall back
+                        let salesIdx = headerLower.findIndex(h => h.includes('total sales') || h.includes('net sales') || h.includes('gross sales'));
+                        if (salesIdx < 0) salesIdx = headerLower.findIndex(h => (h.includes('total') || h.includes('amount') || h.includes('revenue')) && !h.includes('channel'));
+
+                        const qtyIdx = headerLower.findIndex(h => h.includes('quantity') || h.includes('qty'));
+                        const dateIdx = headerLower.findIndex(h => h === 'year' || h === 'date' || h.includes('order date'));
                         const channelIdx = headerLower.findIndex(h => h.includes('channel'));
                         const posLocationIdx = headerLower.findIndex(h => h.includes('pos location') || h.includes('location name'));
 
-                        console.log('📊 CSV Headers detected:', { titleIdx, salesIdx, qtyIdx, dateIdx, channelIdx, posLocationIdx });
+                        const finalTitleIdx = titleIdxAlt >= 0 ? titleIdxAlt : 0;
+                        console.log('📊 CSV Headers (raw):', header);
+                        console.log('📊 CSV Headers (lowercase):', headerLower);
+                        console.log('📊 CSV Column indices:', {
+                            titleIdx: finalTitleIdx,
+                            salesIdx,
+                            qtyIdx,
+                            dateIdx,
+                            channelIdx,
+                            posLocationIdx
+                        });
+
+                        // Verify sales column detection
+                        if (salesIdx >= 0) {
+                            console.log(`✅ Sales column found: "${header[salesIdx]}" at index ${salesIdx}`);
+                        } else {
+                            console.warn('⚠️ Could not find sales column! Will use fallback index 4');
+                        }
 
                         const products = [];
+
+                        // Debug: Show first 3 rows to verify parsing
+                        console.log('📊 CSV Debug - First 3 data rows:');
+                        for (let i = 1; i <= Math.min(3, lines.length - 1); i++) {
+                            if (lines[i]) {
+                                const debugRow = parseCSVLine(lines[i]);
+                                console.log(`  Row ${i}:`, debugRow);
+                            }
+                        }
+
                         for (let i = 1; i < lines.length; i++) {
                             if (!lines[i].trim()) continue;
                             const row = parseCSVLine(lines[i]);
 
-                            const title = row[titleIdx] || row[0] || '';
+                            const title = row[finalTitleIdx] || row[0] || '';
                             const salesChannel = channelIdx >= 0 ? (row[channelIdx] || '') : '';
                             const posLocation = posLocationIdx >= 0 ? (row[posLocationIdx] || '') : '';
+                            const salesValue = salesIdx >= 0 ? row[salesIdx] : row[4];
+                            const qtyValue = qtyIdx >= 0 ? row[qtyIdx] : row[5];
+                            const dateValue = dateIdx >= 0 ? row[dateIdx] : row[3];
+
+                            const parsedSales = parseFloat(String(salesValue || '0').replace(/[,$]/g, '')) || 0;
+
+                            // Debug first few products to see actual values
+                            if (products.length < 5) {
+                                console.log(`📊 Product ${products.length + 1}: "${title}" | Sales: "${salesValue}" → $${parsedSales}`);
+                            }
 
                             products.push({
                                 title: title,
-                                sales: parseFloat((row[salesIdx] || row[1] || '0').replace(/[,$]/g, '')) || 0,
-                                quantity: parseInt(row[qtyIdx] || row[2]) || 1,
-                                date: row[dateIdx] || '',
+                                sales: parsedSales,
+                                quantity: parseInt(qtyValue) || 1,
+                                date: String(dateValue || ''),
                                 salesChannel: salesChannel,
                                 posLocation: posLocation
                             });
+                        }
+
+                        console.log(`📊 Total products parsed: ${products.length}`);
+                        const totalSales = products.reduce((sum, p) => sum + p.sales, 0);
+                        console.log(`📊 Total sales value: $${totalSales.toFixed(2)}`);
+
+                        // Show prominent summary
+                        console.log('%c CSV PARSING COMPLETE ', 'background: #2a9d8f; color: white; font-size: 14px; padding: 4px 8px;');
+                        console.log(`  Products: ${products.length}`);
+                        console.log(`  Total Sales: $${totalSales.toLocaleString()}`);
+
+                        // Warn if we parsed products but they all have $0 sales
+                        if (products.length > 0 && totalSales === 0) {
+                            console.warn('⚠️ WARNING: All products have $0 sales! Check column detection.');
+                            console.warn('Expected salesIdx=4 for "Total sales" column');
+                            console.warn('Actual salesIdx:', salesIdx);
+                            console.warn('First product raw sales value:', products[0]?.sales);
+                        }
+
+                        // Warn if no products found
+                        if (products.length === 0) {
+                            console.error('❌ NO PRODUCTS PARSED FROM CSV!');
                         }
 
                         resolve({ products, source: 'csv', totalProducts: products.length });
@@ -3972,6 +4592,9 @@
 
         function categorizeSalesData(rawData) {
             const products = rawData.products || [];
+            const source = rawData.source || 'unknown';
+
+            console.log('📊 Categorizing', products.length, 'products from source:', source);
 
             // SMART PARSING: Group by PRODUCT YEAR, not transaction year
             // "2024 Tiny Seed Farm Summer CSA" sold in 2023 should count as 2024 CSA
@@ -3979,12 +4602,45 @@
 
             products.forEach(p => {
                 const title = (p.title || '').trim();
+                const salesChannel = (p.salesChannel || '').toLowerCase();
+                const posLocation = (p.posLocation || '').trim();
+                const hasCustomerCategory = !!p.customerCategory;
 
-                // Skip empty or summary rows
-                if (!title) return;
+                // DON'T skip empty titles - they could be POS rows with real sales!
+                // Only skip if there's NO sales data at all
+                if (!title && !posLocation && !hasCustomerCategory && p.sales === 0) {
+                    return;
+                }
+
+                let productYear = null;
+
+                // For QuickBooks data (has customerCategory), extract year from date field
+                if (hasCustomerCategory) {
+                    // QuickBooks: extract year from dateRange like "January 1, 2023 - December 31, 2024"
+                    const dateYears = (p.date || '').match(/\b(202[3-9]|203[0-9])\b/g);
+                    if (dateYears && dateYears.length > 0) {
+                        // Use the most recent year in the range for categorization
+                        productYear = dateYears[dateYears.length - 1];
+                    }
+                    console.log('📊 QuickBooks:', title, '→ Year:', productYear, 'from date:', p.date);
+                }
+                // For products with names, extract year from product name
+                else if (title) {
+                    productYear = extractProductYear(title);
+                }
+                // For POS rows without title, use transaction date
+                else if (salesChannel.includes('point of sale') || posLocation) {
+                    // POS row - extract year from transaction date
+                    const dateMatch = (p.date || '').match(/^(\d{4})/);
+                    if (dateMatch) {
+                        productYear = dateMatch[1];
+                    }
+                }
 
                 // Extract PRODUCT YEAR from the product name (e.g., "2024 Tiny Seed Farm Summer CSA")
-                let productYear = extractProductYear(title);
+                if (!productYear) {
+                    productYear = extractProductYear(title);
+                }
 
                 // If no year in product name, use transaction year
                 if (!productYear && p.date) {
@@ -4032,8 +4688,36 @@
             allYearsResult.totalProducts = products.length;
 
             // Log the smart breakdown for debugging
+            console.log('%c CATEGORIZATION COMPLETE ', 'background: #f4a261; color: black; font-size: 14px; padding: 4px 8px;');
+            console.log('📊 Years detected:', Object.keys(byProductYear).sort().join(', '));
+
+            // Count categories with data
+            let categoriesWithData = 0;
+            if (allYearsResult.csa.total > 0) categoriesWithData++;
+            if (allYearsResult.flowers.total > 0) categoriesWithData++;
+            if (allYearsResult.flowerSales?.total > 0) categoriesWithData++;
+            if (allYearsResult.events?.total > 0) categoriesWithData++;
+            if (allYearsResult.addons.total > 0) categoriesWithData++;
+            if (allYearsResult.wholesale?.total > 0) categoriesWithData++;
+            if (allYearsResult.markets?.total > 0) categoriesWithData++;
+
+            // Update real-time stats display
+            updateParsingStats({
+                rows: products.length,
+                categories: categoriesWithData,
+                revenue: allYearsResult.grandTotal || 0,
+                years: Object.keys(byProductYear).length
+            });
+
+            Object.keys(byProductYear).sort().forEach(year => {
+                const yearData = resultByYear[year];
+                const yearTotal = (yearData?.csa?.total || 0) + (yearData?.flowers?.total || 0) +
+                                  (yearData?.addons?.total || 0) + (yearData?.markets?.total || 0) +
+                                  (yearData?.wholesale?.total || 0) + (yearData?.flowerSales?.total || 0) +
+                                  (yearData?.events?.total || 0);
+                console.log(`  ${year}: ${byProductYear[year].length} products, $${yearTotal.toLocaleString()}`);
+            });
             console.log('📊 SMART Sales Breakdown by PRODUCT YEAR:', resultByYear);
-            console.log('This groups "2024 CSA" sales made in 2023 under 2024, showing true program growth.');
 
             return allYearsResult;
         }
@@ -4159,6 +4843,15 @@
                         result.markets.total += sales;
                         result.markets.totalCount += qty;
                         result.markets.products.push({ title: originalTitle, sales, qty });
+                        return;
+                    }
+                    if (customerCategory === 'OTHER') {
+                        // Unknown QuickBooks customers - could be businesses we haven't categorized yet
+                        // Route to wholesale as "other" type so they appear in the list for review
+                        result.wholesale.total += sales;
+                        result.wholesale.totalCount += qty;
+                        result.wholesale.products.push({ title: originalTitle, sales, qty, type: 'other' });
+                        console.log('❓ Unknown Business:', originalTitle, formatMoney(sales));
                         return;
                     }
                 }
@@ -4409,6 +5102,21 @@
                     <strong style="color: var(--primary);"><i class="fas fa-truck"></i> Distributors (${formatMoney(distributorTotal)})</strong>
                     <div style="margin-top: 0.5rem;">`;
                 byType.distributor.sort((a, b) => b.sales - a.sales).forEach(p => {
+                    html += `<div style="display: flex; justify-content: space-between; padding: 0.25rem 0; border-bottom: 1px solid var(--border);">
+                        <span>${p.title}</span><span>${formatMoney(p.sales)}</span>
+                    </div>`;
+                });
+                html += '</div></div>';
+            }
+
+            // Other/Unknown businesses (for review)
+            if (byType.other.length > 0) {
+                const otherTotal = byType.other.reduce((sum, p) => sum + p.sales, 0);
+                html += `<div style="margin-bottom: 1rem;">
+                    <strong style="color: var(--text-secondary);"><i class="fas fa-question-circle"></i> Other Businesses - Review (${formatMoney(otherTotal)})</strong>
+                    <div style="margin-top: 0.5rem; font-size: 0.8rem; opacity: 0.7;">These customers need categorization</div>
+                    <div style="margin-top: 0.5rem;">`;
+                byType.other.sort((a, b) => b.sales - a.sales).forEach(p => {
                     html += `<div style="display: flex; justify-content: space-between; padding: 0.25rem 0; border-bottom: 1px solid var(--border);">
                         <span>${p.title}</span><span>${formatMoney(p.sales)}</span>
                     </div>`;
@@ -4710,53 +5418,162 @@
             if (!container) return;
 
             const years = Object.keys(byYear).sort();
+
+            // Calculate YoY trends for each category
+            function calcTrend(current, previous) {
+                if (!previous || previous === 0) return null;
+                return ((current - previous) / previous * 100).toFixed(1);
+            }
+
+            function trendBadge(trend) {
+                if (trend === null) return '<span style="color: var(--text-secondary); font-size: 0.7rem;">NEW</span>';
+                const isPositive = parseFloat(trend) >= 0;
+                const color = isPositive ? 'var(--success)' : 'var(--danger)';
+                const icon = isPositive ? '▲' : '▼';
+                return `<span style="color: ${color}; font-size: 0.7rem; margin-left: 0.5rem;">${icon} ${Math.abs(trend)}%</span>`;
+            }
+
+            // Build enhanced table with trends
             let html = `
-                <div style="background: var(--bg-lighter); border-radius: 12px; padding: 1rem; margin-top: 1rem;">
-                    <h4 style="margin-bottom: 1rem; color: var(--primary);"><i class="fas fa-chart-line"></i> Year-Over-Year Breakdown</h4>
+                <div style="background: var(--bg-lighter); border-radius: 12px; padding: 1.5rem; margin-top: 1rem;">
+                    <h4 style="margin-bottom: 1rem; color: var(--primary); display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-chart-line"></i> Year-Over-Year Breakdown
+                        <span style="font-size: 0.75rem; font-weight: normal; color: var(--text-secondary); margin-left: auto;">
+                            ${years.length} years analyzed
+                        </span>
+                    </h4>
                     <div style="overflow-x: auto;">
                         <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
                             <thead>
                                 <tr style="border-bottom: 2px solid var(--border);">
-                                    <th style="text-align: left; padding: 0.5rem;">Category</th>
-                                    ${years.map(y => `<th style="text-align: right; padding: 0.5rem;">${y}</th>`).join('')}
+                                    <th style="text-align: left; padding: 0.75rem 0.5rem;">Category</th>
+                                    ${years.map((y, i) => `
+                                        <th style="text-align: right; padding: 0.75rem 0.5rem;">
+                                            ${y}
+                                            ${i > 0 ? '<br><span style="font-size: 0.65rem; color: var(--text-secondary); font-weight: normal;">vs prior</span>' : ''}
+                                        </th>
+                                    `).join('')}
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr style="border-bottom: 1px solid var(--border);">
-                                    <td style="padding: 0.5rem;"><strong>CSA Subscriptions</strong></td>
-                                    ${years.map(y => `<td style="text-align: right; padding: 0.5rem; color: var(--success);">${formatMoney(byYear[y].csa.total)}</td>`).join('')}
+                                    <td style="padding: 0.75rem 0.5rem;"><i class="fas fa-box-open" style="color: var(--success); width: 20px;"></i> <strong>CSA Subscriptions</strong></td>
+                                    ${years.map((y, i) => {
+                                        const val = byYear[y].csa?.total || 0;
+                                        const prevVal = i > 0 ? (byYear[years[i-1]].csa?.total || 0) : null;
+                                        const trend = i > 0 ? calcTrend(val, prevVal) : null;
+                                        return `<td style="text-align: right; padding: 0.75rem 0.5rem; color: var(--success);">${formatMoney(val)}${i > 0 ? trendBadge(trend) : ''}</td>`;
+                                    }).join('')}
                                 </tr>
                                 <tr style="border-bottom: 1px solid var(--border);">
-                                    <td style="padding: 0.5rem;"><strong>Flower Subscriptions</strong></td>
-                                    ${years.map(y => `<td style="text-align: right; padding: 0.5rem; color: var(--warning);">${formatMoney(byYear[y].flowers.total)}</td>`).join('')}
+                                    <td style="padding: 0.75rem 0.5rem;"><i class="fas fa-seedling" style="color: var(--warning); width: 20px;"></i> <strong>Flower Subscriptions</strong></td>
+                                    ${years.map((y, i) => {
+                                        const val = byYear[y].flowers?.total || 0;
+                                        const prevVal = i > 0 ? (byYear[years[i-1]].flowers?.total || 0) : null;
+                                        const trend = i > 0 ? calcTrend(val, prevVal) : null;
+                                        return `<td style="text-align: right; padding: 0.75rem 0.5rem; color: var(--warning);">${formatMoney(val)}${i > 0 ? trendBadge(trend) : ''}</td>`;
+                                    }).join('')}
                                 </tr>
                                 <tr style="border-bottom: 1px solid var(--border);">
-                                    <td style="padding: 0.5rem;"><strong>Flower Sales</strong></td>
-                                    ${years.map(y => `<td style="text-align: right; padding: 0.5rem; color: #e91e63;">${formatMoney(byYear[y].flowerSales?.total || 0)}</td>`).join('')}
+                                    <td style="padding: 0.75rem 0.5rem;"><i class="fas fa-spa" style="color: #e91e63; width: 20px;"></i> <strong>Flower Sales</strong></td>
+                                    ${years.map((y, i) => {
+                                        const val = byYear[y].flowerSales?.total || 0;
+                                        const prevVal = i > 0 ? (byYear[years[i-1]].flowerSales?.total || 0) : null;
+                                        const trend = i > 0 ? calcTrend(val, prevVal) : null;
+                                        return `<td style="text-align: right; padding: 0.75rem 0.5rem; color: #e91e63;">${formatMoney(val)}${i > 0 ? trendBadge(trend) : ''}</td>`;
+                                    }).join('')}
                                 </tr>
                                 <tr style="border-bottom: 1px solid var(--border);">
-                                    <td style="padding: 0.5rem;"><strong>Farm Events</strong></td>
-                                    ${years.map(y => `<td style="text-align: right; padding: 0.5rem; color: #8bc34a;">${formatMoney(byYear[y].events?.total || 0)}</td>`).join('')}
+                                    <td style="padding: 0.75rem 0.5rem;"><i class="fas fa-tractor" style="color: #8bc34a; width: 20px;"></i> <strong>Farm Events</strong></td>
+                                    ${years.map((y, i) => {
+                                        const val = byYear[y].events?.total || 0;
+                                        const prevVal = i > 0 ? (byYear[years[i-1]].events?.total || 0) : null;
+                                        const trend = i > 0 ? calcTrend(val, prevVal) : null;
+                                        return `<td style="text-align: right; padding: 0.75rem 0.5rem; color: #8bc34a;">${formatMoney(val)}${i > 0 ? trendBadge(trend) : ''}</td>`;
+                                    }).join('')}
                                 </tr>
                                 <tr style="border-bottom: 1px solid var(--border);">
-                                    <td style="padding: 0.5rem;"><strong>Partner Add-Ons</strong></td>
-                                    ${years.map(y => `<td style="text-align: right; padding: 0.5rem; color: var(--info);">${formatMoney(byYear[y].addons.total)}</td>`).join('')}
+                                    <td style="padding: 0.75rem 0.5rem;"><i class="fas fa-handshake" style="color: var(--info); width: 20px;"></i> <strong>Partner Add-Ons</strong></td>
+                                    ${years.map((y, i) => {
+                                        const val = byYear[y].addons?.total || 0;
+                                        const prevVal = i > 0 ? (byYear[years[i-1]].addons?.total || 0) : null;
+                                        const trend = i > 0 ? calcTrend(val, prevVal) : null;
+                                        return `<td style="text-align: right; padding: 0.75rem 0.5rem; color: var(--info);">${formatMoney(val)}${i > 0 ? trendBadge(trend) : ''}</td>`;
+                                    }).join('')}
                                 </tr>
                                 <tr style="border-bottom: 1px solid var(--border);">
-                                    <td style="padding: 0.5rem;"><strong>Wholesale</strong></td>
-                                    ${years.map(y => `<td style="text-align: right; padding: 0.5rem; color: var(--warning);">${formatMoney(byYear[y].wholesale?.total || 0)}</td>`).join('')}
+                                    <td style="padding: 0.75rem 0.5rem;"><i class="fas fa-building" style="color: var(--gold); width: 20px;"></i> <strong>Wholesale</strong></td>
+                                    ${years.map((y, i) => {
+                                        const val = byYear[y].wholesale?.total || 0;
+                                        const prevVal = i > 0 ? (byYear[years[i-1]].wholesale?.total || 0) : null;
+                                        const trend = i > 0 ? calcTrend(val, prevVal) : null;
+                                        return `<td style="text-align: right; padding: 0.75rem 0.5rem; color: var(--gold);">${formatMoney(val)}${i > 0 ? trendBadge(trend) : ''}</td>`;
+                                    }).join('')}
                                 </tr>
                                 <tr style="border-bottom: 1px solid var(--border);">
-                                    <td style="padding: 0.5rem;"><strong>Farmers Market Sales</strong></td>
-                                    ${years.map(y => `<td style="text-align: right; padding: 0.5rem; color: var(--purple);">${formatMoney(byYear[y].markets?.total || 0)}</td>`).join('')}
+                                    <td style="padding: 0.75rem 0.5rem;"><i class="fas fa-store" style="color: var(--purple); width: 20px;"></i> <strong>Farmers Market</strong></td>
+                                    ${years.map((y, i) => {
+                                        const val = byYear[y].markets?.total || 0;
+                                        const prevVal = i > 0 ? (byYear[years[i-1]].markets?.total || 0) : null;
+                                        const trend = i > 0 ? calcTrend(val, prevVal) : null;
+                                        return `<td style="text-align: right; padding: 0.75rem 0.5rem; color: var(--purple);">${formatMoney(val)}${i > 0 ? trendBadge(trend) : ''}</td>`;
+                                    }).join('')}
                                 </tr>
-                                <tr style="background: rgba(42, 157, 143, 0.1);">
-                                    <td style="padding: 0.5rem;"><strong>TOTAL</strong></td>
-                                    ${years.map(y => `<td style="text-align: right; padding: 0.5rem; font-weight: bold; color: var(--primary);">${formatMoney(byYear[y].grandTotal)}</td>`).join('')}
+                                <tr style="background: rgba(42, 157, 143, 0.15);">
+                                    <td style="padding: 0.75rem 0.5rem;"><i class="fas fa-coins" style="color: var(--primary); width: 20px;"></i> <strong>GRAND TOTAL</strong></td>
+                                    ${years.map((y, i) => {
+                                        const val = byYear[y].grandTotal || 0;
+                                        const prevVal = i > 0 ? (byYear[years[i-1]].grandTotal || 0) : null;
+                                        const trend = i > 0 ? calcTrend(val, prevVal) : null;
+                                        return `<td style="text-align: right; padding: 0.75rem 0.5rem; font-weight: bold; font-size: 1rem; color: var(--primary);">${formatMoney(val)}${i > 0 ? trendBadge(trend) : ''}</td>`;
+                                    }).join('')}
                                 </tr>
                             </tbody>
                         </table>
                     </div>
+                </div>
+
+                <!-- Year Cards Grid -->
+                <div class="year-breakdown-grid">
+                    ${years.map((year, i) => {
+                        const data = byYear[year];
+                        const prevData = i > 0 ? byYear[years[i-1]] : null;
+                        const trend = prevData ? calcTrend(data.grandTotal, prevData.grandTotal) : null;
+                        const trendClass = trend === null ? '' : (parseFloat(trend) >= 0 ? 'positive' : 'negative');
+
+                        return `
+                            <div class="year-card" onclick="filterByYear('${year}')">
+                                <div class="year-card-header">
+                                    <h3>${year}</h3>
+                                    ${trend !== null ? `
+                                        <span class="year-card-trend ${trendClass}">
+                                            ${parseFloat(trend) >= 0 ? '▲' : '▼'} ${Math.abs(trend)}%
+                                        </span>
+                                    ` : '<span class="year-card-trend" style="background: var(--bg); color: var(--text-secondary);">BASE</span>'}
+                                </div>
+                                <div class="year-card-category">
+                                    <span class="year-card-category-name"><i class="fas fa-box-open" style="color: var(--success);"></i> CSA</span>
+                                    <span class="year-card-category-value">${formatMoney(data.csa?.total || 0)}</span>
+                                </div>
+                                <div class="year-card-category">
+                                    <span class="year-card-category-name"><i class="fas fa-seedling" style="color: var(--warning);"></i> Flowers</span>
+                                    <span class="year-card-category-value">${formatMoney((data.flowers?.total || 0) + (data.flowerSales?.total || 0))}</span>
+                                </div>
+                                <div class="year-card-category">
+                                    <span class="year-card-category-name"><i class="fas fa-building" style="color: var(--gold);"></i> Wholesale</span>
+                                    <span class="year-card-category-value">${formatMoney(data.wholesale?.total || 0)}</span>
+                                </div>
+                                <div class="year-card-category">
+                                    <span class="year-card-category-name"><i class="fas fa-store" style="color: var(--purple);"></i> Markets</span>
+                                    <span class="year-card-category-value">${formatMoney(data.markets?.total || 0)}</span>
+                                </div>
+                                <div class="year-card-total">
+                                    <span class="year-card-total-label">Total Revenue</span>
+                                    <span class="year-card-total-value">${formatMoney(data.grandTotal || 0)}</span>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
                 </div>
             `;
 
@@ -5016,7 +5833,23 @@
             }
         }
 
-        function updateProcessingStep(stepNum) {
+        function updateProcessingStep(stepNum, stats = null) {
+            const totalSteps = 5;
+            const percent = Math.round((stepNum / totalSteps) * 100);
+
+            // Update progress bar
+            const progressFill = document.getElementById('processingProgressFill');
+            if (progressFill) {
+                progressFill.style.width = `${percent}%`;
+            }
+
+            // Update percentage display
+            const percentEl = document.getElementById('processingPercent');
+            if (percentEl) {
+                percentEl.textContent = `${percent}%`;
+            }
+
+            // Update step indicators
             document.querySelectorAll('.processing-step').forEach(step => {
                 const num = parseInt(step.getAttribute('data-step'));
                 if (num < stepNum) {
@@ -5030,10 +5863,41 @@
                 }
             });
 
+            // Update status text
             const statusEl = document.getElementById('processingStatus');
-            const steps = ['', 'Uploading file...', 'Detecting format...', 'AI categorizing products...', 'Aggregating by year...', 'Complete!'];
+            const steps = ['', 'Uploading file...', 'Detecting format...', 'Smart categorizing...', 'Aggregating by year...', 'Complete!'];
             if (statusEl && steps[stepNum]) {
                 statusEl.textContent = steps[stepNum];
+            }
+
+            // Show/update parsing stats if provided
+            if (stats) {
+                updateParsingStats(stats);
+            }
+
+            // Show stats panel during processing
+            const statsPanel = document.getElementById('parsingStats');
+            if (statsPanel) {
+                statsPanel.style.display = stepNum >= 3 && stepNum < 5 ? 'grid' : 'none';
+            }
+        }
+
+        function updateParsingStats(stats) {
+            if (stats.rows !== undefined) {
+                const el = document.getElementById('parsedRowsCount');
+                if (el) el.textContent = stats.rows.toLocaleString();
+            }
+            if (stats.categories !== undefined) {
+                const el = document.getElementById('parsedCategoriesCount');
+                if (el) el.textContent = stats.categories;
+            }
+            if (stats.revenue !== undefined) {
+                const el = document.getElementById('parsedRevenueTotal');
+                if (el) el.textContent = formatMoney(stats.revenue);
+            }
+            if (stats.years !== undefined) {
+                const el = document.getElementById('parsedYearsCount');
+                if (el) el.textContent = stats.years;
             }
         }
 
