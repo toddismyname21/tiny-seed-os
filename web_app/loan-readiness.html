@@ -862,26 +862,40 @@
             position: absolute;
             top: 0.5rem;
             right: 0.5rem;
-            width: 24px;
-            height: 24px;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
             border: none;
-            background: rgba(231, 111, 81, 0.2);
+            background: rgba(231, 111, 81, 0.3);
             color: var(--danger);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.75rem;
-            opacity: 0;
+            font-size: 0.85rem;
+            opacity: 1;
             transition: all 0.3s ease;
         }
 
-        .file-card:hover .file-delete-btn {
-            opacity: 1;
+        .file-delete-btn:hover {
+            background: var(--danger);
+            color: white;
+            transform: scale(1.1);
         }
 
-        .file-delete-btn:hover {
+        .clear-all-files-btn {
+            background: transparent;
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .clear-all-files-btn:hover {
             background: var(--danger);
             color: white;
         }
@@ -1502,9 +1516,14 @@
             <div id="uploadedFilesList" style="display: none; margin-top: 1.5rem;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                     <h4 style="margin: 0;"><i class="fas fa-file-alt"></i> Uploaded Files</h4>
-                    <button class="btn btn-success btn-sm" onclick="mergeAllYears()" id="mergeYearsBtn" style="display: none;">
-                        <i class="fas fa-layer-group"></i> Merge All Years
-                    </button>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="clear-all-files-btn" onclick="clearAllUploadedFiles()" title="Remove all uploaded files">
+                            <i class="fas fa-trash-alt"></i> Clear All
+                        </button>
+                        <button class="btn btn-success btn-sm" onclick="mergeAllYears()" id="mergeYearsBtn" style="display: none;">
+                            <i class="fas fa-layer-group"></i> Merge All Years
+                        </button>
+                    </div>
                 </div>
                 <div id="fileCardsContainer" style="display: grid; gap: 0.75rem;"></div>
             </div>
@@ -3419,6 +3438,32 @@
             }
 
             showNotification('File removed', 'info');
+        }
+
+        function clearAllUploadedFiles() {
+            // Clear all file cards from DOM
+            const container = document.getElementById('fileCardsContainer');
+            if (container) {
+                container.innerHTML = '';
+            }
+
+            // Clear the array
+            uploadedSalesFiles = [];
+
+            // Hide the file list section
+            document.getElementById('uploadedFilesList').style.display = 'none';
+            document.getElementById('mergeYearsBtn').style.display = 'none';
+
+            // Clear all sales data
+            clearAllSalesData();
+
+            // Hide year breakdown if visible
+            const yearBreakdown = document.getElementById('yearBreakdownContainer');
+            if (yearBreakdown) {
+                yearBreakdown.remove();
+            }
+
+            showNotification('All files cleared - ready for new upload', 'info');
         }
 
         function clearAllSalesData() {
