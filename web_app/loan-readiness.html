@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Unified Loan Command Center - Tiny Seed Farm</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- SheetJS for Excel parsing -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <script src="api-config.js"></script>
     <script src="auth-guard.js"></script>
     <style>
@@ -1834,8 +1836,16 @@
                                 <span class="count-label">accounts</span>
                             </div>
                         </div>
+                        <div class="sales-item" data-key="florists">
+                            <span class="item-label"><span class="tree-branch"></span> Florist/Wholesale Flowers</span>
+                            <div class="item-values">
+                                <input type="text" class="sales-amount-input" id="wholesaleFloristsAmount" placeholder="$0" onchange="updateCategoryTotal('wholesale')">
+                                <input type="number" class="sales-count-input" id="wholesaleFloristsCount" placeholder="0" onchange="updateCategoryTotal('wholesale')">
+                                <span class="count-label">accounts</span>
+                            </div>
+                        </div>
                         <div class="sales-item" data-key="grocery">
-                            <span class="item-label"><span class="tree-branch"></span> Grocery/Retail</span>
+                            <span class="item-label"><span class="tree-branch"></span> Grocery/Markets</span>
                             <div class="item-values">
                                 <input type="text" class="sales-amount-input" id="wholesaleGroceryAmount" placeholder="$0" onchange="updateCategoryTotal('wholesale')">
                                 <input type="number" class="sales-count-input" id="wholesaleGroceryCount" placeholder="0" onchange="updateCategoryTotal('wholesale')">
@@ -1850,6 +1860,8 @@
                                 <span class="count-label">customers</span>
                             </div>
                         </div>
+                        <!-- Dynamic wholesale breakdown from QuickBooks -->
+                        <div id="wholesaleProductsList" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--border);"></div>
                     </div>
                 </div>
 
@@ -3659,33 +3671,254 @@
         }
 
         async function parseExcelFile(file) {
-            // For Excel files, we would need to send to backend or use SheetJS
-            // For now, return a placeholder that prompts user to convert to CSV
-            showNotification('Excel files will be sent to AI for parsing. This may take longer.', 'info');
+            showNotification('Parsing Excel file...', 'info');
 
-            try {
-                const base64 = await fileToBase64(file);
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify({
-                        action: 'parseUniversalDocument',
-                        base64: base64,
-                        fileName: file.name,
-                        mimeType: file.type
-                    })
-                });
-                const result = await response.json();
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
 
-                if (result.success && result.data) {
-                    return result.data;
-                } else {
-                    throw new Error(result.error || 'Failed to parse Excel file');
-                }
-            } catch (err) {
-                // Fallback: suggest CSV conversion
-                throw new Error('Please export as CSV for best results');
+                        // Get the first sheet
+                        const sheetName = workbook.SheetNames[0];
+                        const sheet = workbook.Sheets[sheetName];
+
+                        // Convert to JSON with headers
+                        const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+                        console.log('📊 Excel data loaded:', jsonData.length, 'rows');
+
+                        // Detect the format and parse accordingly
+                        const parsedData = detectAndParseExcelFormat(jsonData, file.name);
+                        resolve(parsedData);
+
+                    } catch (err) {
+                        console.error('Excel parsing error:', err);
+                        reject(new Error('Failed to parse Excel file: ' + err.message));
+                    }
+                };
+                reader.onerror = () => reject(new Error('Failed to read Excel file'));
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        function detectAndParseExcelFormat(data, fileName) {
+            // Look for format indicators in the first few rows
+            const firstRows = data.slice(0, 10).map(r => (r || []).join(' ').toLowerCase());
+            const combinedHeader = firstRows.join(' ');
+
+            console.log('🔍 Detecting Excel format from:', firstRows.slice(0, 5));
+
+            // QuickBooks Sales by Customer Summary
+            if (combinedHeader.includes('sales by customer') || combinedHeader.includes('customer') && combinedHeader.includes('total')) {
+                console.log('📋 Detected: QuickBooks Sales by Customer Summary');
+                return parseQuickBooksCustomerSummary(data, fileName);
             }
+
+            // QuickBooks Sales by Product/Service
+            if (combinedHeader.includes('sales by product') || combinedHeader.includes('product/service')) {
+                console.log('📋 Detected: QuickBooks Sales by Product');
+                return parseQuickBooksProductSummary(data, fileName);
+            }
+
+            // Shopify-style export (has product title, sales, quantity columns)
+            if (combinedHeader.includes('product') && (combinedHeader.includes('sales') || combinedHeader.includes('total'))) {
+                console.log('📋 Detected: Product-based sales report');
+                return parseGenericProductSales(data, fileName);
+            }
+
+            // Generic two-column format (name, amount)
+            console.log('📋 Using: Generic two-column parser');
+            return parseGenericTwoColumn(data, fileName);
+        }
+
+        function parseQuickBooksCustomerSummary(data, fileName) {
+            // QuickBooks format: Header rows, then Customer | Total columns
+            const products = [];
+            let dateRange = '';
+            let customerColIdx = -1;
+            let totalColIdx = -1;
+
+            // Find the header row and date range
+            for (let i = 0; i < Math.min(10, data.length); i++) {
+                const row = data[i] || [];
+                const rowText = row.join(' ').toLowerCase();
+
+                // Look for date range
+                if (rowText.includes('january') || rowText.includes('2023') || rowText.includes('2024') || rowText.includes('2025')) {
+                    dateRange = row.join(' ');
+                }
+
+                // Find column headers
+                for (let j = 0; j < row.length; j++) {
+                    const cell = String(row[j] || '').toLowerCase();
+                    if (cell === 'customer' || cell.includes('customer')) customerColIdx = j;
+                    if (cell === 'total' || cell.includes('amount')) totalColIdx = j;
+                }
+
+                if (customerColIdx >= 0 && totalColIdx >= 0) break;
+            }
+
+            // Default to first two columns if not found
+            if (customerColIdx < 0) customerColIdx = 0;
+            if (totalColIdx < 0) totalColIdx = 1;
+
+            console.log('📊 QuickBooks columns: Customer=' + customerColIdx + ', Total=' + totalColIdx);
+
+            // Parse the data rows
+            for (let i = 0; i < data.length; i++) {
+                const row = data[i] || [];
+                const customer = String(row[customerColIdx] || '').trim();
+                const total = parseFloat(String(row[totalColIdx] || '0').replace(/[,$]/g, '')) || 0;
+
+                // Skip header rows, empty rows, and TOTAL row
+                if (!customer || customer.toLowerCase() === 'customer' || customer.toLowerCase() === 'total') continue;
+                if (total === 0) continue;
+
+                // Categorize the customer
+                const category = categorizeQuickBooksCustomer(customer);
+
+                products.push({
+                    title: customer,
+                    sales: total,
+                    quantity: 1,
+                    date: dateRange,
+                    salesChannel: 'QuickBooks',
+                    posLocation: '',
+                    customerCategory: category
+                });
+            }
+
+            console.log('✅ Parsed', products.length, 'customers from QuickBooks');
+            return { products, source: 'quickbooks_customer', totalProducts: products.length };
+        }
+
+        function categorizeQuickBooksCustomer(customer) {
+            const name = customer.toLowerCase();
+
+            // Known Restaurants
+            const restaurants = ['black radish', 'mediterra', 'driftwood', 'morcilla', 'apteka', 'butterjoint',
+                                'brooklyn bagel', 'pigeon bagel', 'klvn coffee', 'cafe verde', 'dish', 'fet fisk',
+                                'feast', 'sprezzatura', 'nurture', 'vivo kitchen', 'duo\'s taqueria', 'fat butcher',
+                                'speckled egg', 'woodfired pizza', 'albertas', 'bearded iris', 'three little birds',
+                                'taco boys', 'motherchild'];
+
+            // Known Florists
+            const florists = ['gold dust floral', 'flowers by shira', 'my garden floral', 'farmer daughter flower',
+                             'poppin daisies', 'lilac & fawn', 'motherchild floral'];
+
+            // Known Markets
+            const markets = ['mayfly market', 'millvale market', 'today\'s organic', 'east end food coop', 'city grows'];
+
+            // CSA Platform
+            if (name.includes('harvie')) return 'CSA_PLATFORM';
+            if (name.includes('paypal')) return 'ONLINE_SALES';
+
+            // Check categories
+            for (const r of restaurants) {
+                if (name.includes(r)) return 'RESTAURANT';
+            }
+            for (const f of florists) {
+                if (name.includes(f)) return 'FLORIST';
+            }
+            for (const m of markets) {
+                if (name.includes(m)) return 'MARKET';
+            }
+
+            // Deleted customers are likely individuals (direct sales)
+            if (name.includes('(deleted)')) return 'DIRECT_SALES';
+
+            // Other businesses
+            if (name.includes('llc') || name.includes('inc') || name.includes('hospitality')) return 'BUSINESS';
+
+            return 'OTHER';
+        }
+
+        function parseQuickBooksProductSummary(data, fileName) {
+            // Similar to customer summary but for products
+            const products = [];
+            let productColIdx = 0;
+            let totalColIdx = 1;
+
+            for (let i = 0; i < data.length; i++) {
+                const row = data[i] || [];
+                const product = String(row[productColIdx] || '').trim();
+                const total = parseFloat(String(row[totalColIdx] || '0').replace(/[,$]/g, '')) || 0;
+
+                if (!product || total === 0) continue;
+                if (product.toLowerCase() === 'product' || product.toLowerCase() === 'total') continue;
+
+                products.push({
+                    title: product,
+                    sales: total,
+                    quantity: 1,
+                    date: '',
+                    salesChannel: 'QuickBooks'
+                });
+            }
+
+            return { products, source: 'quickbooks_product', totalProducts: products.length };
+        }
+
+        function parseGenericProductSales(data, fileName) {
+            // Find header row
+            let headerRowIdx = 0;
+            for (let i = 0; i < Math.min(10, data.length); i++) {
+                const row = (data[i] || []).map(c => String(c || '').toLowerCase());
+                if (row.some(c => c.includes('product') || c.includes('title')) &&
+                    row.some(c => c.includes('sales') || c.includes('total') || c.includes('amount'))) {
+                    headerRowIdx = i;
+                    break;
+                }
+            }
+
+            const header = (data[headerRowIdx] || []).map(h => String(h || '').toLowerCase());
+            const titleIdx = header.findIndex(h => h.includes('product') || h.includes('title') || h.includes('item'));
+            const salesIdx = header.findIndex(h => h.includes('sales') || h.includes('total') || h.includes('amount'));
+            const qtyIdx = header.findIndex(h => h.includes('quantity') || h.includes('qty'));
+            const dateIdx = header.findIndex(h => h.includes('date') || h.includes('year'));
+
+            const products = [];
+            for (let i = headerRowIdx + 1; i < data.length; i++) {
+                const row = data[i] || [];
+                const title = String(row[titleIdx >= 0 ? titleIdx : 0] || '').trim();
+                const sales = parseFloat(String(row[salesIdx >= 0 ? salesIdx : 1] || '0').replace(/[,$]/g, '')) || 0;
+                const qty = parseInt(row[qtyIdx >= 0 ? qtyIdx : 2]) || 1;
+                const date = dateIdx >= 0 ? String(row[dateIdx] || '') : '';
+
+                if (!title || sales === 0) continue;
+
+                products.push({ title, sales, quantity: qty, date, salesChannel: 'Excel' });
+            }
+
+            return { products, source: 'excel_product', totalProducts: products.length };
+        }
+
+        function parseGenericTwoColumn(data, fileName) {
+            // Simple two-column format: Name | Amount
+            const products = [];
+
+            for (let i = 0; i < data.length; i++) {
+                const row = data[i] || [];
+                if (row.length < 2) continue;
+
+                const name = String(row[0] || '').trim();
+                const amount = parseFloat(String(row[1] || '0').replace(/[,$]/g, '')) || 0;
+
+                if (!name || amount === 0) continue;
+                if (name.toLowerCase() === 'total' || name.toLowerCase() === 'customer') continue;
+
+                products.push({
+                    title: name,
+                    sales: amount,
+                    quantity: 1,
+                    date: '',
+                    salesChannel: 'Excel'
+                });
+            }
+
+            return { products, source: 'excel_generic', totalProducts: products.length };
         }
 
         async function parsePDFFile(file) {
@@ -3880,6 +4113,58 @@
                     return;
                 }
 
+                // ===== HANDLE QuickBooks Customer Categories =====
+                const customerCategory = p.customerCategory || '';
+                if (customerCategory) {
+                    // This is from QuickBooks - route based on customer type
+                    if (customerCategory === 'RESTAURANT' || customerCategory === 'BUSINESS') {
+                        result.wholesale.total += sales;
+                        result.wholesale.totalCount += qty;
+                        result.wholesale.products.push({ title: originalTitle, sales, qty, type: 'restaurant' });
+                        console.log('🍽️ Wholesale/Restaurant:', originalTitle, formatMoney(sales));
+                        return;
+                    }
+                    if (customerCategory === 'FLORIST') {
+                        result.wholesale.total += sales;
+                        result.wholesale.totalCount += qty;
+                        result.wholesale.products.push({ title: originalTitle, sales, qty, type: 'florist' });
+                        console.log('💐 Wholesale/Florist:', originalTitle, formatMoney(sales));
+                        return;
+                    }
+                    if (customerCategory === 'MARKET') {
+                        result.wholesale.total += sales;
+                        result.wholesale.totalCount += qty;
+                        result.wholesale.products.push({ title: originalTitle, sales, qty, type: 'market' });
+                        console.log('🏪 Wholesale/Market:', originalTitle, formatMoney(sales));
+                        return;
+                    }
+                    if (customerCategory === 'CSA_PLATFORM') {
+                        // Harvie is their CSA platform - this is CSA revenue
+                        result.csa.summer.amount += sales;
+                        result.csa.summer.count += qty;
+                        result.csa.total += sales;
+                        result.csa.totalCount += qty;
+                        result.csa.products.push({ title: originalTitle + ' (via Harvie)', sales, qty, subcategory: 'summer' });
+                        console.log('🥬 CSA Platform:', originalTitle, formatMoney(sales));
+                        return;
+                    }
+                    if (customerCategory === 'ONLINE_SALES') {
+                        // PayPal - route to markets/direct for now
+                        result.markets.total += sales;
+                        result.markets.totalCount += qty;
+                        result.markets.products.push({ title: originalTitle, sales, qty });
+                        console.log('💳 Online Sales:', originalTitle, formatMoney(sales));
+                        return;
+                    }
+                    if (customerCategory === 'DIRECT_SALES') {
+                        // Individual customers (deleted) - direct sales
+                        result.markets.total += sales;
+                        result.markets.totalCount += qty;
+                        result.markets.products.push({ title: originalTitle, sales, qty });
+                        return;
+                    }
+                }
+
                 // ===== HANDLE BLANK TITLES WITH POS LOCATION (Farmers Market Totals) =====
                 if (!p.title || p.title.trim() === '') {
                     // These are POS summary rows - Farmers Market sales by location
@@ -4055,11 +4340,72 @@
                 'Flower Sales': formatMoney(result.flowerSales.total),
                 'Farm Events': formatMoney(result.events.total),
                 'Partner Add-Ons': formatMoney(result.addons.total),
+                'Wholesale': formatMoney(result.wholesale.total),
                 'Farmers Market Sales': formatMoney(result.markets.total),
                 'TOTAL': formatMoney(result.grandTotal)
             });
 
             return result;
+        }
+
+        function displayWholesaleBreakdown(products) {
+            const container = document.getElementById('wholesaleProductsList');
+            if (!container || !products || products.length === 0) return;
+
+            // Group by type
+            const byType = { restaurant: [], florist: [], market: [], other: [] };
+            products.forEach(p => {
+                const type = p.type || 'other';
+                if (byType[type]) byType[type].push(p);
+                else byType.other.push(p);
+            });
+
+            let html = '<div style="font-size: 0.85rem;">';
+
+            // Restaurants
+            if (byType.restaurant.length > 0) {
+                const restaurantTotal = byType.restaurant.reduce((sum, p) => sum + p.sales, 0);
+                html += `<div style="margin-bottom: 1rem;">
+                    <strong style="color: var(--warning);"><i class="fas fa-utensils"></i> Restaurants (${formatMoney(restaurantTotal)})</strong>
+                    <div style="margin-top: 0.5rem;">`;
+                byType.restaurant.sort((a, b) => b.sales - a.sales).forEach(p => {
+                    html += `<div style="display: flex; justify-content: space-between; padding: 0.25rem 0; border-bottom: 1px solid var(--border);">
+                        <span>${p.title}</span><span>${formatMoney(p.sales)}</span>
+                    </div>`;
+                });
+                html += '</div></div>';
+            }
+
+            // Florists
+            if (byType.florist.length > 0) {
+                const floristTotal = byType.florist.reduce((sum, p) => sum + p.sales, 0);
+                html += `<div style="margin-bottom: 1rem;">
+                    <strong style="color: #e91e63;"><i class="fas fa-spa"></i> Florists (${formatMoney(floristTotal)})</strong>
+                    <div style="margin-top: 0.5rem;">`;
+                byType.florist.sort((a, b) => b.sales - a.sales).forEach(p => {
+                    html += `<div style="display: flex; justify-content: space-between; padding: 0.25rem 0; border-bottom: 1px solid var(--border);">
+                        <span>${p.title}</span><span>${formatMoney(p.sales)}</span>
+                    </div>`;
+                });
+                html += '</div></div>';
+            }
+
+            // Markets/Grocery
+            if (byType.market.length > 0) {
+                const marketTotal = byType.market.reduce((sum, p) => sum + p.sales, 0);
+                html += `<div style="margin-bottom: 1rem;">
+                    <strong style="color: var(--info);"><i class="fas fa-store"></i> Markets/Grocery (${formatMoney(marketTotal)})</strong>
+                    <div style="margin-top: 0.5rem;">`;
+                byType.market.sort((a, b) => b.sales - a.sales).forEach(p => {
+                    html += `<div style="display: flex; justify-content: space-between; padding: 0.25rem 0; border-bottom: 1px solid var(--border);">
+                        <span>${p.title}</span><span>${formatMoney(p.sales)}</span>
+                    </div>`;
+                });
+                html += '</div></div>';
+            }
+
+            html += '</div>';
+            container.innerHTML = html;
         }
 
         function isProduceItem(title) {
@@ -4224,6 +4570,16 @@
                 displayMarketsBreakdown(data.markets.products);
             }
 
+            // Set wholesale total directly from parsed data
+            document.getElementById('wholesaleTotalAmount').textContent = formatMoney(data.wholesale.total);
+            const wholesaleNote = document.getElementById('wholesaleTotalNote');
+            if (wholesaleNote) {
+                wholesaleNote.textContent = data.wholesale.totalCount > 0 ? `(${data.wholesale.products.length} accounts)` : '(no data yet)';
+            }
+            if (data.wholesale.products && data.wholesale.products.length > 0) {
+                displayWholesaleBreakdown(data.wholesale.products);
+            }
+
             // Update grand total
             calculateTotalRevenue();
 
@@ -4373,6 +4729,10 @@
                                 <tr style="border-bottom: 1px solid var(--border);">
                                     <td style="padding: 0.5rem;"><strong>Partner Add-Ons</strong></td>
                                     ${years.map(y => `<td style="text-align: right; padding: 0.5rem; color: var(--info);">${formatMoney(byYear[y].addons.total)}</td>`).join('')}
+                                </tr>
+                                <tr style="border-bottom: 1px solid var(--border);">
+                                    <td style="padding: 0.5rem;"><strong>Wholesale</strong></td>
+                                    ${years.map(y => `<td style="text-align: right; padding: 0.5rem; color: var(--warning);">${formatMoney(byYear[y].wholesale?.total || 0)}</td>`).join('')}
                                 </tr>
                                 <tr style="border-bottom: 1px solid var(--border);">
                                     <td style="padding: 0.5rem;"><strong>Farmers Market Sales</strong></td>
@@ -4932,10 +5292,15 @@
                 grandTotal += parseMoneyValue(document.getElementById('marketsBloomfieldAmount')?.value);
             }
 
-            // Wholesale total
-            grandTotal += parseMoneyValue(document.getElementById('wholesaleRestaurantsAmount')?.value);
-            grandTotal += parseMoneyValue(document.getElementById('wholesaleGroceryAmount')?.value);
-            grandTotal += parseMoneyValue(document.getElementById('wholesaleDeliveryAmount')?.value);
+            // Wholesale total - check parsed data first, then input fields
+            if (parsedSalesData && parsedSalesData.wholesale) {
+                grandTotal += parsedSalesData.wholesale.total || 0;
+            } else {
+                grandTotal += parseMoneyValue(document.getElementById('wholesaleRestaurantsAmount')?.value);
+                grandTotal += parseMoneyValue(document.getElementById('wholesaleFloristsAmount')?.value);
+                grandTotal += parseMoneyValue(document.getElementById('wholesaleGroceryAmount')?.value);
+                grandTotal += parseMoneyValue(document.getElementById('wholesaleDeliveryAmount')?.value);
+            }
 
             document.getElementById('salesGrandTotal').textContent = '$' + Math.round(grandTotal).toLocaleString();
 
