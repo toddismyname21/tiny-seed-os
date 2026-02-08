@@ -3728,10 +3728,8 @@
                 csa: { summer: { amount: 0, count: 0 }, spring: { amount: 0, count: 0 }, fall: { amount: 0, count: 0 }, thanksgiving: { amount: 0, count: 0 }, total: 0, totalCount: 0, products: [] },
                 flowers: { standard: { amount: 0, count: 0 }, fullBloom: { amount: 0, count: 0 }, petiteBloom: { amount: 0, count: 0 }, dahlia: { amount: 0, count: 0 }, total: 0, totalCount: 0, products: [] },
                 addons: { mushrooms: { amount: 0, count: 0 }, bread: { amount: 0, count: 0 }, cheese: { amount: 0, count: 0 }, coffee: { amount: 0, count: 0 }, total: 0, totalCount: 0, products: [] },
-                markets: { total: 0, totalCount: 0, products: [] },
+                markets: { total: 0, totalCount: 0, products: [] },  // Farmers Market POS sales (individual produce, bouquets, etc.)
                 wholesale: { total: 0, totalCount: 0, products: [] },
-                produce: { total: 0, totalCount: 0, products: [] },
-                other: { total: 0, totalCount: 0, products: [] },
                 grandTotal: 0
             };
         }
@@ -3739,132 +3737,162 @@
         function categorizeProducts(products) {
             const result = createEmptyResult();
 
+            // Track if we have Flex CSA sales (to warn about potential double-counting)
+            let hasFlexCSA = false;
+
             products.forEach(p => {
                 const title = (p.title || '').toLowerCase();
+                const originalTitle = p.title || '';
                 const sales = p.sales || 0;
                 const qty = p.quantity || 1;
+
+                // ===== SKIP RULES =====
 
                 // Skip summary rows (blank product names with just totals)
                 if (!p.title || p.title.trim() === '') {
                     return;
                 }
 
+                // Skip gift cards - they are NOT revenue until redeemed
+                if (title.includes('gift card') || title.includes('giftcard') || title.includes('gift certificate')) {
+                    console.log('⏭️ Skipping gift card:', originalTitle);
+                    return;
+                }
+
+                // Skip $0 items (likely Flex CSA redemptions or free items)
+                if (sales === 0) {
+                    return;
+                }
+
+                // Track if Flex CSA exists (individual produce may be redemptions)
+                if (title.includes('flex')) {
+                    hasFlexCSA = true;
+                }
+
                 let categorized = false;
 
-                // CSA Vegetable Products (check for veggie/vegetable/share keywords)
+                // ===== CSA SUBSCRIPTIONS =====
+                // These are the SUBSCRIPTION sales - the core revenue
                 if ((title.includes('csa') || title.includes('veggie') || title.includes('vegetable') || title.includes('share')) &&
                     !title.includes('flower') && !title.includes('dahlia') && !title.includes('add-on') && !title.includes('add on')) {
 
                     if (title.includes('summer') || title.includes('late start') || title.includes('friends and family')) {
                         result.csa.summer.amount += sales;
                         result.csa.summer.count += qty;
-                        result.csa.products.push({ title: p.title, sales, qty, subcategory: 'summer' });
+                        result.csa.products.push({ title: originalTitle, sales, qty, subcategory: 'summer' });
                     } else if (title.includes('spring')) {
                         result.csa.spring.amount += sales;
                         result.csa.spring.count += qty;
-                        result.csa.products.push({ title: p.title, sales, qty, subcategory: 'spring' });
+                        result.csa.products.push({ title: originalTitle, sales, qty, subcategory: 'spring' });
                     } else if (title.includes('fall')) {
                         result.csa.fall.amount += sales;
                         result.csa.fall.count += qty;
-                        result.csa.products.push({ title: p.title, sales, qty, subcategory: 'fall' });
+                        result.csa.products.push({ title: originalTitle, sales, qty, subcategory: 'fall' });
                     } else if (title.includes('thanksgiving')) {
                         result.csa.thanksgiving.amount += sales;
                         result.csa.thanksgiving.count += qty;
-                        result.csa.products.push({ title: p.title, sales, qty, subcategory: 'thanksgiving' });
+                        result.csa.products.push({ title: originalTitle, sales, qty, subcategory: 'thanksgiving' });
                     } else {
                         // Default to summer for generic CSA
                         result.csa.summer.amount += sales;
                         result.csa.summer.count += qty;
-                        result.csa.products.push({ title: p.title, sales, qty, subcategory: 'summer' });
+                        result.csa.products.push({ title: originalTitle, sales, qty, subcategory: 'summer' });
                     }
                     result.csa.total += sales;
                     result.csa.totalCount += qty;
                     categorized = true;
                 }
-                // Flower Products
-                else if (title.includes('dahlia')) {
+
+                // ===== FLOWER SUBSCRIPTIONS =====
+                else if (title.includes('dahlia') && (title.includes('csa') || title.includes('subscription') || title.includes('share'))) {
                     result.flowers.dahlia.amount += sales;
                     result.flowers.dahlia.count += qty;
                     result.flowers.total += sales;
                     result.flowers.totalCount += qty;
-                    result.flowers.products.push({ title: p.title, sales, qty, subcategory: 'dahlia' });
+                    result.flowers.products.push({ title: originalTitle, sales, qty, subcategory: 'dahlia' });
                     categorized = true;
-                } else if (title.includes('full bloom')) {
+                } else if (title.includes('full bloom') && (title.includes('subscription') || title.includes('flower'))) {
                     result.flowers.fullBloom.amount += sales;
                     result.flowers.fullBloom.count += qty;
                     result.flowers.total += sales;
                     result.flowers.totalCount += qty;
-                    result.flowers.products.push({ title: p.title, sales, qty, subcategory: 'fullBloom' });
+                    result.flowers.products.push({ title: originalTitle, sales, qty, subcategory: 'fullBloom' });
                     categorized = true;
-                } else if (title.includes('petite bloom') || title.includes('petite')) {
+                } else if ((title.includes('petite bloom') || title.includes('petite')) && (title.includes('subscription') || title.includes('flower'))) {
                     result.flowers.petiteBloom.amount += sales;
                     result.flowers.petiteBloom.count += qty;
                     result.flowers.total += sales;
                     result.flowers.totalCount += qty;
-                    result.flowers.products.push({ title: p.title, sales, qty, subcategory: 'petiteBloom' });
+                    result.flowers.products.push({ title: originalTitle, sales, qty, subcategory: 'petiteBloom' });
                     categorized = true;
-                } else if (title.includes('flower') || title.includes('bouquet') || title.includes('fleur') || title.includes('bloom') || title.includes('wreath') || title.includes('dried')) {
+                } else if ((title.includes('flower subscription') || title.includes('fleur') || (title.includes('flower') && title.includes('subscription')))) {
                     result.flowers.standard.amount += sales;
                     result.flowers.standard.count += qty;
                     result.flowers.total += sales;
                     result.flowers.totalCount += qty;
-                    result.flowers.products.push({ title: p.title, sales, qty, subcategory: 'standard' });
+                    result.flowers.products.push({ title: originalTitle, sales, qty, subcategory: 'standard' });
                     categorized = true;
                 }
-                // Add-ons (must include "add-on" or be a known partner product)
-                else if (title.includes('mushroom') && (title.includes('add') || title.includes('csa'))) {
+
+                // ===== PARTNER ADD-ONS =====
+                else if (title.includes('mushroom') && (title.includes('add') || title.includes('csa add'))) {
                     result.addons.mushrooms.amount += sales;
                     result.addons.mushrooms.count += qty;
                     result.addons.total += sales;
                     result.addons.totalCount += qty;
-                    result.addons.products.push({ title: p.title, sales, qty, subcategory: 'mushrooms' });
+                    result.addons.products.push({ title: originalTitle, sales, qty, subcategory: 'mushrooms' });
                     categorized = true;
                 } else if (title.includes('bread') && title.includes('add')) {
                     result.addons.bread.amount += sales;
                     result.addons.bread.count += qty;
                     result.addons.total += sales;
                     result.addons.totalCount += qty;
-                    result.addons.products.push({ title: p.title, sales, qty, subcategory: 'bread' });
+                    result.addons.products.push({ title: originalTitle, sales, qty, subcategory: 'bread' });
                     categorized = true;
                 } else if ((title.includes('cheese') || title.includes('goat rodeo')) && title.includes('add')) {
                     result.addons.cheese.amount += sales;
                     result.addons.cheese.count += qty;
                     result.addons.total += sales;
                     result.addons.totalCount += qty;
-                    result.addons.products.push({ title: p.title, sales, qty, subcategory: 'cheese' });
+                    result.addons.products.push({ title: originalTitle, sales, qty, subcategory: 'cheese' });
                     categorized = true;
                 } else if ((title.includes('coffee') || title.includes('redhawk')) && title.includes('add')) {
                     result.addons.coffee.amount += sales;
                     result.addons.coffee.count += qty;
                     result.addons.total += sales;
                     result.addons.totalCount += qty;
-                    result.addons.products.push({ title: p.title, sales, qty, subcategory: 'coffee' });
-                    categorized = true;
-                }
-                // Produce (individual vegetable sales - farmers market/POS)
-                else if (isProduceItem(title)) {
-                    result.produce.total += sales;
-                    result.produce.totalCount += qty;
-                    result.produce.products.push({ title: p.title, sales, qty });
-                    categorized = true;
-                }
-                // U-Pick / Pick Your Own
-                else if (title.includes('pick your own') || title.includes('u-pick')) {
-                    result.markets.total += sales;
-                    result.markets.totalCount += qty;
-                    result.markets.products.push({ title: p.title, sales, qty });
+                    result.addons.products.push({ title: originalTitle, sales, qty, subcategory: 'coffee' });
                     categorized = true;
                 }
 
-                // If not categorized, put in "other"
+                // ===== FARMERS MARKET SALES =====
+                // Everything else with a price is likely a Farmers Market POS sale
+                // This includes: individual produce, bouquets, U-Pick, workshops, etc.
                 if (!categorized) {
-                    result.other.total += sales;
-                    result.other.totalCount += qty;
-                    result.other.products.push({ title: p.title, sales, qty });
+                    result.markets.total += sales;
+                    result.markets.totalCount += qty;
+                    result.markets.products.push({ title: originalTitle, sales, qty });
+                    // Don't set categorized = true, we want to track these in "other" too for reporting
                 }
             });
 
-            result.grandTotal = result.csa.total + result.flowers.total + result.addons.total + result.markets.total + result.wholesale.total + result.produce.total + result.other.total;
+            // Calculate grand total (CSA + Flowers + Add-ons + Markets)
+            // NOTE: We count subscriptions + farmers market sales
+            // We do NOT double-count Flex CSA redemptions (they show as $0 or aren't in this report)
+            result.grandTotal = result.csa.total + result.flowers.total + result.addons.total + result.markets.total + result.wholesale.total;
+
+            // Log warning if Flex CSA detected
+            if (hasFlexCSA) {
+                console.log('⚠️ Note: Flex CSA detected. Individual produce items with $0 value are excluded (already counted in Flex CSA subscription).');
+            }
+
+            console.log('📊 Categorization complete:', {
+                'CSA Subscriptions': formatMoney(result.csa.total),
+                'Flower Subscriptions': formatMoney(result.flowers.total),
+                'Partner Add-Ons': formatMoney(result.addons.total),
+                'Farmers Market Sales': formatMoney(result.markets.total),
+                'TOTAL': formatMoney(result.grandTotal)
+            });
 
             return result;
         }
@@ -3921,7 +3949,7 @@
             target.addons.totalCount += source.addons.totalCount;
             target.addons.products = target.addons.products.concat(source.addons.products);
 
-            // Merge Markets
+            // Merge Markets (Farmers Market POS sales)
             target.markets.total += source.markets.total;
             target.markets.totalCount += source.markets.totalCount;
             target.markets.products = target.markets.products.concat(source.markets.products);
@@ -3930,16 +3958,6 @@
             target.wholesale.total += source.wholesale.total;
             target.wholesale.totalCount += source.wholesale.totalCount;
             target.wholesale.products = target.wholesale.products.concat(source.wholesale.products);
-
-            // Merge Produce
-            target.produce.total += source.produce.total;
-            target.produce.totalCount += source.produce.totalCount;
-            target.produce.products = target.produce.products.concat(source.produce.products);
-
-            // Merge Other
-            target.other.total += source.other.total;
-            target.other.totalCount += source.other.totalCount;
-            target.other.products = target.other.products.concat(source.other.products);
 
             // Update grand total
             target.grandTotal += source.grandTotal;
@@ -4069,12 +4087,8 @@
                                     ${years.map(y => `<td style="text-align: right; padding: 0.5rem; color: var(--info);">${formatMoney(byYear[y].addons.total)}</td>`).join('')}
                                 </tr>
                                 <tr style="border-bottom: 1px solid var(--border);">
-                                    <td style="padding: 0.5rem;"><strong>Produce Sales</strong></td>
-                                    ${years.map(y => `<td style="text-align: right; padding: 0.5rem;">${formatMoney(byYear[y].produce?.total || 0)}</td>`).join('')}
-                                </tr>
-                                <tr style="border-bottom: 1px solid var(--border);">
-                                    <td style="padding: 0.5rem;"><strong>Other</strong></td>
-                                    ${years.map(y => `<td style="text-align: right; padding: 0.5rem;">${formatMoney(byYear[y].other?.total || 0)}</td>`).join('')}
+                                    <td style="padding: 0.5rem;"><strong>Farmers Market Sales</strong></td>
+                                    ${years.map(y => `<td style="text-align: right; padding: 0.5rem; color: var(--purple);">${formatMoney(byYear[y].markets?.total || 0)}</td>`).join('')}
                                 </tr>
                                 <tr style="background: rgba(42, 157, 143, 0.1);">
                                     <td style="padding: 0.5rem;"><strong>TOTAL</strong></td>

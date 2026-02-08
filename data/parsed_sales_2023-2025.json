@@ -1,0 +1,223 @@
+{
+  "metadata": {
+    "sourceFile": "Sales_Report_2023-2025_Excluding_Gift_Cards.csv",
+    "parsedDate": "2026-02-08",
+    "totalRecords": 165,
+    "excludes": ["Gift Cards"]
+  },
+  "summaryByYear": {
+    "2023": {
+      "totalRevenue": 81757.05,
+      "totalOrders": 4544,
+      "totalQuantity": 4587,
+      "byCategory": {
+        "CSA_VEGETABLE": {
+          "revenue": 56288,
+          "members": 121,
+          "products": [
+            {"name": "2023 Tiny Seed Farm CSA", "revenue": 47856, "qty": 102},
+            {"name": "2024 Tiny Seed Farm Summer CSA (pre-sale)", "revenue": 8432, "qty": 19}
+          ]
+        },
+        "FLOWER_SUBSCRIPTION": {
+          "revenue": 14655,
+          "subscribers": 92,
+          "products": [
+            {"name": "2024 Summer Flower Subscription - Standard Weekly", "revenue": 10715, "qty": 73},
+            {"name": "2024 Spring Flower Subscription - Standard Weekly", "revenue": 2920, "qty": 14},
+            {"name": "2024 Dahlia CSA Share", "revenue": 1020, "qty": 5}
+          ]
+        },
+        "PARTNER_ADDON": {
+          "revenue": 0,
+          "subscribers": 0,
+          "products": []
+        },
+        "FARMERS_MARKET": {
+          "revenue": 8534,
+          "transactions": 58,
+          "products": [
+            {"name": "Farm Fresh Flower Bouquet - Standard", "revenue": 7114, "qty": 31},
+            {"name": "Dahlia U-Pick Experience", "revenue": 1015, "qty": 29},
+            {"name": "DIY Bloom Bucket", "revenue": 180, "qty": 2},
+            {"name": "Dried Bouquets", "revenue": 80, "qty": 4},
+            {"name": "Wreaths", "revenue": 145, "qty": 3}
+          ]
+        },
+        "DIRECT_SALES": {
+          "revenue": 67,
+          "transactions": 3,
+          "products": [
+            {"name": "Seedlings", "revenue": 67, "qty": 11}
+          ]
+        }
+      }
+    },
+    "2024": {
+      "totalRevenue": 75490.78,
+      "totalOrders": 4239,
+      "totalQuantity": 4355,
+      "byCategory": {
+        "CSA_VEGETABLE": {
+          "revenue": 58803,
+          "members": 128,
+          "products": [
+            {"name": "2024 Tiny Seed Farm Summer CSA", "revenue": 52098, "qty": 109},
+            {"name": "2026 Summer CSA Share - Flex Weekly (pre-sale)", "revenue": 2200, "qty": 3},
+            {"name": "2026 Summer CSA Share - Small Biweekly (pre-sale)", "revenue": 900, "qty": 3},
+            {"name": "2025 Weekly Large Summer (pre-sale)", "revenue": 800, "qty": 1},
+            {"name": "2025 Weekly Small Summer (pre-sale)", "revenue": 1200, "qty": 2},
+            {"name": "2025 Spring CSA (pre-sale)", "revenue": 600, "qty": 3},
+            {"name": "2025 Friends & Family (pre-sale)", "revenue": 400, "qty": 1},
+            {"name": "Thanksgiving CSA", "revenue": 605, "qty": 9}
+          ]
+        },
+        "FLOWER_SUBSCRIPTION": {
+          "revenue": 12618,
+          "subscribers": 83,
+          "products": [
+            {"name": "2024 Summer Flower Subscription - Standard Weekly", "revenue": 9363, "qty": 72},
+            {"name": "2024 Spring Flower Subscription - Standard Weekly", "revenue": 1580, "qty": 7},
+            {"name": "2025 Spring Flower Subscription (pre-sale)", "revenue": 890, "qty": 4},
+            {"name": "2024 Dahlia CSA Share", "revenue": 840, "qty": 4},
+            {"name": "2026 Summer Flower - Full Bloom Biweekly (pre-sale)", "revenue": 400, "qty": 2},
+            {"name": "2026 Summer Flower - Petite Bloom Weekly (pre-sale)", "revenue": 290, "qty": 1},
+            {"name": "2025 Summer Flower - Petite Bloom Biweekly (pre-sale)", "revenue": 145, "qty": 1}
+          ]
+        },
+        "PARTNER_ADDON": {
+          "revenue": 450,
+          "subscribers": 6,
+          "products": [
+            {"name": "2026 Mushroom CSA Add-On - Weekly (pre-sale)", "revenue": 300, "qty": 2},
+            {"name": "2026 Mushroom CSA Add-On - Biweekly (pre-sale)", "revenue": 75, "qty": 1},
+            {"name": "2026 Local Cheese CSA Add-On (pre-sale)", "revenue": 75, "qty": 1}
+          ]
+        },
+        "FARMERS_MARKET": {
+          "revenue": 9066,
+          "transactions": 58,
+          "products": [
+            {"name": "Farm Fresh Flower Bouquet - Standard", "revenue": 8416, "qty": 42},
+            {"name": "Dahlia U-Pick Experience", "revenue": 560, "qty": 16},
+            {"name": "DIY Bloom Bucket", "revenue": 90, "qty": 1}
+          ]
+        },
+        "DIRECT_SALES": {
+          "revenue": 304,
+          "transactions": 16,
+          "products": [
+            {"name": "Herbs - 3in pot", "revenue": 114, "qty": 19},
+            {"name": "Tomatoes", "revenue": 66, "qty": 11},
+            {"name": "Greens", "revenue": 24, "qty": 4},
+            {"name": "Donation", "revenue": 100, "qty": 1}
+          ]
+        }
+      }
+    },
+    "2025": {
+      "totalRevenue": 73666.61,
+      "totalOrders": 4141,
+      "totalQuantity": 4327,
+      "byCategory": {
+        "CSA_VEGETABLE": {
+          "revenue": 136460,
+          "members": 327,
+          "products": [
+            {"name": "2026 Summer CSA Share - Flex Weekly", "revenue": 29100, "qty": 67},
+            {"name": "2025 Weekly Large Summer Veggie Share--Late Start", "revenue": 26400, "qty": 34},
+            {"name": "2025 Weekly Small Summer Veggie Share--Late Start", "revenue": 21600, "qty": 38},
+            {"name": "2026 Summer CSA Share - Small Biweekly", "revenue": 15360, "qty": 58},
+            {"name": "2025 Friends and Family Summer Share (BIWEEKLY)", "revenue": 14000, "qty": 35},
+            {"name": "2025 Spring CSA Share", "revenue": 8200, "qty": 41},
+            {"name": "2025 Friends and Family Summer Share (WEEKLY)", "revenue": 6600, "qty": 6},
+            {"name": "2025 Fall CSA Share", "revenue": 3450, "qty": 23},
+            {"name": "2025 Friends and Family Summer Share (BIWEEKLY HOME DELIVERY)", "revenue": 2750, "qty": 5},
+            {"name": "2025 Small Summer Veggie Share (WEEKLY HOME DELIVERY)", "revenue": 2700, "qty": 3},
+            {"name": "2026 Summer CSA Share - Small Weekly", "revenue": 2160, "qty": 6},
+            {"name": "2025 Small Summer Veggie Share (BIWEEKLY HOME DELIVERY)", "revenue": 1800, "qty": 4},
+            {"name": "2026 Summer CSA Share - Friends & Family Large Biweekly", "revenue": 1440, "qty": 9},
+            {"name": "2026 Spring CSA Share", "revenue": 900, "qty": 7}
+          ]
+        },
+        "FLOWER_SUBSCRIPTION": {
+          "revenue": 18990,
+          "subscribers": 83,
+          "products": [
+            {"name": "2026 Summer Flower - Full Bloom Biweekly", "revenue": 3600, "qty": 23},
+            {"name": "2025 Summer Flower - Petite Bloom Biweekly", "revenue": 3020, "qty": 20},
+            {"name": "2025 Spring Flower Subscription", "revenue": 2960, "qty": 13},
+            {"name": "2026 Summer Flower - Petite Bloom Weekly", "revenue": 2630, "qty": 10},
+            {"name": "2025 Summer Flower - Full Bloom Weekly", "revenue": 2560, "qty": 4},
+            {"name": "2026 Summer Flower - Full Bloom Weekly", "revenue": 1600, "qty": 4},
+            {"name": "2025 Summer Flower - Full Bloom Biweekly", "revenue": 1280, "qty": 4},
+            {"name": "2026 Summer Flower - Petite Bloom Biweekly", "revenue": 450, "qty": 5}
+          ]
+        },
+        "PARTNER_ADDON": {
+          "revenue": 10015,
+          "subscribers": 100,
+          "products": [
+            {"name": "2026 Local Bread CSA Add-On - Biweekly", "revenue": 1995, "qty": 21},
+            {"name": "2026 Mushroom CSA Add-On - Biweekly", "revenue": 1875, "qty": 28},
+            {"name": "2026 Local Cheese CSA Add-On - Biweekly (Goat Rodeo)", "revenue": 1725, "qty": 25},
+            {"name": "2026 Local Bread CSA Add-On - Weekly", "revenue": 1520, "qty": 8},
+            {"name": "2026 Mushroom CSA Add-On - Weekly", "revenue": 1350, "qty": 9},
+            {"name": "2026 Local Coffee CSA Add-On - Biweekly (Redhawk)", "revenue": 950, "qty": 5},
+            {"name": "2026 Local Cheese CSA Add-On - Weekly (Goat Rodeo)", "revenue": 600, "qty": 4}
+          ]
+        },
+        "FARMERS_MARKET": {
+          "revenue": 2920,
+          "transactions": 69,
+          "products": [
+            {"name": "Pick Your Own Flowers", "revenue": 1275, "qty": 43},
+            {"name": "DIY Bloom Bucket", "revenue": 900, "qty": 10},
+            {"name": "Farm Fresh Flower Bouquet - Standard", "revenue": 470, "qty": 37},
+            {"name": "Dried Fleurs Bouquet", "revenue": 200, "qty": 10},
+            {"name": "Farm Fresh Flower Bouquet - Full Bloom", "revenue": 175, "qty": 5}
+          ]
+        },
+        "DIRECT_SALES_PRODUCE": {
+          "revenue": 10719,
+          "transactions": 1000,
+          "products": [
+            {"name": "Tomatoes (all)", "revenue": 1872, "qty": 305},
+            {"name": "Potatoes - New Potato Mix", "revenue": 1158, "qty": 221},
+            {"name": "Peppers (all varieties)", "revenue": 1577, "qty": 456},
+            {"name": "Salad Greens (all)", "revenue": 1294, "qty": 327},
+            {"name": "Fruit - Apples", "revenue": 1075, "qty": 219},
+            {"name": "Herbs (all)", "revenue": 831, "qty": 234},
+            {"name": "Kale", "revenue": 688, "qty": 177},
+            {"name": "Carrots", "revenue": 580, "qty": 116},
+            {"name": "Squash", "revenue": 565, "qty": 113},
+            {"name": "Green Beans", "revenue": 535, "qty": 110},
+            {"name": "Broccolini", "revenue": 420, "qty": 84},
+            {"name": "Other Vegetables", "revenue": 1124, "qty": 250}
+          ]
+        }
+      }
+    }
+  },
+  "yearOverYearGrowth": {
+    "2023_to_2024": {
+      "totalRevenue": "-7.7%",
+      "csaRevenue": "+4.5%",
+      "flowerRevenue": "-13.9%",
+      "addonRevenue": "NEW"
+    },
+    "2024_to_2025": {
+      "totalRevenue": "-2.4%",
+      "csaRevenue": "+132%",
+      "flowerRevenue": "+50.5%",
+      "addonRevenue": "+2126%"
+    }
+  },
+  "topProducts2025": [
+    {"name": "2026 Summer CSA Share - Flex Weekly", "revenue": 29100},
+    {"name": "2025 Weekly Large Summer Veggie Share", "revenue": 26400},
+    {"name": "2025 Weekly Small Summer Veggie Share", "revenue": 21600},
+    {"name": "2026 Summer CSA Share - Small Biweekly", "revenue": 15360},
+    {"name": "2025 Friends and Family Summer Share", "revenue": 14000}
+  ]
+}
