@@ -1767,6 +1767,8 @@
                                 <i class="fas fa-plus"></i> Add Market
                             </button>
                         </div>
+                        <!-- Dynamic products list from parsed data -->
+                        <div id="marketsProductsList" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--border);"></div>
                     </div>
                 </div>
 
@@ -3565,20 +3567,34 @@
                         }
 
                         const header = parseCSVLine(lines[0]);
-                        const titleIdx = header.findIndex(h => h.toLowerCase().includes('product') || h.toLowerCase().includes('title') || h.toLowerCase().includes('item'));
-                        const salesIdx = header.findIndex(h => h.toLowerCase().includes('sales') || h.toLowerCase().includes('total') || h.toLowerCase().includes('amount') || h.toLowerCase().includes('revenue'));
-                        const qtyIdx = header.findIndex(h => h.toLowerCase().includes('quantity') || h.toLowerCase().includes('qty') || h.toLowerCase().includes('count'));
-                        const dateIdx = header.findIndex(h => h.toLowerCase().includes('date') || h.toLowerCase().includes('year'));
+                        const headerLower = header.map(h => h.toLowerCase());
+
+                        // Find column indices
+                        const titleIdx = headerLower.findIndex(h => h.includes('product') || h.includes('title') || h.includes('item'));
+                        const salesIdx = headerLower.findIndex(h => h.includes('sales') || h.includes('total') || h.includes('amount') || h.includes('revenue'));
+                        const qtyIdx = headerLower.findIndex(h => h.includes('quantity') || h.includes('qty') || h.includes('count'));
+                        const dateIdx = headerLower.findIndex(h => h.includes('date') || h.includes('year'));
+                        const channelIdx = headerLower.findIndex(h => h.includes('channel'));
+                        const posLocationIdx = headerLower.findIndex(h => h.includes('pos location') || h.includes('location name'));
+
+                        console.log('📊 CSV Headers detected:', { titleIdx, salesIdx, qtyIdx, dateIdx, channelIdx, posLocationIdx });
 
                         const products = [];
                         for (let i = 1; i < lines.length; i++) {
                             if (!lines[i].trim()) continue;
                             const row = parseCSVLine(lines[i]);
+
+                            const title = row[titleIdx] || row[0] || '';
+                            const salesChannel = channelIdx >= 0 ? (row[channelIdx] || '') : '';
+                            const posLocation = posLocationIdx >= 0 ? (row[posLocationIdx] || '') : '';
+
                             products.push({
-                                title: row[titleIdx] || row[0] || '',
+                                title: title,
                                 sales: parseFloat((row[salesIdx] || row[1] || '0').replace(/[,$]/g, '')) || 0,
                                 quantity: parseInt(row[qtyIdx] || row[2]) || 1,
-                                date: row[dateIdx] || ''
+                                date: row[dateIdx] || '',
+                                salesChannel: salesChannel,
+                                posLocation: posLocation
                             });
                         }
 
@@ -3790,11 +3806,14 @@
                 const originalTitle = p.title || '';
                 const sales = p.sales || 0;
                 const qty = p.quantity || 1;
+                const salesChannel = (p.salesChannel || '').toLowerCase();
+                const posLocation = (p.posLocation || '').toLowerCase();
 
                 // ===== SKIP RULES =====
 
-                // Skip summary rows (blank product names with just totals)
-                if (!p.title || p.title.trim() === '') {
+                // Skip negative values (refunds/adjustments)
+                if (sales < 0) {
+                    console.log('⏭️ Skipping refund/adjustment:', originalTitle, sales);
                     return;
                 }
 
@@ -3809,6 +3828,24 @@
                     return;
                 }
 
+                // ===== HANDLE BLANK TITLES WITH POS LOCATION (Farmers Market Totals) =====
+                if (!p.title || p.title.trim() === '') {
+                    // These are POS summary rows - Farmers Market sales by location
+                    if (salesChannel === 'point of sale' && posLocation) {
+                        const locationName = p.posLocation || posLocation;
+                        result.markets.total += sales;
+                        result.markets.totalCount += qty;
+                        result.markets.products.push({
+                            title: `POS Sales: ${locationName}`,
+                            sales,
+                            qty,
+                            location: locationName
+                        });
+                        console.log('🏪 Farmers Market POS:', locationName, formatMoney(sales));
+                    }
+                    return;
+                }
+
                 // Track if Flex CSA exists (individual produce may be redemptions)
                 if (title.includes('flex')) {
                     hasFlexCSA = true;
@@ -3817,9 +3854,10 @@
                 let categorized = false;
 
                 // ===== CSA SUBSCRIPTIONS =====
-                // These are the SUBSCRIPTION sales - the core revenue
+                // Must have CSA/veggie/share keywords AND NOT be an add-on or flower
                 if ((title.includes('csa') || title.includes('veggie') || title.includes('vegetable') || title.includes('share')) &&
-                    !title.includes('flower') && !title.includes('dahlia') && !title.includes('add-on') && !title.includes('add on')) {
+                    !title.includes('flower') && !title.includes('dahlia') && !title.includes('add-on') && !title.includes('add on') &&
+                    !title.includes('mushroom') && !title.includes('bread') && !title.includes('cheese') && !title.includes('coffee')) {
 
                     if (title.includes('summer') || title.includes('late start') || title.includes('friends and family')) {
                         result.csa.summer.amount += sales;
@@ -3849,75 +3887,81 @@
                 }
 
                 // ===== FLOWER SUBSCRIPTIONS =====
-                else if (title.includes('dahlia') && (title.includes('csa') || title.includes('subscription') || title.includes('share'))) {
+                // STRICT: Must have "subscription" in the name to be a subscription!
+                // Individual bouquets, DIY buckets, dried flowers = Farmers Market
+                else if (title.includes('subscription') && (title.includes('flower') || title.includes('dahlia') || title.includes('bloom'))) {
+                    // Dahlia CSA/Subscription
+                    if (title.includes('dahlia')) {
+                        result.flowers.dahlia.amount += sales;
+                        result.flowers.dahlia.count += qty;
+                        result.flowers.products.push({ title: originalTitle, sales, qty, subcategory: 'dahlia' });
+                    }
+                    // Full Bloom tier
+                    else if (title.includes('full bloom')) {
+                        result.flowers.fullBloom.amount += sales;
+                        result.flowers.fullBloom.count += qty;
+                        result.flowers.products.push({ title: originalTitle, sales, qty, subcategory: 'fullBloom' });
+                    }
+                    // Petite Bloom tier
+                    else if (title.includes('petite bloom') || title.includes('petite')) {
+                        result.flowers.petiteBloom.amount += sales;
+                        result.flowers.petiteBloom.count += qty;
+                        result.flowers.products.push({ title: originalTitle, sales, qty, subcategory: 'petiteBloom' });
+                    }
+                    // Standard flower subscription
+                    else {
+                        result.flowers.standard.amount += sales;
+                        result.flowers.standard.count += qty;
+                        result.flowers.products.push({ title: originalTitle, sales, qty, subcategory: 'standard' });
+                    }
+                    result.flowers.total += sales;
+                    result.flowers.totalCount += qty;
+                    categorized = true;
+                }
+                // Dahlia CSA Share (older format without "subscription" keyword)
+                else if (title.includes('dahlia') && title.includes('csa')) {
                     result.flowers.dahlia.amount += sales;
                     result.flowers.dahlia.count += qty;
                     result.flowers.total += sales;
                     result.flowers.totalCount += qty;
                     result.flowers.products.push({ title: originalTitle, sales, qty, subcategory: 'dahlia' });
                     categorized = true;
-                } else if (title.includes('full bloom') && (title.includes('subscription') || title.includes('flower'))) {
-                    result.flowers.fullBloom.amount += sales;
-                    result.flowers.fullBloom.count += qty;
-                    result.flowers.total += sales;
-                    result.flowers.totalCount += qty;
-                    result.flowers.products.push({ title: originalTitle, sales, qty, subcategory: 'fullBloom' });
-                    categorized = true;
-                } else if ((title.includes('petite bloom') || title.includes('petite')) && (title.includes('subscription') || title.includes('flower'))) {
-                    result.flowers.petiteBloom.amount += sales;
-                    result.flowers.petiteBloom.count += qty;
-                    result.flowers.total += sales;
-                    result.flowers.totalCount += qty;
-                    result.flowers.products.push({ title: originalTitle, sales, qty, subcategory: 'petiteBloom' });
-                    categorized = true;
-                } else if ((title.includes('flower subscription') || title.includes('fleur') || (title.includes('flower') && title.includes('subscription')))) {
-                    result.flowers.standard.amount += sales;
-                    result.flowers.standard.count += qty;
-                    result.flowers.total += sales;
-                    result.flowers.totalCount += qty;
-                    result.flowers.products.push({ title: originalTitle, sales, qty, subcategory: 'standard' });
-                    categorized = true;
                 }
 
                 // ===== PARTNER ADD-ONS =====
-                else if (title.includes('mushroom') && (title.includes('add') || title.includes('csa add'))) {
-                    result.addons.mushrooms.amount += sales;
-                    result.addons.mushrooms.count += qty;
+                // Must have "add" or "add-on" in the name
+                else if (title.includes('add-on') || title.includes('add on') || (title.includes('add') && title.includes('csa'))) {
+                    if (title.includes('mushroom')) {
+                        result.addons.mushrooms.amount += sales;
+                        result.addons.mushrooms.count += qty;
+                        result.addons.products.push({ title: originalTitle, sales, qty, subcategory: 'mushrooms' });
+                    } else if (title.includes('bread')) {
+                        result.addons.bread.amount += sales;
+                        result.addons.bread.count += qty;
+                        result.addons.products.push({ title: originalTitle, sales, qty, subcategory: 'bread' });
+                    } else if (title.includes('cheese') || title.includes('goat rodeo')) {
+                        result.addons.cheese.amount += sales;
+                        result.addons.cheese.count += qty;
+                        result.addons.products.push({ title: originalTitle, sales, qty, subcategory: 'cheese' });
+                    } else if (title.includes('coffee') || title.includes('redhawk')) {
+                        result.addons.coffee.amount += sales;
+                        result.addons.coffee.count += qty;
+                        result.addons.products.push({ title: originalTitle, sales, qty, subcategory: 'coffee' });
+                    } else {
+                        // Unknown add-on, still count it
+                        result.addons.products.push({ title: originalTitle, sales, qty, subcategory: 'other' });
+                    }
                     result.addons.total += sales;
                     result.addons.totalCount += qty;
-                    result.addons.products.push({ title: originalTitle, sales, qty, subcategory: 'mushrooms' });
-                    categorized = true;
-                } else if (title.includes('bread') && title.includes('add')) {
-                    result.addons.bread.amount += sales;
-                    result.addons.bread.count += qty;
-                    result.addons.total += sales;
-                    result.addons.totalCount += qty;
-                    result.addons.products.push({ title: originalTitle, sales, qty, subcategory: 'bread' });
-                    categorized = true;
-                } else if ((title.includes('cheese') || title.includes('goat rodeo')) && title.includes('add')) {
-                    result.addons.cheese.amount += sales;
-                    result.addons.cheese.count += qty;
-                    result.addons.total += sales;
-                    result.addons.totalCount += qty;
-                    result.addons.products.push({ title: originalTitle, sales, qty, subcategory: 'cheese' });
-                    categorized = true;
-                } else if ((title.includes('coffee') || title.includes('redhawk')) && title.includes('add')) {
-                    result.addons.coffee.amount += sales;
-                    result.addons.coffee.count += qty;
-                    result.addons.total += sales;
-                    result.addons.totalCount += qty;
-                    result.addons.products.push({ title: originalTitle, sales, qty, subcategory: 'coffee' });
                     categorized = true;
                 }
 
-                // ===== FARMERS MARKET SALES =====
-                // Everything else with a price is likely a Farmers Market POS sale
-                // This includes: individual produce, bouquets, U-Pick, workshops, etc.
+                // ===== FARMERS MARKET / DIRECT SALES =====
+                // Everything else: individual produce, bouquets, workshops, U-Pick, etc.
                 if (!categorized) {
                     result.markets.total += sales;
                     result.markets.totalCount += qty;
                     result.markets.products.push({ title: originalTitle, sales, qty });
-                    // Don't set categorized = true, we want to track these in "other" too for reporting
                 }
             });
 
@@ -4060,8 +4104,19 @@
             updateCategoryTotal('csa');
             updateCategoryTotal('flowers');
             updateCategoryTotal('addons');
-            updateCategoryTotal('markets');
             updateCategoryTotal('wholesale');
+
+            // Set markets total directly from parsed data (not from input fields)
+            document.getElementById('marketsTotalAmount').textContent = formatMoney(data.markets.total);
+            const marketsNote = document.getElementById('marketsTotalNote');
+            if (marketsNote) {
+                marketsNote.textContent = data.markets.totalCount > 0 ? `(${data.markets.totalCount} transactions)` : '(no data yet)';
+            }
+
+            // Display markets products breakdown if available
+            if (data.markets.products && data.markets.products.length > 0) {
+                displayMarketsBreakdown(data.markets.products);
+            }
 
             // Update grand total
             calculateTotalRevenue();
@@ -4072,6 +4127,64 @@
 
             // Expand CSA section to show data
             document.getElementById('categoryCsa').classList.add('expanded');
+        }
+
+        function displayMarketsBreakdown(products) {
+            // Group products by location or type
+            const byLocation = {};
+            let otherProducts = [];
+
+            products.forEach(p => {
+                if (p.location) {
+                    // POS location totals
+                    if (!byLocation[p.location]) {
+                        byLocation[p.location] = { total: 0, count: 0 };
+                    }
+                    byLocation[p.location].total += p.sales;
+                    byLocation[p.location].count += p.qty;
+                } else {
+                    // Individual products
+                    otherProducts.push(p);
+                }
+            });
+
+            // Find the markets products container
+            const container = document.getElementById('marketsProductsList');
+            if (!container) return;
+
+            let html = '';
+
+            // Show POS location totals
+            const locations = Object.keys(byLocation);
+            if (locations.length > 0) {
+                html += '<div style="margin-bottom: 1rem;"><strong>POS Sales by Location:</strong></div>';
+                locations.sort((a, b) => byLocation[b].total - byLocation[a].total).forEach(loc => {
+                    html += `
+                        <div style="display: flex; justify-content: space-between; padding: 0.5rem; background: var(--bg); border-radius: 6px; margin-bottom: 0.5rem;">
+                            <span>${loc}</span>
+                            <span style="font-weight: 600; color: var(--success);">${formatMoney(byLocation[loc].total)}</span>
+                        </div>
+                    `;
+                });
+            }
+
+            // Show top individual products
+            if (otherProducts.length > 0) {
+                html += '<div style="margin: 1rem 0 0.5rem;"><strong>Individual Products:</strong></div>';
+                otherProducts.sort((a, b) => b.sales - a.sales).slice(0, 10).forEach(p => {
+                    html += `
+                        <div style="display: flex; justify-content: space-between; padding: 0.25rem 0; font-size: 0.85rem; border-bottom: 1px solid var(--border);">
+                            <span style="color: var(--text-secondary);">${p.title}</span>
+                            <span>${formatMoney(p.sales)}</span>
+                        </div>
+                    `;
+                });
+                if (otherProducts.length > 10) {
+                    html += `<div style="text-align: center; color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.5rem;">...and ${otherProducts.length - 10} more products</div>`;
+                }
+            }
+
+            container.innerHTML = html;
         }
 
         function updateYearFilterOptions(years) {
@@ -4670,10 +4783,14 @@
             grandTotal += parseMoneyValue(document.getElementById('addonsCheeseAmount')?.value);
             grandTotal += parseMoneyValue(document.getElementById('addonsCoffeeAmount')?.value);
 
-            // Markets total
-            grandTotal += parseMoneyValue(document.getElementById('marketsLawrencevilleAmount')?.value);
-            grandTotal += parseMoneyValue(document.getElementById('marketsSewickleyAmount')?.value);
-            grandTotal += parseMoneyValue(document.getElementById('marketsBloomfieldAmount')?.value);
+            // Markets total - check parsed data first, then input fields
+            if (parsedSalesData && parsedSalesData.markets) {
+                grandTotal += parsedSalesData.markets.total || 0;
+            } else {
+                grandTotal += parseMoneyValue(document.getElementById('marketsLawrencevilleAmount')?.value);
+                grandTotal += parseMoneyValue(document.getElementById('marketsSewickleyAmount')?.value);
+                grandTotal += parseMoneyValue(document.getElementById('marketsBloomfieldAmount')?.value);
+            }
 
             // Wholesale total
             grandTotal += parseMoneyValue(document.getElementById('wholesaleRestaurantsAmount')?.value);
