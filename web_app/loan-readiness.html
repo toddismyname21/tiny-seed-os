@@ -1070,7 +1070,11 @@
         <div class="card" style="border: 2px solid var(--gold); background: linear-gradient(135deg, rgba(244, 162, 97, 0.1), rgba(231, 111, 81, 0.05));">
             <div class="card-header">
                 <h2><i class="fas fa-database"></i> Your Sales Data (Required for Accurate Plans)</h2>
-                <div style="display: flex; gap: 0.5rem;">
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <input type="file" id="csvImport" accept=".csv" style="display: none;" onchange="importCSVData(this)">
+                    <button class="btn btn-success btn-sm" onclick="document.getElementById('csvImport').click()">
+                        <i class="fas fa-file-csv"></i> Import Shopify CSV
+                    </button>
                     <button class="btn btn-secondary btn-sm" onclick="loadSavedSalesData()">
                         <i class="fas fa-sync"></i> Load Saved
                     </button>
@@ -1212,7 +1216,12 @@
             </div>
 
             <div style="margin-top: 1rem; padding: 1rem; background: rgba(67, 97, 238, 0.1); border-radius: 8px; border-left: 4px solid var(--info);">
-                <strong><i class="fas fa-lightbulb"></i> Tip:</strong> Pull these numbers from your Shopify dashboard and QuickBooks reports. The more accurate the data, the better your business plan.
+                <strong><i class="fas fa-lightbulb"></i> How to use:</strong>
+                <ol style="margin: 0.5rem 0 0 1.25rem; color: var(--text-secondary);">
+                    <li><strong>Import Shopify CSV</strong> - Downloads from Shopify Analytics → Sales by Product. Auto-fills CSA, Flowers, and Add-ons.</li>
+                    <li><strong>Add QuickBooks data</strong> - Manually enter Wholesale/Restaurant and Farmers Market revenue from QuickBooks reports.</li>
+                    <li><strong>Save Data</strong> - Click to save for future use.</li>
+                </ol>
             </div>
         </div>
 
@@ -2733,6 +2742,272 @@
         function parseMoneyValue(str) {
             if (!str) return 0;
             return parseFloat(String(str).replace(/[$,]/g, '')) || 0;
+        }
+
+        // ============ CSV IMPORT FOR SHOPIFY DATA ============
+
+        function importCSVData(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const csvText = e.target.result;
+                parseShopifyCSV(csvText);
+            };
+            reader.readAsText(file);
+        }
+
+        function parseShopifyCSV(csvText) {
+            // Parse CSV
+            const lines = csvText.split('\n');
+            if (lines.length < 2) {
+                showNotification('CSV file appears empty', 'error');
+                return;
+            }
+
+            // Parse header to find column indices
+            const header = parseCSVLine(lines[0]);
+            const titleIdx = header.findIndex(h => h.toLowerCase().includes('product title') || h.toLowerCase() === 'product title');
+            const yearIdx = header.findIndex(h => h.toLowerCase().includes('year'));
+            const salesIdx = header.findIndex(h => h.toLowerCase().includes('total sales'));
+            const qtyIdx = header.findIndex(h => h.toLowerCase().includes('quantity'));
+
+            if (titleIdx === -1 || salesIdx === -1) {
+                showNotification('CSV format not recognized. Expected columns: Product title, Total sales', 'error');
+                return;
+            }
+
+            // Parse all data rows
+            const products = [];
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+                const row = parseCSVLine(lines[i]);
+                if (row.length > salesIdx) {
+                    products.push({
+                        title: row[titleIdx] || '',
+                        year: row[yearIdx] || '',
+                        sales: parseFloat(row[salesIdx]?.replace(/[,$]/g, '')) || 0,
+                        quantity: parseInt(row[qtyIdx]) || 0
+                    });
+                }
+            }
+
+            // Aggregate by category and year
+            const yearSelect = document.getElementById('salesDataYear');
+            const selectedYear = yearSelect.value;
+
+            // Detailed category tracking for all Tiny Seed products
+            const csaData = {
+                total: 0,
+                members: 0,
+                summer: { sales: 0, qty: 0 },
+                spring: { sales: 0, qty: 0 },
+                fall: { sales: 0, qty: 0 },
+                thanksgiving: { sales: 0, qty: 0 },
+                shares: []
+            };
+            const flowerData = {
+                total: 0,
+                subscribers: 0,
+                standard: { sales: 0, qty: 0 },
+                fullBloom: { sales: 0, qty: 0 },
+                petiteBloom: { sales: 0, qty: 0 },
+                dahlia: { sales: 0, qty: 0 }
+            };
+            const addOnData = {
+                mushrooms: { sales: 0, qty: 0 },
+                bread: { sales: 0, qty: 0 },
+                cheese: { sales: 0, qty: 0 },
+                coffee: { sales: 0, qty: 0 }
+            };
+
+            products.forEach(p => {
+                const title = p.title.toLowerCase();
+
+                // Match based on product season year in title (e.g., "2024 Tiny Seed Farm Summer CSA")
+                const yearMatch = title.match(/^(\d{4})/);
+                const productYear = yearMatch ? yearMatch[1] : '';
+
+                // CSA products for year X are often sold in year X-1 (pre-sales)
+                // So "2025 Summer CSA" sales in 2024 count as 2024 revenue
+                // But "2026 Summer CSA" sales in 2025 count as 2025 revenue
+                const isRelevant = selectedYear === '2025' ?
+                    (productYear === '2025' || productYear === '2026') :
+                    selectedYear === '2024' ?
+                    (productYear === '2024' || productYear === '2025') :
+                    selectedYear === '2023' ?
+                    (productYear === '2023' || productYear === '2024') :
+                    productYear === selectedYear;
+
+                // For products without year prefix (like "Thanksgiving CSA"), include them
+                if (!isRelevant && productYear) return;
+
+                // ===== VEGETABLE CSA SHARES =====
+                // Summer CSA (Flex Weekly, Small Biweekly, Small Weekly, Friends & Family, Standard)
+                if ((title.includes('summer csa') || (title.includes('csa') && title.includes('seed farm'))) &&
+                    !title.includes('flower') && !title.includes('add-on') && !title.includes('dahlia')) {
+                    csaData.summer.sales += p.sales;
+                    csaData.summer.qty += p.quantity;
+                    csaData.total += p.sales;
+                    csaData.members += p.quantity;
+                    csaData.shares.push({ title: p.title, sales: p.sales, qty: p.quantity, type: 'summer' });
+                }
+                // Spring CSA
+                else if (title.includes('spring csa') && !title.includes('flower')) {
+                    csaData.spring.sales += p.sales;
+                    csaData.spring.qty += p.quantity;
+                    csaData.total += p.sales;
+                    csaData.members += p.quantity;
+                    csaData.shares.push({ title: p.title, sales: p.sales, qty: p.quantity, type: 'spring' });
+                }
+                // Fall CSA
+                else if (title.includes('fall csa') && !title.includes('flower')) {
+                    csaData.fall.sales += p.sales;
+                    csaData.fall.qty += p.quantity;
+                    csaData.total += p.sales;
+                    csaData.members += p.quantity;
+                    csaData.shares.push({ title: p.title, sales: p.sales, qty: p.quantity, type: 'fall' });
+                }
+                // Thanksgiving CSA
+                else if (title.includes('thanksgiving')) {
+                    csaData.thanksgiving.sales += p.sales;
+                    csaData.thanksgiving.qty += p.quantity;
+                    csaData.total += p.sales;
+                    csaData.members += p.quantity;
+                    csaData.shares.push({ title: p.title, sales: p.sales, qty: p.quantity, type: 'thanksgiving' });
+                }
+
+                // ===== FLOWER SUBSCRIPTIONS =====
+                // Dahlia CSA
+                else if (title.includes('dahlia')) {
+                    flowerData.dahlia.sales += p.sales;
+                    flowerData.dahlia.qty += p.quantity;
+                    flowerData.total += p.sales;
+                    flowerData.subscribers += p.quantity;
+                }
+                // Full Bloom (Weekly/Biweekly)
+                else if (title.includes('full bloom')) {
+                    flowerData.fullBloom.sales += p.sales;
+                    flowerData.fullBloom.qty += p.quantity;
+                    flowerData.total += p.sales;
+                    flowerData.subscribers += p.quantity;
+                }
+                // Petite Bloom (Weekly/Biweekly)
+                else if (title.includes('petite bloom')) {
+                    flowerData.petiteBloom.sales += p.sales;
+                    flowerData.petiteBloom.qty += p.quantity;
+                    flowerData.total += p.sales;
+                    flowerData.subscribers += p.quantity;
+                }
+                // Standard Weekly Bouquets (catch-all for flower subscriptions)
+                else if (title.includes('flower') || title.includes('bouquet')) {
+                    flowerData.standard.sales += p.sales;
+                    flowerData.standard.qty += p.quantity;
+                    flowerData.total += p.sales;
+                    flowerData.subscribers += p.quantity;
+                }
+
+                // ===== ADD-ON PRODUCTS =====
+                // Mushroom CSA Add-On (Weekly/Biweekly)
+                else if (title.includes('mushroom')) {
+                    addOnData.mushrooms.sales += p.sales;
+                    addOnData.mushrooms.qty += p.quantity;
+                }
+                // Local Bread CSA Add-On (Weekly/Biweekly)
+                else if (title.includes('bread')) {
+                    addOnData.bread.sales += p.sales;
+                    addOnData.bread.qty += p.quantity;
+                }
+                // Local Cheese CSA Add-On (Goat Rodeo) (Weekly/Biweekly)
+                else if (title.includes('cheese') || title.includes('goat rodeo')) {
+                    addOnData.cheese.sales += p.sales;
+                    addOnData.cheese.qty += p.quantity;
+                }
+                // Local Coffee CSA Add-On (Redhawk) (Biweekly)
+                else if (title.includes('coffee') || title.includes('redhawk')) {
+                    addOnData.coffee.sales += p.sales;
+                    addOnData.coffee.qty += p.quantity;
+                }
+            });
+
+            // Fill in the form fields
+            // CSA - Total members and revenue
+            document.getElementById('salesCSAMembers').value = csaData.members;
+            document.getElementById('salesCSATotal').value = '$' + csaData.total.toLocaleString();
+
+            // Flowers - Total
+            document.getElementById('salesFlowersTotal').value = flowerData.total > 0 ? '$' + flowerData.total.toLocaleString() : '';
+
+            // Mushrooms
+            document.getElementById('salesMushroomsTotal').value = addOnData.mushrooms.sales > 0 ? '$' + addOnData.mushrooms.sales.toLocaleString() : '';
+
+            // Value-Added (bread, cheese, coffee are resold partner products)
+            const valueAddedTotal = addOnData.bread.sales + addOnData.cheese.sales + addOnData.coffee.sales;
+            document.getElementById('salesValueAddedTotal').value = valueAddedTotal > 0 ? '$' + valueAddedTotal.toLocaleString() : '';
+
+            // Calculate total
+            calculateTotalRevenue();
+
+            // Build detailed summary
+            let summary = `CSV IMPORT COMPLETE FOR ${selectedYear}\n${'='.repeat(40)}\n\n`;
+
+            summary += `VEGETABLE CSA SHARES\n`;
+            summary += `${'─'.repeat(30)}\n`;
+            if (csaData.summer.qty > 0) summary += `  Summer CSA: ${csaData.summer.qty} members, $${csaData.summer.sales.toLocaleString()}\n`;
+            if (csaData.spring.qty > 0) summary += `  Spring CSA: ${csaData.spring.qty} members, $${csaData.spring.sales.toLocaleString()}\n`;
+            if (csaData.fall.qty > 0) summary += `  Fall CSA: ${csaData.fall.qty} members, $${csaData.fall.sales.toLocaleString()}\n`;
+            if (csaData.thanksgiving.qty > 0) summary += `  Thanksgiving: ${csaData.thanksgiving.qty} orders, $${csaData.thanksgiving.sales.toLocaleString()}\n`;
+            summary += `  TOTAL CSA: ${csaData.members} members, $${csaData.total.toLocaleString()}\n\n`;
+
+            summary += `FLOWER SUBSCRIPTIONS\n`;
+            summary += `${'─'.repeat(30)}\n`;
+            if (flowerData.standard.qty > 0) summary += `  Standard Weekly: ${flowerData.standard.qty} subs, $${flowerData.standard.sales.toLocaleString()}\n`;
+            if (flowerData.fullBloom.qty > 0) summary += `  Full Bloom: ${flowerData.fullBloom.qty} subs, $${flowerData.fullBloom.sales.toLocaleString()}\n`;
+            if (flowerData.petiteBloom.qty > 0) summary += `  Petite Bloom: ${flowerData.petiteBloom.qty} subs, $${flowerData.petiteBloom.sales.toLocaleString()}\n`;
+            if (flowerData.dahlia.qty > 0) summary += `  Dahlia CSA: ${flowerData.dahlia.qty} subs, $${flowerData.dahlia.sales.toLocaleString()}\n`;
+            summary += `  TOTAL FLOWERS: ${flowerData.subscribers} subs, $${flowerData.total.toLocaleString()}\n\n`;
+
+            summary += `PARTNER ADD-ONS\n`;
+            summary += `${'─'.repeat(30)}\n`;
+            if (addOnData.mushrooms.qty > 0) summary += `  Mushrooms: ${addOnData.mushrooms.qty} subs, $${addOnData.mushrooms.sales.toLocaleString()}\n`;
+            if (addOnData.bread.qty > 0) summary += `  Bread (Local): ${addOnData.bread.qty} subs, $${addOnData.bread.sales.toLocaleString()}\n`;
+            if (addOnData.cheese.qty > 0) summary += `  Cheese (Goat Rodeo): ${addOnData.cheese.qty} subs, $${addOnData.cheese.sales.toLocaleString()}\n`;
+            if (addOnData.coffee.qty > 0) summary += `  Coffee (Redhawk): ${addOnData.coffee.qty} subs, $${addOnData.coffee.sales.toLocaleString()}\n`;
+            summary += `  TOTAL ADD-ONS: $${(addOnData.mushrooms.sales + valueAddedTotal).toLocaleString()}\n\n`;
+
+            const grandTotal = csaData.total + flowerData.total + addOnData.mushrooms.sales + valueAddedTotal;
+            summary += `${'='.repeat(40)}\n`;
+            summary += `SHOPIFY TOTAL: $${grandTotal.toLocaleString()}\n`;
+            summary += `${'='.repeat(40)}\n\n`;
+            summary += `NOTE: Farmers Market and Wholesale/Restaurant\ndata not in Shopify - enter manually from QuickBooks.`;
+
+            showNotification('CSV imported successfully!', 'success');
+            alert(summary);
+
+            // Reset file input
+            document.getElementById('csvImport').value = '';
+        }
+
+        function parseCSVLine(line) {
+            // Handle quoted values with commas inside
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current.trim());
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            result.push(current.trim());
+            return result;
         }
 
         function calculateTotalRevenue() {
