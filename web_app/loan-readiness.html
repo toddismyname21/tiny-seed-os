@@ -858,6 +858,34 @@
         .file-card-status.complete { background: rgba(42, 157, 143, 0.2); color: var(--success); }
         .file-card-status.error { background: rgba(231, 111, 81, 0.2); color: var(--danger); }
 
+        .file-delete-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(231, 111, 81, 0.2);
+            color: var(--danger);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .file-card:hover .file-delete-btn {
+            opacity: 1;
+        }
+
+        .file-delete-btn:hover {
+            background: var(--danger);
+            color: white;
+        }
+
         /* Processing Steps */
         .processing-steps {
             display: flex;
@@ -3341,6 +3369,9 @@
                     <p>${formatFileSize(file.size)} - Detecting format...</p>
                 </div>
                 <span class="file-card-status processing">Processing</span>
+                <button class="file-delete-btn" onclick="deleteUploadedFile('${fileId}')" title="Delete file">
+                    <i class="fas fa-times"></i>
+                </button>
             `;
             container.appendChild(card);
 
@@ -3363,6 +3394,52 @@
             if (info && message) {
                 info.textContent = message;
             }
+        }
+
+        function deleteUploadedFile(fileId) {
+            // Remove from DOM
+            const card = document.getElementById(fileId);
+            if (card) {
+                card.remove();
+            }
+
+            // Remove from uploadedSalesFiles array
+            const index = uploadedSalesFiles.findIndex(f => f.id === fileId);
+            if (index > -1) {
+                uploadedSalesFiles.splice(index, 1);
+            }
+
+            // Clear data from salesDataByYear if this was the source
+            // Reset display if no files left
+            if (uploadedSalesFiles.length === 0) {
+                document.getElementById('uploadedFilesList').style.display = 'none';
+                document.getElementById('mergeYearsBtn').style.display = 'none';
+                // Clear all the form fields
+                clearAllSalesData();
+            }
+
+            showNotification('File removed', 'info');
+        }
+
+        function clearAllSalesData() {
+            // Clear all input fields
+            const inputs = document.querySelectorAll('#salesSummaryDashboard input');
+            inputs.forEach(input => input.value = '');
+
+            // Reset totals
+            document.getElementById('csaTotalAmount').textContent = '$0';
+            document.getElementById('csaTotalMembers').textContent = '(0 members)';
+            document.getElementById('flowersTotalAmount').textContent = '$0';
+            document.getElementById('flowersTotalSubs').textContent = '(0 subscribers)';
+            document.getElementById('addonsTotalAmount').textContent = '$0';
+            document.getElementById('addonsTotalSubs').textContent = '(0 subscribers)';
+            document.getElementById('marketsTotalAmount').textContent = '$0';
+            document.getElementById('wholesaleTotalAmount').textContent = '$0';
+            document.getElementById('salesGrandTotal').textContent = '$0';
+
+            // Clear stored data
+            salesDataByYear = {};
+            parsedSalesData = null;
         }
 
         // ====== FILE PARSING ======
@@ -3551,42 +3628,158 @@
 
         function categorizeSalesData(rawData) {
             const products = rawData.products || [];
-            const result = {
-                csa: { summer: { amount: 0, count: 0 }, spring: { amount: 0, count: 0 }, fall: { amount: 0, count: 0 }, thanksgiving: { amount: 0, count: 0 }, total: 0, totalCount: 0 },
-                flowers: { standard: { amount: 0, count: 0 }, fullBloom: { amount: 0, count: 0 }, petiteBloom: { amount: 0, count: 0 }, dahlia: { amount: 0, count: 0 }, total: 0, totalCount: 0 },
-                addons: { mushrooms: { amount: 0, count: 0 }, bread: { amount: 0, count: 0 }, cheese: { amount: 0, count: 0 }, coffee: { amount: 0, count: 0 }, total: 0, totalCount: 0 },
-                markets: { total: 0, totalCount: 0 },
-                wholesale: { total: 0, totalCount: 0 },
-                grandTotal: 0,
-                totalProducts: products.length
+
+            // SMART PARSING: Group by PRODUCT YEAR, not transaction year
+            // "2024 Tiny Seed Farm Summer CSA" sold in 2023 should count as 2024 CSA
+            const byProductYear = {};
+
+            products.forEach(p => {
+                const title = (p.title || '').trim();
+
+                // Skip empty or summary rows
+                if (!title) return;
+
+                // Extract PRODUCT YEAR from the product name (e.g., "2024 Tiny Seed Farm Summer CSA")
+                let productYear = extractProductYear(title);
+
+                // If no year in product name, use transaction year
+                if (!productYear && p.date) {
+                    const yearMatch = p.date.match(/^(\d{4})/);
+                    if (yearMatch) {
+                        productYear = yearMatch[1];
+                    }
+                }
+
+                // Default to current year if still no year
+                if (!productYear) {
+                    productYear = new Date().getFullYear().toString();
+                }
+
+                if (!byProductYear[productYear]) {
+                    byProductYear[productYear] = [];
+                }
+                byProductYear[productYear].push({
+                    ...p,
+                    productYear: productYear,
+                    transactionYear: p.date ? p.date.match(/^(\d{4})/)?.[1] : null
+                });
+            });
+
+            // Now categorize each product year's data
+            const resultByYear = {};
+            let allYearsResult = createEmptyResult();
+
+            Object.keys(byProductYear).sort().forEach(year => {
+                const yearProducts = byProductYear[year];
+                const yearResult = categorizeProducts(yearProducts);
+                yearResult.productYear = year;
+                resultByYear[year] = yearResult;
+
+                // Add to all years total
+                mergeResults(allYearsResult, yearResult);
+            });
+
+            // Store the by-year breakdown globally
+            window.salesDataByYearBreakdown = resultByYear;
+
+            // Return all years combined for display, but store breakdown
+            allYearsResult.byYear = resultByYear;
+            allYearsResult.availableYears = Object.keys(byProductYear).sort();
+            allYearsResult.totalProducts = products.length;
+
+            // Log the smart breakdown for debugging
+            console.log('📊 SMART Sales Breakdown by PRODUCT YEAR:', resultByYear);
+            console.log('This groups "2024 CSA" sales made in 2023 under 2024, showing true program growth.');
+
+            return allYearsResult;
+        }
+
+        function extractProductYear(title) {
+            // Extract the product year from product names like:
+            // "2024 Tiny Seed Farm Summer CSA" → 2024
+            // "2026 Summer CSA Share - Flex Weekly" → 2026
+            // "2025 Weekly Large Summer Veggie Share--Late Start" → 2025
+            // "2025 Spring Flower Subscription" → 2025
+
+            const lowerTitle = title.toLowerCase();
+
+            // Pattern 1: Year at the beginning
+            const yearStart = title.match(/^(\d{4})\s/);
+            if (yearStart) {
+                return yearStart[1];
+            }
+
+            // Pattern 2: Year anywhere in product name for CSA/subscription products
+            const yearAnywhere = title.match(/(\d{4})/);
+            if (yearAnywhere) {
+                const year = yearAnywhere[1];
+                const yearNum = parseInt(year);
+                // Sanity check - should be a reasonable year (2020-2030)
+                if (yearNum >= 2020 && yearNum <= 2030) {
+                    return year;
+                }
+            }
+
+            return null;
+        }
+
+        function createEmptyResult() {
+            return {
+                csa: { summer: { amount: 0, count: 0 }, spring: { amount: 0, count: 0 }, fall: { amount: 0, count: 0 }, thanksgiving: { amount: 0, count: 0 }, total: 0, totalCount: 0, products: [] },
+                flowers: { standard: { amount: 0, count: 0 }, fullBloom: { amount: 0, count: 0 }, petiteBloom: { amount: 0, count: 0 }, dahlia: { amount: 0, count: 0 }, total: 0, totalCount: 0, products: [] },
+                addons: { mushrooms: { amount: 0, count: 0 }, bread: { amount: 0, count: 0 }, cheese: { amount: 0, count: 0 }, coffee: { amount: 0, count: 0 }, total: 0, totalCount: 0, products: [] },
+                markets: { total: 0, totalCount: 0, products: [] },
+                wholesale: { total: 0, totalCount: 0, products: [] },
+                produce: { total: 0, totalCount: 0, products: [] },
+                other: { total: 0, totalCount: 0, products: [] },
+                grandTotal: 0
             };
+        }
+
+        function categorizeProducts(products) {
+            const result = createEmptyResult();
 
             products.forEach(p => {
                 const title = (p.title || '').toLowerCase();
                 const sales = p.sales || 0;
                 const qty = p.quantity || 1;
 
-                // CSA Products
-                if (title.includes('summer csa') || (title.includes('csa') && !title.includes('flower') && !title.includes('dahlia') && title.includes('summer'))) {
-                    result.csa.summer.amount += sales;
-                    result.csa.summer.count += qty;
+                // Skip summary rows (blank product names with just totals)
+                if (!p.title || p.title.trim() === '') {
+                    return;
+                }
+
+                let categorized = false;
+
+                // CSA Vegetable Products (check for veggie/vegetable/share keywords)
+                if ((title.includes('csa') || title.includes('veggie') || title.includes('vegetable') || title.includes('share')) &&
+                    !title.includes('flower') && !title.includes('dahlia') && !title.includes('add-on') && !title.includes('add on')) {
+
+                    if (title.includes('summer') || title.includes('late start') || title.includes('friends and family')) {
+                        result.csa.summer.amount += sales;
+                        result.csa.summer.count += qty;
+                        result.csa.products.push({ title: p.title, sales, qty, subcategory: 'summer' });
+                    } else if (title.includes('spring')) {
+                        result.csa.spring.amount += sales;
+                        result.csa.spring.count += qty;
+                        result.csa.products.push({ title: p.title, sales, qty, subcategory: 'spring' });
+                    } else if (title.includes('fall')) {
+                        result.csa.fall.amount += sales;
+                        result.csa.fall.count += qty;
+                        result.csa.products.push({ title: p.title, sales, qty, subcategory: 'fall' });
+                    } else if (title.includes('thanksgiving')) {
+                        result.csa.thanksgiving.amount += sales;
+                        result.csa.thanksgiving.count += qty;
+                        result.csa.products.push({ title: p.title, sales, qty, subcategory: 'thanksgiving' });
+                    } else {
+                        // Default to summer for generic CSA
+                        result.csa.summer.amount += sales;
+                        result.csa.summer.count += qty;
+                        result.csa.products.push({ title: p.title, sales, qty, subcategory: 'summer' });
+                    }
                     result.csa.total += sales;
                     result.csa.totalCount += qty;
-                } else if (title.includes('spring csa') || (title.includes('spring') && title.includes('csa'))) {
-                    result.csa.spring.amount += sales;
-                    result.csa.spring.count += qty;
-                    result.csa.total += sales;
-                    result.csa.totalCount += qty;
-                } else if (title.includes('fall csa') || (title.includes('fall') && title.includes('csa'))) {
-                    result.csa.fall.amount += sales;
-                    result.csa.fall.count += qty;
-                    result.csa.total += sales;
-                    result.csa.totalCount += qty;
-                } else if (title.includes('thanksgiving')) {
-                    result.csa.thanksgiving.amount += sales;
-                    result.csa.thanksgiving.count += qty;
-                    result.csa.total += sales;
-                    result.csa.totalCount += qty;
+                    categorized = true;
                 }
                 // Flower Products
                 else if (title.includes('dahlia')) {
@@ -3594,56 +3787,162 @@
                     result.flowers.dahlia.count += qty;
                     result.flowers.total += sales;
                     result.flowers.totalCount += qty;
+                    result.flowers.products.push({ title: p.title, sales, qty, subcategory: 'dahlia' });
+                    categorized = true;
                 } else if (title.includes('full bloom')) {
                     result.flowers.fullBloom.amount += sales;
                     result.flowers.fullBloom.count += qty;
                     result.flowers.total += sales;
                     result.flowers.totalCount += qty;
+                    result.flowers.products.push({ title: p.title, sales, qty, subcategory: 'fullBloom' });
+                    categorized = true;
                 } else if (title.includes('petite bloom') || title.includes('petite')) {
                     result.flowers.petiteBloom.amount += sales;
                     result.flowers.petiteBloom.count += qty;
                     result.flowers.total += sales;
                     result.flowers.totalCount += qty;
-                } else if (title.includes('flower') || title.includes('bouquet') || title.includes('fleur')) {
+                    result.flowers.products.push({ title: p.title, sales, qty, subcategory: 'petiteBloom' });
+                    categorized = true;
+                } else if (title.includes('flower') || title.includes('bouquet') || title.includes('fleur') || title.includes('bloom') || title.includes('wreath') || title.includes('dried')) {
                     result.flowers.standard.amount += sales;
                     result.flowers.standard.count += qty;
                     result.flowers.total += sales;
                     result.flowers.totalCount += qty;
+                    result.flowers.products.push({ title: p.title, sales, qty, subcategory: 'standard' });
+                    categorized = true;
                 }
-                // Add-ons
-                else if (title.includes('mushroom') || title.includes('fungi')) {
+                // Add-ons (must include "add-on" or be a known partner product)
+                else if (title.includes('mushroom') && (title.includes('add') || title.includes('csa'))) {
                     result.addons.mushrooms.amount += sales;
                     result.addons.mushrooms.count += qty;
                     result.addons.total += sales;
                     result.addons.totalCount += qty;
-                } else if (title.includes('bread')) {
+                    result.addons.products.push({ title: p.title, sales, qty, subcategory: 'mushrooms' });
+                    categorized = true;
+                } else if (title.includes('bread') && title.includes('add')) {
                     result.addons.bread.amount += sales;
                     result.addons.bread.count += qty;
                     result.addons.total += sales;
                     result.addons.totalCount += qty;
-                } else if (title.includes('cheese') || title.includes('goat rodeo')) {
+                    result.addons.products.push({ title: p.title, sales, qty, subcategory: 'bread' });
+                    categorized = true;
+                } else if ((title.includes('cheese') || title.includes('goat rodeo')) && title.includes('add')) {
                     result.addons.cheese.amount += sales;
                     result.addons.cheese.count += qty;
                     result.addons.total += sales;
                     result.addons.totalCount += qty;
-                } else if (title.includes('coffee') || title.includes('redhawk')) {
+                    result.addons.products.push({ title: p.title, sales, qty, subcategory: 'cheese' });
+                    categorized = true;
+                } else if ((title.includes('coffee') || title.includes('redhawk')) && title.includes('add')) {
                     result.addons.coffee.amount += sales;
                     result.addons.coffee.count += qty;
                     result.addons.total += sales;
                     result.addons.totalCount += qty;
+                    result.addons.products.push({ title: p.title, sales, qty, subcategory: 'coffee' });
+                    categorized = true;
                 }
-                // Catch CSA without season specification
-                else if (title.includes('csa') && !title.includes('flower')) {
-                    result.csa.summer.amount += sales;
-                    result.csa.summer.count += qty;
-                    result.csa.total += sales;
-                    result.csa.totalCount += qty;
+                // Produce (individual vegetable sales - farmers market/POS)
+                else if (isProduceItem(title)) {
+                    result.produce.total += sales;
+                    result.produce.totalCount += qty;
+                    result.produce.products.push({ title: p.title, sales, qty });
+                    categorized = true;
+                }
+                // U-Pick / Pick Your Own
+                else if (title.includes('pick your own') || title.includes('u-pick')) {
+                    result.markets.total += sales;
+                    result.markets.totalCount += qty;
+                    result.markets.products.push({ title: p.title, sales, qty });
+                    categorized = true;
+                }
+
+                // If not categorized, put in "other"
+                if (!categorized) {
+                    result.other.total += sales;
+                    result.other.totalCount += qty;
+                    result.other.products.push({ title: p.title, sales, qty });
                 }
             });
 
-            result.grandTotal = result.csa.total + result.flowers.total + result.addons.total + result.markets.total + result.wholesale.total;
+            result.grandTotal = result.csa.total + result.flowers.total + result.addons.total + result.markets.total + result.wholesale.total + result.produce.total + result.other.total;
 
             return result;
+        }
+
+        function isProduceItem(title) {
+            const produceKeywords = [
+                'tomato', 'potato', 'carrot', 'kale', 'lettuce', 'greens', 'salad',
+                'pepper', 'squash', 'bean', 'beet', 'cabbage', 'broccoli', 'cauliflower',
+                'onion', 'garlic', 'herb', 'basil', 'cilantro', 'parsley', 'mint',
+                'cucumber', 'zucchini', 'radish', 'turnip', 'fennel', 'kohlrabi',
+                'apple', 'fruit', 'mushroom-oyster', 'bok choy', 'swiss chard',
+                'arugula', 'spinach', 'edible flower', 'seedling'
+            ];
+            return produceKeywords.some(keyword => title.includes(keyword));
+        }
+
+        function mergeResults(target, source) {
+            // Merge CSA
+            target.csa.summer.amount += source.csa.summer.amount;
+            target.csa.summer.count += source.csa.summer.count;
+            target.csa.spring.amount += source.csa.spring.amount;
+            target.csa.spring.count += source.csa.spring.count;
+            target.csa.fall.amount += source.csa.fall.amount;
+            target.csa.fall.count += source.csa.fall.count;
+            target.csa.thanksgiving.amount += source.csa.thanksgiving.amount;
+            target.csa.thanksgiving.count += source.csa.thanksgiving.count;
+            target.csa.total += source.csa.total;
+            target.csa.totalCount += source.csa.totalCount;
+            target.csa.products = target.csa.products.concat(source.csa.products);
+
+            // Merge Flowers
+            target.flowers.standard.amount += source.flowers.standard.amount;
+            target.flowers.standard.count += source.flowers.standard.count;
+            target.flowers.fullBloom.amount += source.flowers.fullBloom.amount;
+            target.flowers.fullBloom.count += source.flowers.fullBloom.count;
+            target.flowers.petiteBloom.amount += source.flowers.petiteBloom.amount;
+            target.flowers.petiteBloom.count += source.flowers.petiteBloom.count;
+            target.flowers.dahlia.amount += source.flowers.dahlia.amount;
+            target.flowers.dahlia.count += source.flowers.dahlia.count;
+            target.flowers.total += source.flowers.total;
+            target.flowers.totalCount += source.flowers.totalCount;
+            target.flowers.products = target.flowers.products.concat(source.flowers.products);
+
+            // Merge Add-ons
+            target.addons.mushrooms.amount += source.addons.mushrooms.amount;
+            target.addons.mushrooms.count += source.addons.mushrooms.count;
+            target.addons.bread.amount += source.addons.bread.amount;
+            target.addons.bread.count += source.addons.bread.count;
+            target.addons.cheese.amount += source.addons.cheese.amount;
+            target.addons.cheese.count += source.addons.cheese.count;
+            target.addons.coffee.amount += source.addons.coffee.amount;
+            target.addons.coffee.count += source.addons.coffee.count;
+            target.addons.total += source.addons.total;
+            target.addons.totalCount += source.addons.totalCount;
+            target.addons.products = target.addons.products.concat(source.addons.products);
+
+            // Merge Markets
+            target.markets.total += source.markets.total;
+            target.markets.totalCount += source.markets.totalCount;
+            target.markets.products = target.markets.products.concat(source.markets.products);
+
+            // Merge Wholesale
+            target.wholesale.total += source.wholesale.total;
+            target.wholesale.totalCount += source.wholesale.totalCount;
+            target.wholesale.products = target.wholesale.products.concat(source.wholesale.products);
+
+            // Merge Produce
+            target.produce.total += source.produce.total;
+            target.produce.totalCount += source.produce.totalCount;
+            target.produce.products = target.produce.products.concat(source.produce.products);
+
+            // Merge Other
+            target.other.total += source.other.total;
+            target.other.totalCount += source.other.totalCount;
+            target.other.products = target.other.products.concat(source.other.products);
+
+            // Update grand total
+            target.grandTotal += source.grandTotal;
         }
 
         // ====== DISPLAY FUNCTIONS ======
@@ -3653,6 +3952,16 @@
             document.getElementById('yearFilterSection').style.display = 'block';
             document.getElementById('salesSummaryDashboard').style.display = 'block';
             document.getElementById('addMissingDataSection').style.display = 'block';
+
+            // Update year filter dropdown with available years
+            if (data.availableYears && data.availableYears.length > 0) {
+                updateYearFilterOptions(data.availableYears);
+            }
+
+            // Show year-by-year breakdown if available
+            if (data.byYear) {
+                displayYearBreakdownSummary(data.byYear);
+            }
 
             // Update CSA fields
             setInputValue('csaSummerAmount', formatMoney(data.csa.summer.amount));
@@ -3700,6 +4009,135 @@
 
             // Expand CSA section to show data
             document.getElementById('categoryCsa').classList.add('expanded');
+        }
+
+        function updateYearFilterOptions(years) {
+            const select = document.getElementById('salesYearFilter');
+            if (!select) return;
+
+            // Clear existing options except "All Years"
+            select.innerHTML = '<option value="all">All Years</option>';
+
+            // Add year options
+            years.forEach(year => {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                select.appendChild(option);
+            });
+        }
+
+        function displayYearBreakdownSummary(byYear) {
+            // Create or update the year breakdown table
+            let container = document.getElementById('yearBreakdownContainer');
+            if (!container) {
+                // Create container after year filter
+                const yearFilterSection = document.getElementById('yearFilterSection');
+                if (yearFilterSection) {
+                    container = document.createElement('div');
+                    container.id = 'yearBreakdownContainer';
+                    container.style.marginTop = '1rem';
+                    yearFilterSection.appendChild(container);
+                }
+            }
+
+            if (!container) return;
+
+            const years = Object.keys(byYear).sort();
+            let html = `
+                <div style="background: var(--bg-lighter); border-radius: 12px; padding: 1rem; margin-top: 1rem;">
+                    <h4 style="margin-bottom: 1rem; color: var(--primary);"><i class="fas fa-chart-line"></i> Year-Over-Year Breakdown</h4>
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                            <thead>
+                                <tr style="border-bottom: 2px solid var(--border);">
+                                    <th style="text-align: left; padding: 0.5rem;">Category</th>
+                                    ${years.map(y => `<th style="text-align: right; padding: 0.5rem;">${y}</th>`).join('')}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr style="border-bottom: 1px solid var(--border);">
+                                    <td style="padding: 0.5rem;"><strong>CSA Subscriptions</strong></td>
+                                    ${years.map(y => `<td style="text-align: right; padding: 0.5rem; color: var(--success);">${formatMoney(byYear[y].csa.total)}</td>`).join('')}
+                                </tr>
+                                <tr style="border-bottom: 1px solid var(--border);">
+                                    <td style="padding: 0.5rem;"><strong>Flower Subscriptions</strong></td>
+                                    ${years.map(y => `<td style="text-align: right; padding: 0.5rem; color: var(--warning);">${formatMoney(byYear[y].flowers.total)}</td>`).join('')}
+                                </tr>
+                                <tr style="border-bottom: 1px solid var(--border);">
+                                    <td style="padding: 0.5rem;"><strong>Partner Add-Ons</strong></td>
+                                    ${years.map(y => `<td style="text-align: right; padding: 0.5rem; color: var(--info);">${formatMoney(byYear[y].addons.total)}</td>`).join('')}
+                                </tr>
+                                <tr style="border-bottom: 1px solid var(--border);">
+                                    <td style="padding: 0.5rem;"><strong>Produce Sales</strong></td>
+                                    ${years.map(y => `<td style="text-align: right; padding: 0.5rem;">${formatMoney(byYear[y].produce?.total || 0)}</td>`).join('')}
+                                </tr>
+                                <tr style="border-bottom: 1px solid var(--border);">
+                                    <td style="padding: 0.5rem;"><strong>Other</strong></td>
+                                    ${years.map(y => `<td style="text-align: right; padding: 0.5rem;">${formatMoney(byYear[y].other?.total || 0)}</td>`).join('')}
+                                </tr>
+                                <tr style="background: rgba(42, 157, 143, 0.1);">
+                                    <td style="padding: 0.5rem;"><strong>TOTAL</strong></td>
+                                    ${years.map(y => `<td style="text-align: right; padding: 0.5rem; font-weight: bold; color: var(--primary);">${formatMoney(byYear[y].grandTotal)}</td>`).join('')}
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        function filterByYear(year) {
+            currentSalesYear = year;
+
+            if (year === 'all' && parsedSalesData) {
+                // Show all years combined
+                displayParsedData(parsedSalesData);
+            } else if (window.salesDataByYearBreakdown && window.salesDataByYearBreakdown[year]) {
+                // Show specific year
+                const yearData = window.salesDataByYearBreakdown[year];
+                displayYearData(yearData);
+            }
+        }
+
+        function displayYearData(data) {
+            // Update fields with year-specific data
+            setInputValue('csaSummerAmount', formatMoney(data.csa.summer.amount));
+            setInputValue('csaSummerMembers', data.csa.summer.count);
+            setInputValue('csaSpringAmount', formatMoney(data.csa.spring.amount));
+            setInputValue('csaSpringMembers', data.csa.spring.count);
+            setInputValue('csaFallAmount', formatMoney(data.csa.fall.amount));
+            setInputValue('csaFallMembers', data.csa.fall.count);
+            setInputValue('csaThanksgivingAmount', formatMoney(data.csa.thanksgiving.amount));
+            setInputValue('csaThanksgivingMembers', data.csa.thanksgiving.count);
+
+            setInputValue('flowersStandardAmount', formatMoney(data.flowers.standard.amount));
+            setInputValue('flowersStandardSubs', data.flowers.standard.count);
+            setInputValue('flowersFullBloomAmount', formatMoney(data.flowers.fullBloom.amount));
+            setInputValue('flowersFullBloomSubs', data.flowers.fullBloom.count);
+            setInputValue('flowersPetiteAmount', formatMoney(data.flowers.petiteBloom.amount));
+            setInputValue('flowersPetiteSubs', data.flowers.petiteBloom.count);
+            setInputValue('flowersDahliaAmount', formatMoney(data.flowers.dahlia.amount));
+            setInputValue('flowersDahliaSubs', data.flowers.dahlia.count);
+
+            setInputValue('addonsMushroomsAmount', formatMoney(data.addons.mushrooms.amount));
+            setInputValue('addonsMushroomsSubs', data.addons.mushrooms.count);
+            setInputValue('addonsBreadAmount', formatMoney(data.addons.bread.amount));
+            setInputValue('addonsBreadSubs', data.addons.bread.count);
+            setInputValue('addonsCheeseAmount', formatMoney(data.addons.cheese.amount));
+            setInputValue('addonsCheeseSubs', data.addons.cheese.count);
+            setInputValue('addonsCoffeeAmount', formatMoney(data.addons.coffee.amount));
+            setInputValue('addonsCoffeeSubs', data.addons.coffee.count);
+
+            // Update totals
+            updateCategoryTotal('csa');
+            updateCategoryTotal('flowers');
+            updateCategoryTotal('addons');
+            updateCategoryTotal('markets');
+            updateCategoryTotal('wholesale');
+            calculateTotalRevenue();
         }
 
         function setInputValue(id, value) {
