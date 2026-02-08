@@ -3811,8 +3811,8 @@
             // Known Markets
             const markets = ['mayfly market', 'millvale market', 'today\'s organic', 'east end food coop', 'city grows'];
 
-            // CSA Platform
-            if (name.includes('harvie')) return 'CSA_PLATFORM';
+            // Distributors (wholesale middlemen)
+            if (name.includes('harvie')) return 'DISTRIBUTOR';
             if (name.includes('paypal')) return 'ONLINE_SALES';
 
             // Check categories
@@ -4138,14 +4138,12 @@
                         console.log('🏪 Wholesale/Market:', originalTitle, formatMoney(sales));
                         return;
                     }
-                    if (customerCategory === 'CSA_PLATFORM') {
-                        // Harvie is their CSA platform - this is CSA revenue
-                        result.csa.summer.amount += sales;
-                        result.csa.summer.count += qty;
-                        result.csa.total += sales;
-                        result.csa.totalCount += qty;
-                        result.csa.products.push({ title: originalTitle + ' (via Harvie)', sales, qty, subcategory: 'summer' });
-                        console.log('🥬 CSA Platform:', originalTitle, formatMoney(sales));
+                    if (customerCategory === 'DISTRIBUTOR') {
+                        // Harvie is a wholesale distributor - they buy wholesale and resell retail
+                        result.wholesale.total += sales;
+                        result.wholesale.totalCount += qty;
+                        result.wholesale.products.push({ title: originalTitle, sales, qty, type: 'distributor' });
+                        console.log('📦 Wholesale/Distributor:', originalTitle, formatMoney(sales));
                         return;
                     }
                     if (customerCategory === 'ONLINE_SALES') {
@@ -4353,7 +4351,7 @@
             if (!container || !products || products.length === 0) return;
 
             // Group by type
-            const byType = { restaurant: [], florist: [], market: [], other: [] };
+            const byType = { restaurant: [], florist: [], market: [], distributor: [], other: [] };
             products.forEach(p => {
                 const type = p.type || 'other';
                 if (byType[type]) byType[type].push(p);
@@ -4397,6 +4395,20 @@
                     <strong style="color: var(--info);"><i class="fas fa-store"></i> Markets/Grocery (${formatMoney(marketTotal)})</strong>
                     <div style="margin-top: 0.5rem;">`;
                 byType.market.sort((a, b) => b.sales - a.sales).forEach(p => {
+                    html += `<div style="display: flex; justify-content: space-between; padding: 0.25rem 0; border-bottom: 1px solid var(--border);">
+                        <span>${p.title}</span><span>${formatMoney(p.sales)}</span>
+                    </div>`;
+                });
+                html += '</div></div>';
+            }
+
+            // Distributors (wholesale middlemen like Harvie)
+            if (byType.distributor.length > 0) {
+                const distributorTotal = byType.distributor.reduce((sum, p) => sum + p.sales, 0);
+                html += `<div style="margin-bottom: 1rem;">
+                    <strong style="color: var(--primary);"><i class="fas fa-truck"></i> Distributors (${formatMoney(distributorTotal)})</strong>
+                    <div style="margin-top: 0.5rem;">`;
+                byType.distributor.sort((a, b) => b.sales - a.sales).forEach(p => {
                     html += `<div style="display: flex; justify-content: space-between; padding: 0.25rem 0; border-bottom: 1px solid var(--border);">
                         <span>${p.title}</span><span>${formatMoney(p.sales)}</span>
                     </div>`;
