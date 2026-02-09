@@ -90466,8 +90466,10 @@ function scrapeGrantRequirements(params) {
     // Use Claude to extract grant requirements
     const CLAUDE_API_KEY = PropertiesService.getScriptProperties().getProperty('CLAUDE_API_KEY');
     if (!CLAUDE_API_KEY) {
+      Logger.log('No CLAUDE_API_KEY found, using fallback pattern matching');
       return scrapeGrantRequirementsFallback(textContent, url);
     }
+    Logger.log('Using Claude API for grant scraping, text length: ' + textContent.length);
 
     const claudePayload = {
       model: 'claude-sonnet-4-20250514',
@@ -90543,12 +90545,15 @@ Return ONLY valid JSON. Include empty strings or empty arrays for fields not fou
       });
 
       const claudeResult = JSON.parse(claudeResponse.getContentText());
+      Logger.log('Claude grant scrape response status: ' + (claudeResult.error ? 'ERROR: ' + claudeResult.error.message : 'OK'));
 
       if (claudeResult.content && claudeResult.content[0] && claudeResult.content[0].text) {
         const aiText = claudeResult.content[0].text;
+        Logger.log('Claude returned text, length: ' + aiText.length);
         const jsonMatch = aiText.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           const parsedData = JSON.parse(jsonMatch[0]);
+          Logger.log('Parsed grant data fields: ' + Object.keys(parsedData).join(', '));
           return {
             success: true,
             grantName: parsedData.grantName || '',
@@ -90591,9 +90596,55 @@ Return ONLY valid JSON. Include empty strings or empty arrays for fields not fou
  * Fallback function for grant requirement extraction using pattern matching
  */
 function scrapeGrantRequirementsFallback(textContent, url) {
+  Logger.log('Using fallback pattern matching for grant scraping');
   const eligibility = [];
   const documents = [];
   const lowerContent = textContent.toLowerCase();
+
+  // Try to extract grant name from common patterns
+  let grantName = '';
+  const namePatterns = [
+    /(?:the\s+)?([A-Z][A-Za-z\s]+(?:Grant|Program|Fund|Award|Initiative))/,
+    /<title>([^<]+)<\/title>/i,
+    /<h1[^>]*>([^<]+)<\/h1>/i
+  ];
+  for (const np of namePatterns) {
+    const match = textContent.match(np);
+    if (match && match[1] && match[1].length < 100) {
+      grantName = match[1].trim();
+      break;
+    }
+  }
+
+  // Try to extract organization
+  let organization = '';
+  const orgPatterns = [
+    /(?:Pennsylvania|PA)\s+Department\s+of\s+\w+/i,
+    /USDA\s+\w+/i,
+    /U\.?S\.?\s+Department\s+of\s+\w+/i,
+    /(?:funded|administered|offered)\s+by\s+([A-Z][A-Za-z\s]+)/i
+  ];
+  for (const op of orgPatterns) {
+    const match = textContent.match(op);
+    if (match) {
+      organization = match[0] || match[1];
+      break;
+    }
+  }
+
+  // Try to extract purpose
+  let purpose = '';
+  const purposePatterns = [
+    /(?:purpose|designed to|program (?:helps?|supports?))[:\s]+([^.]+\.)/i,
+    /(?:this grant|the program)[:\s]+([^.]+\.)/i
+  ];
+  for (const pp of purposePatterns) {
+    const match = textContent.match(pp);
+    if (match && match[1]) {
+      purpose = match[1].trim();
+      break;
+    }
+  }
 
   // Common eligibility patterns
   const eligibilityPatterns = [
@@ -90603,7 +90654,8 @@ function scrapeGrantRequirementsFallback(textContent, url) {
     { pattern: /501\(c\)|non-?profit/i, text: 'Non-profit organization eligible' },
     { pattern: /small farm|small-scale/i, text: 'Small-scale farming operation' },
     { pattern: /organic/i, text: 'Organic or sustainable practices preferred' },
-    { pattern: /women-?owned|minority/i, text: 'Women/minority-owned businesses' }
+    { pattern: /women-?owned|minority/i, text: 'Women/minority-owned businesses' },
+    { pattern: /reimbursement/i, text: 'Reimbursement-based (you pay first)' }
   ];
 
   eligibilityPatterns.forEach(ep => {
@@ -90628,32 +90680,71 @@ function scrapeGrantRequirementsFallback(textContent, url) {
     if (dp.pattern.test(textContent)) documents.push(dp.text);
   });
 
-  // Extract amount
+  // Extract amount - improved pattern
   let amount = '';
-  const amountMatch = textContent.match(/\$[\d,]+(?:\s*(?:million|k|thousand|to|-)[\s\$\d,]*)?/i);
-  if (amountMatch) amount = amountMatch[0];
+  const amountPatterns = [
+    /\$[\d,]+(?:\s*(?:per applicant|maximum|max|up to))?/i,
+    /up to \$[\d,]+/i,
+    /maximum (?:of )?\$[\d,]+/i,
+    /(\d+)%\s+(?:of )?(?:project )?costs?/i
+  ];
+  for (const ap of amountPatterns) {
+    const match = textContent.match(ap);
+    if (match) {
+      amount = match[0];
+      break;
+    }
+  }
+
+  // Extract coverage percentage
+  let coveragePercent = '';
+  const coverageMatch = textContent.match(/(\d+)%\s+(?:of )?(?:project |eligible )?costs?/i);
+  if (coverageMatch) coveragePercent = coverageMatch[1] + '%';
 
   // Extract deadline (look for date patterns)
   let deadline = '';
   const datePatterns = [
     /deadline[:\s]+(\w+\s+\d+,?\s*\d*)/i,
     /due[:\s]+(\w+\s+\d+,?\s*\d*)/i,
-    /applications? due[:\s]+(\w+\s+\d+,?\s*\d*)/i
+    /applications? (?:accepted|due)[:\s]+(?:on or after\s+)?(\w+\s+\d+,?\s*\d*)/i,
+    /rolling/i
   ];
   for (const dp of datePatterns) {
     const match = textContent.match(dp);
-    if (match) { deadline = match[1]; break; }
+    if (match) {
+      deadline = match[1] || 'Rolling';
+      break;
+    }
   }
+
+  // Extract contact info
+  let contactName = '';
+  let contactEmail = '';
+  let contactPhone = '';
+
+  const emailMatch = textContent.match(/[\w.-]+@[\w.-]+\.\w+/);
+  if (emailMatch) contactEmail = emailMatch[0];
+
+  const phoneMatch = textContent.match(/\d{3}[-.]?\d{3}[-.]?\d{4}/);
+  if (phoneMatch) contactPhone = phoneMatch[0];
+
+  // Check for reimbursement
+  const reimbursement = /reimbursement/i.test(textContent);
 
   return {
     success: true,
-    grantName: '',
-    organization: '',
+    grantName: grantName,
+    organization: organization,
     amount: amount,
+    coveragePercent: coveragePercent,
     deadline: deadline,
+    purpose: purpose,
     eligibility: eligibility,
     documents: documents,
     steps: [],
+    contactEmail: contactEmail,
+    contactPhone: contactPhone,
+    reimbursement: reimbursement,
     source: url,
     method: 'pattern-matching'
   };

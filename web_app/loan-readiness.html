@@ -13104,12 +13104,30 @@
                 });
 
                 const result = await response.json();
+                console.log('Grant scan result:', JSON.stringify(result, null, 2));
 
                 if (result.success) {
                     statusText.innerHTML = '<i class="fas fa-check-circle" style="color: var(--success);"></i> Requirements extracted!';
 
                     // Populate form fields with scraped data
-                    if (result.grantName) document.getElementById('newGrantName').value = result.grantName;
+                    console.log('Populating fields...');
+
+                    // Grant Name
+                    if (result.grantName) {
+                        document.getElementById('newGrantName').value = result.grantName;
+                        console.log('Set grantName:', result.grantName);
+                    }
+
+                    // Organization/Source
+                    if (result.organization) {
+                        document.getElementById('newGrantSource').value = result.organization;
+                        console.log('Set organization:', result.organization);
+                    }
+
+                    // Also set institution field
+                    if (result.organization && document.getElementById('newGrantInstitution')) {
+                        document.getElementById('newGrantInstitution').value = result.organization;
+                    }
                     if (result.organization) document.getElementById('newGrantSource').value = result.organization;
 
                     // Build comprehensive amount string
