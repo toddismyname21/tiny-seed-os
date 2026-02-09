@@ -16207,6 +16207,18 @@ function doGet(e) {
       case 'getParseErrors':
         return jsonResponse(typeof getParseErrors === 'function' ? getParseErrors(e.parameter) : { success: false, error: 'UniversalParser not loaded' });
 
+      // ============ PARSER CORRECTIONS & RULES (GET) (2026-02-09) ============
+      case 'saveParserCorrection':
+        return jsonResponse(saveParserCorrection(e.parameter));
+      case 'getParserCorrections':
+        return jsonResponse(getParserCorrections(e.parameter));
+      case 'saveParserRule':
+        return jsonResponse(saveParserRule(e.parameter));
+      case 'getParserRules':
+        return jsonResponse(getParserRules(e.parameter));
+      case 'applyParserRules':
+        return jsonResponse(applyParserRules(e.parameter));
+
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
     }
@@ -104931,7 +104943,9 @@ const PARSER_SHEETS = {
   PARSED_SALES_DATA: 'PARSED_SALES_DATA',
   PARSE_LOGS: 'PARSE_LOGS',
   PARSE_ERRORS: 'PARSE_ERRORS',
-  CATEGORY_CACHE: 'PARSER_CategoryCache'
+  CATEGORY_CACHE: 'PARSER_CategoryCache',
+  PARSER_CORRECTIONS: 'PARSER_CORRECTIONS',
+  PARSER_RULES: 'PARSER_RULES'
 };
 
 // Headers for parser sheets
@@ -104950,6 +104964,14 @@ const PARSER_SHEET_HEADERS = {
   ],
   CATEGORY_CACHE: [
     'ProductName', 'Category', 'Subcategory', 'ConfidenceScore', 'CachedAt', 'Source'
+  ],
+  PARSER_CORRECTIONS: [
+    'ID', 'Timestamp', 'ProductTitle', 'OriginalCategory', 'CorrectedCategory',
+    'Confidence', 'Reasoning', 'AppliedAsRule', 'RuleID'
+  ],
+  PARSER_RULES: [
+    'ID', 'RuleType', 'Conditions', 'TargetCategory', 'Priority', 'AppliedCount',
+    'SuccessRate', 'Active', 'CreatedDate', 'CreatedFrom'
   ]
 };
 
@@ -106941,4 +106963,880 @@ Wholesale - Restaurant Order,1500,1,2024`;
     parseResult: parseResult,
     status: getParserStatus()
   };
+}
+
+// ===============================================================================
+// PARSER CORRECTIONS & RULES SYSTEM
+// Stores user corrections and learned categorization rules
+// @author Backend_Claude
+// @created 2026-02-09
+// ===============================================================================
+
+/**
+ * Fuzzy string matching using Jaro-Winkler algorithm
+ * @param {string} str1 - First string
+ * @param {string} str2 - Second string
+ * @param {number} threshold - Similarity threshold (0-1), default 0.85
+ * @returns {Object} { match: boolean, similarity: number }
+ */
+function fuzzyMatch(str1, str2, threshold = 0.85) {
+  if (!str1 || !str2) {
+    return { match: false, similarity: 0 };
+  }
+
+  // Normalize strings
+  const s1 = str1.toLowerCase().trim();
+  const s2 = str2.toLowerCase().trim();
+
+  // Exact match
+  if (s1 === s2) {
+    return { match: true, similarity: 1.0 };
+  }
+
+  // Jaro similarity
+  const len1 = s1.length;
+  const len2 = s2.length;
+
+  if (len1 === 0 || len2 === 0) {
+    return { match: false, similarity: 0 };
+  }
+
+  const matchWindow = Math.floor(Math.max(len1, len2) / 2) - 1;
+  const s1Matches = new Array(len1).fill(false);
+  const s2Matches = new Array(len2).fill(false);
+
+  let matches = 0;
+  let transpositions = 0;
+
+  // Find matches
+  for (let i = 0; i < len1; i++) {
+    const start = Math.max(0, i - matchWindow);
+    const end = Math.min(i + matchWindow + 1, len2);
+
+    for (let j = start; j < end; j++) {
+      if (s2Matches[j] || s1[i] !== s2[j]) continue;
+      s1Matches[i] = true;
+      s2Matches[j] = true;
+      matches++;
+      break;
+    }
+  }
+
+  if (matches === 0) {
+    return { match: false, similarity: 0 };
+  }
+
+  // Count transpositions
+  let k = 0;
+  for (let i = 0; i < len1; i++) {
+    if (!s1Matches[i]) continue;
+    while (!s2Matches[k]) k++;
+    if (s1[i] !== s2[k]) transpositions++;
+    k++;
+  }
+
+  const jaro = (matches / len1 + matches / len2 + (matches - transpositions / 2) / matches) / 3;
+
+  // Jaro-Winkler adjustment
+  let prefixLen = 0;
+  for (let i = 0; i < Math.min(4, Math.min(len1, len2)); i++) {
+    if (s1[i] === s2[i]) prefixLen++;
+    else break;
+  }
+
+  const similarity = jaro + prefixLen * 0.1 * (1 - jaro);
+
+  return {
+    match: similarity >= threshold,
+    similarity: Math.round(similarity * 1000) / 1000
+  };
+}
+
+/**
+ * Initialize parser corrections and rules sheets
+ * @returns {Object} Result with created sheets
+ */
+function initializeParserCorrectionSheets() {
+  const results = { success: true, created: [], skipped: [] };
+
+  try {
+    const ss = SpreadsheetApp.openById(PARSER_SPREADSHEET_ID);
+
+    // Initialize corrections sheet
+    let correctionsSheet = ss.getSheetByName(PARSER_SHEETS.PARSER_CORRECTIONS);
+    if (!correctionsSheet) {
+      correctionsSheet = ss.insertSheet(PARSER_SHEETS.PARSER_CORRECTIONS);
+      correctionsSheet.getRange(1, 1, 1, PARSER_SHEET_HEADERS.PARSER_CORRECTIONS.length)
+        .setValues([PARSER_SHEET_HEADERS.PARSER_CORRECTIONS]);
+      correctionsSheet.getRange(1, 1, 1, PARSER_SHEET_HEADERS.PARSER_CORRECTIONS.length)
+        .setFontWeight('bold')
+        .setBackground('#4285f4')
+        .setFontColor('white');
+      correctionsSheet.setFrozenRows(1);
+      results.created.push(PARSER_SHEETS.PARSER_CORRECTIONS);
+    } else {
+      results.skipped.push(PARSER_SHEETS.PARSER_CORRECTIONS);
+    }
+
+    // Initialize rules sheet
+    let rulesSheet = ss.getSheetByName(PARSER_SHEETS.PARSER_RULES);
+    if (!rulesSheet) {
+      rulesSheet = ss.insertSheet(PARSER_SHEETS.PARSER_RULES);
+      rulesSheet.getRange(1, 1, 1, PARSER_SHEET_HEADERS.PARSER_RULES.length)
+        .setValues([PARSER_SHEET_HEADERS.PARSER_RULES]);
+      rulesSheet.getRange(1, 1, 1, PARSER_SHEET_HEADERS.PARSER_RULES.length)
+        .setFontWeight('bold')
+        .setBackground('#34a853')
+        .setFontColor('white');
+      rulesSheet.setFrozenRows(1);
+      results.created.push(PARSER_SHEETS.PARSER_RULES);
+    } else {
+      results.skipped.push(PARSER_SHEETS.PARSER_RULES);
+    }
+
+    console.log('Parser correction sheets initialized:', JSON.stringify(results));
+    return results;
+
+  } catch (error) {
+    console.error('Error initializing parser correction sheets:', error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Save a user correction when they recategorize an item
+ * @param {Object} params - Correction parameters
+ * @param {string} params.productTitle - The product title that was corrected
+ * @param {string} params.originalCategory - The original AI-assigned category
+ * @param {string} params.correctedCategory - The user's corrected category
+ * @param {number} params.confidence - Confidence score of original categorization
+ * @param {string} params.reasoning - User's reasoning for the correction
+ * @param {boolean} params.applyAsRule - Whether to create a rule from this correction
+ * @param {string} params.ruleScope - Scope for rule: 'exact', 'keyword', 'pattern'
+ * @returns {Object} { success: boolean, correctionId: string, ruleId?: string }
+ */
+function saveParserCorrection(params) {
+  try {
+    console.log('saveParserCorrection called with:', JSON.stringify(params));
+
+    // Validate required parameters
+    if (!params.productTitle) {
+      return { success: false, error: 'productTitle is required' };
+    }
+    if (!params.correctedCategory) {
+      return { success: false, error: 'correctedCategory is required' };
+    }
+
+    // Initialize sheets if needed
+    initializeParserCorrectionSheets();
+
+    const ss = SpreadsheetApp.openById(PARSER_SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(PARSER_SHEETS.PARSER_CORRECTIONS);
+
+    if (!sheet) {
+      return { success: false, error: 'PARSER_CORRECTIONS sheet not found' };
+    }
+
+    // Generate unique ID
+    const correctionId = 'CORR_' + Utilities.getUuid().substring(0, 8).toUpperCase();
+    const timestamp = new Date().toISOString();
+
+    // Prepare row data
+    const rowData = [
+      correctionId,
+      timestamp,
+      params.productTitle || '',
+      params.originalCategory || '',
+      params.correctedCategory,
+      parseFloat(params.confidence) || 0,
+      params.reasoning || '',
+      params.applyAsRule === 'true' || params.applyAsRule === true ? 'YES' : 'NO',
+      ''  // RuleID - will be filled if rule is created
+    ];
+
+    // Append to sheet
+    sheet.appendRow(rowData);
+
+    const result = {
+      success: true,
+      correctionId: correctionId,
+      timestamp: timestamp,
+      message: 'Correction saved successfully'
+    };
+
+    // Optionally create a rule from this correction
+    if (params.applyAsRule === 'true' || params.applyAsRule === true) {
+      const ruleScope = params.ruleScope || 'keyword';
+      let ruleConditions;
+
+      if (ruleScope === 'exact') {
+        ruleConditions = { type: 'exact_match', value: params.productTitle };
+      } else if (ruleScope === 'pattern') {
+        // Extract key words for pattern
+        const words = params.productTitle.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+        ruleConditions = { type: 'pattern', keywords: words };
+      } else {
+        // Default: keyword match
+        const keywords = params.productTitle.toLowerCase().split(/\s+/)
+          .filter(w => w.length > 2 && !['the', 'and', 'for', 'with'].includes(w));
+        ruleConditions = { type: 'keyword', keywords: keywords.slice(0, 5) };
+      }
+
+      const ruleResult = saveParserRule({
+        ruleType: ruleScope === 'exact' ? 'exact_match' : ruleScope,
+        conditions: JSON.stringify(ruleConditions),
+        targetCategory: params.correctedCategory,
+        createdFrom: correctionId
+      });
+
+      if (ruleResult.success) {
+        result.ruleId = ruleResult.ruleId;
+        result.ruleCreated = true;
+
+        // Update correction with rule ID
+        const lastRow = sheet.getLastRow();
+        sheet.getRange(lastRow, 9).setValue(ruleResult.ruleId);
+      }
+    }
+
+    // Also update the category cache for immediate use
+    updateCategoryCache(params.productTitle, params.correctedCategory, '', 1.0, 'user_correction');
+
+    console.log('Correction saved:', JSON.stringify(result));
+    return result;
+
+  } catch (error) {
+    console.error('Error saving parser correction:', error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get parser correction history
+ * @param {Object} params - Query parameters
+ * @param {number} params.limit - Max number of corrections to return (default 50)
+ * @param {string} params.category - Filter by corrected category
+ * @param {string} params.dateRange - Filter by date range: 'today', 'week', 'month', 'all'
+ * @returns {Object} { success: boolean, corrections: Array }
+ */
+function getParserCorrections(params) {
+  try {
+    console.log('getParserCorrections called with:', JSON.stringify(params));
+
+    const ss = SpreadsheetApp.openById(PARSER_SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(PARSER_SHEETS.PARSER_CORRECTIONS);
+
+    if (!sheet) {
+      return { success: true, corrections: [], message: 'No corrections sheet found' };
+    }
+
+    const lastRow = sheet.getLastRow();
+    if (lastRow <= 1) {
+      return { success: true, corrections: [], message: 'No corrections recorded yet' };
+    }
+
+    // Get all data
+    const data = sheet.getRange(2, 1, lastRow - 1, PARSER_SHEET_HEADERS.PARSER_CORRECTIONS.length).getValues();
+    const headers = PARSER_SHEET_HEADERS.PARSER_CORRECTIONS;
+
+    // Parse into objects
+    let corrections = data.map(row => {
+      const correction = {};
+      headers.forEach((h, i) => {
+        correction[h] = row[i];
+      });
+      return correction;
+    });
+
+    // Filter by category if specified
+    if (params.category) {
+      corrections = corrections.filter(c =>
+        c.CorrectedCategory && c.CorrectedCategory.toLowerCase() === params.category.toLowerCase()
+      );
+    }
+
+    // Filter by date range
+    if (params.dateRange && params.dateRange !== 'all') {
+      const now = new Date();
+      let cutoffDate;
+
+      switch (params.dateRange) {
+        case 'today':
+          cutoffDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          break;
+        case 'week':
+          cutoffDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case 'month':
+          cutoffDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          break;
+        default:
+          cutoffDate = null;
+      }
+
+      if (cutoffDate) {
+        corrections = corrections.filter(c => {
+          const corrDate = new Date(c.Timestamp);
+          return corrDate >= cutoffDate;
+        });
+      }
+    }
+
+    // Sort by timestamp descending (most recent first)
+    corrections.sort((a, b) => new Date(b.Timestamp) - new Date(a.Timestamp));
+
+    // Apply limit
+    const limit = parseInt(params.limit) || 50;
+    corrections = corrections.slice(0, limit);
+
+    console.log(`Found ${corrections.length} corrections`);
+    return {
+      success: true,
+      corrections: corrections,
+      total: corrections.length
+    };
+
+  } catch (error) {
+    console.error('Error getting parser corrections:', error);
+    return { success: false, error: error.toString(), corrections: [] };
+  }
+}
+
+/**
+ * Save a categorization rule
+ * @param {Object} params - Rule parameters
+ * @param {string} params.ruleType - Type: 'keyword', 'vendor', 'exact_match', 'pattern'
+ * @param {string} params.conditions - JSON string of conditions
+ * @param {string} params.targetCategory - The category to assign
+ * @param {number} params.priority - Rule priority (higher = checked first)
+ * @param {string} params.createdFrom - ID of correction this rule was created from
+ * @returns {Object} { success: boolean, ruleId: string }
+ */
+function saveParserRule(params) {
+  try {
+    console.log('saveParserRule called with:', JSON.stringify(params));
+
+    // Validate required parameters
+    if (!params.ruleType) {
+      return { success: false, error: 'ruleType is required' };
+    }
+    if (!params.conditions) {
+      return { success: false, error: 'conditions is required' };
+    }
+    if (!params.targetCategory) {
+      return { success: false, error: 'targetCategory is required' };
+    }
+
+    // Validate ruleType
+    const validTypes = ['keyword', 'vendor', 'exact_match', 'pattern'];
+    if (!validTypes.includes(params.ruleType)) {
+      return { success: false, error: `Invalid ruleType. Must be one of: ${validTypes.join(', ')}` };
+    }
+
+    // Initialize sheets if needed
+    initializeParserCorrectionSheets();
+
+    const ss = SpreadsheetApp.openById(PARSER_SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(PARSER_SHEETS.PARSER_RULES);
+
+    if (!sheet) {
+      return { success: false, error: 'PARSER_RULES sheet not found' };
+    }
+
+    // Generate unique ID
+    const ruleId = 'RULE_' + Utilities.getUuid().substring(0, 8).toUpperCase();
+    const createdDate = new Date().toISOString();
+
+    // Determine priority (higher numbers = higher priority)
+    let priority = parseInt(params.priority) || 50;
+    if (params.ruleType === 'exact_match') {
+      priority = Math.max(priority, 100);  // Exact matches get highest priority
+    } else if (params.ruleType === 'pattern') {
+      priority = Math.max(priority, 75);
+    } else if (params.ruleType === 'keyword') {
+      priority = Math.max(priority, 50);
+    }
+
+    // Prepare row data
+    const rowData = [
+      ruleId,
+      params.ruleType,
+      params.conditions,  // JSON string
+      params.targetCategory,
+      priority,
+      0,  // AppliedCount - starts at 0
+      1.0,  // SuccessRate - starts at 100%
+      'TRUE',  // Active
+      createdDate,
+      params.createdFrom || ''
+    ];
+
+    // Append to sheet
+    sheet.appendRow(rowData);
+
+    console.log('Rule saved:', ruleId);
+    return {
+      success: true,
+      ruleId: ruleId,
+      timestamp: createdDate,
+      message: 'Rule created successfully'
+    };
+
+  } catch (error) {
+    console.error('Error saving parser rule:', error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get active categorization rules
+ * @param {Object} params - Query parameters
+ * @param {string} params.category - Filter by target category
+ * @param {string} params.active - Filter by active status: 'true', 'false', 'all'
+ * @param {string} params.ruleType - Filter by rule type
+ * @returns {Object} { success: boolean, rules: Array }
+ */
+function getParserRules(params) {
+  try {
+    console.log('getParserRules called with:', JSON.stringify(params));
+
+    const ss = SpreadsheetApp.openById(PARSER_SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(PARSER_SHEETS.PARSER_RULES);
+
+    if (!sheet) {
+      return { success: true, rules: [], message: 'No rules sheet found' };
+    }
+
+    const lastRow = sheet.getLastRow();
+    if (lastRow <= 1) {
+      return { success: true, rules: [], message: 'No rules created yet' };
+    }
+
+    // Get all data
+    const data = sheet.getRange(2, 1, lastRow - 1, PARSER_SHEET_HEADERS.PARSER_RULES.length).getValues();
+    const headers = PARSER_SHEET_HEADERS.PARSER_RULES;
+
+    // Parse into objects
+    let rules = data.map(row => {
+      const rule = {};
+      headers.forEach((h, i) => {
+        rule[h] = row[i];
+      });
+      // Parse conditions JSON
+      try {
+        rule.ConditionsParsed = JSON.parse(rule.Conditions || '{}');
+      } catch (e) {
+        rule.ConditionsParsed = {};
+      }
+      return rule;
+    });
+
+    // Filter by active status (default: only active)
+    const activeFilter = params.active || 'true';
+    if (activeFilter !== 'all') {
+      const isActive = activeFilter === 'true';
+      rules = rules.filter(r =>
+        String(r.Active).toUpperCase() === (isActive ? 'TRUE' : 'FALSE')
+      );
+    }
+
+    // Filter by category if specified
+    if (params.category) {
+      rules = rules.filter(r =>
+        r.TargetCategory && r.TargetCategory.toLowerCase() === params.category.toLowerCase()
+      );
+    }
+
+    // Filter by rule type if specified
+    if (params.ruleType) {
+      rules = rules.filter(r =>
+        r.RuleType && r.RuleType.toLowerCase() === params.ruleType.toLowerCase()
+      );
+    }
+
+    // Sort by priority descending (highest first)
+    rules.sort((a, b) => (parseInt(b.Priority) || 0) - (parseInt(a.Priority) || 0));
+
+    console.log(`Found ${rules.length} rules`);
+    return {
+      success: true,
+      rules: rules,
+      total: rules.length
+    };
+
+  } catch (error) {
+    console.error('Error getting parser rules:', error);
+    return { success: false, error: error.toString(), rules: [] };
+  }
+}
+
+/**
+ * Apply parser rules to a product title to suggest a category
+ * @param {Object} params - Parameters
+ * @param {string} params.productTitle - The product title to categorize
+ * @param {string} params.currentCategory - The current category (optional)
+ * @returns {Object} { success: boolean, suggestedCategory: string, matchedRule: Object, confidence: number }
+ */
+function applyParserRules(params) {
+  try {
+    console.log('applyParserRules called with:', JSON.stringify(params));
+
+    if (!params.productTitle) {
+      return { success: false, error: 'productTitle is required' };
+    }
+
+    const productTitle = params.productTitle.toLowerCase().trim();
+
+    // Get all active rules
+    const rulesResult = getParserRules({ active: 'true' });
+    if (!rulesResult.success || rulesResult.rules.length === 0) {
+      return {
+        success: true,
+        suggestedCategory: null,
+        matchedRule: null,
+        confidence: 0,
+        message: 'No active rules found'
+      };
+    }
+
+    // Rules are already sorted by priority
+    const rules = rulesResult.rules;
+
+    for (const rule of rules) {
+      const conditions = rule.ConditionsParsed || {};
+      let isMatch = false;
+      let matchConfidence = 0;
+
+      switch (rule.RuleType) {
+        case 'exact_match':
+          // Exact match (case insensitive)
+          const exactValue = (conditions.value || '').toLowerCase().trim();
+          if (productTitle === exactValue) {
+            isMatch = true;
+            matchConfidence = 1.0;
+          } else {
+            // Try fuzzy match for near-exact
+            const fuzzy = fuzzyMatch(productTitle, exactValue, 0.95);
+            if (fuzzy.match) {
+              isMatch = true;
+              matchConfidence = fuzzy.similarity;
+            }
+          }
+          break;
+
+        case 'keyword':
+          // All keywords must be present
+          const keywords = conditions.keywords || [];
+          if (keywords.length > 0) {
+            const matchedKeywords = keywords.filter(kw =>
+              productTitle.includes(kw.toLowerCase())
+            );
+            if (matchedKeywords.length === keywords.length) {
+              isMatch = true;
+              matchConfidence = 0.9;
+            } else if (matchedKeywords.length >= keywords.length * 0.7) {
+              // Partial match (70%+ keywords)
+              isMatch = true;
+              matchConfidence = 0.7 * (matchedKeywords.length / keywords.length);
+            }
+          }
+          break;
+
+        case 'pattern':
+          // Pattern/regex match or keyword-based pattern
+          if (conditions.pattern) {
+            try {
+              const regex = new RegExp(conditions.pattern, 'i');
+              if (regex.test(productTitle)) {
+                isMatch = true;
+                matchConfidence = 0.85;
+              }
+            } catch (e) {
+              console.error('Invalid regex pattern:', conditions.pattern);
+            }
+          } else if (conditions.keywords) {
+            // Fallback to keyword matching
+            const patternKeywords = conditions.keywords || [];
+            const matchedCount = patternKeywords.filter(kw =>
+              productTitle.includes(kw.toLowerCase())
+            ).length;
+            if (matchedCount >= Math.ceil(patternKeywords.length * 0.5)) {
+              isMatch = true;
+              matchConfidence = 0.75 * (matchedCount / patternKeywords.length);
+            }
+          }
+          break;
+
+        case 'vendor':
+          // Vendor name match
+          const vendorName = (conditions.vendor || conditions.value || '').toLowerCase();
+          if (vendorName && productTitle.includes(vendorName)) {
+            isMatch = true;
+            matchConfidence = 0.85;
+          }
+          break;
+
+        default:
+          console.log('Unknown rule type:', rule.RuleType);
+      }
+
+      if (isMatch) {
+        // Update rule application count
+        updateRuleStats(rule.ID, true);
+
+        return {
+          success: true,
+          suggestedCategory: rule.TargetCategory,
+          matchedRule: {
+            id: rule.ID,
+            type: rule.RuleType,
+            conditions: conditions,
+            priority: rule.Priority
+          },
+          confidence: matchConfidence,
+          message: `Matched rule ${rule.ID} (${rule.RuleType})`
+        };
+      }
+    }
+
+    // No rule matched
+    return {
+      success: true,
+      suggestedCategory: null,
+      matchedRule: null,
+      confidence: 0,
+      message: 'No matching rule found'
+    };
+
+  } catch (error) {
+    console.error('Error applying parser rules:', error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Update rule statistics after application
+ * @param {string} ruleId - The rule ID
+ * @param {boolean} wasSuccessful - Whether the rule application was successful
+ */
+function updateRuleStats(ruleId, wasSuccessful) {
+  try {
+    const ss = SpreadsheetApp.openById(PARSER_SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(PARSER_SHEETS.PARSER_RULES);
+
+    if (!sheet) return;
+
+    const lastRow = sheet.getLastRow();
+    if (lastRow <= 1) return;
+
+    // Find the rule row
+    const ids = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+    let rowIndex = -1;
+    for (let i = 0; i < ids.length; i++) {
+      if (ids[i][0] === ruleId) {
+        rowIndex = i + 2;  // +2 for header and 0-index
+        break;
+      }
+    }
+
+    if (rowIndex === -1) return;
+
+    // Get current stats
+    const statsRange = sheet.getRange(rowIndex, 6, 1, 2);  // AppliedCount, SuccessRate
+    const stats = statsRange.getValues()[0];
+
+    const currentCount = parseInt(stats[0]) || 0;
+    const currentRate = parseFloat(stats[1]) || 1.0;
+
+    // Update stats
+    const newCount = currentCount + 1;
+    const successDelta = wasSuccessful ? 1 : 0;
+    const newRate = ((currentRate * currentCount) + successDelta) / newCount;
+
+    statsRange.setValues([[newCount, Math.round(newRate * 1000) / 1000]]);
+
+    console.log(`Updated rule ${ruleId} stats: count=${newCount}, rate=${newRate}`);
+
+  } catch (error) {
+    console.error('Error updating rule stats:', error);
+  }
+}
+
+/**
+ * Update the category cache with a new mapping
+ * @param {string} productName - Product name
+ * @param {string} category - Category
+ * @param {string} subcategory - Subcategory
+ * @param {number} confidence - Confidence score
+ * @param {string} source - Source of the mapping
+ */
+function updateCategoryCache(productName, category, subcategory, confidence, source) {
+  try {
+    const ss = SpreadsheetApp.openById(PARSER_SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(PARSER_SHEETS.CATEGORY_CACHE);
+
+    if (!sheet) {
+      // Create the sheet if it doesn't exist
+      sheet = ss.insertSheet(PARSER_SHEETS.CATEGORY_CACHE);
+      sheet.getRange(1, 1, 1, PARSER_SHEET_HEADERS.CATEGORY_CACHE.length)
+        .setValues([PARSER_SHEET_HEADERS.CATEGORY_CACHE]);
+      sheet.setFrozenRows(1);
+    }
+
+    // Check if product already exists in cache
+    const lastRow = sheet.getLastRow();
+    if (lastRow > 1) {
+      const existingProducts = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+      for (let i = 0; i < existingProducts.length; i++) {
+        if (existingProducts[i][0] && existingProducts[i][0].toLowerCase() === productName.toLowerCase()) {
+          // Update existing row
+          const rowIndex = i + 2;
+          sheet.getRange(rowIndex, 2, 1, 5).setValues([[
+            category,
+            subcategory || '',
+            confidence,
+            new Date().toISOString(),
+            source
+          ]]);
+          console.log('Updated existing cache entry for:', productName);
+          return;
+        }
+      }
+    }
+
+    // Add new row
+    sheet.appendRow([
+      productName,
+      category,
+      subcategory || '',
+      confidence,
+      new Date().toISOString(),
+      source
+    ]);
+    console.log('Added new cache entry for:', productName);
+
+  } catch (error) {
+    console.error('Error updating category cache:', error);
+  }
+}
+
+/**
+ * Deactivate a parser rule
+ * @param {Object} params - Parameters
+ * @param {string} params.ruleId - The rule ID to deactivate
+ * @returns {Object} { success: boolean }
+ */
+function deactivateParserRule(params) {
+  try {
+    if (!params.ruleId) {
+      return { success: false, error: 'ruleId is required' };
+    }
+
+    const ss = SpreadsheetApp.openById(PARSER_SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(PARSER_SHEETS.PARSER_RULES);
+
+    if (!sheet) {
+      return { success: false, error: 'PARSER_RULES sheet not found' };
+    }
+
+    const lastRow = sheet.getLastRow();
+    if (lastRow <= 1) {
+      return { success: false, error: 'No rules found' };
+    }
+
+    // Find the rule row
+    const ids = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+    for (let i = 0; i < ids.length; i++) {
+      if (ids[i][0] === params.ruleId) {
+        const rowIndex = i + 2;
+        sheet.getRange(rowIndex, 8).setValue('FALSE');  // Active column
+        return { success: true, message: `Rule ${params.ruleId} deactivated` };
+      }
+    }
+
+    return { success: false, error: `Rule ${params.ruleId} not found` };
+
+  } catch (error) {
+    console.error('Error deactivating parser rule:', error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get rule effectiveness report
+ * @returns {Object} Report with rule statistics
+ */
+function getParserRuleReport() {
+  try {
+    const rulesResult = getParserRules({ active: 'all' });
+    if (!rulesResult.success) {
+      return rulesResult;
+    }
+
+    const rules = rulesResult.rules;
+
+    // Calculate statistics
+    const stats = {
+      totalRules: rules.length,
+      activeRules: rules.filter(r => String(r.Active).toUpperCase() === 'TRUE').length,
+      inactiveRules: rules.filter(r => String(r.Active).toUpperCase() !== 'TRUE').length,
+      totalApplications: rules.reduce((sum, r) => sum + (parseInt(r.AppliedCount) || 0), 0),
+      avgSuccessRate: 0,
+      byType: {},
+      byCategory: {},
+      topRules: []
+    };
+
+    // Calculate average success rate
+    const activeRulesWithApps = rules.filter(r =>
+      String(r.Active).toUpperCase() === 'TRUE' && (parseInt(r.AppliedCount) || 0) > 0
+    );
+    if (activeRulesWithApps.length > 0) {
+      stats.avgSuccessRate = activeRulesWithApps.reduce((sum, r) =>
+        sum + (parseFloat(r.SuccessRate) || 0), 0
+      ) / activeRulesWithApps.length;
+    }
+
+    // Group by type
+    rules.forEach(r => {
+      const type = r.RuleType || 'unknown';
+      if (!stats.byType[type]) {
+        stats.byType[type] = { count: 0, applications: 0 };
+      }
+      stats.byType[type].count++;
+      stats.byType[type].applications += parseInt(r.AppliedCount) || 0;
+    });
+
+    // Group by category
+    rules.forEach(r => {
+      const cat = r.TargetCategory || 'unknown';
+      if (!stats.byCategory[cat]) {
+        stats.byCategory[cat] = { count: 0, applications: 0 };
+      }
+      stats.byCategory[cat].count++;
+      stats.byCategory[cat].applications += parseInt(r.AppliedCount) || 0;
+    });
+
+    // Top performing rules
+    stats.topRules = rules
+      .filter(r => (parseInt(r.AppliedCount) || 0) > 0)
+      .sort((a, b) => (parseInt(b.AppliedCount) || 0) - (parseInt(a.AppliedCount) || 0))
+      .slice(0, 10)
+      .map(r => ({
+        id: r.ID,
+        type: r.RuleType,
+        category: r.TargetCategory,
+        applications: parseInt(r.AppliedCount) || 0,
+        successRate: parseFloat(r.SuccessRate) || 0
+      }));
+
+    return {
+      success: true,
+      report: stats
+    };
+
+  } catch (error) {
+    console.error('Error generating rule report:', error);
+    return { success: false, error: error.toString() };
+  }
 }

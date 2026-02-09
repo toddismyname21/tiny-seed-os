@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Unified Loan Command Center - Tiny Seed Farm</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="correction-modal.css">
     <!-- SheetJS for Excel parsing -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <script src="api-config.js"></script>
@@ -650,6 +651,217 @@
             display: flex;
             justify-content: flex-end;
             gap: 0.75rem;
+        }
+
+        /* Categorization Badges */
+        .categorization-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .categorization-badge.rule {
+            background: rgba(155, 89, 182, 0.2);
+            color: #9b59b6;
+            border: 1px solid rgba(155, 89, 182, 0.4);
+        }
+
+        .categorization-badge.ai {
+            background: rgba(67, 97, 238, 0.2);
+            color: #4361ee;
+            border: 1px solid rgba(67, 97, 238, 0.4);
+        }
+
+        .confidence-bar {
+            display: inline-block;
+            width: 40px;
+            height: 4px;
+            background: var(--bg);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-left: 0.5rem;
+            vertical-align: middle;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+
+        .confidence-fill.high { background: var(--success); }
+        .confidence-fill.medium { background: var(--warning); }
+        .confidence-fill.low { background: var(--danger); }
+
+        .product-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border);
+            gap: 0.5rem;
+        }
+
+        .product-row:last-child {
+            border-bottom: none;
+        }
+
+        .product-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .product-title {
+            font-size: 0.85rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .product-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.25rem;
+        }
+
+        .product-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .correct-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .correct-btn:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        /* Rule Stats Banner */
+        .rule-stats-banner {
+            background: linear-gradient(135deg, rgba(155, 89, 182, 0.1) 0%, rgba(67, 97, 238, 0.1) 100%);
+            border: 1px solid rgba(155, 89, 182, 0.3);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .rule-stats-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .rule-stats-item i {
+            font-size: 1rem;
+        }
+
+        .rule-stats-item.rules i { color: #9b59b6; }
+        .rule-stats-item.ai i { color: #4361ee; }
+
+        /* Correction Modal Specific Styles */
+        .correction-modal .category-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 0.75rem;
+            margin: 1rem 0;
+        }
+
+        .category-option {
+            padding: 1rem;
+            background: var(--bg-lighter);
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .category-option:hover {
+            border-color: var(--primary);
+            background: rgba(42, 157, 143, 0.1);
+        }
+
+        .category-option.selected {
+            border-color: var(--primary);
+            background: rgba(42, 157, 143, 0.2);
+        }
+
+        .category-option i {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .category-option .cat-name {
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .rule-type-options {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .rule-type-option {
+            padding: 0.5rem 1rem;
+            background: var(--bg-lighter);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s ease;
+        }
+
+        .rule-type-option:hover {
+            border-color: var(--primary);
+        }
+
+        .rule-type-option.selected {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .ai-reasoning-box {
+            background: var(--bg-lighter);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        .ai-reasoning-box h4 {
+            color: var(--info);
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
         }
 
         /* Upload Zone */
@@ -2578,6 +2790,29 @@
         </div>
     </div>
 
+    <!-- Product Correction Modal - REMOVED: replaced with slide-in panel at end of body -->
+
+    <!-- Rules Management Modal -->
+    <div class="modal-overlay" id="rulesModal">
+        <div class="modal" style="max-width: 700px; max-height: 80vh;">
+            <div class="modal-header">
+                <h2><i class="fas fa-cogs"></i> Parser Correction Rules</h2>
+                <button class="modal-close" onclick="closeModal('rulesModal')">&times;</button>
+            </div>
+            <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+                <div id="rulesListContainer">
+                    <!-- Rules will be rendered by JavaScript -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('rulesModal')">Close</button>
+                <button class="btn btn-primary" onclick="exportRules()">
+                    <i class="fas fa-download"></i> Export Rules
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const API_URL = typeof TINY_SEED_API !== 'undefined' ? TINY_SEED_API.MAIN_API : 'https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec';
 
@@ -2726,13 +2961,133 @@
         let applications = [];
         let financialData = {};
 
+        // ====== PARSER CORRECTION RULES SYSTEM ======
+        // Rules are loaded from backend and applied during categorization
+        let parserRules = [];
+        let ruleApplicationStats = {
+            rulesApplied: 0,
+            aiCategorized: 0,
+            totalProcessed: 0
+        };
+
+        // Category definitions for the rule system
+        const PARSER_CATEGORIES = {
+            csa: { displayName: 'CSA Subscription', icon: 'fa-box-open', color: 'var(--success)' },
+            flowers: { displayName: 'Flower Subscription', icon: 'fa-seedling', color: 'var(--primary)' },
+            flowerSales: { displayName: 'Flower Sales', icon: 'fa-flower', color: 'var(--info)' },
+            events: { displayName: 'Farm Events', icon: 'fa-ticket', color: 'var(--purple)' },
+            addons: { displayName: 'Partner Add-Ons', icon: 'fa-handshake', color: 'var(--gold)' },
+            markets: { displayName: 'Farmers Market', icon: 'fa-store', color: 'var(--warning)' },
+            wholesale: { displayName: 'Wholesale', icon: 'fa-building', color: 'var(--info)' }
+        };
+
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
             await loadAllData();
+            await loadParserRules(); // Load correction rules for sales parser
             setupTabs();
             setupUploadZone();
             calculateSavings();
         });
+
+        // ====== PARSER RULES LOADING ======
+        async function loadParserRules() {
+            try {
+                // Try loading from backend first
+                const response = await fetch(`${API_URL}?action=getParserCorrectionRules`);
+                const result = await response.json();
+
+                if (result.success && result.rules) {
+                    parserRules = result.rules;
+                    console.log(`Loaded ${parserRules.length} parser correction rules from server`);
+                } else {
+                    // Fall back to localStorage
+                    const localRules = localStorage.getItem('tsf_parser_rules');
+                    if (localRules) {
+                        parserRules = JSON.parse(localRules);
+                        console.log(`Loaded ${parserRules.length} parser rules from localStorage`);
+                    }
+                }
+
+                // Sort rules by priority (higher priority first)
+                parserRules.sort((a, b) => (b.priority || 0) - (a.priority || 0));
+
+            } catch (error) {
+                console.warn('Could not load parser rules from server:', error);
+                // Try localStorage as fallback
+                const localRules = localStorage.getItem('tsf_parser_rules');
+                if (localRules) {
+                    try {
+                        parserRules = JSON.parse(localRules);
+                        console.log(`Loaded ${parserRules.length} parser rules from localStorage (fallback)`);
+                    } catch (e) {
+                        console.error('Error parsing local rules:', e);
+                        parserRules = [];
+                    }
+                }
+            }
+        }
+
+        async function saveParserRule(rule) {
+            // Add unique ID if not present
+            if (!rule.id) {
+                rule.id = 'rule_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            }
+            rule.createdAt = rule.createdAt || new Date().toISOString();
+            rule.timesApplied = rule.timesApplied || 0;
+
+            // Check if rule already exists (update) or is new (add)
+            const existingIndex = parserRules.findIndex(r => r.id === rule.id);
+            if (existingIndex >= 0) {
+                parserRules[existingIndex] = rule;
+            } else {
+                parserRules.push(rule);
+            }
+
+            // Sort by priority
+            parserRules.sort((a, b) => (b.priority || 0) - (a.priority || 0));
+
+            // Save to localStorage immediately
+            localStorage.setItem('tsf_parser_rules', JSON.stringify(parserRules));
+
+            // Try to save to backend
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'saveParserCorrectionRule',
+                        rule: rule
+                    })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    console.log('Parser rule saved to server:', rule.name);
+                }
+            } catch (error) {
+                console.warn('Could not save rule to server, saved locally:', error);
+            }
+
+            return rule;
+        }
+
+        async function deleteParserRule(ruleId) {
+            parserRules = parserRules.filter(r => r.id !== ruleId);
+            localStorage.setItem('tsf_parser_rules', JSON.stringify(parserRules));
+
+            try {
+                await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'deleteParserCorrectionRule',
+                        ruleId: ruleId
+                    })
+                });
+            } catch (error) {
+                console.warn('Could not delete rule from server:', error);
+            }
+        }
 
         async function loadAllData() {
             await Promise.all([
@@ -4782,6 +5137,346 @@
             return null;
         }
 
+        // ====== RULE MATCHING ENGINE ======
+
+        /**
+         * Apply correction rules to a product before AI categorization
+         * Returns: { matched: true/false, category, subcategory, rule, confidence, explanation }
+         */
+        function applyRulesToProduct(product) {
+            const title = (product.title || '').toLowerCase();
+            const originalTitle = product.title || '';
+            const vendor = (product.vendor || '').toLowerCase();
+
+            // Check each rule in priority order (already sorted)
+            for (const rule of parserRules) {
+                if (!rule.active) continue; // Skip inactive rules
+
+                const matchResult = matchesRule(product, rule);
+                if (matchResult.matched) {
+                    // Increment rule application counter
+                    rule.timesApplied = (rule.timesApplied || 0) + 1;
+                    ruleApplicationStats.rulesApplied++;
+
+                    return {
+                        matched: true,
+                        category: rule.targetCategory,
+                        subcategory: rule.targetSubcategory || null,
+                        rule: rule,
+                        confidence: calculateRuleConfidence(rule, matchResult),
+                        explanation: generateCategoryExplanation(product, rule.targetCategory, rule, matchResult)
+                    };
+                }
+            }
+
+            // No rule matched
+            return { matched: false };
+        }
+
+        /**
+         * Check if a product matches a specific rule
+         * Supports rule types: exact_match, keyword, vendor, pattern, contains_all, contains_any
+         */
+        function matchesRule(product, rule) {
+            const title = (product.title || '').toLowerCase();
+            const originalTitle = product.title || '';
+            const vendor = (product.vendor || '').toLowerCase();
+            const salesChannel = (product.salesChannel || '').toLowerCase();
+
+            const result = { matched: false, matchType: null, matchedTerms: [] };
+
+            switch (rule.type) {
+                case 'exact_match':
+                    // Exact title match (case-insensitive)
+                    if (title === (rule.matchValue || '').toLowerCase()) {
+                        result.matched = true;
+                        result.matchType = 'exact';
+                        result.matchedTerms = [originalTitle];
+                    }
+                    break;
+
+                case 'keyword':
+                    // Single keyword must be present
+                    const keyword = (rule.matchValue || '').toLowerCase();
+                    if (keyword && title.includes(keyword)) {
+                        result.matched = true;
+                        result.matchType = 'keyword';
+                        result.matchedTerms = [keyword];
+                    }
+                    break;
+
+                case 'vendor':
+                    // Match by vendor name
+                    const vendorMatch = (rule.matchValue || '').toLowerCase();
+                    if (vendorMatch && vendor.includes(vendorMatch)) {
+                        result.matched = true;
+                        result.matchType = 'vendor';
+                        result.matchedTerms = [vendorMatch];
+                    }
+                    break;
+
+                case 'pattern':
+                    // Regex pattern matching
+                    try {
+                        const regex = new RegExp(rule.matchValue, 'i');
+                        if (regex.test(title)) {
+                            result.matched = true;
+                            result.matchType = 'pattern';
+                            const match = title.match(regex);
+                            result.matchedTerms = match ? [match[0]] : [];
+                        }
+                    } catch (e) {
+                        console.warn('Invalid regex pattern in rule:', rule.name, e);
+                    }
+                    break;
+
+                case 'contains_all':
+                    // All keywords must be present
+                    const allKeywords = (rule.matchValue || '').toLowerCase().split(',').map(k => k.trim()).filter(k => k);
+                    if (allKeywords.length > 0) {
+                        const allPresent = allKeywords.every(kw => title.includes(kw));
+                        if (allPresent) {
+                            result.matched = true;
+                            result.matchType = 'contains_all';
+                            result.matchedTerms = allKeywords;
+                        }
+                    }
+                    break;
+
+                case 'contains_any':
+                    // Any keyword must be present
+                    const anyKeywords = (rule.matchValue || '').toLowerCase().split(',').map(k => k.trim()).filter(k => k);
+                    if (anyKeywords.length > 0) {
+                        const matched = anyKeywords.filter(kw => title.includes(kw));
+                        if (matched.length > 0) {
+                            result.matched = true;
+                            result.matchType = 'contains_any';
+                            result.matchedTerms = matched;
+                        }
+                    }
+                    break;
+
+                case 'price_range':
+                    // Match products within a price range
+                    const [minPrice, maxPrice] = (rule.matchValue || '0,999999').split(',').map(v => parseFloat(v.trim()) || 0);
+                    const productPrice = product.sales || product.price || 0;
+                    if (productPrice >= minPrice && productPrice <= maxPrice) {
+                        result.matched = true;
+                        result.matchType = 'price_range';
+                        result.matchedTerms = [`$${minPrice}-$${maxPrice}`];
+                    }
+                    break;
+
+                case 'channel':
+                    // Match by sales channel
+                    const channelMatch = (rule.matchValue || '').toLowerCase();
+                    if (channelMatch && salesChannel.includes(channelMatch)) {
+                        result.matched = true;
+                        result.matchType = 'channel';
+                        result.matchedTerms = [channelMatch];
+                    }
+                    break;
+
+                default:
+                    console.warn('Unknown rule type:', rule.type);
+            }
+
+            // Check exclude patterns if rule matched
+            if (result.matched && rule.excludePatterns && rule.excludePatterns.length > 0) {
+                for (const exclude of rule.excludePatterns) {
+                    if (title.includes(exclude.toLowerCase())) {
+                        result.matched = false;
+                        result.matchType = null;
+                        result.matchedTerms = [];
+                        break;
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        /**
+         * Calculate confidence score based on rule type and match quality
+         * Returns a percentage (0-100)
+         */
+        function calculateRuleConfidence(rule, matchResult) {
+            // Base confidence by match type
+            const baseConfidence = {
+                'exact': 98,      // Exact match is highest confidence
+                'pattern': 90,   // Regex pattern match
+                'contains_all': 88, // All keywords present
+                'keyword': 80,   // Single keyword match
+                'vendor': 85,    // Vendor match
+                'contains_any': 70, // Any keyword match
+                'price_range': 65,  // Price range is less specific
+                'channel': 60    // Channel match is contextual
+            };
+
+            let confidence = baseConfidence[matchResult.matchType] || 60;
+
+            // Boost confidence based on rule usage history
+            if (rule.timesApplied > 10) {
+                confidence = Math.min(99, confidence + 5);
+            } else if (rule.timesApplied > 5) {
+                confidence = Math.min(99, confidence + 3);
+            }
+
+            // Boost for rules with high priority (user-created corrections)
+            if (rule.priority >= 100) {
+                confidence = Math.min(99, confidence + 5);
+            }
+
+            // Reduce confidence slightly for older rules
+            if (rule.createdAt) {
+                const ruleAge = Date.now() - new Date(rule.createdAt).getTime();
+                const daysSinceCreation = ruleAge / (1000 * 60 * 60 * 24);
+                if (daysSinceCreation > 365) {
+                    confidence = Math.max(50, confidence - 5);
+                }
+            }
+
+            return Math.round(confidence);
+        }
+
+        /**
+         * Calculate confidence for AI-inferred categorization
+         */
+        function calculateAIConfidence(product, category, matchStrength) {
+            // AI confidence is generally lower than rule-based
+            const baseConfidence = {
+                'strong': 75,    // Strong keyword matches
+                'medium': 60,    // Some keywords match
+                'weak': 45,      // Default/fallback categorization
+                'default': 40    // Fallback to markets
+            };
+
+            let confidence = baseConfidence[matchStrength] || 50;
+
+            // Boost if product title is descriptive
+            const titleLength = (product.title || '').length;
+            if (titleLength > 30) {
+                confidence = Math.min(85, confidence + 5);
+            }
+
+            return Math.round(confidence);
+        }
+
+        /**
+         * Generate human-readable explanation for categorization
+         */
+        function generateCategoryExplanation(product, category, matchedRule, matchResult) {
+            const categoryInfo = PARSER_CATEGORIES[category] || { displayName: category };
+            let explanation = `Categorized as "${categoryInfo.displayName}"`;
+
+            if (matchedRule) {
+                explanation += ` because:\n`;
+                explanation += `- Rule "${matchedRule.name}" matched`;
+
+                if (matchResult && matchResult.matchType) {
+                    switch (matchResult.matchType) {
+                        case 'exact':
+                            explanation += ` (exact title match)`;
+                            break;
+                        case 'keyword':
+                            explanation += ` (contains "${matchResult.matchedTerms.join('", "')}")`;
+                            break;
+                        case 'contains_all':
+                            explanation += ` (contains all: ${matchResult.matchedTerms.join(' + ')})`;
+                            break;
+                        case 'contains_any':
+                            explanation += ` (contains: ${matchResult.matchedTerms.join(' or ')})`;
+                            break;
+                        case 'pattern':
+                            explanation += ` (matches pattern)`;
+                            break;
+                        case 'vendor':
+                            explanation += ` (vendor: ${matchResult.matchedTerms.join(', ')})`;
+                            break;
+                        case 'channel':
+                            explanation += ` (sales channel: ${matchResult.matchedTerms.join(', ')})`;
+                            break;
+                        case 'price_range':
+                            explanation += ` (price in range ${matchResult.matchedTerms.join('')})`;
+                            break;
+                    }
+                }
+
+                if (matchedRule.timesApplied > 1) {
+                    explanation += `\n- This rule has been applied ${matchedRule.timesApplied} times`;
+                }
+            } else {
+                explanation += ` (AI inference based on product keywords)`;
+            }
+
+            return explanation;
+        }
+
+        /**
+         * Generate AI reasoning for non-rule-based categorization
+         */
+        function generateAIReasoning(product, category, subcategory, matchedKeywords) {
+            const categoryInfo = PARSER_CATEGORIES[category] || { displayName: category };
+            const title = product.title || 'Unknown product';
+
+            let reasoning = `AI categorized "${title}" as "${categoryInfo.displayName}"`;
+
+            if (matchedKeywords && matchedKeywords.length > 0) {
+                reasoning += ` because it contains: ${matchedKeywords.join(', ')}`;
+            }
+
+            if (subcategory) {
+                reasoning += `. Subcategory: ${subcategory}`;
+            }
+
+            reasoning += '. No matching correction rule found.';
+
+            return reasoning;
+        }
+
+        /**
+         * Create a correction rule from user feedback
+         */
+        async function createCorrectionRuleFromFeedback(product, correctCategory, correctSubcategory, ruleType = 'keyword') {
+            const title = product.title || '';
+
+            // Determine the best match value based on rule type
+            let matchValue = title;
+            let ruleName = `Correction: ${title.substring(0, 30)}...`;
+
+            if (ruleType === 'exact_match') {
+                matchValue = title;
+                ruleName = `Exact: ${title.substring(0, 40)}`;
+            } else if (ruleType === 'keyword') {
+                // Extract the most distinctive word from the title
+                const words = title.split(/\s+/).filter(w => w.length > 3);
+                matchValue = words[0] || title;
+                ruleName = `Keyword: ${matchValue}`;
+            } else if (ruleType === 'contains_all') {
+                // Use multiple keywords
+                const keywords = title.toLowerCase().split(/\s+/)
+                    .filter(w => w.length > 3 && !['the', 'and', 'for', 'with'].includes(w))
+                    .slice(0, 3);
+                matchValue = keywords.join(', ');
+                ruleName = `Pattern: ${keywords.join(' + ')}`;
+            }
+
+            const rule = {
+                name: ruleName,
+                type: ruleType,
+                matchValue: matchValue,
+                targetCategory: correctCategory,
+                targetSubcategory: correctSubcategory,
+                priority: 100, // User corrections get high priority
+                active: true,
+                createdFrom: 'user_correction',
+                originalProduct: title,
+                excludePatterns: []
+            };
+
+            return await saveParserRule(rule);
+        }
+
         function createEmptyResult() {
             return {
                 csa: { summer: { amount: 0, count: 0 }, spring: { amount: 0, count: 0 }, fall: { amount: 0, count: 0 }, thanksgiving: { amount: 0, count: 0 }, total: 0, totalCount: 0, products: [] },
@@ -4828,28 +5523,106 @@
                     return;
                 }
 
+                // ===== APPLY CORRECTION RULES FIRST =====
+                // Check if any saved rules match this product BEFORE AI categorization
+                ruleApplicationStats.totalProcessed++;
+                const ruleResult = applyRulesToProduct(p);
+
+                if (ruleResult.matched) {
+                    // A rule matched - use the rule's category
+                    const productEntry = {
+                        title: originalTitle,
+                        sales,
+                        qty,
+                        subcategory: ruleResult.subcategory,
+                        categorizedBy: 'rule',
+                        ruleName: ruleResult.rule.name,
+                        ruleId: ruleResult.rule.id,
+                        confidence: ruleResult.confidence,
+                        aiReasoning: ruleResult.explanation
+                    };
+
+                    // Route to the correct category based on rule
+                    const targetCat = ruleResult.category;
+                    if (targetCat === 'csa') {
+                        const sub = ruleResult.subcategory || 'summer';
+                        if (result.csa[sub]) {
+                            result.csa[sub].amount += sales;
+                            result.csa[sub].count += qty;
+                        }
+                        result.csa.total += sales;
+                        result.csa.totalCount += qty;
+                        productEntry.subcategory = sub;
+                        result.csa.products.push(productEntry);
+                    } else if (targetCat === 'flowers') {
+                        const sub = ruleResult.subcategory || 'standard';
+                        if (result.flowers[sub]) {
+                            result.flowers[sub].amount += sales;
+                            result.flowers[sub].count += qty;
+                        }
+                        result.flowers.total += sales;
+                        result.flowers.totalCount += qty;
+                        productEntry.subcategory = sub;
+                        result.flowers.products.push(productEntry);
+                    } else if (targetCat === 'flowerSales') {
+                        result.flowerSales.total += sales;
+                        result.flowerSales.totalCount += qty;
+                        result.flowerSales.products.push(productEntry);
+                    } else if (targetCat === 'events') {
+                        result.events.total += sales;
+                        result.events.totalCount += qty;
+                        result.events.products.push(productEntry);
+                    } else if (targetCat === 'addons') {
+                        const sub = ruleResult.subcategory || 'other';
+                        if (result.addons[sub]) {
+                            result.addons[sub].amount += sales;
+                            result.addons[sub].count += qty;
+                        }
+                        result.addons.total += sales;
+                        result.addons.totalCount += qty;
+                        productEntry.subcategory = sub;
+                        result.addons.products.push(productEntry);
+                    } else if (targetCat === 'wholesale') {
+                        result.wholesale.total += sales;
+                        result.wholesale.totalCount += qty;
+                        productEntry.type = ruleResult.subcategory || 'other';
+                        result.wholesale.products.push(productEntry);
+                    } else if (targetCat === 'markets') {
+                        result.markets.total += sales;
+                        result.markets.totalCount += qty;
+                        result.markets.products.push(productEntry);
+                    }
+
+                    console.log(`Rule Applied: "${ruleResult.rule.name}" → ${originalTitle} → ${targetCat} (${ruleResult.confidence}%)`);
+                    return; // Skip the rest of categorization
+                }
+
                 // ===== HANDLE QuickBooks Customer Categories =====
                 const customerCategory = p.customerCategory || '';
                 if (customerCategory) {
+                    // QuickBooks categorization is based on explicit customer type, so high confidence
+                    const qbReasoning = `Categorized from QuickBooks customer type: ${customerCategory}`;
+                    const qbConfidence = 95; // QuickBooks explicit categorization is reliable
+
                     // This is from QuickBooks - route based on customer type
                     if (customerCategory === 'RESTAURANT' || customerCategory === 'BUSINESS') {
                         result.wholesale.total += sales;
                         result.wholesale.totalCount += qty;
-                        result.wholesale.products.push({ title: originalTitle, sales, qty, type: 'restaurant' });
+                        result.wholesale.products.push({ title: originalTitle, sales, qty, type: 'restaurant', categorizedBy: 'quickbooks', confidence: qbConfidence, aiReasoning: qbReasoning });
                         console.log('🍽️ Wholesale/Restaurant:', originalTitle, formatMoney(sales));
                         return;
                     }
                     if (customerCategory === 'FLORIST') {
                         result.wholesale.total += sales;
                         result.wholesale.totalCount += qty;
-                        result.wholesale.products.push({ title: originalTitle, sales, qty, type: 'florist' });
+                        result.wholesale.products.push({ title: originalTitle, sales, qty, type: 'florist', categorizedBy: 'quickbooks', confidence: qbConfidence, aiReasoning: qbReasoning });
                         console.log('💐 Wholesale/Florist:', originalTitle, formatMoney(sales));
                         return;
                     }
                     if (customerCategory === 'MARKET') {
                         result.wholesale.total += sales;
                         result.wholesale.totalCount += qty;
-                        result.wholesale.products.push({ title: originalTitle, sales, qty, type: 'market' });
+                        result.wholesale.products.push({ title: originalTitle, sales, qty, type: 'market', categorizedBy: 'quickbooks', confidence: qbConfidence, aiReasoning: qbReasoning });
                         console.log('🏪 Wholesale/Market:', originalTitle, formatMoney(sales));
                         return;
                     }
@@ -4857,7 +5630,7 @@
                         // Harvie is a wholesale distributor - they buy wholesale and resell retail
                         result.wholesale.total += sales;
                         result.wholesale.totalCount += qty;
-                        result.wholesale.products.push({ title: originalTitle, sales, qty, type: 'distributor' });
+                        result.wholesale.products.push({ title: originalTitle, sales, qty, type: 'distributor', categorizedBy: 'quickbooks', confidence: qbConfidence, aiReasoning: qbReasoning });
                         console.log('📦 Wholesale/Distributor:', originalTitle, formatMoney(sales));
                         return;
                     }
@@ -4865,7 +5638,7 @@
                         // PayPal - route to markets/direct for now
                         result.markets.total += sales;
                         result.markets.totalCount += qty;
-                        result.markets.products.push({ title: originalTitle, sales, qty });
+                        result.markets.products.push({ title: originalTitle, sales, qty, categorizedBy: 'quickbooks', confidence: qbConfidence, aiReasoning: qbReasoning });
                         console.log('💳 Online Sales:', originalTitle, formatMoney(sales));
                         return;
                     }
@@ -4873,7 +5646,7 @@
                         // Individual customers (deleted) - direct sales
                         result.markets.total += sales;
                         result.markets.totalCount += qty;
-                        result.markets.products.push({ title: originalTitle, sales, qty });
+                        result.markets.products.push({ title: originalTitle, sales, qty, categorizedBy: 'quickbooks', confidence: qbConfidence, aiReasoning: qbReasoning });
                         return;
                     }
                     if (customerCategory === 'OTHER') {
@@ -4881,7 +5654,7 @@
                         // Route to wholesale as "other" type so they appear in the list for review
                         result.wholesale.total += sales;
                         result.wholesale.totalCount += qty;
-                        result.wholesale.products.push({ title: originalTitle, sales, qty, type: 'other' });
+                        result.wholesale.products.push({ title: originalTitle, sales, qty, type: 'other', categorizedBy: 'quickbooks', confidence: 70, aiReasoning: 'Unknown QuickBooks customer type - needs review' });
                         console.log('❓ Unknown Business:', originalTitle, formatMoney(sales));
                         return;
                     }
@@ -4898,7 +5671,10 @@
                             title: `POS Sales: ${locationName}`,
                             sales,
                             qty,
-                            location: locationName
+                            location: locationName,
+                            categorizedBy: 'pos',
+                            confidence: 98,
+                            aiReasoning: `Categorized as Farmers Market from POS location: ${locationName}`
                         });
                         console.log('🏪 Farmers Market POS:', locationName, formatMoney(sales));
                     }
@@ -4911,6 +5687,8 @@
                 }
 
                 let categorized = false;
+                let matchedKeywords = []; // Track which keywords triggered categorization
+                ruleApplicationStats.aiCategorized++; // This will be AI categorized (no rule matched)
 
                 // ===== CSA SUBSCRIPTIONS =====
                 // Must have CSA/veggie/share keywords AND NOT be an add-on or flower
@@ -4918,27 +5696,36 @@
                     !title.includes('flower') && !title.includes('dahlia') && !title.includes('add-on') && !title.includes('add on') &&
                     !title.includes('mushroom') && !title.includes('bread') && !title.includes('cheese') && !title.includes('coffee')) {
 
+                    // Track which keywords matched
+                    if (title.includes('csa')) matchedKeywords.push('csa');
+                    if (title.includes('veggie')) matchedKeywords.push('veggie');
+                    if (title.includes('vegetable')) matchedKeywords.push('vegetable');
+                    if (title.includes('share')) matchedKeywords.push('share');
+
+                    const aiReasoning = generateAIReasoning(p, 'csa', null, matchedKeywords);
+                    const confidence = calculateAIConfidence(p, 'csa', matchedKeywords.length > 1 ? 'strong' : 'medium');
+
                     if (title.includes('summer') || title.includes('late start') || title.includes('friends and family')) {
                         result.csa.summer.amount += sales;
                         result.csa.summer.count += qty;
-                        result.csa.products.push({ title: originalTitle, sales, qty, subcategory: 'summer' });
+                        result.csa.products.push({ title: originalTitle, sales, qty, subcategory: 'summer', categorizedBy: 'ai', confidence, aiReasoning });
                     } else if (title.includes('spring')) {
                         result.csa.spring.amount += sales;
                         result.csa.spring.count += qty;
-                        result.csa.products.push({ title: originalTitle, sales, qty, subcategory: 'spring' });
+                        result.csa.products.push({ title: originalTitle, sales, qty, subcategory: 'spring', categorizedBy: 'ai', confidence, aiReasoning });
                     } else if (title.includes('fall')) {
                         result.csa.fall.amount += sales;
                         result.csa.fall.count += qty;
-                        result.csa.products.push({ title: originalTitle, sales, qty, subcategory: 'fall' });
+                        result.csa.products.push({ title: originalTitle, sales, qty, subcategory: 'fall', categorizedBy: 'ai', confidence, aiReasoning });
                     } else if (title.includes('thanksgiving')) {
                         result.csa.thanksgiving.amount += sales;
                         result.csa.thanksgiving.count += qty;
-                        result.csa.products.push({ title: originalTitle, sales, qty, subcategory: 'thanksgiving' });
+                        result.csa.products.push({ title: originalTitle, sales, qty, subcategory: 'thanksgiving', categorizedBy: 'ai', confidence, aiReasoning });
                     } else {
                         // Default to summer for generic CSA
                         result.csa.summer.amount += sales;
                         result.csa.summer.count += qty;
-                        result.csa.products.push({ title: originalTitle, sales, qty, subcategory: 'summer' });
+                        result.csa.products.push({ title: originalTitle, sales, qty, subcategory: 'summer', categorizedBy: 'ai', confidence, aiReasoning });
                     }
                     result.csa.total += sales;
                     result.csa.totalCount += qty;
@@ -4949,29 +5736,37 @@
                 // STRICT: Must have "subscription" in the name to be a subscription!
                 // Individual bouquets, DIY buckets, dried flowers = Farmers Market
                 else if (title.includes('subscription') && (title.includes('flower') || title.includes('dahlia') || title.includes('bloom'))) {
+                    matchedKeywords = ['subscription'];
+                    if (title.includes('flower')) matchedKeywords.push('flower');
+                    if (title.includes('dahlia')) matchedKeywords.push('dahlia');
+                    if (title.includes('bloom')) matchedKeywords.push('bloom');
+
+                    const aiReasoning = generateAIReasoning(p, 'flowers', null, matchedKeywords);
+                    const confidence = calculateAIConfidence(p, 'flowers', 'strong');
+
                     // Dahlia CSA/Subscription
                     if (title.includes('dahlia')) {
                         result.flowers.dahlia.amount += sales;
                         result.flowers.dahlia.count += qty;
-                        result.flowers.products.push({ title: originalTitle, sales, qty, subcategory: 'dahlia' });
+                        result.flowers.products.push({ title: originalTitle, sales, qty, subcategory: 'dahlia', categorizedBy: 'ai', confidence, aiReasoning });
                     }
                     // Full Bloom tier
                     else if (title.includes('full bloom')) {
                         result.flowers.fullBloom.amount += sales;
                         result.flowers.fullBloom.count += qty;
-                        result.flowers.products.push({ title: originalTitle, sales, qty, subcategory: 'fullBloom' });
+                        result.flowers.products.push({ title: originalTitle, sales, qty, subcategory: 'fullBloom', categorizedBy: 'ai', confidence, aiReasoning });
                     }
                     // Petite Bloom tier
                     else if (title.includes('petite bloom') || title.includes('petite')) {
                         result.flowers.petiteBloom.amount += sales;
                         result.flowers.petiteBloom.count += qty;
-                        result.flowers.products.push({ title: originalTitle, sales, qty, subcategory: 'petiteBloom' });
+                        result.flowers.products.push({ title: originalTitle, sales, qty, subcategory: 'petiteBloom', categorizedBy: 'ai', confidence, aiReasoning });
                     }
                     // Standard flower subscription
                     else {
                         result.flowers.standard.amount += sales;
                         result.flowers.standard.count += qty;
-                        result.flowers.products.push({ title: originalTitle, sales, qty, subcategory: 'standard' });
+                        result.flowers.products.push({ title: originalTitle, sales, qty, subcategory: 'standard', categorizedBy: 'ai', confidence, aiReasoning });
                     }
                     result.flowers.total += sales;
                     result.flowers.totalCount += qty;
@@ -4979,37 +5774,49 @@
                 }
                 // Dahlia CSA Share (older format without "subscription" keyword)
                 else if (title.includes('dahlia') && title.includes('csa')) {
+                    matchedKeywords = ['dahlia', 'csa'];
+                    const aiReasoning = generateAIReasoning(p, 'flowers', 'dahlia', matchedKeywords);
+                    const confidence = calculateAIConfidence(p, 'flowers', 'strong');
+
                     result.flowers.dahlia.amount += sales;
                     result.flowers.dahlia.count += qty;
                     result.flowers.total += sales;
                     result.flowers.totalCount += qty;
-                    result.flowers.products.push({ title: originalTitle, sales, qty, subcategory: 'dahlia' });
+                    result.flowers.products.push({ title: originalTitle, sales, qty, subcategory: 'dahlia', categorizedBy: 'ai', confidence, aiReasoning });
                     categorized = true;
                 }
 
                 // ===== PARTNER ADD-ONS =====
                 // Must have "add" or "add-on" in the name
                 else if (title.includes('add-on') || title.includes('add on') || (title.includes('add') && title.includes('csa'))) {
+                    matchedKeywords = ['add-on'];
+                    let subcategory = 'other';
+
                     if (title.includes('mushroom')) {
+                        matchedKeywords.push('mushroom');
+                        subcategory = 'mushrooms';
                         result.addons.mushrooms.amount += sales;
                         result.addons.mushrooms.count += qty;
-                        result.addons.products.push({ title: originalTitle, sales, qty, subcategory: 'mushrooms' });
                     } else if (title.includes('bread')) {
+                        matchedKeywords.push('bread');
+                        subcategory = 'bread';
                         result.addons.bread.amount += sales;
                         result.addons.bread.count += qty;
-                        result.addons.products.push({ title: originalTitle, sales, qty, subcategory: 'bread' });
                     } else if (title.includes('cheese') || title.includes('goat rodeo')) {
+                        matchedKeywords.push(title.includes('cheese') ? 'cheese' : 'goat rodeo');
+                        subcategory = 'cheese';
                         result.addons.cheese.amount += sales;
                         result.addons.cheese.count += qty;
-                        result.addons.products.push({ title: originalTitle, sales, qty, subcategory: 'cheese' });
                     } else if (title.includes('coffee') || title.includes('redhawk')) {
+                        matchedKeywords.push(title.includes('coffee') ? 'coffee' : 'redhawk');
+                        subcategory = 'coffee';
                         result.addons.coffee.amount += sales;
                         result.addons.coffee.count += qty;
-                        result.addons.products.push({ title: originalTitle, sales, qty, subcategory: 'coffee' });
-                    } else {
-                        // Unknown add-on, still count it
-                        result.addons.products.push({ title: originalTitle, sales, qty, subcategory: 'other' });
                     }
+
+                    const aiReasoning = generateAIReasoning(p, 'addons', subcategory, matchedKeywords);
+                    const confidence = calculateAIConfidence(p, 'addons', matchedKeywords.length > 1 ? 'strong' : 'medium');
+                    result.addons.products.push({ title: originalTitle, sales, qty, subcategory, categorizedBy: 'ai', confidence, aiReasoning });
                     result.addons.total += sales;
                     result.addons.totalCount += qty;
                     categorized = true;
@@ -5020,9 +5827,19 @@
                 else if (title.includes('pick your own') || title.includes('u-pick') ||
                          title.includes('workshop') || title.includes('experience') ||
                          title.includes('field to vase') || title.includes('pick your own pass')) {
+                    matchedKeywords = [];
+                    if (title.includes('pick your own')) matchedKeywords.push('pick your own');
+                    if (title.includes('u-pick')) matchedKeywords.push('u-pick');
+                    if (title.includes('workshop')) matchedKeywords.push('workshop');
+                    if (title.includes('experience')) matchedKeywords.push('experience');
+                    if (title.includes('field to vase')) matchedKeywords.push('field to vase');
+
+                    const aiReasoning = generateAIReasoning(p, 'events', null, matchedKeywords);
+                    const confidence = calculateAIConfidence(p, 'events', 'strong');
+
                     result.events.total += sales;
                     result.events.totalCount += qty;
-                    result.events.products.push({ title: originalTitle, sales, qty });
+                    result.events.products.push({ title: originalTitle, sales, qty, categorizedBy: 'ai', confidence, aiReasoning });
                     categorized = true;
                 }
 
@@ -5032,20 +5849,45 @@
                          title.includes('dried') || title.includes('fleur') ||
                          title.includes('wreath') || title.includes('arrangement') ||
                          (title.includes('flower') && !title.includes('subscription') && !title.includes('edible'))) {
+                    matchedKeywords = [];
+                    if (title.includes('bouquet')) matchedKeywords.push('bouquet');
+                    if (title.includes('bloom bucket')) matchedKeywords.push('bloom bucket');
+                    if (title.includes('dried')) matchedKeywords.push('dried');
+                    if (title.includes('wreath')) matchedKeywords.push('wreath');
+                    if (title.includes('arrangement')) matchedKeywords.push('arrangement');
+                    if (title.includes('flower')) matchedKeywords.push('flower');
+
+                    const aiReasoning = generateAIReasoning(p, 'flowerSales', null, matchedKeywords);
+                    const confidence = calculateAIConfidence(p, 'flowerSales', 'medium');
+
                     result.flowerSales.total += sales;
                     result.flowerSales.totalCount += qty;
-                    result.flowerSales.products.push({ title: originalTitle, sales, qty });
+                    result.flowerSales.products.push({ title: originalTitle, sales, qty, categorizedBy: 'ai', confidence, aiReasoning });
                     categorized = true;
                 }
 
                 // ===== FARMERS MARKET / DIRECT SALES =====
                 // Everything else: individual produce, seedlings, etc.
                 if (!categorized) {
+                    const aiReasoning = generateAIReasoning(p, 'markets', null, ['default fallback']);
+                    const confidence = calculateAIConfidence(p, 'markets', 'default');
+
                     result.markets.total += sales;
                     result.markets.totalCount += qty;
-                    result.markets.products.push({ title: originalTitle, sales, qty });
+                    result.markets.products.push({ title: originalTitle, sales, qty, categorizedBy: 'ai', confidence, aiReasoning });
                 }
             });
+
+            // Store rule application stats in result
+            result.ruleStats = {
+                rulesApplied: ruleApplicationStats.rulesApplied,
+                aiCategorized: ruleApplicationStats.aiCategorized,
+                totalProcessed: ruleApplicationStats.totalProcessed,
+                rulesAvailable: parserRules.length
+            };
+
+            // Reset stats for next batch
+            ruleApplicationStats = { rulesApplied: 0, aiCategorized: 0, totalProcessed: 0 };
 
             // Calculate grand total
             result.grandTotal = result.csa.total + result.flowers.total + result.flowerSales.total +
@@ -5067,12 +5909,29 @@
                 'TOTAL': formatMoney(result.grandTotal)
             });
 
+            // Log rule application stats
+            if (result.ruleStats) {
+                console.log('%c RULE APPLICATION STATS ', 'background: #9b59b6; color: white; font-size: 12px; padding: 2px 6px;');
+                console.log(`Rules available: ${result.ruleStats.rulesAvailable}`);
+                console.log(`Products categorized by rules: ${result.ruleStats.rulesApplied}`);
+                console.log(`Products categorized by AI: ${result.ruleStats.aiCategorized}`);
+                console.log(`Total products processed: ${result.ruleStats.totalProcessed}`);
+            }
+
             return result;
         }
 
         function displayWholesaleBreakdown(products) {
             const container = document.getElementById('wholesaleProductsList');
             if (!container || !products || products.length === 0) return;
+
+            // Helper to create clickable product row
+            function createWholesaleProductRow(p) {
+                const productData = JSON.stringify(p).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                return `<div class="product-row-clickable" onclick="openCorrectionModal(JSON.parse(this.dataset.product.replace(/&quot;/g, '&quot;')), 'wholesale', 85)" data-product="${productData}" style="display: flex; justify-content: space-between; padding: 0.25rem 0; border-bottom: 1px solid var(--border);">
+                    <span>${p.title}<i class="fas fa-edit edit-icon"></i></span><span>${formatMoney(p.sales)}</span>
+                </div>`;
+            }
 
             // Group by type
             const byType = { restaurant: [], florist: [], market: [], distributor: [], other: [] };
@@ -5091,9 +5950,7 @@
                     <strong style="color: var(--warning);"><i class="fas fa-utensils"></i> Restaurants (${formatMoney(restaurantTotal)})</strong>
                     <div style="margin-top: 0.5rem;">`;
                 byType.restaurant.sort((a, b) => b.sales - a.sales).forEach(p => {
-                    html += `<div style="display: flex; justify-content: space-between; padding: 0.25rem 0; border-bottom: 1px solid var(--border);">
-                        <span>${p.title}</span><span>${formatMoney(p.sales)}</span>
-                    </div>`;
+                    html += createWholesaleProductRow(p);
                 });
                 html += '</div></div>';
             }
@@ -5105,9 +5962,7 @@
                     <strong style="color: #e91e63;"><i class="fas fa-spa"></i> Florists (${formatMoney(floristTotal)})</strong>
                     <div style="margin-top: 0.5rem;">`;
                 byType.florist.sort((a, b) => b.sales - a.sales).forEach(p => {
-                    html += `<div style="display: flex; justify-content: space-between; padding: 0.25rem 0; border-bottom: 1px solid var(--border);">
-                        <span>${p.title}</span><span>${formatMoney(p.sales)}</span>
-                    </div>`;
+                    html += createWholesaleProductRow(p);
                 });
                 html += '</div></div>';
             }
@@ -5119,9 +5974,7 @@
                     <strong style="color: var(--info);"><i class="fas fa-store"></i> Markets/Grocery (${formatMoney(marketTotal)})</strong>
                     <div style="margin-top: 0.5rem;">`;
                 byType.market.sort((a, b) => b.sales - a.sales).forEach(p => {
-                    html += `<div style="display: flex; justify-content: space-between; padding: 0.25rem 0; border-bottom: 1px solid var(--border);">
-                        <span>${p.title}</span><span>${formatMoney(p.sales)}</span>
-                    </div>`;
+                    html += createWholesaleProductRow(p);
                 });
                 html += '</div></div>';
             }
@@ -5133,9 +5986,7 @@
                     <strong style="color: var(--primary);"><i class="fas fa-truck"></i> Distributors (${formatMoney(distributorTotal)})</strong>
                     <div style="margin-top: 0.5rem;">`;
                 byType.distributor.sort((a, b) => b.sales - a.sales).forEach(p => {
-                    html += `<div style="display: flex; justify-content: space-between; padding: 0.25rem 0; border-bottom: 1px solid var(--border);">
-                        <span>${p.title}</span><span>${formatMoney(p.sales)}</span>
-                    </div>`;
+                    html += createWholesaleProductRow(p);
                 });
                 html += '</div></div>';
             }
@@ -5145,12 +5996,10 @@
                 const otherTotal = byType.other.reduce((sum, p) => sum + p.sales, 0);
                 html += `<div style="margin-bottom: 1rem;">
                     <strong style="color: var(--text-secondary);"><i class="fas fa-question-circle"></i> Other Businesses - Review (${formatMoney(otherTotal)})</strong>
-                    <div style="margin-top: 0.5rem; font-size: 0.8rem; opacity: 0.7;">These customers need categorization</div>
+                    <div style="margin-top: 0.5rem; font-size: 0.8rem; opacity: 0.7;">These customers need categorization - click to fix</div>
                     <div style="margin-top: 0.5rem;">`;
                 byType.other.sort((a, b) => b.sales - a.sales).forEach(p => {
-                    html += `<div style="display: flex; justify-content: space-between; padding: 0.25rem 0; border-bottom: 1px solid var(--border);">
-                        <span>${p.title}</span><span>${formatMoney(p.sales)}</span>
-                    </div>`;
+                    html += createWholesaleProductRow(p);
                 });
                 html += '</div></div>';
             }
@@ -5296,7 +6145,7 @@
                 flowerSalesNote.textContent = data.flowerSales.totalCount > 0 ? `(${data.flowerSales.totalCount} items)` : '(bouquets, dried, etc.)';
             }
             if (data.flowerSales.products && data.flowerSales.products.length > 0) {
-                displayProductsList('flowerSalesProductsList', data.flowerSales.products);
+                displayProductsList('flowerSalesProductsList', data.flowerSales.products, 'flowerSales');
             }
 
             // Set Farm Events total
@@ -5306,7 +6155,7 @@
                 eventsNote.textContent = data.events.totalCount > 0 ? `(${data.events.totalCount} tickets/passes)` : '(agritourism)';
             }
             if (data.events.products && data.events.products.length > 0) {
-                displayProductsList('eventsProductsList', data.events.products);
+                displayProductsList('eventsProductsList', data.events.products, 'events');
             }
 
             // Set markets total directly from parsed data (not from input fields)
@@ -5342,15 +6191,18 @@
             document.getElementById('categoryCsa').classList.add('expanded');
         }
 
-        function displayProductsList(containerId, products) {
+        function displayProductsList(containerId, products, category = 'markets') {
             const container = document.getElementById(containerId);
             if (!container || !products.length) return;
 
             let html = '';
             products.sort((a, b) => b.sales - a.sales).forEach(p => {
+                // Calculate confidence based on subcategory presence (higher if explicitly matched)
+                const confidence = p.subcategory ? 90 : 70;
+                const productData = JSON.stringify(p).replace(/'/g, "\\'").replace(/"/g, '&quot;');
                 html += `
-                    <div style="display: flex; justify-content: space-between; padding: 0.4rem 0; font-size: 0.85rem; border-bottom: 1px solid var(--border);">
-                        <span style="color: var(--text-secondary);">${p.title}</span>
+                    <div class="product-row-clickable" onclick="openCorrectionModal(JSON.parse(this.dataset.product.replace(/&quot;/g, '&quot;')), '${category}', ${confidence})" data-product="${productData}" style="display: flex; justify-content: space-between; padding: 0.4rem 0; font-size: 0.85rem; border-bottom: 1px solid var(--border);">
+                        <span style="color: var(--text-secondary);">${p.title}<i class="fas fa-edit edit-icon"></i></span>
                         <span style="font-weight: 500;">${formatMoney(p.sales)}</span>
                     </div>
                 `;
@@ -5401,9 +6253,10 @@
             if (otherProducts.length > 0) {
                 html += '<div style="margin: 1rem 0 0.5rem;"><strong>Individual Products:</strong></div>';
                 otherProducts.sort((a, b) => b.sales - a.sales).slice(0, 10).forEach(p => {
+                    const productData = JSON.stringify(p).replace(/'/g, "\\'").replace(/"/g, '&quot;');
                     html += `
-                        <div style="display: flex; justify-content: space-between; padding: 0.25rem 0; font-size: 0.85rem; border-bottom: 1px solid var(--border);">
-                            <span style="color: var(--text-secondary);">${p.title}</span>
+                        <div class="product-row-clickable" onclick="openCorrectionModal(JSON.parse(this.dataset.product.replace(/&quot;/g, '&quot;')), 'markets', 70)" data-product="${productData}" style="display: flex; justify-content: space-between; padding: 0.25rem 0; font-size: 0.85rem; border-bottom: 1px solid var(--border);">
+                            <span style="color: var(--text-secondary);">${p.title}<i class="fas fa-edit edit-icon"></i></span>
                             <span>${formatMoney(p.sales)}</span>
                         </div>
                     `;
@@ -6480,6 +7333,625 @@
             URL.revokeObjectURL(url);
             showNotification('Marketing plan downloaded!', 'success');
         }
+
+        // ============ RULES MANAGEMENT ============
+        // (Correction modal functions moved to new slide-in panel at end of file)
+
+        /**
+         * Open the rules management modal
+         */
+        function openRulesModal() {
+            renderRulesList();
+            document.getElementById('rulesModal').classList.add('active');
+        }
+
+        /**
+         * Render the list of all parser rules
+         */
+        function renderRulesList() {
+            const container = document.getElementById('rulesListContainer');
+
+            if (parserRules.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        <i class="fas fa-info-circle fa-2x" style="margin-bottom: 1rem;"></i>
+                        <p>No correction rules yet.</p>
+                        <p style="font-size: 0.85rem;">Rules are created when you correct product categorizations.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '<div style="display: flex; flex-direction: column; gap: 0.75rem;">';
+
+            parserRules.forEach(rule => {
+                const categoryInfo = PARSER_CATEGORIES[rule.targetCategory] || { displayName: rule.targetCategory, icon: 'fa-tag' };
+                const createdDate = rule.createdAt ? new Date(rule.createdAt).toLocaleDateString() : 'Unknown';
+
+                html += `
+                    <div style="background: var(--bg-lighter); border: 1px solid var(--border); border-radius: 8px; padding: 1rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem;">
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600; margin-bottom: 0.25rem;">${escapeHtml(rule.name)}</div>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);">
+                                    <span style="margin-right: 1rem;"><i class="fas fa-arrow-right"></i> ${categoryInfo.displayName}</span>
+                                    <span style="margin-right: 1rem;"><i class="fas fa-layer-group"></i> ${rule.type}</span>
+                                    <span><i class="fas fa-check-circle"></i> Applied ${rule.timesApplied || 0}x</span>
+                                </div>
+                                <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                                    Match: "${escapeHtml(rule.matchValue || '')}" | Created: ${createdDate}
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button onclick="toggleRuleActive('${rule.id}')" class="btn btn-sm" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background: ${rule.active ? 'var(--success)' : 'var(--danger)'};">
+                                    ${rule.active ? 'Active' : 'Inactive'}
+                                </button>
+                                <button onclick="deleteRuleConfirm('${rule.id}')" class="btn btn-sm" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background: var(--danger);">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        /**
+         * Toggle a rule's active state
+         */
+        async function toggleRuleActive(ruleId) {
+            const rule = parserRules.find(r => r.id === ruleId);
+            if (rule) {
+                rule.active = !rule.active;
+                await saveParserRule(rule);
+                renderRulesList();
+                showNotification(`Rule ${rule.active ? 'activated' : 'deactivated'}`, 'success');
+            }
+        }
+
+        /**
+         * Confirm and delete a rule
+         */
+        async function deleteRuleConfirm(ruleId) {
+            if (confirm('Are you sure you want to delete this rule?')) {
+                await deleteParserRule(ruleId);
+                renderRulesList();
+                showNotification('Rule deleted', 'success');
+            }
+        }
+
+        /**
+         * Export rules as JSON
+         */
+        function exportRules() {
+            const blob = new Blob([JSON.stringify(parserRules, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `parser_rules_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showNotification('Rules exported!', 'success');
+        }
+
+        /**
+         * Import rules from JSON file
+         */
+        function importRules(file) {
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const importedRules = JSON.parse(e.target.result);
+                    if (Array.isArray(importedRules)) {
+                        for (const rule of importedRules) {
+                            await saveParserRule(rule);
+                        }
+                        showNotification(`Imported ${importedRules.length} rules!`, 'success');
+                        renderRulesList();
+                    }
+                } catch (error) {
+                    showNotification('Error importing rules: ' + error.message, 'error');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        /**
+         * Escape HTML to prevent XSS
+         */
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text || '';
+            return div.innerHTML;
+        }
+
+        /**
+         * Render a product row with categorization badge
+         */
+        function renderProductWithBadge(product, category) {
+            const isByRule = product.categorizedBy === 'rule';
+            const confidence = product.confidence || 50;
+            const confidenceClass = confidence >= 80 ? 'high' : confidence >= 60 ? 'medium' : 'low';
+
+            return `
+                <div class="product-row">
+                    <div class="product-info">
+                        <div class="product-title">${escapeHtml(product.title)}</div>
+                        <div class="product-meta">
+                            <span class="categorization-badge ${isByRule ? 'rule' : 'ai'}">
+                                <i class="fas fa-${isByRule ? 'cog' : 'robot'}"></i>
+                                ${isByRule ? 'Rule' : 'AI'}
+                            </span>
+                            <span class="confidence-bar">
+                                <span class="confidence-fill ${confidenceClass}" style="width: ${confidence}%;"></span>
+                            </span>
+                            <span style="font-size: 0.7rem; color: var(--text-secondary);">${confidence}%</span>
+                        </div>
+                    </div>
+                    <div class="product-actions">
+                        <span style="font-weight: 600; color: var(--success);">${formatMoney(product.sales)}</span>
+                        <button class="correct-btn" onclick='openCorrectionModal(${JSON.stringify(product).replace(/'/g, "&#39;")}, "${category}")'>
+                            <i class="fas fa-edit"></i> Correct
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        /**
+         * Render rule stats banner
+         */
+        function renderRuleStatsBanner(ruleStats) {
+            if (!ruleStats) return '';
+
+            return `
+                <div class="rule-stats-banner">
+                    <div class="rule-stats-item rules">
+                        <i class="fas fa-cog"></i>
+                        <span><strong>${ruleStats.rulesApplied}</strong> by rules</span>
+                    </div>
+                    <div class="rule-stats-item ai">
+                        <i class="fas fa-robot"></i>
+                        <span><strong>${ruleStats.aiCategorized}</strong> by AI</span>
+                    </div>
+                    <div class="rule-stats-item">
+                        <i class="fas fa-database" style="color: var(--text-secondary);"></i>
+                        <span><strong>${ruleStats.rulesAvailable}</strong> rules available</span>
+                    </div>
+                    <button class="btn btn-sm" style="padding: 0.25rem 0.75rem; font-size: 0.8rem;" onclick="openRulesModal()">
+                        <i class="fas fa-cogs"></i> Manage Rules
+                    </button>
+                </div>
+            `;
+        }
+
+        // ====== AI RECATEGORIZATION MODAL FUNCTIONS ======
+
+        // Category configuration for display
+        const CATEGORY_CONFIG = {
+            csa: { name: 'CSA Subscriptions', icon: 'fa-box-open', color: 'var(--success)' },
+            flowers: { name: 'Flower Subscriptions', icon: 'fa-seedling', color: 'var(--warning)' },
+            flowerSales: { name: 'Flower Sales', icon: 'fa-spa', color: '#e91e63' },
+            events: { name: 'Farm Events', icon: 'fa-tractor', color: '#8bc34a' },
+            addons: { name: 'Partner Add-Ons', icon: 'fa-handshake', color: 'var(--info)' },
+            markets: { name: 'Farmers Market', icon: 'fa-store', color: 'var(--purple)' },
+            wholesale: { name: 'Wholesale', icon: 'fa-building', color: 'var(--gold)' }
+        };
+
+        // Current correction state
+        let currentCorrectionProduct = null;
+        let selectedNewCategory = null;
+
+        // Open the correction modal
+        function openCorrectionModal(product, category, confidence = 85) {
+            currentCorrectionProduct = { ...product, currentCategory: category, confidence };
+            selectedNewCategory = null;
+
+            // Update product info
+            document.getElementById('correctionProductTitle').textContent = product.title || 'Unknown Product';
+            document.getElementById('correctionProductSales').textContent = formatMoney(product.sales || 0);
+            document.getElementById('correctionProductQty').textContent = product.qty || 1;
+
+            // Update current category display
+            const catConfig = CATEGORY_CONFIG[category] || CATEGORY_CONFIG.markets;
+            document.getElementById('currentCategoryIcon').innerHTML = `<i class="fas ${catConfig.icon}"></i>`;
+            document.getElementById('currentCategoryName').textContent = catConfig.name;
+
+            // Update confidence badge
+            const confLevel = confidence >= 85 ? 'high' : (confidence >= 70 ? 'medium' : 'low');
+            const confText = confidence >= 85 ? 'Very likely' : (confidence >= 70 ? 'Likely' : 'Uncertain');
+            document.getElementById('currentCategoryConfidence').className = `confidence-badge-lg ${confLevel}`;
+            document.getElementById('currentCategoryConfidence').innerHTML = `
+                ${confidence}%<span class="confidence-text">${confText}</span>
+            `;
+
+            // Generate AI reasoning
+            const reasoning = generateAIReasoning(product, category);
+            document.getElementById('aiReasoningList').innerHTML = reasoning.map(r => `
+                <li><i class="fas fa-check-circle"></i> ${r}</li>
+            `).join('');
+
+            // Generate category suggestions
+            const suggestions = generateCategorySuggestions(product, category);
+            document.getElementById('categorySuggestionsList').innerHTML = suggestions.map(s => `
+                <div class="category-suggestion" onclick="selectCategory('${s.category}')" data-category="${s.category}">
+                    <div class="category-suggestion-info">
+                        <div class="category-suggestion-icon">
+                            <i class="fas ${CATEGORY_CONFIG[s.category]?.icon || 'fa-tag'}"></i>
+                        </div>
+                        <div>
+                            <div class="category-suggestion-name">${CATEGORY_CONFIG[s.category]?.name || s.category}</div>
+                            <div class="category-suggestion-reason">${s.reason}</div>
+                        </div>
+                    </div>
+                    <div class="category-suggestion-confidence">
+                        <span class="confidence-badge ${s.confidence >= 70 ? (s.confidence >= 85 ? 'high' : 'medium') : 'low'}">${s.confidence}%</span>
+                    </div>
+                </div>
+            `).join('');
+
+            // Reset rule creation
+            document.getElementById('createRuleToggle').checked = false;
+            document.getElementById('ruleScopeOptions').classList.remove('active');
+            updateRulePreview();
+
+            // Show modal
+            document.getElementById('correctionModalOverlay').classList.add('active');
+            document.getElementById('correctionModal').classList.add('active');
+        }
+
+        // Close the correction modal
+        function closeCorrectionModal() {
+            document.getElementById('correctionModalOverlay').classList.remove('active');
+            document.getElementById('correctionModal').classList.remove('active');
+            currentCorrectionProduct = null;
+            selectedNewCategory = null;
+        }
+
+        // Select a new category
+        function selectCategory(newCategory) {
+            selectedNewCategory = newCategory;
+
+            // Update visual selection
+            document.querySelectorAll('.category-suggestion').forEach(el => {
+                el.classList.remove('selected');
+                if (el.dataset.category === newCategory) {
+                    el.classList.add('selected');
+                }
+            });
+
+            // Update rule preview
+            updateRulePreview();
+        }
+
+        // Generate AI reasoning for why a product was categorized
+        function generateAIReasoning(product, category) {
+            const title = (product.title || '').toLowerCase();
+            const reasons = [];
+
+            // Check for specific keywords based on category
+            if (category === 'csa') {
+                if (title.includes('csa')) reasons.push(`Contains keyword <span class="keyword-highlight">CSA</span>`);
+                if (title.includes('veggie') || title.includes('vegetable')) reasons.push(`Contains keyword <span class="keyword-highlight">veggie/vegetable</span>`);
+                if (title.includes('share')) reasons.push(`Contains keyword <span class="keyword-highlight">share</span>`);
+                if (title.match(/20\d{2}/)) reasons.push(`Contains year pattern <span class="keyword-highlight">${title.match(/20\d{2}/)[0]}</span> (subscription indicator)`);
+                if (title.includes('summer') || title.includes('spring') || title.includes('fall')) {
+                    const season = title.includes('summer') ? 'summer' : (title.includes('spring') ? 'spring' : 'fall');
+                    reasons.push(`Contains season <span class="keyword-highlight">${season}</span>`);
+                }
+            } else if (category === 'flowers') {
+                if (title.includes('subscription')) reasons.push(`Contains keyword <span class="keyword-highlight">subscription</span>`);
+                if (title.includes('flower')) reasons.push(`Contains keyword <span class="keyword-highlight">flower</span>`);
+                if (title.includes('dahlia')) reasons.push(`Contains keyword <span class="keyword-highlight">dahlia</span>`);
+                if (title.includes('bloom')) reasons.push(`Contains keyword <span class="keyword-highlight">bloom</span>`);
+            } else if (category === 'flowerSales') {
+                if (title.includes('bouquet')) reasons.push(`Contains keyword <span class="keyword-highlight">bouquet</span>`);
+                if (title.includes('dried')) reasons.push(`Contains keyword <span class="keyword-highlight">dried</span>`);
+                if (title.includes('wreath')) reasons.push(`Contains keyword <span class="keyword-highlight">wreath</span>`);
+                if (title.includes('bucket')) reasons.push(`Contains keyword <span class="keyword-highlight">bucket</span>`);
+            } else if (category === 'addons') {
+                if (title.includes('add-on') || title.includes('add on')) reasons.push(`Contains keyword <span class="keyword-highlight">add-on</span>`);
+                if (title.includes('mushroom')) reasons.push(`Partner product: <span class="keyword-highlight">mushrooms</span>`);
+                if (title.includes('bread')) reasons.push(`Partner product: <span class="keyword-highlight">bread</span>`);
+                if (title.includes('cheese') || title.includes('goat rodeo')) reasons.push(`Partner product: <span class="keyword-highlight">cheese</span>`);
+                if (title.includes('coffee') || title.includes('redhawk')) reasons.push(`Partner product: <span class="keyword-highlight">coffee</span>`);
+            } else if (category === 'events') {
+                if (title.includes('pick your own') || title.includes('u-pick')) reasons.push(`Contains keyword <span class="keyword-highlight">pick your own</span>`);
+                if (title.includes('workshop')) reasons.push(`Contains keyword <span class="keyword-highlight">workshop</span>`);
+                if (title.includes('experience')) reasons.push(`Contains keyword <span class="keyword-highlight">experience</span>`);
+            } else if (category === 'wholesale') {
+                if (product.customerCategory) reasons.push(`QuickBooks customer category: <span class="keyword-highlight">${product.customerCategory}</span>`);
+                if (title.includes('restaurant')) reasons.push(`Contains keyword <span class="keyword-highlight">restaurant</span>`);
+                if (title.includes('wholesale')) reasons.push(`Contains keyword <span class="keyword-highlight">wholesale</span>`);
+            } else if (category === 'markets') {
+                if (product.salesChannel === 'Point of Sale') reasons.push(`Sales channel: <span class="keyword-highlight">Point of Sale</span>`);
+                if (product.posLocation) reasons.push(`POS Location: <span class="keyword-highlight">${product.posLocation}</span>`);
+                reasons.push('Default category for unmatched products');
+            }
+
+            // Add fallback if no specific reasons found
+            if (reasons.length === 0) {
+                reasons.push('Matched based on product patterns');
+                reasons.push('No exclusion patterns detected');
+            }
+
+            return reasons;
+        }
+
+        // Generate alternative category suggestions
+        function generateCategorySuggestions(product, currentCategory) {
+            const title = (product.title || '').toLowerCase();
+            const suggestions = [];
+
+            // Define all possible categories except current
+            const allCategories = ['csa', 'flowers', 'flowerSales', 'events', 'addons', 'markets', 'wholesale'];
+
+            allCategories.forEach(cat => {
+                if (cat === currentCategory) return;
+
+                let confidence = 30; // Base confidence
+                let reason = 'Manual override';
+
+                // Calculate confidence based on keyword matches
+                if (cat === 'csa') {
+                    if (title.includes('csa') || title.includes('share')) { confidence += 40; reason = 'Contains CSA/share keywords'; }
+                    if (title.match(/20\d{2}/)) { confidence += 15; reason = 'Has year pattern'; }
+                } else if (cat === 'flowers') {
+                    if (title.includes('subscription') && title.includes('flower')) { confidence += 50; reason = 'Flower subscription pattern'; }
+                    if (title.includes('dahlia')) { confidence += 30; reason = 'Dahlia product'; }
+                } else if (cat === 'flowerSales') {
+                    if (title.includes('bouquet') || title.includes('dried')) { confidence += 45; reason = 'Individual flower sale'; }
+                    if (title.includes('wreath') || title.includes('arrangement')) { confidence += 40; reason = 'Floral arrangement'; }
+                } else if (cat === 'addons') {
+                    if (title.includes('add-on') || title.includes('add on')) { confidence += 50; reason = 'Add-on product'; }
+                    if (title.includes('mushroom') || title.includes('bread') || title.includes('cheese') || title.includes('coffee')) {
+                        confidence += 35; reason = 'Partner product detected';
+                    }
+                } else if (cat === 'events') {
+                    if (title.includes('pick') || title.includes('workshop') || title.includes('experience')) {
+                        confidence += 45; reason = 'Event/experience keywords';
+                    }
+                } else if (cat === 'wholesale') {
+                    if (title.includes('wholesale') || title.includes('bulk')) { confidence += 40; reason = 'Wholesale keywords'; }
+                } else if (cat === 'markets') {
+                    confidence = 50; reason = 'Default for direct sales';
+                }
+
+                // Only include if confidence is reasonable
+                if (confidence >= 40) {
+                    suggestions.push({ category: cat, confidence: Math.min(confidence, 95), reason });
+                }
+            });
+
+            // Sort by confidence and limit to 3
+            return suggestions.sort((a, b) => b.confidence - a.confidence).slice(0, 3);
+        }
+
+        // Toggle rule creation options
+        function toggleRuleOptions() {
+            const toggle = document.getElementById('createRuleToggle');
+            const options = document.getElementById('ruleScopeOptions');
+
+            if (toggle.checked) {
+                options.classList.add('active');
+            } else {
+                options.classList.remove('active');
+            }
+            updateRulePreview();
+        }
+
+        // Update rule preview text
+        function updateRulePreview() {
+            const previewEl = document.getElementById('rulePreview');
+            const previewTextEl = document.getElementById('rulePreviewText');
+
+            if (!document.getElementById('createRuleToggle').checked || !selectedNewCategory) {
+                previewEl.style.display = 'none';
+                return;
+            }
+
+            previewEl.style.display = 'block';
+            const productTitle = currentCorrectionProduct?.title || 'Product';
+            const scope = document.querySelector('input[name="ruleScope"]:checked')?.value || 'exact';
+
+            let ruleText = '';
+            if (scope === 'exact') {
+                ruleText = `"${productTitle}" => ${CATEGORY_CONFIG[selectedNewCategory]?.name || selectedNewCategory}`;
+            } else if (scope === 'keywords') {
+                const keywords = extractKeywords(productTitle);
+                ruleText = `Contains [${keywords.join(', ')}] => ${CATEGORY_CONFIG[selectedNewCategory]?.name || selectedNewCategory}`;
+            } else if (scope === 'vendor') {
+                ruleText = `All products from this source => ${CATEGORY_CONFIG[selectedNewCategory]?.name || selectedNewCategory}`;
+            }
+
+            previewTextEl.textContent = ruleText;
+        }
+
+        // Extract keywords from product title for rule creation
+        function extractKeywords(title) {
+            const words = title.toLowerCase().split(/\s+/);
+            const stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', '-', '--'];
+            return words.filter(w => w.length > 2 && !stopWords.includes(w) && !w.match(/^\d+$/)).slice(0, 4);
+        }
+
+        // Submit the correction
+        async function submitCorrection() {
+            if (!selectedNewCategory || !currentCorrectionProduct) {
+                showNotification('Please select a new category', 'error');
+                return;
+            }
+
+            const createRule = document.getElementById('createRuleToggle').checked;
+            const ruleScope = document.querySelector('input[name="ruleScope"]:checked')?.value || 'exact';
+
+            // Build correction payload
+            const correction = {
+                productTitle: currentCorrectionProduct.title,
+                originalCategory: currentCorrectionProduct.currentCategory,
+                newCategory: selectedNewCategory,
+                sales: currentCorrectionProduct.sales,
+                createRule: createRule,
+                ruleScope: ruleScope,
+                keywords: createRule && ruleScope === 'keywords' ? extractKeywords(currentCorrectionProduct.title) : null,
+                timestamp: new Date().toISOString()
+            };
+
+            console.log('Submitting correction:', correction);
+
+            try {
+                // Save to localStorage for now (would normally call backend)
+                const corrections = JSON.parse(localStorage.getItem('salesCorrections') || '[]');
+                corrections.push(correction);
+                localStorage.setItem('salesCorrections', JSON.stringify(corrections));
+
+                // If creating a rule, save it
+                if (createRule) {
+                    const rules = JSON.parse(localStorage.getItem('categorizationRules') || '[]');
+                    rules.push({
+                        type: ruleScope,
+                        pattern: ruleScope === 'exact' ? currentCorrectionProduct.title :
+                                 ruleScope === 'keywords' ? extractKeywords(currentCorrectionProduct.title) : null,
+                        category: selectedNewCategory,
+                        createdAt: new Date().toISOString()
+                    });
+                    localStorage.setItem('categorizationRules', JSON.stringify(rules));
+                }
+
+                showNotification(`Recategorized to ${CATEGORY_CONFIG[selectedNewCategory]?.name || selectedNewCategory}${createRule ? ' and rule created' : ''}`, 'success');
+                closeCorrectionModal();
+
+                // Optionally refresh the data display
+                // This would trigger a re-parse if we want to apply the correction immediately
+
+            } catch (error) {
+                console.error('Error saving correction:', error);
+                showNotification('Error saving correction', 'error');
+            }
+        }
+
+        // Helper to make product rows clickable - call this when displaying products
+        function makeProductClickable(productHtml, product, category, confidence = 85) {
+            // Escape the product data for use in onclick
+            const productJson = JSON.stringify(product).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            return productHtml.replace(
+                'style="display: flex;',
+                `class="product-row-clickable" onclick="openCorrectionModal(${productJson}, '${category}', ${confidence})" style="display: flex;`
+            );
+        }
     </script>
+
+    <!-- AI Recategorization Modal Overlay -->
+    <div id="correctionModalOverlay" class="correction-modal-overlay" onclick="closeCorrectionModal()"></div>
+
+    <!-- AI Recategorization Modal -->
+    <div id="correctionModal" class="correction-modal">
+        <div class="correction-header">
+            <h3><i class="fas fa-magic"></i> Recategorize Item</h3>
+            <button class="correction-close" onclick="closeCorrectionModal()">&times;</button>
+        </div>
+
+        <div class="correction-content">
+            <!-- Product Info -->
+            <div class="correction-product-info">
+                <div class="correction-product-title" id="correctionProductTitle">Product Name</div>
+                <div class="correction-product-meta">
+                    <span><i class="fas fa-dollar-sign"></i> <span id="correctionProductSales">$0.00</span></span>
+                    <span><i class="fas fa-hashtag"></i> <span id="correctionProductQty">1</span> sold</span>
+                </div>
+            </div>
+
+            <!-- Current Category -->
+            <div class="current-category">
+                <div class="current-category-label">Currently categorized as</div>
+                <div class="current-category-display">
+                    <div class="current-category-name">
+                        <div class="current-category-icon" id="currentCategoryIcon">
+                            <i class="fas fa-tag"></i>
+                        </div>
+                        <span id="currentCategoryName">Category</span>
+                    </div>
+                    <span id="currentCategoryConfidence" class="confidence-badge-lg high">
+                        85%<span class="confidence-text">Very likely</span>
+                    </span>
+                </div>
+            </div>
+
+            <!-- AI Reasoning -->
+            <div class="ai-reasoning">
+                <div class="ai-reasoning-header">
+                    <i class="fas fa-brain"></i> Why AI chose this category
+                </div>
+                <ul class="ai-reasoning-list" id="aiReasoningList">
+                    <li><i class="fas fa-check-circle"></i> Loading...</li>
+                </ul>
+            </div>
+
+            <!-- Category Suggestions -->
+            <div class="category-suggestions">
+                <div class="category-suggestions-header">Alternative Categories</div>
+                <div id="categorySuggestionsList">
+                    <!-- Suggestions populated dynamically -->
+                </div>
+            </div>
+
+            <!-- Rule Creation -->
+            <div class="rule-creation">
+                <div class="rule-creation-header">
+                    <label class="rule-toggle">
+                        <input type="checkbox" id="createRuleToggle" onchange="toggleRuleOptions()">
+                        <span class="rule-toggle-slider"></span>
+                    </label>
+                    <div class="rule-toggle-label">
+                        Apply to similar items
+                        <small>Create a rule for future categorization</small>
+                    </div>
+                </div>
+
+                <div id="ruleScopeOptions" class="rule-scope-options">
+                    <div class="rule-scope-label">Apply this rule to:</div>
+                    <div class="rule-scope-radio">
+                        <div class="rule-scope-option">
+                            <input type="radio" name="ruleScope" id="scopeExact" value="exact" checked onchange="updateRulePreview()">
+                            <label for="scopeExact">
+                                <div class="scope-name">Exact match only</div>
+                                <div class="scope-desc">Only this exact product name</div>
+                            </label>
+                        </div>
+                        <div class="rule-scope-option">
+                            <input type="radio" name="ruleScope" id="scopeKeywords" value="keywords" onchange="updateRulePreview()">
+                            <label for="scopeKeywords">
+                                <div class="scope-name">Similar keywords</div>
+                                <div class="scope-desc">Products with matching keywords</div>
+                            </label>
+                        </div>
+                        <div class="rule-scope-option">
+                            <input type="radio" name="ruleScope" id="scopeVendor" value="vendor" onchange="updateRulePreview()">
+                            <label for="scopeVendor">
+                                <div class="scope-name">All from this source</div>
+                                <div class="scope-desc">All products from the same vendor/source</div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="rulePreview" class="rule-preview" style="display: none;">
+                        <div class="rule-preview-header">Rule Preview</div>
+                        <div id="rulePreviewText" class="rule-preview-text"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="correction-footer">
+            <button class="btn btn-secondary" onclick="closeCorrectionModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="submitCorrection()">
+                <i class="fas fa-check"></i> Save Changes
+            </button>
+        </div>
+    </div>
 </body>
 </html>

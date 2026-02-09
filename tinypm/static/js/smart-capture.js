@@ -59,7 +59,9 @@ const SmartCapture = {
         inputValue: '',
         parsedTask: null,
         autoCreateTimer: null,
-        isParsing: false
+        isParsing: false,
+        isRecording: false,
+        recognition: null
     },
 
     // =========================================================================
@@ -131,8 +133,22 @@ const SmartCapture = {
         this.state.parsedTask = null;
         this.clearAutoCreateTimer();
 
+        // Stop any active voice recording
+        if (this.state.isRecording) {
+            this.stopVoiceInput();
+        }
+
         const input = document.getElementById('smart-capture-input');
-        if (input) input.value = '';
+        if (input) {
+            input.value = '';
+            input.classList.remove('interim-result');
+        }
+
+        // Hide voice status
+        const voiceStatus = document.getElementById('voice-status');
+        if (voiceStatus) {
+            voiceStatus.classList.remove('visible');
+        }
 
         this.updatePreview(null);
     },
@@ -598,45 +614,222 @@ const SmartCapture = {
     // =========================================================================
     // VOICE INPUT
     // =========================================================================
+
+    /**
+     * Check if voice input is supported in this browser
+     */
+    isVoiceSupported() {
+        return ('webkitSpeechRecognition' in window) || ('SpeechRecognition' in window);
+    },
+
+    /**
+     * Toggle voice input - start if not recording, stop if recording
+     */
+    toggleVoiceInput() {
+        if (this.state.isRecording) {
+            this.stopVoiceInput();
+        } else {
+            this.startVoiceInput();
+        }
+    },
+
+    /**
+     * Start voice recognition
+     */
     startVoiceInput() {
-        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-            alert('Voice input is not supported in this browser.');
+        // Check browser support
+        if (!this.isVoiceSupported()) {
+            this.showVoiceError('not-supported');
             return;
         }
+
+        // If already recording, do nothing
+        if (this.state.isRecording) return;
 
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         const recognition = new SpeechRecognition();
 
+        // Configure recognition
         recognition.continuous = false;
         recognition.interimResults = true;
         recognition.lang = 'en-US';
+        recognition.maxAlternatives = 1;
 
         const input = document.getElementById('smart-capture-input');
         const voiceBtn = document.querySelector('.voice-input-btn');
+        const statusIndicator = document.getElementById('voice-status');
 
+        // Update UI to recording state
+        this.state.isRecording = true;
+        this.state.recognition = recognition;
         voiceBtn?.classList.add('recording');
+        this.showVoiceStatus('listening');
 
+        // Handle results
         recognition.onresult = (event) => {
-            const transcript = Array.from(event.results)
-                .map(result => result[0].transcript)
-                .join('');
+            let interimTranscript = '';
+            let finalTranscript = '';
+
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                const transcript = event.results[i][0].transcript;
+                if (event.results[i].isFinal) {
+                    finalTranscript += transcript;
+                } else {
+                    interimTranscript += transcript;
+                }
+            }
 
             if (input) {
-                input.value = transcript;
-                this.handleInput(transcript);
+                // Show interim results with visual distinction
+                if (interimTranscript) {
+                    input.value = interimTranscript;
+                    input.classList.add('interim-result');
+                    this.showVoiceStatus('processing');
+                }
+
+                // When we have final results, update and parse
+                if (finalTranscript) {
+                    input.value = finalTranscript;
+                    input.classList.remove('interim-result');
+                    this.handleInput(finalTranscript);
+                    this.showVoiceStatus('success');
+                }
             }
         };
 
-        recognition.onend = () => {
-            voiceBtn?.classList.remove('recording');
+        // Handle speech start
+        recognition.onspeechstart = () => {
+            this.showVoiceStatus('hearing');
         };
 
+        // Handle end of recognition
+        recognition.onend = () => {
+            this.state.isRecording = false;
+            this.state.recognition = null;
+            voiceBtn?.classList.remove('recording');
+
+            const input = document.getElementById('smart-capture-input');
+            input?.classList.remove('interim-result');
+
+            // Hide status after delay if successful
+            setTimeout(() => {
+                const status = document.getElementById('voice-status');
+                if (status && !status.classList.contains('error')) {
+                    status.classList.remove('visible');
+                }
+            }, 1500);
+        };
+
+        // Handle errors
         recognition.onerror = (event) => {
             console.error('[SmartCapture] Voice recognition error:', event.error);
+            this.state.isRecording = false;
+            this.state.recognition = null;
             voiceBtn?.classList.remove('recording');
+
+            const input = document.getElementById('smart-capture-input');
+            input?.classList.remove('interim-result');
+
+            this.showVoiceError(event.error);
         };
 
-        recognition.start();
+        // Handle no speech detected
+        recognition.onnomatch = () => {
+            this.showVoiceError('no-speech');
+        };
+
+        // Start recognition
+        try {
+            recognition.start();
+        } catch (e) {
+            console.error('[SmartCapture] Failed to start recognition:', e);
+            this.state.isRecording = false;
+            voiceBtn?.classList.remove('recording');
+            this.showVoiceError('start-failed');
+        }
+    },
+
+    /**
+     * Stop voice recognition
+     */
+    stopVoiceInput() {
+        if (this.state.recognition) {
+            try {
+                this.state.recognition.stop();
+            } catch (e) {
+                console.error('[SmartCapture] Error stopping recognition:', e);
+            }
+        }
+        this.state.isRecording = false;
+        this.state.recognition = null;
+
+        const voiceBtn = document.querySelector('.voice-input-btn');
+        voiceBtn?.classList.remove('recording');
+
+        this.showVoiceStatus('stopped');
+    },
+
+    /**
+     * Show voice status indicator
+     */
+    showVoiceStatus(status) {
+        let statusEl = document.getElementById('voice-status');
+        if (!statusEl) return;
+
+        const messages = {
+            'listening': 'Listening...',
+            'hearing': 'Hearing you...',
+            'processing': 'Processing...',
+            'success': 'Got it!',
+            'stopped': 'Stopped'
+        };
+
+        const icons = {
+            'listening': '<svg class="status-icon pulse" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="4"/></svg>',
+            'hearing': '<svg class="status-icon wave" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>',
+            'processing': '<svg class="status-icon spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-dasharray="40" stroke-dashoffset="10"/></svg>',
+            'success': '<svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>',
+            'stopped': '<svg class="status-icon" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>'
+        };
+
+        statusEl.innerHTML = `${icons[status] || ''}<span>${messages[status] || ''}</span>`;
+        statusEl.className = 'voice-status visible ' + status;
+    },
+
+    /**
+     * Show voice error message
+     */
+    showVoiceError(errorType) {
+        let statusEl = document.getElementById('voice-status');
+        if (!statusEl) return;
+
+        const errorMessages = {
+            'not-supported': 'Voice input is not supported in this browser. Try Chrome or Safari.',
+            'not-allowed': 'Microphone access denied. Please allow microphone access in your browser settings.',
+            'no-speech': 'No speech detected. Please try again.',
+            'audio-capture': 'No microphone found. Please connect a microphone.',
+            'network': 'Network error. Please check your connection.',
+            'aborted': 'Voice input was cancelled.',
+            'start-failed': 'Could not start voice recognition. Please try again.',
+            'service-not-allowed': 'Speech recognition service is not allowed. Please try again later.'
+        };
+
+        const message = errorMessages[errorType] || `Voice error: ${errorType}`;
+
+        statusEl.innerHTML = `
+            <svg class="status-icon error" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <span>${message}</span>
+        `;
+        statusEl.className = 'voice-status visible error';
+
+        // Hide error after delay
+        setTimeout(() => {
+            statusEl.classList.remove('visible');
+        }, 4000);
     },
 
     // =========================================================================
@@ -687,9 +880,18 @@ const SmartCapture = {
                            autocomplete="off"
                            oninput="SmartCapture.handleInput(this.value)"
                            onkeydown="SmartCapture.handleKeydown(event)">
-                    <button class="voice-input-btn" onclick="SmartCapture.startVoiceInput()" title="Voice input">
-                        <span class="mic-icon"></span>
+                    <button class="voice-input-btn" onclick="SmartCapture.toggleVoiceInput()" title="Voice input (click to speak)">
+                        <svg class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                            <line x1="12" y1="19" x2="12" y2="23"/>
+                            <line x1="8" y1="23" x2="16" y2="23"/>
+                        </svg>
+                        <svg class="stop-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <rect x="6" y="6" width="12" height="12" rx="2"/>
+                        </svg>
                     </button>
+                    <div id="voice-status" class="voice-status"></div>
                 </div>
 
                 <div class="capture-preview" id="capture-preview">
@@ -703,6 +905,7 @@ const SmartCapture = {
                     <span class="tip-label">Tips:</span>
                     <span class="tip">"tomorrow" "next week" "friday"</span>
                     <span class="tip">"at 2pm" "urgent" "#tag"</span>
+                    <span class="tip voice-tip">Tap mic to speak</span>
                 </div>
             </div>
         `;
@@ -839,35 +1042,162 @@ const SmartCapture = {
                 right: 28px;
                 top: 50%;
                 transform: translateY(-50%);
-                width: 36px;
-                height: 36px;
+                width: 40px;
+                height: 40px;
                 background: rgba(99, 102, 241, 0.2);
                 border: none;
-                border-radius: 8px;
+                border-radius: 10px;
                 cursor: pointer;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                transition: all 0.2s;
+                transition: all 0.2s ease;
             }
 
             .voice-input-btn:hover {
-                background: rgba(99, 102, 241, 0.3);
+                background: rgba(99, 102, 241, 0.35);
+                transform: translateY(-50%) scale(1.05);
+            }
+
+            .voice-input-btn:active {
+                transform: translateY(-50%) scale(0.95);
+            }
+
+            .voice-input-btn .mic-icon {
+                width: 20px;
+                height: 20px;
+                stroke: #a0a4b8;
+                transition: all 0.2s;
+            }
+
+            .voice-input-btn:hover .mic-icon {
+                stroke: #f0f0f5;
+            }
+
+            .voice-input-btn .stop-icon {
+                width: 16px;
+                height: 16px;
+                fill: white;
+                display: none;
             }
 
             .voice-input-btn.recording {
                 background: #ef4444;
-                animation: pulse-record 1s ease-in-out infinite;
+                animation: pulse-record 1.5s ease-in-out infinite;
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+            }
+
+            .voice-input-btn.recording .mic-icon {
+                display: none;
+            }
+
+            .voice-input-btn.recording .stop-icon {
+                display: block;
             }
 
             @keyframes pulse-record {
-                0%, 100% { opacity: 1; }
-                50% { opacity: 0.6; }
+                0% {
+                    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+                }
+                50% {
+                    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+                }
+                100% {
+                    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+                }
             }
 
-            .mic-icon::after {
-                content: '';
-                font-size: 16px;
+            /* Voice Status Indicator */
+            .voice-status {
+                position: absolute;
+                left: 20px;
+                bottom: -28px;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                font-size: 12px;
+                color: #a0a4b8;
+                opacity: 0;
+                transform: translateY(-5px);
+                transition: all 0.2s ease;
+                pointer-events: none;
+            }
+
+            .voice-status.visible {
+                opacity: 1;
+                transform: translateY(0);
+            }
+
+            .voice-status .status-icon {
+                width: 14px;
+                height: 14px;
+            }
+
+            .voice-status.listening {
+                color: #6366f1;
+            }
+
+            .voice-status.listening .status-icon.pulse {
+                fill: #6366f1;
+                animation: status-pulse 1s ease-in-out infinite;
+            }
+
+            .voice-status.hearing {
+                color: #22c55e;
+            }
+
+            .voice-status.hearing .status-icon {
+                stroke: #22c55e;
+            }
+
+            .voice-status.hearing .status-icon.wave {
+                animation: wave-pulse 0.5s ease-in-out infinite alternate;
+            }
+
+            .voice-status.processing {
+                color: #f59e0b;
+            }
+
+            .voice-status.processing .status-icon.spin {
+                stroke: #f59e0b;
+                animation: spin 1s linear infinite;
+            }
+
+            .voice-status.success {
+                color: #22c55e;
+            }
+
+            .voice-status.success .status-icon {
+                stroke: #22c55e;
+            }
+
+            .voice-status.error {
+                color: #ef4444;
+            }
+
+            .voice-status.error .status-icon {
+                stroke: #ef4444;
+            }
+
+            @keyframes status-pulse {
+                0%, 100% { transform: scale(1); opacity: 1; }
+                50% { transform: scale(1.3); opacity: 0.7; }
+            }
+
+            @keyframes wave-pulse {
+                0% { transform: scale(1); }
+                100% { transform: scale(1.1); }
+            }
+
+            @keyframes spin {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(360deg); }
+            }
+
+            /* Interim result styling */
+            .capture-input.interim-result {
+                color: #6b6f82;
+                font-style: italic;
             }
 
             /* Capture Preview */
@@ -1124,6 +1454,11 @@ const SmartCapture = {
             }
 
             /* Mobile Responsive */
+            /* Voice tip hidden on desktop, shown on mobile */
+            .voice-tip {
+                display: none;
+            }
+
             @media (max-width: 600px) {
                 .smart-capture-modal {
                     padding-top: 10vh;
@@ -1139,8 +1474,32 @@ const SmartCapture = {
                     display: none;
                 }
 
+                /* Show voice tip on mobile, hide text tips */
                 .capture-tips {
+                    display: flex;
+                }
+
+                .capture-tips .tip:not(.voice-tip) {
                     display: none;
+                }
+
+                .capture-tips .voice-tip {
+                    display: inline-block;
+                    background: rgba(99, 102, 241, 0.15);
+                    color: #6366f1;
+                }
+
+                /* Larger touch target for voice button on mobile */
+                .voice-input-btn {
+                    width: 44px;
+                    height: 44px;
+                }
+
+                /* Voice status positioned better for mobile */
+                .voice-status {
+                    left: 16px;
+                    bottom: -32px;
+                    font-size: 13px;
                 }
             }
         `;

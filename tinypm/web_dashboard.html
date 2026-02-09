@@ -116,6 +116,198 @@
   .stat-dot.progress { background: var(--blue); }
   .stat-dot.done { background: var(--green); }
 
+  /* ═══ STREAK COUNTER WIDGET ═══ */
+  .streak-counter {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 13px;
+    margin-left: 16px;
+    transition: all 0.3s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
+  }
+
+  .streak-counter:hover {
+    border-color: rgba(251, 191, 36, 0.4);
+    box-shadow: 0 0 12px rgba(251, 191, 36, 0.15);
+  }
+
+  .streak-main {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .streak-fire {
+    font-size: 16px;
+    animation: none;
+    transition: transform 0.2s;
+  }
+
+  .streak-counter:hover .streak-fire {
+    transform: scale(1.15);
+  }
+
+  .streak-counter.milestone .streak-fire {
+    animation: fire-pulse 1s ease-in-out infinite;
+  }
+
+  @keyframes fire-pulse {
+    0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0 transparent); }
+    50% { transform: scale(1.2); filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.6)); }
+  }
+
+  .streak-number {
+    font-size: 16px;
+    font-weight: 700;
+    color: #fbbf24;
+    min-width: 20px;
+    text-align: center;
+  }
+
+  .streak-label {
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  .streak-divider {
+    width: 1px;
+    height: 16px;
+    background: var(--border);
+    margin: 0 4px;
+  }
+
+  .streak-best {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .streak-best-icon {
+    font-size: 10px;
+    color: var(--purple);
+  }
+
+  .streak-weekly {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .weekly-progress-bar {
+    width: 60px;
+    height: 4px;
+    background: var(--bg-secondary);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .weekly-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--purple));
+    border-radius: 2px;
+    transition: width 0.5s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
+  }
+
+  .weekly-progress-fill.high {
+    background: linear-gradient(90deg, var(--green), #4ade80);
+  }
+
+  .streak-tooltip {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    z-index: 200;
+    min-width: 220px;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  .streak-counter:hover .streak-tooltip {
+    display: block;
+    opacity: 1;
+    animation: slideIn 0.15s ease-out;
+  }
+
+  .streak-tooltip-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    font-size: 13px;
+  }
+
+  .streak-tooltip-row:not(:last-child) {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .streak-tooltip-label {
+    color: var(--text-secondary);
+  }
+
+  .streak-tooltip-value {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .streak-tooltip-value.positive { color: var(--green); }
+  .streak-tooltip-value.gold { color: #fbbf24; }
+
+  .streak-milestone-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(168, 85, 247, 0.15));
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #fbbf24;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 8px;
+  }
+
+  /* Milestone celebration glow */
+  .streak-counter.milestone {
+    border-color: rgba(251, 191, 36, 0.5);
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.2);
+    background: linear-gradient(135deg, var(--bg-card), rgba(251, 191, 36, 0.05));
+  }
+
+  /* Responsive: hide full details on smaller screens */
+  @media (max-width: 900px) {
+    .streak-best, .streak-weekly, .streak-divider {
+      display: none;
+    }
+    .streak-counter {
+      padding: 4px 10px;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .streak-counter {
+      display: none;
+    }
+  }
+
   .header-actions {
     display: flex;
     gap: 8px;
@@ -425,6 +617,19 @@
   .btn-danger:hover { background: rgba(239,68,68,0.1); }
 
   .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+  /* ═══ BUTTON STATES ═══ */
+  .btn:disabled, .btn-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn-primary:active { background: var(--accent); }
+  .btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
 
   /* ═══ MAIN LAYOUT ═══ */
   .main {
@@ -767,6 +972,28 @@
     border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
   }
+
+  /* ═══ FORM VALIDATION STATES ═══ */
+  .form-input.error, .form-textarea.error, .form-select.error {
+    border-color: var(--red);
+    background: rgba(239, 68, 68, 0.05);
+  }
+  .form-input.error:focus, .form-textarea.error:focus {
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+  }
+  .form-input.success, .form-textarea.success, .form-select.success {
+    border-color: var(--green);
+  }
+  .form-input.success:focus, .form-textarea.success:focus {
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+  }
+  .form-error-message {
+    font-size: 12px;
+    color: var(--red);
+    margin-top: 4px;
+    display: none;
+  }
+  .form-group.has-error .form-error-message { display: block; }
 
   .form-textarea { min-height: 120px; resize: vertical; line-height: 1.6; }
 
@@ -2525,6 +2752,17 @@
     .detail-panel { width: 100vw; }
     .task-actions { opacity: 1; }
     .filters { justify-content: center; }
+
+    /* ═══ MOBILE MODAL FIX ═══ */
+    .modal {
+      width: 95vw;
+      max-height: calc(100vh - var(--safe-area-bottom) - var(--bottom-nav-height) - 40px);
+      margin: 20px;
+    }
+    .modal-body { padding: 16px; }
+    .modal-header { padding: 16px; }
+    .modal-footer { padding: 12px 16px; }
+    .form-input, .form-textarea, .form-select { font-size: 16px; } /* Prevent iOS zoom */
   }
 
   /* ═══════════════════════════════════════════════════════════════════════════════
@@ -3997,6 +4235,46 @@
       <div class="stat"><div class="stat-dot progress"></div> <span id="stat-progress">0</span> active</div>
       <div class="stat"><div class="stat-dot done"></div> <span id="stat-done">0</span> done</div>
     </div>
+    <!-- STREAK COUNTER WIDGET -->
+    <div class="streak-counter" id="streak-counter" title="Your momentum">
+      <div class="streak-main">
+        <span class="streak-fire">&#128293;</span>
+        <span class="streak-number" id="streak-current">0</span>
+        <span class="streak-label" id="streak-label">day streak</span>
+      </div>
+      <div class="streak-divider"></div>
+      <div class="streak-best">
+        <span class="streak-best-icon">&#127942;</span>
+        <span>Best: <span id="streak-best">0</span></span>
+      </div>
+      <div class="streak-divider"></div>
+      <div class="streak-weekly">
+        <span id="weekly-tasks-count">0/0</span>
+        <div class="weekly-progress-bar">
+          <div class="weekly-progress-fill" id="weekly-progress-fill" style="width: 0%"></div>
+        </div>
+      </div>
+      <!-- Hover Tooltip -->
+      <div class="streak-tooltip" id="streak-tooltip">
+        <div class="streak-tooltip-row">
+          <span class="streak-tooltip-label">Current Streak</span>
+          <span class="streak-tooltip-value gold" id="tooltip-current">0 days</span>
+        </div>
+        <div class="streak-tooltip-row">
+          <span class="streak-tooltip-label">Best Streak</span>
+          <span class="streak-tooltip-value" id="tooltip-best">0 days</span>
+        </div>
+        <div class="streak-tooltip-row">
+          <span class="streak-tooltip-label">This Week</span>
+          <span class="streak-tooltip-value positive" id="tooltip-weekly">0 tasks (0%)</span>
+        </div>
+        <div class="streak-tooltip-row">
+          <span class="streak-tooltip-label">Total Completed</span>
+          <span class="streak-tooltip-value" id="tooltip-total">0 tasks</span>
+        </div>
+        <div id="streak-milestone-container"></div>
+      </div>
+    </div>
   </div>
   <div class="header-actions">
     <!-- User Avatar -->
@@ -4747,6 +5025,120 @@
         </div>
       </div>
 
+      <!-- Achievements / Badges -->
+      <div class="life-card" style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:20px">&#127942;</span>
+            <span style="font-size:15px;font-weight:600;color:var(--text-primary)">Achievements</span>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="BadgeSystem && BadgeSystem.showBadgePanel()">View All</button>
+        </div>
+        <!-- Streak Banner -->
+        <div id="life-achievements-streak" style="background:linear-gradient(135deg, rgba(239,68,68,0.2), rgba(249,115,22,0.2));border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:14px;margin-bottom:16px;display:flex;align-items:center;gap:16px">
+          <div style="font-size:32px">&#128293;</div>
+          <div style="flex:1">
+            <div style="font-size:11px;color:var(--orange);text-transform:uppercase;letter-spacing:0.05em">Current Streak</div>
+            <div id="life-streak-value" style="font-size:24px;font-weight:700;color:var(--text-primary)">0 days</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:11px;color:var(--text-muted)">Best</div>
+            <div id="life-streak-best" style="font-size:18px;font-weight:600;color:var(--text-secondary)">0 days</div>
+          </div>
+        </div>
+        <!-- Recent Badges -->
+        <div id="life-recent-badges" style="display:flex;flex-wrap:wrap;gap:8px">
+          <div style="text-align:center;padding:16px;color:var(--text-muted);font-size:13px;width:100%">No badges earned yet. Complete tasks to start earning!</div>
+        </div>
+        <!-- Next Badge Progress -->
+        <div id="life-next-badge" style="margin-top:16px;padding:12px;background:var(--bg-secondary);border-radius:8px;display:none">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+            <span id="next-badge-icon" style="font-size:24px">&#127919;</span>
+            <div>
+              <div id="next-badge-name" style="font-size:13px;font-weight:600;color:var(--text-primary)">Next Badge</div>
+              <div id="next-badge-desc" style="font-size:11px;color:var(--text-muted)">Description</div>
+            </div>
+          </div>
+          <div style="height:6px;background:var(--bg-primary);border-radius:3px;overflow:hidden">
+            <div id="next-badge-progress" style="height:100%;background:linear-gradient(90deg, #eab308, #f97316);border-radius:3px;width:0%"></div>
+          </div>
+          <div id="next-badge-progress-text" style="font-size:10px;color:var(--text-muted);margin-top:4px;text-align:right">0/0</div>
+        </div>
+      </div>
+
+      <!-- Team Leaderboard -->
+      <div class="life-card" style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:20px">&#127942;</span>
+            <span style="font-size:15px;font-weight:600;color:var(--text-primary)">This Week's Leaders</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span id="leaderboard-week-label" style="font-size:11px;color:var(--text-muted)">Week of --</span>
+            <button class="btn btn-ghost btn-sm" onclick="loadTeamLeaderboard()">Refresh</button>
+          </div>
+        </div>
+
+        <!-- Leaderboard Rankings -->
+        <div id="leaderboard-rankings" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+          <div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px">Loading leaderboard...</div>
+        </div>
+
+        <!-- Your Stats Row -->
+        <div id="your-stats-row" style="background:linear-gradient(135deg, rgba(99,102,241,0.15), rgba(168,85,247,0.15));border:1px solid rgba(99,102,241,0.3);border-radius:10px;padding:14px;margin-bottom:16px;display:none">
+          <div style="font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;font-weight:600">Your Progress</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+            <div style="display:flex;align-items:center;gap:16px">
+              <div>
+                <div id="your-tasks-count" style="font-size:24px;font-weight:700;color:var(--text-primary)">0</div>
+                <div style="font-size:11px;color:var(--text-muted)">Tasks Done</div>
+              </div>
+              <div>
+                <div id="your-streak" style="font-size:24px;font-weight:700;color:var(--orange)">0</div>
+                <div style="font-size:11px;color:var(--text-muted)">Day Streak</div>
+              </div>
+              <div>
+                <div id="your-completion-rate" style="font-size:24px;font-weight:700;color:var(--green)">0%</div>
+                <div style="font-size:11px;color:var(--text-muted)">Completion</div>
+              </div>
+            </div>
+            <div id="your-rank-badge" style="background:var(--bg-secondary);border-radius:8px;padding:8px 14px;text-align:center">
+              <div style="font-size:18px;font-weight:700;color:var(--accent)">#--</div>
+              <div style="font-size:10px;color:var(--text-muted)">Your Rank</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Team Challenge Card -->
+        <div id="team-challenge-card" style="background:linear-gradient(135deg, rgba(34,197,94,0.1), rgba(22,163,74,0.1));border:1px solid rgba(34,197,94,0.3);border-radius:10px;padding:14px;display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:16px">&#127775;</span>
+              <span id="challenge-title" style="font-size:13px;font-weight:600;color:var(--text-primary)">Team Challenge</span>
+            </div>
+            <span id="challenge-deadline" style="font-size:11px;color:var(--text-muted)">Ends --</span>
+          </div>
+          <div style="margin-bottom:8px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+              <span id="challenge-progress-text" style="font-size:12px;color:var(--text-secondary)">0 / 0 tasks</span>
+              <span id="challenge-progress-pct" style="font-size:12px;font-weight:600;color:var(--green)">0%</span>
+            </div>
+            <div style="height:8px;background:var(--bg-secondary);border-radius:4px;overflow:hidden">
+              <div id="challenge-progress-bar" style="height:100%;background:linear-gradient(90deg, var(--green), #4ade80);width:0%;transition:width 0.5s ease;border-radius:4px"></div>
+            </div>
+          </div>
+          <div id="challenge-contributors" style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+            <!-- Contributor avatars rendered here -->
+          </div>
+        </div>
+
+        <!-- Solo Mode Message (shown when no team) -->
+        <div id="solo-mode-message" style="display:none;text-align:center;padding:12px;background:var(--bg-secondary);border-radius:8px;margin-top:12px">
+          <div style="font-size:13px;color:var(--text-secondary)">You're crushing it solo!</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Invite friends to start team challenges</div>
+        </div>
+      </div>
+
       <!-- Wild Claims Czar - Research Scanner -->
       <div class="life-card" style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
@@ -4828,9 +5220,10 @@
       <button class="btn btn-ghost btn-sm" onclick="closeContactModal()">Cancel</button>
     </div>
     <div class="modal-body">
-      <div class="form-group">
+      <div class="form-group" id="contact-name-group">
         <label class="form-label">Name *</label>
         <input type="text" class="form-input" id="contact-name" placeholder="John Smith">
+        <div class="form-error-message">Name is required</div>
       </div>
       <div class="form-group">
         <label class="form-label">Email</label>
@@ -4859,7 +5252,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeContactModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="saveContact()">Save Contact</button>
+      <button class="btn btn-primary" id="save-contact-btn" onclick="saveContact()">Save Contact</button>
     </div>
   </div>
 </div>
@@ -4872,9 +5265,10 @@
       <button class="btn btn-ghost btn-sm" onclick="closeGoalModal()">Cancel</button>
     </div>
     <div class="modal-body">
-      <div class="form-group">
+      <div class="form-group" id="goal-title-group">
         <label class="form-label">Goal Title *</label>
         <input type="text" class="form-input" id="goal-title" placeholder="Run a marathon">
+        <div class="form-error-message">Goal title is required</div>
       </div>
       <div class="form-group">
         <label class="form-label">Description</label>
@@ -4899,7 +5293,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeGoalModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="saveGoal()">Save Goal</button>
+      <button class="btn btn-primary" id="save-goal-btn" onclick="saveGoal()">Save Goal</button>
     </div>
   </div>
 </div>
@@ -5049,9 +5443,10 @@
       <button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancel</button>
     </div>
     <div class="modal-body">
-      <div class="form-group">
-        <label class="form-label">Title</label>
+      <div class="form-group" id="new-title-group">
+        <label class="form-label">Title *</label>
         <input type="text" class="form-input" id="new-title" placeholder="What needs to be done?">
+        <div class="form-error-message">Title is required</div>
       </div>
       <div class="form-group">
         <label class="form-label">Description</label>
@@ -6188,6 +6583,14 @@
       <span class="fab-menu-icon">🧠</span>
       <span>Brain Dump</span>
     </button>
+    <button class="fab-menu-item" onclick="moreMenuAction('life')" style="width:100%;justify-content:flex-start">
+      <span class="fab-menu-icon">🌿</span>
+      <span>Life Goals</span>
+    </button>
+    <button class="fab-menu-item" onclick="moreMenuAction('forensic')" style="width:100%;justify-content:flex-start">
+      <span class="fab-menu-icon">🔬</span>
+      <span>Forensic Dashboard</span>
+    </button>
   </div>
   <button class="btn btn-ghost" onclick="closeMoreMenu()" style="width:100%;margin-top:16px">Close</button>
 </div>
@@ -6311,6 +6714,252 @@
     document.getElementById('stat-pending').textContent = pending;
     document.getElementById('stat-progress').textContent = progress;
     document.getElementById('stat-done').textContent = done;
+
+    // Update streak counter with task data
+    updateStreakCounter(tasks);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // STREAK COUNTER SYSTEM
+  // ═══════════════════════════════════════════════════════════
+  const STREAK_STORAGE_KEY = 'tinypm_streak_data';
+  const MILESTONES = [7, 14, 30, 60, 90, 180, 365];
+
+  function getStreakData() {
+    try {
+      const data = localStorage.getItem(STREAK_STORAGE_KEY);
+      if (data) {
+        return JSON.parse(data);
+      }
+    } catch (e) {
+      console.warn('Failed to load streak data:', e);
+    }
+    return {
+      currentStreak: 0,
+      bestStreak: 0,
+      lastActiveDate: null,
+      weeklyCompleted: 0,
+      weeklyTarget: 30,
+      weekStartDate: null,
+      totalCompleted: 0,
+      streakFreezeUsed: false,
+      dailyCompletions: {} // Track completions by date
+    };
+  }
+
+  function saveStreakData(data) {
+    try {
+      localStorage.setItem(STREAK_STORAGE_KEY, JSON.stringify(data));
+    } catch (e) {
+      console.warn('Failed to save streak data:', e);
+    }
+  }
+
+  function getDateString(date) {
+    return date.toISOString().split('T')[0];
+  }
+
+  function getWeekStart(date) {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday start
+    return new Date(d.setDate(diff));
+  }
+
+  function updateStreakCounter(tasksArray) {
+    const streakData = getStreakData();
+    const today = getDateString(new Date());
+    const weekStart = getDateString(getWeekStart(new Date()));
+
+    // Reset weekly counter if new week
+    if (streakData.weekStartDate !== weekStart) {
+      streakData.weekStartDate = weekStart;
+      streakData.weeklyCompleted = 0;
+    }
+
+    // Count completed tasks
+    const doneTasks = tasksArray.filter(t => t.status === 'done');
+    const todayCompleted = doneTasks.filter(t => {
+      // Check if task was updated today (completed today)
+      if (t.updated && t.updated === today) return true;
+      if (t.completed_at && t.completed_at.startsWith(today)) return true;
+      return false;
+    }).length;
+
+    // Calculate weekly completions from daily log
+    let weeklyCount = 0;
+    const currentWeekStart = getWeekStart(new Date());
+    for (let i = 0; i < 7; i++) {
+      const checkDate = new Date(currentWeekStart);
+      checkDate.setDate(checkDate.getDate() + i);
+      const dateStr = getDateString(checkDate);
+      weeklyCount += streakData.dailyCompletions[dateStr] || 0;
+    }
+
+    // Update today's completions in the daily log
+    if (todayCompleted > 0) {
+      const existingToday = streakData.dailyCompletions[today] || 0;
+      if (todayCompleted > existingToday) {
+        streakData.dailyCompletions[today] = todayCompleted;
+        weeklyCount = weeklyCount - existingToday + todayCompleted;
+      }
+    }
+
+    // Calculate streak
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = getDateString(yesterday);
+
+    // Check if user was active today (at least 1 completion)
+    const wasActiveToday = (streakData.dailyCompletions[today] || 0) > 0;
+    const wasActiveYesterday = (streakData.dailyCompletions[yesterdayStr] || 0) > 0;
+
+    if (wasActiveToday) {
+      // Active today
+      if (streakData.lastActiveDate === today) {
+        // Already counted today
+      } else if (streakData.lastActiveDate === yesterdayStr || streakData.lastActiveDate === null) {
+        // Continued streak from yesterday or first day
+        streakData.currentStreak = (streakData.currentStreak || 0) + 1;
+        streakData.lastActiveDate = today;
+      } else if (wasActiveYesterday) {
+        // Yesterday was active but lastActiveDate wasn't updated
+        streakData.currentStreak = (streakData.currentStreak || 0) + 1;
+        streakData.lastActiveDate = today;
+      } else {
+        // Streak broken, start fresh
+        streakData.currentStreak = 1;
+        streakData.lastActiveDate = today;
+      }
+    } else if (streakData.lastActiveDate !== today && streakData.lastActiveDate !== yesterdayStr && streakData.lastActiveDate !== null) {
+      // More than a day gap without activity - reset streak
+      // But use positive framing: streak just needs to be rebuilt
+      streakData.currentStreak = 0;
+    }
+
+    // Update best streak
+    if (streakData.currentStreak > streakData.bestStreak) {
+      streakData.bestStreak = streakData.currentStreak;
+    }
+
+    // Update totals
+    streakData.weeklyCompleted = weeklyCount;
+    streakData.totalCompleted = doneTasks.length;
+
+    // Clean up old daily data (keep last 60 days)
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - 60);
+    const cutoffStr = getDateString(cutoffDate);
+    for (const dateKey in streakData.dailyCompletions) {
+      if (dateKey < cutoffStr) {
+        delete streakData.dailyCompletions[dateKey];
+      }
+    }
+
+    // Save updated data
+    saveStreakData(streakData);
+
+    // Update UI
+    renderStreakUI(streakData);
+  }
+
+  function renderStreakUI(data) {
+    const container = document.getElementById('streak-counter');
+    if (!container) return;
+
+    // Update main streak display
+    document.getElementById('streak-current').textContent = data.currentStreak;
+    document.getElementById('streak-label').textContent = data.currentStreak === 1 ? 'day' : 'days';
+    document.getElementById('streak-best').textContent = data.bestStreak;
+
+    // Update weekly progress
+    const weeklyPercent = data.weeklyTarget > 0 ? Math.round((data.weeklyCompleted / data.weeklyTarget) * 100) : 0;
+    const weeklyClamp = Math.min(weeklyPercent, 100);
+    document.getElementById('weekly-tasks-count').textContent = `${data.weeklyCompleted}/${data.weeklyTarget}`;
+    const progressFill = document.getElementById('weekly-progress-fill');
+    progressFill.style.width = `${weeklyClamp}%`;
+
+    // Add high class if >70%
+    if (weeklyPercent >= 70) {
+      progressFill.classList.add('high');
+    } else {
+      progressFill.classList.remove('high');
+    }
+
+    // Update tooltip
+    document.getElementById('tooltip-current').textContent = `${data.currentStreak} ${data.currentStreak === 1 ? 'day' : 'days'}`;
+    document.getElementById('tooltip-best').textContent = `${data.bestStreak} ${data.bestStreak === 1 ? 'day' : 'days'}`;
+    document.getElementById('tooltip-weekly').textContent = `${data.weeklyCompleted} tasks (${weeklyPercent}%)`;
+    document.getElementById('tooltip-total').textContent = `${data.totalCompleted} tasks`;
+
+    // Check for milestones
+    const milestoneContainer = document.getElementById('streak-milestone-container');
+    const currentMilestone = MILESTONES.filter(m => data.currentStreak >= m).pop();
+    const nextMilestone = MILESTONES.find(m => m > data.currentStreak);
+
+    if (currentMilestone) {
+      container.classList.add('milestone');
+      milestoneContainer.innerHTML = `
+        <div class="streak-milestone-badge">
+          &#127775; ${currentMilestone}-day milestone!
+        </div>
+      `;
+
+      // Trigger celebration for new milestone (only once)
+      const lastCelebrated = localStorage.getItem('tinypm_last_milestone');
+      if (lastCelebrated !== String(currentMilestone)) {
+        celebrateMilestone(currentMilestone);
+        localStorage.setItem('tinypm_last_milestone', String(currentMilestone));
+      }
+    } else {
+      container.classList.remove('milestone');
+      if (nextMilestone && data.currentStreak > 0) {
+        const daysToGo = nextMilestone - data.currentStreak;
+        milestoneContainer.innerHTML = `
+          <div style="margin-top:8px;font-size:11px;color:var(--text-muted)">
+            ${daysToGo} ${daysToGo === 1 ? 'day' : 'days'} to ${nextMilestone}-day milestone
+          </div>
+        `;
+      } else {
+        milestoneContainer.innerHTML = data.currentStreak === 0
+          ? '<div style="margin-top:8px;font-size:11px;color:var(--text-muted)">Complete a task to start your streak!</div>'
+          : '';
+      }
+    }
+
+    // Positive framing: Show encouraging message if streak is 0
+    if (data.currentStreak === 0) {
+      document.getElementById('streak-label').textContent = 'Start fresh!';
+      container.title = 'Complete a task to build your momentum';
+    } else {
+      container.title = `You've maintained momentum for ${data.currentStreak} ${data.currentStreak === 1 ? 'day' : 'days'}`;
+    }
+  }
+
+  function celebrateMilestone(days) {
+    // Use existing confetti system if available
+    if (typeof TinyPMCelebrations !== 'undefined' && TinyPMCelebrations.launchConfetti) {
+      TinyPMCelebrations.launchConfetti();
+    }
+
+    // Show toast with positive message
+    const messages = {
+      7: "Amazing! A full week of momentum!",
+      14: "Two weeks strong! You're building great habits!",
+      30: "One month! Your consistency is inspiring!",
+      60: "Two months of dedication! Incredible!",
+      90: "Three months! You're unstoppable!",
+      180: "Half a year! Legendary commitment!",
+      365: "One whole year! You're a productivity champion!"
+    };
+
+    showToast(messages[days] || `${days}-day streak! Keep going!`, 'success');
+  }
+
+  // Initialize streak on page load
+  function initStreak() {
+    const data = getStreakData();
+    renderStreakUI(data);
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -6418,6 +7067,13 @@
     const result = await apiPost('/api/tasks/update', { id: selectedTask.id, status: next });
     if (result.success) {
       showToast(`${selectedTask.id} → ${next.replace('_', ' ')}`, 'success');
+
+      // Track badge progress when task completed
+      if (next === 'done' && window.BadgeSystem) {
+        const beforeDeadline = selectedTask.due_date ? new Date() < new Date(selectedTask.due_date) : false;
+        BadgeSystem.trackTaskComplete({ beforeDeadline });
+      }
+
       await loadTasks();
       selectTask(selectedTask.id);
     }
@@ -6432,6 +7088,13 @@
 
     await apiPost('/api/tasks/update', { id: id, status: next });
     showToast(`${id} → ${next.replace('_', ' ')}`, 'success');
+
+    // Track badge progress when task completed
+    if (next === 'done' && window.BadgeSystem) {
+      const beforeDeadline = task.due_date ? new Date() < new Date(task.due_date) : false;
+      BadgeSystem.trackTaskComplete({ beforeDeadline });
+    }
+
     await loadTasks();
   }
 
@@ -6468,11 +7131,13 @@
   // CREATE TASK
   // ═══════════════════════════════════════════════════════════
   function openNewTaskModal() {
+    clearAllFieldErrors();
     document.getElementById('new-task-modal').classList.add('open');
     document.getElementById('new-title').focus();
   }
 
   function closeModal() {
+    clearAllFieldErrors();
     document.getElementById('new-task-modal').classList.remove('open');
     document.getElementById('new-title').value = '';
     document.getElementById('new-description').value = '';
@@ -6480,15 +7145,12 @@
   }
 
   async function createTask() {
-    const title = document.getElementById('new-title').value.trim();
-    if (!title) {
-      showToast('Title is required', 'error');
-      return;
-    }
+    clearAllFieldErrors();
+    if (!validateRequired('new-title', 'new-title-group', 'Title is required')) return;
 
-    const createBtn = document.querySelector('.modal-footer .btn-primary');
-    createBtn.textContent = 'Creating...';
-    createBtn.disabled = true;
+    const title = document.getElementById('new-title').value.trim();
+    const createBtn = document.querySelector('#new-task-modal .modal-footer .btn-primary');
+    setButtonLoading(createBtn, 'Creating...');
 
     const context = document.getElementById('new-context').value.trim()
       .split('\n').map(s => s.trim()).filter(Boolean);
@@ -6511,10 +7173,9 @@
       }
     } catch (err) {
       showToast('Network error - try again', 'error');
+    } finally {
+      resetButton(createBtn);
     }
-
-    createBtn.textContent = 'Create Task';
-    createBtn.disabled = false;
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -6553,6 +7214,54 @@
     if (navigator.vibrate) navigator.vibrate(100);
 
     setTimeout(() => banner.classList.remove('show'), 4000);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FORM VALIDATION UTILITIES
+  // ═══════════════════════════════════════════════════════════════════════════
+  function setFieldError(inputId, groupId) {
+    const input = document.getElementById(inputId);
+    const group = document.getElementById(groupId);
+    if (input) input.classList.add('error');
+    if (group) group.classList.add('has-error');
+  }
+
+  function clearFieldError(inputId, groupId) {
+    const input = document.getElementById(inputId);
+    const group = document.getElementById(groupId);
+    if (input) input.classList.remove('error');
+    if (group) group.classList.remove('has-error');
+  }
+
+  function clearAllFieldErrors() {
+    document.querySelectorAll('.form-input.error, .form-textarea.error, .form-select.error').forEach(el => el.classList.remove('error'));
+    document.querySelectorAll('.form-group.has-error').forEach(el => el.classList.remove('has-error'));
+  }
+
+  function validateRequired(inputId, groupId, errorMsg) {
+    const input = document.getElementById(inputId);
+    const value = input ? input.value.trim() : '';
+    if (!value) {
+      setFieldError(inputId, groupId);
+      showToast(errorMsg, 'error');
+      if (input) input.focus();
+      return false;
+    }
+    clearFieldError(inputId, groupId);
+    return true;
+  }
+
+  function setButtonLoading(btn, loadingText) {
+    if (!btn) return;
+    btn.dataset.originalText = btn.textContent;
+    btn.textContent = loadingText;
+    btn.disabled = true;
+  }
+
+  function resetButton(btn) {
+    if (!btn) return;
+    btn.textContent = btn.dataset.originalText || btn.textContent;
+    btn.disabled = false;
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -7812,6 +8521,9 @@
   // Show skeleton loading on initial load for instant perceived performance
   showTaskSkeleton();
 
+  // Initialize streak counter with cached data for instant display
+  initStreak();
+
   loadTasks();
   loadActivity();  // Load activity on start for badge count
   loadAgentQuestions();  // Load agent questions on start for badge count
@@ -8138,7 +8850,7 @@
         const agentsList = document.getElementById('agents-list-content');
 
         // Remove old dynamic agent buttons (keep static PM, Builder, Overseer, Broadcast)
-        selector.querySelectorAll('.agent-btn.spawned').forEach(btn => btn.remove());
+        if (selector) selector.querySelectorAll('.agent-btn.spawned').forEach(btn => btn.remove());
 
         // Reset agents list in broadcast modal
         if (agentsList) {
@@ -8295,7 +9007,8 @@
 
     // Clear unread badge for this agent
     if (agent === 'builder') {
-      document.getElementById('builder-unread').style.display = 'none';
+      const unreadBadge = document.getElementById('builder-unread');
+      if (unreadBadge) unreadBadge.style.display = 'none';
     }
   }
 
@@ -8584,9 +9297,11 @@
           } else {
             // Show unread badge if not viewing builder
             const badge = document.getElementById('builder-unread');
-            const count = parseInt(badge.textContent || '0') + 1;
-            badge.textContent = count;
-            badge.style.display = 'inline';
+            if (badge) {
+              const count = parseInt(badge.textContent || '0') + 1;
+              badge.textContent = count;
+              badge.style.display = 'inline';
+            }
           }
           builderLastSeenId = m.id;
           scrollChat();
@@ -8606,6 +9321,7 @@
       const res = await fetch('/api/builder/status');
       const data = await res.json();
       const dot = document.getElementById('builder-status-dot');
+      if (!dot) return;
       if (data.online) {
         dot.classList.add('online');
         if (data.busy) {
@@ -8619,7 +9335,8 @@
       }
     } catch (e) {
       // Offline
-      document.getElementById('builder-status-dot').classList.remove('online', 'busy');
+      const dot = document.getElementById('builder-status-dot');
+      if (dot) dot.classList.remove('online', 'busy');
     }
   }
 
@@ -10831,6 +11548,11 @@
       loadLifeOrganizerStatus(),
       // loadContacts() and loadGoals() if they exist
     ]);
+
+    // Update achievements display
+    if (typeof loadAchievementsDisplay === 'function') {
+      loadAchievementsDisplay();
+    }
   }
 
   async function loadLifeOrganizerStatus() {
@@ -11095,6 +11817,7 @@
   let goalsList = [];
 
   function openContactModal() {
+    clearAllFieldErrors();
     document.getElementById('contact-modal').style.display = 'flex';
     document.getElementById('contact-name').value = '';
     document.getElementById('contact-email').value = '';
@@ -11109,8 +11832,13 @@
   }
 
   async function saveContact() {
+    clearAllFieldErrors();
+    if (!validateRequired('contact-name', 'contact-name-group', 'Name is required')) return;
+
     const name = document.getElementById('contact-name').value.trim();
-    if (!name) { showToast('Name is required', 'error'); return; }
+    const btn = document.getElementById('save-contact-btn');
+    setButtonLoading(btn, 'Saving...');
+
     const contact = {
       name,
       email: document.getElementById('contact-email').value.trim() || null,
@@ -11129,7 +11857,11 @@
       } else {
         showToast(response.error || 'Failed to save contact', 'error');
       }
-    } catch (err) { showToast('Failed to save contact', 'error'); }
+    } catch (err) {
+      showToast('Failed to save contact', 'error');
+    } finally {
+      resetButton(btn);
+    }
   }
 
   async function loadContacts() {
@@ -11191,6 +11923,7 @@
 
   // GOALS
   function openGoalModal() {
+    clearAllFieldErrors();
     document.getElementById('goal-modal').style.display = 'flex';
     document.getElementById('goal-title').value = '';
     document.getElementById('goal-description').value = '';
@@ -11202,8 +11935,13 @@
   function closeGoalModal() { document.getElementById('goal-modal').style.display = 'none'; }
 
   async function saveGoal() {
+    clearAllFieldErrors();
+    if (!validateRequired('goal-title', 'goal-title-group', 'Goal title is required')) return;
+
     const title = document.getElementById('goal-title').value.trim();
-    if (!title) { showToast('Goal title is required', 'error'); return; }
+    const btn = document.getElementById('save-goal-btn');
+    setButtonLoading(btn, 'Saving...');
+
     const goal = {
       title,
       description: document.getElementById('goal-description').value.trim() || '',
@@ -11212,9 +11950,18 @@
     };
     try {
       const response = await apiPost('/api/goals', goal);
-      if (response.ok) { showToast(`Goal "${title}" added`); closeGoalModal(); await loadGoals(); }
-      else { showToast(response.error || 'Failed to save goal', 'error'); }
-    } catch (err) { showToast('Failed to save goal', 'error'); }
+      if (response.ok) {
+        showToast(`Goal "${title}" added`);
+        closeGoalModal();
+        await loadGoals();
+      } else {
+        showToast(response.error || 'Failed to save goal', 'error');
+      }
+    } catch (err) {
+      showToast('Failed to save goal', 'error');
+    } finally {
+      resetButton(btn);
+    }
   }
 
   async function loadGoals() {
@@ -11252,10 +11999,383 @@
     } catch (err) { showToast('Failed to update goal', 'error'); }
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // ACHIEVEMENTS / BADGE DISPLAY IN LIFE VIEW
+  // ═══════════════════════════════════════════════════════════
+
+  function loadAchievementsDisplay() {
+    if (!window.BadgeSystem) return;
+
+    // Update streak display
+    const streakValue = document.getElementById('life-streak-value');
+    const streakBest = document.getElementById('life-streak-best');
+    if (streakValue && BadgeSystem.state) {
+      streakValue.textContent = `${BadgeSystem.state.stats.currentStreak || 0} days`;
+    }
+    if (streakBest && BadgeSystem.state) {
+      streakBest.textContent = `${BadgeSystem.state.stats.bestStreak || 0} days`;
+    }
+
+    // Update recent badges display
+    const recentBadgesContainer = document.getElementById('life-recent-badges');
+    if (recentBadgesContainer && BadgeSystem.state) {
+      const unlockedBadges = BadgeSystem.state.unlockedBadges || [];
+      if (unlockedBadges.length === 0) {
+        recentBadgesContainer.innerHTML = `<div style="text-align:center;padding:16px;color:var(--text-muted);font-size:13px;width:100%">No badges earned yet. Complete tasks to start earning!</div>`;
+      } else {
+        const allBadges = Object.values(BadgeSystem.BADGES);
+        const earned = unlockedBadges.map(id => allBadges.find(b => b.id === id)).filter(Boolean).slice(0, 6);
+        recentBadgesContainer.innerHTML = earned.map(badge => `
+          <div style="display:flex;flex-direction:column;align-items:center;padding:12px;background:linear-gradient(135deg, ${badge.color}15, ${badge.color}08);border:1px solid ${badge.color}40;border-radius:10px;min-width:80px" title="${badge.description}">
+            <span style="font-size:28px">${badge.icon}</span>
+            <span style="font-size:10px;font-weight:600;color:var(--text-primary);margin-top:4px;text-align:center">${badge.name}</span>
+            <span style="font-size:9px;color:${badge.color};text-transform:uppercase">${BadgeSystem.TIERS[badge.tier].name}</span>
+          </div>
+        `).join('');
+      }
+    }
+
+    // Update next badge in progress
+    const nextBadge = BadgeSystem.getNextBadgeInProgress ? BadgeSystem.getNextBadgeInProgress() : null;
+    const nextBadgeContainer = document.getElementById('life-next-badge');
+    if (nextBadgeContainer && nextBadge) {
+      const progress = BadgeSystem.state.badgeProgress[nextBadge.id] || { current: 0, required: nextBadge.requirement, percentage: 0 };
+      nextBadgeContainer.style.display = 'block';
+      document.getElementById('next-badge-icon').textContent = nextBadge.icon;
+      document.getElementById('next-badge-name').textContent = nextBadge.name;
+      document.getElementById('next-badge-desc').textContent = nextBadge.description;
+      document.getElementById('next-badge-progress').style.width = `${progress.percentage}%`;
+      document.getElementById('next-badge-progress-text').textContent = `${progress.current}/${progress.required}`;
+    } else if (nextBadgeContainer) {
+      nextBadgeContainer.style.display = 'none';
+    }
+  }
+
+
+  // ═══════════════════════════════════════════════════════════
+  // TEAM LEADERBOARD - Friendly Competition & Accountability
+  // ═══════════════════════════════════════════════════════════
+
+  let leaderboardData = {
+    rankings: [],
+    currentUser: null,
+    challenge: null,
+    weekStart: null
+  };
+
+  async function loadTeamLeaderboard() {
+    try {
+      // Calculate current week start (Monday)
+      const now = new Date();
+      const dayOfWeek = now.getDay();
+      const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+      const weekStart = new Date(now.setDate(diff));
+      weekStart.setHours(0, 0, 0, 0);
+      leaderboardData.weekStart = weekStart;
+
+      // Update week label
+      const weekLabel = document.getElementById('leaderboard-week-label');
+      if (weekLabel) {
+        weekLabel.textContent = 'Week of ' + weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      }
+
+      // Try to fetch leaderboard data from API
+      let response;
+      try {
+        response = await apiGet('/api/leaderboard/weekly');
+      } catch (apiErr) {
+        console.log('Leaderboard API not available, using local data');
+        response = null;
+      }
+
+      if (response && response.success && response.rankings) {
+        leaderboardData.rankings = response.rankings;
+        leaderboardData.currentUser = response.currentUser;
+        leaderboardData.challenge = response.challenge;
+      } else {
+        // Generate leaderboard from local task data
+        await generateLeaderboardFromTasks();
+      }
+
+      renderLeaderboard();
+      renderYourStats();
+      renderTeamChallenge();
+
+    } catch (err) {
+      console.error('Failed to load team leaderboard:', err);
+      const container = document.getElementById('leaderboard-rankings');
+      if (container) {
+        container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px">Unable to load leaderboard</div>';
+      }
+    }
+  }
+
+  async function generateLeaderboardFromTasks() {
+    // Get tasks from local state or API
+    let completedTasks = [];
+    try {
+      const taskResponse = await apiGet('/api/tasks?status=done&limit=500');
+      if (taskResponse && taskResponse.tasks) {
+        completedTasks = taskResponse.tasks;
+      }
+    } catch (err) {
+      // Use cached tasks if available
+      completedTasks = (window.tasks || []).filter(t => t.status === 'done');
+    }
+
+    // Filter to current week
+    const weekStart = leaderboardData.weekStart;
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 7);
+
+    const thisWeekTasks = completedTasks.filter(t => {
+      const completedAt = t.completed_at ? new Date(t.completed_at) : (t.updated_at ? new Date(t.updated_at) : null);
+      return completedAt && completedAt >= weekStart && completedAt < weekEnd;
+    });
+
+    // Group by assignee/user
+    const userStats = {};
+    thisWeekTasks.forEach(task => {
+      const userId = task.assignee || task.user_id || 'You';
+      const userName = task.assignee_name || task.user_name || userId;
+
+      if (!userStats[userId]) {
+        userStats[userId] = {
+          id: userId,
+          name: userName,
+          tasksCompleted: 0,
+          streak: 0,
+          completionRate: 0,
+          isCurrentUser: userId === 'You' || userId === window.currentUserId
+        };
+      }
+      userStats[userId].tasksCompleted++;
+    });
+
+    // Calculate completion rates and streaks
+    for (const userId in userStats) {
+      const user = userStats[userId];
+      // Get total assigned tasks for this user this week
+      const totalAssigned = (window.tasks || []).filter(t =>
+        (t.assignee === userId || t.user_id === userId) &&
+        t.status !== 'cancelled'
+      ).length || user.tasksCompleted;
+
+      user.completionRate = totalAssigned > 0 ? Math.round((user.tasksCompleted / totalAssigned) * 100) : 0;
+
+      // Calculate streak (consecutive days with at least 1 task completed)
+      user.streak = calculateStreak(thisWeekTasks.filter(t =>
+        (t.assignee === userId || t.user_id === userId)
+      ));
+    }
+
+    // Sort by tasks completed (descending)
+    const rankings = Object.values(userStats).sort((a, b) => {
+      if (b.tasksCompleted !== a.tasksCompleted) return b.tasksCompleted - a.tasksCompleted;
+      return b.completionRate - a.completionRate;
+    });
+
+    // Assign ranks
+    rankings.forEach((user, idx) => {
+      user.rank = idx + 1;
+    });
+
+    leaderboardData.rankings = rankings;
+    leaderboardData.currentUser = rankings.find(r => r.isCurrentUser) || {
+      id: 'You',
+      name: 'You',
+      tasksCompleted: 0,
+      streak: 0,
+      completionRate: 0,
+      rank: rankings.length + 1,
+      isCurrentUser: true
+    };
+
+    // Generate a simple team challenge
+    const totalTeamTasks = rankings.reduce((sum, r) => sum + r.tasksCompleted, 0);
+    const challengeTarget = Math.max(50, Math.ceil((totalTeamTasks + 20) / 10) * 10);
+
+    leaderboardData.challenge = {
+      title: 'Complete ' + challengeTarget + ' tasks by ' + weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      target: challengeTarget,
+      current: totalTeamTasks,
+      deadline: weekEnd.toISOString(),
+      contributors: rankings.slice(0, 5).map(r => ({ name: r.name, count: r.tasksCompleted }))
+    };
+  }
+
+  function calculateStreak(tasks) {
+    if (!tasks || tasks.length === 0) return 0;
+
+    // Get unique completion dates
+    const dates = new Set();
+    tasks.forEach(t => {
+      const date = t.completed_at ? new Date(t.completed_at) : (t.updated_at ? new Date(t.updated_at) : null);
+      if (date) {
+        dates.add(date.toISOString().split('T')[0]);
+      }
+    });
+
+    if (dates.size === 0) return 0;
+
+    // Sort dates and count consecutive days
+    const sortedDates = Array.from(dates).sort().reverse();
+    let streak = 1;
+
+    for (let i = 0; i < sortedDates.length - 1; i++) {
+      const current = new Date(sortedDates[i]);
+      const next = new Date(sortedDates[i + 1]);
+      const diffDays = (current - next) / (1000 * 60 * 60 * 24);
+
+      if (diffDays === 1) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+
+    return streak;
+  }
+
+  function renderLeaderboard() {
+    const container = document.getElementById('leaderboard-rankings');
+    if (!container) return;
+
+    const rankings = leaderboardData.rankings;
+
+    if (!rankings || rankings.length === 0) {
+      container.innerHTML = `
+        <div style="text-align:center;padding:24px;color:var(--text-muted)">
+          <div style="font-size:32px;margin-bottom:8px">&#127942;</div>
+          <div style="font-size:13px">No activity this week yet</div>
+          <div style="font-size:11px;margin-top:4px">Complete tasks to climb the leaderboard!</div>
+        </div>
+      `;
+      return;
+    }
+
+    // Show top 5 or all if less
+    const topRankings = rankings.slice(0, 5);
+
+    container.innerHTML = topRankings.map((user, idx) => {
+      const rank = idx + 1;
+      const medal = rank === 1 ? '&#129351;' : rank === 2 ? '&#129352;' : rank === 3 ? '&#129353;' : '';
+      const rankDisplay = medal || '#' + rank;
+      const isYou = user.isCurrentUser;
+
+      const bgStyle = isYou
+        ? 'background:linear-gradient(135deg, rgba(99,102,241,0.2), rgba(168,85,247,0.2));border:1px solid rgba(99,102,241,0.4)'
+        : 'background:var(--bg-secondary)';
+
+      return `
+        <div style="${bgStyle};border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:12px;transition:all 0.2s" class="leaderboard-row">
+          <div style="width:32px;text-align:center;font-size:${medal ? '18px' : '14px'};font-weight:700;color:${rank <= 3 ? 'var(--yellow)' : 'var(--text-muted)'}">${rankDisplay}</div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:14px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(user.name)}${isYou ? ' (You)' : ''}</span>
+              ${user.streak >= 3 ? `<span style="font-size:11px;background:rgba(249,115,22,0.2);color:var(--orange);padding:2px 6px;border-radius:4px">&#128293; ${user.streak} day streak</span>` : ''}
+            </div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px">
+              <span style="color:var(--green)">${user.completionRate}% completion</span>
+            </div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:18px;font-weight:700;color:var(--text-primary)">${user.tasksCompleted}</div>
+            <div style="font-size:10px;color:var(--text-muted)">tasks</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderYourStats() {
+    const container = document.getElementById('your-stats-row');
+    if (!container) return;
+
+    const user = leaderboardData.currentUser;
+    if (!user) {
+      container.style.display = 'none';
+      return;
+    }
+
+    container.style.display = 'block';
+
+    document.getElementById('your-tasks-count').textContent = user.tasksCompleted || 0;
+    document.getElementById('your-streak').textContent = user.streak || 0;
+    document.getElementById('your-completion-rate').textContent = (user.completionRate || 0) + '%';
+
+    const rankBadge = document.getElementById('your-rank-badge');
+    if (rankBadge) {
+      const rankEl = rankBadge.querySelector('div:first-child');
+      if (rankEl) {
+        rankEl.textContent = '#' + (user.rank || '--');
+      }
+    }
+  }
+
+  function renderTeamChallenge() {
+    const card = document.getElementById('team-challenge-card');
+    const soloMessage = document.getElementById('solo-mode-message');
+
+    if (!card || !soloMessage) return;
+
+    const challenge = leaderboardData.challenge;
+    const rankings = leaderboardData.rankings;
+
+    // Show solo mode if only one person
+    if (!rankings || rankings.length <= 1) {
+      card.style.display = 'none';
+      soloMessage.style.display = 'block';
+      return;
+    }
+
+    soloMessage.style.display = 'none';
+
+    if (!challenge) {
+      card.style.display = 'none';
+      return;
+    }
+
+    card.style.display = 'block';
+
+    // Update challenge details
+    document.getElementById('challenge-title').textContent = challenge.title || 'Team Challenge';
+
+    const deadline = challenge.deadline ? new Date(challenge.deadline) : null;
+    document.getElementById('challenge-deadline').textContent = deadline
+      ? 'Ends ' + deadline.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      : '';
+
+    const current = challenge.current || 0;
+    const target = challenge.target || 100;
+    const pct = Math.min(100, Math.round((current / target) * 100));
+
+    document.getElementById('challenge-progress-text').textContent = current + ' / ' + target + ' tasks';
+    document.getElementById('challenge-progress-pct').textContent = pct + '%';
+    document.getElementById('challenge-progress-bar').style.width = pct + '%';
+
+    // Render contributor avatars
+    const contributorsEl = document.getElementById('challenge-contributors');
+    if (contributorsEl && challenge.contributors) {
+      contributorsEl.innerHTML = challenge.contributors.slice(0, 5).map((c, idx) => {
+        const initials = c.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+        const colors = ['#6366f1', '#8b5cf6', '#ec4899', '#f97316', '#14b8a6'];
+        const color = colors[idx % colors.length];
+        return `
+          <div style="width:28px;height:28px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:white;border:2px solid var(--bg-card);margin-left:${idx > 0 ? '-8px' : '0'}" title="${escapeHtml(c.name)}: ${c.count} tasks">
+            ${initials}
+          </div>
+        `;
+      }).join('') + (challenge.contributors.length > 5 ? `<span style="font-size:11px;color:var(--text-muted);margin-left:8px">+${challenge.contributors.length - 5} more</span>` : '');
+    }
+  }
+
+
   // Initialize Life view components
   (async function initLifeViewFull() {
-    await Promise.all([loadContacts(), loadGoals(), loadRelationshipNudges()]);
+    await Promise.all([loadContacts(), loadGoals(), loadRelationshipNudges(), loadTeamLeaderboard()]);
     setInterval(loadRelationshipNudges, 5 * 60 * 1000);
+    setInterval(loadTeamLeaderboard, 10 * 60 * 1000); // Refresh leaderboard every 10 minutes
   })();
 
   // ═══════════════════════════════════════════════════════════
@@ -11812,6 +12932,8 @@
 <!-- TinyPM Enhancement Libraries -->
 <script src="/static/js/micro-animations.js"></script>
 <script src="/static/js/animated-checkbox.js"></script>
+<script src="/static/js/badge-system.js"></script>
+<script src="/static/js/goal-celebration.js"></script>
 <script src="/static/js/ai-rituals.js"></script>
 <script src="/static/js/ai-nudges.js"></script>
 <script src="/static/js/explainable-ai.js"></script>

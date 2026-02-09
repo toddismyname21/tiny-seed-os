@@ -7,6 +7,7 @@
  * Reference: Superhuman's auto-drafts, Motion's smart scheduling, Sunsama's morning ritual
  *
  * Created: 2026-02-03
+ * Updated: 2026-02-09 - Connected to live API endpoints
  * Team: AI UX & Guided Rituals (Team 3)
  */
 
@@ -20,7 +21,8 @@ const AIRituals = {
         eveningStart: 17,   // 5 PM
         eveningEnd: 21,     // 9 PM
         ritualDismissHours: 8, // Don't show again for 8 hours
-        animationDuration: 400
+        animationDuration: 400,
+        apiTimeout: 8000    // 8 second timeout for API calls
     },
 
     // State
@@ -28,14 +30,62 @@ const AIRituals = {
         currentRitualStep: 0,
         ritualType: null, // 'morning' or 'evening'
         ritualData: {},
-        isAnimating: false
+        isAnimating: false,
+        cachedTasks: []     // Cache tasks after API fetch
+    },
+
+    // =========================================================================
+    // API HELPERS - Connect to real task data
+    // =========================================================================
+
+    /**
+     * Fetch tasks from the live API
+     * @returns {Promise<Array>} Array of tasks
+     */
+    async fetchTasksFromAPI() {
+        try {
+            const res = await fetch('/api/tasks', {
+                signal: AbortSignal.timeout(this.config.apiTimeout)
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            this.state.cachedTasks = data.tasks || [];
+            return this.state.cachedTasks;
+        } catch (err) {
+            console.error('[AIRituals] Failed to fetch tasks from API:', err);
+            // Fallback to cached tasks or empty array
+            return this.state.cachedTasks || [];
+        }
+    },
+
+    /**
+     * Create a task via the API
+     * @param {Object} taskData - Task data to create
+     * @returns {Promise<Object>} Result object
+     */
+    async createTaskViaAPI(taskData) {
+        try {
+            const res = await fetch('/api/tasks/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(taskData),
+                signal: AbortSignal.timeout(this.config.apiTimeout)
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return await res.json();
+        } catch (err) {
+            console.error('[AIRituals] Failed to create task via API:', err);
+            return { success: false, error: err.message };
+        }
     },
 
     // =========================================================================
     // INITIALIZATION
     // =========================================================================
-    init() {
+    async init() {
         this.injectStyles();
+        // Pre-fetch tasks from API before checking rituals
+        await this.fetchTasksFromAPI();
         this.checkAndShowRitual();
     },
 
@@ -92,14 +142,12 @@ const AIRituals = {
     },
 
     /**
-     * Get tasks from localStorage
+     * Get tasks from cached API data
+     * NOTE: Tasks are fetched from the API in init() and stored in state.cachedTasks
+     * This method returns the cached data synchronously for use in render methods
      */
     getTasks() {
-        try {
-            return JSON.parse(localStorage.getItem('tinypm_tasks') || '[]');
-        } catch (e) {
-            return [];
-        }
+        return this.state.cachedTasks || [];
     },
 
     /**
@@ -118,9 +166,12 @@ const AIRituals = {
     // =========================================================================
     // MORNING RITUAL
     // =========================================================================
-    showMorningRitual() {
+    async showMorningRitual() {
         this.state.ritualType = 'morning';
         this.state.currentRitualStep = 0;
+
+        // Fetch fresh task data from API before showing ritual
+        await this.fetchTasksFromAPI();
         this.state.ritualData = this.gatherMorningData();
 
         const overlay = this.createRitualOverlay();
@@ -381,9 +432,12 @@ const AIRituals = {
     // =========================================================================
     // EVENING RITUAL
     // =========================================================================
-    showEveningRitual() {
+    async showEveningRitual() {
         this.state.ritualType = 'evening';
         this.state.currentRitualStep = 0;
+
+        // Fetch fresh task data from API before showing ritual
+        await this.fetchTasksFromAPI();
         this.state.ritualData = this.gatherEveningData();
 
         const overlay = this.createRitualOverlay();
@@ -767,30 +821,33 @@ const AIRituals = {
         console.log('[AIRituals] Voice capture requested');
     },
 
-    addBrainDumpAsTasks() {
+    async addBrainDumpAsTasks() {
         const text = document.getElementById('brainDumpText')?.value;
         if (!text) return;
 
         // Parse text into tasks (simple line-by-line)
         const lines = text.split('\n').filter(l => l.trim());
-        const tasks = JSON.parse(localStorage.getItem('tinypm_tasks') || '[]');
+        let createdCount = 0;
 
-        lines.forEach(line => {
-            tasks.push({
-                id: this.generateUUID(),
+        // Create each task via the API
+        for (const line of lines) {
+            const result = await this.createTaskViaAPI({
                 title: line.trim(),
                 status: 'pending',
                 priority: 'medium',
-                created_at: new Date().toISOString(),
                 source: 'evening_ritual'
             });
-        });
-
-        localStorage.setItem('tinypm_tasks', JSON.stringify(tasks));
+            if (result.success) {
+                createdCount++;
+            }
+        }
 
         // Clear input and show confirmation
         document.getElementById('brainDumpText').value = '';
-        this.showToast(`Added ${lines.length} task${lines.length > 1 ? 's' : ''}`);
+        this.showToast(`Added ${createdCount} task${createdCount !== 1 ? 's' : ''}`);
+
+        // Refresh cached tasks
+        await this.fetchTasksFromAPI();
     },
 
     getAffirmation() {
@@ -1568,7 +1625,19 @@ window.AIRituals = AIRituals;
 // Auto-initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
     // Delay to not interfere with initial page load
-    setTimeout(() => {
-        AIRituals.init();
+    // Also ensures the dashboard has loaded tasks first
+    setTimeout(async () => {
+        await AIRituals.init();
     }, 1500);
 });
+
+// Also expose manual trigger methods for testing
+window.showMorningRitual = async () => {
+    await AIRituals.fetchTasksFromAPI();
+    AIRituals.showMorningRitual();
+};
+
+window.showEveningRitual = async () => {
+    await AIRituals.fetchTasksFromAPI();
+    AIRituals.showEveningRitual();
+};

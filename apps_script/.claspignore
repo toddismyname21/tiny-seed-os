@@ -29,6 +29,7 @@ ChiefOfStaff_Voice.js
 
 # Other Modules (merged or empty)
 ChefCommunications.js
+# UniversalParser.js - Keep this file to push the stub (prevents duplicate error)
 # ClaudeCoordination.js - ENABLED - Required for Claude Coordination Center
 CropRotation.js
 EmailWorkflowEngine.js
