@@ -772,6 +772,16 @@
             font-size: 1rem;
         }
 
+        /* Make dropdowns scrollable */
+        .input-group select {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        #uploadType {
+            max-height: none; /* Let browser handle native select */
+        }
+
         .input-group input:focus,
         .input-group select:focus {
             outline: none;
@@ -1844,6 +1854,738 @@
         @keyframes spin {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
+        }
+
+        /* ====== GRANT DOCUMENT UPLOADS STYLES ====== */
+        .grant-upload-zone {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--bg);
+            margin-bottom: 1rem;
+        }
+
+        .grant-upload-zone:hover, .grant-upload-zone.dragover {
+            border-color: var(--gold);
+            background: rgba(244, 162, 97, 0.05);
+        }
+
+        .grant-upload-zone i {
+            font-size: 2.5rem;
+            color: var(--gold);
+            margin-bottom: 0.75rem;
+            display: block;
+        }
+
+        .grant-uploaded-doc {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem;
+            background: var(--bg-lighter);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            border-left: 3px solid var(--success);
+        }
+
+        .grant-uploaded-doc .doc-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 0.75rem;
+            font-size: 1.1rem;
+        }
+
+        .grant-uploaded-doc .doc-icon.pdf { background: rgba(231, 76, 60, 0.2); color: #e74c3c; }
+        .grant-uploaded-doc .doc-icon.excel { background: rgba(46, 204, 113, 0.2); color: #2ecc71; }
+        .grant-uploaded-doc .doc-icon.image { background: rgba(52, 152, 219, 0.2); color: #3498db; }
+        .grant-uploaded-doc .doc-icon.doc { background: rgba(52, 73, 94, 0.2); color: #34495e; }
+
+        .grant-uploaded-doc .doc-details {
+            flex: 1;
+        }
+
+        .grant-uploaded-doc .doc-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 0.15rem;
+        }
+
+        .grant-uploaded-doc .doc-meta {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .grant-uploaded-doc .doc-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .grant-uploaded-doc .doc-actions button {
+            padding: 0.35rem 0.5rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.2s ease;
+        }
+
+        .grant-uploaded-doc .doc-actions .view-btn {
+            background: var(--primary);
+            color: white;
+        }
+
+        .grant-uploaded-doc .doc-actions .delete-btn {
+            background: rgba(231, 76, 60, 0.2);
+            color: #e74c3c;
+        }
+
+        /* ====== GRANT VIDEO LINKS STYLES ====== */
+        .grant-videos-section {
+            margin-top: 1rem;
+        }
+
+        .grant-video-card {
+            display: flex;
+            gap: 1rem;
+            padding: 0.75rem;
+            background: var(--bg-lighter);
+            border-radius: 8px;
+            margin-bottom: 0.75rem;
+            border-left: 3px solid var(--danger);
+        }
+
+        .grant-video-card .video-thumbnail {
+            width: 120px;
+            height: 68px;
+            background: var(--bg);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .grant-video-card .video-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .grant-video-card .video-thumbnail i {
+            font-size: 2rem;
+            color: var(--danger);
+        }
+
+        .grant-video-card .video-info {
+            flex: 1;
+        }
+
+        .grant-video-card .video-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .grant-video-card .video-desc {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+        }
+
+        .grant-video-card .video-relevance {
+            font-size: 0.75rem;
+            color: var(--info);
+            font-style: italic;
+        }
+
+        .grant-video-card .video-actions {
+            display: flex;
+            gap: 0.5rem;
+            align-items: flex-start;
+        }
+
+        /* ====== GRANT QUICK LINKS STYLES ====== */
+        .grant-quick-links {
+            margin-top: 1rem;
+        }
+
+        .grant-quick-links-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .grant-quick-link {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem;
+            background: var(--bg-lighter);
+            border-radius: 8px;
+            text-decoration: none;
+            color: var(--text);
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+            border: 1px solid var(--border);
+        }
+
+        .grant-quick-link:hover {
+            border-color: var(--gold);
+            background: rgba(244, 162, 97, 0.1);
+        }
+
+        .grant-quick-link i {
+            color: var(--gold);
+        }
+
+        .grant-quick-link.missing {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* ====== APPLICATION STRENGTH INDICATOR STYLES ====== */
+        .application-strength {
+            background: var(--bg);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .strength-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .strength-header h4 {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .strength-score {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .strength-score.low { color: var(--danger); }
+        .strength-score.medium { color: var(--warning); }
+        .strength-score.good { color: var(--info); }
+        .strength-score.excellent { color: var(--success); }
+
+        .strength-bar {
+            height: 8px;
+            background: var(--bg-lighter);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 0.75rem;
+        }
+
+        .strength-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .strength-bar-fill.low { background: var(--danger); }
+        .strength-bar-fill.medium { background: var(--warning); }
+        .strength-bar-fill.good { background: var(--info); }
+        .strength-bar-fill.excellent { background: linear-gradient(90deg, var(--success), var(--gold)); }
+
+        .strength-breakdown {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 0.5rem;
+        }
+
+        .strength-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            padding: 0.35rem 0.5rem;
+            background: var(--bg-lighter);
+            border-radius: 4px;
+        }
+
+        .strength-item i.complete { color: var(--success); }
+        .strength-item i.incomplete { color: var(--text-secondary); }
+
+        /* ====== GRANT REFRESH BUTTON STYLES ====== */
+        .grant-refresh-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 0.35rem 0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .grant-refresh-btn:hover {
+            border-color: var(--info);
+            color: var(--info);
+            background: rgba(67, 97, 238, 0.1);
+        }
+
+        .grant-last-refreshed {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        .grant-changes-highlight {
+            background: rgba(244, 162, 97, 0.2);
+            border: 1px solid var(--warning);
+            border-radius: 6px;
+            padding: 0.5rem;
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+        }
+
+        /* Add video form */
+        .add-video-form {
+            background: var(--bg);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border: 1px dashed var(--border);
+        }
+
+        .add-video-form .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .add-video-form .form-row.full {
+            grid-template-columns: 1fr;
+        }
+
+        /* ====== FARM PROFILE & GRANT ARCHIVE STYLES ====== */
+
+        /* Farm Profile Section */
+        .farm-profile-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--info) 100%);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .farm-profile-logo {
+            width: 80px;
+            height: 80px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            flex-shrink: 0;
+        }
+
+        .farm-profile-info h2 {
+            font-size: 1.75rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .farm-profile-info p {
+            opacity: 0.9;
+            font-size: 0.95rem;
+        }
+
+        .farm-profile-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .profile-section {
+            background: var(--bg-lighter);
+            border-radius: 12px;
+            padding: 1.25rem;
+            border: 1px solid var(--border);
+        }
+
+        .profile-section h3 {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid var(--border);
+            color: var(--primary);
+        }
+
+        .profile-field {
+            margin-bottom: 1rem;
+        }
+
+        .profile-field:last-child {
+            margin-bottom: 0;
+        }
+
+        .profile-field label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.35rem;
+        }
+
+        .profile-field .field-value {
+            font-size: 1rem;
+            color: var(--text);
+            padding: 0.5rem 0;
+        }
+
+        .profile-field textarea,
+        .profile-field input {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 0.95rem;
+            resize: vertical;
+        }
+
+        .profile-field textarea:focus,
+        .profile-field input:focus {
+            border-color: var(--primary);
+            outline: none;
+        }
+
+        .editable-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .editable-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.35rem 0.75rem;
+            background: var(--bg);
+            border-radius: 20px;
+            font-size: 0.85rem;
+            border: 1px solid var(--border);
+        }
+
+        .editable-tag .remove-tag {
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+        }
+
+        .editable-tag .remove-tag:hover {
+            color: var(--danger);
+        }
+
+        .add-tag-input {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .add-tag-input input {
+            flex: 1;
+            padding: 0.5rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            font-size: 0.85rem;
+        }
+
+        .add-tag-input button {
+            padding: 0.5rem 0.75rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        /* Track Record Stats */
+        .track-record-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .track-stat {
+            text-align: center;
+            padding: 1rem;
+            background: var(--bg);
+            border-radius: 8px;
+        }
+
+        .track-stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--success);
+        }
+
+        .track-stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        /* Achievement Item */
+        .achievement-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .achievement-item:last-child {
+            border-bottom: none;
+        }
+
+        .achievement-year {
+            font-weight: 600;
+            color: var(--gold);
+            min-width: 50px;
+        }
+
+        .achievement-text {
+            font-size: 0.9rem;
+        }
+
+        /* Grant Bio Section in Edit Modal */
+        .grant-bio-section {
+            background: var(--bg);
+            border-radius: 8px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .grant-bio-section h4 {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.95rem;
+            margin-bottom: 1rem;
+            color: var(--gold);
+        }
+
+        .grant-bio-section textarea {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--bg-lighter);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 0.9rem;
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .pull-from-profile-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.35rem 0.75rem;
+            background: var(--bg-lighter);
+            border: 1px dashed var(--primary);
+            border-radius: 6px;
+            color: var(--primary);
+            font-size: 0.8rem;
+            cursor: pointer;
+            margin-bottom: 0.75rem;
+        }
+
+        .pull-from-profile-btn:hover {
+            background: rgba(42, 157, 143, 0.1);
+        }
+
+        /* Grant Archive Section */
+        .archive-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.25rem 0.5rem;
+            background: rgba(155, 89, 182, 0.2);
+            color: var(--purple);
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .grant-card.archived {
+            opacity: 0.85;
+            border: 2px dashed var(--border);
+        }
+
+        .grant-card.archived .grant-header {
+            filter: grayscale(30%);
+        }
+
+        /* Archive Outcome Fields */
+        .archive-outcome-section {
+            background: linear-gradient(135deg, rgba(155, 89, 182, 0.1), rgba(67, 97, 238, 0.1));
+            border: 1px solid var(--purple);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .archive-outcome-section h4 {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            color: var(--purple);
+        }
+
+        .outcome-field {
+            margin-bottom: 0.75rem;
+        }
+
+        .outcome-field label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+        }
+
+        .outcome-field input,
+        .outcome-field textarea,
+        .outcome-field select {
+            width: 100%;
+            padding: 0.5rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            font-size: 0.85rem;
+        }
+
+        /* Grant History Timeline */
+        .grant-history-timeline {
+            position: relative;
+            padding-left: 2rem;
+            margin-top: 1rem;
+        }
+
+        .grant-history-timeline::before {
+            content: '';
+            position: absolute;
+            left: 8px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--border);
+        }
+
+        .history-item {
+            position: relative;
+            padding-bottom: 1.5rem;
+            padding-left: 1rem;
+        }
+
+        .history-item::before {
+            content: '';
+            position: absolute;
+            left: -1.5rem;
+            top: 4px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--bg-lighter);
+            border: 2px solid var(--border);
+        }
+
+        .history-item.awarded::before {
+            background: var(--success);
+            border-color: var(--success);
+        }
+
+        .history-item.denied::before {
+            background: var(--danger);
+            border-color: var(--danger);
+        }
+
+        .history-item.submitted::before {
+            background: var(--warning);
+            border-color: var(--warning);
+        }
+
+        .history-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.25rem;
+        }
+
+        .history-item-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .history-item-amount {
+            font-weight: 600;
+            color: var(--success);
+        }
+
+        .history-item-meta {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .history-item-outcome {
+            font-size: 0.85rem;
+            margin-top: 0.35rem;
+            padding: 0.5rem;
+            background: var(--bg);
+            border-radius: 6px;
+        }
+
+        /* Archive View Toggle */
+        .archive-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-lighter);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .archive-toggle.active {
+            background: rgba(155, 89, 182, 0.2);
+            border-color: var(--purple);
+            color: var(--purple);
         }
 
         /* Scan Grant Website Button */
@@ -3109,6 +3851,9 @@
         <button class="nav-tab" data-tab="contacts">
             <i class="fas fa-address-book"></i> Contacts
         </button>
+        <button class="nav-tab" data-tab="farmprofile" style="background: linear-gradient(135deg, var(--success), var(--primary)); color: white;">
+            <i class="fas fa-tractor"></i> Farm Profile
+        </button>
         <button class="nav-tab" data-tab="grants" style="background: linear-gradient(135deg, var(--gold), var(--pa-gold)); color: white;">
             <i class="fas fa-award"></i> Grants
         </button>
@@ -3542,6 +4287,171 @@
     </div>
     <div id="crmToast" class="crm-toast"><i class="fas fa-check-circle"></i><span id="crmToastMessage">Saved!</span></div>
 
+    <!-- Farm Profile Tab -->
+    <div id="tab-farmprofile" class="tab-content">
+        <!-- Farm Profile Header -->
+        <div class="farm-profile-header">
+            <div class="farm-profile-logo">
+                <i class="fas fa-leaf"></i>
+            </div>
+            <div class="farm-profile-info">
+                <h2 id="farmProfileName">Tiny Seed Farm</h2>
+                <p id="farmProfileLocation"><i class="fas fa-map-marker-alt"></i> 257 Zeigler Rd, Rochester, PA 15074</p>
+            </div>
+            <div style="margin-left: auto;">
+                <button class="btn btn-secondary" onclick="openEditFarmProfileModal()">
+                    <i class="fas fa-edit"></i> Edit Profile
+                </button>
+            </div>
+        </div>
+
+        <!-- Farm Profile Content Grid -->
+        <div class="farm-profile-grid">
+            <!-- Basic Information -->
+            <div class="profile-section">
+                <h3><i class="fas fa-info-circle"></i> Basic Information</h3>
+                <div class="profile-field">
+                    <label>Farm Name</label>
+                    <div class="field-value" id="displayFarmName">Tiny Seed Farm</div>
+                </div>
+                <div class="profile-field">
+                    <label>Location</label>
+                    <div class="field-value" id="displayLocation">257 Zeigler Rd, Rochester, PA 15074</div>
+                </div>
+                <div class="profile-field">
+                    <label>Founded</label>
+                    <div class="field-value" id="displayFounded">--</div>
+                </div>
+                <div class="profile-field">
+                    <label>Owner(s)</label>
+                    <div class="field-value" id="displayOwners">Todd Wilson</div>
+                </div>
+                <div class="profile-field">
+                    <label>Acres</label>
+                    <div class="field-value" id="displayAcres">--</div>
+                </div>
+                <div class="profile-field">
+                    <label>Certifications</label>
+                    <div class="editable-list" id="displayCertifications">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Farm Story -->
+            <div class="profile-section">
+                <h3><i class="fas fa-book"></i> Farm Story</h3>
+                <div class="profile-field">
+                    <label>Mission Statement</label>
+                    <div class="field-value" id="displayMission" style="font-style: italic;">--</div>
+                </div>
+                <div class="profile-field">
+                    <label>History / Origin Story</label>
+                    <div class="field-value" id="displayHistory">--</div>
+                </div>
+                <div class="profile-field">
+                    <label>What Makes Us Unique</label>
+                    <div class="field-value" id="displayUnique">--</div>
+                </div>
+                <div class="profile-field">
+                    <label>Community Impact</label>
+                    <div class="field-value" id="displayCommunityImpact">--</div>
+                </div>
+            </div>
+
+            <!-- Capabilities & Operations -->
+            <div class="profile-section">
+                <h3><i class="fas fa-cogs"></i> Capabilities & Operations</h3>
+                <div class="profile-field">
+                    <label>Crops Grown</label>
+                    <div class="editable-list" id="displayCrops">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+                <div class="profile-field">
+                    <label>Markets Served</label>
+                    <div class="editable-list" id="displayMarkets">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+                <div class="profile-field">
+                    <label>Staff Size</label>
+                    <div class="field-value" id="displayStaffSize">--</div>
+                </div>
+                <div class="profile-field">
+                    <label>Equipment Owned</label>
+                    <div class="field-value" id="displayEquipment">--</div>
+                </div>
+                <div class="profile-field">
+                    <label>Infrastructure</label>
+                    <div class="field-value" id="displayInfrastructure">--</div>
+                </div>
+            </div>
+
+            <!-- Track Record -->
+            <div class="profile-section">
+                <h3><i class="fas fa-chart-line"></i> Track Record</h3>
+                <div class="track-record-stats">
+                    <div class="track-stat">
+                        <div class="track-stat-value" id="trackYearsInOperation">--</div>
+                        <div class="track-stat-label">Years in Operation</div>
+                    </div>
+                    <div class="track-stat">
+                        <div class="track-stat-value" id="trackTotalGrantsReceived">0</div>
+                        <div class="track-stat-label">Grants Received</div>
+                    </div>
+                    <div class="track-stat">
+                        <div class="track-stat-value" id="trackTotalGrantFunding">$0</div>
+                        <div class="track-stat-label">Grant Funding</div>
+                    </div>
+                    <div class="track-stat">
+                        <div class="track-stat-value" id="trackGrantSuccessRate">--%</div>
+                        <div class="track-stat-label">Success Rate</div>
+                    </div>
+                </div>
+                <div class="profile-field">
+                    <label>Key Achievements</label>
+                    <div id="displayAchievements">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Financial Highlights -->
+            <div class="profile-section">
+                <h3><i class="fas fa-dollar-sign"></i> Financial Highlights</h3>
+                <div class="profile-field">
+                    <label>Annual Revenue Range</label>
+                    <div class="field-value" id="displayRevenueRange">--</div>
+                </div>
+                <div class="profile-field">
+                    <label>Growth Trend</label>
+                    <div class="field-value" id="displayGrowthTrend">--</div>
+                </div>
+                <div class="profile-field">
+                    <label>Key Financial Metrics</label>
+                    <div class="field-value" id="displayFinancialMetrics">--</div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="profile-section" style="border: 2px solid var(--primary);">
+                <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <button class="btn btn-primary" onclick="openEditFarmProfileModal()">
+                        <i class="fas fa-edit"></i> Edit Farm Profile
+                    </button>
+                    <button class="btn btn-secondary" onclick="exportFarmProfile()">
+                        <i class="fas fa-download"></i> Export Profile (PDF)
+                    </button>
+                    <button class="btn btn-secondary" onclick="switchTab('grants')">
+                        <i class="fas fa-award"></i> View Grants
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Grants Dashboard Tab -->
     <div id="tab-grants" class="tab-content">
         <!-- Grant Summary Card -->
@@ -3594,14 +4504,19 @@
         <div class="card">
             <div class="card-header">
                 <h2><i class="fas fa-tasks"></i> Your Grants</h2>
-                <div style="display: flex; gap: 0.5rem;">
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+                    <button class="btn btn-secondary btn-sm" onclick="switchTab('farmprofile')" title="View/Edit Farm Profile">
+                        <i class="fas fa-tractor"></i> Farm Profile
+                    </button>
                     <select id="grantFilterStatus" onchange="filterGrants()" style="padding: 0.5rem; background: var(--bg-lighter); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
                         <option value="all">All Status</option>
+                        <option value="active">Active Only</option>
                         <option value="not_started">Not Started</option>
                         <option value="in_progress">In Progress</option>
                         <option value="submitted">Submitted</option>
                         <option value="awarded">Awarded</option>
                         <option value="denied">Denied</option>
+                        <option value="archived">Archived</option>
                     </select>
                     <select id="grantFilterCategory" onchange="filterGrants()" style="padding: 0.5rem; background: var(--bg-lighter); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
                         <option value="all">All Categories</option>
@@ -3610,10 +4525,26 @@
                         <option value="foundation">Foundation</option>
                         <option value="local">Local</option>
                     </select>
+                    <button id="archiveToggleBtn" class="archive-toggle" onclick="toggleArchiveView()">
+                        <i class="fas fa-archive"></i> <span id="archiveToggleText">Show Archive</span>
+                    </button>
                 </div>
             </div>
             <div class="grants-grid" id="grantsGrid">
                 <!-- Grants populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Grant History Timeline Card -->
+        <div class="card" id="grantHistoryCard" style="display: none;">
+            <div class="card-header">
+                <h2><i class="fas fa-history"></i> Grant History Timeline</h2>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <span id="grantHistoryStats" style="font-size: 0.85rem; color: var(--text-secondary);"></span>
+                </div>
+            </div>
+            <div class="grant-history-timeline" id="grantHistoryTimeline">
+                <!-- Populated by JavaScript -->
             </div>
         </div>
 
@@ -3853,14 +4784,29 @@
                     <button class="grant-detail-tab active" onclick="switchEditGrantTab('details')">
                         <i class="fas fa-info-circle"></i> Details
                     </button>
+                    <button class="grant-detail-tab" onclick="switchEditGrantTab('grantbio')">
+                        <i class="fas fa-book-open"></i> Grant Bio
+                    </button>
                     <button class="grant-detail-tab" onclick="switchEditGrantTab('documents')">
                         <i class="fas fa-folder-open"></i> Documents
+                    </button>
+                    <button class="grant-detail-tab" onclick="switchEditGrantTab('uploads')">
+                        <i class="fas fa-cloud-upload-alt"></i> Uploads
+                    </button>
+                    <button class="grant-detail-tab" onclick="switchEditGrantTab('videos')">
+                        <i class="fas fa-video"></i> Videos
+                    </button>
+                    <button class="grant-detail-tab" onclick="switchEditGrantTab('links')">
+                        <i class="fas fa-link"></i> Links
                     </button>
                     <button class="grant-detail-tab" onclick="switchEditGrantTab('contacts')">
                         <i class="fas fa-user-tie"></i> Contacts
                     </button>
                     <button class="grant-detail-tab" onclick="switchEditGrantTab('strategy')">
                         <i class="fas fa-lightbulb"></i> AI Strategy
+                    </button>
+                    <button class="grant-detail-tab" onclick="switchEditGrantTab('archive')" id="archiveTabBtn" style="display: none;">
+                        <i class="fas fa-archive"></i> Archive
                     </button>
                 </div>
 
@@ -3990,6 +4936,228 @@
                     </div>
                 </div>
 
+                <!-- Uploads Tab -->
+                <div id="editGrantTab-uploads" class="grant-detail-content">
+                    <div class="grant-vault-integration">
+                        <!-- Application Strength Indicator -->
+                        <div class="application-strength" id="grantApplicationStrength">
+                            <div class="strength-header">
+                                <h4><i class="fas fa-chart-line" style="color: var(--gold);"></i> Application Strength</h4>
+                                <span class="strength-score good" id="strengthScoreValue">0%</span>
+                            </div>
+                            <div class="strength-bar">
+                                <div class="strength-bar-fill good" id="strengthBarFill" style="width: 0%;"></div>
+                            </div>
+                            <div class="strength-breakdown" id="strengthBreakdown">
+                                <!-- Populated by JavaScript -->
+                            </div>
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h4 style="display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-cloud-upload-alt" style="color: var(--gold);"></i> Uploaded Documents
+                            </h4>
+                            <span id="grantUploadCount" style="font-size: 0.85rem; color: var(--text-secondary);">0 files uploaded</span>
+                        </div>
+
+                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                            <i class="fas fa-info-circle"></i> Upload supporting documents for this grant application. Supports PDFs, images, spreadsheets, and Word documents.
+                        </p>
+
+                        <!-- Upload Zone -->
+                        <div class="grant-upload-zone" id="grantUploadZone" onclick="document.getElementById('grantFileInput').click()">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <h4>Drag & Drop Files Here</h4>
+                            <p style="color: var(--text-secondary); font-size: 0.85rem;">or click to browse</p>
+                            <p style="color: var(--text-secondary); font-size: 0.75rem; margin-top: 0.5rem;">Supports: PDF, Excel, Word, Images (max 10MB)</p>
+                        </div>
+                        <input type="file" id="grantFileInput" multiple accept=".pdf,.xlsx,.xls,.doc,.docx,.jpg,.jpeg,.png,.gif" style="display: none;" onchange="handleGrantFileUpload(event)">
+
+                        <!-- Uploaded Files List -->
+                        <div id="grantUploadedFilesList" style="margin-top: 1rem;">
+                            <!-- Populated by JavaScript -->
+                        </div>
+
+                        <!-- Google Drive Link -->
+                        <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                            <h5 style="margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fab fa-google-drive" style="color: #4285F4;"></i> Google Drive Folder Link
+                            </h5>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <input type="url" id="grantDriveFolderLink" placeholder="https://drive.google.com/drive/folders/..." style="flex: 1; padding: 0.5rem; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
+                                <button class="btn btn-sm btn-secondary" onclick="saveGrantDriveLink()">
+                                    <i class="fas fa-save"></i> Save
+                                </button>
+                                <a id="grantDriveFolderBtn" href="#" target="_blank" class="btn btn-sm btn-primary" style="display: none;">
+                                    <i class="fas fa-external-link-alt"></i> Open
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Videos Tab -->
+                <div id="editGrantTab-videos" class="grant-detail-content">
+                    <div class="grant-vault-integration">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h4 style="display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-video" style="color: var(--danger);"></i> Video Links
+                            </h4>
+                            <button class="btn btn-sm btn-primary" onclick="toggleAddVideoForm()">
+                                <i class="fas fa-plus"></i> Add Video
+                            </button>
+                        </div>
+
+                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                            <i class="fas fa-info-circle"></i> Link relevant videos to support your grant application - farm tours, product demos, testimonials, previous project outcomes.
+                        </p>
+
+                        <!-- Add Video Form (hidden by default) -->
+                        <div class="add-video-form" id="addVideoForm" style="display: none;">
+                            <h5 style="margin-bottom: 0.75rem;"><i class="fas fa-plus-circle"></i> Add New Video</h5>
+                            <div class="form-row">
+                                <div class="input-group">
+                                    <label>Video URL *</label>
+                                    <input type="url" id="newVideoUrl" placeholder="https://youtube.com/watch?v=...">
+                                </div>
+                                <div class="input-group">
+                                    <label>Video Type</label>
+                                    <select id="newVideoType">
+                                        <option value="farm_tour">Farm Tour</option>
+                                        <option value="product_demo">Product Demo</option>
+                                        <option value="testimonial">Testimonial</option>
+                                        <option value="project_outcome">Project Outcome</option>
+                                        <option value="training">Training/Educational</option>
+                                        <option value="news">News Coverage</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="input-group">
+                                    <label>Title *</label>
+                                    <input type="text" id="newVideoTitle" placeholder="e.g., Summer 2025 Farm Tour">
+                                </div>
+                                <div class="input-group">
+                                    <label>Description</label>
+                                    <input type="text" id="newVideoDesc" placeholder="Brief description...">
+                                </div>
+                            </div>
+                            <div class="form-row full">
+                                <div class="input-group">
+                                    <label>Relevance to This Grant</label>
+                                    <input type="text" id="newVideoRelevance" placeholder="How does this video support your application?">
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                                <button class="btn btn-primary btn-sm" onclick="saveGrantVideo()">
+                                    <i class="fas fa-save"></i> Save Video
+                                </button>
+                                <button class="btn btn-secondary btn-sm" onclick="toggleAddVideoForm()">
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Video Cards List -->
+                        <div class="grant-videos-section" id="grantVideosList">
+                            <!-- Populated by JavaScript -->
+                            <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                <i class="fas fa-video" style="font-size: 2rem; margin-bottom: 0.5rem; display: block; opacity: 0.5;"></i>
+                                <p>No videos added yet. Click "Add Video" to link relevant videos.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Links Tab -->
+                <div id="editGrantTab-links" class="grant-detail-content">
+                    <div class="grant-vault-integration">
+                        <!-- Refresh from Website Section -->
+                        <div style="background: linear-gradient(135deg, rgba(67, 97, 238, 0.1), rgba(155, 89, 182, 0.1)); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <h5 style="margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.5rem;">
+                                        <i class="fas fa-sync-alt" style="color: var(--info);"></i> Refresh from Website
+                                    </h5>
+                                    <p id="grantLastRefreshed" class="grant-last-refreshed">Last refreshed: Never</p>
+                                </div>
+                                <button class="btn btn-primary btn-sm" onclick="refreshGrantFromWebsite()" id="refreshGrantBtn">
+                                    <i class="fas fa-sync-alt"></i> Refresh Now
+                                </button>
+                            </div>
+                            <div id="grantChangesAlert" class="grant-changes-highlight" style="display: none;">
+                                <i class="fas fa-exclamation-triangle"></i> <span id="grantChangesText">Requirements may have changed!</span>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h4 style="display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-link" style="color: var(--gold);"></i> Quick Links
+                            </h4>
+                            <button class="btn btn-sm btn-secondary" onclick="toggleAddLinkForm()">
+                                <i class="fas fa-plus"></i> Add Link
+                            </button>
+                        </div>
+
+                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                            <i class="fas fa-info-circle"></i> Save important links related to this grant for quick access.
+                        </p>
+
+                        <!-- Add Link Form (hidden by default) -->
+                        <div id="addLinkForm" style="display: none; margin-bottom: 1rem; padding: 1rem; background: var(--bg); border-radius: 8px; border: 1px dashed var(--border);">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                                <div class="input-group">
+                                    <label style="font-size: 0.8rem;">Link Type</label>
+                                    <select id="newLinkType" style="padding: 0.5rem; background: var(--bg-lighter); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
+                                        <option value="program">Program Website</option>
+                                        <option value="application">Application Portal</option>
+                                        <option value="faq">FAQ Page</option>
+                                        <option value="contact">Contact Page</option>
+                                        <option value="awardees">Previous Awardees</option>
+                                        <option value="guidelines">Program Guidelines</option>
+                                        <option value="webinar">Webinar/Info Session</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                <div class="input-group">
+                                    <label style="font-size: 0.8rem;">Label</label>
+                                    <input type="text" id="newLinkLabel" placeholder="e.g., Grant FAQ" style="padding: 0.5rem; background: var(--bg-lighter); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
+                                </div>
+                            </div>
+                            <div class="input-group" style="margin-bottom: 0.75rem;">
+                                <label style="font-size: 0.8rem;">URL</label>
+                                <input type="url" id="newLinkUrl" placeholder="https://..." style="padding: 0.5rem; background: var(--bg-lighter); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
+                            </div>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button class="btn btn-primary btn-sm" onclick="saveGrantLink()">
+                                    <i class="fas fa-save"></i> Save
+                                </button>
+                                <button class="btn btn-secondary btn-sm" onclick="toggleAddLinkForm()">
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Quick Links Grid -->
+                        <div class="grant-quick-links">
+                            <div class="grant-quick-links-grid" id="grantQuickLinksGrid">
+                                <!-- Populated by JavaScript -->
+                            </div>
+                        </div>
+
+                        <!-- Standard Links (always shown) -->
+                        <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                            <h5 style="margin-bottom: 0.75rem; color: var(--text-secondary); font-size: 0.85rem;">
+                                <i class="fas fa-bookmark"></i> Standard Links
+                            </h5>
+                            <div class="grant-quick-links-grid" id="grantStandardLinks">
+                                <!-- Populated by JavaScript based on grant link -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Contacts Tab -->
                 <div id="editGrantTab-contacts" class="grant-detail-content">
                     <div class="grant-contacts">
@@ -4057,11 +5225,119 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Grant Bio Tab -->
+                <div id="editGrantTab-grantbio" class="grant-detail-content">
+                    <div style="margin-bottom: 1rem; padding: 1rem; background: linear-gradient(135deg, rgba(42, 157, 143, 0.1), rgba(67, 97, 238, 0.1)); border-radius: 8px;">
+                        <p style="font-size: 0.9rem; color: var(--text-secondary); margin: 0;">
+                            <i class="fas fa-info-circle" style="color: var(--primary);"></i>
+                            Customize your farm's story for this specific grant. Pull content from your Farm Profile or write custom messaging.
+                        </p>
+                    </div>
+
+                    <div class="grant-bio-section">
+                        <h4><i class="fas fa-bullseye"></i> Why We're a Good Fit for THIS Grant</h4>
+                        <button class="pull-from-profile-btn" onclick="pullFromProfile('whyGoodFit')">
+                            <i class="fas fa-download"></i> Pull from Profile
+                        </button>
+                        <textarea id="grantBioWhyGoodFit" rows="3" placeholder="Explain why your farm is an ideal candidate for this specific grant..."></textarea>
+                    </div>
+
+                    <div class="grant-bio-section">
+                        <h4><i class="fas fa-history"></i> Relevant Experience for THIS Grant's Focus</h4>
+                        <button class="pull-from-profile-btn" onclick="pullFromProfile('relevantExperience')">
+                            <i class="fas fa-download"></i> Pull from Profile
+                        </button>
+                        <textarea id="grantBioRelevantExperience" rows="3" placeholder="Describe relevant experience that aligns with the grant's focus area..."></textarea>
+                    </div>
+
+                    <div class="grant-bio-section">
+                        <h4><i class="fas fa-handshake"></i> How THIS Grant Aligns with Our Mission</h4>
+                        <button class="pull-from-profile-btn" onclick="pullFromProfile('missionAlignment')">
+                            <i class="fas fa-download"></i> Pull from Profile
+                        </button>
+                        <textarea id="grantBioMissionAlignment" rows="3" placeholder="Explain how the grant's goals align with your farm's mission..."></textarea>
+                    </div>
+
+                    <div class="grant-bio-section">
+                        <h4><i class="fas fa-trophy"></i> Specific Outcomes We'll Achieve with THIS Grant</h4>
+                        <textarea id="grantBioOutcomes" rows="3" placeholder="Describe the specific, measurable outcomes you'll achieve with this funding..."></textarea>
+                    </div>
+
+                    <div class="grant-bio-section">
+                        <h4><i class="fas fa-comments"></i> Grant-Specific Talking Points</h4>
+                        <textarea id="grantBioTalkingPoints" rows="3" placeholder="Key talking points for this application (one per line)..."></textarea>
+                    </div>
+
+                    <div style="margin-top: 1rem; padding: 0.75rem; background: var(--bg); border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <span style="font-size: 0.85rem; color: var(--text-secondary);">Version Submitted:</span>
+                            <span id="grantBioSubmittedVersion" style="font-size: 0.85rem; margin-left: 0.5rem;">Not submitted yet</span>
+                        </div>
+                        <button class="btn btn-sm btn-secondary" onclick="markGrantBioSubmitted()">
+                            <i class="fas fa-check"></i> Mark as Submitted
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Archive Tab (shown only for awarded/denied grants) -->
+                <div id="editGrantTab-archive" class="grant-detail-content">
+                    <div class="archive-outcome-section">
+                        <h4><i class="fas fa-archive"></i> Grant Outcome Details</h4>
+
+                        <div class="outcome-field">
+                            <label>Final Status</label>
+                            <select id="archiveOutcomeStatus">
+                                <option value="awarded">Awarded</option>
+                                <option value="denied">Denied</option>
+                            </select>
+                        </div>
+
+                        <div class="outcome-field" id="archiveFinalAmountField">
+                            <label>Final Amount Awarded</label>
+                            <input type="text" id="archiveFinalAmount" placeholder="$0">
+                        </div>
+
+                        <div class="outcome-field">
+                            <label>Award/Decision Date</label>
+                            <input type="date" id="archiveDecisionDate">
+                        </div>
+
+                        <div class="outcome-field">
+                            <label>Feedback Received</label>
+                            <textarea id="archiveFeedback" rows="3" placeholder="Any feedback from the granting organization..."></textarea>
+                        </div>
+
+                        <div class="outcome-field">
+                            <label>Lessons Learned</label>
+                            <textarea id="archiveLessonsLearned" rows="3" placeholder="What did you learn from this application process?"></textarea>
+                        </div>
+
+                        <div class="outcome-field">
+                            <label>Would Apply Again?</label>
+                            <select id="archiveWouldApplyAgain">
+                                <option value="">Select...</option>
+                                <option value="yes">Yes, definitely</option>
+                                <option value="maybe">Maybe, with changes</option>
+                                <option value="no">No</option>
+                            </select>
+                        </div>
+
+                        <div style="margin-top: 1rem;">
+                            <button class="btn btn-primary" onclick="saveArchiveOutcome()">
+                                <i class="fas fa-save"></i> Save Outcome & Archive
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeEditGrantModal()">Cancel</button>
                 <button class="btn btn-danger" onclick="deleteGrant()" style="margin-right: auto;">
                     <i class="fas fa-trash"></i> Delete
+                </button>
+                <button class="btn btn-warning" onclick="archiveGrant()" id="archiveGrantBtn" style="display: none;">
+                    <i class="fas fa-archive"></i> Archive Grant
                 </button>
                 <button class="btn btn-primary" onclick="saveEditedGrant()">
                     <i class="fas fa-save"></i> Save Changes
@@ -4112,6 +5388,139 @@
                 <button class="btn btn-secondary" onclick="closeGrantContactModal()">Cancel</button>
                 <button class="btn btn-primary" onclick="saveGrantContact()">
                     <i class="fas fa-save"></i> Save Contact
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Farm Profile Edit Modal -->
+    <div id="farmProfileModal" class="modal-overlay">
+        <div class="modal" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h2><i class="fas fa-tractor"></i> Edit Farm Profile</h2>
+                <button class="modal-close" onclick="closeFarmProfileModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Basic Information Section -->
+                <div class="profile-section" style="margin-bottom: 1.5rem;">
+                    <h3><i class="fas fa-info-circle"></i> Basic Information</h3>
+                    <div class="form-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                        <div class="input-group">
+                            <label>Farm Name</label>
+                            <input type="text" id="editFarmName" placeholder="Farm Name">
+                        </div>
+                        <div class="input-group">
+                            <label>Owner(s)</label>
+                            <input type="text" id="editOwners" placeholder="Owner names">
+                        </div>
+                        <div class="input-group" style="grid-column: span 2;">
+                            <label>Location</label>
+                            <input type="text" id="editLocation" placeholder="Full address">
+                        </div>
+                        <div class="input-group">
+                            <label>Founded (Year)</label>
+                            <input type="number" id="editFounded" placeholder="e.g., 2015">
+                        </div>
+                        <div class="input-group">
+                            <label>Acres</label>
+                            <input type="text" id="editAcres" placeholder="e.g., 25 acres">
+                        </div>
+                        <div class="input-group" style="grid-column: span 2;">
+                            <label>Certifications (comma-separated)</label>
+                            <input type="text" id="editCertifications" placeholder="e.g., Organic, GAP Certified">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Farm Story Section -->
+                <div class="profile-section" style="margin-bottom: 1.5rem;">
+                    <h3><i class="fas fa-book"></i> Farm Story</h3>
+                    <div class="input-group" style="margin-bottom: 1rem;">
+                        <label>Mission Statement</label>
+                        <textarea id="editMission" rows="2" placeholder="What drives your farm? What's your purpose?"></textarea>
+                    </div>
+                    <div class="input-group" style="margin-bottom: 1rem;">
+                        <label>History / Origin Story</label>
+                        <textarea id="editHistory" rows="3" placeholder="How did the farm start? What's the journey been like?"></textarea>
+                    </div>
+                    <div class="input-group" style="margin-bottom: 1rem;">
+                        <label>What Makes Us Unique</label>
+                        <textarea id="editUnique" rows="2" placeholder="What sets your farm apart from others?"></textarea>
+                    </div>
+                    <div class="input-group">
+                        <label>Community Impact</label>
+                        <textarea id="editCommunityImpact" rows="2" placeholder="How does your farm serve and impact the community?"></textarea>
+                    </div>
+                </div>
+
+                <!-- Capabilities & Operations Section -->
+                <div class="profile-section" style="margin-bottom: 1.5rem;">
+                    <h3><i class="fas fa-cogs"></i> Capabilities & Operations</h3>
+                    <div class="form-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                        <div class="input-group" style="grid-column: span 2;">
+                            <label>Crops Grown (comma-separated)</label>
+                            <input type="text" id="editCrops" placeholder="e.g., Tomatoes, Peppers, Greens, Flowers">
+                        </div>
+                        <div class="input-group" style="grid-column: span 2;">
+                            <label>Markets Served (comma-separated)</label>
+                            <input type="text" id="editMarkets" placeholder="e.g., CSA, Farmers Markets, Wholesale, Restaurants">
+                        </div>
+                        <div class="input-group">
+                            <label>Staff Size</label>
+                            <input type="text" id="editStaffSize" placeholder="e.g., 3 full-time, 5 seasonal">
+                        </div>
+                        <div class="input-group">
+                            <label>Equipment Owned</label>
+                            <input type="text" id="editEquipment" placeholder="e.g., Tractor, Cooler, Walk-behind">
+                        </div>
+                        <div class="input-group" style="grid-column: span 2;">
+                            <label>Infrastructure</label>
+                            <input type="text" id="editInfrastructure" placeholder="e.g., 4 High Tunnels, Pack Shed, Walk-in Cooler">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Financial Highlights Section -->
+                <div class="profile-section" style="margin-bottom: 1.5rem;">
+                    <h3><i class="fas fa-dollar-sign"></i> Financial Highlights</h3>
+                    <div class="form-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                        <div class="input-group">
+                            <label>Annual Revenue Range</label>
+                            <input type="text" id="editRevenueRange" placeholder="e.g., $100,000 - $150,000">
+                        </div>
+                        <div class="input-group">
+                            <label>Growth Trend</label>
+                            <input type="text" id="editGrowthTrend" placeholder="e.g., 15% year over year">
+                        </div>
+                        <div class="input-group" style="grid-column: span 2;">
+                            <label>Key Financial Metrics (for applications)</label>
+                            <textarea id="editFinancialMetrics" rows="2" placeholder="Important financial points to highlight in applications..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Key Achievements Section -->
+                <div class="profile-section">
+                    <h3><i class="fas fa-trophy"></i> Key Achievements</h3>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                        Add notable achievements with their year. These can be highlighted in grant applications.
+                    </p>
+                    <div id="achievementsList">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                        <input type="number" id="newAchievementYear" placeholder="Year" style="width: 80px; padding: 0.5rem; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
+                        <input type="text" id="newAchievementText" placeholder="Achievement description..." style="flex: 1; padding: 0.5rem; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text);">
+                        <button class="btn btn-primary btn-sm" onclick="addAchievement()">
+                            <i class="fas fa-plus"></i> Add
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeFarmProfileModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveFarmProfile()">
+                    <i class="fas fa-save"></i> Save Profile
                 </button>
             </div>
         </div>
@@ -4815,7 +6224,32 @@
                             <option value="insurance_property">Property Insurance</option>
                             <option value="organic_certification">Organic Certification</option>
                         </optgroup>
-                        <option value="other">Other</option>
+                        <optgroup label="Grant Application Documents">
+                            <option value="grant_project_proposal">Project Proposal</option>
+                            <option value="grant_project_budget">Project Budget</option>
+                            <option value="grant_narrative">Grant Narrative</option>
+                            <option value="grant_letter_support">Letter of Support</option>
+                            <option value="grant_letter_commitment">Letter of Commitment</option>
+                            <option value="grant_matching_funds">Matching Funds Documentation</option>
+                            <option value="grant_timeline">Project Timeline</option>
+                            <option value="grant_evaluation_plan">Evaluation Plan</option>
+                            <option value="grant_sustainability_plan">Sustainability Plan</option>
+                            <option value="grant_environmental_review">Environmental Review</option>
+                        </optgroup>
+                        <optgroup label="Photos & Media">
+                            <option value="farm_photos">Farm Photos</option>
+                            <option value="product_photos">Product Photos</option>
+                            <option value="infrastructure_photos">Infrastructure Photos</option>
+                            <option value="before_after_photos">Before/After Photos</option>
+                            <option value="team_photos">Team/Staff Photos</option>
+                        </optgroup>
+                        <optgroup label="References & Testimonials">
+                            <option value="customer_testimonial">Customer Testimonial</option>
+                            <option value="partner_reference">Partner Reference Letter</option>
+                            <option value="professional_reference">Professional Reference</option>
+                            <option value="community_impact">Community Impact Statement</option>
+                        </optgroup>
+                        <option value="other">Other (Specify in Notes)</option>
                     </select>
                 </div>
                 <div class="input-group" style="margin-bottom: 1rem;">
@@ -5133,7 +6567,12 @@
                     { date: '2025-11-01', event: 'Application Submitted', status: 'complete' },
                     { date: '2026-01-15', event: 'Review Period (estimated)', status: 'upcoming' }
                 ],
-                interactions: []
+                interactions: [],
+                uploadedDocs: [],
+                videos: [],
+                quickLinks: [],
+                grantBio: {},
+                lastRefreshed: null
             },
             {
                 id: 'pa_ag_innovation',
@@ -5158,7 +6597,12 @@
                 notes: 'Matching funds grant. Strategy track up to $50k, Innovation track up to $200k.',
                 checklist: {},
                 timeline: [],
-                interactions: []
+                interactions: [],
+                uploadedDocs: [],
+                videos: [],
+                quickLinks: [],
+                grantBio: {},
+                lastRefreshed: null
             },
             {
                 id: 'vapg_usda',
@@ -5183,7 +6627,12 @@
                 notes: 'USDA RBS program for value-added producer activities.',
                 checklist: {},
                 timeline: [],
-                interactions: []
+                interactions: [],
+                uploadedDocs: [],
+                videos: [],
+                quickLinks: [],
+                grantBio: {},
+                lastRefreshed: null
             },
             {
                 id: 'pa_farm_vitality',
@@ -5208,7 +6657,12 @@
                 notes: 'Reimbursement Grant - 75% of up to $10,000 in eligible expenses. Rolling deadline.',
                 checklist: {},
                 timeline: [],
-                interactions: []
+                interactions: [],
+                uploadedDocs: [],
+                videos: [],
+                quickLinks: [],
+                grantBio: {},
+                lastRefreshed: null
             }
         ];
 
@@ -11386,7 +12840,60 @@
                 }
             }
 
-            return '<div class="grant-card"><div class="grant-header ' + grant.category + '"><div class="grant-logo"><i class="fas ' + (categoryIcons[grant.category] || 'fa-gift') + '"></i></div><div class="grant-info"><h3>' + grant.name + '</h3><p>' + grant.source + '</p>' + institutionHtml + '</div></div><div class="grant-body">' + focusHtml + '<div class="grant-meta"><div class="grant-meta-item"><div class="grant-meta-label">Amount</div><div class="grant-meta-value amount">' + (grant.amount || 'Varies') + '</div></div><div class="grant-meta-item"><div class="grant-meta-label">Deadline</div><div class="grant-meta-value">' + deadlineStr + '</div>' + (daysUntilDeadline && daysUntilDeadline > 0 && daysUntilDeadline <= 60 ? '<div style="font-size:0.75rem;color:var(--warning);">' + daysUntilDeadline + ' days</div>' : '') + '</div></div><div class="grant-status-bar"><span class="grant-status ' + grant.status + '">' + (statusLabels[grant.status] || statusLabels['not_started']) + '</span></div><div class="grant-progress"><div class="grant-progress-fill" style="width:' + progressPercent + '%;"></div></div><div style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:1rem;">' + completedItems + '/' + totalItems + ' items (' + progressPercent + '%)</div>' + contactsHtml + (grant.eligibility?.length ? '<div class="grant-checklist"><h4><i class="fas fa-check-circle"></i> Eligibility</h4>' + grant.eligibility.map((r,i) => '<div class="grant-checklist-item ' + (grant.checklist?.['elig_'+i]?'complete':'') + '"><input type="checkbox" ' + (grant.checklist?.['elig_'+i]?'checked':'') + ' onchange="toggleGrantChecklistItem(\x27' + grant.id + '\x27,\x27elig_' + i + '\x27,this.checked)"><span>' + r + '</span></div>').join('') + '</div>' : '') + (grant.requiredDocs?.length ? '<div class="grant-checklist"><h4><i class="fas fa-file-alt"></i> Documents</h4>' + grant.requiredDocs.map((d,i) => '<div class="grant-checklist-item ' + (grant.checklist?.['doc_'+i]?'complete':'') + '"><input type="checkbox" ' + (grant.checklist?.['doc_'+i]?'checked':'') + ' onchange="toggleGrantChecklistItem(\x27' + grant.id + '\x27,\x27doc_' + i + '\x27,this.checked)"><span>' + d + '</span></div>').join('') + '</div>' : '') + (grant.notes ? '<div class="grant-notes"><h4 style="font-size:0.85rem;margin-bottom:0.5rem;"><i class="fas fa-sticky-note"></i> Notes</h4><p style="font-size:0.85rem;color:var(--text-secondary);margin:0;">' + grant.notes + '</p></div>' : '') + (grant.timeline?.length ? '<div class="grant-timeline" style="margin-top:1rem;"><h4 style="font-size:0.85rem;margin-bottom:0.75rem;"><i class="fas fa-calendar-alt"></i> Timeline</h4>' + grant.timeline.map(t => '<div class="timeline-item ' + t.status + '"><div class="timeline-date">' + new Date(t.date).toLocaleDateString('en-US',{month:'short',day:'numeric'}) + '</div><div class="timeline-event">' + t.event + '</div></div>').join('') + '</div>' : '') + '<div class="grant-actions">' + (grant.link ? '<a href="' + grant.link + '" target="_blank" class="btn btn-primary btn-sm"><i class="fas fa-external-link-alt"></i> Apply</a>' : '') + '<button class="btn btn-secondary btn-sm" onclick="editGrant(\x27' + grant.id + '\x27)"><i class="fas fa-edit"></i> Edit</button><button class="btn btn-secondary btn-sm" onclick="updateGrantStatus(\x27' + grant.id + '\x27)"><i class="fas fa-sync-alt"></i> Status</button></div></div></div>';
+            // Calculate application strength for card display
+            const strength = calculateGrantStrengthForCard(grant);
+            const strengthLevel = strength.percent >= 75 ? 'excellent' : strength.percent >= 50 ? 'good' : strength.percent >= 25 ? 'medium' : 'low';
+
+            // Build uploaded docs/videos summary
+            const uploadCount = (grant.uploadedDocs || []).length;
+            const videoCount = (grant.videos || []).length;
+            const attachmentsSummary = (uploadCount > 0 || videoCount > 0)
+                ? '<div style="display:flex;gap:0.5rem;margin-bottom:0.75rem;"><span style="font-size:0.75rem;padding:0.2rem 0.5rem;background:var(--bg);border-radius:4px;"><i class="fas fa-paperclip"></i> ' + uploadCount + ' files</span><span style="font-size:0.75rem;padding:0.2rem 0.5rem;background:var(--bg);border-radius:4px;"><i class="fas fa-video"></i> ' + videoCount + ' videos</span></div>'
+                : '';
+
+            return '<div class="grant-card"><div class="grant-header ' + grant.category + '"><div class="grant-logo"><i class="fas ' + (categoryIcons[grant.category] || 'fa-gift') + '"></i></div><div class="grant-info"><h3>' + grant.name + '</h3><p>' + grant.source + '</p>' + institutionHtml + '</div></div><div class="grant-body">' + focusHtml + '<div class="grant-meta"><div class="grant-meta-item"><div class="grant-meta-label">Amount</div><div class="grant-meta-value amount">' + (grant.amount || 'Varies') + '</div></div><div class="grant-meta-item"><div class="grant-meta-label">Deadline</div><div class="grant-meta-value">' + deadlineStr + '</div>' + (daysUntilDeadline && daysUntilDeadline > 0 && daysUntilDeadline <= 60 ? '<div style="font-size:0.75rem;color:var(--warning);">' + daysUntilDeadline + ' days</div>' : '') + '</div></div><div class="grant-status-bar"><span class="grant-status ' + grant.status + '">' + (statusLabels[grant.status] || statusLabels['not_started']) + '</span><span style="margin-left:auto;font-size:0.8rem;font-weight:700;" class="strength-score ' + strengthLevel + '">' + strength.percent + '% Ready</span></div><div class="grant-progress"><div class="grant-progress-fill" style="width:' + progressPercent + '%;"></div></div><div style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:0.5rem;">' + completedItems + '/' + totalItems + ' items (' + progressPercent + '%)</div>' + attachmentsSummary + contactsHtml + (grant.eligibility?.length ? '<div class="grant-checklist"><h4><i class="fas fa-check-circle"></i> Eligibility</h4>' + grant.eligibility.map((r,i) => '<div class="grant-checklist-item ' + (grant.checklist?.['elig_'+i]?'complete':'') + '"><input type="checkbox" ' + (grant.checklist?.['elig_'+i]?'checked':'') + ' onchange="toggleGrantChecklistItem(\x27' + grant.id + '\x27,\x27elig_' + i + '\x27,this.checked)"><span>' + r + '</span></div>').join('') + '</div>' : '') + (grant.requiredDocs?.length ? '<div class="grant-checklist"><h4><i class="fas fa-file-alt"></i> Documents</h4>' + grant.requiredDocs.map((d,i) => '<div class="grant-checklist-item ' + (grant.checklist?.['doc_'+i]?'complete':'') + '"><input type="checkbox" ' + (grant.checklist?.['doc_'+i]?'checked':'') + ' onchange="toggleGrantChecklistItem(\x27' + grant.id + '\x27,\x27doc_' + i + '\x27,this.checked)"><span>' + d + '</span></div>').join('') + '</div>' : '') + (grant.notes ? '<div class="grant-notes"><h4 style="font-size:0.85rem;margin-bottom:0.5rem;"><i class="fas fa-sticky-note"></i> Notes</h4><p style="font-size:0.85rem;color:var(--text-secondary);margin:0;">' + grant.notes + '</p></div>' : '') + (grant.timeline?.length ? '<div class="grant-timeline" style="margin-top:1rem;"><h4 style="font-size:0.85rem;margin-bottom:0.75rem;"><i class="fas fa-calendar-alt"></i> Timeline</h4>' + grant.timeline.map(t => '<div class="timeline-item ' + t.status + '"><div class="timeline-date">' + new Date(t.date).toLocaleDateString('en-US',{month:'short',day:'numeric'}) + '</div><div class="timeline-event">' + t.event + '</div></div>').join('') + '</div>' : '') + '<div class="grant-actions">' + (grant.link ? '<a href="' + grant.link + '" target="_blank" class="btn btn-primary btn-sm"><i class="fas fa-external-link-alt"></i> Apply</a>' : '') + '<button class="btn btn-secondary btn-sm" onclick="editGrant(\x27' + grant.id + '\x27)"><i class="fas fa-edit"></i> Edit</button><button class="btn btn-secondary btn-sm" onclick="updateGrantStatus(\x27' + grant.id + '\x27)"><i class="fas fa-sync-alt"></i> Status</button>' + (grant.link ? '<button class="grant-refresh-btn" onclick="event.stopPropagation();quickRefreshGrant(\x27' + grant.id + '\x27)" title="Refresh from website"><i class="fas fa-sync-alt"></i></button>' : '') + '</div></div></div>';
+        }
+        // Calculate strength for card display (lightweight version)
+        function calculateGrantStrengthForCard(grant) {
+            let score = 0, maxScore = 0;
+            const reqDocs = grant.requiredDocs || [];
+            const docsComplete = Object.keys(grant.checklist || {}).filter(k => k.startsWith('doc_') && grant.checklist[k]).length;
+            if (reqDocs.length > 0) { score += Math.round((docsComplete / reqDocs.length) * 30); maxScore += 30; }
+            const eligibility = grant.eligibility || [];
+            const eligComplete = Object.keys(grant.checklist || {}).filter(k => k.startsWith('elig_') && grant.checklist[k]).length;
+            if (eligibility.length > 0) { score += Math.round((eligComplete / eligibility.length) * 20); maxScore += 20; }
+            const uploadedDocs = grant.uploadedDocs || [];
+            score += Math.min(uploadedDocs.length * 5, 20); maxScore += 20;
+            const videos = grant.videos || [];
+            score += Math.min(videos.length * 5, 10); maxScore += 10;
+            const hasBio = grant.grantBio?.whyGoodFit || grant.grantBio?.relevantExperience;
+            if (hasBio) score += 10; maxScore += 10;
+            const contacts = grant.keyContacts || [];
+            if (contacts.length > 0) score += 10; maxScore += 10;
+            return { score, maxScore, percent: maxScore > 0 ? Math.round((score / maxScore) * 100) : 0 };
+        }
+        // Quick refresh from card button
+        async function quickRefreshGrant(grantId) {
+            const grant = grantsData.find(g => g.id === grantId);
+            if (!grant?.link) return;
+            showNotification('Refreshing grant requirements...', 'info');
+            try {
+                const response = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: 'scrapeGrantRequirements', url: grant.link }) });
+                const result = await response.json();
+                if (result.success) {
+                    grant.lastRefreshed = new Date().toISOString();
+                    if (result.deadline && result.deadline !== grant.deadline) {
+                        showNotification('Deadline may have changed! Edit grant to review.', 'warning');
+                    } else {
+                        showNotification('Grant is up to date', 'success');
+                    }
+                    saveGrants();
+                } else {
+                    showNotification(result.error || 'Refresh failed', 'error');
+                }
+            } catch (e) {
+                showNotification('Error refreshing grant', 'error');
+            }
         }
         function toggleGrantChecklistItem(grantId, itemKey, checked) { const grant = grantsData.find(g => g.id === grantId); if (grant) { if (!grant.checklist) grant.checklist = {}; grant.checklist[itemKey] = checked; saveGrants(); renderGrants(); updateGrantMetrics(); } }
         function updateGrantStatus(grantId) { const grant = grantsData.find(g => g.id === grantId); if (!grant) return; const statuses = ['not_started','in_progress','submitted','awarded','denied']; const labels = ['Not Started','In Progress','Submitted','Awarded','Denied']; const currentIndex = statuses.indexOf(grant.status); const newStatus = prompt('Update status (1-5):\n1=Not Started\n2=In Progress\n3=Submitted\n4=Awarded\n5=Denied',(currentIndex+1).toString()); if (newStatus && newStatus >= 1 && newStatus <= 5) { grant.status = statuses[parseInt(newStatus)-1]; saveGrants(); renderGrants(); updateGrantMetrics(); showNotification('Status updated!','success'); } }
@@ -12177,9 +13684,15 @@
                 steps: document.getElementById('newGrantSteps')?.value?.split('\n').filter(s => s.trim()) || [],
                 notes: document.getElementById('newGrantNotes').value.trim(),
                 contacts: contacts,
+                keyContacts: contacts,
                 interactions: [],
                 checklist: {},
-                timeline: []
+                timeline: [],
+                uploadedDocs: [],
+                videos: [],
+                quickLinks: [],
+                grantBio: {},
+                lastRefreshed: null
             };
 
             grantsData.push(newGrant);
@@ -12344,6 +13857,722 @@
 
         document.addEventListener('DOMContentLoaded', () => { loadGrants(); });
         console.log('%c Grants Dashboard Ready (Enhanced)', 'color: #f4a261; font-weight: bold; font-size: 12px;');
+
+        // ====== GRANT DOCUMENT UPLOADS FUNCTIONS ======
+
+        // Setup drag and drop for grant upload zone
+        function setupGrantUploadZone() {
+            const zone = document.getElementById('grantUploadZone');
+            if (!zone) return;
+
+            zone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                zone.classList.add('dragover');
+            });
+
+            zone.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                zone.classList.remove('dragover');
+            });
+
+            zone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                zone.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleGrantFileUpload({ target: { files: files } });
+                }
+            });
+        }
+
+        // Handle grant file upload
+        function handleGrantFileUpload(event) {
+            const files = event.target.files;
+            const grantId = document.getElementById('editGrantId').value;
+            const grant = grantsData.find(g => g.id === grantId);
+            if (!grant || !files.length) return;
+
+            if (!grant.uploadedDocs) grant.uploadedDocs = [];
+
+            Array.from(files).forEach(file => {
+                // Check file size (max 10MB)
+                if (file.size > 10 * 1024 * 1024) {
+                    showNotification(`File "${file.name}" is too large (max 10MB)`, 'error');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const docData = {
+                        id: 'doc_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+                        name: file.name,
+                        type: getFileType(file.name),
+                        size: file.size,
+                        uploadDate: new Date().toISOString(),
+                        description: '',
+                        data: e.target.result // Base64 encoded
+                    };
+
+                    grant.uploadedDocs.push(docData);
+                    saveGrants();
+                    renderGrantUploadedDocs(grantId);
+                    calculateApplicationStrength(grantId);
+                    showNotification(`Uploaded: ${file.name}`, 'success');
+                };
+                reader.readAsDataURL(file);
+            });
+
+            // Clear file input
+            event.target.value = '';
+        }
+
+        // Get file type from filename
+        function getFileType(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            const typeMap = {
+                'pdf': 'pdf',
+                'xlsx': 'excel', 'xls': 'excel', 'csv': 'excel',
+                'doc': 'doc', 'docx': 'doc',
+                'jpg': 'image', 'jpeg': 'image', 'png': 'image', 'gif': 'image'
+            };
+            return typeMap[ext] || 'doc';
+        }
+
+        // Render uploaded documents list
+        function renderGrantUploadedDocs(grantId) {
+            const grant = grantsData.find(g => g.id === grantId);
+            if (!grant) return;
+
+            const container = document.getElementById('grantUploadedFilesList');
+            const countEl = document.getElementById('grantUploadCount');
+            const driveInput = document.getElementById('grantDriveFolderLink');
+            const driveBtn = document.getElementById('grantDriveFolderBtn');
+
+            const docs = grant.uploadedDocs || [];
+            countEl.textContent = `${docs.length} file${docs.length !== 1 ? 's' : ''} uploaded`;
+
+            if (docs.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 1rem; color: var(--text-secondary);"><p style="font-size: 0.85rem;">No files uploaded yet</p></div>';
+            } else {
+                container.innerHTML = docs.map(doc => {
+                    const iconClass = { pdf: 'fa-file-pdf', excel: 'fa-file-excel', doc: 'fa-file-word', image: 'fa-file-image' }[doc.type] || 'fa-file';
+                    const sizeStr = doc.size > 1024 * 1024
+                        ? (doc.size / (1024 * 1024)).toFixed(1) + ' MB'
+                        : (doc.size / 1024).toFixed(0) + ' KB';
+                    const dateStr = new Date(doc.uploadDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+                    return `
+                        <div class="grant-uploaded-doc">
+                            <div style="display: flex; align-items: center;">
+                                <div class="doc-icon ${doc.type}"><i class="fas ${iconClass}"></i></div>
+                                <div class="doc-details">
+                                    <div class="doc-name">${doc.name}</div>
+                                    <div class="doc-meta">${sizeStr} - ${dateStr}${doc.description ? ' - ' + doc.description : ''}</div>
+                                </div>
+                            </div>
+                            <div class="doc-actions">
+                                <button class="view-btn" onclick="viewGrantDocument('${grantId}', '${doc.id}')" title="View/Download"><i class="fas fa-eye"></i></button>
+                                <button class="view-btn" onclick="editDocDescription('${grantId}', '${doc.id}')" title="Edit description"><i class="fas fa-edit"></i></button>
+                                <button class="delete-btn" onclick="deleteGrantDocument('${grantId}', '${doc.id}')" title="Delete"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // Handle Google Drive link
+            if (driveInput) driveInput.value = grant.driveFolderLink || '';
+            if (driveBtn) {
+                if (grant.driveFolderLink) {
+                    driveBtn.style.display = 'inline-flex';
+                    driveBtn.href = grant.driveFolderLink;
+                } else {
+                    driveBtn.style.display = 'none';
+                }
+            }
+        }
+
+        // View/download grant document
+        function viewGrantDocument(grantId, docId) {
+            const grant = grantsData.find(g => g.id === grantId);
+            const doc = grant?.uploadedDocs?.find(d => d.id === docId);
+            if (!doc) return;
+
+            // Create a temporary link and trigger download
+            const link = document.createElement('a');
+            link.href = doc.data;
+            link.download = doc.name;
+            link.click();
+        }
+
+        // Edit document description
+        function editDocDescription(grantId, docId) {
+            const grant = grantsData.find(g => g.id === grantId);
+            const doc = grant?.uploadedDocs?.find(d => d.id === docId);
+            if (!doc) return;
+
+            const newDesc = prompt('Enter document description:', doc.description || '');
+            if (newDesc !== null) {
+                doc.description = newDesc;
+                saveGrants();
+                renderGrantUploadedDocs(grantId);
+            }
+        }
+
+        // Delete grant document
+        function deleteGrantDocument(grantId, docId) {
+            if (!confirm('Delete this document?')) return;
+
+            const grant = grantsData.find(g => g.id === grantId);
+            if (!grant?.uploadedDocs) return;
+
+            grant.uploadedDocs = grant.uploadedDocs.filter(d => d.id !== docId);
+            saveGrants();
+            renderGrantUploadedDocs(grantId);
+            calculateApplicationStrength(grantId);
+            showNotification('Document deleted', 'info');
+        }
+
+        // Save Google Drive link
+        function saveGrantDriveLink() {
+            const grantId = document.getElementById('editGrantId').value;
+            const grant = grantsData.find(g => g.id === grantId);
+            if (!grant) return;
+
+            const link = document.getElementById('grantDriveFolderLink').value.trim();
+            grant.driveFolderLink = link;
+            saveGrants();
+            renderGrantUploadedDocs(grantId);
+            showNotification('Drive link saved', 'success');
+        }
+
+        // ====== GRANT VIDEO LINKS FUNCTIONS ======
+
+        // Toggle add video form visibility
+        function toggleAddVideoForm() {
+            const form = document.getElementById('addVideoForm');
+            if (form.style.display === 'none') {
+                form.style.display = 'block';
+                document.getElementById('newVideoUrl').value = '';
+                document.getElementById('newVideoTitle').value = '';
+                document.getElementById('newVideoDesc').value = '';
+                document.getElementById('newVideoRelevance').value = '';
+                document.getElementById('newVideoType').value = 'farm_tour';
+            } else {
+                form.style.display = 'none';
+            }
+        }
+
+        // Save a video link to grant
+        function saveGrantVideo() {
+            const url = document.getElementById('newVideoUrl').value.trim();
+            const title = document.getElementById('newVideoTitle').value.trim();
+
+            if (!url || !title) {
+                showNotification('Please enter URL and title', 'error');
+                return;
+            }
+
+            const grantId = document.getElementById('editGrantId').value;
+            const grant = grantsData.find(g => g.id === grantId);
+            if (!grant) return;
+
+            if (!grant.videos) grant.videos = [];
+
+            const videoData = {
+                id: 'vid_' + Date.now(),
+                url: url,
+                title: title,
+                description: document.getElementById('newVideoDesc').value.trim(),
+                relevance: document.getElementById('newVideoRelevance').value.trim(),
+                type: document.getElementById('newVideoType').value,
+                thumbnail: getVideoThumbnail(url),
+                addedAt: new Date().toISOString()
+            };
+
+            grant.videos.push(videoData);
+            saveGrants();
+            toggleAddVideoForm();
+            renderGrantVideos(grantId);
+            calculateApplicationStrength(grantId);
+            showNotification('Video added', 'success');
+        }
+
+        // Get video thumbnail URL
+        function getVideoThumbnail(url) {
+            // YouTube
+            const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
+            if (ytMatch) {
+                return `https://img.youtube.com/vi/${ytMatch[1]}/mqdefault.jpg`;
+            }
+            // Vimeo would need API call, return null
+            return null;
+        }
+
+        // Render grant videos list
+        function renderGrantVideos(grantId) {
+            const grant = grantsData.find(g => g.id === grantId);
+            if (!grant) return;
+
+            const container = document.getElementById('grantVideosList');
+            const videos = grant.videos || [];
+
+            if (videos.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        <i class="fas fa-video" style="font-size: 2rem; margin-bottom: 0.5rem; display: block; opacity: 0.5;"></i>
+                        <p>No videos added yet. Click "Add Video" to link relevant videos.</p>
+                    </div>
+                `;
+            } else {
+                const typeLabels = {
+                    farm_tour: 'Farm Tour', product_demo: 'Product Demo', testimonial: 'Testimonial',
+                    project_outcome: 'Project Outcome', training: 'Training', news: 'News', other: 'Other'
+                };
+
+                container.innerHTML = videos.map(v => `
+                    <div class="grant-video-card">
+                        <div class="video-thumbnail">
+                            ${v.thumbnail
+                                ? `<img src="${v.thumbnail}" alt="${v.title}">`
+                                : '<i class="fab fa-youtube"></i>'
+                            }
+                        </div>
+                        <div class="video-info">
+                            <div class="video-title">${v.title}</div>
+                            <div class="video-desc">${typeLabels[v.type] || 'Video'}${v.description ? ' - ' + v.description : ''}</div>
+                            ${v.relevance ? `<div class="video-relevance">"${v.relevance}"</div>` : ''}
+                        </div>
+                        <div class="video-actions">
+                            <a href="${v.url}" target="_blank" class="btn btn-sm btn-primary" title="Watch Video"><i class="fas fa-play"></i></a>
+                            <button class="btn btn-sm" style="background: var(--danger);" onclick="deleteGrantVideo('${grantId}', '${v.id}')" title="Delete"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // Delete a video from grant
+        function deleteGrantVideo(grantId, videoId) {
+            if (!confirm('Remove this video?')) return;
+
+            const grant = grantsData.find(g => g.id === grantId);
+            if (!grant?.videos) return;
+
+            grant.videos = grant.videos.filter(v => v.id !== videoId);
+            saveGrants();
+            renderGrantVideos(grantId);
+            calculateApplicationStrength(grantId);
+            showNotification('Video removed', 'info');
+        }
+
+        // ====== GRANT QUICK LINKS FUNCTIONS ======
+
+        // Toggle add link form
+        function toggleAddLinkForm() {
+            const form = document.getElementById('addLinkForm');
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+            if (form.style.display === 'block') {
+                document.getElementById('newLinkUrl').value = '';
+                document.getElementById('newLinkLabel').value = '';
+                document.getElementById('newLinkType').value = 'program';
+            }
+        }
+
+        // Save a quick link
+        function saveGrantLink() {
+            const url = document.getElementById('newLinkUrl').value.trim();
+            const label = document.getElementById('newLinkLabel').value.trim();
+            const type = document.getElementById('newLinkType').value;
+
+            if (!url) {
+                showNotification('Please enter a URL', 'error');
+                return;
+            }
+
+            const grantId = document.getElementById('editGrantId').value;
+            const grant = grantsData.find(g => g.id === grantId);
+            if (!grant) return;
+
+            if (!grant.quickLinks) grant.quickLinks = [];
+
+            grant.quickLinks.push({
+                id: 'link_' + Date.now(),
+                url: url,
+                label: label || type,
+                type: type,
+                addedAt: new Date().toISOString()
+            });
+
+            saveGrants();
+            toggleAddLinkForm();
+            renderGrantQuickLinks(grantId);
+            showNotification('Link added', 'success');
+        }
+
+        // Render quick links grid
+        function renderGrantQuickLinks(grantId) {
+            const grant = grantsData.find(g => g.id === grantId);
+            if (!grant) return;
+
+            const container = document.getElementById('grantQuickLinksGrid');
+            const standardContainer = document.getElementById('grantStandardLinks');
+            const links = grant.quickLinks || [];
+
+            const typeIcons = {
+                program: 'fa-globe', application: 'fa-file-signature', faq: 'fa-question-circle',
+                contact: 'fa-envelope', awardees: 'fa-trophy', guidelines: 'fa-book',
+                webinar: 'fa-video', other: 'fa-link'
+            };
+
+            if (links.length === 0) {
+                container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 1rem; color: var(--text-secondary);"><p style="font-size: 0.85rem;">No custom links added</p></div>';
+            } else {
+                container.innerHTML = links.map(l => `
+                    <a href="${l.url}" target="_blank" class="grant-quick-link">
+                        <i class="fas ${typeIcons[l.type] || 'fa-link'}"></i>
+                        <span>${l.label}</span>
+                        <button onclick="event.preventDefault(); deleteGrantLink('${grantId}', '${l.id}')" style="margin-left: auto; background: none; border: none; color: var(--danger); cursor: pointer;"><i class="fas fa-times"></i></button>
+                    </a>
+                `).join('');
+            }
+
+            // Render standard links based on grant.link
+            if (grant.link) {
+                standardContainer.innerHTML = `
+                    <a href="${grant.link}" target="_blank" class="grant-quick-link">
+                        <i class="fas fa-globe"></i>
+                        <span>Main Website</span>
+                    </a>
+                    <a href="${grant.link}" target="_blank" class="grant-quick-link">
+                        <i class="fas fa-file-signature"></i>
+                        <span>Application Portal</span>
+                    </a>
+                `;
+            } else {
+                standardContainer.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 0.5rem; color: var(--text-secondary);"><p style="font-size: 0.8rem;">Add a grant link in Details tab</p></div>';
+            }
+        }
+
+        // Delete a quick link
+        function deleteGrantLink(grantId, linkId) {
+            const grant = grantsData.find(g => g.id === grantId);
+            if (!grant?.quickLinks) return;
+
+            grant.quickLinks = grant.quickLinks.filter(l => l.id !== linkId);
+            saveGrants();
+            renderGrantQuickLinks(grantId);
+            showNotification('Link removed', 'info');
+        }
+
+        // ====== REFRESH FROM WEBSITE FUNCTION ======
+
+        async function refreshGrantFromWebsite() {
+            const grantId = document.getElementById('editGrantId').value;
+            const grant = grantsData.find(g => g.id === grantId);
+            if (!grant || !grant.link) {
+                showNotification('No website URL set for this grant', 'warning');
+                return;
+            }
+
+            const btn = document.getElementById('refreshGrantBtn');
+            const alertDiv = document.getElementById('grantChangesAlert');
+            const changesText = document.getElementById('grantChangesText');
+            const lastRefreshed = document.getElementById('grantLastRefreshed');
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'scrapeGrantRequirements',
+                        url: grant.link
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Check for changes
+                    const changes = [];
+                    if (result.deadline && result.deadline !== grant.deadline) {
+                        changes.push(`Deadline: ${grant.deadline || 'None'} -> ${result.deadline}`);
+                    }
+                    if (result.amount && result.amount !== grant.amount) {
+                        changes.push(`Amount: ${grant.amount || 'None'} -> ${result.amount}`);
+                    }
+
+                    // Update last refreshed
+                    grant.lastRefreshed = new Date().toISOString();
+                    lastRefreshed.textContent = `Last refreshed: ${new Date().toLocaleDateString()}`;
+
+                    if (changes.length > 0) {
+                        alertDiv.style.display = 'block';
+                        changesText.innerHTML = `Changes detected: ${changes.join('; ')} <button class="btn btn-sm btn-warning" onclick="applyGrantChanges('${grantId}', ${JSON.stringify(result).replace(/"/g, '&quot;')})">Apply Changes</button>`;
+                        showNotification('Changes detected! Review before applying.', 'warning');
+                    } else {
+                        alertDiv.style.display = 'none';
+                        showNotification('No changes detected', 'success');
+                    }
+
+                    saveGrants();
+                } else {
+                    showNotification(result.error || 'Failed to refresh', 'error');
+                }
+            } catch (error) {
+                console.error('Refresh error:', error);
+                showNotification('Error refreshing from website', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh Now';
+            }
+        }
+
+        // Apply changes from website refresh
+        function applyGrantChanges(grantId, scrapedData) {
+            const grant = grantsData.find(g => g.id === grantId);
+            if (!grant) return;
+
+            if (scrapedData.deadline) {
+                grant.deadline = scrapedData.deadline;
+                document.getElementById('editGrantDeadline').value = scrapedData.deadline;
+            }
+            if (scrapedData.amount) {
+                grant.amount = scrapedData.amount;
+                document.getElementById('editGrantAmount').value = scrapedData.amount;
+            }
+            if (scrapedData.eligibility?.length) {
+                grant.eligibility = scrapedData.eligibility;
+                document.getElementById('editGrantEligibility').value = scrapedData.eligibility.join('\n');
+            }
+
+            document.getElementById('grantChangesAlert').style.display = 'none';
+            saveGrants();
+            renderGrants();
+            showNotification('Changes applied', 'success');
+        }
+
+        // ====== APPLICATION STRENGTH INDICATOR ======
+
+        function calculateApplicationStrength(grantId) {
+            const grant = grantsData.find(g => g.id === grantId);
+            if (!grant) return;
+
+            let score = 0;
+            let maxScore = 0;
+            const breakdown = [];
+
+            // Required documents check (30 points)
+            const reqDocs = grant.requiredDocs || [];
+            const docsComplete = Object.keys(grant.checklist || {}).filter(k => k.startsWith('doc_') && grant.checklist[k]).length;
+            if (reqDocs.length > 0) {
+                const docScore = Math.round((docsComplete / reqDocs.length) * 30);
+                score += docScore;
+                maxScore += 30;
+                breakdown.push({
+                    label: 'Required Docs',
+                    complete: docsComplete >= reqDocs.length,
+                    detail: `${docsComplete}/${reqDocs.length}`
+                });
+            }
+
+            // Eligibility check (20 points)
+            const eligibility = grant.eligibility || [];
+            const eligComplete = Object.keys(grant.checklist || {}).filter(k => k.startsWith('elig_') && grant.checklist[k]).length;
+            if (eligibility.length > 0) {
+                const eligScore = Math.round((eligComplete / eligibility.length) * 20);
+                score += eligScore;
+                maxScore += 20;
+                breakdown.push({
+                    label: 'Eligibility',
+                    complete: eligComplete >= eligibility.length,
+                    detail: `${eligComplete}/${eligibility.length}`
+                });
+            }
+
+            // Uploaded documents (20 points)
+            const uploadedDocs = grant.uploadedDocs || [];
+            if (uploadedDocs.length > 0) {
+                score += Math.min(uploadedDocs.length * 5, 20);
+                maxScore += 20;
+                breakdown.push({
+                    label: 'Uploads',
+                    complete: uploadedDocs.length >= 4,
+                    detail: `${uploadedDocs.length} files`
+                });
+            } else {
+                maxScore += 20;
+                breakdown.push({
+                    label: 'Uploads',
+                    complete: false,
+                    detail: 'None'
+                });
+            }
+
+            // Videos (10 points)
+            const videos = grant.videos || [];
+            if (videos.length > 0) {
+                score += Math.min(videos.length * 5, 10);
+            }
+            maxScore += 10;
+            breakdown.push({
+                label: 'Videos',
+                complete: videos.length > 0,
+                detail: videos.length > 0 ? `${videos.length} linked` : 'None'
+            });
+
+            // Grant bio filled (10 points)
+            const hasBio = grant.grantBio?.whyGoodFit || grant.grantBio?.relevantExperience;
+            if (hasBio) score += 10;
+            maxScore += 10;
+            breakdown.push({
+                label: 'Grant Bio',
+                complete: !!hasBio,
+                detail: hasBio ? 'Filled' : 'Empty'
+            });
+
+            // Key contacts (10 points)
+            const contacts = grant.keyContacts || [];
+            if (contacts.length > 0) score += 10;
+            maxScore += 10;
+            breakdown.push({
+                label: 'Contacts',
+                complete: contacts.length > 0,
+                detail: contacts.length > 0 ? `${contacts.length} added` : 'None'
+            });
+
+            // Calculate percentage
+            const percent = maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
+
+            // Determine strength level
+            let level = 'low';
+            if (percent >= 75) level = 'excellent';
+            else if (percent >= 50) level = 'good';
+            else if (percent >= 25) level = 'medium';
+
+            // Update UI
+            const scoreEl = document.getElementById('strengthScoreValue');
+            const barEl = document.getElementById('strengthBarFill');
+            const breakdownEl = document.getElementById('strengthBreakdown');
+
+            if (scoreEl) {
+                scoreEl.textContent = `${percent}%`;
+                scoreEl.className = `strength-score ${level}`;
+            }
+            if (barEl) {
+                barEl.style.width = `${percent}%`;
+                barEl.className = `strength-bar-fill ${level}`;
+            }
+            if (breakdownEl) {
+                breakdownEl.innerHTML = breakdown.map(b => `
+                    <div class="strength-item">
+                        <i class="fas ${b.complete ? 'fa-check-circle complete' : 'fa-circle incomplete'}"></i>
+                        <span>${b.label}: ${b.detail}</span>
+                    </div>
+                `).join('');
+            }
+
+            return { score, maxScore, percent, level, breakdown };
+        }
+
+        // ====== ENHANCED TAB SWITCHING ======
+
+        // Update switchEditGrantTab to handle new tabs
+        const originalSwitchEditGrantTab = typeof switchEditGrantTab === 'function' ? switchEditGrantTab : null;
+        switchEditGrantTab = function(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.grant-detail-tab').forEach(tab => tab.classList.remove('active'));
+            event?.target?.closest('.grant-detail-tab')?.classList.add('active');
+
+            // Update tab content
+            document.querySelectorAll('.grant-detail-content').forEach(content => content.classList.remove('active'));
+            const contentEl = document.getElementById('editGrantTab-' + tabName);
+            if (contentEl) contentEl.classList.add('active');
+
+            // Load tab-specific content
+            const grantId = document.getElementById('editGrantId').value;
+            if (tabName === 'documents') {
+                renderGrantDocuments(grantId);
+            } else if (tabName === 'uploads') {
+                setupGrantUploadZone();
+                renderGrantUploadedDocs(grantId);
+                calculateApplicationStrength(grantId);
+            } else if (tabName === 'videos') {
+                renderGrantVideos(grantId);
+            } else if (tabName === 'links') {
+                renderGrantQuickLinks(grantId);
+                // Update last refreshed display
+                const grant = grantsData.find(g => g.id === grantId);
+                const lastRefreshedEl = document.getElementById('grantLastRefreshed');
+                if (lastRefreshedEl && grant?.lastRefreshed) {
+                    lastRefreshedEl.textContent = `Last refreshed: ${new Date(grant.lastRefreshed).toLocaleDateString()}`;
+                }
+            } else if (tabName === 'contacts') {
+                renderGrantContacts(grantId);
+            } else if (tabName === 'strategy') {
+                renderGrantStrategy(grantId);
+            } else if (tabName === 'grantbio') {
+                loadGrantBio(grantId);
+            }
+        };
+
+        // Load grant bio data
+        function loadGrantBio(grantId) {
+            const grant = grantsData.find(g => g.id === grantId);
+            if (!grant) return;
+
+            const bio = grant.grantBio || {};
+            const fields = ['whyGoodFit', 'relevantExperience', 'missionAlignment', 'outcomes', 'talkingPoints'];
+            fields.forEach(field => {
+                const el = document.getElementById('grantBio' + field.charAt(0).toUpperCase() + field.slice(1));
+                if (el) el.value = bio[field] || '';
+            });
+
+            const submittedEl = document.getElementById('grantBioSubmittedVersion');
+            if (submittedEl) {
+                submittedEl.textContent = bio.submittedAt
+                    ? `Submitted on ${new Date(bio.submittedAt).toLocaleDateString()}`
+                    : 'Not submitted yet';
+            }
+        }
+
+        // Save grant bio when modal closes
+        const originalCloseEditGrantModal = closeEditGrantModal;
+        closeEditGrantModal = function() {
+            const grantId = document.getElementById('editGrantId')?.value;
+            if (grantId) {
+                saveGrantBioData(grantId);
+            }
+            document.getElementById('editGrantModal').classList.remove('active');
+        };
+
+        // Save grant bio data
+        function saveGrantBioData(grantId) {
+            const grant = grantsData.find(g => g.id === grantId);
+            if (!grant) return;
+
+            if (!grant.grantBio) grant.grantBio = {};
+
+            const fields = {
+                whyGoodFit: 'grantBioWhyGoodFit',
+                relevantExperience: 'grantBioRelevantExperience',
+                missionAlignment: 'grantBioMissionAlignment',
+                outcomes: 'grantBioOutcomes',
+                talkingPoints: 'grantBioTalkingPoints'
+            };
+
+            Object.entries(fields).forEach(([bioField, elementId]) => {
+                const el = document.getElementById(elementId);
+                if (el) grant.grantBio[bioField] = el.value.trim();
+            });
+
+            saveGrants();
+        }
+
+        console.log('%c Grant Enhancements (Uploads, Videos, Links) Ready', 'color: #9b59b6; font-weight: bold; font-size: 12px;');
     </script>
 
     <!-- AI Recategorization Modal Overlay -->
@@ -12457,5 +14686,8 @@
 
     <!-- Lender CRM JavaScript -->
     <script src="lender-crm.js"></script>
+
+    <!-- Farm Profile & Grant Archive System -->
+    <script src="farm-profile-archive.js"></script>
 </body>
 </html>
