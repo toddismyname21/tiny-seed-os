@@ -16924,6 +16924,14 @@ function doPost(e) {
       case 'setupCompetitorMonitoringTrigger':
         return jsonResponse(setupCompetitorMonitoringTrigger());
 
+      // ============ GRANT MANAGEMENT (POST) ============
+      case 'scrapeGrantRequirements':
+        return jsonResponse(scrapeGrantRequirements(data));
+      case 'generateGrantStrategy':
+        return jsonResponse(generateGrantStrategy(data));
+      case 'saveGrantContacts':
+        return jsonResponse(saveGrantContacts(data));
+
       // ============ SEO DOMINATION v3 ============
       case 'initializeSEOv3':
         return jsonResponse(initializeSEOv3());
