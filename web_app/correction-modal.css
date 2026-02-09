@@ -8,9 +8,9 @@
     width: 450px;
     max-width: 100%;
     height: 100vh;
-    background: var(--bg-light);
-    box-shadow: -8px 0 32px rgba(0, 0, 0, 0.5);
-    z-index: 2000;
+    background: var(--bg-light, #1a1f3a);
+    box-shadow: -8px 0 32px rgba(0, 0, 0, 0.7);
+    z-index: 99999;
     transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     flex-direction: column;
@@ -19,6 +19,7 @@
 
 .correction-modal.active {
     right: 0;
+    animation: slideInFromRight 0.3s ease-out;
 }
 
 .correction-modal-overlay {
@@ -27,8 +28,9 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 1999;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: 99998;
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.3s ease, visibility 0.3s ease;
@@ -491,26 +493,64 @@
     position: relative;
     cursor: pointer;
     transition: all 0.2s ease;
-}
-
-.product-row-clickable:hover {
-    background: rgba(42, 157, 143, 0.08);
-    margin-left: -8px;
-    margin-right: -8px;
-    padding-left: 8px;
-    padding-right: 8px;
     border-radius: 6px;
 }
 
+.product-row-clickable:hover {
+    background: rgba(42, 157, 143, 0.15);
+    margin-left: -12px;
+    margin-right: -12px;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    transform: translateX(2px);
+}
+
 .product-row-clickable .edit-icon {
-    opacity: 0;
-    transition: opacity 0.2s ease;
-    color: var(--primary);
-    font-size: 0.8rem;
-    margin-left: 8px;
+    opacity: 0.3;
+    transition: all 0.2s ease;
+    color: var(--primary, #2a9d8f);
+    font-size: 0.75rem;
+    background: rgba(42, 157, 143, 0.2);
+    padding: 4px 6px;
+    border-radius: 4px;
+    flex-shrink: 0;
 }
 
 .product-row-clickable:hover .edit-icon {
+    opacity: 1;
+    background: var(--primary, #2a9d8f);
+    color: white;
+    transform: scale(1.1);
+}
+
+/* Tooltip for edit icon */
+.product-row-clickable .edit-icon::before {
+    content: '';
+    position: absolute;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+/* Add click hint on first few products */
+.product-row-clickable:first-child::after {
+    content: 'Click to recategorize';
+    position: absolute;
+    right: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--primary, #2a9d8f);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    margin-right: 8px;
+}
+
+.product-row-clickable:first-child:hover::after {
     opacity: 1;
 }
 
@@ -520,4 +560,99 @@
         width: 100%;
         right: -100%;
     }
+}
+
+/* Animation for modal entrance */
+@keyframes slideInFromRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Pulse effect on hover for products to encourage clicking */
+@keyframes subtlePulse {
+    0%, 100% { box-shadow: none; }
+    50% { box-shadow: 0 0 0 2px rgba(42, 157, 143, 0.3); }
+}
+
+.product-row-clickable:hover {
+    animation: subtlePulse 1.5s ease infinite;
+}
+
+/* Confidence mini-badge for inline display */
+.confidence-mini {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    margin-left: 6px;
+}
+
+.confidence-mini.high {
+    background: rgba(42, 157, 143, 0.2);
+    color: var(--success, #2a9d8f);
+}
+
+.confidence-mini.medium {
+    background: rgba(244, 162, 97, 0.2);
+    color: var(--warning, #f4a261);
+}
+
+.confidence-mini.low {
+    background: rgba(231, 111, 81, 0.2);
+    color: var(--danger, #e76f51);
+}
+
+/* Recategorize hint styles */
+.recategorize-hint {
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Better button styles for modal */
+.correction-footer .btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+}
+
+.correction-footer .btn-secondary {
+    background: var(--bg-lighter, #252a4a);
+    color: var(--text, #e0e6ed);
+}
+
+.correction-footer .btn-secondary:hover {
+    background: var(--border, #2a2f4a);
+}
+
+.correction-footer .btn-primary {
+    background: linear-gradient(135deg, var(--primary, #2a9d8f), var(--primary-light, #3fb5a6));
+    color: white;
+}
+
+.correction-footer .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(42, 157, 143, 0.4);
+}
+
+.correction-footer .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
 }

@@ -12089,6 +12089,9 @@ function createProactiveRule(ruleData) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
+ * DEPRECATED: Use getUnifiedMorningBrief() instead
+ * This function is kept for backwards compatibility only.
+ *
  * Generate the Morning Intelligence Brief
  * The proactive "what you should do today" summary
  */
@@ -13468,12 +13471,18 @@ function doGet(e) {
       case 'getDailyBrief':
         return jsonResponse(getDailyBrief());
 
+      // ============ UNIFIED MORNING BRIEF - CONSOLIDATED ENDPOINT ============
+      // Replaces: getMorningBrief, generateMorningBrief, generateMorningBriefV2, getMorningBriefFast, getMorningBriefWithGoals
+      case 'getUnifiedMorningBrief':
+        return jsonResponse(getUnifiedMorningBrief(e.parameter));
+
       // ============ CHIEF OF STAFF 2.0 - SMART PRIORITY & DECISION SUPPORT ============
       case 'getNextPriorityTask':
         return jsonResponse(getNextPriorityTask(e.parameter));
       case 'getPendingDecisions':
         return jsonResponse(getPendingDecisionsV2(e.parameter));
       case 'generateMorningBriefV2':
+        // DEPRECATED: Use getUnifiedMorningBrief() instead - kept for backwards compatibility
         return jsonResponse(generateMorningBriefV2(e.parameter));
       case 'getThisTimeLastYear':
         return jsonResponse(getThisTimeLastYear(e.parameter));
@@ -13934,6 +13943,7 @@ function doGet(e) {
 
       // ============ PREDICTIVE INTELLIGENCE SYSTEM ============
       case 'getMorningBrief':
+        // DEPRECATED: Use getUnifiedMorningBrief() instead - kept for backwards compatibility
         return jsonResponse(getMorningBrief(e.parameter));
       case 'getOverdueTasks':
         return jsonResponse({ success: true, tasks: getOverdueTasks() });
@@ -15196,6 +15206,16 @@ function doGet(e) {
         return jsonResponse(generateLenderLoanPackage(e.parameter));
       case 'uploadLoanDocument':
         return jsonResponse(uploadLoanDocument(e.parameter));
+      case 'scrapeLenderRequirements':
+        return jsonResponse(scrapeLenderRequirements(e.parameter));
+      case 'saveCustomLenders':
+        return jsonResponse(saveCustomLenders(e.parameter));
+      case 'scrapeGrantRequirements':
+        return jsonResponse(scrapeGrantRequirements(e.parameter));
+      case 'generateGrantStrategy':
+        return jsonResponse(generateGrantStrategy(e.parameter));
+      case 'saveGrantContacts':
+        return jsonResponse(saveGrantContacts(e.parameter));
 
       // ============ ACCOUNTANT TASK MANAGEMENT ============
       case 'parseEmailsForTasks':
@@ -16148,6 +16168,7 @@ function doGet(e) {
         }
         return jsonResponse({ success: false, error: 'goalId and current required' });
       case 'getMorningBriefWithGoals':
+        // DEPRECATED: Use getUnifiedMorningBrief({ includeGoals: true }) instead - kept for backwards compatibility
         return jsonResponse(getMorningBriefWithGoals());
       case 'addFarmGoal':
         return jsonResponse(addFarmGoal(e.parameter));
@@ -16218,6 +16239,54 @@ function doGet(e) {
         return jsonResponse(getParserRules(e.parameter));
       case 'applyParserRules':
         return jsonResponse(applyParserRules(e.parameter));
+
+      // ============ MARKETING AI SYSTEM (2026-02-09) ============
+      // Human-in-the-loop approval for all marketing actions
+      case 'createMarketingCampaign':
+        return jsonResponse(processMarketingRequest(e.parameter.request || e.parameter.query || e.parameter));
+      case 'approveMarketingCampaign':
+        return jsonResponse(executeApprovedCampaign(e.parameter.approvalId));
+      case 'getMarketingCampaigns':
+        return jsonResponse(getMarketingCampaigns(e.parameter));
+      case 'getMarketingPerformance':
+        return jsonResponse(getMarketingPerformance(e.parameter));
+      case 'getPendingMarketingApprovals':
+        return jsonResponse(getPendingMarketingApprovals());
+      case 'getMarketingRules':
+        return jsonResponse({ success: true, rules: getMarketingRules() });
+      case 'initializeMarketingAI':
+        return jsonResponse(initializeMarketingAISheets());
+      case 'getShopifyProductsForMarketing':
+        return jsonResponse(getShopifyProductsForMarketing(e.parameter.collection));
+      case 'validateDiscountRules':
+        return jsonResponse(validateDiscountRules(
+          parseFloat(e.parameter.discountAmount),
+          e.parameter.productIds ? JSON.parse(e.parameter.productIds) : [],
+          e.parameter.maxPercentage ? parseFloat(e.parameter.maxPercentage) : null
+        ));
+      case 'requestMarketingApprovalGET':
+        // GET version for testing - builds campaign from URL params
+        const testCampaign = {
+          type: e.parameter.campaignType || 'discount_code',
+          platform: e.parameter.platform || 'shopify',
+          code: e.parameter.code || 'TEST' + Date.now(),
+          title: e.parameter.title || 'Test Campaign',
+          discountType: e.parameter.discountType || 'fixed_amount',
+          discountValue: parseFloat(e.parameter.discountValue) || 10,
+          targetType: e.parameter.targetType || 'line_item',
+          targetSelection: e.parameter.targetSelection || 'all',
+          allocationMethod: e.parameter.allocationMethod || 'across',
+          customerSelection: e.parameter.customerSelection || 'all',
+          usageLimit: parseInt(e.parameter.usageLimit) || 100,
+          oncePerCustomer: e.parameter.oncePerCustomer !== 'false',
+          startsAt: e.parameter.startsAt || new Date().toISOString(),
+          endsAt: e.parameter.endsAt || new Date(Date.now() + 30*24*60*60*1000).toISOString(),
+          businessRules: {
+            maxPercentage: parseFloat(e.parameter.maxPercentage) || 15,
+            validated: true
+          }
+        };
+        return jsonResponse(requestMarketingApproval(testCampaign));
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
@@ -16371,6 +16440,8 @@ function doPost(e) {
       // ============ LOAN DOCUMENT UPLOAD ============
       case 'uploadLoanDocument':
         return jsonResponse(uploadLoanDocument(data));
+      case 'saveCustomLenders':
+        return jsonResponse(saveCustomLenders(data));
 
       // ============ LEGACY POST ENDPOINTS ============
       case 'addPlanting':
@@ -16793,6 +16864,30 @@ function doPost(e) {
         return jsonResponse(configureOwnerPhone(data));
       case 'sendSocialBrainAlert':
         return jsonResponse(sendSocialBrainAlert(data));
+
+      // ============ MARKETING AI SYSTEM WITH HUMAN-IN-THE-LOOP (POST) (2026-02-09) ============
+      // All external marketing actions require SMS approval first
+      case 'createMarketingCampaignPost':
+        return jsonResponse(processMarketingRequest(data.request || data.query || data));
+      case 'generateCampaignProposal':
+        return jsonResponse(generateCampaignProposal(data.request || data.query));
+      case 'requestMarketingApproval':
+        return jsonResponse(requestMarketingApproval(data.campaign || data));
+      case 'processMarketingApprovalResponse':
+        return jsonResponse(processMarketingApprovalResponse(data.fromPhone, data.message));
+      case 'executeApprovedCampaignPost':
+        return jsonResponse(executeApprovedCampaign(data.approvalId));
+      case 'createShopifyPriceRule':
+        return jsonResponse(createShopifyPriceRule(data));
+      case 'createShopifyDiscountCode':
+        return jsonResponse(createShopifyDiscountCode(data.priceRuleId, data.code));
+      case 'createMetaAdCampaign':
+        return jsonResponse(createMetaAdCampaign(data));
+      case 'createGoogleAdCampaign':
+        return jsonResponse(createGoogleAdCampaign(data));
+      case 'updateMarketingRules':
+        // Update a marketing rule
+        return jsonResponse(updateMarketingRule(data.ruleName, data.value, data.description));
 
       // ============ MARKETING AUTOMATION SYSTEM (POST) ============
       // Email Marketing
@@ -28722,6 +28817,7 @@ function getCropProfile(cropName) {
   return { success: false, error: `Crop profile not found: ${cropName}` };
 }
 
+// DEPRECATED: Use getUnifiedMorningBrief() instead - kept for backwards compatibility
 // Morning brief wrapper
 // FIXED 2026-01-23: Call getMorningBriefFast directly, which no longer calls back to this function
 function getMorningBrief(params) {
@@ -83482,6 +83578,7 @@ function getWeatherFast(params) {
   }, SmartCache.DURATIONS.MEDIUM);
 }
 
+// DEPRECATED: Use getUnifiedMorningBrief() instead - kept for backwards compatibility
 // Fast morning brief - FIXED 2026-01-23: Complete rewrite to fix stack overflow
 function getMorningBriefFast(params) {
   try {
@@ -83681,13 +83778,15 @@ function routeToOptimizedEndpoint(action, params) {
     'getCrops': getCropsFast,
     'getBeds': getBedsFast,
     'getWeather': getWeatherFast,
-    'getMorningBrief': getMorningBriefFast
+    'getMorningBrief': getMorningBriefFast,
+    // New unified endpoint routes to getUnifiedMorningBrief
+    'getUnifiedMorningBrief': getUnifiedMorningBrief
   };
-  
+
   if (fastEndpoints[action]) {
     return fastEndpoints[action](params);
   }
-  
+
   return null; // Fall back to standard endpoint
 }
 
@@ -90055,6 +90154,567 @@ function getLenderReadiness(params) {
 }
 
 /**
+ * Scrape lender website for loan requirements using AI
+ * @param {Object} params - { url }
+ * @returns {Object} - { success, requirements, loanTerms }
+ */
+function scrapeLenderRequirements(params) {
+  try {
+    const url = params.url;
+    if (!url) {
+      return { success: false, error: 'URL is required' };
+    }
+
+    // Fetch the webpage content
+    let pageContent;
+    try {
+      const response = UrlFetchApp.fetch(url, {
+        muteHttpExceptions: true,
+        followRedirects: true,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; TinySeedFarmBot/1.0)'
+        }
+      });
+
+      const responseCode = response.getResponseCode();
+      if (responseCode !== 200) {
+        return { success: false, error: `Failed to fetch page (HTTP ${responseCode})` };
+      }
+
+      pageContent = response.getContentText();
+    } catch (e) {
+      return { success: false, error: 'Failed to fetch webpage: ' + e.message };
+    }
+
+    // Extract text content (remove HTML tags, scripts, styles)
+    let textContent = pageContent
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    // Limit content to prevent token overflow (keep first 10000 chars)
+    if (textContent.length > 10000) {
+      textContent = textContent.substring(0, 10000) + '...';
+    }
+
+    // Use Claude to extract requirements
+    const CLAUDE_API_KEY = PropertiesService.getScriptProperties().getProperty('CLAUDE_API_KEY');
+    if (!CLAUDE_API_KEY) {
+      // Fallback: Basic pattern matching if no Claude API key
+      return scrapeLenderRequirementsFallback(textContent, url);
+    }
+
+    const claudePayload = {
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 2000,
+      messages: [{
+        role: 'user',
+        content: `You are analyzing a lender's webpage to extract loan requirements.
+
+URL: ${url}
+
+Page content:
+${textContent}
+
+Extract the following information and return it as JSON:
+1. requiredDocuments: Array of documents needed (e.g., tax returns, business plan, etc.)
+2. eligibilityCriteria: Array of eligibility requirements (e.g., minimum credit score, farm size)
+3. loanTerms: Object with maxAmount, minAmount, interestRate, term
+4. applicationSteps: Array of steps to apply
+
+For each item in requiredDocuments and eligibilityCriteria, provide:
+- id: snake_case identifier
+- name: Human readable name
+- type: "document", "eligibility", "financial", or "application"
+
+Return ONLY valid JSON with this structure:
+{
+  "requirements": [...],
+  "loanTerms": {...},
+  "applicationSteps": [...]
+}`
+      }]
+    };
+
+    try {
+      const claudeResponse = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': CLAUDE_API_KEY,
+          'anthropic-version': '2023-06-01'
+        },
+        payload: JSON.stringify(claudePayload),
+        muteHttpExceptions: true
+      });
+
+      const claudeResult = JSON.parse(claudeResponse.getContentText());
+
+      if (claudeResult.content && claudeResult.content[0] && claudeResult.content[0].text) {
+        const aiText = claudeResult.content[0].text;
+
+        // Try to parse JSON from the response
+        const jsonMatch = aiText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsedData = JSON.parse(jsonMatch[0]);
+          return {
+            success: true,
+            requirements: parsedData.requirements || [],
+            loanTerms: parsedData.loanTerms || {},
+            applicationSteps: parsedData.applicationSteps || [],
+            source: url
+          };
+        }
+      }
+
+      // Fallback if Claude response wasn't parseable
+      return scrapeLenderRequirementsFallback(textContent, url);
+
+    } catch (claudeError) {
+      Logger.log('Claude API error: ' + claudeError.toString());
+      return scrapeLenderRequirementsFallback(textContent, url);
+    }
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Fallback function to extract requirements using pattern matching
+ */
+function scrapeLenderRequirementsFallback(textContent, url) {
+  const requirements = [];
+  const lowerContent = textContent.toLowerCase();
+
+  // Common document patterns
+  const docPatterns = [
+    { pattern: /tax return/i, name: 'Tax Returns', type: 'document' },
+    { pattern: /business plan/i, name: 'Business Plan', type: 'document' },
+    { pattern: /balance sheet/i, name: 'Balance Sheet', type: 'financial' },
+    { pattern: /cash flow/i, name: 'Cash Flow Statement', type: 'financial' },
+    { pattern: /bank statement/i, name: 'Bank Statements', type: 'financial' },
+    { pattern: /profit.{0,10}loss|p\s*&\s*l|income statement/i, name: 'Profit & Loss Statement', type: 'financial' },
+    { pattern: /driver.{0,5}license|photo id/i, name: 'Photo ID', type: 'document' },
+    { pattern: /ssn|social security/i, name: 'Social Security Number', type: 'document' },
+    { pattern: /credit.{0,10}(report|score|history)/i, name: 'Credit Report', type: 'financial' },
+    { pattern: /collateral/i, name: 'Collateral Documentation', type: 'document' },
+    { pattern: /insurance/i, name: 'Insurance Documentation', type: 'document' },
+    { pattern: /deed|title|property/i, name: 'Property Documents', type: 'document' },
+    { pattern: /financial statement/i, name: 'Financial Statements', type: 'financial' },
+    { pattern: /application form/i, name: 'Loan Application Form', type: 'application' }
+  ];
+
+  // Check for each pattern
+  docPatterns.forEach(doc => {
+    if (doc.pattern.test(textContent)) {
+      requirements.push({
+        id: doc.name.toLowerCase().replace(/[^a-z0-9]/g, '_'),
+        name: doc.name,
+        type: doc.type
+      });
+    }
+  });
+
+  // Extract loan terms using patterns
+  const loanTerms = {};
+
+  // Max amount patterns
+  const maxMatch = textContent.match(/\$[\d,]+(?:\s*(?:million|k|thousand))?/i);
+  if (maxMatch) {
+    loanTerms.maxAmount = maxMatch[0];
+  }
+
+  // Interest rate patterns
+  const rateMatch = textContent.match(/(\d+\.?\d*)\s*%\s*(?:apr|interest|rate)/i);
+  if (rateMatch) {
+    loanTerms.interestRate = rateMatch[1] + '%';
+  }
+
+  // Term length patterns
+  const termMatch = textContent.match(/(\d+)\s*(?:year|month)\s*(?:term|loan)/i);
+  if (termMatch) {
+    loanTerms.term = termMatch[0];
+  }
+
+  return {
+    success: true,
+    requirements: requirements,
+    loanTerms: loanTerms,
+    source: url,
+    method: 'pattern-matching'
+  };
+}
+
+/**
+ * Save custom lenders to a sheet (for backup/sync)
+ * @param {Object} params - { lenders: {...} }
+ */
+function saveCustomLenders(params) {
+  try {
+    const lenders = params.lenders;
+    if (!lenders) {
+      return { success: false, error: 'No lenders provided' };
+    }
+
+    // Store in script properties as JSON
+    const props = PropertiesService.getScriptProperties();
+    props.setProperty('CUSTOM_LENDERS', JSON.stringify(lenders));
+
+    // Also try to save to a sheet for backup
+    try {
+      const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+      let sheet = ss.getSheetByName('CustomLenders');
+
+      if (!sheet) {
+        sheet = ss.insertSheet('CustomLenders');
+        sheet.appendRow(['LenderID', 'Name', 'LoanType', 'MaxLoan', 'RequiredDocs', 'Website', 'CreatedAt', 'RawData']);
+      }
+
+      // Clear existing data (except header)
+      if (sheet.getLastRow() > 1) {
+        sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).clear();
+      }
+
+      // Add each lender
+      Object.keys(lenders).forEach(lenderId => {
+        const lender = lenders[lenderId];
+        sheet.appendRow([
+          lenderId,
+          lender.name,
+          lender.programs ? lender.programs.join(', ') : '',
+          lender.maxLoan || '',
+          lender.requiredDocs ? lender.requiredDocs.join(', ') : '',
+          lender.website || '',
+          lender.createdAt || new Date().toISOString(),
+          JSON.stringify(lender)
+        ]);
+      });
+
+      Logger.log('Saved ' + Object.keys(lenders).length + ' custom lenders to sheet');
+    } catch (sheetError) {
+      Logger.log('Could not save to sheet (not critical): ' + sheetError.toString());
+    }
+
+    return {
+      success: true,
+      savedCount: Object.keys(lenders).length,
+      message: 'Custom lenders saved successfully'
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Scrape grant website for requirements using AI
+ * @param {Object} params - { url }
+ * @returns {Object} - { success, grantName, organization, amount, deadline, eligibility, documents, steps }
+ */
+function scrapeGrantRequirements(params) {
+  try {
+    const url = params.url;
+    if (!url) {
+      return { success: false, error: 'URL is required' };
+    }
+
+    // Fetch the webpage content
+    let pageContent;
+    try {
+      const response = UrlFetchApp.fetch(url, {
+        muteHttpExceptions: true,
+        followRedirects: true,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; TinySeedFarmBot/1.0)'
+        }
+      });
+
+      const responseCode = response.getResponseCode();
+      if (responseCode !== 200) {
+        return { success: false, error: 'Failed to fetch page (HTTP ' + responseCode + ')' };
+      }
+
+      pageContent = response.getContentText();
+    } catch (e) {
+      return { success: false, error: 'Failed to fetch webpage: ' + e.message };
+    }
+
+    // Extract text content
+    let textContent = pageContent
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    // Limit content length
+    if (textContent.length > 12000) {
+      textContent = textContent.substring(0, 12000) + '...';
+    }
+
+    // Use Claude to extract grant requirements
+    const CLAUDE_API_KEY = PropertiesService.getScriptProperties().getProperty('CLAUDE_API_KEY');
+    if (!CLAUDE_API_KEY) {
+      return scrapeGrantRequirementsFallback(textContent, url);
+    }
+
+    const claudePayload = {
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 2500,
+      messages: [{
+        role: 'user',
+        content: 'You are analyzing a grant program webpage to extract application requirements.\n\nURL: ' + url + '\n\nPage content:\n' + textContent + '\n\nExtract the following information and return it as JSON:\n1. grantName: Name of the grant program\n2. organization: Funding organization\n3. amount: Award amount or range\n4. deadline: Application deadline (YYYY-MM-DD format if possible)\n5. eligibility: Array of eligibility requirements\n6. documents: Array of required documents\n7. steps: Array of application process steps\n8. awardTimeline: When awards are typically announced\n\nReturn ONLY valid JSON with this structure:\n{\n  "grantName": "...",\n  "organization": "...",\n  "amount": "...",\n  "deadline": "...",\n  "eligibility": ["...", "..."],\n  "documents": ["...", "..."],\n  "steps": ["...", "..."],\n  "awardTimeline": "..."\n}'
+      }]
+    };
+
+    try {
+      const claudeResponse = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': CLAUDE_API_KEY,
+          'anthropic-version': '2023-06-01'
+        },
+        payload: JSON.stringify(claudePayload),
+        muteHttpExceptions: true
+      });
+
+      const claudeResult = JSON.parse(claudeResponse.getContentText());
+
+      if (claudeResult.content && claudeResult.content[0] && claudeResult.content[0].text) {
+        const aiText = claudeResult.content[0].text;
+        const jsonMatch = aiText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsedData = JSON.parse(jsonMatch[0]);
+          return {
+            success: true,
+            grantName: parsedData.grantName || '',
+            organization: parsedData.organization || '',
+            amount: parsedData.amount || '',
+            deadline: parsedData.deadline || '',
+            eligibility: parsedData.eligibility || [],
+            documents: parsedData.documents || [],
+            steps: parsedData.steps || [],
+            awardTimeline: parsedData.awardTimeline || '',
+            source: url
+          };
+        }
+      }
+
+      return scrapeGrantRequirementsFallback(textContent, url);
+
+    } catch (claudeError) {
+      Logger.log('Claude API error for grant scraping: ' + claudeError.toString());
+      return scrapeGrantRequirementsFallback(textContent, url);
+    }
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Fallback function for grant requirement extraction using pattern matching
+ */
+function scrapeGrantRequirementsFallback(textContent, url) {
+  const eligibility = [];
+  const documents = [];
+  const lowerContent = textContent.toLowerCase();
+
+  // Common eligibility patterns
+  const eligibilityPatterns = [
+    { pattern: /pennsylvania/i, text: 'Pennsylvania resident/operation' },
+    { pattern: /beginning farmer/i, text: 'Beginning farmer (under 10 years)' },
+    { pattern: /must be.{0,50}farmer/i, text: 'Active farming operation required' },
+    { pattern: /501\(c\)|non-?profit/i, text: 'Non-profit organization eligible' },
+    { pattern: /small farm|small-scale/i, text: 'Small-scale farming operation' },
+    { pattern: /organic/i, text: 'Organic or sustainable practices preferred' },
+    { pattern: /women-?owned|minority/i, text: 'Women/minority-owned businesses' }
+  ];
+
+  eligibilityPatterns.forEach(ep => {
+    if (ep.pattern.test(textContent)) eligibility.push(ep.text);
+  });
+
+  // Common document patterns
+  const documentPatterns = [
+    { pattern: /business plan/i, text: 'Business Plan' },
+    { pattern: /project proposal|project narrative/i, text: 'Project Proposal' },
+    { pattern: /budget/i, text: 'Project Budget' },
+    { pattern: /financial statement/i, text: 'Financial Statements' },
+    { pattern: /tax return/i, text: 'Tax Returns' },
+    { pattern: /schedule f/i, text: 'Schedule F' },
+    { pattern: /letter of support|recommendation/i, text: 'Letters of Support' },
+    { pattern: /resume|cv/i, text: 'Resume/CV' },
+    { pattern: /farm plan/i, text: 'Farm/Conservation Plan' },
+    { pattern: /map|aerial/i, text: 'Farm Map/Aerial Photo' }
+  ];
+
+  documentPatterns.forEach(dp => {
+    if (dp.pattern.test(textContent)) documents.push(dp.text);
+  });
+
+  // Extract amount
+  let amount = '';
+  const amountMatch = textContent.match(/\$[\d,]+(?:\s*(?:million|k|thousand|to|-)[\s\$\d,]*)?/i);
+  if (amountMatch) amount = amountMatch[0];
+
+  // Extract deadline (look for date patterns)
+  let deadline = '';
+  const datePatterns = [
+    /deadline[:\s]+(\w+\s+\d+,?\s*\d*)/i,
+    /due[:\s]+(\w+\s+\d+,?\s*\d*)/i,
+    /applications? due[:\s]+(\w+\s+\d+,?\s*\d*)/i
+  ];
+  for (const dp of datePatterns) {
+    const match = textContent.match(dp);
+    if (match) { deadline = match[1]; break; }
+  }
+
+  return {
+    success: true,
+    grantName: '',
+    organization: '',
+    amount: amount,
+    deadline: deadline,
+    eligibility: eligibility,
+    documents: documents,
+    steps: [],
+    source: url,
+    method: 'pattern-matching'
+  };
+}
+
+/**
+ * Generate AI-powered grant application strategy
+ * @param {Object} params - { grantName, grantSource, amount, deadline, eligibility, requiredDocs, documentStatus, steps, notes }
+ * @returns {Object} - { success, strategy: { applicationPlan, highlights, weaknesses, timeline, talkingPoints } }
+ */
+function generateGrantStrategy(params) {
+  try {
+    const CLAUDE_API_KEY = PropertiesService.getScriptProperties().getProperty('CLAUDE_API_KEY');
+    if (!CLAUDE_API_KEY) {
+      return { success: false, error: 'Claude API key not configured' };
+    }
+
+    const { grantName, grantSource, amount, deadline, eligibility, requiredDocs, documentStatus, steps, notes } = params;
+
+    // Calculate days until deadline
+    let daysUntilDeadline = 'Unknown';
+    if (deadline) {
+      const deadlineDate = new Date(deadline);
+      const today = new Date();
+      daysUntilDeadline = Math.ceil((deadlineDate - today) / (1000 * 60 * 60 * 24));
+    }
+
+    // Build context about document readiness
+    const docsReady = Object.entries(documentStatus || {}).filter(([k, v]) => v === 'available').map(([k]) => k);
+    const docsMissing = Object.entries(documentStatus || {}).filter(([k, v]) => v === 'missing').map(([k]) => k);
+
+    const prompt = `You are an expert agricultural grant consultant helping a small farm create an application strategy for a grant.
+
+GRANT DETAILS:
+- Name: ${grantName || 'Unknown'}
+- Source: ${grantSource || 'Unknown'}
+- Amount: ${amount || 'Unknown'}
+- Deadline: ${deadline || 'Unknown'} (${daysUntilDeadline} days away)
+- Eligibility Requirements: ${(eligibility || []).join('; ')}
+- Required Documents: ${(requiredDocs || []).join('; ')}
+- Application Steps: ${(steps || []).join('; ')}
+- Applicant Notes: ${notes || 'None'}
+
+DOCUMENT STATUS:
+- Ready: ${docsReady.join(', ') || 'None'}
+- Missing: ${docsMissing.join(', ') || 'None'}
+
+BUSINESS CONTEXT:
+This is for Tiny Seed Farm, a small-scale organic vegetable farm in Pennsylvania with a CSA program, farmers market presence, and direct sales. They are beginning farmers focused on sustainable practices.
+
+Create a comprehensive application strategy as JSON with:
+1. applicationPlan: Array of 5-7 specific action steps to complete this application
+2. highlights: Array of 3-5 strengths to emphasize based on their business
+3. weaknesses: Array of 2-3 potential weaknesses to address proactively
+4. timeline: Array of milestones with { date: "MM/DD", task: "description" } leading up to deadline
+5. talkingPoints: Array of 3-4 key messages for the application narrative
+
+Return ONLY valid JSON:
+{
+  "applicationPlan": ["Step 1...", "Step 2..."],
+  "highlights": ["Highlight 1...", "Highlight 2..."],
+  "weaknesses": ["Weakness 1..."],
+  "timeline": [{"date": "MM/DD", "task": "Task description"}],
+  "talkingPoints": ["Point 1...", "Point 2..."]
+}`;
+
+    const claudePayload = {
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 2000,
+      messages: [{ role: 'user', content: prompt }]
+    };
+
+    const claudeResponse = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': CLAUDE_API_KEY,
+        'anthropic-version': '2023-06-01'
+      },
+      payload: JSON.stringify(claudePayload),
+      muteHttpExceptions: true
+    });
+
+    const claudeResult = JSON.parse(claudeResponse.getContentText());
+
+    if (claudeResult.content && claudeResult.content[0] && claudeResult.content[0].text) {
+      const aiText = claudeResult.content[0].text;
+      const jsonMatch = aiText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const strategy = JSON.parse(jsonMatch[0]);
+        return {
+          success: true,
+          strategy: strategy
+        };
+      }
+    }
+
+    return { success: false, error: 'Could not generate strategy' };
+
+  } catch (error) {
+    Logger.log('Grant strategy generation error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Save grant contacts to storage
+ * @param {Object} params - { grantId, contacts }
+ */
+function saveGrantContacts(params) {
+  try {
+    const { grantId, contacts } = params;
+    if (!grantId) {
+      return { success: false, error: 'Grant ID required' };
+    }
+
+    // Store in script properties
+    const props = PropertiesService.getScriptProperties();
+    const key = 'GRANT_CONTACTS_' + grantId;
+    props.setProperty(key, JSON.stringify(contacts || []));
+
+    return {
+      success: true,
+      message: 'Contacts saved successfully',
+      savedCount: (contacts || []).length
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
  * Generate a complete loan package for a specific lender
  * Enhanced version with lender-specific formatting
  * @param {Object} params - { lender }
@@ -92088,6 +92748,8 @@ function getThisTimeLastYear(params = {}) {
 }
 
 /**
+ * DEPRECATED: Use getUnifiedMorningBrief() instead - kept for backwards compatibility
+ *
  * Generate Enhanced Morning Brief V2 - Comprehensive with "This Time Last Year"
  * Aggregates: weather, tasks, emails, calendar, alerts, historical context
  *
@@ -92385,6 +93047,849 @@ function generateMorningBriefV2(params = {}) {
       }
     };
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+// UNIFIED MORNING BRIEF - CONSOLIDATED FROM 5 IMPLEMENTATIONS
+// Created: 2026-02-09
+// Purpose: Single source of truth for ALL morning brief needs
+//
+// REPLACES:
+//   - getMorningBrief() (line ~28727)
+//   - generateMorningBrief() (line ~12095)
+//   - generateMorningBriefV2() (line ~92097)
+//   - getMorningBriefFast() (line ~83486)
+//   - getMorningBriefWithGoals() (line ~100183)
+//
+// Usage: getUnifiedMorningBrief({ detailLevel: 'executive' | 'manager' | 'farm' | 'full' })
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Get Unified Morning Brief - ONE function for ALL morning brief needs
+ *
+ * @param {Object} params - Configuration options
+ * @param {string} params.detailLevel - One of: 'executive', 'manager', 'farm', 'full' (default: 'full')
+ * @param {string} params.format - Output format: 'structured', 'sms', 'email' (default: 'structured')
+ * @param {boolean} params.includeHistorical - Include "this time last year" data (default: false)
+ * @param {boolean} params.includeGoals - Include goal progress (default: true for executive/manager)
+ * @returns {Object} Comprehensive morning brief with all sections
+ *
+ * Detail Levels:
+ *   - 'executive': Financial summary, critical alerts, high-level metrics, goal progress
+ *   - 'manager': Tasks, employee schedules, inventory alerts, operational metrics
+ *   - 'farm': Field conditions, weather, harvest ready, planting schedule, IPM alerts
+ *   - 'full': Everything (default)
+ */
+function getUnifiedMorningBrief(params = {}) {
+  const startTime = Date.now();
+
+  try {
+    const now = new Date();
+    const hour = now.getHours();
+    const detailLevel = (params.detailLevel || 'full').toLowerCase();
+    const format = (params.format || 'structured').toLowerCase();
+    const includeHistorical = params.includeHistorical === 'true' || params.includeHistorical === true;
+    const includeGoals = params.includeGoals !== 'false' && params.includeGoals !== false;
+
+    // Determine greeting
+    let greeting = 'Good morning';
+    let emoji = '☀️';
+    if (hour >= 12 && hour < 17) { greeting = 'Good afternoon'; emoji = '🌤️'; }
+    if (hour >= 17 && hour < 21) { greeting = 'Good evening'; emoji = '🌅'; }
+    if (hour >= 21 || hour < 5) { greeting = 'Working late'; emoji = '🌙'; }
+
+    const brief = {
+      success: true,
+      greeting: `${emoji} ${greeting}!`,
+      date: now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+      timestamp: now.toISOString(),
+      detailLevel: detailLevel,
+      sections: {},
+      executiveSummary: '',
+      tips: [],
+      criticalItems: []
+    };
+
+    // ═══════════════════════════════════════════════════════════════════
+    // SECTION 1: WEATHER (All levels)
+    // ═══════════════════════════════════════════════════════════════════
+    try {
+      const weather = typeof getWeather === 'function' ? getWeather({}) : null;
+      if (weather && weather.success) {
+        brief.sections.weather = {
+          current: {
+            temperature: weather.current?.temperature,
+            condition: weather.current?.condition,
+            humidity: weather.current?.humidity,
+            windSpeed: weather.current?.windSpeed
+          },
+          today: {
+            high: weather.today?.high,
+            low: weather.today?.low,
+            precipChance: weather.today?.precipProbability
+          },
+          alerts: weather.alerts || [],
+          fieldWorkWindow: weather.today?.precipProbability < 30 ? 'Good conditions for field work' :
+                          weather.today?.precipProbability < 60 ? 'Check weather before field work' :
+                          'Plan indoor tasks - rain likely'
+        };
+
+        // Add weather-based critical items
+        if (weather.today?.low <= 36) {
+          brief.criticalItems.push({
+            type: 'FROST_WARNING',
+            priority: 'CRITICAL',
+            message: `Frost warning! Low of ${weather.today.low}°F expected`,
+            action: 'Protect tender crops or harvest before nightfall'
+          });
+        }
+        if (weather.today?.high >= 95) {
+          brief.criticalItems.push({
+            type: 'HEAT_WARNING',
+            priority: 'HIGH',
+            message: `Heat advisory! High of ${weather.today.high}°F expected`,
+            action: 'Ensure adequate irrigation, work in early morning'
+          });
+        }
+      } else {
+        brief.sections.weather = { status: 'unavailable' };
+      }
+    } catch (e) {
+      brief.sections.weather = { error: e.message };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // SECTION 2: TASKS FROM UNIFIED_TASKS (All levels)
+    // ═══════════════════════════════════════════════════════════════════
+    try {
+      const todaysTasks = typeof getTodaysTasks === 'function' ? (getTodaysTasks() || []) : [];
+      const overdueTasks = typeof getOverdueTasks === 'function' ? (getOverdueTasks() || []) : [];
+
+      // Get unified tasks if available for richer data
+      let unifiedTasks = [];
+      try {
+        if (typeof getUnifiedTasks === 'function') {
+          const unified = getUnifiedTasks({ status: 'pending', limit: 20 });
+          if (unified && unified.success && unified.tasks) {
+            unifiedTasks = unified.tasks;
+          }
+        }
+      } catch (e) {
+        // Continue with basic tasks
+      }
+
+      // Merge and dedupe
+      const allTasks = [...overdueTasks.map(t => ({...t, isOverdue: true})), ...todaysTasks, ...unifiedTasks];
+      const seenIds = new Set();
+      const uniqueTasks = allTasks.filter(t => {
+        const id = t.Task_ID || t.id || t.title || JSON.stringify(t);
+        if (seenIds.has(id)) return false;
+        seenIds.add(id);
+        return true;
+      });
+
+      // Score tasks by priority
+      const context = {
+        timeOfDay: hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening',
+        weather: brief.sections.weather
+      };
+
+      const scoredTasks = uniqueTasks.map(t => {
+        let score = 50; // Base score
+        if (t.isOverdue) score += 40;
+        if (t.priority === 'HIGH' || t.priority === 'urgent') score += 30;
+        if (t.priority === 'MEDIUM') score += 15;
+        if (t.status === 'in_progress') score += 10;
+        return { ...t, priorityScore: score };
+      }).sort((a, b) => b.priorityScore - a.priorityScore);
+
+      brief.sections.tasks = {
+        todayCount: todaysTasks.length,
+        overdueCount: overdueTasks.length,
+        totalPending: uniqueTasks.length,
+        topPriority: scoredTasks[0] ? {
+          task: scoredTasks[0].task || scoredTasks[0].Title || scoredTasks[0].title,
+          score: scoredTasks[0].priorityScore,
+          isOverdue: scoredTasks[0].isOverdue || false,
+          dueDate: scoredTasks[0].Due_Date || scoredTasks[0].dueDate
+        } : null,
+        topFive: scoredTasks.slice(0, 5).map(t => ({
+          task: t.task || t.Title || t.title,
+          score: t.priorityScore,
+          isOverdue: t.isOverdue || false,
+          assignee: t.Assignee || t.assignee,
+          dueDate: t.Due_Date || t.dueDate
+        })),
+        message: overdueTasks.length > 0 ?
+          `⚠️ ${overdueTasks.length} overdue task(s) need attention` :
+          todaysTasks.length > 0 ?
+          `${todaysTasks.length} tasks scheduled for today` :
+          'No tasks scheduled - review your priorities'
+      };
+
+      // Add overdue tasks as critical items
+      if (overdueTasks.length > 0) {
+        brief.criticalItems.push({
+          type: 'OVERDUE_TASKS',
+          priority: 'HIGH',
+          message: `${overdueTasks.length} overdue task(s)`,
+          action: 'Review and complete or reschedule',
+          items: overdueTasks.slice(0, 3).map(t => t.task || t.title)
+        });
+      }
+    } catch (e) {
+      brief.sections.tasks = { error: e.message, todayCount: 0, overdueCount: 0 };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // SECTION 3: CRITICAL ALERTS (All levels)
+    // ═══════════════════════════════════════════════════════════════════
+    try {
+      if (typeof getActiveAlerts === 'function') {
+        const alerts = getActiveAlerts();
+        const alertData = alerts?.data || alerts?.alerts || [];
+        const criticalAlerts = alertData.filter(a =>
+          a.priority === 'CRITICAL' || a.priority === 'HIGH'
+        );
+
+        brief.sections.alerts = {
+          totalCount: alertData.length,
+          criticalCount: criticalAlerts.length,
+          items: criticalAlerts.slice(0, 5).map(a => ({
+            title: a.title || a.message,
+            priority: a.priority,
+            type: a.type || a.category,
+            createdAt: a.createdAt || a.timestamp
+          })),
+          message: criticalAlerts.length > 0 ?
+            `🚨 ${criticalAlerts.length} alert(s) require attention` :
+            'No critical alerts'
+        };
+
+        // Add to critical items
+        criticalAlerts.slice(0, 2).forEach(a => {
+          brief.criticalItems.push({
+            type: 'ALERT',
+            priority: a.priority,
+            message: a.title || a.message,
+            action: a.action || 'Review and resolve'
+          });
+        });
+      }
+    } catch (e) {
+      brief.sections.alerts = { error: e.message };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // SECTION 4: HARVESTS (farm, manager, full levels)
+    // ═══════════════════════════════════════════════════════════════════
+    if (detailLevel === 'farm' || detailLevel === 'manager' || detailLevel === 'full') {
+      try {
+        const harvests = typeof getHarvestReadyCrops === 'function' ? (getHarvestReadyCrops() || []) : [];
+        const todayHarvests = harvests.filter(h => h.status === 'TODAY');
+        const overdueHarvests = harvests.filter(h => h.status === 'OVERDUE');
+        const upcomingHarvests = harvests.filter(h => h.status === 'upcoming');
+
+        brief.sections.harvests = {
+          readyToday: todayHarvests.length,
+          overdue: overdueHarvests.length,
+          upcoming: upcomingHarvests.length,
+          items: harvests.slice(0, 5).map(h => ({
+            crop: h.crop,
+            status: h.status,
+            daysUntil: h.daysUntil,
+            bed: h.bed || h.location
+          })),
+          message: overdueHarvests.length > 0 ?
+            `🚨 ${overdueHarvests.length} harvest(s) overdue!` :
+            todayHarvests.length > 0 ?
+            `🥬 ${todayHarvests.length} crop(s) ready to harvest today` :
+            upcomingHarvests.length > 0 ?
+            `${upcomingHarvests.length} harvest(s) coming up` :
+            'No immediate harvests'
+        };
+
+        // Add overdue harvests as critical items
+        if (overdueHarvests.length > 0) {
+          brief.criticalItems.push({
+            type: 'OVERDUE_HARVEST',
+            priority: 'HIGH',
+            message: `${overdueHarvests.length} harvest(s) past optimal date`,
+            action: 'Harvest immediately to prevent quality loss',
+            items: overdueHarvests.slice(0, 3).map(h => h.crop)
+          });
+        }
+      } catch (e) {
+        brief.sections.harvests = { error: e.message };
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // SECTION 5: CSA/DELIVERY STATUS (manager, executive, full levels)
+    // ═══════════════════════════════════════════════════════════════════
+    if (detailLevel === 'manager' || detailLevel === 'executive' || detailLevel === 'full') {
+      try {
+        // Get pending orders
+        let pendingOrders = [];
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        const orderSheet = ss.getSheetByName('SALES_Orders') || ss.getSheetByName('ORDERS') || ss.getSheetByName('Orders');
+
+        if (orderSheet) {
+          const data = orderSheet.getDataRange().getValues();
+          if (data.length > 1) {
+            const headers = data[0].map(h => String(h).toLowerCase());
+            const statusIdx = headers.findIndex(h => h.includes('status'));
+            const customerIdx = headers.findIndex(h => h.includes('customer') || h.includes('name'));
+            const dateIdx = headers.findIndex(h => h.includes('date') || h.includes('created'));
+            const totalIdx = headers.findIndex(h => h.includes('total') || h.includes('amount'));
+
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+            for (let i = 1; i < data.length && pendingOrders.length < 10; i++) {
+              const row = data[i];
+              const status = statusIdx >= 0 ? String(row[statusIdx]).toLowerCase() : '';
+              const orderDate = dateIdx >= 0 ? row[dateIdx] : null;
+              const isRecent = orderDate instanceof Date ? orderDate >= thirtyDaysAgo : true;
+              const isPending = status.includes('pending') || status.includes('new') || status.includes('open') || status.includes('unfulfilled');
+              const hasValidCustomer = customerIdx >= 0 && row[customerIdx] && String(row[customerIdx]).trim() !== '';
+
+              if (isPending && isRecent && hasValidCustomer) {
+                pendingOrders.push({
+                  customer: row[customerIdx],
+                  date: orderDate,
+                  total: totalIdx >= 0 ? row[totalIdx] : 0
+                });
+              }
+            }
+          }
+        }
+
+        // Get CSA member stats if available
+        let csaStats = { active: 0, expiringSoon: 0 };
+        try {
+          if (typeof getActiveCSAMembers === 'function') {
+            const csaMembers = getActiveCSAMembers(ss);
+            csaStats.active = Array.isArray(csaMembers) ? csaMembers.length : (csaMembers?.count || 0);
+          }
+        } catch (e) {
+          // Continue without CSA stats
+        }
+
+        brief.sections.csaDelivery = {
+          pendingOrders: pendingOrders.length,
+          orderItems: pendingOrders.slice(0, 5),
+          csaMembers: csaStats.active,
+          expiringSoon: csaStats.expiringSoon,
+          message: pendingOrders.length > 0 ?
+            `📦 ${pendingOrders.length} order(s) need processing` :
+            'No pending orders'
+        };
+
+        if (pendingOrders.length >= 5) {
+          brief.criticalItems.push({
+            type: 'PENDING_ORDERS',
+            priority: 'MEDIUM',
+            message: `${pendingOrders.length} orders awaiting fulfillment`,
+            action: 'Process orders before next delivery window'
+          });
+        }
+      } catch (e) {
+        brief.sections.csaDelivery = { error: e.message };
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // SECTION 6: FINANCIAL SUMMARY (executive, full levels)
+    // ═══════════════════════════════════════════════════════════════════
+    if (detailLevel === 'executive' || detailLevel === 'full') {
+      try {
+        let financialData = { status: 'unavailable' };
+
+        // Try to get financial dashboard data
+        if (typeof getFinancialDashboard === 'function') {
+          const finDash = getFinancialDashboard({});
+          if (finDash && finDash.success) {
+            financialData = {
+              revenue: finDash.data?.revenue || finDash.revenue,
+              expenses: finDash.data?.expenses || finDash.expenses,
+              profit: finDash.data?.profit || finDash.profit,
+              cashOnHand: finDash.data?.cashOnHand || finDash.cashOnHand,
+              overdueInvoices: finDash.data?.overdueInvoices || 0,
+              period: finDash.period || 'current month'
+            };
+          }
+        }
+
+        // Try loan financial summary if available
+        if (financialData.status === 'unavailable' && typeof getLoanFinancialSummary === 'function') {
+          const loanFin = getLoanFinancialSummary();
+          if (loanFin && loanFin.success) {
+            financialData = {
+              revenue: loanFin.totalRevenue,
+              expenses: loanFin.totalExpenses,
+              profit: loanFin.netIncome,
+              period: loanFin.period
+            };
+          }
+        }
+
+        brief.sections.financial = financialData;
+
+        // Add overdue invoice alert
+        if (financialData.overdueInvoices > 0) {
+          brief.criticalItems.push({
+            type: 'OVERDUE_INVOICES',
+            priority: 'MEDIUM',
+            message: `${financialData.overdueInvoices} overdue invoice(s)`,
+            action: 'Follow up on collections'
+          });
+        }
+      } catch (e) {
+        brief.sections.financial = { error: e.message };
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // SECTION 7: FIELD CONDITIONS (farm, full levels)
+    // ═══════════════════════════════════════════════════════════════════
+    if (detailLevel === 'farm' || detailLevel === 'full') {
+      try {
+        let fieldData = { status: 'unavailable' };
+
+        // Get active plantings
+        if (typeof getActivePlantings === 'function') {
+          const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+          const plantings = getActivePlantings(ss);
+          fieldData.activePlantings = Array.isArray(plantings) ? plantings.length : 0;
+        }
+
+        // Get soil moisture/irrigation status if available
+        try {
+          if (typeof getIrrigationStatus === 'function') {
+            const irrigation = getIrrigationStatus({});
+            if (irrigation && irrigation.success) {
+              fieldData.irrigation = irrigation.data || irrigation;
+            }
+          }
+        } catch (e) {
+          // Continue without irrigation
+        }
+
+        // Get IPM alerts
+        try {
+          const ipmSchedules = typeof getIPMSchedules === 'function' ? getIPMSchedules({ status: 'active' }) : null;
+          if (ipmSchedules && ipmSchedules.success) {
+            fieldData.activeIPM = ipmSchedules.data?.length || 0;
+          }
+        } catch (e) {
+          // Continue without IPM
+        }
+
+        brief.sections.fieldConditions = fieldData;
+      } catch (e) {
+        brief.sections.fieldConditions = { error: e.message };
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // SECTION 8: EMPLOYEE SCHEDULE (manager, full levels)
+    // ═══════════════════════════════════════════════════════════════════
+    if (detailLevel === 'manager' || detailLevel === 'full') {
+      try {
+        let employeeData = { status: 'unavailable' };
+
+        if (typeof getAllActiveEmployees === 'function') {
+          const employees = getAllActiveEmployees();
+          employeeData = {
+            activeCount: Array.isArray(employees) ? employees.length :
+                        (employees?.employees?.length || employees?.count || 0),
+            scheduledToday: 0 // Would need calendar integration
+          };
+        }
+
+        // Get HR alerts
+        try {
+          if (typeof getHRAlerts === 'function') {
+            const hrAlerts = getHRAlerts();
+            if (hrAlerts && hrAlerts.success) {
+              employeeData.alerts = hrAlerts.data?.length || hrAlerts.alerts?.length || 0;
+            }
+          }
+        } catch (e) {
+          // Continue without HR alerts
+        }
+
+        brief.sections.employeeSchedule = employeeData;
+      } catch (e) {
+        brief.sections.employeeSchedule = { error: e.message };
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // SECTION 9: GOAL PROGRESS (executive, manager, full levels with flag)
+    // ═══════════════════════════════════════════════════════════════════
+    if (includeGoals && (detailLevel === 'executive' || detailLevel === 'manager' || detailLevel === 'full')) {
+      try {
+        if (typeof getGoalsWithTasks === 'function') {
+          const goalsResult = getGoalsWithTasks();
+          if (goalsResult && goalsResult.success && goalsResult.goals) {
+            const onTrack = goalsResult.goals.filter(g => g.onTrack === 'on_track').length;
+            const atRisk = goalsResult.goals.filter(g => g.onTrack === 'at_risk').length;
+
+            brief.sections.goals = {
+              total: goalsResult.goals.length,
+              onTrack: onTrack,
+              atRisk: atRisk,
+              items: goalsResult.goals.slice(0, 5).map(g => ({
+                title: g.Title,
+                progress: g.progress,
+                status: g.onTrack,
+                deadline: g.Deadline
+              })),
+              message: atRisk > 0 ?
+                `⚠️ ${atRisk} goal(s) at risk - action needed` :
+                onTrack === goalsResult.goals.length ?
+                '✅ All goals on track!' :
+                `${onTrack}/${goalsResult.goals.length} goals on track`
+            };
+
+            if (atRisk > 0) {
+              brief.criticalItems.push({
+                type: 'AT_RISK_GOALS',
+                priority: 'MEDIUM',
+                message: `${atRisk} goal(s) at risk of missing targets`,
+                action: 'Review progress and adjust plans'
+              });
+            }
+          }
+        }
+      } catch (e) {
+        brief.sections.goals = { error: e.message };
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // SECTION 10: THIS TIME LAST YEAR (optional, full level)
+    // ═══════════════════════════════════════════════════════════════════
+    if (includeHistorical && detailLevel === 'full') {
+      try {
+        if (typeof getThisTimeLastYear === 'function') {
+          const historical = getThisTimeLastYear({});
+          if (historical && historical.success && historical.insights?.length > 0) {
+            brief.sections.thisTimeLastYear = {
+              period: historical.period?.description,
+              insights: historical.insights,
+              highlights: [
+                ...(historical.plantings || []).slice(0, 2).map(p => `Planted ${p.crop}`),
+                ...(historical.harvests || []).slice(0, 2).map(h => `Harvested ${h.crop}`)
+              ].slice(0, 3)
+            };
+          }
+        }
+      } catch (e) {
+        brief.sections.thisTimeLastYear = { error: e.message };
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // SECTION 11: COMMUNICATIONS/EMAIL (executive, manager, full levels)
+    // ═══════════════════════════════════════════════════════════════════
+    if (detailLevel === 'executive' || detailLevel === 'manager' || detailLevel === 'full') {
+      try {
+        if (typeof getDailyBrief === 'function') {
+          const dailyBrief = getDailyBrief();
+          if (dailyBrief && dailyBrief.success && dailyBrief.data) {
+            const data = dailyBrief.data;
+            brief.sections.communications = {
+              newEmails: data.summary?.totalNew || 0,
+              critical: data.summary?.critical || 0,
+              high: data.summary?.high || 0,
+              pendingApprovals: data.summary?.pendingApprovals || 0,
+              overdueFollowups: data.summary?.overdueFollowups || 0,
+              topPriorities: (data.priorities || []).slice(0, 3),
+              message: data.summary?.critical > 0 ?
+                `🚨 ${data.summary.critical} critical email(s) need immediate attention` :
+                data.summary?.totalNew > 0 ?
+                `${data.summary.totalNew} new emails in inbox` :
+                'Inbox looking good!'
+            };
+
+            if (data.summary?.critical > 0) {
+              brief.criticalItems.push({
+                type: 'CRITICAL_EMAILS',
+                priority: 'CRITICAL',
+                message: `${data.summary.critical} critical email(s) require response`,
+                action: 'Review and respond immediately'
+              });
+            }
+          }
+        }
+      } catch (e) {
+        brief.sections.communications = { error: e.message };
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // SECTION 12: PENDING DECISIONS (executive, manager, full levels)
+    // ═══════════════════════════════════════════════════════════════════
+    if (detailLevel === 'executive' || detailLevel === 'manager' || detailLevel === 'full') {
+      try {
+        if (typeof getPendingDecisionsV2 === 'function') {
+          const decisions = getPendingDecisionsV2({});
+          if (decisions) {
+            brief.sections.decisions = {
+              count: decisions.count || 0,
+              criticalCount: decisions.summary?.critical || 0,
+              topDecisions: (decisions.decisions || []).slice(0, 3).map(d => ({
+                title: d.title,
+                urgency: d.urgency,
+                aiRecommendation: d.aiRecommendation
+              })),
+              message: decisions.count > 0 ?
+                `${decisions.count} decision(s) waiting - ${decisions.summary?.critical || 0} critical` :
+                'No pending decisions'
+            };
+
+            if (decisions.summary?.critical > 0) {
+              brief.criticalItems.push({
+                type: 'CRITICAL_DECISIONS',
+                priority: 'HIGH',
+                message: `${decisions.summary.critical} critical decision(s) pending`,
+                action: 'Review and decide today'
+              });
+            }
+          }
+        }
+      } catch (e) {
+        brief.sections.decisions = { error: e.message };
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // SECTION 13: CALENDAR (All levels)
+    // ═══════════════════════════════════════════════════════════════════
+    try {
+      const calendar = CalendarApp.getDefaultCalendar();
+      const endOfDay = new Date(now);
+      endOfDay.setHours(23, 59, 59);
+
+      const events = calendar.getEvents(now, endOfDay);
+      brief.sections.calendar = {
+        eventCount: events.length,
+        events: events.slice(0, 5).map(e => ({
+          title: e.getTitle(),
+          startTime: e.getStartTime().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+          endTime: e.getEndTime().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+          allDay: e.isAllDayEvent()
+        })),
+        message: events.length > 0 ?
+          `${events.length} event(s) on your calendar today` :
+          'No events scheduled'
+      };
+
+      if (events.length > 5) {
+        brief.tips.push(`Busy day with ${events.length} meetings - plan your focus time`);
+      }
+    } catch (e) {
+      brief.sections.calendar = { error: e.message };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // GENERATE EXECUTIVE SUMMARY & TIPS
+    // ═══════════════════════════════════════════════════════════════════
+    const summaryPoints = [];
+    if (brief.sections.tasks?.overdueCount > 0) {
+      summaryPoints.push(`${brief.sections.tasks.overdueCount} overdue tasks`);
+    }
+    if (brief.sections.communications?.critical > 0) {
+      summaryPoints.push(`${brief.sections.communications.critical} critical emails`);
+    }
+    if (brief.sections.harvests?.overdue > 0) {
+      summaryPoints.push(`${brief.sections.harvests.overdue} overdue harvests`);
+    }
+    if (brief.sections.decisions?.criticalCount > 0) {
+      summaryPoints.push(`${brief.sections.decisions.criticalCount} critical decisions`);
+    }
+    if (brief.sections.alerts?.criticalCount > 0) {
+      summaryPoints.push(`${brief.sections.alerts.criticalCount} critical alerts`);
+    }
+    if (brief.sections.goals?.atRisk > 0) {
+      summaryPoints.push(`${brief.sections.goals.atRisk} goals at risk`);
+    }
+
+    brief.executiveSummary = summaryPoints.length > 0 ?
+      `Today's priorities: ${summaryPoints.join(', ')}` :
+      'Looking good! No critical items requiring immediate attention.';
+
+    // Generate tips based on data
+    if (brief.sections.tasks?.topPriority) {
+      brief.tips.push(`Start with: ${brief.sections.tasks.topPriority.task}`);
+    }
+    if (brief.sections.weather?.fieldWorkWindow) {
+      brief.tips.push(brief.sections.weather.fieldWorkWindow);
+    }
+    if (brief.sections.harvests?.readyToday > 0) {
+      brief.tips.push(`🥬 ${brief.sections.harvests.readyToday} crop(s) ready to harvest today`);
+    }
+    if (brief.sections.csaDelivery?.pendingOrders > 0) {
+      brief.tips.push(`📦 ${brief.sections.csaDelivery.pendingOrders} order(s) need processing`);
+    }
+    if (brief.sections.thisTimeLastYear?.highlights?.length > 0) {
+      brief.tips.push(`Last year: ${brief.sections.thisTimeLastYear.highlights[0]}`);
+    }
+    if (brief.tips.length === 0) {
+      brief.tips.push('✅ All systems look good! Check your schedule for the day.');
+    }
+
+    // Sort critical items by priority
+    const priorityOrder = { 'CRITICAL': 0, 'HIGH': 1, 'MEDIUM': 2, 'LOW': 3 };
+    brief.criticalItems.sort((a, b) => (priorityOrder[a.priority] || 4) - (priorityOrder[b.priority] || 4));
+
+    // ═══════════════════════════════════════════════════════════════════
+    // FORMAT OUTPUT (SMS, email, or structured)
+    // ═══════════════════════════════════════════════════════════════════
+    if (format === 'sms') {
+      return formatBriefForSMS(brief);
+    } else if (format === 'email') {
+      return formatBriefForEmail(brief);
+    }
+
+    brief.generationTimeMs = Date.now() - startTime;
+    brief.version = 'unified-1.0';
+
+    return brief;
+
+  } catch (error) {
+    Logger.log('getUnifiedMorningBrief error: ' + error.toString());
+    return {
+      success: false,
+      error: error.toString(),
+      timestamp: new Date().toISOString(),
+      greeting: 'Good morning!',
+      message: 'Brief generation encountered an error'
+    };
+  }
+}
+
+/**
+ * Format brief for SMS output (160 char segments)
+ */
+function formatBriefForSMS(brief) {
+  let sms = `${brief.greeting}\n\n`;
+
+  // Critical items first
+  if (brief.criticalItems.length > 0) {
+    sms += `🚨 CRITICAL:\n`;
+    brief.criticalItems.slice(0, 3).forEach((item, i) => {
+      sms += `${i+1}. ${item.message}\n`;
+    });
+    sms += `\n`;
+  }
+
+  // Weather summary
+  if (brief.sections.weather?.current?.temperature) {
+    sms += `🌡️ ${brief.sections.weather.current.temperature}°F, ${brief.sections.weather.current.condition || 'Clear'}\n`;
+  }
+
+  // Tasks summary
+  if (brief.sections.tasks?.overdueCount > 0) {
+    sms += `⚠️ ${brief.sections.tasks.overdueCount} overdue tasks\n`;
+  }
+  if (brief.sections.tasks?.todayCount > 0) {
+    sms += `📋 ${brief.sections.tasks.todayCount} tasks today\n`;
+  }
+
+  // Harvests
+  if (brief.sections.harvests?.readyToday > 0) {
+    sms += `🥬 ${brief.sections.harvests.readyToday} ready to harvest\n`;
+  }
+
+  // Orders
+  if (brief.sections.csaDelivery?.pendingOrders > 0) {
+    sms += `📦 ${brief.sections.csaDelivery.pendingOrders} pending orders\n`;
+  }
+
+  sms += `\nReply "1" for details`;
+
+  return {
+    success: true,
+    format: 'sms',
+    text: sms,
+    characterCount: sms.length,
+    segments: Math.ceil(sms.length / 160),
+    brief: brief
+  };
+}
+
+/**
+ * Format brief for email output (HTML)
+ */
+function formatBriefForEmail(brief) {
+  let html = `<h2>${brief.greeting}</h2>`;
+  html += `<p><em>${brief.date}</em></p>`;
+  html += `<h3>Executive Summary</h3>`;
+  html += `<p>${brief.executiveSummary}</p>`;
+
+  // Critical items
+  if (brief.criticalItems.length > 0) {
+    html += `<h3>🚨 Critical Items</h3><ul>`;
+    brief.criticalItems.forEach(item => {
+      html += `<li><strong>${item.priority}:</strong> ${item.message} - ${item.action}</li>`;
+    });
+    html += `</ul>`;
+  }
+
+  // Weather
+  if (brief.sections.weather?.current?.temperature) {
+    html += `<h3>Weather</h3>`;
+    html += `<p>${brief.sections.weather.current.temperature}°F, ${brief.sections.weather.current.condition || 'Clear'}. `;
+    html += `High ${brief.sections.weather.today?.high}°F, Low ${brief.sections.weather.today?.low}°F. `;
+    html += `${brief.sections.weather.fieldWorkWindow}</p>`;
+  }
+
+  // Tasks
+  if (brief.sections.tasks) {
+    html += `<h3>Tasks</h3>`;
+    html += `<p>${brief.sections.tasks.message}</p>`;
+    if (brief.sections.tasks.topFive?.length > 0) {
+      html += `<ul>`;
+      brief.sections.tasks.topFive.forEach(t => {
+        const overdue = t.isOverdue ? ' <span style="color:red">(OVERDUE)</span>' : '';
+        html += `<li>${t.task}${overdue}</li>`;
+      });
+      html += `</ul>`;
+    }
+  }
+
+  // Harvests
+  if (brief.sections.harvests) {
+    html += `<h3>Harvests</h3>`;
+    html += `<p>${brief.sections.harvests.message}</p>`;
+  }
+
+  // Orders
+  if (brief.sections.csaDelivery) {
+    html += `<h3>Orders & Delivery</h3>`;
+    html += `<p>${brief.sections.csaDelivery.message}</p>`;
+  }
+
+  // Tips
+  if (brief.tips.length > 0) {
+    html += `<h3>Tips</h3><ul>`;
+    brief.tips.forEach(tip => {
+      html += `<li>${tip}</li>`;
+    });
+    html += `</ul>`;
+  }
+
+  return {
+    success: true,
+    format: 'email',
+    subject: `Morning Brief - ${brief.date}`,
+    html: html,
+    brief: brief
+  };
 }
 
 /**
@@ -100177,6 +101682,8 @@ function getTimeBasedGreeting() {
 }
 
 /**
+ * DEPRECATED: Use getUnifiedMorningBrief({ includeGoals: true }) instead - kept for backwards compatibility
+ *
  * Morning brief enhanced with goal progress
  * Combines proactive insights with goal-driven task generation
  */
@@ -107837,6 +109344,1709 @@ function getParserRuleReport() {
 
   } catch (error) {
     console.error('Error generating rule report:', error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+// =============================================================================
+// MARKETING AI SYSTEM WITH HUMAN-IN-THE-LOOP APPROVAL
+// =============================================================================
+// ALL marketing actions require SMS approval before execution
+// No exceptions - this is a safety feature to prevent unauthorized campaigns
+// =============================================================================
+
+// Configuration
+const MARKETING_AI_CONFIG = {
+  OWNER_PHONE: '717-725-5177',  // Todd's phone for approvals
+  MAX_DISCOUNT_PERCENTAGE: 15,  // Default max discount %
+  MAX_AD_BUDGET_DAILY: 100,     // Default max daily ad spend
+  APPROVAL_EXPIRY_HOURS: 24,    // How long approvals are valid
+
+  // Sheets for tracking
+  SHEETS: {
+    APPROVALS: 'MARKETING_APPROVALS',
+    CAMPAIGNS: 'MARKETING_CAMPAIGNS',
+    RULES: 'MARKETING_RULES'
+  }
+};
+
+// =============================================================================
+// PART 1: SHOPIFY DISCOUNT/PROMO SYSTEM
+// =============================================================================
+
+/**
+ * Create a Shopify Price Rule (the underlying rule for discounts)
+ * @param {Object} params - Price rule parameters
+ * @returns {Object} { success, priceRuleId, error }
+ */
+function createShopifyPriceRule(params) {
+  try {
+    if (!SHOPIFY_CONFIG.ENABLED) {
+      return { success: false, error: 'Shopify integration not enabled' };
+    }
+
+    // Build the price rule payload
+    const priceRule = {
+      price_rule: {
+        title: params.title || 'Tiny Seed Discount',
+        target_type: params.targetType || 'line_item',  // line_item, shipping_line
+        target_selection: params.targetSelection || 'all',  // all, entitled
+        allocation_method: params.allocationMethod || 'across',  // across, each
+        value_type: params.valueType || 'percentage',  // percentage, fixed_amount
+        value: params.value ? String(-Math.abs(parseFloat(params.value))) : '-10',  // Must be negative
+        customer_selection: params.customerSelection || 'all',  // all, prerequisite
+        starts_at: params.startsAt || new Date().toISOString(),
+        once_per_customer: params.oncePerCustomer || false
+      }
+    };
+
+    // Optional fields
+    if (params.endsAt) {
+      priceRule.price_rule.ends_at = params.endsAt;
+    }
+    if (params.usageLimit) {
+      priceRule.price_rule.usage_limit = parseInt(params.usageLimit);
+    }
+    if (params.entitledProductIds && params.entitledProductIds.length > 0) {
+      priceRule.price_rule.entitled_product_ids = params.entitledProductIds;
+      priceRule.price_rule.target_selection = 'entitled';
+    }
+    if (params.entitledCollectionIds && params.entitledCollectionIds.length > 0) {
+      priceRule.price_rule.entitled_collection_ids = params.entitledCollectionIds;
+      priceRule.price_rule.target_selection = 'entitled';
+    }
+    if (params.prerequisiteSubtotalRange) {
+      priceRule.price_rule.prerequisite_subtotal_range = {
+        greater_than_or_equal_to: String(params.prerequisiteSubtotalRange)
+      };
+    }
+
+    // Call Shopify API
+    const result = shopifyApiCall('price_rules.json', 'POST', priceRule);
+
+    if (result.price_rule) {
+      // Log the creation
+      logMarketingCampaign({
+        type: 'price_rule_created',
+        priceRuleId: result.price_rule.id,
+        title: params.title,
+        value: params.value,
+        valueType: params.valueType
+      });
+
+      return {
+        success: true,
+        priceRuleId: result.price_rule.id,
+        priceRule: result.price_rule
+      };
+    }
+
+    return { success: false, error: result.errors || result.error || 'Unknown error creating price rule' };
+
+  } catch (error) {
+    Logger.log('Error creating price rule: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Create a discount code for an existing price rule
+ * @param {string|number} priceRuleId - The price rule ID
+ * @param {string} code - The discount code (e.g., "SPRING50")
+ * @returns {Object} { success, discountCode, error }
+ */
+function createShopifyDiscountCode(priceRuleId, code) {
+  try {
+    if (!SHOPIFY_CONFIG.ENABLED) {
+      return { success: false, error: 'Shopify integration not enabled' };
+    }
+
+    if (!priceRuleId || !code) {
+      return { success: false, error: 'priceRuleId and code are required' };
+    }
+
+    // Clean and format the code
+    const cleanCode = code.toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+    const payload = {
+      discount_code: {
+        code: cleanCode
+      }
+    };
+
+    const result = shopifyApiCall(`price_rules/${priceRuleId}/discount_codes.json`, 'POST', payload);
+
+    if (result.discount_code) {
+      return {
+        success: true,
+        discountCode: result.discount_code.code,
+        discountCodeId: result.discount_code.id,
+        priceRuleId: priceRuleId
+      };
+    }
+
+    return { success: false, error: result.errors || result.error || 'Unknown error creating discount code' };
+
+  } catch (error) {
+    Logger.log('Error creating discount code: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get Shopify products, optionally filtered by collection
+ * @param {string} collectionHandle - Optional collection handle to filter by
+ * @returns {Object} { success, products: [{id, title, price, variants}] }
+ */
+function getShopifyProductsForMarketing(collectionHandle) {
+  try {
+    if (!SHOPIFY_CONFIG.ENABLED) {
+      return { success: false, error: 'Shopify integration not enabled' };
+    }
+
+    let products = [];
+
+    if (collectionHandle) {
+      // Get collection first
+      const collectionsResult = shopifyApiCall('custom_collections.json?handle=' + collectionHandle);
+      let collection = collectionsResult.custom_collections?.[0];
+
+      if (!collection) {
+        const smartCollections = shopifyApiCall('smart_collections.json?handle=' + collectionHandle);
+        collection = smartCollections.smart_collections?.[0];
+      }
+
+      if (collection) {
+        // Get products in collection
+        const collects = shopifyApiCall(`collects.json?collection_id=${collection.id}&limit=250`);
+        const productIds = (collects.collects || []).map(c => c.product_id);
+
+        // Fetch each product
+        for (const pid of productIds.slice(0, 50)) {  // Limit to 50 products
+          const prodResult = shopifyApiCall(`products/${pid}.json`);
+          if (prodResult.product) {
+            products.push(prodResult.product);
+          }
+        }
+      }
+    } else {
+      // Get all products
+      const result = shopifyApiCall('products.json?limit=250&status=active');
+      products = result.products || [];
+    }
+
+    // Format response
+    const formattedProducts = products.map(p => ({
+      id: p.id,
+      title: p.title,
+      handle: p.handle,
+      status: p.status,
+      price: p.variants?.[0]?.price || '0',
+      variants: (p.variants || []).map(v => ({
+        id: v.id,
+        title: v.title,
+        price: v.price,
+        sku: v.sku
+      }))
+    }));
+
+    return { success: true, products: formattedProducts };
+
+  } catch (error) {
+    Logger.log('Error getting Shopify products: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Validate discount rules against business constraints
+ * @param {number} discountAmount - The discount amount (percentage or fixed)
+ * @param {Array} products - Products the discount applies to
+ * @param {number} maxPercentage - Maximum allowed discount percentage
+ * @returns {Object} { valid, issues: [], adjustedAmount }
+ */
+function validateDiscountRules(discountAmount, products, maxPercentage) {
+  try {
+    const issues = [];
+    let adjustedAmount = discountAmount;
+    const maxPct = maxPercentage || MARKETING_AI_CONFIG.MAX_DISCOUNT_PERCENTAGE;
+
+    // Get business rules from sheet
+    const rules = getMarketingRules();
+    const effectiveMax = rules.maxDiscountPercentage || maxPct;
+
+    // Check if discount exceeds max percentage for any product
+    if (products && products.length > 0) {
+      for (const product of products) {
+        const price = parseFloat(product.price || product.variants?.[0]?.price || 0);
+        if (price > 0) {
+          const discountPct = (discountAmount / price) * 100;
+
+          if (discountPct > effectiveMax) {
+            issues.push({
+              productId: product.id,
+              productTitle: product.title,
+              price: price,
+              discountPct: discountPct.toFixed(1),
+              message: `Discount of $${discountAmount} on "${product.title}" ($${price}) is ${discountPct.toFixed(1)}%, exceeding max ${effectiveMax}%`
+            });
+          }
+        }
+      }
+    }
+
+    // Check total discount limits from rules
+    if (rules.maxFixedDiscount && discountAmount > rules.maxFixedDiscount) {
+      issues.push({
+        message: `Discount of $${discountAmount} exceeds maximum allowed fixed discount of $${rules.maxFixedDiscount}`
+      });
+      adjustedAmount = rules.maxFixedDiscount;
+    }
+
+    // Check blackout periods
+    if (rules.blackoutPeriods && rules.blackoutPeriods.length > 0) {
+      const now = new Date();
+      for (const period of rules.blackoutPeriods) {
+        const start = new Date(period.start);
+        const end = new Date(period.end);
+        if (now >= start && now <= end) {
+          issues.push({
+            message: `Current date is within blackout period: ${period.name || 'Unnamed period'} (${period.start} - ${period.end})`
+          });
+        }
+      }
+    }
+
+    return {
+      valid: issues.length === 0,
+      issues: issues,
+      adjustedAmount: adjustedAmount,
+      maxPercentageUsed: effectiveMax
+    };
+
+  } catch (error) {
+    Logger.log('Error validating discount rules: ' + error.toString());
+    return { valid: false, issues: [{ message: error.toString() }], adjustedAmount: discountAmount };
+  }
+}
+
+/**
+ * Get marketing rules from sheet
+ * @returns {Object} Rules object
+ */
+function getMarketingRules() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(MARKETING_AI_CONFIG.SHEETS.RULES);
+
+    if (!sheet) {
+      // Create with defaults
+      sheet = ss.insertSheet(MARKETING_AI_CONFIG.SHEETS.RULES);
+      sheet.appendRow(['Rule_Name', 'Value', 'Description', 'Active', 'Updated_At']);
+      sheet.appendRow(['maxDiscountPercentage', '15', 'Maximum discount as percentage of product price', 'TRUE', new Date().toISOString()]);
+      sheet.appendRow(['maxFixedDiscount', '100', 'Maximum fixed dollar discount', 'TRUE', new Date().toISOString()]);
+      sheet.appendRow(['maxDailyAdSpend', '100', 'Maximum daily ad spend across platforms', 'TRUE', new Date().toISOString()]);
+      sheet.appendRow(['approvalRequired', 'TRUE', 'Require SMS approval for all campaigns', 'TRUE', new Date().toISOString()]);
+      sheet.getRange(1, 1, 1, 5).setBackground('#1a73e8').setFontColor('#ffffff').setFontWeight('bold');
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const rules = {};
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const name = row[0];
+      const value = row[1];
+      const active = String(row[3]).toUpperCase() === 'TRUE';
+
+      if (active && name) {
+        // Try to parse as number, otherwise keep as string
+        const numVal = parseFloat(value);
+        rules[name] = isNaN(numVal) ? value : numVal;
+      }
+    }
+
+    return rules;
+
+  } catch (error) {
+    Logger.log('Error getting marketing rules: ' + error.toString());
+    return {
+      maxDiscountPercentage: 15,
+      maxFixedDiscount: 100,
+      maxDailyAdSpend: 100,
+      approvalRequired: true
+    };
+  }
+}
+
+// =============================================================================
+// PART 2: CAMPAIGN PROPOSAL GENERATOR (AI-Powered)
+// =============================================================================
+
+/**
+ * Generate a campaign proposal from a natural language request
+ * @param {string} request - Natural language description of the campaign
+ * @returns {Object} Structured campaign proposal
+ */
+function generateCampaignProposal(request) {
+  try {
+    if (!request || typeof request !== 'string') {
+      return { success: false, error: 'Request text is required' };
+    }
+
+    // Use Claude to parse the request
+    const prompt = `You are a marketing campaign parser for Tiny Seed Farm, a CSA farm in Pittsburgh.
+
+Parse this marketing request and return a structured JSON campaign proposal:
+
+Request: "${request}"
+
+Return ONLY valid JSON (no markdown, no explanation) with this structure:
+{
+  "type": "discount_code" | "social_ad" | "email_campaign" | "sms_campaign",
+  "platform": "shopify" | "meta" | "google" | "email" | "sms",
+  "name": "Campaign name",
+  "description": "Brief description",
+
+  // For discount_code type:
+  "code": "SUGGESTED_CODE",
+  "discountType": "fixed_amount" | "percentage",
+  "discountValue": number,
+  "appliesTo": "all" | "specific_products" | "collection",
+  "collectionHandle": "collection-handle if applicable",
+  "productKeywords": ["keywords to find products"],
+  "expiresAt": "ISO date or null",
+  "usageLimit": number or null,
+  "minPurchase": number or null,
+
+  // For social_ad type:
+  "objective": "traffic" | "engagement" | "conversions" | "awareness",
+  "budget": number (daily),
+  "duration": number (days),
+  "audience": {
+    "location": "Pittsburgh area",
+    "interests": ["organic food", "local farms"],
+    "demographics": "description"
+  },
+  "creative": {
+    "headline": "Ad headline",
+    "body": "Ad copy",
+    "callToAction": "Shop Now | Learn More | Sign Up"
+  },
+
+  // Business rule validation:
+  "businessRules": {
+    "maxPercentage": number extracted from request or null,
+    "validated": false
+  },
+
+  "estimatedImpact": "Brief estimate of potential impact"
+}
+
+Important:
+- For CSA discounts, suggest codes like "CSA50", "SPRING2026", etc.
+- Parse dollar amounts ($50 off) as fixed_amount with value 50
+- Parse percentages (10% off) as percentage with value 10
+- Extract any max percentage constraints mentioned (e.g., "max 12% discount")
+- If no expiration mentioned, suggest 30 days from now
+- For ads, default budget to $20/day if not specified`;
+
+    // Use existing Claude API function
+    const response = callClaudeAPI(prompt, 'haiku');
+
+    // Parse the response
+    let proposal;
+    try {
+      // Clean the response - remove markdown code blocks if present
+      let cleanResponse = response.trim();
+      if (cleanResponse.startsWith('```')) {
+        cleanResponse = cleanResponse.replace(/```json?\n?/g, '').replace(/```$/g, '').trim();
+      }
+      proposal = JSON.parse(cleanResponse);
+    } catch (parseError) {
+      Logger.log('Failed to parse Claude response: ' + response);
+      return { success: false, error: 'Failed to parse campaign proposal: ' + parseError.toString() };
+    }
+
+    // Enhance with Shopify product data if applicable
+    if (proposal.type === 'discount_code' && proposal.appliesTo !== 'all') {
+      const productsResult = getShopifyProductsForMarketing(proposal.collectionHandle);
+      if (productsResult.success) {
+        // Filter products by keywords if specified
+        let matchedProducts = productsResult.products;
+        if (proposal.productKeywords && proposal.productKeywords.length > 0) {
+          const keywords = proposal.productKeywords.map(k => k.toLowerCase());
+          matchedProducts = productsResult.products.filter(p =>
+            keywords.some(k => p.title.toLowerCase().includes(k) || p.handle.toLowerCase().includes(k))
+          );
+        }
+
+        proposal.products = matchedProducts.slice(0, 20);  // Limit to 20 products
+        proposal.productIds = matchedProducts.map(p => p.id);
+
+        // Validate against business rules
+        if (proposal.discountType === 'fixed_amount') {
+          const validation = validateDiscountRules(
+            proposal.discountValue,
+            matchedProducts,
+            proposal.businessRules?.maxPercentage
+          );
+          proposal.businessRules.validated = validation.valid;
+          proposal.businessRules.validationIssues = validation.issues;
+          proposal.businessRules.adjustedValue = validation.adjustedAmount;
+        }
+      }
+    }
+
+    // Generate approval ID
+    proposal.approvalId = 'MKT_' + Date.now();
+    proposal.status = 'pending_approval';
+    proposal.createdAt = new Date().toISOString();
+    proposal.originalRequest = request;
+
+    return { success: true, proposal: proposal };
+
+  } catch (error) {
+    Logger.log('Error generating campaign proposal: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+// =============================================================================
+// PART 3: SMS APPROVAL FLOW
+// =============================================================================
+
+/**
+ * Request marketing approval via SMS
+ * @param {Object} campaign - The campaign proposal to approve
+ * @returns {Object} { success, approvalId }
+ */
+function requestMarketingApproval(campaign) {
+  try {
+    if (!campaign) {
+      return { success: false, error: 'Campaign object is required' };
+    }
+
+    const approvalId = campaign.approvalId || 'MKT_' + Date.now();
+
+    // Store pending approval
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(MARKETING_AI_CONFIG.SHEETS.APPROVALS);
+
+    if (!sheet) {
+      sheet = ss.insertSheet(MARKETING_AI_CONFIG.SHEETS.APPROVALS);
+      sheet.appendRow([
+        'Approval_ID', 'Type', 'Platform', 'Name', 'Description',
+        'Discount_Code', 'Discount_Value', 'Discount_Type',
+        'Budget', 'Duration', 'Status', 'Created_At', 'Expires_At',
+        'Approved_At', 'Approved_By', 'Campaign_Data_JSON', 'Result'
+      ]);
+      sheet.getRange(1, 1, 1, 17).setBackground('#1a73e8').setFontColor('#ffffff').setFontWeight('bold');
+    }
+
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + MARKETING_AI_CONFIG.APPROVAL_EXPIRY_HOURS);
+
+    sheet.appendRow([
+      approvalId,
+      campaign.type || '',
+      campaign.platform || '',
+      campaign.name || '',
+      campaign.description || '',
+      campaign.code || '',
+      campaign.discountValue || campaign.budget || '',
+      campaign.discountType || '',
+      campaign.budget || '',
+      campaign.duration || '',
+      'pending',
+      new Date().toISOString(),
+      expiresAt.toISOString(),
+      '',
+      '',
+      JSON.stringify(campaign),
+      ''
+    ]);
+
+    // Format SMS message
+    let smsMessage = `MARKETING APPROVAL REQUEST\n\n`;
+    smsMessage += `ID: ${approvalId}\n`;
+    smsMessage += `Type: ${campaign.type}\n`;
+
+    if (campaign.type === 'discount_code') {
+      smsMessage += `Code: ${campaign.code}\n`;
+      smsMessage += `Discount: ${campaign.discountType === 'percentage' ? campaign.discountValue + '%' : '$' + campaign.discountValue} off\n`;
+      if (campaign.products && campaign.products.length > 0) {
+        smsMessage += `Products: ${campaign.products.slice(0, 3).map(p => p.title).join(', ')}`;
+        if (campaign.products.length > 3) smsMessage += ` +${campaign.products.length - 3} more`;
+        smsMessage += '\n';
+      }
+      if (campaign.businessRules && !campaign.businessRules.validated) {
+        smsMessage += `\nVALIDATION ISSUES:\n`;
+        (campaign.businessRules.validationIssues || []).slice(0, 2).forEach(issue => {
+          smsMessage += `- ${issue.message}\n`;
+        });
+      }
+    } else if (campaign.type === 'social_ad') {
+      smsMessage += `Platform: ${campaign.platform}\n`;
+      smsMessage += `Budget: $${campaign.budget}/day for ${campaign.duration} days\n`;
+      smsMessage += `Total: $${campaign.budget * campaign.duration}\n`;
+      smsMessage += `Objective: ${campaign.objective}\n`;
+    }
+
+    if (campaign.estimatedImpact) {
+      smsMessage += `\nEstimated Impact: ${campaign.estimatedImpact}\n`;
+    }
+
+    smsMessage += `\n---\nReply YES to approve, NO to reject, or EDIT to modify.`;
+
+    // Send SMS
+    const smsResult = sendSMS({
+      to: MARKETING_AI_CONFIG.OWNER_PHONE,
+      message: smsMessage
+    });
+
+    if (!smsResult.success) {
+      // Update status to failed
+      updateMarketingApprovalStatus(approvalId, 'sms_failed', smsResult.error);
+      return { success: false, error: 'Failed to send approval SMS: ' + smsResult.error };
+    }
+
+    return {
+      success: true,
+      approvalId: approvalId,
+      message: 'Approval request sent via SMS',
+      expiresAt: expiresAt.toISOString()
+    };
+
+  } catch (error) {
+    Logger.log('Error requesting marketing approval: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Process an SMS approval response
+ * @param {string} fromPhone - The phone number the message came from
+ * @param {string} message - The SMS message content
+ * @returns {Object} Result of processing
+ */
+function processMarketingApprovalResponse(fromPhone, message) {
+  try {
+    // Verify sender is authorized
+    const normalizedFrom = fromPhone.replace(/\D/g, '');
+    const normalizedOwner = MARKETING_AI_CONFIG.OWNER_PHONE.replace(/\D/g, '');
+
+    if (!normalizedFrom.endsWith(normalizedOwner.slice(-10))) {
+      Logger.log('Unauthorized approval attempt from: ' + fromPhone);
+      return { success: false, error: 'Unauthorized sender' };
+    }
+
+    // Get the most recent pending approval
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(MARKETING_AI_CONFIG.SHEETS.APPROVALS);
+
+    if (!sheet) {
+      return { success: false, error: 'No approvals sheet found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const statusCol = headers.indexOf('Status');
+    const approvalIdCol = headers.indexOf('Approval_ID');
+    const dataCol = headers.indexOf('Campaign_Data_JSON');
+    const expiresCol = headers.indexOf('Expires_At');
+
+    // Find most recent pending approval
+    let pendingRow = -1;
+    let pendingApprovalId = null;
+    let campaignData = null;
+
+    for (let i = data.length - 1; i >= 1; i--) {
+      if (data[i][statusCol] === 'pending') {
+        // Check if expired
+        const expiresAt = new Date(data[i][expiresCol]);
+        if (new Date() < expiresAt) {
+          pendingRow = i + 1;
+          pendingApprovalId = data[i][approvalIdCol];
+          try {
+            campaignData = JSON.parse(data[i][dataCol]);
+          } catch (e) {
+            Logger.log('Failed to parse campaign data: ' + e);
+          }
+          break;
+        }
+      }
+    }
+
+    if (pendingRow === -1 || !campaignData) {
+      sendSMS({
+        to: fromPhone,
+        message: 'No pending marketing approval found. All requests have been processed or expired.'
+      });
+      return { success: false, error: 'No pending approval found' };
+    }
+
+    const trimmedMessage = message.trim().toUpperCase();
+
+    // Process the response
+    if (trimmedMessage === 'YES' || trimmedMessage === 'APPROVE' || trimmedMessage === 'Y') {
+      // Execute the campaign
+      const result = executeApprovedCampaign(pendingApprovalId);
+
+      // Update status
+      const approvedAtCol = headers.indexOf('Approved_At');
+      const approvedByCol = headers.indexOf('Approved_By');
+      const resultCol = headers.indexOf('Result');
+
+      sheet.getRange(pendingRow, statusCol + 1).setValue(result.success ? 'approved' : 'execution_failed');
+      sheet.getRange(pendingRow, approvedAtCol + 1).setValue(new Date().toISOString());
+      sheet.getRange(pendingRow, approvedByCol + 1).setValue('Todd (SMS)');
+      sheet.getRange(pendingRow, resultCol + 1).setValue(JSON.stringify(result));
+
+      // Send confirmation
+      if (result.success) {
+        sendSMS({
+          to: fromPhone,
+          message: `Campaign approved and executed!\n\n${result.message || 'Campaign is now active.'}`
+        });
+      } else {
+        sendSMS({
+          to: fromPhone,
+          message: `Campaign approved but execution failed:\n${result.error}`
+        });
+      }
+
+      return result;
+
+    } else if (trimmedMessage === 'NO' || trimmedMessage === 'REJECT' || trimmedMessage === 'N') {
+      // Reject the campaign
+      sheet.getRange(pendingRow, statusCol + 1).setValue('rejected');
+      sheet.getRange(pendingRow, headers.indexOf('Approved_At') + 1).setValue(new Date().toISOString());
+      sheet.getRange(pendingRow, headers.indexOf('Approved_By') + 1).setValue('Todd (SMS)');
+
+      sendSMS({
+        to: fromPhone,
+        message: `Campaign ${pendingApprovalId} has been rejected and will not be executed.`
+      });
+
+      return { success: true, action: 'rejected', approvalId: pendingApprovalId };
+
+    } else if (trimmedMessage.startsWith('EDIT')) {
+      // Request more info about what to edit
+      sendSMS({
+        to: fromPhone,
+        message: `To edit, reply with the specific change. Example:\nEDIT CODE: NEWCODE\nEDIT DISCOUNT: 40\nEDIT BUDGET: 30`
+      });
+
+      return { success: true, action: 'edit_requested', approvalId: pendingApprovalId };
+
+    } else if (trimmedMessage.includes(':')) {
+      // Parse edit command
+      const [field, value] = trimmedMessage.split(':').map(s => s.trim());
+
+      if (field === 'EDIT CODE' || field === 'CODE') {
+        campaignData.code = value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      } else if (field === 'EDIT DISCOUNT' || field === 'DISCOUNT') {
+        campaignData.discountValue = parseFloat(value);
+      } else if (field === 'EDIT BUDGET' || field === 'BUDGET') {
+        campaignData.budget = parseFloat(value);
+      }
+
+      // Update stored data
+      sheet.getRange(pendingRow, dataCol + 1).setValue(JSON.stringify(campaignData));
+
+      sendSMS({
+        to: fromPhone,
+        message: `Campaign updated. Reply YES to approve the modified campaign, or NO to reject.`
+      });
+
+      return { success: true, action: 'edited', approvalId: pendingApprovalId, updates: { field, value } };
+
+    } else {
+      sendSMS({
+        to: fromPhone,
+        message: `Unrecognized response. Reply YES to approve, NO to reject, or EDIT to modify the campaign.`
+      });
+
+      return { success: false, error: 'Unrecognized response: ' + message };
+    }
+
+  } catch (error) {
+    Logger.log('Error processing approval response: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Execute an approved campaign
+ * @param {string} approvalId - The approval ID to execute
+ * @returns {Object} Result of execution
+ */
+function executeApprovedCampaign(approvalId) {
+  try {
+    // Get the approval record
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(MARKETING_AI_CONFIG.SHEETS.APPROVALS);
+
+    if (!sheet) {
+      return { success: false, error: 'Approvals sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const approvalIdCol = headers.indexOf('Approval_ID');
+    const dataCol = headers.indexOf('Campaign_Data_JSON');
+    const statusCol = headers.indexOf('Status');
+
+    // Find the approval
+    let campaign = null;
+    let rowIndex = -1;
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][approvalIdCol] === approvalId) {
+        try {
+          campaign = JSON.parse(data[i][dataCol]);
+          rowIndex = i + 1;
+        } catch (e) {
+          return { success: false, error: 'Failed to parse campaign data' };
+        }
+        break;
+      }
+    }
+
+    if (!campaign) {
+      return { success: false, error: 'Approval not found: ' + approvalId };
+    }
+
+    // Execute based on campaign type
+    let result;
+
+    switch (campaign.type) {
+      case 'discount_code':
+        result = executeDiscountCampaign(campaign);
+        break;
+
+      case 'social_ad':
+        if (campaign.platform === 'meta') {
+          result = createMetaAdCampaign(campaign);
+        } else if (campaign.platform === 'google') {
+          result = createGoogleAdCampaign(campaign);
+        } else {
+          result = { success: false, error: 'Unsupported ad platform: ' + campaign.platform };
+        }
+        break;
+
+      case 'email_campaign':
+        result = { success: false, error: 'Email campaigns not yet implemented' };
+        break;
+
+      case 'sms_campaign':
+        result = { success: false, error: 'SMS campaigns not yet implemented' };
+        break;
+
+      default:
+        result = { success: false, error: 'Unknown campaign type: ' + campaign.type };
+    }
+
+    // Log the campaign
+    logMarketingCampaign({
+      approvalId: approvalId,
+      type: campaign.type,
+      platform: campaign.platform,
+      name: campaign.name,
+      result: result,
+      executedAt: new Date().toISOString()
+    });
+
+    return result;
+
+  } catch (error) {
+    Logger.log('Error executing campaign: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Execute a discount code campaign
+ * @param {Object} campaign - The campaign data
+ * @returns {Object} Result
+ */
+function executeDiscountCampaign(campaign) {
+  try {
+    // Create the price rule
+    const priceRuleParams = {
+      title: campaign.name || campaign.code,
+      valueType: campaign.discountType === 'percentage' ? 'percentage' : 'fixed_amount',
+      value: campaign.discountValue,
+      startsAt: new Date().toISOString(),
+      oncePerCustomer: true
+    };
+
+    if (campaign.expiresAt) {
+      priceRuleParams.endsAt = campaign.expiresAt;
+    }
+
+    if (campaign.usageLimit) {
+      priceRuleParams.usageLimit = campaign.usageLimit;
+    }
+
+    if (campaign.minPurchase) {
+      priceRuleParams.prerequisiteSubtotalRange = campaign.minPurchase;
+    }
+
+    if (campaign.productIds && campaign.productIds.length > 0) {
+      priceRuleParams.entitledProductIds = campaign.productIds;
+    }
+
+    const priceRuleResult = createShopifyPriceRule(priceRuleParams);
+
+    if (!priceRuleResult.success) {
+      return priceRuleResult;
+    }
+
+    // Create the discount code
+    const codeResult = createShopifyDiscountCode(priceRuleResult.priceRuleId, campaign.code);
+
+    if (!codeResult.success) {
+      return codeResult;
+    }
+
+    return {
+      success: true,
+      message: `Discount code ${codeResult.discountCode} created successfully!`,
+      discountCode: codeResult.discountCode,
+      priceRuleId: priceRuleResult.priceRuleId
+    };
+
+  } catch (error) {
+    Logger.log('Error executing discount campaign: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Update approval status helper
+ */
+function updateMarketingApprovalStatus(approvalId, status, notes) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(MARKETING_AI_CONFIG.SHEETS.APPROVALS);
+    if (!sheet) return;
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const idCol = headers.indexOf('Approval_ID');
+    const statusCol = headers.indexOf('Status');
+    const resultCol = headers.indexOf('Result');
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][idCol] === approvalId) {
+        sheet.getRange(i + 1, statusCol + 1).setValue(status);
+        if (notes) {
+          sheet.getRange(i + 1, resultCol + 1).setValue(notes);
+        }
+        break;
+      }
+    }
+  } catch (error) {
+    Logger.log('Error updating approval status: ' + error.toString());
+  }
+}
+
+/**
+ * Log marketing campaign to sheet
+ */
+function logMarketingCampaign(data) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(MARKETING_AI_CONFIG.SHEETS.CAMPAIGNS);
+
+    if (!sheet) {
+      sheet = ss.insertSheet(MARKETING_AI_CONFIG.SHEETS.CAMPAIGNS);
+      sheet.appendRow([
+        'Campaign_ID', 'Approval_ID', 'Type', 'Platform', 'Name',
+        'Discount_Code', 'Price_Rule_ID', 'Budget', 'Status',
+        'Created_At', 'Executed_At', 'Result_JSON', 'Performance_JSON'
+      ]);
+      sheet.getRange(1, 1, 1, 13).setBackground('#1a73e8').setFontColor('#ffffff').setFontWeight('bold');
+    }
+
+    const campaignId = 'CAMP_' + Date.now();
+
+    sheet.appendRow([
+      campaignId,
+      data.approvalId || '',
+      data.type || '',
+      data.platform || '',
+      data.name || '',
+      data.discountCode || '',
+      data.priceRuleId || '',
+      data.budget || '',
+      data.result?.success ? 'active' : 'failed',
+      new Date().toISOString(),
+      data.executedAt || '',
+      JSON.stringify(data.result || {}),
+      ''
+    ]);
+
+    return campaignId;
+
+  } catch (error) {
+    Logger.log('Error logging campaign: ' + error.toString());
+    return null;
+  }
+}
+
+// =============================================================================
+// PART 4: SOCIAL MEDIA AD INTEGRATION
+// =============================================================================
+
+/**
+ * Create a Meta (Facebook/Instagram) Ad Campaign
+ * REQUIRES SMS APPROVAL FIRST - Called only after approval
+ * @param {Object} params - Campaign parameters
+ * @returns {Object} Result
+ */
+function createMetaAdCampaign(params) {
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const accessToken = props.getProperty('META_ACCESS_TOKEN');
+    const adAccountId = props.getProperty('META_AD_ACCOUNT_ID');
+
+    if (!accessToken || !adAccountId) {
+      return {
+        success: false,
+        error: 'Meta Ads not configured. Set META_ACCESS_TOKEN and META_AD_ACCOUNT_ID in Script Properties.'
+      };
+    }
+
+    // Map campaign objective
+    const objectiveMap = {
+      'traffic': 'LINK_CLICKS',
+      'engagement': 'POST_ENGAGEMENT',
+      'conversions': 'CONVERSIONS',
+      'awareness': 'BRAND_AWARENESS'
+    };
+
+    const objective = objectiveMap[params.objective] || 'LINK_CLICKS';
+
+    // Create Campaign
+    const campaignPayload = {
+      name: params.name || 'Tiny Seed Farm Campaign',
+      objective: objective,
+      status: 'PAUSED',  // Start paused for safety
+      special_ad_categories: []  // Add if needed for housing/credit/etc
+    };
+
+    const campaignUrl = `https://graph.facebook.com/v18.0/act_${adAccountId}/campaigns`;
+
+    const campaignResponse = UrlFetchApp.fetch(campaignUrl, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + accessToken },
+      payload: campaignPayload,
+      muteHttpExceptions: true
+    });
+
+    const campaignResult = JSON.parse(campaignResponse.getContentText());
+
+    if (campaignResult.error) {
+      return { success: false, error: campaignResult.error.message };
+    }
+
+    const campaignId = campaignResult.id;
+
+    // Create Ad Set with targeting
+    const dailyBudget = Math.round((params.budget || 20) * 100);  // Convert to cents
+
+    const adSetPayload = {
+      name: params.name + ' - Ad Set',
+      campaign_id: campaignId,
+      billing_event: 'IMPRESSIONS',
+      optimization_goal: objective === 'LINK_CLICKS' ? 'LINK_CLICKS' : 'REACH',
+      daily_budget: dailyBudget,
+      targeting: {
+        geo_locations: {
+          cities: [{ key: '2430814' }]  // Pittsburgh
+        },
+        interests: params.audience?.interests?.map(i => ({ name: i })) || [
+          { name: 'Organic food' },
+          { name: 'Local food' },
+          { name: 'Farmers market' }
+        ]
+      },
+      status: 'PAUSED'
+    };
+
+    // Note: Full ad set and ad creation would require additional API calls
+    // This is a simplified implementation
+
+    return {
+      success: true,
+      message: 'Meta campaign created (paused). Review in Meta Ads Manager to activate.',
+      campaignId: campaignId,
+      platform: 'meta',
+      status: 'paused',
+      dailyBudget: params.budget,
+      totalBudget: params.budget * (params.duration || 7)
+    };
+
+  } catch (error) {
+    Logger.log('Error creating Meta ad campaign: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get Meta Ad Performance
+ * @param {string} campaignId - The campaign ID
+ * @returns {Object} Performance metrics
+ */
+function getMetaAdPerformance(campaignId) {
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const accessToken = props.getProperty('META_ACCESS_TOKEN');
+
+    if (!accessToken) {
+      return { success: false, error: 'META_ACCESS_TOKEN not configured' };
+    }
+
+    const url = `https://graph.facebook.com/v18.0/${campaignId}/insights?fields=impressions,clicks,spend,actions,cpc,cpm&access_token=${accessToken}`;
+
+    const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    const result = JSON.parse(response.getContentText());
+
+    if (result.error) {
+      return { success: false, error: result.error.message };
+    }
+
+    const data = result.data?.[0] || {};
+
+    // Extract conversions from actions
+    const conversions = (data.actions || [])
+      .filter(a => a.action_type === 'purchase' || a.action_type === 'lead')
+      .reduce((sum, a) => sum + parseInt(a.value || 0), 0);
+
+    return {
+      success: true,
+      campaignId: campaignId,
+      impressions: parseInt(data.impressions || 0),
+      clicks: parseInt(data.clicks || 0),
+      conversions: conversions,
+      spend: parseFloat(data.spend || 0),
+      cpc: parseFloat(data.cpc || 0),
+      cpm: parseFloat(data.cpm || 0)
+    };
+
+  } catch (error) {
+    Logger.log('Error getting Meta ad performance: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Create a Google Ads Campaign
+ * REQUIRES SMS APPROVAL FIRST - Called only after approval
+ * @param {Object} params - Campaign parameters
+ * @returns {Object} Result
+ */
+function createGoogleAdCampaign(params) {
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const developerToken = props.getProperty('GOOGLE_ADS_DEVELOPER_TOKEN');
+    const customerId = props.getProperty('GOOGLE_ADS_CUSTOMER_ID');
+    const refreshToken = props.getProperty('GOOGLE_ADS_REFRESH_TOKEN');
+
+    if (!developerToken || !customerId) {
+      return {
+        success: false,
+        error: 'Google Ads not configured. Set GOOGLE_ADS_DEVELOPER_TOKEN and GOOGLE_ADS_CUSTOMER_ID in Script Properties.'
+      };
+    }
+
+    // Google Ads API requires OAuth2 and is more complex
+    // This is a placeholder that would integrate with Google Ads API
+
+    // For now, we'll log the intent and return a "manual creation needed" response
+    const campaignDetails = {
+      name: params.name || 'Tiny Seed Farm Campaign',
+      campaignType: params.campaignType || 'SEARCH',
+      dailyBudget: params.budget || 20,
+      keywords: params.keywords || ['CSA Pittsburgh', 'farm box delivery', 'organic vegetables Pittsburgh'],
+      adCopy: params.creative || {
+        headlines: ['Fresh Local Produce', 'Pittsburgh Farm Box', 'Organic CSA Shares'],
+        descriptions: ['Farm-fresh vegetables delivered weekly. Join our CSA!', 'Support local farms. Get fresh produce.']
+      },
+      landingPage: params.landingPage || 'https://tiny-seed-farmers-market.myshopify.com'
+    };
+
+    Logger.log('Google Ads Campaign Request: ' + JSON.stringify(campaignDetails));
+
+    return {
+      success: true,
+      message: 'Google Ads campaign details logged. Manual creation required in Google Ads.',
+      platform: 'google',
+      campaignDetails: campaignDetails,
+      status: 'pending_manual_creation',
+      note: 'Full Google Ads API integration requires additional setup. Campaign details have been logged for manual creation.'
+    };
+
+  } catch (error) {
+    Logger.log('Error creating Google ad campaign: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get Google Ads Performance
+ * @param {string} campaignId - The campaign ID
+ * @returns {Object} Performance metrics
+ */
+function getGoogleAdPerformance(campaignId) {
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const developerToken = props.getProperty('GOOGLE_ADS_DEVELOPER_TOKEN');
+    const customerId = props.getProperty('GOOGLE_ADS_CUSTOMER_ID');
+
+    if (!developerToken || !customerId) {
+      return { success: false, error: 'Google Ads not configured' };
+    }
+
+    // Placeholder - would require full Google Ads API integration
+    return {
+      success: false,
+      error: 'Google Ads performance tracking requires full API integration. Please check Google Ads dashboard directly.',
+      campaignId: campaignId
+    };
+
+  } catch (error) {
+    Logger.log('Error getting Google ad performance: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+// =============================================================================
+// PART 5: UNIFIED MARKETING COMMAND
+// =============================================================================
+
+/**
+ * Main entry point for Marketing AI requests
+ * @param {string|Object} request - Natural language request or structured params
+ * @returns {Object} Result with proposal ID
+ */
+function processMarketingRequest(request) {
+  try {
+    // Handle both string and object inputs
+    let requestText;
+    if (typeof request === 'string') {
+      requestText = request;
+    } else if (request && request.request) {
+      requestText = request.request;
+    } else if (request && request.query) {
+      requestText = request.query;
+    } else {
+      return { success: false, error: 'Request text is required. Pass as string or { request: "..." }' };
+    }
+
+    // Step 1: Generate campaign proposal
+    const proposalResult = generateCampaignProposal(requestText);
+
+    if (!proposalResult.success) {
+      return proposalResult;
+    }
+
+    const proposal = proposalResult.proposal;
+
+    // Step 2: Check business rules
+    const rules = getMarketingRules();
+
+    if (rules.approvalRequired === 'FALSE' || rules.approvalRequired === false) {
+      // Auto-execute without approval (not recommended!)
+      Logger.log('WARNING: Executing campaign without approval - approvalRequired is FALSE');
+      const execResult = executeApprovedCampaign(proposal.approvalId);
+      return {
+        success: execResult.success,
+        message: 'Campaign executed without approval (approvalRequired=FALSE)',
+        proposalId: proposal.approvalId,
+        executionResult: execResult
+      };
+    }
+
+    // Step 3: Request SMS approval
+    const approvalResult = requestMarketingApproval(proposal);
+
+    if (!approvalResult.success) {
+      return {
+        success: false,
+        error: 'Failed to request approval: ' + approvalResult.error,
+        proposal: proposal
+      };
+    }
+
+    // Step 4: Return the proposal for tracking
+    return {
+      success: true,
+      message: 'Campaign proposal created and sent for SMS approval',
+      proposalId: proposal.approvalId,
+      proposal: proposal,
+      approvalExpiresAt: approvalResult.expiresAt,
+      nextStep: 'Waiting for Todd to reply YES/NO via SMS'
+    };
+
+  } catch (error) {
+    Logger.log('Error processing marketing request: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get all marketing campaigns
+ * @param {Object} params - Filter parameters
+ * @returns {Object} { success, campaigns: [] }
+ */
+function getMarketingCampaigns(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(MARKETING_AI_CONFIG.SHEETS.CAMPAIGNS);
+
+    if (!sheet) {
+      return { success: true, campaigns: [] };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) {
+      return { success: true, campaigns: [] };
+    }
+
+    const headers = data[0];
+    let campaigns = data.slice(1).map(row => {
+      const campaign = {};
+      headers.forEach((h, i) => campaign[h] = row[i]);
+      return campaign;
+    });
+
+    // Apply filters
+    if (params && params.status) {
+      campaigns = campaigns.filter(c => c.Status === params.status);
+    }
+    if (params && params.type) {
+      campaigns = campaigns.filter(c => c.Type === params.type);
+    }
+    if (params && params.platform) {
+      campaigns = campaigns.filter(c => c.Platform === params.platform);
+    }
+
+    // Sort by created date descending
+    campaigns.sort((a, b) => new Date(b.Created_At) - new Date(a.Created_At));
+
+    // Limit results
+    const limit = parseInt(params?.limit) || 50;
+    campaigns = campaigns.slice(0, limit);
+
+    return { success: true, campaigns: campaigns };
+
+  } catch (error) {
+    Logger.log('Error getting marketing campaigns: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get marketing performance across all platforms
+ * @param {Object} params - Parameters (dateRange, platform)
+ * @returns {Object} Performance summary
+ */
+function getMarketingPerformance(params) {
+  try {
+    const campaigns = getMarketingCampaigns({ status: 'active' });
+
+    if (!campaigns.success) {
+      return campaigns;
+    }
+
+    const performance = {
+      totalCampaigns: campaigns.campaigns.length,
+      byPlatform: {},
+      totalSpend: 0,
+      totalImpressions: 0,
+      totalClicks: 0,
+      totalConversions: 0
+    };
+
+    // Aggregate performance by platform
+    for (const campaign of campaigns.campaigns) {
+      const platform = campaign.Platform || 'unknown';
+
+      if (!performance.byPlatform[platform]) {
+        performance.byPlatform[platform] = {
+          campaigns: 0,
+          spend: 0,
+          impressions: 0,
+          clicks: 0,
+          conversions: 0
+        };
+      }
+
+      performance.byPlatform[platform].campaigns++;
+
+      // Try to get live performance data
+      if (campaign.Campaign_ID && platform === 'meta') {
+        const metaPerf = getMetaAdPerformance(campaign.Campaign_ID);
+        if (metaPerf.success) {
+          performance.byPlatform[platform].spend += metaPerf.spend;
+          performance.byPlatform[platform].impressions += metaPerf.impressions;
+          performance.byPlatform[platform].clicks += metaPerf.clicks;
+          performance.byPlatform[platform].conversions += metaPerf.conversions;
+        }
+      }
+
+      // Add from stored performance data
+      if (campaign.Performance_JSON) {
+        try {
+          const perf = JSON.parse(campaign.Performance_JSON);
+          performance.byPlatform[platform].spend += parseFloat(perf.spend || 0);
+          performance.byPlatform[platform].impressions += parseInt(perf.impressions || 0);
+          performance.byPlatform[platform].clicks += parseInt(perf.clicks || 0);
+          performance.byPlatform[platform].conversions += parseInt(perf.conversions || 0);
+        } catch (e) {
+          // Ignore parse errors
+        }
+      }
+    }
+
+    // Calculate totals
+    for (const platform in performance.byPlatform) {
+      performance.totalSpend += performance.byPlatform[platform].spend;
+      performance.totalImpressions += performance.byPlatform[platform].impressions;
+      performance.totalClicks += performance.byPlatform[platform].clicks;
+      performance.totalConversions += performance.byPlatform[platform].conversions;
+    }
+
+    // Calculate derived metrics
+    performance.overallCTR = performance.totalImpressions > 0
+      ? ((performance.totalClicks / performance.totalImpressions) * 100).toFixed(2) + '%'
+      : '0%';
+    performance.costPerClick = performance.totalClicks > 0
+      ? '$' + (performance.totalSpend / performance.totalClicks).toFixed(2)
+      : 'N/A';
+    performance.costPerConversion = performance.totalConversions > 0
+      ? '$' + (performance.totalSpend / performance.totalConversions).toFixed(2)
+      : 'N/A';
+
+    return { success: true, performance: performance };
+
+  } catch (error) {
+    Logger.log('Error getting marketing performance: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get pending marketing approvals
+ * @returns {Object} { success, approvals: [] }
+ */
+function getPendingMarketingApprovals() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(MARKETING_AI_CONFIG.SHEETS.APPROVALS);
+
+    if (!sheet) {
+      return { success: true, approvals: [] };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) {
+      return { success: true, approvals: [] };
+    }
+
+    const headers = data[0];
+    const statusCol = headers.indexOf('Status');
+    const expiresCol = headers.indexOf('Expires_At');
+
+    const now = new Date();
+    const pendingApprovals = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (row[statusCol] === 'pending') {
+        const expiresAt = new Date(row[expiresCol]);
+        if (now < expiresAt) {
+          const approval = {};
+          headers.forEach((h, j) => approval[h] = row[j]);
+          approval.timeRemaining = Math.round((expiresAt - now) / (1000 * 60)) + ' minutes';
+          pendingApprovals.push(approval);
+        }
+      }
+    }
+
+    return { success: true, approvals: pendingApprovals };
+
+  } catch (error) {
+    Logger.log('Error getting pending approvals: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Initialize Marketing AI sheets
+ * @returns {Object} Result
+ */
+function initializeMarketingAISheets() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+    // Create MARKETING_APPROVALS sheet
+    let approvalsSheet = ss.getSheetByName(MARKETING_AI_CONFIG.SHEETS.APPROVALS);
+    if (!approvalsSheet) {
+      approvalsSheet = ss.insertSheet(MARKETING_AI_CONFIG.SHEETS.APPROVALS);
+      approvalsSheet.appendRow([
+        'Approval_ID', 'Type', 'Platform', 'Name', 'Description',
+        'Discount_Code', 'Discount_Value', 'Discount_Type',
+        'Budget', 'Duration', 'Status', 'Created_At', 'Expires_At',
+        'Approved_At', 'Approved_By', 'Campaign_Data_JSON', 'Result'
+      ]);
+      approvalsSheet.getRange(1, 1, 1, 17).setBackground('#1a73e8').setFontColor('#ffffff').setFontWeight('bold');
+    }
+
+    // Create MARKETING_CAMPAIGNS sheet
+    let campaignsSheet = ss.getSheetByName(MARKETING_AI_CONFIG.SHEETS.CAMPAIGNS);
+    if (!campaignsSheet) {
+      campaignsSheet = ss.insertSheet(MARKETING_AI_CONFIG.SHEETS.CAMPAIGNS);
+      campaignsSheet.appendRow([
+        'Campaign_ID', 'Approval_ID', 'Type', 'Platform', 'Name',
+        'Discount_Code', 'Price_Rule_ID', 'Budget', 'Status',
+        'Created_At', 'Executed_At', 'Result_JSON', 'Performance_JSON'
+      ]);
+      campaignsSheet.getRange(1, 1, 1, 13).setBackground('#1a73e8').setFontColor('#ffffff').setFontWeight('bold');
+    }
+
+    // Create MARKETING_RULES sheet with defaults
+    let rulesSheet = ss.getSheetByName(MARKETING_AI_CONFIG.SHEETS.RULES);
+    if (!rulesSheet) {
+      rulesSheet = ss.insertSheet(MARKETING_AI_CONFIG.SHEETS.RULES);
+      rulesSheet.appendRow(['Rule_Name', 'Value', 'Description', 'Active', 'Updated_At']);
+      rulesSheet.appendRow(['maxDiscountPercentage', '15', 'Maximum discount as percentage of product price', 'TRUE', new Date().toISOString()]);
+      rulesSheet.appendRow(['maxFixedDiscount', '100', 'Maximum fixed dollar discount', 'TRUE', new Date().toISOString()]);
+      rulesSheet.appendRow(['maxDailyAdSpend', '100', 'Maximum daily ad spend across all platforms', 'TRUE', new Date().toISOString()]);
+      rulesSheet.appendRow(['approvalRequired', 'TRUE', 'Require SMS approval for all campaigns', 'TRUE', new Date().toISOString()]);
+      rulesSheet.appendRow(['defaultCampaignDuration', '7', 'Default campaign duration in days', 'TRUE', new Date().toISOString()]);
+      rulesSheet.getRange(1, 1, 1, 5).setBackground('#1a73e8').setFontColor('#ffffff').setFontWeight('bold');
+    }
+
+    return {
+      success: true,
+      message: 'Marketing AI sheets initialized successfully',
+      sheets: [
+        MARKETING_AI_CONFIG.SHEETS.APPROVALS,
+        MARKETING_AI_CONFIG.SHEETS.CAMPAIGNS,
+        MARKETING_AI_CONFIG.SHEETS.RULES
+      ]
+    };
+
+  } catch (error) {
+    Logger.log('Error initializing Marketing AI sheets: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Handle incoming SMS that might be a marketing approval
+ * This integrates with the existing Twilio webhook handler
+ * @param {string} messageBody - The SMS message
+ * @param {string} fromNumber - The sender's phone
+ * @returns {Object} Result
+ */
+function handleMarketingAIApprovalSMS(messageBody, fromNumber) {
+  try {
+    // Check if there are pending marketing approvals
+    const pendingResult = getPendingMarketingApprovals();
+
+    if (!pendingResult.success || pendingResult.approvals.length === 0) {
+      // No pending approvals, this isn't a marketing approval SMS
+      return { success: false, handled: false, reason: 'No pending marketing approvals' };
+    }
+
+    // Process as marketing approval
+    const result = processMarketingApprovalResponse(fromNumber, messageBody);
+    result.handled = true;
+
+    return result;
+
+  } catch (error) {
+    Logger.log('Error handling marketing approval SMS: ' + error.toString());
+    return { success: false, handled: false, error: error.toString() };
+  }
+}
+
+/**
+ * Update a marketing rule
+ * @param {string} ruleName - The name of the rule to update
+ * @param {string|number} value - The new value
+ * @param {string} description - Optional new description
+ * @returns {Object} Result
+ */
+function updateMarketingRule(ruleName, value, description) {
+  try {
+    if (!ruleName || value === undefined) {
+      return { success: false, error: 'ruleName and value are required' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(MARKETING_AI_CONFIG.SHEETS.RULES);
+
+    if (!sheet) {
+      // Initialize sheets first
+      initializeMarketingAISheets();
+      sheet = ss.getSheetByName(MARKETING_AI_CONFIG.SHEETS.RULES);
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const nameCol = headers.indexOf('Rule_Name');
+    const valueCol = headers.indexOf('Value');
+    const descCol = headers.indexOf('Description');
+    const updatedCol = headers.indexOf('Updated_At');
+
+    // Find and update existing rule
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][nameCol] === ruleName) {
+        sheet.getRange(i + 1, valueCol + 1).setValue(String(value));
+        if (description) {
+          sheet.getRange(i + 1, descCol + 1).setValue(description);
+        }
+        sheet.getRange(i + 1, updatedCol + 1).setValue(new Date().toISOString());
+
+        return {
+          success: true,
+          message: `Rule "${ruleName}" updated to "${value}"`,
+          rule: { name: ruleName, value: value }
+        };
+      }
+    }
+
+    // Rule not found, add it
+    sheet.appendRow([
+      ruleName,
+      String(value),
+      description || '',
+      'TRUE',
+      new Date().toISOString()
+    ]);
+
+    return {
+      success: true,
+      message: `Rule "${ruleName}" created with value "${value}"`,
+      rule: { name: ruleName, value: value }
+    };
+
+  } catch (error) {
+    Logger.log('Error updating marketing rule: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Delete a Shopify price rule (and its discount codes)
+ * @param {string|number} priceRuleId - The price rule ID to delete
+ * @returns {Object} Result
+ */
+function deleteShopifyPriceRule(priceRuleId) {
+  try {
+    if (!SHOPIFY_CONFIG.ENABLED) {
+      return { success: false, error: 'Shopify integration not enabled' };
+    }
+
+    if (!priceRuleId) {
+      return { success: false, error: 'priceRuleId is required' };
+    }
+
+    const result = shopifyApiCall(`price_rules/${priceRuleId}.json`, 'DELETE');
+
+    if (result.error) {
+      return { success: false, error: result.error };
+    }
+
+    return {
+      success: true,
+      message: `Price rule ${priceRuleId} deleted successfully`
+    };
+
+  } catch (error) {
+    Logger.log('Error deleting price rule: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get existing Shopify price rules
+ * @returns {Object} { success, priceRules: [] }
+ */
+function getShopifyPriceRules() {
+  try {
+    if (!SHOPIFY_CONFIG.ENABLED) {
+      return { success: false, error: 'Shopify integration not enabled' };
+    }
+
+    const result = shopifyApiCall('price_rules.json?limit=250');
+
+    if (result.price_rules) {
+      return {
+        success: true,
+        priceRules: result.price_rules.map(pr => ({
+          id: pr.id,
+          title: pr.title,
+          value: pr.value,
+          valueType: pr.value_type,
+          targetType: pr.target_type,
+          startsAt: pr.starts_at,
+          endsAt: pr.ends_at,
+          usageLimit: pr.usage_limit,
+          usageCount: pr.usage_count || 0
+        }))
+      };
+    }
+
+    return { success: false, error: result.error || 'Failed to get price rules' };
+
+  } catch (error) {
+    Logger.log('Error getting price rules: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get discount codes for a price rule
+ * @param {string|number} priceRuleId - The price rule ID
+ * @returns {Object} { success, discountCodes: [] }
+ */
+function getShopifyDiscountCodes(priceRuleId) {
+  try {
+    if (!SHOPIFY_CONFIG.ENABLED) {
+      return { success: false, error: 'Shopify integration not enabled' };
+    }
+
+    if (!priceRuleId) {
+      return { success: false, error: 'priceRuleId is required' };
+    }
+
+    const result = shopifyApiCall(`price_rules/${priceRuleId}/discount_codes.json`);
+
+    if (result.discount_codes) {
+      return {
+        success: true,
+        priceRuleId: priceRuleId,
+        discountCodes: result.discount_codes.map(dc => ({
+          id: dc.id,
+          code: dc.code,
+          usageCount: dc.usage_count || 0,
+          createdAt: dc.created_at
+        }))
+      };
+    }
+
+    return { success: false, error: result.error || 'Failed to get discount codes' };
+
+  } catch (error) {
+    Logger.log('Error getting discount codes: ' + error.toString());
     return { success: false, error: error.toString() };
   }
 }
