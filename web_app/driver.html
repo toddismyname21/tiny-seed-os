@@ -7,6 +7,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0f172a">
     <title>Tiny Seed Delivery</title>
+    <script src="api-config.js"></script>
+    <script src="auth-guard.js" data-required-role="Driver"></script>
     <link rel="manifest" href="manifest-driver.json">
     <link rel="apple-touch-icon" href="../icons/driver-192.png">
     <!-- Leaflet CSS for maps -->
@@ -2597,7 +2599,7 @@
             document.getElementById('loginError').textContent = message;
             window.pinValue = '';
             AppState.pin = '';
-            document.getElementById('pinDebug').textContent = '____';
+            // Pin debug display removed
             document.getElementById('pin1').style.background = '#334155';
             document.getElementById('pin2').style.background = '#334155';
             document.getElementById('pin3').style.background = '#334155';
@@ -2618,7 +2620,7 @@
             document.getElementById('appHeader').style.display = 'none';
             document.getElementById('bottomNav').style.display = 'none';
             document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
-            document.getElementById('pinDebug').textContent = '____';
+            // Pin debug display removed
             document.getElementById('pin1').style.background = '#334155';
             document.getElementById('pin2').style.background = '#334155';
             document.getElementById('pin3').style.background = '#334155';

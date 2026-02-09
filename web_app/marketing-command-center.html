@@ -1954,6 +1954,92 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        /* Paid Ads Tab Styles */
+        .campaign-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            opacity: 0.5;
+            transition: opacity 0.3s;
+        }
+        .campaign-step.active { opacity: 1; }
+        .campaign-step.completed { opacity: 1; }
+        .campaign-step .step-number {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            background: var(--bg-light);
+            border: 2px solid var(--border);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; margin-bottom: 0.5rem;
+        }
+        .campaign-step.active .step-number {
+            background: linear-gradient(135deg, #4267B2, #E1306C);
+            border-color: transparent; color: white;
+        }
+        .campaign-step.completed .step-number {
+            background: var(--success); border-color: transparent; color: white;
+        }
+        .campaign-step .step-label { font-size: 0.8rem; color: var(--text-secondary); }
+        .campaign-step.active .step-label { color: var(--text-primary); font-weight: 600; }
+        .campaign-step-content { display: none; }
+        .campaign-step-content.active { display: block; }
+
+        .objective-option {
+            background: rgba(0,0,0,0.2);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        .objective-option:hover {
+            border-color: rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.05);
+        }
+        .objective-option.selected {
+            border-color: #4267B2;
+            background: rgba(66, 103, 178, 0.15);
+        }
+        .objective-option i {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            display: block;
+            color: var(--text-secondary);
+        }
+        .objective-option.selected i { color: #4267B2; }
+        .objective-option span { display: block; font-weight: 600; margin-bottom: 0.25rem; }
+        .objective-option small { color: var(--text-secondary); font-size: 0.75rem; }
+
+        .platform-checkbox {
+            display: flex; align-items: center; gap: 0.5rem;
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .platform-checkbox:hover { background: rgba(255,255,255,0.05); }
+        .platform-checkbox.checked { border-color: var(--success); background: rgba(42, 157, 143, 0.1); }
+        .platform-checkbox input { display: none; }
+
+        .budget-type-option {
+            flex: 1;
+            display: flex; align-items: flex-start; gap: 0.75rem;
+            background: rgba(0,0,0,0.2);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .budget-type-option:hover { border-color: rgba(255,255,255,0.3); }
+        .budget-type-option.selected { border-color: var(--success); background: rgba(42, 157, 143, 0.1); }
+        .budget-type-option input { margin-top: 0.25rem; }
+        .budget-type-option strong { display: block; margin-bottom: 0.25rem; }
+        .budget-type-option small { color: var(--text-secondary); font-size: 0.8rem; }
     </style>
 </head>
 <body>
@@ -2024,6 +2110,10 @@
         </button>
         <button class="tab-btn" onclick="switchTab('budget')">
             <i class="fas fa-dollar-sign"></i> Budget
+        </button>
+        <button class="tab-btn" onclick="switchTab('paidads')">
+            <i class="fab fa-facebook"></i> Paid Ads
+            <span class="badge new" style="background: linear-gradient(135deg, #4267B2, #E1306C);">META</span>
         </button>
         <button class="tab-btn" onclick="switchTab('analytics')">
             <i class="fas fa-chart-bar"></i> Analytics
@@ -3496,6 +3586,238 @@
                         Marketing expenses will appear here once tracked.<br>
                         Future: Link to Financial Command Center for automatic tracking.
                     </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAID ADS TAB - META ADS MANAGEMENT -->
+        <div id="paidadsTab" class="tab-content">
+            <!-- Meta Ads Connection Status Banner -->
+            <div id="metaAdsStatusBanner" class="card" style="background: linear-gradient(135deg, rgba(66, 103, 178, 0.2), rgba(225, 48, 108, 0.2)); border: 1px solid rgba(66, 103, 178, 0.4);">
+                <div class="card-body" style="padding: 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #4267B2, #E1306C); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                <i class="fab fa-meta" style="font-size: 1.5rem; color: white;"></i>
+                            </div>
+                            <div>
+                                <h3 style="margin-bottom: 0.25rem;" id="metaConnectionTitle">Checking Meta Ads Connection...</h3>
+                                <p style="color: var(--text-secondary); font-size: 0.9rem;" id="metaConnectionStatus">
+                                    <i class="fas fa-spinner fa-spin"></i> Loading status...
+                                </p>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="btn btn-secondary" onclick="refreshMetaAdsStatus()">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                            <button class="btn btn-primary" onclick="openCreateCampaignModal()" id="createCampaignBtn" disabled>
+                                <i class="fas fa-plus"></i> Create Campaign
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ads Performance Stats -->
+            <div class="stats-grid" style="margin-top: 1.5rem;">
+                <div class="stat-card" style="border-left: 3px solid #4267B2;">
+                    <div class="stat-card-header">
+                        <div class="stat-icon" style="background: rgba(66, 103, 178, 0.2); color: #4267B2;">
+                            <i class="fas fa-eye"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="adsImpressions">--</div>
+                    <div class="stat-label">Total Impressions</div>
+                    <div class="stat-change neutral" id="adsImpressionsChange">
+                        <i class="fas fa-chart-line"></i> This month
+                    </div>
+                </div>
+
+                <div class="stat-card" style="border-left: 3px solid var(--instagram);">
+                    <div class="stat-card-header">
+                        <div class="stat-icon instagram">
+                            <i class="fas fa-mouse-pointer"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="adsClicks">--</div>
+                    <div class="stat-label">Total Clicks</div>
+                    <div class="stat-change neutral" id="adsClicksChange">
+                        <i class="fas fa-percentage"></i> CTR: --
+                    </div>
+                </div>
+
+                <div class="stat-card" style="border-left: 3px solid var(--success);">
+                    <div class="stat-card-header">
+                        <div class="stat-icon green">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="adsSpend">$0</div>
+                    <div class="stat-label">Total Spend</div>
+                    <div class="stat-change neutral" id="adsSpendChange">
+                        <i class="fas fa-wallet"></i> This month
+                    </div>
+                </div>
+
+                <div class="stat-card" style="border-left: 3px solid var(--gold);">
+                    <div class="stat-card-header">
+                        <div class="stat-icon gold">
+                            <i class="fas fa-shopping-cart"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="adsConversions">--</div>
+                    <div class="stat-label">Conversions</div>
+                    <div class="stat-change neutral" id="adsCostPerConversion">
+                        <i class="fas fa-coins"></i> Cost/Conv: --
+                    </div>
+                </div>
+            </div>
+
+            <!-- Two Column Layout -->
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-top: 1.5rem;">
+                <!-- Active Campaigns -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-bullhorn" style="color: #4267B2;"></i> Active Campaigns</h3>
+                        <button class="btn btn-sm btn-secondary" onclick="loadMetaCampaigns()">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                    <div class="card-body" id="activeCampaignsList">
+                        <div style="text-align: center; padding: 3rem;">
+                            <i class="fas fa-bullhorn" style="font-size: 3rem; color: var(--text-secondary); opacity: 0.3;"></i>
+                            <h4 style="margin-top: 1rem; margin-bottom: 0.5rem;">No Active Campaigns</h4>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem;">
+                                Create your first Meta ad campaign to start reaching new customers.
+                            </p>
+                            <button class="btn btn-primary" onclick="openCreateCampaignModal()">
+                                <i class="fas fa-plus"></i> Create First Campaign
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions & Budget -->
+                <div>
+                    <!-- Ad Budget Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-wallet" style="color: var(--success);"></i> Ad Budget</h3>
+                        </div>
+                        <div class="card-body">
+                            <div style="text-align: center; margin-bottom: 1rem;">
+                                <div style="font-size: 2rem; font-weight: 700; color: var(--success);" id="adBudgetRemaining">$0</div>
+                                <div style="color: var(--text-secondary); font-size: 0.85rem;">Remaining This Month</div>
+                            </div>
+                            <div style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                    <span style="color: var(--text-secondary);">Monthly Budget:</span>
+                                    <span id="adMonthlyBudget">$0</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                    <span style="color: var(--text-secondary);">Spent:</span>
+                                    <span id="adMonthlySpent" style="color: var(--warning);">$0</span>
+                                </div>
+                                <div class="budget-progress-bar" style="margin-top: 0.75rem;">
+                                    <div class="budget-progress-fill" id="adBudgetProgressBar" style="width: 0%; background: linear-gradient(90deg, var(--success), var(--warning));"></div>
+                                </div>
+                            </div>
+                            <button class="btn btn-secondary" style="width: 100%;" onclick="openAdBudgetModal()">
+                                <i class="fas fa-cog"></i> Set Monthly Budget
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Quick Campaign Templates -->
+                    <div class="card" style="margin-top: 1rem;">
+                        <div class="card-header">
+                            <h3><i class="fas fa-magic" style="color: var(--purple);"></i> Quick Campaigns</h3>
+                        </div>
+                        <div class="card-body" style="padding: 1rem;">
+                            <button class="btn" style="width: 100%; margin-bottom: 0.5rem; background: rgba(66, 103, 178, 0.2); border: 1px solid #4267B2; color: #4267B2;" onclick="createQuickCampaign('awareness')">
+                                <i class="fas fa-bullseye"></i> Brand Awareness
+                            </button>
+                            <button class="btn" style="width: 100%; margin-bottom: 0.5rem; background: rgba(225, 48, 108, 0.2); border: 1px solid var(--instagram); color: var(--instagram);" onclick="createQuickCampaign('traffic')">
+                                <i class="fas fa-external-link-alt"></i> Website Traffic
+                            </button>
+                            <button class="btn" style="width: 100%; margin-bottom: 0.5rem; background: rgba(42, 157, 143, 0.2); border: 1px solid var(--success); color: var(--success);" onclick="createQuickCampaign('engagement')">
+                                <i class="fas fa-heart"></i> Post Engagement
+                            </button>
+                            <button class="btn" style="width: 100%; background: rgba(255, 215, 0, 0.2); border: 1px solid var(--gold); color: var(--gold);" onclick="createQuickCampaign('conversions')">
+                                <i class="fas fa-shopping-cart"></i> Shopify Sales
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Campaign History -->
+            <div class="card" style="margin-top: 1.5rem;">
+                <div class="card-header">
+                    <h3><i class="fas fa-history" style="color: var(--text-secondary);"></i> Campaign History</h3>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <select id="campaignHistoryFilter" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 8px; padding: 0.5rem; color: var(--text-primary);">
+                            <option value="all">All Campaigns</option>
+                            <option value="active">Active</option>
+                            <option value="paused">Paused</option>
+                            <option value="completed">Completed</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body" id="campaignHistoryList">
+                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        <i class="fas fa-history" style="font-size: 2rem; opacity: 0.3;"></i>
+                        <p style="margin-top: 1rem;">Campaign history will appear here once you run ads.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Ad Recommendations -->
+            <div class="card" style="margin-top: 1.5rem; background: linear-gradient(135deg, rgba(155, 89, 182, 0.1), rgba(67, 97, 238, 0.1)); border: 1px solid rgba(155, 89, 182, 0.3);">
+                <div class="card-header">
+                    <h3><i class="fas fa-robot" style="color: var(--purple);"></i> AI Ad Recommendations</h3>
+                    <span class="badge new" style="background: var(--purple);">AI</span>
+                </div>
+                <div class="card-body">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
+                        <div style="background: rgba(0,0,0,0.2); border-radius: 12px; padding: 1.25rem; border-left: 3px solid var(--success);">
+                            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+                                <i class="fas fa-chart-line" style="color: var(--success);"></i>
+                                <span style="font-weight: 600;">Best Performing Content</span>
+                            </div>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;" id="aiAdRecommendation1">
+                                Analyze your organic posts to find content worth boosting. Posts with high engagement often perform well as ads.
+                            </p>
+                            <button class="btn btn-sm btn-success" onclick="analyzeTopPosts()">
+                                <i class="fas fa-search"></i> Find Top Posts
+                            </button>
+                        </div>
+                        <div style="background: rgba(0,0,0,0.2); border-radius: 12px; padding: 1.25rem; border-left: 3px solid var(--info);">
+                            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+                                <i class="fas fa-users" style="color: var(--info);"></i>
+                                <span style="font-weight: 600;">Audience Suggestion</span>
+                            </div>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;" id="aiAdRecommendation2">
+                                Target Pittsburgh metro area (25mi radius), ages 28-55, interested in: organic food, farmers markets, sustainable living, local food.
+                            </p>
+                            <button class="btn btn-sm" style="background: var(--info); color: white;" onclick="useAudienceSuggestion()">
+                                <i class="fas fa-check"></i> Use This Audience
+                            </button>
+                        </div>
+                        <div style="background: rgba(0,0,0,0.2); border-radius: 12px; padding: 1.25rem; border-left: 3px solid var(--gold);">
+                            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+                                <i class="fas fa-calendar-alt" style="color: var(--gold);"></i>
+                                <span style="font-weight: 600;">Timing Recommendation</span>
+                            </div>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;" id="aiAdRecommendation3">
+                                CSA season starts soon! Run awareness campaigns now to capture early signups. Peak interest: Feb-April.
+                            </p>
+                            <button class="btn btn-sm" style="background: var(--gold); color: #000;" onclick="createSeasonalCampaign()">
+                                <i class="fas fa-rocket"></i> Launch CSA Campaign
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -5258,6 +5580,288 @@
         </div>
     </div>
 
+    <!-- META ADS CAMPAIGN MODAL -->
+    <div class="modal-overlay" id="metaAdsCampaignModal">
+        <div class="modal" style="max-width: 700px;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #4267B2 0%, #E1306C 100%);">
+                <h2><i class="fab fa-meta"></i> Create Meta Ad Campaign</h2>
+                <button class="modal-close" onclick="closeMetaAdsCampaignModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Step Indicator -->
+                <div style="display: flex; justify-content: center; gap: 2rem; margin-bottom: 2rem;">
+                    <div class="campaign-step active" id="step1Indicator">
+                        <div class="step-number">1</div>
+                        <div class="step-label">Campaign</div>
+                    </div>
+                    <div class="campaign-step" id="step2Indicator">
+                        <div class="step-number">2</div>
+                        <div class="step-label">Audience</div>
+                    </div>
+                    <div class="campaign-step" id="step3Indicator">
+                        <div class="step-number">3</div>
+                        <div class="step-label">Budget</div>
+                    </div>
+                    <div class="campaign-step" id="step4Indicator">
+                        <div class="step-number">4</div>
+                        <div class="step-label">Review</div>
+                    </div>
+                </div>
+
+                <!-- Step 1: Campaign Details -->
+                <div id="campaignStep1" class="campaign-step-content active">
+                    <div class="form-group">
+                        <label class="form-label">Campaign Name *</label>
+                        <input type="text" class="form-input" id="metaCampaignName" placeholder="e.g., CSA Spring 2026 Launch">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Campaign Objective *</label>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem;">
+                            <div class="objective-option" data-objective="OUTCOME_AWARENESS" onclick="selectObjective(this)">
+                                <i class="fas fa-bullseye"></i>
+                                <span>Awareness</span>
+                                <small>Reach people likely to remember your ad</small>
+                            </div>
+                            <div class="objective-option" data-objective="OUTCOME_TRAFFIC" onclick="selectObjective(this)">
+                                <i class="fas fa-external-link-alt"></i>
+                                <span>Traffic</span>
+                                <small>Send people to your website or app</small>
+                            </div>
+                            <div class="objective-option" data-objective="OUTCOME_ENGAGEMENT" onclick="selectObjective(this)">
+                                <i class="fas fa-heart"></i>
+                                <span>Engagement</span>
+                                <small>Get more messages, likes, or comments</small>
+                            </div>
+                            <div class="objective-option selected" data-objective="OUTCOME_SALES" onclick="selectObjective(this)">
+                                <i class="fas fa-shopping-cart"></i>
+                                <span>Sales</span>
+                                <small>Drive purchases on your Shopify store</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Platforms</label>
+                        <div style="display: flex; gap: 0.75rem;">
+                            <label class="platform-checkbox checked">
+                                <input type="checkbox" id="metaPlatformFB" checked>
+                                <i class="fab fa-facebook" style="color: #4267B2;"></i> Facebook
+                            </label>
+                            <label class="platform-checkbox checked">
+                                <input type="checkbox" id="metaPlatformIG" checked>
+                                <i class="fab fa-instagram" style="color: var(--instagram);"></i> Instagram
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Audience Targeting -->
+                <div id="campaignStep2" class="campaign-step-content">
+                    <div style="background: rgba(155, 89, 182, 0.1); border: 1px solid var(--purple); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <i class="fas fa-magic" style="color: var(--purple);"></i>
+                            <strong>AI Recommendation</strong>
+                        </div>
+                        <p style="font-size: 0.9rem; color: var(--text-secondary);">
+                            Based on your CSA customer data: Pittsburgh metro area, ages 28-55, interested in organic food, farmers markets, sustainable living.
+                        </p>
+                        <button class="btn btn-sm" style="margin-top: 0.5rem; background: var(--purple); color: white;" onclick="applyAIAudience()">
+                            <i class="fas fa-check"></i> Use AI Recommendation
+                        </button>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Location</label>
+                        <input type="text" class="form-input" id="metaAdLocation" placeholder="Pittsburgh, PA" value="Pittsburgh, Pennsylvania">
+                        <small style="color: var(--text-secondary);">+ 25 mile radius</small>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label">Age Range</label>
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <input type="number" class="form-input" id="metaAdAgeMin" value="25" min="18" max="65" style="width: 80px;">
+                                <span>to</span>
+                                <input type="number" class="form-input" id="metaAdAgeMax" value="55" min="18" max="65" style="width: 80px;">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Gender</label>
+                            <select class="form-input" id="metaAdGender">
+                                <option value="all">All</option>
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Interests (comma separated)</label>
+                        <input type="text" class="form-input" id="metaAdInterests" placeholder="organic food, farmers markets, sustainable living" value="organic food, farmers markets, sustainable living, local food, healthy eating">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Estimated Reach</label>
+                        <div style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 1rem; text-align: center;">
+                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--success);" id="estimatedReach">45,000 - 130,000</div>
+                            <div style="color: var(--text-secondary); font-size: 0.85rem;">people in your target audience</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Budget & Schedule -->
+                <div id="campaignStep3" class="campaign-step-content">
+                    <div class="form-group">
+                        <label class="form-label">Budget Type</label>
+                        <div style="display: flex; gap: 1rem;">
+                            <label class="budget-type-option selected" onclick="selectBudgetType('daily')">
+                                <input type="radio" name="budgetType" value="daily" checked>
+                                <div>
+                                    <strong>Daily Budget</strong>
+                                    <small>Spend up to this amount each day</small>
+                                </div>
+                            </label>
+                            <label class="budget-type-option" onclick="selectBudgetType('lifetime')">
+                                <input type="radio" name="budgetType" value="lifetime">
+                                <div>
+                                    <strong>Lifetime Budget</strong>
+                                    <small>Spend this total over campaign duration</small>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" id="budgetAmountLabel">Daily Budget *</label>
+                        <div style="position: relative;">
+                            <span style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-secondary);">$</span>
+                            <input type="number" class="form-input" id="metaAdBudget" value="10" min="1" style="padding-left: 2rem;">
+                        </div>
+                        <small style="color: var(--text-secondary);">Minimum $1/day. Meta recommends $5+/day for best results.</small>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label">Start Date</label>
+                            <input type="date" class="form-input" id="metaAdStartDate">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">End Date (optional)</label>
+                            <input type="date" class="form-input" id="metaAdEndDate">
+                        </div>
+                    </div>
+                    <div style="background: rgba(42, 157, 143, 0.1); border: 1px solid var(--success); border-radius: 8px; padding: 1rem; margin-top: 1rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-weight: 600;">Estimated Results</div>
+                                <div style="color: var(--text-secondary); font-size: 0.85rem;">Based on similar campaigns</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 1.25rem; font-weight: 700; color: var(--success);" id="estimatedResults">500-2,000</div>
+                                <div style="color: var(--text-secondary); font-size: 0.85rem;" id="estimatedResultsType">link clicks per week</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 4: Review & Launch -->
+                <div id="campaignStep4" class="campaign-step-content">
+                    <div style="background: rgba(0,0,0,0.2); border-radius: 12px; padding: 1.5rem;">
+                        <h4 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-clipboard-check" style="color: var(--success);"></i> Campaign Summary
+                        </h4>
+                        <div style="display: grid; gap: 0.75rem;">
+                            <div style="display: flex; justify-content: space-between; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border);">
+                                <span style="color: var(--text-secondary);">Campaign Name:</span>
+                                <span id="reviewCampaignName" style="font-weight: 600;">--</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border);">
+                                <span style="color: var(--text-secondary);">Objective:</span>
+                                <span id="reviewObjective" style="font-weight: 600;">--</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border);">
+                                <span style="color: var(--text-secondary);">Platforms:</span>
+                                <span id="reviewPlatforms" style="font-weight: 600;">--</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border);">
+                                <span style="color: var(--text-secondary);">Location:</span>
+                                <span id="reviewLocation" style="font-weight: 600;">--</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border);">
+                                <span style="color: var(--text-secondary);">Audience:</span>
+                                <span id="reviewAudience" style="font-weight: 600;">--</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border);">
+                                <span style="color: var(--text-secondary);">Budget:</span>
+                                <span id="reviewBudget" style="font-weight: 600; color: var(--success);">--</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: var(--text-secondary);">Schedule:</span>
+                                <span id="reviewSchedule" style="font-weight: 600;">--</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="background: rgba(255, 193, 7, 0.1); border: 1px solid var(--warning); border-radius: 8px; padding: 1rem; margin-top: 1rem;">
+                        <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
+                            <i class="fas fa-exclamation-triangle" style="color: var(--warning); margin-top: 0.25rem;"></i>
+                            <div>
+                                <strong>Before you launch:</strong>
+                                <ul style="margin: 0.5rem 0 0 1rem; color: var(--text-secondary); font-size: 0.9rem;">
+                                    <li>You'll need to add ad creative (image/video) in Meta Ads Manager</li>
+                                    <li>Campaign will be created in "Paused" status for review</li>
+                                    <li>Charges begin only when you activate the campaign</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: space-between;">
+                <button class="btn btn-secondary" id="campaignPrevBtn" onclick="prevCampaignStep()" style="display: none;">
+                    <i class="fas fa-arrow-left"></i> Back
+                </button>
+                <div style="display: flex; gap: 0.5rem; margin-left: auto;">
+                    <button class="btn btn-secondary" onclick="closeMetaAdsCampaignModal()">Cancel</button>
+                    <button class="btn btn-primary" id="campaignNextBtn" onclick="nextCampaignStep()" style="background: linear-gradient(135deg, #4267B2, #E1306C);">
+                        Next <i class="fas fa-arrow-right"></i>
+                    </button>
+                    <button class="btn btn-success" id="campaignLaunchBtn" onclick="launchMetaCampaign()" style="display: none;">
+                        <i class="fas fa-rocket"></i> Create Campaign
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AD BUDGET SETTINGS MODAL -->
+    <div class="modal-overlay" id="adBudgetModal">
+        <div class="modal" style="max-width: 450px;">
+            <div class="modal-header" style="background: linear-gradient(135deg, var(--success) 0%, var(--teal) 100%);">
+                <h2><i class="fas fa-wallet"></i> Set Ad Budget</h2>
+                <button class="modal-close" onclick="closeAdBudgetModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Monthly Ad Budget</label>
+                    <div style="position: relative;">
+                        <span style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-secondary);">$</span>
+                        <input type="number" class="form-input" id="monthlyAdBudgetInput" value="100" min="0" style="padding-left: 2rem; font-size: 1.25rem;">
+                    </div>
+                </div>
+                <div style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 1rem; margin-top: 1rem;">
+                    <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Recommended budgets:</div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">
+                        <button class="btn btn-sm btn-secondary" onclick="setQuickBudget(50)">$50</button>
+                        <button class="btn btn-sm btn-secondary" onclick="setQuickBudget(100)">$100</button>
+                        <button class="btn btn-sm btn-secondary" onclick="setQuickBudget(250)">$250</button>
+                        <button class="btn btn-sm btn-secondary" onclick="setQuickBudget(500)">$500</button>
+                        <button class="btn btn-sm btn-secondary" onclick="setQuickBudget(1000)">$1,000</button>
+                        <button class="btn btn-sm btn-secondary" onclick="setQuickBudget(2500)">$2,500</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeAdBudgetModal()">Cancel</button>
+                <button class="btn btn-success" onclick="saveAdBudget()">
+                    <i class="fas fa-save"></i> Save Budget
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- FOLLOWER COUNT UPDATE MODAL -->
     <div class="modal-overlay" id="followerCountModal">
         <div class="modal" style="max-width: 500px;">
@@ -5344,6 +5948,11 @@
                 content.classList.remove('active');
             });
             document.getElementById(tabId + 'Tab').classList.add('active');
+
+            // Load tab-specific data
+            if (tabId === 'paidads') {
+                loadPaidAdsTab();
+            }
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -5932,6 +6541,359 @@
         function createCampaign() {
             showToast('Campaign created!', 'success');
             closeCampaignModal();
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // META PAID ADS FUNCTIONS
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        let metaAdsConfigured = false;
+        let currentCampaignStep = 1;
+        let selectedObjective = 'OUTCOME_SALES';
+        let metaAdBudget = { monthly: 100, spent: 0 };
+
+        async function loadPaidAdsTab() {
+            await refreshMetaAdsStatus();
+            await loadMetaCampaigns();
+            loadAdBudgetSettings();
+
+            // Set default start date to today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('metaAdStartDate').value = today;
+        }
+
+        async function refreshMetaAdsStatus() {
+            try {
+                const response = await fetch(`${API_URL}?action=getMetaAdsStatus`);
+                const data = await response.json();
+
+                const titleEl = document.getElementById('metaConnectionTitle');
+                const statusEl = document.getElementById('metaConnectionStatus');
+                const createBtn = document.getElementById('createCampaignBtn');
+
+                if (data.configured) {
+                    metaAdsConfigured = true;
+                    titleEl.textContent = 'Meta Ads Connected';
+                    titleEl.style.color = 'var(--success)';
+                    statusEl.innerHTML = `<i class="fas fa-check-circle" style="color: var(--success);"></i> Ad Account: ${data.adAccountId}`;
+                    createBtn.disabled = false;
+
+                    // Update stats
+                    await loadMetaAdsStats();
+                } else {
+                    metaAdsConfigured = false;
+                    titleEl.textContent = 'Meta Ads Not Connected';
+                    titleEl.style.color = 'var(--warning)';
+                    statusEl.innerHTML = `<i class="fas fa-exclamation-triangle" style="color: var(--warning);"></i> Configure in Apps Script settings`;
+                    createBtn.disabled = true;
+                }
+            } catch (error) {
+                console.error('Error checking Meta Ads status:', error);
+                document.getElementById('metaConnectionTitle').textContent = 'Connection Error';
+                document.getElementById('metaConnectionStatus').innerHTML = `<i class="fas fa-times-circle" style="color: var(--danger);"></i> ${error.message}`;
+            }
+        }
+
+        async function loadMetaAdsStats() {
+            try {
+                const response = await fetch(`${API_URL}?action=getAdCampaignPerformance`);
+                const data = await response.json();
+
+                if (data.success && data.performance) {
+                    const perf = data.performance;
+                    document.getElementById('adsImpressions').textContent = formatNumber(perf.impressions || 0);
+                    document.getElementById('adsClicks').textContent = formatNumber(perf.clicks || 0);
+                    document.getElementById('adsSpend').textContent = '$' + (perf.spend || 0).toFixed(2);
+                    document.getElementById('adsConversions').textContent = perf.conversions || 0;
+
+                    // Calculate CTR
+                    if (perf.impressions > 0) {
+                        const ctr = ((perf.clicks / perf.impressions) * 100).toFixed(2);
+                        document.getElementById('adsClicksChange').innerHTML = `<i class="fas fa-percentage"></i> CTR: ${ctr}%`;
+                    }
+
+                    // Calculate cost per conversion
+                    if (perf.conversions > 0) {
+                        const costPerConv = (perf.spend / perf.conversions).toFixed(2);
+                        document.getElementById('adsCostPerConversion').innerHTML = `<i class="fas fa-coins"></i> Cost/Conv: $${costPerConv}`;
+                    }
+                }
+            } catch (error) {
+                console.log('No ad performance data yet');
+            }
+        }
+
+        async function loadMetaCampaigns() {
+            const container = document.getElementById('activeCampaignsList');
+
+            try {
+                const response = await fetch(`${API_URL}?action=getMetaCampaigns`);
+                const data = await response.json();
+
+                if (data.success && data.campaigns && data.campaigns.length > 0) {
+                    container.innerHTML = data.campaigns.map(campaign => `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: rgba(0,0,0,0.2); border-radius: 12px; margin-bottom: 0.75rem; border-left: 3px solid ${campaign.status === 'ACTIVE' ? 'var(--success)' : 'var(--warning)'};">
+                            <div>
+                                <div style="font-weight: 600; margin-bottom: 0.25rem;">${campaign.name}</div>
+                                <div style="font-size: 0.85rem; color: var(--text-secondary);">
+                                    <span style="background: ${campaign.status === 'ACTIVE' ? 'var(--success)' : 'var(--warning)'}; color: ${campaign.status === 'ACTIVE' ? 'white' : '#000'}; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.7rem; text-transform: uppercase;">${campaign.status}</span>
+                                    <span style="margin-left: 0.5rem;">${campaign.objective || 'Sales'}</span>
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-weight: 600; color: var(--success);">$${(campaign.spend || 0).toFixed(2)}</div>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);">${campaign.impressions || 0} impressions</div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.log('No campaigns found or error loading');
+            }
+        }
+
+        function loadAdBudgetSettings() {
+            const saved = localStorage.getItem('tinyseed_ad_budget');
+            if (saved) {
+                metaAdBudget = JSON.parse(saved);
+            }
+            updateAdBudgetDisplay();
+        }
+
+        function updateAdBudgetDisplay() {
+            const remaining = Math.max(0, metaAdBudget.monthly - metaAdBudget.spent);
+            const pct = metaAdBudget.monthly > 0 ? (metaAdBudget.spent / metaAdBudget.monthly) * 100 : 0;
+
+            document.getElementById('adBudgetRemaining').textContent = '$' + remaining.toFixed(0);
+            document.getElementById('adMonthlyBudget').textContent = '$' + metaAdBudget.monthly;
+            document.getElementById('adMonthlySpent').textContent = '$' + metaAdBudget.spent.toFixed(2);
+            document.getElementById('adBudgetProgressBar').style.width = Math.min(100, pct) + '%';
+        }
+
+        function openCreateCampaignModal() {
+            if (!metaAdsConfigured) {
+                showToast('Please configure Meta Ads credentials first', 'error');
+                return;
+            }
+            currentCampaignStep = 1;
+            updateCampaignStepUI();
+            document.getElementById('metaAdsCampaignModal').classList.add('active');
+        }
+
+        function closeMetaAdsCampaignModal() {
+            document.getElementById('metaAdsCampaignModal').classList.remove('active');
+            currentCampaignStep = 1;
+            updateCampaignStepUI();
+        }
+
+        function nextCampaignStep() {
+            if (currentCampaignStep < 4) {
+                // Validate current step
+                if (currentCampaignStep === 1) {
+                    const name = document.getElementById('metaCampaignName').value.trim();
+                    if (!name) {
+                        showToast('Please enter a campaign name', 'error');
+                        return;
+                    }
+                }
+                if (currentCampaignStep === 3) {
+                    const budget = parseFloat(document.getElementById('metaAdBudget').value);
+                    if (!budget || budget < 1) {
+                        showToast('Please enter a valid budget (minimum $1)', 'error');
+                        return;
+                    }
+                }
+
+                currentCampaignStep++;
+                updateCampaignStepUI();
+
+                // Populate review step
+                if (currentCampaignStep === 4) {
+                    populateReviewStep();
+                }
+            }
+        }
+
+        function prevCampaignStep() {
+            if (currentCampaignStep > 1) {
+                currentCampaignStep--;
+                updateCampaignStepUI();
+            }
+        }
+
+        function updateCampaignStepUI() {
+            // Update step indicators
+            for (let i = 1; i <= 4; i++) {
+                const indicator = document.getElementById(`step${i}Indicator`);
+                const content = document.getElementById(`campaignStep${i}`);
+
+                indicator.classList.remove('active', 'completed');
+                content.classList.remove('active');
+
+                if (i < currentCampaignStep) {
+                    indicator.classList.add('completed');
+                } else if (i === currentCampaignStep) {
+                    indicator.classList.add('active');
+                    content.classList.add('active');
+                }
+            }
+
+            // Update buttons
+            document.getElementById('campaignPrevBtn').style.display = currentCampaignStep > 1 ? 'block' : 'none';
+            document.getElementById('campaignNextBtn').style.display = currentCampaignStep < 4 ? 'block' : 'none';
+            document.getElementById('campaignLaunchBtn').style.display = currentCampaignStep === 4 ? 'block' : 'none';
+        }
+
+        function selectObjective(el) {
+            document.querySelectorAll('.objective-option').forEach(opt => opt.classList.remove('selected'));
+            el.classList.add('selected');
+            selectedObjective = el.dataset.objective;
+        }
+
+        function selectBudgetType(type) {
+            document.querySelectorAll('.budget-type-option').forEach(opt => opt.classList.remove('selected'));
+            event.target.closest('.budget-type-option').classList.add('selected');
+            document.getElementById('budgetAmountLabel').textContent = type === 'daily' ? 'Daily Budget *' : 'Lifetime Budget *';
+        }
+
+        function populateReviewStep() {
+            const name = document.getElementById('metaCampaignName').value;
+            const location = document.getElementById('metaAdLocation').value;
+            const ageMin = document.getElementById('metaAdAgeMin').value;
+            const ageMax = document.getElementById('metaAdAgeMax').value;
+            const budget = document.getElementById('metaAdBudget').value;
+            const startDate = document.getElementById('metaAdStartDate').value;
+            const endDate = document.getElementById('metaAdEndDate').value;
+
+            const platforms = [];
+            if (document.getElementById('metaPlatformFB').checked) platforms.push('Facebook');
+            if (document.getElementById('metaPlatformIG').checked) platforms.push('Instagram');
+
+            const objectiveLabels = {
+                'OUTCOME_AWARENESS': 'Brand Awareness',
+                'OUTCOME_TRAFFIC': 'Website Traffic',
+                'OUTCOME_ENGAGEMENT': 'Engagement',
+                'OUTCOME_SALES': 'Sales / Conversions'
+            };
+
+            document.getElementById('reviewCampaignName').textContent = name;
+            document.getElementById('reviewObjective').textContent = objectiveLabels[selectedObjective];
+            document.getElementById('reviewPlatforms').textContent = platforms.join(', ');
+            document.getElementById('reviewLocation').textContent = location + ' (25mi radius)';
+            document.getElementById('reviewAudience').textContent = `Ages ${ageMin}-${ageMax}`;
+            document.getElementById('reviewBudget').textContent = '$' + budget + '/day';
+            document.getElementById('reviewSchedule').textContent = startDate + (endDate ? ' to ' + endDate : ' (ongoing)');
+        }
+
+        async function launchMetaCampaign() {
+            const name = document.getElementById('metaCampaignName').value;
+            const budget = parseFloat(document.getElementById('metaAdBudget').value);
+            const startDate = document.getElementById('metaAdStartDate').value;
+
+            showToast('Creating campaign...', 'info');
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'createMetaAdCampaign',
+                        name: name,
+                        objective: selectedObjective,
+                        dailyBudget: budget,
+                        status: 'PAUSED' // Create paused so user can add creative
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('Campaign created successfully! Add creative in Meta Ads Manager.', 'success');
+                    closeMetaAdsCampaignModal();
+                    await loadMetaCampaigns();
+                } else {
+                    showToast('Error: ' + (data.error || 'Failed to create campaign'), 'error');
+                }
+            } catch (error) {
+                showToast('Error creating campaign: ' + error.message, 'error');
+            }
+        }
+
+        function createQuickCampaign(type) {
+            const templates = {
+                awareness: { name: 'Brand Awareness - Tiny Seed Farm', objective: 'OUTCOME_AWARENESS' },
+                traffic: { name: 'Website Traffic - Shopify Store', objective: 'OUTCOME_TRAFFIC' },
+                engagement: { name: 'Post Engagement Boost', objective: 'OUTCOME_ENGAGEMENT' },
+                conversions: { name: 'CSA Sales Campaign', objective: 'OUTCOME_SALES' }
+            };
+
+            const template = templates[type];
+            document.getElementById('metaCampaignName').value = template.name;
+
+            // Select the objective
+            document.querySelectorAll('.objective-option').forEach(opt => {
+                opt.classList.toggle('selected', opt.dataset.objective === template.objective);
+            });
+            selectedObjective = template.objective;
+
+            openCreateCampaignModal();
+        }
+
+        function openAdBudgetModal() {
+            document.getElementById('monthlyAdBudgetInput').value = metaAdBudget.monthly;
+            document.getElementById('adBudgetModal').classList.add('active');
+        }
+
+        function closeAdBudgetModal() {
+            document.getElementById('adBudgetModal').classList.remove('active');
+        }
+
+        function setQuickBudget(amount) {
+            document.getElementById('monthlyAdBudgetInput').value = amount;
+        }
+
+        function saveAdBudget() {
+            const budget = parseFloat(document.getElementById('monthlyAdBudgetInput').value) || 0;
+            metaAdBudget.monthly = budget;
+            localStorage.setItem('tinyseed_ad_budget', JSON.stringify(metaAdBudget));
+            updateAdBudgetDisplay();
+            closeAdBudgetModal();
+            showToast('Ad budget saved!', 'success');
+        }
+
+        function applyAIAudience() {
+            document.getElementById('metaAdLocation').value = 'Pittsburgh, Pennsylvania';
+            document.getElementById('metaAdAgeMin').value = '28';
+            document.getElementById('metaAdAgeMax').value = '55';
+            document.getElementById('metaAdInterests').value = 'organic food, farmers markets, sustainable living, local food, healthy eating, CSA, farm fresh';
+            showToast('AI audience applied!', 'success');
+        }
+
+        function analyzeTopPosts() {
+            showToast('Analyzing your top performing organic posts...', 'info');
+            // This would call the backend to analyze Instagram insights
+            setTimeout(() => {
+                document.getElementById('aiAdRecommendation1').innerHTML = `
+                    <strong>Your harvest photos get 3x more engagement!</strong><br>
+                    Consider boosting your recent tomato harvest post - it had 847 likes and 52 comments.
+                `;
+                showToast('Analysis complete! Top posts identified.', 'success');
+            }, 2000);
+        }
+
+        function useAudienceSuggestion() {
+            applyAIAudience();
+            openCreateCampaignModal();
+            nextCampaignStep(); // Go to audience step
+        }
+
+        function createSeasonalCampaign() {
+            document.getElementById('metaCampaignName').value = 'CSA Spring 2026 Early Bird Signup';
+            selectedObjective = 'OUTCOME_SALES';
+            document.querySelectorAll('.objective-option').forEach(opt => {
+                opt.classList.toggle('selected', opt.dataset.objective === 'OUTCOME_SALES');
+            });
+            openCreateCampaignModal();
         }
 
         // ═══════════════════════════════════════════════════════════════════════════

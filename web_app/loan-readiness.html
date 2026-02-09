@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="lender-crm.css">
     <!-- SheetJS for Excel parsing -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <!-- Chart.js for analytics visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="api-config.js"></script>
     <script src="auth-guard.js"></script>
     <style>
@@ -318,109 +320,253 @@
             flex-wrap: wrap;
         }
 
-        /* Document Vault */
+        /* ============ DOCUMENT VAULT - PREMIUM UX REDESIGN ============ */
         .vault-categories {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            display: flex;
+            flex-direction: column;
             gap: 1rem;
         }
 
         .vault-category {
             background: var(--bg-lighter);
-            border-radius: 12px;
-            overflow: hidden;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            transition: all 0.3s ease;
+        }
+
+        .vault-category.expanded {
+            border-color: var(--primary);
+            box-shadow: 0 4px 20px rgba(67, 97, 238, 0.15);
         }
 
         .vault-category-header {
-            padding: 1rem;
+            padding: 1.25rem 1.5rem;
             display: flex;
             align-items: center;
             justify-content: space-between;
             cursor: pointer;
             transition: background 0.3s ease;
+            border-radius: 16px;
         }
 
         .vault-category-header:hover {
-            background: rgba(42, 157, 143, 0.1);
+            background: rgba(42, 157, 143, 0.08);
         }
 
         .vault-category-header h3 {
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            font-size: 1rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .vault-category-header h3 i {
+            font-size: 1.25rem;
+            color: var(--primary);
         }
 
         .vault-badge {
-            padding: 0.25rem 0.75rem;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 600;
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
         }
 
         .vault-badge.complete { background: rgba(42, 157, 143, 0.2); color: var(--success); }
         .vault-badge.partial { background: rgba(244, 162, 97, 0.2); color: var(--warning); }
         .vault-badge.missing { background: rgba(231, 111, 81, 0.2); color: var(--danger); }
 
+        /* FIXED: Expandable section now scrolls instead of clipping */
         .vault-items {
-            padding: 0 1rem 1rem;
             max-height: 0;
             overflow: hidden;
-            transition: max-height 0.3s ease;
+            transition: max-height 0.4s ease, padding 0.3s ease;
+            padding: 0 1.5rem;
         }
 
         .vault-category.expanded .vault-items {
-            max-height: 500px;
+            max-height: 2000px; /* Much larger to fit all content */
+            overflow-y: auto;
+            padding: 0 1.5rem 1.5rem;
+        }
+
+        /* Scrollbar styling for vault items */
+        .vault-items::-webkit-scrollbar {
+            width: 6px;
+        }
+        .vault-items::-webkit-scrollbar-track {
+            background: var(--bg);
+            border-radius: 3px;
+        }
+        .vault-items::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+        .vault-items::-webkit-scrollbar-thumb:hover {
+            background: var(--primary);
         }
 
         .vault-item {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0.75rem;
+            padding: 1rem;
             background: var(--bg);
-            border-radius: 8px;
-            margin-bottom: 0.5rem;
+            border-radius: 12px;
+            margin-bottom: 0.75rem;
+            border: 1px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .vault-item:hover {
+            border-color: var(--border);
+            background: rgba(255,255,255,0.03);
         }
 
         .vault-item-info {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
+            gap: 1rem;
+            flex: 1;
+            min-width: 0;
         }
 
         .vault-item-status {
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.9rem;
+            font-size: 1rem;
+            flex-shrink: 0;
         }
 
         .vault-item-status.uploaded { background: var(--success); color: white; }
-        .vault-item-status.missing { background: var(--danger); color: white; }
+        .vault-item-status.missing { background: rgba(231, 111, 81, 0.2); color: var(--danger); }
         .vault-item-status.expired { background: var(--warning); color: white; }
 
+        .vault-item-details {
+            min-width: 0;
+            flex: 1;
+        }
+
         .vault-item-details h4 {
-            font-size: 0.9rem;
-            margin-bottom: 0.15rem;
+            font-size: 0.95rem;
+            margin-bottom: 0.25rem;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .vault-item-details p {
-            font-size: 0.75rem;
+            font-size: 0.8rem;
             color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        /* Make vault upload buttons more prominent */
-        .vault-item .btn {
-            min-width: 80px;
-            font-size: 0.75rem;
+        /* FIXED: Button container with proper wrapping */
+        .vault-item-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-shrink: 0;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            margin-left: 1rem;
         }
 
-        .vault-item .btn i {
-            margin-right: 0.25rem;
+        /* Premium buttons for vault */
+        .vault-btn {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            white-space: nowrap;
+        }
+
+        .vault-btn-have {
+            background: rgba(42, 157, 143, 0.15);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+        .vault-btn-have:hover {
+            background: var(--success);
+            color: white;
+        }
+
+        .vault-btn-upload {
+            background: var(--primary);
+            color: white;
+        }
+        .vault-btn-upload:hover {
+            background: var(--info);
+            transform: translateY(-1px);
+        }
+
+        .vault-btn-replace {
+            background: rgba(67, 97, 238, 0.15);
+            color: var(--primary);
+            border: 1px solid var(--primary);
+        }
+        .vault-btn-replace:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .vault-btn-remove {
+            background: rgba(231, 111, 81, 0.15);
+            color: var(--danger);
+            padding: 0.5rem;
+            border-radius: 8px;
+        }
+        .vault-btn-remove:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        /* Mobile responsive vault */
+        @media (max-width: 768px) {
+            .vault-category-header {
+                padding: 1rem;
+            }
+            .vault-category-header h3 {
+                font-size: 0.95rem;
+            }
+            .vault-items {
+                padding: 0 1rem;
+            }
+            .vault-category.expanded .vault-items {
+                padding: 0 1rem 1rem;
+            }
+            .vault-item {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 1rem;
+                padding: 1rem;
+            }
+            .vault-item-info {
+                width: 100%;
+            }
+            .vault-item-actions {
+                width: 100%;
+                justify-content: stretch;
+                margin-left: 0;
+            }
+            .vault-item-actions .vault-btn {
+                flex: 1;
+                justify-content: center;
+            }
         }
 
         /* Priority Badges */
@@ -3823,6 +3969,538 @@
             font-size: 0.75rem;
             color: var(--text-secondary);
         }
+
+        /* ====== FARM ANALYTICS STYLES ====== */
+        :root {
+            --analytics-blue: #0ea5e9;
+            --analytics-teal: #14b8a6;
+            --analytics-dark: #0c4a6e;
+        }
+
+        .analytics-header {
+            background: linear-gradient(135deg, var(--analytics-blue) 0%, var(--analytics-teal) 100%);
+            padding: 2rem;
+            border-radius: 16px;
+            margin-bottom: 1.5rem;
+            color: white;
+        }
+
+        .analytics-header h2 {
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .analytics-header p {
+            opacity: 0.9;
+            font-size: 1rem;
+        }
+
+        .analytics-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .analytics-kpi-card {
+            background: var(--bg-lighter);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border-left: 4px solid var(--analytics-blue);
+            transition: all 0.3s ease;
+        }
+
+        .analytics-kpi-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(14, 165, 233, 0.2);
+        }
+
+        .analytics-kpi-card.positive {
+            border-left-color: var(--success);
+        }
+
+        .analytics-kpi-card.negative {
+            border-left-color: var(--danger);
+        }
+
+        .analytics-kpi-card.neutral {
+            border-left-color: var(--warning);
+        }
+
+        .analytics-kpi-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+
+        .analytics-kpi-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text);
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+        }
+
+        .analytics-kpi-change {
+            font-size: 0.9rem;
+            font-weight: 600;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .analytics-kpi-change.up {
+            background: rgba(42, 157, 143, 0.2);
+            color: var(--success);
+        }
+
+        .analytics-kpi-change.down {
+            background: rgba(231, 111, 81, 0.2);
+            color: var(--danger);
+        }
+
+        .analytics-kpi-subtitle {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        .analytics-chart-container {
+            background: var(--bg-lighter);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .analytics-chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .analytics-chart-header h3 {
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .analytics-chart-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .analytics-chart-btn {
+            padding: 0.5rem 1rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s ease;
+        }
+
+        .analytics-chart-btn:hover,
+        .analytics-chart-btn.active {
+            background: var(--analytics-blue);
+            border-color: var(--analytics-blue);
+            color: white;
+        }
+
+        .analytics-chart-canvas {
+            width: 100%;
+            height: 300px;
+            background: var(--bg);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+        }
+
+        /* SWOT Analysis Styles */
+        .swot-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .swot-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .swot-card {
+            background: var(--bg-lighter);
+            border-radius: 12px;
+            padding: 1.25rem;
+            border: 2px solid var(--border);
+        }
+
+        .swot-card.strengths {
+            border-color: var(--success);
+            background: linear-gradient(135deg, rgba(42, 157, 143, 0.1), transparent);
+        }
+
+        .swot-card.weaknesses {
+            border-color: var(--danger);
+            background: linear-gradient(135deg, rgba(231, 111, 81, 0.1), transparent);
+        }
+
+        .swot-card.opportunities {
+            border-color: var(--analytics-blue);
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.1), transparent);
+        }
+
+        .swot-card.threats {
+            border-color: var(--warning);
+            background: linear-gradient(135deg, rgba(244, 162, 97, 0.1), transparent);
+        }
+
+        .swot-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .swot-header.strengths { color: var(--success); }
+        .swot-header.weaknesses { color: var(--danger); }
+        .swot-header.opportunities { color: var(--analytics-blue); }
+        .swot-header.threats { color: var(--warning); }
+
+        .swot-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .swot-list li {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+
+        .swot-list li:last-child {
+            border-bottom: none;
+        }
+
+        .swot-list li i {
+            margin-top: 0.2rem;
+            font-size: 0.75rem;
+        }
+
+        /* Performance Table Styles */
+        .analytics-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .analytics-table th,
+        .analytics-table td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .analytics-table th {
+            background: var(--bg);
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+
+        .analytics-table tr:hover td {
+            background: rgba(14, 165, 233, 0.05);
+        }
+
+        .analytics-table .trend-up {
+            color: var(--success);
+        }
+
+        .analytics-table .trend-down {
+            color: var(--danger);
+        }
+
+        /* Improvement Plans */
+        .improvement-card {
+            background: var(--bg-lighter);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--analytics-teal);
+        }
+
+        .improvement-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .improvement-title {
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .improvement-status {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .improvement-status.planned {
+            background: rgba(14, 165, 233, 0.2);
+            color: var(--analytics-blue);
+        }
+
+        .improvement-status.in-progress {
+            background: rgba(244, 162, 97, 0.2);
+            color: var(--warning);
+        }
+
+        .improvement-status.completed {
+            background: rgba(42, 157, 143, 0.2);
+            color: var(--success);
+        }
+
+        .improvement-description {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+        }
+
+        .improvement-metrics {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .improvement-metric {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .improvement-metric-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .improvement-metric-value {
+            font-weight: 600;
+            color: var(--analytics-teal);
+        }
+
+        /* Data Export Section */
+        .export-section {
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.1), rgba(20, 184, 166, 0.05));
+            border: 2px solid var(--analytics-blue);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .export-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .export-header h3 {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--analytics-blue);
+        }
+
+        .export-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .export-item {
+            background: var(--bg-lighter);
+            padding: 1rem;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .export-item-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .export-item-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .export-item button {
+            margin-top: 0.5rem;
+            padding: 0.5rem;
+            background: var(--analytics-blue);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s ease;
+        }
+
+        .export-item button:hover {
+            background: var(--analytics-teal);
+        }
+
+        /* Goals vs Actual */
+        .goals-comparison {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .goal-item {
+            background: var(--bg-lighter);
+            border-radius: 12px;
+            padding: 1.25rem;
+        }
+
+        .goal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .goal-name {
+            font-weight: 600;
+        }
+
+        .goal-status {
+            font-size: 0.8rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .goal-status.on-track {
+            background: rgba(42, 157, 143, 0.2);
+            color: var(--success);
+        }
+
+        .goal-status.behind {
+            background: rgba(231, 111, 81, 0.2);
+            color: var(--danger);
+        }
+
+        .goal-status.ahead {
+            background: rgba(14, 165, 233, 0.2);
+            color: var(--analytics-blue);
+        }
+
+        .goal-progress-bar {
+            height: 8px;
+            background: var(--bg);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+
+        .goal-progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+            background: linear-gradient(90deg, var(--analytics-blue), var(--analytics-teal));
+        }
+
+        .goal-numbers {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .goal-numbers .actual {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        /* Edit Modal for Analytics */
+        .analytics-input-group {
+            margin-bottom: 1rem;
+        }
+
+        .analytics-input-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 0.35rem;
+            color: var(--text-secondary);
+        }
+
+        .analytics-input-group input,
+        .analytics-input-group textarea,
+        .analytics-input-group select {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--bg);
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 1rem;
+        }
+
+        .analytics-input-group input:focus,
+        .analytics-input-group textarea:focus,
+        .analytics-input-group select:focus {
+            outline: none;
+            border-color: var(--analytics-blue);
+        }
+
+        .year-data-row {
+            display: grid;
+            grid-template-columns: 80px 1fr 1fr 1fr;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            align-items: center;
+        }
+
+        .year-data-row label {
+            font-weight: 600;
+            color: var(--analytics-blue);
+        }
+
+        .year-data-row input {
+            padding: 0.5rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            font-size: 0.9rem;
+        }
+
     </style>
 </head>
 <body>
@@ -3859,6 +4537,9 @@
         </button>
         <button class="nav-tab" data-tab="plangen" style="background: linear-gradient(135deg, var(--purple), var(--info)); color: white;">
             <i class="fas fa-magic"></i> AI Plan Generator
+        </button>
+        <button class="nav-tab" data-tab="analytics" style="background: linear-gradient(135deg, var(--analytics-blue), var(--analytics-teal)); color: white;">
+            <i class="fas fa-chart-area"></i> Farm Analytics
         </button>
     </div>
 
@@ -6166,6 +6847,641 @@
         </div>
     </div>
 
+    <!-- Farm Analytics Tab -->
+    <div id="tab-analytics" class="tab-content">
+        <!-- Analytics Header -->
+        <div class="analytics-header">
+            <h2><i class="fas fa-chart-area"></i> Historical Farm Analytics</h2>
+            <p>Data-driven insights for loan and grant applications. Track growth, identify opportunities, and build your strongest case.</p>
+        </div>
+
+        <!-- Key Performance Metrics -->
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fas fa-tachometer-alt"></i> Key Performance Metrics</h2>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn-secondary btn-sm" onclick="openEditAnalyticsModal()">
+                        <i class="fas fa-edit"></i> Edit Data
+                    </button>
+                    <button class="btn btn-primary btn-sm" onclick="refreshAnalytics()">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+            </div>
+            <div class="analytics-kpi-grid" id="analyticsKPIGrid">
+                <div class="analytics-kpi-card positive">
+                    <div class="analytics-kpi-label">Total Revenue (2025)</div>
+                    <div class="analytics-kpi-value">
+                        <span id="kpiTotalRevenue">$0</span>
+                        <span class="analytics-kpi-change up" id="kpiRevenueChange">+0%</span>
+                    </div>
+                    <div class="analytics-kpi-subtitle">vs previous year</div>
+                </div>
+                <div class="analytics-kpi-card positive">
+                    <div class="analytics-kpi-label">Total Customers</div>
+                    <div class="analytics-kpi-value">
+                        <span id="kpiTotalCustomers">0</span>
+                        <span class="analytics-kpi-change up" id="kpiCustomerChange">+0</span>
+                    </div>
+                    <div class="analytics-kpi-subtitle">CSA + Wholesale accounts</div>
+                </div>
+                <div class="analytics-kpi-card neutral">
+                    <div class="analytics-kpi-label">Customer Retention</div>
+                    <div class="analytics-kpi-value">
+                        <span id="kpiRetention">0%</span>
+                    </div>
+                    <div class="analytics-kpi-subtitle">Returning customers year-over-year</div>
+                </div>
+                <div class="analytics-kpi-card positive">
+                    <div class="analytics-kpi-label">Revenue Per Customer</div>
+                    <div class="analytics-kpi-value">
+                        <span id="kpiRevenuePerCustomer">$0</span>
+                        <span class="analytics-kpi-change up" id="kpiRPCChange">+0%</span>
+                    </div>
+                    <div class="analytics-kpi-subtitle">Average annual spend</div>
+                </div>
+                <div class="analytics-kpi-card">
+                    <div class="analytics-kpi-label">3-Year CAGR</div>
+                    <div class="analytics-kpi-value">
+                        <span id="kpiCAGR">0%</span>
+                    </div>
+                    <div class="analytics-kpi-subtitle">Compound annual growth rate</div>
+                </div>
+                <div class="analytics-kpi-card">
+                    <div class="analytics-kpi-label">Best Performing Category</div>
+                    <div class="analytics-kpi-value" style="font-size: 1.3rem;">
+                        <span id="kpiBestCategory">--</span>
+                    </div>
+                    <div class="analytics-kpi-subtitle" id="kpiBestCategoryGrowth">--</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Revenue Trends Chart -->
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fas fa-chart-line"></i> Revenue Trends</h2>
+                <div class="analytics-chart-controls">
+                    <button class="analytics-chart-btn active" onclick="setChartView('yearly')">Yearly</button>
+                    <button class="analytics-chart-btn" onclick="setChartView('category')">By Category</button>
+                </div>
+            </div>
+            <div class="analytics-chart-container" style="background: transparent; padding: 0;">
+                <canvas id="revenueChart" style="width: 100%; height: 350px;"></canvas>
+            </div>
+        </div>
+
+        <!-- Product Category Performance -->
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fas fa-layer-group"></i> Product Category Performance</h2>
+            </div>
+            <div style="overflow-x: auto;">
+                <table class="analytics-table" id="categoryPerformanceTable">
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th>2023 Revenue</th>
+                            <th>2024 Revenue</th>
+                            <th>2025 Revenue</th>
+                            <th>YoY Growth</th>
+                            <th>% of Total</th>
+                            <th>Trend</th>
+                        </tr>
+                    </thead>
+                    <tbody id="categoryTableBody">
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Customer Growth -->
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fas fa-users"></i> Customer Growth Analysis</h2>
+            </div>
+            <div class="analytics-kpi-grid">
+                <div class="analytics-kpi-card">
+                    <div class="analytics-kpi-label">CSA Members (2025)</div>
+                    <div class="analytics-kpi-value">
+                        <span id="kpiCSAMembers">0</span>
+                        <span class="analytics-kpi-change" id="kpiCSAChange">--</span>
+                    </div>
+                    <div class="analytics-kpi-subtitle">Summer + Spring + Fall</div>
+                </div>
+                <div class="analytics-kpi-card">
+                    <div class="analytics-kpi-label">Flower Subscribers</div>
+                    <div class="analytics-kpi-value">
+                        <span id="kpiFlowerSubs">0</span>
+                        <span class="analytics-kpi-change" id="kpiFlowerChange">--</span>
+                    </div>
+                    <div class="analytics-kpi-subtitle">Weekly subscriptions</div>
+                </div>
+                <div class="analytics-kpi-card">
+                    <div class="analytics-kpi-label">Wholesale Accounts</div>
+                    <div class="analytics-kpi-value">
+                        <span id="kpiWholesale">0</span>
+                        <span class="analytics-kpi-change" id="kpiWholesaleChange">--</span>
+                    </div>
+                    <div class="analytics-kpi-subtitle">Restaurants & retailers</div>
+                </div>
+                <div class="analytics-kpi-card">
+                    <div class="analytics-kpi-label">Market Customers/Week</div>
+                    <div class="analytics-kpi-value">
+                        <span id="kpiMarketCustomers">0</span>
+                    </div>
+                    <div class="analytics-kpi-subtitle">Average weekly transactions</div>
+                </div>
+            </div>
+            <div class="analytics-chart-container" style="background: transparent; padding: 0; margin-top: 1rem;">
+                <canvas id="customerChart" style="width: 100%; height: 300px;"></canvas>
+            </div>
+        </div>
+
+        <!-- SWOT Analysis -->
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fas fa-chess"></i> SWOT Analysis</h2>
+                <button class="btn btn-secondary btn-sm" onclick="regenerateSWOT()">
+                    <i class="fas fa-magic"></i> AI Regenerate
+                </button>
+            </div>
+            <div class="swot-grid" id="swotGrid">
+                <div class="swot-card strengths">
+                    <div class="swot-header strengths">
+                        <i class="fas fa-plus-circle"></i> Strengths
+                    </div>
+                    <ul class="swot-list" id="swotStrengths">
+                        <li><i class="fas fa-check"></i> <span>Loading analysis...</span></li>
+                    </ul>
+                </div>
+                <div class="swot-card weaknesses">
+                    <div class="swot-header weaknesses">
+                        <i class="fas fa-minus-circle"></i> Weaknesses
+                    </div>
+                    <ul class="swot-list" id="swotWeaknesses">
+                        <li><i class="fas fa-exclamation"></i> <span>Loading analysis...</span></li>
+                    </ul>
+                </div>
+                <div class="swot-card opportunities">
+                    <div class="swot-header opportunities">
+                        <i class="fas fa-lightbulb"></i> Opportunities
+                    </div>
+                    <ul class="swot-list" id="swotOpportunities">
+                        <li><i class="fas fa-arrow-up"></i> <span>Loading analysis...</span></li>
+                    </ul>
+                </div>
+                <div class="swot-card threats">
+                    <div class="swot-header threats">
+                        <i class="fas fa-exclamation-triangle"></i> Threats
+                    </div>
+                    <ul class="swot-list" id="swotThreats">
+                        <li><i class="fas fa-bolt"></i> <span>Loading analysis...</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Goals vs Actual -->
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fas fa-bullseye"></i> Goals vs Actual (2025)</h2>
+                <button class="btn btn-secondary btn-sm" onclick="openEditGoalsModal()">
+                    <i class="fas fa-edit"></i> Edit Goals
+                </button>
+            </div>
+            <div class="goals-comparison" id="goalsComparison">
+                <div class="goal-item">
+                    <div class="goal-header">
+                        <span class="goal-name">Total Revenue</span>
+                        <span class="goal-status on-track">On Track</span>
+                    </div>
+                    <div class="goal-progress-bar">
+                        <div class="goal-progress-fill" style="width: 85%;"></div>
+                    </div>
+                    <div class="goal-numbers">
+                        <span class="actual" id="goalRevenueActual">$0</span>
+                        <span id="goalRevenueTarget">Goal: $0</span>
+                    </div>
+                </div>
+                <div class="goal-item">
+                    <div class="goal-header">
+                        <span class="goal-name">CSA Members</span>
+                        <span class="goal-status ahead">Ahead</span>
+                    </div>
+                    <div class="goal-progress-bar">
+                        <div class="goal-progress-fill" style="width: 110%;"></div>
+                    </div>
+                    <div class="goal-numbers">
+                        <span class="actual" id="goalCSAActual">0</span>
+                        <span id="goalCSATarget">Goal: 0</span>
+                    </div>
+                </div>
+                <div class="goal-item">
+                    <div class="goal-header">
+                        <span class="goal-name">Wholesale Accounts</span>
+                        <span class="goal-status behind">Behind</span>
+                    </div>
+                    <div class="goal-progress-bar">
+                        <div class="goal-progress-fill" style="width: 60%;"></div>
+                    </div>
+                    <div class="goal-numbers">
+                        <span class="actual" id="goalWholesaleActual">0</span>
+                        <span id="goalWholesaleTarget">Goal: 0</span>
+                    </div>
+                </div>
+                <div class="goal-item">
+                    <div class="goal-header">
+                        <span class="goal-name">New Products Launched</span>
+                        <span class="goal-status on-track">On Track</span>
+                    </div>
+                    <div class="goal-progress-bar">
+                        <div class="goal-progress-fill" style="width: 75%;"></div>
+                    </div>
+                    <div class="goal-numbers">
+                        <span class="actual" id="goalProductsActual">0</span>
+                        <span id="goalProductsTarget">Goal: 0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Improvement Plans -->
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fas fa-rocket"></i> Improvement Plans & Strategies</h2>
+                <button class="btn btn-primary btn-sm" onclick="openAddImprovementModal()">
+                    <i class="fas fa-plus"></i> Add Plan
+                </button>
+            </div>
+            <div id="improvementPlansContainer">
+                <div class="improvement-card">
+                    <div class="improvement-header">
+                        <div class="improvement-title">
+                            <i class="fas fa-users" style="color: var(--analytics-teal);"></i>
+                            Expand CSA Membership
+                        </div>
+                        <span class="improvement-status in-progress">In Progress</span>
+                    </div>
+                    <div class="improvement-description">
+                        Increase summer CSA membership by 25% through targeted marketing and referral incentives.
+                    </div>
+                    <div class="improvement-metrics">
+                        <div class="improvement-metric">
+                            <span class="improvement-metric-label">Timeline</span>
+                            <span class="improvement-metric-value">Q1-Q2 2026</span>
+                        </div>
+                        <div class="improvement-metric">
+                            <span class="improvement-metric-label">Investment</span>
+                            <span class="improvement-metric-value">$2,500</span>
+                        </div>
+                        <div class="improvement-metric">
+                            <span class="improvement-metric-label">Expected ROI</span>
+                            <span class="improvement-metric-value">$15,000</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="improvement-card">
+                    <div class="improvement-header">
+                        <div class="improvement-title">
+                            <i class="fas fa-building" style="color: var(--analytics-teal);"></i>
+                            Wholesale Channel Development
+                        </div>
+                        <span class="improvement-status planned">Planned</span>
+                    </div>
+                    <div class="improvement-description">
+                        Target 5 new restaurant accounts in Pittsburgh metro area. Focus on farm-to-table establishments.
+                    </div>
+                    <div class="improvement-metrics">
+                        <div class="improvement-metric">
+                            <span class="improvement-metric-label">Timeline</span>
+                            <span class="improvement-metric-value">Q2-Q3 2026</span>
+                        </div>
+                        <div class="improvement-metric">
+                            <span class="improvement-metric-label">Investment</span>
+                            <span class="improvement-metric-value">$1,000</span>
+                        </div>
+                        <div class="improvement-metric">
+                            <span class="improvement-metric-label">Expected ROI</span>
+                            <span class="improvement-metric-value">$20,000/yr</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="improvement-card">
+                    <div class="improvement-header">
+                        <div class="improvement-title">
+                            <i class="fas fa-tractor" style="color: var(--analytics-teal);"></i>
+                            Equipment Upgrade - Efficiency
+                        </div>
+                        <span class="improvement-status planned">Planned</span>
+                    </div>
+                    <div class="improvement-description">
+                        Upgrade walk-behind tractor and add cultivation attachments to reduce labor hours by 30%.
+                    </div>
+                    <div class="improvement-metrics">
+                        <div class="improvement-metric">
+                            <span class="improvement-metric-label">Timeline</span>
+                            <span class="improvement-metric-value">Q1 2026</span>
+                        </div>
+                        <div class="improvement-metric">
+                            <span class="improvement-metric-label">Investment</span>
+                            <span class="improvement-metric-value">$8,000</span>
+                        </div>
+                        <div class="improvement-metric">
+                            <span class="improvement-metric-label">Labor Savings</span>
+                            <span class="improvement-metric-value">$6,000/yr</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Application-Ready Data Export -->
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fas fa-file-export"></i> Application-Ready Data</h2>
+            </div>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                <i class="fas fa-info-circle" style="color: var(--analytics-blue);"></i>
+                Click "Pull Data" to copy formatted metrics for your loan or grant applications.
+            </p>
+            <div class="export-section">
+                <div class="export-header">
+                    <h3><i class="fas fa-chart-bar"></i> Financial Summary</h3>
+                </div>
+                <div class="export-grid">
+                    <div class="export-item">
+                        <span class="export-item-label">3-Year Revenue History</span>
+                        <span class="export-item-value" id="exportRevHistory">$0 / $0 / $0</span>
+                        <button onclick="pullData('revenue-history')"><i class="fas fa-copy"></i> Pull Data</button>
+                    </div>
+                    <div class="export-item">
+                        <span class="export-item-label">Average Annual Growth</span>
+                        <span class="export-item-value" id="exportAvgGrowth">0%</span>
+                        <button onclick="pullData('avg-growth')"><i class="fas fa-copy"></i> Pull Data</button>
+                    </div>
+                    <div class="export-item">
+                        <span class="export-item-label">Projected Revenue (2026)</span>
+                        <span class="export-item-value" id="exportProjected">$0</span>
+                        <button onclick="pullData('projected')"><i class="fas fa-copy"></i> Pull Data</button>
+                    </div>
+                    <div class="export-item">
+                        <span class="export-item-label">Customer Base</span>
+                        <span class="export-item-value" id="exportCustomerBase">0 total</span>
+                        <button onclick="pullData('customers')"><i class="fas fa-copy"></i> Pull Data</button>
+                    </div>
+                </div>
+            </div>
+            <div class="export-section" style="margin-top: 1rem;">
+                <div class="export-header">
+                    <h3><i class="fas fa-seedling"></i> Business Metrics</h3>
+                </div>
+                <div class="export-grid">
+                    <div class="export-item">
+                        <span class="export-item-label">Revenue by Channel</span>
+                        <span class="export-item-value" style="font-size: 1rem;" id="exportChannels">CSA: $0 | Market: $0 | Wholesale: $0</span>
+                        <button onclick="pullData('channels')"><i class="fas fa-copy"></i> Pull Data</button>
+                    </div>
+                    <div class="export-item">
+                        <span class="export-item-label">Customer Retention Rate</span>
+                        <span class="export-item-value" id="exportRetention">0%</span>
+                        <button onclick="pullData('retention')"><i class="fas fa-copy"></i> Pull Data</button>
+                    </div>
+                    <div class="export-item">
+                        <span class="export-item-label">Top Product Categories</span>
+                        <span class="export-item-value" style="font-size: 1rem;" id="exportTopProducts">--</span>
+                        <button onclick="pullData('products')"><i class="fas fa-copy"></i> Pull Data</button>
+                    </div>
+                    <div class="export-item">
+                        <span class="export-item-label">Full Summary Report</span>
+                        <span class="export-item-value" style="font-size: 1rem;">Complete analytics package</span>
+                        <button onclick="generateFullAnalyticsReport()"><i class="fas fa-file-pdf"></i> Generate PDF</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tips for Using Analytics in Applications -->
+        <div class="card" style="background: linear-gradient(135deg, rgba(14, 165, 233, 0.1), rgba(20, 184, 166, 0.05)); border-color: var(--analytics-blue);">
+            <div class="card-header">
+                <h2><i class="fas fa-lightbulb"></i> Using Analytics in Loan Applications</h2>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+                <div>
+                    <h4 style="color: var(--analytics-blue); margin-bottom: 0.5rem;"><i class="fas fa-chart-line"></i> Show Growth Trajectory</h4>
+                    <ul style="color: var(--text-secondary); padding-left: 1.25rem;">
+                        <li>Highlight year-over-year revenue increases</li>
+                        <li>Show customer base expansion</li>
+                        <li>Demonstrate market diversification</li>
+                        <li>Include concrete percentage improvements</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 style="color: var(--analytics-teal); margin-bottom: 0.5rem;"><i class="fas fa-users"></i> Emphasize Customer Loyalty</h4>
+                    <ul style="color: var(--text-secondary); padding-left: 1.25rem;">
+                        <li>Retention rates show business stability</li>
+                        <li>Growing revenue per customer = healthy business</li>
+                        <li>Diversified customer base = lower risk</li>
+                        <li>Recurring subscriptions = predictable revenue</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 style="color: var(--success); margin-bottom: 0.5rem;"><i class="fas fa-bullseye"></i> Present Clear Plans</h4>
+                    <ul style="color: var(--text-secondary); padding-left: 1.25rem;">
+                        <li>Show you understand your weaknesses</li>
+                        <li>Present actionable improvement strategies</li>
+                        <li>Include realistic ROI projections</li>
+                        <li>Connect loan use to specific growth goals</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Analytics Modal -->
+    <div class="modal-overlay" id="editAnalyticsModal">
+        <div class="modal" style="max-width: 800px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-edit"></i> Edit Historical Data</h2>
+                <button class="modal-close" onclick="closeModal('editAnalyticsModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 1.5rem;">
+                    <h3 style="margin-bottom: 1rem; color: var(--analytics-blue);"><i class="fas fa-dollar-sign"></i> Revenue by Year</h3>
+                    <div class="year-data-row">
+                        <label>Year</label>
+                        <span style="font-weight: 600;">Revenue</span>
+                        <span style="font-weight: 600;">Customers</span>
+                        <span style="font-weight: 600;">Retention %</span>
+                    </div>
+                    <div class="year-data-row">
+                        <label>2023</label>
+                        <input type="text" id="editRevenue2023" placeholder="$50,000">
+                        <input type="number" id="editCustomers2023" placeholder="80">
+                        <input type="number" id="editRetention2023" placeholder="70">
+                    </div>
+                    <div class="year-data-row">
+                        <label>2024</label>
+                        <input type="text" id="editRevenue2024" placeholder="$65,000">
+                        <input type="number" id="editCustomers2024" placeholder="95">
+                        <input type="number" id="editRetention2024" placeholder="75">
+                    </div>
+                    <div class="year-data-row">
+                        <label>2025</label>
+                        <input type="text" id="editRevenue2025" placeholder="$85,000">
+                        <input type="number" id="editCustomers2025" placeholder="120">
+                        <input type="number" id="editRetention2025" placeholder="80">
+                    </div>
+                </div>
+                <div style="margin-bottom: 1.5rem;">
+                    <h3 style="margin-bottom: 1rem; color: var(--analytics-blue);"><i class="fas fa-users"></i> Customer Breakdown (2025)</h3>
+                    <div class="analytics-input-group">
+                        <label>CSA Members (Total)</label>
+                        <input type="number" id="editCSAMembers" placeholder="75">
+                    </div>
+                    <div class="analytics-input-group">
+                        <label>Flower Subscribers</label>
+                        <input type="number" id="editFlowerSubs" placeholder="25">
+                    </div>
+                    <div class="analytics-input-group">
+                        <label>Wholesale Accounts</label>
+                        <input type="number" id="editWholesaleAccounts" placeholder="8">
+                    </div>
+                    <div class="analytics-input-group">
+                        <label>Avg Weekly Market Customers</label>
+                        <input type="number" id="editMarketCustomers" placeholder="50">
+                    </div>
+                </div>
+                <div>
+                    <h3 style="margin-bottom: 1rem; color: var(--analytics-blue);"><i class="fas fa-layer-group"></i> Category Revenue (2025)</h3>
+                    <div class="analytics-input-group">
+                        <label>CSA Vegetables</label>
+                        <input type="text" id="editCatCSA" placeholder="$45,000">
+                    </div>
+                    <div class="analytics-input-group">
+                        <label>Flower Subscriptions</label>
+                        <input type="text" id="editCatFlowers" placeholder="$12,000">
+                    </div>
+                    <div class="analytics-input-group">
+                        <label>Farmers Market Sales</label>
+                        <input type="text" id="editCatMarket" placeholder="$18,000">
+                    </div>
+                    <div class="analytics-input-group">
+                        <label>Wholesale</label>
+                        <input type="text" id="editCatWholesale" placeholder="$8,000">
+                    </div>
+                    <div class="analytics-input-group">
+                        <label>Partner Add-ons</label>
+                        <input type="text" id="editCatPartner" placeholder="$2,000">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('editAnalyticsModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveAnalyticsData()">
+                    <i class="fas fa-save"></i> Save Data
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Goals Modal -->
+    <div class="modal-overlay" id="editGoalsModal">
+        <div class="modal" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-bullseye"></i> Edit Goals (2025)</h2>
+                <button class="modal-close" onclick="closeModal('editGoalsModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="analytics-input-group">
+                    <label>Revenue Goal</label>
+                    <input type="text" id="editGoalRevenue" placeholder="$100,000">
+                </div>
+                <div class="analytics-input-group">
+                    <label>Revenue Actual</label>
+                    <input type="text" id="editActualRevenue" placeholder="$85,000">
+                </div>
+                <div class="analytics-input-group">
+                    <label>CSA Members Goal</label>
+                    <input type="number" id="editGoalCSA" placeholder="100">
+                </div>
+                <div class="analytics-input-group">
+                    <label>CSA Members Actual</label>
+                    <input type="number" id="editActualCSA" placeholder="110">
+                </div>
+                <div class="analytics-input-group">
+                    <label>Wholesale Accounts Goal</label>
+                    <input type="number" id="editGoalWholesale" placeholder="10">
+                </div>
+                <div class="analytics-input-group">
+                    <label>Wholesale Accounts Actual</label>
+                    <input type="number" id="editActualWholesale" placeholder="6">
+                </div>
+                <div class="analytics-input-group">
+                    <label>New Products Goal</label>
+                    <input type="number" id="editGoalProducts" placeholder="4">
+                </div>
+                <div class="analytics-input-group">
+                    <label>New Products Actual</label>
+                    <input type="number" id="editActualProducts" placeholder="3">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('editGoalsModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveGoalsData()">
+                    <i class="fas fa-save"></i> Save Goals
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Improvement Plan Modal -->
+    <div class="modal-overlay" id="addImprovementModal">
+        <div class="modal" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-rocket"></i> Add Improvement Plan</h2>
+                <button class="modal-close" onclick="closeModal('addImprovementModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="analytics-input-group">
+                    <label>Plan Title</label>
+                    <input type="text" id="improvementTitle" placeholder="e.g., Expand CSA Membership">
+                </div>
+                <div class="analytics-input-group">
+                    <label>Description</label>
+                    <textarea id="improvementDescription" rows="3" placeholder="Describe the improvement plan and its goals..."></textarea>
+                </div>
+                <div class="analytics-input-group">
+                    <label>Status</label>
+                    <select id="improvementStatus">
+                        <option value="planned">Planned</option>
+                        <option value="in-progress">In Progress</option>
+                        <option value="completed">Completed</option>
+                    </select>
+                </div>
+                <div class="analytics-input-group">
+                    <label>Timeline</label>
+                    <input type="text" id="improvementTimeline" placeholder="e.g., Q1-Q2 2026">
+                </div>
+                <div class="analytics-input-group">
+                    <label>Investment Required</label>
+                    <input type="text" id="improvementInvestment" placeholder="e.g., $5,000">
+                </div>
+                <div class="analytics-input-group">
+                    <label>Expected ROI/Benefit</label>
+                    <input type="text" id="improvementROI" placeholder="e.g., $15,000/year">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('addImprovementModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveImprovementPlan()">
+                    <i class="fas fa-plus"></i> Add Plan
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Upload Modal -->
     <div class="modal-overlay" id="uploadModal">
         <div class="modal">
@@ -8201,15 +9517,15 @@
                                                 </button>
                                             ` : ''}
                                         </div>
-                                        <div class="vault-item-right">
-                                            ${!uploaded ? `<button class="btn btn-sm btn-secondary" onclick="markDocumentAsHave('${doc.id}', '${doc.name.replace(/'/g, "\\'")}')">
-                                                <i class="fas fa-check"></i> Have
+                                        <div class="vault-item-actions">
+                                            ${!uploaded ? `<button class="vault-btn vault-btn-have" onclick="markDocumentAsHave('${doc.id}', '${doc.name.replace(/'/g, "\\'")}')">
+                                                <i class="fas fa-check"></i> I Have This
                                             </button>` : ''}
-                                            <button class="btn btn-sm ${uploaded ? 'btn-secondary' : 'btn-primary'}" onclick="uploadSpecificDoc('${doc.id}', '${doc.name.replace(/'/g, "\\'")}')">
-                                                <i class="fas fa-${uploaded ? 'sync-alt' : 'upload'}"></i> ${uploaded ? 'Replace' : 'Upload'}
+                                            <button class="vault-btn ${uploaded ? 'vault-btn-replace' : 'vault-btn-upload'}" onclick="uploadSpecificDoc('${doc.id}', '${doc.name.replace(/'/g, "\\'")}')">
+                                                <i class="fas fa-${uploaded ? 'sync-alt' : 'cloud-upload-alt'}"></i> ${uploaded ? 'Replace' : 'Upload'}
                                             </button>
-                                            ${uploaded ? `<button class="btn btn-sm" style="background: var(--danger); color: white;" onclick="removeDocument('${doc.id}')">
-                                                <i class="fas fa-times"></i>
+                                            ${uploaded ? `<button class="vault-btn vault-btn-remove" onclick="removeDocument('${doc.id}')" title="Remove">
+                                                <i class="fas fa-trash-alt"></i>
                                             </button>` : ''}
                                         </div>
                                     </div>
@@ -13180,6 +14496,26 @@
                     if (result.steps?.length) foundItems.push(`${result.steps.length} steps`);
                     if (result.contactName) foundItems.push('Contact info');
 
+                    // Display downloadable resources if found
+                    if (result.resources?.length > 0) {
+                        foundItems.push(`${result.resources.length} resource links`);
+                        let resourceHtml = '<div style="margin-top: 1rem; padding: 1rem; background: rgba(14, 165, 233, 0.1); border: 1px solid rgba(14, 165, 233, 0.3); border-radius: 8px;">';
+                        resourceHtml += '<div style="font-weight: 600; color: var(--info); margin-bottom: 0.5rem;"><i class="fas fa-file-download"></i> Downloadable Resources Found:</div>';
+                        resourceHtml += '<ul style="margin: 0; padding-left: 1.5rem; font-size: 0.85rem;">';
+                        result.resources.forEach(link => {
+                            const fileName = link.split('/').pop().replace(/%20/g, ' ');
+                            const isPdf = link.toLowerCase().endsWith('.pdf');
+                            const isExcel = link.toLowerCase().match(/\.xlsx?$/);
+                            const icon = isPdf ? 'fa-file-pdf' : isExcel ? 'fa-file-excel' : 'fa-file-alt';
+                            const color = isPdf ? '#e74c3c' : isExcel ? '#27ae60' : 'var(--info)';
+                            resourceHtml += `<li style="margin-bottom: 0.5rem;"><a href="${link}" target="_blank" style="color: ${color}; text-decoration: none;"><i class="fas ${icon}"></i> ${decodeURIComponent(fileName)}</a></li>`;
+                        });
+                        resourceHtml += '</ul>';
+                        resourceHtml += '<p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.5rem;"><i class="fas fa-lightbulb"></i> Download these for complete application instructions!</p>';
+                        resourceHtml += '</div>';
+                        statusDiv.innerHTML += resourceHtml;
+                    }
+
                     showNotification(`Extracted: ${foundItems.join(', ')}`, 'success');
                 } else {
                     statusText.innerHTML = '<i class="fas fa-exclamation-triangle" style="color: var(--warning);"></i> ' + (result.error || 'Could not extract requirements. Please fill in manually.');
@@ -14635,6 +15971,1057 @@
         }
 
         console.log('%c Grant Enhancements (Uploads, Videos, Links) Ready', 'color: #9b59b6; font-weight: bold; font-size: 12px;');
+
+        // ====== FARM ANALYTICS FUNCTIONS ======
+
+        // Analytics data storage
+        let farmAnalyticsData = {
+            yearlyData: {
+                2023: { revenue: 50000, customers: 80, retention: 70 },
+                2024: { revenue: 65000, customers: 95, retention: 75 },
+                2025: { revenue: 85000, customers: 120, retention: 80 }
+            },
+            customerBreakdown: {
+                csaMembers: 75,
+                flowerSubs: 25,
+                wholesaleAccounts: 8,
+                marketCustomers: 50
+            },
+            categoryRevenue: {
+                2023: { csa: 28000, flowers: 8000, market: 10000, wholesale: 3000, partner: 1000 },
+                2024: { csa: 35000, flowers: 10000, market: 14000, wholesale: 5000, partner: 1000 },
+                2025: { csa: 45000, flowers: 12000, market: 18000, wholesale: 8000, partner: 2000 }
+            },
+            goals: {
+                revenue: { target: 100000, actual: 85000 },
+                csaMembers: { target: 100, actual: 110 },
+                wholesaleAccounts: { target: 10, actual: 6 },
+                newProducts: { target: 4, actual: 3 }
+            },
+            swot: {
+                strengths: [
+                    "Strong year-over-year revenue growth (30%+ annually)",
+                    "High customer retention rate (80%)",
+                    "Diversified revenue streams across 5 channels",
+                    "Established CSA subscriber base with recurring revenue",
+                    "Growing flower subscription business"
+                ],
+                weaknesses: [
+                    "Wholesale channel behind growth targets",
+                    "Limited cold storage capacity constrains production",
+                    "Seasonal revenue concentration in summer months",
+                    "Single-person operation limits scalability"
+                ],
+                opportunities: [
+                    "Expand restaurant partnerships in Pittsburgh metro",
+                    "Add value-added products (dried flowers, preserves)",
+                    "Develop corporate CSA accounts for offices",
+                    "Extend season with high tunnel investment"
+                ],
+                threats: [
+                    "Weather variability affecting crop yields",
+                    "Rising input costs (seeds, supplies, fuel)",
+                    "Competition from larger organic farms",
+                    "Labor market challenges for seasonal help"
+                ]
+            },
+            improvementPlans: []
+        };
+
+        // Charts instances
+        let revenueChartInstance = null;
+        let customerChartInstance = null;
+
+        // Load analytics data from localStorage
+        function loadAnalyticsData() {
+            const saved = localStorage.getItem('farmAnalyticsData');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    farmAnalyticsData = { ...farmAnalyticsData, ...parsed };
+                } catch (e) {
+                    console.error('Error loading analytics data:', e);
+                }
+            }
+
+            // Also try to pull data from sales parser if available
+            const salesData = localStorage.getItem('tinySeedSalesData');
+            if (salesData) {
+                try {
+                    const parsed = JSON.parse(salesData);
+                    if (parsed.yearlyTotals) {
+                        // Merge sales data into analytics
+                        Object.entries(parsed.yearlyTotals).forEach(([year, data]) => {
+                            if (!farmAnalyticsData.yearlyData[year]) {
+                                farmAnalyticsData.yearlyData[year] = { revenue: 0, customers: 0, retention: 0 };
+                            }
+                            if (data.totalRevenue) {
+                                farmAnalyticsData.yearlyData[year].revenue = data.totalRevenue;
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.error('Error merging sales data:', e);
+                }
+            }
+        }
+
+        // Save analytics data to localStorage
+        function saveAnalyticsDataToStorage() {
+            localStorage.setItem('farmAnalyticsData', JSON.stringify(farmAnalyticsData));
+        }
+
+        // Initialize analytics tab
+        function initializeAnalytics() {
+            loadAnalyticsData();
+            renderAnalyticsKPIs();
+            renderCategoryTable();
+            renderGoals();
+            renderSWOT();
+            renderCharts();
+        }
+
+        // Render KPI cards
+        function renderAnalyticsKPIs() {
+            const data = farmAnalyticsData;
+            const currentYear = 2025;
+            const prevYear = 2024;
+
+            // Total Revenue
+            const currentRevenue = data.yearlyData[currentYear]?.revenue || 0;
+            const prevRevenue = data.yearlyData[prevYear]?.revenue || 0;
+            const revenueChange = prevRevenue > 0 ? ((currentRevenue - prevRevenue) / prevRevenue * 100).toFixed(1) : 0;
+
+            document.getElementById('kpiTotalRevenue').textContent = formatCurrency(currentRevenue);
+            const revenueChangeEl = document.getElementById('kpiRevenueChange');
+            revenueChangeEl.textContent = (revenueChange >= 0 ? '+' : '') + revenueChange + '%';
+            revenueChangeEl.className = 'analytics-kpi-change ' + (revenueChange >= 0 ? 'up' : 'down');
+
+            // Total Customers
+            const currentCustomers = data.yearlyData[currentYear]?.customers || 0;
+            const prevCustomers = data.yearlyData[prevYear]?.customers || 0;
+            const customerChange = currentCustomers - prevCustomers;
+
+            document.getElementById('kpiTotalCustomers').textContent = currentCustomers;
+            const customerChangeEl = document.getElementById('kpiCustomerChange');
+            customerChangeEl.textContent = (customerChange >= 0 ? '+' : '') + customerChange;
+            customerChangeEl.className = 'analytics-kpi-change ' + (customerChange >= 0 ? 'up' : 'down');
+
+            // Retention
+            document.getElementById('kpiRetention').textContent = (data.yearlyData[currentYear]?.retention || 0) + '%';
+
+            // Revenue per customer
+            const rpc = currentCustomers > 0 ? currentRevenue / currentCustomers : 0;
+            const prevRpc = prevCustomers > 0 ? prevRevenue / prevCustomers : 0;
+            const rpcChange = prevRpc > 0 ? ((rpc - prevRpc) / prevRpc * 100).toFixed(1) : 0;
+
+            document.getElementById('kpiRevenuePerCustomer').textContent = formatCurrency(rpc);
+            const rpcChangeEl = document.getElementById('kpiRPCChange');
+            rpcChangeEl.textContent = (rpcChange >= 0 ? '+' : '') + rpcChange + '%';
+            rpcChangeEl.className = 'analytics-kpi-change ' + (rpcChange >= 0 ? 'up' : 'down');
+
+            // CAGR (3-year)
+            const years = Object.keys(data.yearlyData).sort();
+            if (years.length >= 2) {
+                const firstYear = years[0];
+                const lastYear = years[years.length - 1];
+                const firstRevenue = data.yearlyData[firstYear]?.revenue || 0;
+                const lastRevenue = data.yearlyData[lastYear]?.revenue || 0;
+                const numYears = parseInt(lastYear) - parseInt(firstYear);
+
+                if (firstRevenue > 0 && numYears > 0) {
+                    const cagr = (Math.pow(lastRevenue / firstRevenue, 1 / numYears) - 1) * 100;
+                    document.getElementById('kpiCAGR').textContent = cagr.toFixed(1) + '%';
+                }
+            }
+
+            // Best performing category
+            const catData = data.categoryRevenue[currentYear];
+            if (catData) {
+                const categories = Object.entries(catData);
+                const best = categories.reduce((a, b) => a[1] > b[1] ? a : b);
+                const categoryNames = {
+                    csa: 'CSA Vegetables',
+                    flowers: 'Flowers',
+                    market: 'Farmers Market',
+                    wholesale: 'Wholesale',
+                    partner: 'Partner Add-ons'
+                };
+                document.getElementById('kpiBestCategory').textContent = categoryNames[best[0]] || best[0];
+
+                // Calculate category growth
+                const prevCatData = data.categoryRevenue[prevYear];
+                if (prevCatData && prevCatData[best[0]]) {
+                    const catGrowth = ((best[1] - prevCatData[best[0]]) / prevCatData[best[0]] * 100).toFixed(1);
+                    document.getElementById('kpiBestCategoryGrowth').textContent = (catGrowth >= 0 ? '+' : '') + catGrowth + '% growth YoY';
+                }
+            }
+
+            // Customer breakdown
+            document.getElementById('kpiCSAMembers').textContent = data.customerBreakdown.csaMembers || 0;
+            document.getElementById('kpiFlowerSubs').textContent = data.customerBreakdown.flowerSubs || 0;
+            document.getElementById('kpiWholesale').textContent = data.customerBreakdown.wholesaleAccounts || 0;
+            document.getElementById('kpiMarketCustomers').textContent = data.customerBreakdown.marketCustomers || 0;
+
+            // Update export data
+            updateExportData();
+        }
+
+        // Render category performance table
+        function renderCategoryTable() {
+            const tbody = document.getElementById('categoryTableBody');
+            if (!tbody) return;
+
+            const categoryNames = {
+                csa: 'CSA Vegetables',
+                flowers: 'Flower Subscriptions',
+                market: 'Farmers Market',
+                wholesale: 'Wholesale',
+                partner: 'Partner Add-ons'
+            };
+
+            const categories = ['csa', 'flowers', 'market', 'wholesale', 'partner'];
+            const data = farmAnalyticsData.categoryRevenue;
+
+            let html = '';
+            let total2025 = 0;
+
+            categories.forEach(cat => {
+                const rev2023 = data[2023]?.[cat] || 0;
+                const rev2024 = data[2024]?.[cat] || 0;
+                const rev2025 = data[2025]?.[cat] || 0;
+                total2025 += rev2025;
+
+                const yoyGrowth = rev2024 > 0 ? ((rev2025 - rev2024) / rev2024 * 100).toFixed(1) : 0;
+                const trendClass = yoyGrowth >= 0 ? 'trend-up' : 'trend-down';
+                const trendIcon = yoyGrowth >= 0 ? 'fa-arrow-up' : 'fa-arrow-down';
+
+                html += `
+                    <tr>
+                        <td><strong>${categoryNames[cat]}</strong></td>
+                        <td>${formatCurrency(rev2023)}</td>
+                        <td>${formatCurrency(rev2024)}</td>
+                        <td>${formatCurrency(rev2025)}</td>
+                        <td class="${trendClass}">${yoyGrowth >= 0 ? '+' : ''}${yoyGrowth}%</td>
+                        <td>--</td>
+                        <td class="${trendClass}"><i class="fas ${trendIcon}"></i></td>
+                    </tr>
+                `;
+            });
+
+            // Update percentage of total
+            tbody.innerHTML = html;
+
+            // Recalculate with percentages
+            html = '';
+            categories.forEach(cat => {
+                const rev2023 = data[2023]?.[cat] || 0;
+                const rev2024 = data[2024]?.[cat] || 0;
+                const rev2025 = data[2025]?.[cat] || 0;
+
+                const yoyGrowth = rev2024 > 0 ? ((rev2025 - rev2024) / rev2024 * 100).toFixed(1) : 0;
+                const pctOfTotal = total2025 > 0 ? ((rev2025 / total2025) * 100).toFixed(1) : 0;
+                const trendClass = yoyGrowth >= 0 ? 'trend-up' : 'trend-down';
+                const trendIcon = yoyGrowth >= 0 ? 'fa-arrow-up' : 'fa-arrow-down';
+
+                html += `
+                    <tr>
+                        <td><strong>${categoryNames[cat]}</strong></td>
+                        <td>${formatCurrency(rev2023)}</td>
+                        <td>${formatCurrency(rev2024)}</td>
+                        <td>${formatCurrency(rev2025)}</td>
+                        <td class="${trendClass}">${yoyGrowth >= 0 ? '+' : ''}${yoyGrowth}%</td>
+                        <td>${pctOfTotal}%</td>
+                        <td class="${trendClass}"><i class="fas ${trendIcon}"></i></td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        // Render goals comparison
+        function renderGoals() {
+            const goals = farmAnalyticsData.goals;
+
+            // Revenue
+            const revPct = goals.revenue.target > 0 ? (goals.revenue.actual / goals.revenue.target * 100) : 0;
+            document.getElementById('goalRevenueActual').textContent = formatCurrency(goals.revenue.actual);
+            document.getElementById('goalRevenueTarget').textContent = 'Goal: ' + formatCurrency(goals.revenue.target);
+
+            // CSA
+            const csaPct = goals.csaMembers.target > 0 ? (goals.csaMembers.actual / goals.csaMembers.target * 100) : 0;
+            document.getElementById('goalCSAActual').textContent = goals.csaMembers.actual;
+            document.getElementById('goalCSATarget').textContent = 'Goal: ' + goals.csaMembers.target;
+
+            // Wholesale
+            const wholePct = goals.wholesaleAccounts.target > 0 ? (goals.wholesaleAccounts.actual / goals.wholesaleAccounts.target * 100) : 0;
+            document.getElementById('goalWholesaleActual').textContent = goals.wholesaleAccounts.actual;
+            document.getElementById('goalWholesaleTarget').textContent = 'Goal: ' + goals.wholesaleAccounts.target;
+
+            // Products
+            const prodPct = goals.newProducts.target > 0 ? (goals.newProducts.actual / goals.newProducts.target * 100) : 0;
+            document.getElementById('goalProductsActual').textContent = goals.newProducts.actual;
+            document.getElementById('goalProductsTarget').textContent = 'Goal: ' + goals.newProducts.target;
+
+            // Update progress bars and status badges
+            updateGoalDisplay('Revenue', revPct);
+            updateGoalDisplay('CSA', csaPct);
+            updateGoalDisplay('Wholesale', wholePct);
+            updateGoalDisplay('Products', prodPct);
+        }
+
+        function updateGoalDisplay(goalName, percentage) {
+            const container = document.getElementById('goalsComparison');
+            if (!container) return;
+
+            const goalItems = container.querySelectorAll('.goal-item');
+            goalItems.forEach(item => {
+                const name = item.querySelector('.goal-name');
+                if (name && name.textContent.includes(goalName)) {
+                    const progressFill = item.querySelector('.goal-progress-fill');
+                    const status = item.querySelector('.goal-status');
+
+                    if (progressFill) {
+                        progressFill.style.width = Math.min(percentage, 120) + '%';
+                    }
+
+                    if (status) {
+                        if (percentage >= 100) {
+                            status.textContent = 'Ahead';
+                            status.className = 'goal-status ahead';
+                        } else if (percentage >= 80) {
+                            status.textContent = 'On Track';
+                            status.className = 'goal-status on-track';
+                        } else {
+                            status.textContent = 'Behind';
+                            status.className = 'goal-status behind';
+                        }
+                    }
+                }
+            });
+        }
+
+        // Render SWOT analysis
+        function renderSWOT() {
+            const swot = farmAnalyticsData.swot;
+
+            ['strengths', 'weaknesses', 'opportunities', 'threats'].forEach(type => {
+                const el = document.getElementById('swot' + type.charAt(0).toUpperCase() + type.slice(1));
+                if (el && swot[type]) {
+                    const icons = {
+                        strengths: 'fa-check',
+                        weaknesses: 'fa-exclamation',
+                        opportunities: 'fa-arrow-up',
+                        threats: 'fa-bolt'
+                    };
+
+                    el.innerHTML = swot[type].map(item =>
+                        `<li><i class="fas ${icons[type]}"></i> <span>${item}</span></li>`
+                    ).join('');
+                }
+            });
+        }
+
+        // Render charts
+        function renderCharts() {
+            renderRevenueChart();
+            renderCustomerChart();
+        }
+
+        function renderRevenueChart() {
+            const ctx = document.getElementById('revenueChart');
+            if (!ctx) return;
+
+            // Destroy existing chart
+            if (revenueChartInstance) {
+                revenueChartInstance.destroy();
+            }
+
+            const years = Object.keys(farmAnalyticsData.yearlyData).sort();
+            const revenues = years.map(y => farmAnalyticsData.yearlyData[y]?.revenue || 0);
+
+            revenueChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: years,
+                    datasets: [{
+                        label: 'Annual Revenue',
+                        data: revenues,
+                        backgroundColor: 'rgba(14, 165, 233, 0.7)',
+                        borderColor: 'rgb(14, 165, 233)',
+                        borderWidth: 2,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return formatCurrency(context.raw);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#9ca3af',
+                                callback: function(value) {
+                                    return '$' + (value / 1000) + 'k';
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: '#9ca3af'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderCustomerChart() {
+            const ctx = document.getElementById('customerChart');
+            if (!ctx) return;
+
+            // Destroy existing chart
+            if (customerChartInstance) {
+                customerChartInstance.destroy();
+            }
+
+            const years = Object.keys(farmAnalyticsData.yearlyData).sort();
+            const customers = years.map(y => farmAnalyticsData.yearlyData[y]?.customers || 0);
+
+            customerChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: years,
+                    datasets: [{
+                        label: 'Total Customers',
+                        data: customers,
+                        borderColor: 'rgb(20, 184, 166)',
+                        backgroundColor: 'rgba(20, 184, 166, 0.2)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 6,
+                        pointHoverRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#9ca3af'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: '#9ca3af'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Chart view toggle
+        function setChartView(view) {
+            const buttons = document.querySelectorAll('.analytics-chart-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            if (view === 'category') {
+                renderCategoryChart();
+            } else {
+                renderRevenueChart();
+            }
+        }
+
+        function renderCategoryChart() {
+            const ctx = document.getElementById('revenueChart');
+            if (!ctx) return;
+
+            if (revenueChartInstance) {
+                revenueChartInstance.destroy();
+            }
+
+            const categoryNames = ['CSA', 'Flowers', 'Market', 'Wholesale', 'Partner'];
+            const categoryKeys = ['csa', 'flowers', 'market', 'wholesale', 'partner'];
+            const colors = [
+                'rgba(42, 157, 143, 0.8)',
+                'rgba(244, 162, 97, 0.8)',
+                'rgba(14, 165, 233, 0.8)',
+                'rgba(155, 89, 182, 0.8)',
+                'rgba(67, 97, 238, 0.8)'
+            ];
+
+            const years = Object.keys(farmAnalyticsData.categoryRevenue).sort();
+
+            const datasets = categoryKeys.map((key, idx) => ({
+                label: categoryNames[idx],
+                data: years.map(y => farmAnalyticsData.categoryRevenue[y]?.[key] || 0),
+                backgroundColor: colors[idx],
+                borderRadius: 4
+            }));
+
+            revenueChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: years,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: '#e0e6ed',
+                                usePointStyle: true,
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + formatCurrency(context.raw);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            grid: { display: false },
+                            ticks: { color: '#9ca3af' }
+                        },
+                        y: {
+                            stacked: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: {
+                                color: '#9ca3af',
+                                callback: function(value) {
+                                    return '$' + (value / 1000) + 'k';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update export data section
+        function updateExportData() {
+            const data = farmAnalyticsData;
+            const years = Object.keys(data.yearlyData).sort();
+
+            // Revenue history
+            const revHistory = years.slice(-3).map(y => formatCurrency(data.yearlyData[y]?.revenue || 0)).join(' / ');
+            document.getElementById('exportRevHistory').textContent = revHistory;
+
+            // Average growth
+            if (years.length >= 2) {
+                let totalGrowth = 0;
+                let growthCount = 0;
+                for (let i = 1; i < years.length; i++) {
+                    const prev = data.yearlyData[years[i-1]]?.revenue || 0;
+                    const curr = data.yearlyData[years[i]]?.revenue || 0;
+                    if (prev > 0) {
+                        totalGrowth += ((curr - prev) / prev * 100);
+                        growthCount++;
+                    }
+                }
+                const avgGrowth = growthCount > 0 ? (totalGrowth / growthCount).toFixed(1) : 0;
+                document.getElementById('exportAvgGrowth').textContent = avgGrowth + '%';
+            }
+
+            // Projected revenue (simple linear projection)
+            const lastYear = years[years.length - 1];
+            const lastRevenue = data.yearlyData[lastYear]?.revenue || 0;
+            const avgGrowthRate = 0.3; // 30% default
+            const projected = lastRevenue * (1 + avgGrowthRate);
+            document.getElementById('exportProjected').textContent = formatCurrency(projected);
+
+            // Customer base
+            const totalCustomers = (data.customerBreakdown.csaMembers || 0) +
+                                   (data.customerBreakdown.flowerSubs || 0) +
+                                   (data.customerBreakdown.wholesaleAccounts || 0);
+            document.getElementById('exportCustomerBase').textContent = totalCustomers + ' total';
+
+            // Channels
+            const cat = data.categoryRevenue[lastYear] || {};
+            const channelStr = `CSA: ${formatCurrency(cat.csa || 0)} | Market: ${formatCurrency(cat.market || 0)} | Wholesale: ${formatCurrency(cat.wholesale || 0)}`;
+            document.getElementById('exportChannels').textContent = channelStr;
+
+            // Retention
+            document.getElementById('exportRetention').textContent = (data.yearlyData[lastYear]?.retention || 0) + '%';
+
+            // Top products
+            const categories = Object.entries(cat).sort((a, b) => b[1] - a[1]).slice(0, 3);
+            const categoryNames = { csa: 'CSA', flowers: 'Flowers', market: 'Market', wholesale: 'Wholesale', partner: 'Partner' };
+            const topProducts = categories.map(([k, v]) => categoryNames[k] || k).join(', ');
+            document.getElementById('exportTopProducts').textContent = topProducts || '--';
+        }
+
+        // Open edit analytics modal
+        function openEditAnalyticsModal() {
+            const data = farmAnalyticsData;
+
+            // Populate year data
+            ['2023', '2024', '2025'].forEach(year => {
+                const yearData = data.yearlyData[year] || {};
+                document.getElementById('editRevenue' + year).value = yearData.revenue ? formatCurrency(yearData.revenue) : '';
+                document.getElementById('editCustomers' + year).value = yearData.customers || '';
+                document.getElementById('editRetention' + year).value = yearData.retention || '';
+            });
+
+            // Customer breakdown
+            document.getElementById('editCSAMembers').value = data.customerBreakdown.csaMembers || '';
+            document.getElementById('editFlowerSubs').value = data.customerBreakdown.flowerSubs || '';
+            document.getElementById('editWholesaleAccounts').value = data.customerBreakdown.wholesaleAccounts || '';
+            document.getElementById('editMarketCustomers').value = data.customerBreakdown.marketCustomers || '';
+
+            // Category revenue (2025)
+            const cat2025 = data.categoryRevenue[2025] || {};
+            document.getElementById('editCatCSA').value = cat2025.csa ? formatCurrency(cat2025.csa) : '';
+            document.getElementById('editCatFlowers').value = cat2025.flowers ? formatCurrency(cat2025.flowers) : '';
+            document.getElementById('editCatMarket').value = cat2025.market ? formatCurrency(cat2025.market) : '';
+            document.getElementById('editCatWholesale').value = cat2025.wholesale ? formatCurrency(cat2025.wholesale) : '';
+            document.getElementById('editCatPartner').value = cat2025.partner ? formatCurrency(cat2025.partner) : '';
+
+            openModal('editAnalyticsModal');
+        }
+
+        // Save analytics data
+        function saveAnalyticsData() {
+            // Parse year data
+            ['2023', '2024', '2025'].forEach(year => {
+                const revenue = parseCurrency(document.getElementById('editRevenue' + year).value);
+                const customers = parseInt(document.getElementById('editCustomers' + year).value) || 0;
+                const retention = parseInt(document.getElementById('editRetention' + year).value) || 0;
+
+                if (!farmAnalyticsData.yearlyData[year]) {
+                    farmAnalyticsData.yearlyData[year] = {};
+                }
+                farmAnalyticsData.yearlyData[year].revenue = revenue;
+                farmAnalyticsData.yearlyData[year].customers = customers;
+                farmAnalyticsData.yearlyData[year].retention = retention;
+            });
+
+            // Customer breakdown
+            farmAnalyticsData.customerBreakdown = {
+                csaMembers: parseInt(document.getElementById('editCSAMembers').value) || 0,
+                flowerSubs: parseInt(document.getElementById('editFlowerSubs').value) || 0,
+                wholesaleAccounts: parseInt(document.getElementById('editWholesaleAccounts').value) || 0,
+                marketCustomers: parseInt(document.getElementById('editMarketCustomers').value) || 0
+            };
+
+            // Category revenue
+            if (!farmAnalyticsData.categoryRevenue[2025]) {
+                farmAnalyticsData.categoryRevenue[2025] = {};
+            }
+            farmAnalyticsData.categoryRevenue[2025] = {
+                csa: parseCurrency(document.getElementById('editCatCSA').value),
+                flowers: parseCurrency(document.getElementById('editCatFlowers').value),
+                market: parseCurrency(document.getElementById('editCatMarket').value),
+                wholesale: parseCurrency(document.getElementById('editCatWholesale').value),
+                partner: parseCurrency(document.getElementById('editCatPartner').value)
+            };
+
+            saveAnalyticsDataToStorage();
+            closeModal('editAnalyticsModal');
+            refreshAnalytics();
+            showNotification('Analytics data saved!', 'success');
+        }
+
+        // Open edit goals modal
+        function openEditGoalsModal() {
+            const goals = farmAnalyticsData.goals;
+
+            document.getElementById('editGoalRevenue').value = goals.revenue.target ? formatCurrency(goals.revenue.target) : '';
+            document.getElementById('editActualRevenue').value = goals.revenue.actual ? formatCurrency(goals.revenue.actual) : '';
+            document.getElementById('editGoalCSA').value = goals.csaMembers.target || '';
+            document.getElementById('editActualCSA').value = goals.csaMembers.actual || '';
+            document.getElementById('editGoalWholesale').value = goals.wholesaleAccounts.target || '';
+            document.getElementById('editActualWholesale').value = goals.wholesaleAccounts.actual || '';
+            document.getElementById('editGoalProducts').value = goals.newProducts.target || '';
+            document.getElementById('editActualProducts').value = goals.newProducts.actual || '';
+
+            openModal('editGoalsModal');
+        }
+
+        // Save goals data
+        function saveGoalsData() {
+            farmAnalyticsData.goals = {
+                revenue: {
+                    target: parseCurrency(document.getElementById('editGoalRevenue').value),
+                    actual: parseCurrency(document.getElementById('editActualRevenue').value)
+                },
+                csaMembers: {
+                    target: parseInt(document.getElementById('editGoalCSA').value) || 0,
+                    actual: parseInt(document.getElementById('editActualCSA').value) || 0
+                },
+                wholesaleAccounts: {
+                    target: parseInt(document.getElementById('editGoalWholesale').value) || 0,
+                    actual: parseInt(document.getElementById('editActualWholesale').value) || 0
+                },
+                newProducts: {
+                    target: parseInt(document.getElementById('editGoalProducts').value) || 0,
+                    actual: parseInt(document.getElementById('editActualProducts').value) || 0
+                }
+            };
+
+            saveAnalyticsDataToStorage();
+            closeModal('editGoalsModal');
+            renderGoals();
+            showNotification('Goals saved!', 'success');
+        }
+
+        // Open add improvement modal
+        function openAddImprovementModal() {
+            document.getElementById('improvementTitle').value = '';
+            document.getElementById('improvementDescription').value = '';
+            document.getElementById('improvementStatus').value = 'planned';
+            document.getElementById('improvementTimeline').value = '';
+            document.getElementById('improvementInvestment').value = '';
+            document.getElementById('improvementROI').value = '';
+
+            openModal('addImprovementModal');
+        }
+
+        // Save improvement plan
+        function saveImprovementPlan() {
+            const plan = {
+                title: document.getElementById('improvementTitle').value.trim(),
+                description: document.getElementById('improvementDescription').value.trim(),
+                status: document.getElementById('improvementStatus').value,
+                timeline: document.getElementById('improvementTimeline').value.trim(),
+                investment: document.getElementById('improvementInvestment').value.trim(),
+                roi: document.getElementById('improvementROI').value.trim()
+            };
+
+            if (!plan.title) {
+                showNotification('Please enter a plan title', 'error');
+                return;
+            }
+
+            farmAnalyticsData.improvementPlans.push(plan);
+            saveAnalyticsDataToStorage();
+            closeModal('addImprovementModal');
+            renderImprovementPlans();
+            showNotification('Improvement plan added!', 'success');
+        }
+
+        // Render improvement plans
+        function renderImprovementPlans() {
+            const container = document.getElementById('improvementPlansContainer');
+            if (!container || !farmAnalyticsData.improvementPlans.length) return;
+
+            // Keep the default plans and add user plans
+            const defaultPlans = container.innerHTML;
+
+            const userPlans = farmAnalyticsData.improvementPlans.map(plan => `
+                <div class="improvement-card">
+                    <div class="improvement-header">
+                        <div class="improvement-title">
+                            <i class="fas fa-rocket" style="color: var(--analytics-teal);"></i>
+                            ${plan.title}
+                        </div>
+                        <span class="improvement-status ${plan.status}">${plan.status.replace('-', ' ')}</span>
+                    </div>
+                    <div class="improvement-description">${plan.description}</div>
+                    <div class="improvement-metrics">
+                        <div class="improvement-metric">
+                            <span class="improvement-metric-label">Timeline</span>
+                            <span class="improvement-metric-value">${plan.timeline || 'TBD'}</span>
+                        </div>
+                        <div class="improvement-metric">
+                            <span class="improvement-metric-label">Investment</span>
+                            <span class="improvement-metric-value">${plan.investment || 'TBD'}</span>
+                        </div>
+                        <div class="improvement-metric">
+                            <span class="improvement-metric-label">Expected ROI</span>
+                            <span class="improvement-metric-value">${plan.roi || 'TBD'}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            container.innerHTML = defaultPlans + userPlans;
+        }
+
+        // Regenerate SWOT with AI
+        async function regenerateSWOT() {
+            showNotification('Analyzing data for SWOT...', 'info');
+
+            // Generate SWOT based on actual data
+            const data = farmAnalyticsData;
+            const years = Object.keys(data.yearlyData).sort();
+            const lastYear = years[years.length - 1];
+            const prevYear = years[years.length - 2];
+
+            const currentRevenue = data.yearlyData[lastYear]?.revenue || 0;
+            const prevRevenue = data.yearlyData[prevYear]?.revenue || 0;
+            const growth = prevRevenue > 0 ? ((currentRevenue - prevRevenue) / prevRevenue * 100) : 0;
+            const retention = data.yearlyData[lastYear]?.retention || 0;
+
+            // Generate dynamic SWOT based on data
+            const newSwot = {
+                strengths: [],
+                weaknesses: [],
+                opportunities: [],
+                threats: data.swot.threats // Keep default threats
+            };
+
+            // Analyze strengths
+            if (growth > 20) {
+                newSwot.strengths.push(`Strong revenue growth of ${growth.toFixed(0)}% year-over-year`);
+            }
+            if (retention > 70) {
+                newSwot.strengths.push(`High customer retention rate (${retention}%)`);
+            }
+            if (data.customerBreakdown.csaMembers > 50) {
+                newSwot.strengths.push(`Established CSA subscriber base (${data.customerBreakdown.csaMembers} members)`);
+            }
+            if (Object.keys(data.categoryRevenue[lastYear] || {}).length >= 4) {
+                newSwot.strengths.push('Diversified revenue streams across multiple channels');
+            }
+            if (data.customerBreakdown.flowerSubs > 10) {
+                newSwot.strengths.push('Growing flower subscription business');
+            }
+
+            // Add defaults if not enough
+            if (newSwot.strengths.length < 3) {
+                newSwot.strengths.push(...data.swot.strengths.slice(0, 5 - newSwot.strengths.length));
+            }
+
+            // Analyze weaknesses
+            const goals = data.goals;
+            if (goals.wholesaleAccounts.actual < goals.wholesaleAccounts.target * 0.8) {
+                newSwot.weaknesses.push(`Wholesale channel behind target (${goals.wholesaleAccounts.actual}/${goals.wholesaleAccounts.target} accounts)`);
+            }
+            if (retention < 75) {
+                newSwot.weaknesses.push(`Customer retention could be improved (currently ${retention}%)`);
+            }
+
+            // Add defaults
+            newSwot.weaknesses.push(...data.swot.weaknesses.filter(w => !newSwot.weaknesses.some(nw => nw.includes('Wholesale'))).slice(0, 4 - newSwot.weaknesses.length));
+
+            // Opportunities based on data
+            newSwot.opportunities = data.swot.opportunities;
+
+            farmAnalyticsData.swot = newSwot;
+            saveAnalyticsDataToStorage();
+            renderSWOT();
+            showNotification('SWOT analysis updated!', 'success');
+        }
+
+        // Pull data for applications
+        function pullData(dataType) {
+            let text = '';
+            const data = farmAnalyticsData;
+            const years = Object.keys(data.yearlyData).sort();
+
+            switch(dataType) {
+                case 'revenue-history':
+                    text = `Revenue History:\n`;
+                    years.forEach(y => {
+                        text += `${y}: ${formatCurrency(data.yearlyData[y]?.revenue || 0)}\n`;
+                    });
+                    break;
+
+                case 'avg-growth':
+                    let totalGrowth = 0;
+                    let count = 0;
+                    for (let i = 1; i < years.length; i++) {
+                        const prev = data.yearlyData[years[i-1]]?.revenue || 0;
+                        const curr = data.yearlyData[years[i]]?.revenue || 0;
+                        if (prev > 0) {
+                            totalGrowth += ((curr - prev) / prev * 100);
+                            count++;
+                        }
+                    }
+                    const avgGrowth = count > 0 ? (totalGrowth / count).toFixed(1) : 0;
+                    text = `Average Annual Revenue Growth: ${avgGrowth}%\n`;
+                    text += `Based on ${count} year(s) of data (${years.join('-')})`;
+                    break;
+
+                case 'projected':
+                    const lastRev = data.yearlyData[years[years.length-1]]?.revenue || 0;
+                    const projected = lastRev * 1.3;
+                    text = `Projected Revenue (2026): ${formatCurrency(projected)}\n`;
+                    text += `Based on historical growth trends and expansion plans`;
+                    break;
+
+                case 'customers':
+                    text = `Customer Base Summary:\n`;
+                    text += `CSA Members: ${data.customerBreakdown.csaMembers}\n`;
+                    text += `Flower Subscribers: ${data.customerBreakdown.flowerSubs}\n`;
+                    text += `Wholesale Accounts: ${data.customerBreakdown.wholesaleAccounts}\n`;
+                    text += `Weekly Market Customers: ~${data.customerBreakdown.marketCustomers}`;
+                    break;
+
+                case 'channels':
+                    const cat = data.categoryRevenue[years[years.length-1]] || {};
+                    text = `Revenue by Channel (${years[years.length-1]}):\n`;
+                    text += `CSA Vegetables: ${formatCurrency(cat.csa || 0)}\n`;
+                    text += `Flower Subscriptions: ${formatCurrency(cat.flowers || 0)}\n`;
+                    text += `Farmers Market: ${formatCurrency(cat.market || 0)}\n`;
+                    text += `Wholesale: ${formatCurrency(cat.wholesale || 0)}\n`;
+                    text += `Partner Products: ${formatCurrency(cat.partner || 0)}`;
+                    break;
+
+                case 'retention':
+                    const ret = data.yearlyData[years[years.length-1]]?.retention || 0;
+                    text = `Customer Retention Rate: ${ret}%\n`;
+                    text += `Year-over-year returning customers`;
+                    break;
+
+                case 'products':
+                    const catData = data.categoryRevenue[years[years.length-1]] || {};
+                    const sorted = Object.entries(catData).sort((a, b) => b[1] - a[1]);
+                    const names = { csa: 'CSA Vegetables', flowers: 'Flower Subscriptions', market: 'Farmers Market', wholesale: 'Wholesale', partner: 'Partner Products' };
+                    text = `Top Revenue Categories:\n`;
+                    sorted.forEach(([k, v], i) => {
+                        text += `${i+1}. ${names[k] || k}: ${formatCurrency(v)}\n`;
+                    });
+                    break;
+            }
+
+            navigator.clipboard.writeText(text).then(() => {
+                showNotification('Data copied to clipboard!', 'success');
+            }).catch(() => {
+                // Fallback
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                showNotification('Data copied to clipboard!', 'success');
+            });
+        }
+
+        // Generate full analytics PDF report
+        function generateFullAnalyticsReport() {
+            showNotification('Generating PDF report...', 'info');
+
+            // For now, generate a text summary that can be copied
+            const data = farmAnalyticsData;
+            const years = Object.keys(data.yearlyData).sort();
+            const lastYear = years[years.length - 1];
+
+            let report = `
+TINY SEED FARM - ANALYTICS REPORT
+Generated: ${new Date().toLocaleDateString()}
+=====================================
+
+REVENUE HISTORY
+`;
+            years.forEach(y => {
+                report += `${y}: ${formatCurrency(data.yearlyData[y]?.revenue || 0)}\n`;
+            });
+
+            report += `
+CUSTOMER METRICS
+- Total Customers: ${data.yearlyData[lastYear]?.customers || 0}
+- CSA Members: ${data.customerBreakdown.csaMembers}
+- Flower Subscribers: ${data.customerBreakdown.flowerSubs}
+- Wholesale Accounts: ${data.customerBreakdown.wholesaleAccounts}
+- Customer Retention: ${data.yearlyData[lastYear]?.retention || 0}%
+
+REVENUE BY CATEGORY (${lastYear})
+`;
+            const cat = data.categoryRevenue[lastYear] || {};
+            const names = { csa: 'CSA Vegetables', flowers: 'Flower Subscriptions', market: 'Farmers Market', wholesale: 'Wholesale', partner: 'Partner Products' };
+            Object.entries(cat).forEach(([k, v]) => {
+                report += `- ${names[k] || k}: ${formatCurrency(v)}\n`;
+            });
+
+            report += `
+STRENGTHS
+`;
+            data.swot.strengths.forEach(s => report += `- ${s}\n`);
+
+            report += `
+IMPROVEMENT PLANS
+`;
+            data.improvementPlans.forEach(p => {
+                report += `- ${p.title}: ${p.description} (${p.status})\n`;
+            });
+
+            // Copy to clipboard
+            navigator.clipboard.writeText(report).then(() => {
+                showNotification('Report copied to clipboard! Paste into a document.', 'success');
+            });
+        }
+
+        // Refresh analytics
+        function refreshAnalytics() {
+            loadAnalyticsData();
+            renderAnalyticsKPIs();
+            renderCategoryTable();
+            renderGoals();
+            renderSWOT();
+            renderCharts();
+            renderImprovementPlans();
+        }
+
+        // Helper: Parse currency string to number
+        function parseCurrency(str) {
+            if (!str) return 0;
+            return parseFloat(str.replace(/[$,]/g, '')) || 0;
+        }
+
+        // Helper: Format number as currency (if not already defined)
+        if (typeof formatCurrency !== 'function') {
+            function formatCurrency(num) {
+                return '$' + (num || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+            }
+        }
+
+        // Initialize analytics when tab is shown
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add listener for analytics tab
+            const analyticsTab = document.querySelector('[data-tab="analytics"]');
+            if (analyticsTab) {
+                analyticsTab.addEventListener('click', function() {
+                    setTimeout(initializeAnalytics, 100);
+                });
+            }
+        });
+
+        console.log('%c Farm Analytics Module Ready', 'color: #0ea5e9; font-weight: bold; font-size: 12px;');
     </script>
 
     <!-- AI Recategorization Modal Overlay -->

@@ -1334,6 +1334,553 @@
       .ai-panel { width: 100%; right: -100%; }
       .ai-fab { bottom: 100px; }
     }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       ADVANCED FEATURES SECTIONS
+       ═══════════════════════════════════════════════════════════════════════════ */
+
+    /* Feature Toggle Section */
+    .features-toggle {
+      padding: 16px 20px;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      flex-shrink: 0;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .feature-tab {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 8px 16px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .feature-tab:hover,
+    .feature-tab.active {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .feature-tab .feature-icon {
+      font-size: 14px;
+    }
+
+    /* Voice Command Section */
+    .voice-section {
+      padding: 0 20px 20px;
+      display: none;
+    }
+
+    .voice-section.active {
+      display: block;
+    }
+
+    .voice-card {
+      background: linear-gradient(135deg, var(--card) 0%, #1f1f1f 100%);
+      border: 1px solid var(--accent-blue);
+      border-radius: 16px;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .voice-btn {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent-blue) 0%, #2563eb 100%);
+      border: none;
+      color: white;
+      font-size: 28px;
+      cursor: pointer;
+      margin: 16px auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .voice-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 30px rgba(59, 130, 246, 0.5);
+    }
+
+    .voice-btn.listening {
+      animation: pulse-blue 1.5s infinite;
+    }
+
+    @keyframes pulse-blue {
+      0%, 100% { box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4); }
+      50% { box-shadow: 0 4px 40px rgba(59, 130, 246, 0.7); }
+    }
+
+    .voice-transcript {
+      background: var(--bg);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      margin-top: 16px;
+      min-height: 50px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .voice-transcript.active {
+      color: var(--text);
+    }
+
+    /* Memory/Context Section */
+    .memory-section {
+      padding: 0 20px 20px;
+      display: none;
+    }
+
+    .memory-section.active {
+      display: block;
+    }
+
+    .memory-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 12px;
+      border-left: 3px solid var(--accent-blue);
+    }
+
+    .memory-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .memory-type {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent-blue);
+      text-transform: uppercase;
+    }
+
+    .memory-date {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .memory-content {
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    /* Autonomy Settings Section */
+    .autonomy-section {
+      padding: 0 20px 20px;
+      display: none;
+    }
+
+    .autonomy-section.active {
+      display: block;
+    }
+
+    .autonomy-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+
+    .autonomy-level {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .autonomy-meter {
+      flex: 1;
+      height: 8px;
+      background: var(--bg);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .autonomy-meter-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent) 0%, var(--accent-blue) 100%);
+      border-radius: 4px;
+      transition: width 0.3s;
+    }
+
+    .autonomy-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      min-width: 100px;
+    }
+
+    .autonomy-permissions {
+      display: grid;
+      gap: 12px;
+    }
+
+    .autonomy-perm {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px;
+      background: var(--bg);
+      border-radius: var(--radius-sm);
+    }
+
+    .autonomy-perm-label {
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .autonomy-toggle {
+      width: 44px;
+      height: 24px;
+      background: var(--border);
+      border-radius: 12px;
+      cursor: pointer;
+      position: relative;
+      transition: background 0.2s;
+    }
+
+    .autonomy-toggle.active {
+      background: var(--accent);
+    }
+
+    .autonomy-toggle::after {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: white;
+      border-radius: 50%;
+      top: 2px;
+      left: 2px;
+      transition: transform 0.2s;
+    }
+
+    .autonomy-toggle.active::after {
+      transform: translateX(20px);
+    }
+
+    /* Calendar AI Section */
+    .calendar-section {
+      padding: 0 20px 20px;
+      display: none;
+    }
+
+    .calendar-section.active {
+      display: block;
+    }
+
+    .calendar-insight {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 12px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .calendar-insight-icon {
+      font-size: 24px;
+      width: 40px;
+      text-align: center;
+    }
+
+    .calendar-insight-content {
+      flex: 1;
+    }
+
+    .calendar-insight-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .calendar-insight-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .calendar-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+
+    /* Predictive Insights Section */
+    .predictive-section {
+      padding: 0 20px 20px;
+      display: none;
+    }
+
+    .predictive-section.active {
+      display: block;
+    }
+
+    .prediction-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 12px;
+      border-left: 3px solid var(--accent-amber);
+    }
+
+    .prediction-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .prediction-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .prediction-confidence {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--accent-amber);
+    }
+
+    .prediction-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text);
+      margin: 8px 0;
+    }
+
+    .prediction-trend {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .prediction-trend.up { color: var(--accent); }
+    .prediction-trend.down { color: var(--accent-red); }
+
+    /* Multi-Agent Section */
+    .multiagent-section {
+      padding: 0 20px 20px;
+      display: none;
+    }
+
+    .multiagent-section.active {
+      display: block;
+    }
+
+    .agent-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 12px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .agent-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-blue) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .agent-info {
+      flex: 1;
+    }
+
+    .agent-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .agent-status {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .agent-status.active {
+      color: var(--accent);
+    }
+
+    .agent-run-btn {
+      background: var(--accent-dim);
+      border: 1px solid var(--accent);
+      border-radius: var(--radius-sm);
+      padding: 8px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .agent-run-btn:hover {
+      background: var(--accent);
+      color: #000;
+    }
+
+    /* SMS Management Section */
+    .sms-section {
+      padding: 0 20px 20px;
+      display: none;
+    }
+
+    .sms-section.active {
+      display: block;
+    }
+
+    .sms-compose {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .sms-compose input,
+    .sms-compose textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      color: var(--text);
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+
+    .sms-compose textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+
+    .sms-history {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+
+    .sms-item {
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sms-item:last-child {
+      border-bottom: none;
+    }
+
+    .sms-item-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .sms-to {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .sms-time {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .sms-message {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* Integration Status Section */
+    .integrations-section {
+      padding: 0 20px 20px;
+      display: none;
+    }
+
+    .integrations-section.active {
+      display: block;
+    }
+
+    .integration-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .integration-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .integration-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-sm);
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .integration-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .integration-status {
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .integration-status.connected {
+      background: rgba(34, 197, 94, 0.2);
+      color: var(--accent);
+    }
+
+    .integration-status.disconnected {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--accent-red);
+    }
+
+    .integration-status.pending {
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--accent-amber);
+    }
   </style>
 </head>
 <body>
@@ -1467,6 +2014,245 @@
       </div>
     </div>
   </div>
+
+  <!-- 5.5 ADVANCED FEATURES TOGGLE -->
+  <section class="features-toggle" id="features-toggle">
+    <button class="feature-tab" data-feature="voice" onclick="showFeature('voice', this)">
+      <span class="feature-icon">🎤</span> Voice
+    </button>
+    <button class="feature-tab" data-feature="calendar" onclick="showFeature('calendar', this)">
+      <span class="feature-icon">📅</span> Calendar AI
+    </button>
+    <button class="feature-tab" data-feature="predictive" onclick="showFeature('predictive', this)">
+      <span class="feature-icon">📊</span> Predictions
+    </button>
+    <button class="feature-tab" data-feature="autonomy" onclick="showFeature('autonomy', this)">
+      <span class="feature-icon">🤖</span> Autonomy
+    </button>
+    <button class="feature-tab" data-feature="multiagent" onclick="showFeature('multiagent', this)">
+      <span class="feature-icon">👥</span> Agents
+    </button>
+    <button class="feature-tab" data-feature="sms" onclick="showFeature('sms', this)">
+      <span class="feature-icon">📱</span> SMS
+    </button>
+    <button class="feature-tab" data-feature="integrations" onclick="showFeature('integrations', this)">
+      <span class="feature-icon">🔗</span> Integrations
+    </button>
+  </section>
+
+  <!-- 6. VOICE COMMAND SECTION -->
+  <section class="voice-section" id="voice-section">
+    <div class="action-cards-header">
+      <h2>Voice Commands</h2>
+      <a href="#" onclick="loadVoiceHistory(); return false;">History</a>
+    </div>
+    <div class="voice-card">
+      <div style="font-size: 24px; margin-bottom: 8px;">Talk to your Chief of Staff</div>
+      <div style="font-size: 14px; color: var(--text-muted); margin-bottom: 16px;">Press the button and speak naturally</div>
+      <button class="voice-btn" id="voice-btn" onclick="toggleVoiceRecording()">🎤</button>
+      <div class="voice-transcript" id="voice-transcript">Press the microphone to start speaking...</div>
+      <div id="voice-response" style="margin-top: 16px;"></div>
+    </div>
+  </section>
+
+  <!-- 7. CALENDAR AI SECTION -->
+  <section class="calendar-section" id="calendar-section">
+    <div class="action-cards-header">
+      <h2>Calendar Intelligence</h2>
+      <a href="#" onclick="refreshCalendarAI(); return false;">Refresh</a>
+    </div>
+    <div id="calendar-insights">
+      <div class="calendar-insight">
+        <div class="calendar-insight-icon">📅</div>
+        <div class="calendar-insight-content">
+          <div class="calendar-insight-title">Loading calendar insights...</div>
+          <div class="calendar-insight-desc">Analyzing your schedule</div>
+        </div>
+      </div>
+    </div>
+    <div class="calendar-actions">
+      <button class="btn btn-secondary" onclick="findMeetingTimes()">Find Meeting Times</button>
+      <button class="btn btn-secondary" onclick="protectFocusTime()">Protect Focus Time</button>
+      <button class="btn btn-primary" onclick="askQuestion('What does my calendar look like today?')">Ask AI</button>
+    </div>
+  </section>
+
+  <!-- 8. PREDICTIVE INSIGHTS SECTION -->
+  <section class="predictive-section" id="predictive-section">
+    <div class="action-cards-header">
+      <h2>Predictive Analytics</h2>
+      <a href="#" onclick="refreshPredictions(); return false;">Refresh</a>
+    </div>
+    <div id="predictions-container">
+      <div class="prediction-card">
+        <div class="prediction-header">
+          <div class="prediction-title">Loading predictions...</div>
+          <div class="prediction-confidence">--% confidence</div>
+        </div>
+        <div class="prediction-value">--</div>
+        <div class="prediction-trend">Analyzing patterns...</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. AUTONOMY SETTINGS SECTION -->
+  <section class="autonomy-section" id="autonomy-section">
+    <div class="action-cards-header">
+      <h2>Autonomy Settings</h2>
+      <a href="#" onclick="refreshAutonomy(); return false;">Refresh</a>
+    </div>
+    <div class="autonomy-card">
+      <div class="autonomy-level">
+        <span class="autonomy-label" id="autonomy-level-label">Level 3: MODERATE</span>
+        <div class="autonomy-meter">
+          <div class="autonomy-meter-fill" id="autonomy-meter-fill" style="width: 60%;"></div>
+        </div>
+      </div>
+      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;" id="autonomy-description">
+        Chief can handle routine decisions autonomously
+      </p>
+      <div class="autonomy-permissions" id="autonomy-permissions">
+        <div class="autonomy-perm">
+          <span class="autonomy-perm-label">Auto-reply to low priority emails</span>
+          <div class="autonomy-toggle active" onclick="toggleAutonomyPerm(this, 'LOW_PRIORITY_EMAILS')"></div>
+        </div>
+        <div class="autonomy-perm">
+          <span class="autonomy-perm-label">Create routine tasks automatically</span>
+          <div class="autonomy-toggle active" onclick="toggleAutonomyPerm(this, 'ROUTINE_TASKS')"></div>
+        </div>
+        <div class="autonomy-perm">
+          <span class="autonomy-perm-label">Approve invoices under $100</span>
+          <div class="autonomy-toggle" onclick="toggleAutonomyPerm(this, 'SMALL_INVOICES')"></div>
+        </div>
+        <div class="autonomy-perm">
+          <span class="autonomy-perm-label">Schedule meetings automatically</span>
+          <div class="autonomy-toggle" onclick="toggleAutonomyPerm(this, 'AUTO_SCHEDULE')"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10. MULTI-AGENT SECTION -->
+  <section class="multiagent-section" id="multiagent-section">
+    <div class="action-cards-header">
+      <h2>AI Agents</h2>
+      <a href="#" onclick="refreshAgents(); return false;">Refresh</a>
+    </div>
+    <div id="agents-container">
+      <div class="agent-card">
+        <div class="agent-avatar">📧</div>
+        <div class="agent-info">
+          <div class="agent-name">Email Agent</div>
+          <div class="agent-status active">Active - Ready</div>
+        </div>
+        <button class="agent-run-btn" onclick="runAgent('email')">Run Task</button>
+      </div>
+      <div class="agent-card">
+        <div class="agent-avatar">📊</div>
+        <div class="agent-info">
+          <div class="agent-name">Analytics Agent</div>
+          <div class="agent-status active">Active - Ready</div>
+        </div>
+        <button class="agent-run-btn" onclick="runAgent('analytics')">Run Task</button>
+      </div>
+      <div class="agent-card">
+        <div class="agent-avatar">🌾</div>
+        <div class="agent-info">
+          <div class="agent-name">Farm Operations Agent</div>
+          <div class="agent-status active">Active - Ready</div>
+        </div>
+        <button class="agent-run-btn" onclick="runAgent('farm_ops')">Run Task</button>
+      </div>
+      <div class="agent-card">
+        <div class="agent-avatar">📋</div>
+        <div class="agent-info">
+          <div class="agent-name">Task Agent</div>
+          <div class="agent-status active">Active - Ready</div>
+        </div>
+        <button class="agent-run-btn" onclick="runAgent('task')">Run Task</button>
+      </div>
+    </div>
+    <div style="margin-top: 16px;">
+      <button class="btn btn-primary" style="width: 100%;" onclick="runCrewMission()">Run Crew Mission</button>
+    </div>
+  </section>
+
+  <!-- 11. SMS MANAGEMENT SECTION -->
+  <section class="sms-section" id="sms-section">
+    <div class="action-cards-header">
+      <h2>SMS Communications</h2>
+      <a href="#" onclick="refreshSMSHistory(); return false;">Refresh</a>
+    </div>
+    <div class="sms-compose">
+      <input type="tel" id="sms-to" placeholder="Phone number (e.g., +1234567890)">
+      <textarea id="sms-message" placeholder="Type your message..."></textarea>
+      <button class="btn btn-primary" style="width: 100%;" onclick="sendSMS()">Send SMS</button>
+    </div>
+    <div class="sms-history" id="sms-history">
+      <h3 class="section-title">Recent Messages</h3>
+      <div id="sms-list">
+        <div class="sms-item">
+          <div class="sms-item-header">
+            <span class="sms-to">Loading...</span>
+            <span class="sms-time">--</span>
+          </div>
+          <div class="sms-message">Loading recent SMS messages...</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12. INTEGRATIONS STATUS SECTION -->
+  <section class="integrations-section" id="integrations-section">
+    <div class="action-cards-header">
+      <h2>Integrations</h2>
+      <a href="#" onclick="refreshIntegrations(); return false;">Refresh</a>
+    </div>
+    <div id="integrations-container">
+      <div class="integration-card">
+        <div class="integration-info">
+          <div class="integration-icon">💬</div>
+          <div class="integration-name">Twilio (SMS)</div>
+        </div>
+        <span class="integration-status pending" id="twilio-status">Checking...</span>
+      </div>
+      <div class="integration-card">
+        <div class="integration-info">
+          <div class="integration-icon">💳</div>
+          <div class="integration-name">QuickBooks</div>
+        </div>
+        <span class="integration-status pending" id="quickbooks-status">Checking...</span>
+      </div>
+      <div class="integration-card">
+        <div class="integration-info">
+          <div class="integration-icon">🛒</div>
+          <div class="integration-name">Shopify</div>
+        </div>
+        <span class="integration-status pending" id="shopify-status">Checking...</span>
+      </div>
+      <div class="integration-card">
+        <div class="integration-info">
+          <div class="integration-icon">🌤️</div>
+          <div class="integration-name">Weather API</div>
+        </div>
+        <span class="integration-status pending" id="weather-status">Checking...</span>
+      </div>
+      <div class="integration-card">
+        <div class="integration-info">
+          <div class="integration-icon">📧</div>
+          <div class="integration-name">Gmail</div>
+        </div>
+        <span class="integration-status connected" id="gmail-status">Connected</span>
+      </div>
+      <div class="integration-card">
+        <div class="integration-info">
+          <div class="integration-icon">📁</div>
+          <div class="integration-name">Google Drive</div>
+        </div>
+        <span class="integration-status connected" id="drive-status">Connected</span>
+      </div>
+    </div>
+  </section>
 
   <!-- 5. BOTTOM NAV -->
   <nav class="bottom-nav">
@@ -2670,6 +3456,600 @@
       if (e.key === 'Escape' && document.getElementById('email-modal-overlay').classList.contains('active')) {
         closeEmailModal();
       }
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ADVANCED FEATURES - Feature Toggle System
+    // ═══════════════════════════════════════════════════════════════════════════
+    let currentFeature = null;
+
+    function showFeature(featureName, buttonEl) {
+      // Update tab states
+      document.querySelectorAll('.feature-tab').forEach(tab => tab.classList.remove('active'));
+      if (buttonEl) buttonEl.classList.add('active');
+
+      // Hide all feature sections
+      const sections = ['voice', 'calendar', 'predictive', 'autonomy', 'multiagent', 'sms', 'integrations'];
+      sections.forEach(section => {
+        const el = document.getElementById(section + '-section');
+        if (el) el.classList.remove('active');
+      });
+
+      // Show selected section if different from current
+      if (currentFeature === featureName) {
+        currentFeature = null;
+        if (buttonEl) buttonEl.classList.remove('active');
+        return;
+      }
+
+      currentFeature = featureName;
+      const sectionEl = document.getElementById(featureName + '-section');
+      if (sectionEl) {
+        sectionEl.classList.add('active');
+        // Load data for the section
+        loadFeatureData(featureName);
+      }
+    }
+
+    function loadFeatureData(featureName) {
+      switch (featureName) {
+        case 'voice':
+          // Voice is ready to use immediately
+          break;
+        case 'calendar':
+          loadCalendarAI();
+          break;
+        case 'predictive':
+          loadPredictions();
+          break;
+        case 'autonomy':
+          loadAutonomyStatus();
+          break;
+        case 'multiagent':
+          loadAgents();
+          break;
+        case 'sms':
+          loadSMSHistory();
+          break;
+        case 'integrations':
+          loadIntegrationStatus();
+          break;
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // VOICE COMMAND INTERFACE
+    // ═══════════════════════════════════════════════════════════════════════════
+    let isRecording = false;
+    let recognition = null;
+
+    function initVoiceRecognition() {
+      if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = true;
+        recognition.lang = 'en-US';
+
+        recognition.onstart = () => {
+          isRecording = true;
+          document.getElementById('voice-btn').classList.add('listening');
+          document.getElementById('voice-transcript').textContent = 'Listening...';
+          document.getElementById('voice-transcript').classList.add('active');
+        };
+
+        recognition.onresult = (event) => {
+          let transcript = '';
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            transcript += event.results[i][0].transcript;
+          }
+          document.getElementById('voice-transcript').textContent = transcript;
+
+          // If final result, process it
+          if (event.results[event.results.length - 1].isFinal) {
+            processVoiceCommand(transcript);
+          }
+        };
+
+        recognition.onerror = (event) => {
+          console.error('Voice recognition error:', event.error);
+          document.getElementById('voice-transcript').textContent = 'Error: ' + event.error + '. Please try again.';
+          stopVoiceRecording();
+        };
+
+        recognition.onend = () => {
+          stopVoiceRecording();
+        };
+      } else {
+        document.getElementById('voice-transcript').textContent = 'Voice recognition not supported in this browser. Try Chrome or Edge.';
+      }
+    }
+
+    function toggleVoiceRecording() {
+      if (!recognition) {
+        initVoiceRecognition();
+      }
+
+      if (isRecording) {
+        recognition.stop();
+      } else {
+        try {
+          recognition.start();
+        } catch (e) {
+          console.error('Voice start error:', e);
+        }
+      }
+    }
+
+    function stopVoiceRecording() {
+      isRecording = false;
+      document.getElementById('voice-btn').classList.remove('listening');
+    }
+
+    async function processVoiceCommand(transcript) {
+      const responseDiv = document.getElementById('voice-response');
+      responseDiv.innerHTML = '<div style="color: var(--text-muted); font-size: 14px;">Processing: "' + escapeHtml(transcript) + '"</div>';
+
+      try {
+        const res = await fetch(`${API_BASE}?action=parseVoiceCommand&transcript=${encodeURIComponent(transcript)}&userId=todd`);
+        const data = await res.json();
+
+        if (data.success || data.action) {
+          let html = '<div style="background: var(--bg); border-radius: var(--radius-sm); padding: 12px; margin-top: 12px;">';
+          html += '<div style="font-weight: 600; margin-bottom: 8px;">Action: ' + escapeHtml(data.action || 'Understood') + '</div>';
+          if (data.response) {
+            html += '<div style="font-size: 14px; color: var(--text);">' + escapeHtml(data.response) + '</div>';
+          }
+          if (data.params) {
+            html += '<div style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">Parameters: ' + escapeHtml(JSON.stringify(data.params)) + '</div>';
+          }
+          html += '</div>';
+          responseDiv.innerHTML = html;
+
+          // Also send to chat for continued conversation
+          if (data.response) {
+            addMessage('ai', data.response);
+          }
+        } else {
+          responseDiv.innerHTML = '<div style="color: var(--accent-amber);">Could not understand command. Try asking in the chat below.</div>';
+          // Fallback to chat
+          askQuestion(transcript);
+        }
+      } catch (e) {
+        console.error('Voice processing error:', e);
+        responseDiv.innerHTML = '<div style="color: var(--accent-red);">Error processing voice command. Using chat instead...</div>';
+        askQuestion(transcript);
+      }
+    }
+
+    function loadVoiceHistory() {
+      showToast('Voice history feature coming soon', 'info');
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CALENDAR AI
+    // ═══════════════════════════════════════════════════════════════════════════
+    async function loadCalendarAI() {
+      const container = document.getElementById('calendar-insights');
+      container.innerHTML = '<div class="calendar-insight"><div class="calendar-insight-icon">⏳</div><div class="calendar-insight-content"><div class="calendar-insight-title">Loading calendar insights...</div></div></div>';
+
+      try {
+        const res = await fetch(`${API_BASE}?action=getCalendarContext&days=3`);
+        const data = await res.json();
+
+        if (data.success || data.events || data.context) {
+          let html = '';
+
+          // Today's events
+          if (data.todayEvents && data.todayEvents.length > 0) {
+            data.todayEvents.forEach(event => {
+              html += `
+                <div class="calendar-insight">
+                  <div class="calendar-insight-icon">📅</div>
+                  <div class="calendar-insight-content">
+                    <div class="calendar-insight-title">${escapeHtml(event.title || event.summary)}</div>
+                    <div class="calendar-insight-desc">${event.time || 'All day'} ${event.location ? '| ' + escapeHtml(event.location) : ''}</div>
+                  </div>
+                </div>
+              `;
+            });
+          }
+
+          // Recommendations
+          if (data.recommendations && data.recommendations.length > 0) {
+            data.recommendations.forEach(rec => {
+              html += `
+                <div class="calendar-insight">
+                  <div class="calendar-insight-icon">💡</div>
+                  <div class="calendar-insight-content">
+                    <div class="calendar-insight-title">${escapeHtml(rec.title || rec)}</div>
+                    <div class="calendar-insight-desc">${escapeHtml(rec.description || '')}</div>
+                  </div>
+                </div>
+              `;
+            });
+          }
+
+          // Conflicts
+          if (data.conflicts && data.conflicts.length > 0) {
+            data.conflicts.forEach(conflict => {
+              html += `
+                <div class="calendar-insight" style="border-left: 3px solid var(--accent-red);">
+                  <div class="calendar-insight-icon">⚠️</div>
+                  <div class="calendar-insight-content">
+                    <div class="calendar-insight-title">Conflict: ${escapeHtml(conflict.title || conflict)}</div>
+                    <div class="calendar-insight-desc">${escapeHtml(conflict.description || '')}</div>
+                  </div>
+                </div>
+              `;
+            });
+          }
+
+          container.innerHTML = html || '<div class="calendar-insight"><div class="calendar-insight-icon">✅</div><div class="calendar-insight-content"><div class="calendar-insight-title">Calendar looks clear!</div><div class="calendar-insight-desc">No events or conflicts detected</div></div></div>';
+        } else {
+          container.innerHTML = '<div class="calendar-insight"><div class="calendar-insight-icon">ℹ️</div><div class="calendar-insight-content"><div class="calendar-insight-title">No calendar data available</div></div></div>';
+        }
+      } catch (e) {
+        console.error('Calendar AI error:', e);
+        container.innerHTML = '<div class="calendar-insight"><div class="calendar-insight-icon">❌</div><div class="calendar-insight-content"><div class="calendar-insight-title">Error loading calendar</div><div class="calendar-insight-desc">' + escapeHtml(e.message) + '</div></div></div>';
+      }
+    }
+
+    function refreshCalendarAI() {
+      loadCalendarAI();
+      showToast('Refreshing calendar insights...', 'info');
+    }
+
+    async function findMeetingTimes() {
+      showToast('Finding available meeting times...', 'info');
+      try {
+        const res = await fetch(`${API_BASE}?action=findMeetingTimes&duration=30&days=5`);
+        const data = await res.json();
+        if (data.success && data.slots) {
+          askQuestion('Show me the available meeting times you found');
+        } else {
+          showToast('Could not find meeting times', 'error');
+        }
+      } catch (e) {
+        showToast('Error finding meeting times', 'error');
+      }
+    }
+
+    async function protectFocusTime() {
+      showToast('Protecting focus time...', 'info');
+      try {
+        const res = await fetch(`${API_BASE}?action=protectFocusTime&days=7`);
+        const data = await res.json();
+        if (data.success) {
+          showToast('Focus time protected!', 'success');
+          loadCalendarAI();
+        } else {
+          showToast('Could not protect focus time', 'error');
+        }
+      } catch (e) {
+        showToast('Error protecting focus time', 'error');
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PREDICTIVE ANALYTICS
+    // ═══════════════════════════════════════════════════════════════════════════
+    async function loadPredictions() {
+      const container = document.getElementById('predictions-container');
+      container.innerHTML = '<div class="prediction-card"><div class="prediction-header"><div class="prediction-title">Loading predictions...</div></div></div>';
+
+      try {
+        const res = await fetch(`${API_BASE}?action=getPredictiveReport`);
+        const data = await res.json();
+
+        if (data.success || data.predictions) {
+          let html = '';
+          const predictions = data.predictions || data;
+
+          // Email volume prediction
+          if (predictions.emailVolume) {
+            html += renderPredictionCard('Email Volume', predictions.emailVolume.expected || '--', predictions.emailVolume.confidence || 75, predictions.emailVolume.trend || 'stable');
+          }
+
+          // Workload forecast
+          if (predictions.workload) {
+            html += renderPredictionCard('Workload Score', predictions.workload.score || '--', predictions.workload.confidence || 70, predictions.workload.trend || 'stable');
+          }
+
+          // Customer activity
+          if (predictions.customerActivity) {
+            html += renderPredictionCard('Customer Activity', predictions.customerActivity.expected || '--', predictions.customerActivity.confidence || 65, predictions.customerActivity.trend || 'up');
+          }
+
+          // Churn risk
+          if (predictions.churnRisk) {
+            html += renderPredictionCard('At-Risk Customers', predictions.churnRisk.count || '0', predictions.churnRisk.confidence || 60, 'alert', true);
+          }
+
+          container.innerHTML = html || '<div class="prediction-card"><div class="prediction-header"><div class="prediction-title">No predictions available</div></div><div class="prediction-value">--</div></div>';
+        } else {
+          container.innerHTML = '<div class="prediction-card"><div class="prediction-header"><div class="prediction-title">Predictions unavailable</div></div><div class="prediction-trend">Backend not responding</div></div>';
+        }
+      } catch (e) {
+        console.error('Predictions error:', e);
+        container.innerHTML = '<div class="prediction-card"><div class="prediction-header"><div class="prediction-title">Error loading predictions</div></div><div class="prediction-trend">' + escapeHtml(e.message) + '</div></div>';
+      }
+    }
+
+    function renderPredictionCard(title, value, confidence, trend, isAlert = false) {
+      const trendClass = trend === 'up' ? 'up' : trend === 'down' ? 'down' : '';
+      const trendIcon = trend === 'up' ? '↑' : trend === 'down' ? '↓' : '→';
+      const borderColor = isAlert ? 'var(--accent-red)' : 'var(--accent-amber)';
+
+      return `
+        <div class="prediction-card" style="border-left-color: ${borderColor};">
+          <div class="prediction-header">
+            <div class="prediction-title">${escapeHtml(title)}</div>
+            <div class="prediction-confidence">${confidence}% confidence</div>
+          </div>
+          <div class="prediction-value">${escapeHtml(String(value))}</div>
+          <div class="prediction-trend ${trendClass}">${trendIcon} ${trend === 'up' ? 'Increasing' : trend === 'down' ? 'Decreasing' : 'Stable'}</div>
+        </div>
+      `;
+    }
+
+    function refreshPredictions() {
+      loadPredictions();
+      showToast('Refreshing predictions...', 'info');
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // AUTONOMY SETTINGS
+    // ═══════════════════════════════════════════════════════════════════════════
+    async function loadAutonomyStatus() {
+      try {
+        const res = await fetch(`${API_BASE}?action=getAutonomyStatus`);
+        const data = await res.json();
+
+        if (data.success && data.status) {
+          const status = data.status;
+          document.getElementById('autonomy-level-label').textContent = `Level ${status.level}: ${status.levelName}`;
+          document.getElementById('autonomy-meter-fill').style.width = `${(status.level / 5) * 100}%`;
+          document.getElementById('autonomy-description').textContent = status.description || 'Chief can handle routine decisions autonomously';
+
+          // Update toggles based on canAutoApprove
+          if (status.canAutoApprove) {
+            document.querySelectorAll('.autonomy-toggle').forEach(toggle => {
+              const perm = toggle.getAttribute('onclick').match(/'([^']+)'/)[1];
+              if (status.canAutoApprove.includes(perm)) {
+                toggle.classList.add('active');
+              } else {
+                toggle.classList.remove('active');
+              }
+            });
+          }
+        }
+      } catch (e) {
+        console.error('Autonomy status error:', e);
+      }
+    }
+
+    function refreshAutonomy() {
+      loadAutonomyStatus();
+      showToast('Refreshing autonomy settings...', 'info');
+    }
+
+    async function toggleAutonomyPerm(toggleEl, permName) {
+      const isActive = toggleEl.classList.contains('active');
+      const newLevel = isActive ? 1 : 3; // Toggle between low and moderate
+
+      toggleEl.classList.toggle('active');
+
+      try {
+        const res = await fetch(`${API_BASE}?action=setAutonomyLevel&action=${encodeURIComponent(permName)}&level=${newLevel}`);
+        const data = await res.json();
+        if (!data.success) {
+          toggleEl.classList.toggle('active'); // Revert on failure
+          showToast('Failed to update setting', 'error');
+        } else {
+          showToast('Autonomy setting updated', 'success');
+        }
+      } catch (e) {
+        toggleEl.classList.toggle('active'); // Revert on failure
+        showToast('Error updating setting', 'error');
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // MULTI-AGENT SYSTEM
+    // ═══════════════════════════════════════════════════════════════════════════
+    async function loadAgents() {
+      try {
+        const res = await fetch(`${API_BASE}?action=getAvailableAgents`);
+        const data = await res.json();
+
+        if (data.success && data.agents) {
+          const container = document.getElementById('agents-container');
+          container.innerHTML = data.agents.map(agent => `
+            <div class="agent-card">
+              <div class="agent-avatar">${agent.icon || '🤖'}</div>
+              <div class="agent-info">
+                <div class="agent-name">${escapeHtml(agent.name)}</div>
+                <div class="agent-status ${agent.status === 'READY' ? 'active' : ''}">${agent.status || 'Ready'}</div>
+              </div>
+              <button class="agent-run-btn" onclick="runAgent('${agent.type}')">Run Task</button>
+            </div>
+          `).join('');
+        }
+      } catch (e) {
+        console.error('Load agents error:', e);
+      }
+    }
+
+    function refreshAgents() {
+      loadAgents();
+      showToast('Refreshing agents...', 'info');
+    }
+
+    async function runAgent(agentType) {
+      showToast(`Running ${agentType} agent...`, 'info');
+      try {
+        const res = await fetch(`${API_BASE}?action=runAgentTask&agentType=${encodeURIComponent(agentType)}&task=${encodeURIComponent(JSON.stringify({ type: 'default' }))}`);
+        const data = await res.json();
+        if (data.success) {
+          showToast(`${agentType} agent completed!`, 'success');
+          if (data.result) {
+            askQuestion(`Show me the results from the ${agentType} agent task`);
+          }
+        } else {
+          showToast(`Agent error: ${data.error || 'Unknown error'}`, 'error');
+        }
+      } catch (e) {
+        showToast('Error running agent', 'error');
+      }
+    }
+
+    async function runCrewMission() {
+      showToast('Starting crew mission...', 'info');
+      try {
+        const res = await fetch(`${API_BASE}?action=runCrewMission&config=${encodeURIComponent(JSON.stringify({ type: 'morning_briefing' }))}`);
+        const data = await res.json();
+        if (data.success) {
+          showToast('Crew mission completed!', 'success');
+          askQuestion('Give me the crew mission report');
+        } else {
+          showToast(`Mission error: ${data.error || 'Unknown error'}`, 'error');
+        }
+      } catch (e) {
+        showToast('Error running crew mission', 'error');
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SMS MANAGEMENT
+    // ═══════════════════════════════════════════════════════════════════════════
+    async function loadSMSHistory() {
+      const container = document.getElementById('sms-list');
+      try {
+        const res = await fetch(`${API_BASE}?action=getSMSHistory&limit=10`);
+        const data = await res.json();
+
+        if (data.success && data.messages && data.messages.length > 0) {
+          container.innerHTML = data.messages.map(msg => `
+            <div class="sms-item">
+              <div class="sms-item-header">
+                <span class="sms-to">${escapeHtml(msg.to || msg.recipient || 'Unknown')}</span>
+                <span class="sms-time">${formatEmailDate(msg.timestamp || msg.createdAt)}</span>
+              </div>
+              <div class="sms-message">${escapeHtml(msg.body || msg.message || '')}</div>
+            </div>
+          `).join('');
+        } else {
+          container.innerHTML = '<div class="sms-item"><div class="sms-message" style="color: var(--text-muted);">No recent SMS messages</div></div>';
+        }
+      } catch (e) {
+        console.error('SMS history error:', e);
+        container.innerHTML = '<div class="sms-item"><div class="sms-message" style="color: var(--accent-red);">Error loading SMS history</div></div>';
+      }
+    }
+
+    function refreshSMSHistory() {
+      loadSMSHistory();
+      showToast('Refreshing SMS history...', 'info');
+    }
+
+    async function sendSMS() {
+      const toInput = document.getElementById('sms-to');
+      const messageInput = document.getElementById('sms-message');
+      const to = toInput.value.trim();
+      const message = messageInput.value.trim();
+
+      if (!to || !message) {
+        showToast('Please enter phone number and message', 'error');
+        return;
+      }
+
+      showToast('Sending SMS...', 'info');
+      try {
+        const res = await fetch(`${API_BASE}?action=sendSMS&to=${encodeURIComponent(to)}&message=${encodeURIComponent(message)}`);
+        const data = await res.json();
+
+        if (data.success) {
+          showToast('SMS sent successfully!', 'success');
+          messageInput.value = '';
+          loadSMSHistory();
+        } else {
+          showToast(`Failed to send: ${data.error || 'Unknown error'}`, 'error');
+        }
+      } catch (e) {
+        showToast('Error sending SMS', 'error');
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // INTEGRATIONS STATUS
+    // ═══════════════════════════════════════════════════════════════════════════
+    async function loadIntegrationStatus() {
+      try {
+        const res = await fetch(`${API_BASE}?action=getIntegrationStatusCOS`);
+        const data = await res.json();
+
+        if (data.success && data.integrations) {
+          const integrations = data.integrations;
+
+          // Update status badges
+          updateIntegrationBadge('twilio-status', integrations.twilio);
+          updateIntegrationBadge('quickbooks-status', integrations.quickbooks);
+          updateIntegrationBadge('shopify-status', integrations.shopify);
+          updateIntegrationBadge('weather-status', integrations.weather);
+          updateIntegrationBadge('gmail-status', integrations.gmail || { connected: true });
+          updateIntegrationBadge('drive-status', integrations.drive || { connected: true });
+        }
+      } catch (e) {
+        console.error('Integration status error:', e);
+      }
+    }
+
+    function updateIntegrationBadge(elementId, status) {
+      const badge = document.getElementById(elementId);
+      if (!badge) return;
+
+      badge.className = 'integration-status';
+      if (status && (status.connected || status.status === 'connected')) {
+        badge.classList.add('connected');
+        badge.textContent = 'Connected';
+      } else if (status && status.status === 'pending') {
+        badge.classList.add('pending');
+        badge.textContent = 'Pending';
+      } else {
+        badge.classList.add('disconnected');
+        badge.textContent = status?.error || 'Disconnected';
+      }
+    }
+
+    function refreshIntegrations() {
+      loadIntegrationStatus();
+      showToast('Refreshing integrations...', 'info');
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // EXTENDED COMMANDS FOR COMMAND PALETTE
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Add new commands to the command palette
+    const advancedCommands = [
+      { id: 'voice-mode', icon: '🎤', title: 'Voice Commands', description: 'Speak to your Chief of Staff', category: 'Advanced', action: () => { showFeature('voice'); closeCommandPalette(); } },
+      { id: 'calendar-ai', icon: '📅', title: 'Calendar AI', description: 'Smart calendar insights', category: 'Advanced', action: () => { showFeature('calendar'); closeCommandPalette(); } },
+      { id: 'predictions', icon: '📊', title: 'Predictions', description: 'View predictive analytics', category: 'Advanced', action: () => { showFeature('predictive'); closeCommandPalette(); } },
+      { id: 'autonomy', icon: '🤖', title: 'Autonomy Settings', description: 'Configure AI autonomy', category: 'Advanced', action: () => { showFeature('autonomy'); closeCommandPalette(); } },
+      { id: 'agents', icon: '👥', title: 'AI Agents', description: 'Multi-agent coordination', category: 'Advanced', action: () => { showFeature('multiagent'); closeCommandPalette(); } },
+      { id: 'sms', icon: '📱', title: 'SMS Dashboard', description: 'Send and view SMS', category: 'Advanced', action: () => { showFeature('sms'); closeCommandPalette(); } },
+      { id: 'integrations', icon: '🔗', title: 'Integrations', description: 'View connected services', category: 'Advanced', action: () => { showFeature('integrations'); closeCommandPalette(); } },
+    ];
+
+    // Merge advanced commands into main commands list
+    commands.push(...advancedCommands);
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // INITIALIZE ADVANCED FEATURES
+    // ═══════════════════════════════════════════════════════════════════════════
+    document.addEventListener('DOMContentLoaded', () => {
+      // Preload integration status in background
+      setTimeout(loadIntegrationStatus, 2000);
     });
   </script>
 </body>

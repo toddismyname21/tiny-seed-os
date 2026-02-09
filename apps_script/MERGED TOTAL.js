@@ -16254,6 +16254,10 @@ function doGet(e) {
         return jsonResponse(getPendingMarketingApprovals());
       case 'getMarketingRules':
         return jsonResponse({ success: true, rules: getMarketingRules() });
+      case 'setupMetaAds':
+        return jsonResponse(setupMetaAdsCredentials());
+      case 'getMetaAdsStatus':
+        return jsonResponse(getMetaAdsStatus());
       case 'initializeMarketingAI':
         return jsonResponse(initializeMarketingAISheets());
       case 'getShopifyProductsForMarketing':
@@ -90419,8 +90423,9 @@ function saveCustomLenders(params) {
 
 /**
  * Scrape grant website for requirements using AI
+ * Enhanced version that also detects and fetches PDF resources
  * @param {Object} params - { url }
- * @returns {Object} - { success, grantName, organization, amount, deadline, eligibility, documents, steps }
+ * @returns {Object} - { success, grantName, organization, amount, deadline, eligibility, documents, steps, resources }
  */
 function scrapeGrantRequirements(params) {
   try {
@@ -90429,45 +90434,171 @@ function scrapeGrantRequirements(params) {
       return { success: false, error: 'URL is required' };
     }
 
-    // Fetch the webpage content
+    Logger.log('Grant scraper v2 starting for URL: ' + url);
+    const baseUrl = url.match(/^(https?:\/\/[^\/]+)/)?.[1] || '';
+
+    // Fetch the webpage content with better headers to mimic a real browser
     let pageContent;
+    let fetchAttempt = 0;
     try {
       const response = UrlFetchApp.fetch(url, {
         muteHttpExceptions: true,
         followRedirects: true,
         headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; TinySeedFarmBot/1.0)'
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.5'
         }
       });
 
       const responseCode = response.getResponseCode();
+      Logger.log('Fetch response code: ' + responseCode);
+
       if (responseCode !== 200) {
-        return { success: false, error: 'Failed to fetch page (HTTP ' + responseCode + ')' };
+        return { success: false, error: 'Failed to fetch page (HTTP ' + responseCode + ')', debugInfo: { url: url, httpCode: responseCode } };
       }
 
       pageContent = response.getContentText();
+      Logger.log('Fetched page content length: ' + pageContent.length);
     } catch (e) {
+      Logger.log('Fetch error: ' + e.toString());
       return { success: false, error: 'Failed to fetch webpage: ' + e.message };
     }
 
-    // Extract text content
-    let textContent = pageContent
+    // ========== STEP 1: Extract all resource links (PDFs, forms, guides) ==========
+    const resourceLinks = [];
+    const linkPatterns = [
+      /href=["']([^"']*\.pdf)["']/gi,
+      /href=["']([^"']*\.xlsx?)["']/gi,
+      /href=["']([^"']*(?:guide|form|template|application|instructions)[^"']*)["']/gi
+    ];
+
+    for (const pattern of linkPatterns) {
+      let match;
+      while ((match = pattern.exec(pageContent)) !== null) {
+        let linkUrl = match[1];
+        // Convert relative URLs to absolute
+        if (linkUrl.startsWith('/')) {
+          linkUrl = baseUrl + linkUrl;
+        } else if (!linkUrl.startsWith('http')) {
+          linkUrl = baseUrl + '/' + linkUrl;
+        }
+        if (!resourceLinks.includes(linkUrl)) {
+          resourceLinks.push(linkUrl);
+        }
+      }
+    }
+    Logger.log('Found ' + resourceLinks.length + ' resource links: ' + resourceLinks.join(', '));
+
+    // ========== STEP 2: Try to fetch PDF content for additional context ==========
+    let pdfContent = '';
+    const pdfLinks = resourceLinks.filter(l => l.toLowerCase().endsWith('.pdf'));
+
+    for (const pdfUrl of pdfLinks.slice(0, 2)) { // Limit to first 2 PDFs
+      try {
+        Logger.log('Attempting to fetch PDF: ' + pdfUrl);
+        const pdfResponse = UrlFetchApp.fetch(pdfUrl, {
+          muteHttpExceptions: true,
+          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+        });
+
+        if (pdfResponse.getResponseCode() === 200) {
+          // For now, just note that PDF exists - actual PDF parsing would require a library
+          pdfContent += '\n\n[PDF RESOURCE FOUND: ' + pdfUrl + ']\n';
+          // Try to get any text that might be extractable
+          const pdfText = pdfResponse.getContentText().substring(0, 2000);
+          // PDFs often have some readable text even when binary
+          const readableText = pdfText.replace(/[^\x20-\x7E\n]/g, ' ').replace(/\s+/g, ' ').trim();
+          if (readableText.length > 50) {
+            pdfContent += 'Partial content: ' + readableText.substring(0, 500) + '...';
+          }
+        }
+      } catch (pdfError) {
+        Logger.log('Could not fetch PDF: ' + pdfError.toString());
+      }
+    }
+
+    // ========== STEP 3: Enhanced text extraction - preserve more structure ==========
+    // First, try to extract just the main content areas
+    let mainContent = '';
+    const mainPatterns = [
+      /<main[^>]*>([\s\S]*?)<\/main>/gi,
+      /<article[^>]*>([\s\S]*?)<\/article>/gi,
+      /<div[^>]*(?:content|main|body)[^>]*>([\s\S]*?)<\/div>/gi
+    ];
+
+    for (const pattern of mainPatterns) {
+      const matches = pageContent.match(pattern);
+      if (matches) {
+        mainContent += matches.join(' ');
+      }
+    }
+
+    // Use main content if found, otherwise use full page
+    let htmlToProcess = mainContent.length > 500 ? mainContent : pageContent;
+
+    // Better text extraction preserving key info
+    let textContent = htmlToProcess
+      // Remove scripts and styles
       .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
       .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      .replace(/<noscript[^>]*>[\s\S]*?<\/noscript>/gi, '')
+      // Preserve list items with bullets
+      .replace(/<li[^>]*>/gi, '\n• ')
+      // Preserve headings with markers
+      .replace(/<h[1-3][^>]*>/gi, '\n## ')
+      .replace(/<\/h[1-3]>/gi, '\n')
+      // Preserve paragraphs
+      .replace(/<p[^>]*>/gi, '\n')
+      .replace(/<br\s*\/?>/gi, '\n')
+      // Remove remaining tags
       .replace(/<[^>]+>/g, ' ')
-      .replace(/\s+/g, ' ')
+      // Clean up whitespace but keep newlines meaningful
+      .replace(/[ \t]+/g, ' ')
+      .replace(/\n\s*\n/g, '\n')
       .trim();
 
-    // Limit content length
-    if (textContent.length > 12000) {
-      textContent = textContent.substring(0, 12000) + '...';
+    // Also extract key metadata from the original HTML
+    let metaInfo = '';
+    const titleMatch = pageContent.match(/<title[^>]*>([^<]+)<\/title>/i);
+    if (titleMatch) metaInfo += 'Page Title: ' + titleMatch[1].trim() + '\n';
+
+    const h1Match = pageContent.match(/<h1[^>]*>([^<]+)<\/h1>/i);
+    if (h1Match) metaInfo += 'Main Heading: ' + h1Match[1].trim() + '\n';
+
+    // Combine metadata with content
+    textContent = metaInfo + '\n' + textContent;
+
+    // Add resource links info
+    if (resourceLinks.length > 0) {
+      textContent += '\n\n=== DOWNLOADABLE RESOURCES FOUND ===\n';
+      resourceLinks.forEach(link => {
+        textContent += '• ' + link + '\n';
+      });
     }
+
+    // Add any PDF content we could extract
+    if (pdfContent) {
+      textContent += pdfContent;
+    }
+
+    // Increase content limit for more context
+    const maxLength = 20000;
+    if (textContent.length > maxLength) {
+      textContent = textContent.substring(0, maxLength) + '\n...[content truncated]';
+    }
+
+    Logger.log('Processed text content length: ' + textContent.length);
+    Logger.log('Resource links found: ' + resourceLinks.length);
+    Logger.log('First 500 chars: ' + textContent.substring(0, 500));
 
     // Use Claude to extract grant requirements
     const CLAUDE_API_KEY = PropertiesService.getScriptProperties().getProperty('CLAUDE_API_KEY');
     if (!CLAUDE_API_KEY) {
       Logger.log('No CLAUDE_API_KEY found, using fallback pattern matching');
-      return scrapeGrantRequirementsFallback(textContent, url);
+      const fallbackResult = scrapeGrantRequirementsFallback(textContent, url);
+      fallbackResult.debugInfo = { method: 'fallback', reason: 'no_api_key', textLength: textContent.length };
+      return fallbackResult;
     }
     Logger.log('Using Claude API for grant scraping, text length: ' + textContent.length);
 
@@ -90476,58 +90607,70 @@ function scrapeGrantRequirements(params) {
       max_tokens: 4000,
       messages: [{
         role: 'user',
-        content: `You are analyzing a grant program webpage to extract ALL application details for a farm applying for funding.
+        content: `You are an expert grant application analyst. Extract EVERY detail from this grant page for a Pennsylvania farm applying for funding.
 
 URL: ${url}
 
-Page content:
+PAGE CONTENT:
 ${textContent}
 
-Extract EVERY piece of useful information and return it as JSON. Be thorough - this will be used to prepare a grant application.
+EXTRACT ALL FIELDS BELOW. Be thorough - this data will be used to apply for funding.
 
-Required fields:
-1. grantName: Full official name of the grant program
-2. organization: Funding organization (e.g., "Pennsylvania Department of Agriculture")
-3. amount: Award amount, range, or maximum (e.g., "$15,000 max, covers 75% of costs")
-4. totalFunding: Total program funding available if mentioned
-5. deadline: Application deadline (include if rolling, or specific date)
-6. purpose: What the grant is designed to fund (1-2 sentences)
-7. eligibility: Array of ALL eligibility requirements found
-8. eligibleProjects: Array of eligible project types or uses
+REQUIRED FIELDS:
+1. grantName: Full official program name (look for title, h1, or program name)
+2. organization: The government agency or foundation (e.g., "Pennsylvania Department of Agriculture", "USDA NRCS", etc.)
+   - If URL contains "pa.gov/services/pda" → organization is "Pennsylvania Department of Agriculture"
+   - If URL contains "usda.gov" → organization is "USDA"
+3. amount: Maximum award amount (e.g., "$15,000 maximum" or "$50,000")
+4. totalFunding: Total program budget if mentioned
+5. deadline: When to apply (e.g., "May 19, 2025", "Rolling", "Until funds exhausted")
+6. purpose: What this grant funds (1-2 sentences)
+7. eligibility: Array of requirements. ALWAYS check for:
+   - State requirements (Pennsylvania-based, etc.)
+   - Business type (farm, nonprofit, etc.)
+   - Other criteria mentioned
+8. eligibleProjects: Array of what CAN be funded (services, equipment, etc.)
 9. ineligibleCosts: Array of what CANNOT be funded
-10. documents: Array of ALL required documents and forms
-11. steps: Array of application process steps
-12. contactName: Name of program contact person
-13. contactEmail: Email address
-14. contactPhone: Phone number
-15. applicationUrl: Link to apply if found
-16. coveragePercent: What percentage of costs are covered (e.g., "75%")
-17. matchRequired: What the applicant must contribute
-18. reimbursement: Is this reimbursement-based? (true/false)
-19. notes: Any other important details, tips, or warnings
+10. documents: Array of required docs (budgets, proposals, forms, etc.)
+11. steps: Array of application steps
+12. contactName: Contact person name (look for "Contact:", names near phone/email)
+13. contactEmail: Email address (find patterns like name@pa.gov)
+14. contactPhone: Phone number (find patterns like 717-xxx-xxxx)
+15. applicationUrl: Link to apply (often links to grants.pa.gov or similar)
+16. coveragePercent: Cost-share percentage (e.g., "75%")
+17. matchRequired: Applicant's share (e.g., "25% match required")
+18. reimbursement: true if "reimbursement" mentioned, false otherwise
+19. notes: Important tips, warnings, eligible service providers, etc.
 
-Return ONLY valid JSON. Include empty strings or empty arrays for fields not found.
+SPECIFIC EXTRACTION RULES:
+- For pa.gov sites, organization = "Pennsylvania Department of Agriculture"
+- Look for phone numbers in format XXX-XXX-XXXX
+- Look for emails ending in @pa.gov
+- If "reimbursement" appears anywhere, set reimbursement: true
+- Include ALL eligible services/costs in eligibleProjects
+- Include ALL ineligible items in ineligibleCosts
 
+Return ONLY valid JSON:
 {
-  "grantName": "...",
-  "organization": "...",
-  "amount": "...",
-  "totalFunding": "...",
-  "deadline": "...",
-  "purpose": "...",
-  "eligibility": ["..."],
-  "eligibleProjects": ["..."],
-  "ineligibleCosts": ["..."],
-  "documents": ["..."],
-  "steps": ["..."],
-  "contactName": "...",
-  "contactEmail": "...",
-  "contactPhone": "...",
-  "applicationUrl": "...",
-  "coveragePercent": "...",
-  "matchRequired": "...",
+  "grantName": "",
+  "organization": "",
+  "amount": "",
+  "totalFunding": "",
+  "deadline": "",
+  "purpose": "",
+  "eligibility": [],
+  "eligibleProjects": [],
+  "ineligibleCosts": [],
+  "documents": [],
+  "steps": [],
+  "contactName": "",
+  "contactEmail": "",
+  "contactPhone": "",
+  "applicationUrl": "",
+  "coveragePercent": "",
+  "matchRequired": "",
   "reimbursement": false,
-  "notes": "..."
+  "notes": ""
 }`
       }]
     };
@@ -90550,41 +90693,75 @@ Return ONLY valid JSON. Include empty strings or empty arrays for fields not fou
       if (claudeResult.content && claudeResult.content[0] && claudeResult.content[0].text) {
         const aiText = claudeResult.content[0].text;
         Logger.log('Claude returned text, length: ' + aiText.length);
+        Logger.log('Claude response preview: ' + aiText.substring(0, 500));
+
         const jsonMatch = aiText.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
-          const parsedData = JSON.parse(jsonMatch[0]);
-          Logger.log('Parsed grant data fields: ' + Object.keys(parsedData).join(', '));
-          return {
-            success: true,
-            grantName: parsedData.grantName || '',
-            organization: parsedData.organization || '',
-            amount: parsedData.amount || '',
-            totalFunding: parsedData.totalFunding || '',
-            deadline: parsedData.deadline || '',
-            purpose: parsedData.purpose || '',
-            eligibility: parsedData.eligibility || [],
-            eligibleProjects: parsedData.eligibleProjects || [],
-            ineligibleCosts: parsedData.ineligibleCosts || [],
-            documents: parsedData.documents || [],
-            steps: parsedData.steps || [],
-            contactName: parsedData.contactName || '',
-            contactEmail: parsedData.contactEmail || '',
-            contactPhone: parsedData.contactPhone || '',
-            applicationUrl: parsedData.applicationUrl || '',
-            coveragePercent: parsedData.coveragePercent || '',
-            matchRequired: parsedData.matchRequired || '',
-            reimbursement: parsedData.reimbursement || false,
-            notes: parsedData.notes || '',
-            source: url
-          };
+          try {
+            const parsedData = JSON.parse(jsonMatch[0]);
+            const filledFields = Object.entries(parsedData).filter(([k, v]) =>
+              (typeof v === 'string' && v.length > 0) ||
+              (Array.isArray(v) && v.length > 0) ||
+              (typeof v === 'boolean' && v === true)
+            ).map(([k]) => k);
+
+            Logger.log('Parsed grant data - filled fields: ' + filledFields.join(', '));
+            Logger.log('Total fields filled: ' + filledFields.length + '/19');
+
+            return {
+              success: true,
+              grantName: parsedData.grantName || '',
+              organization: parsedData.organization || '',
+              amount: parsedData.amount || '',
+              totalFunding: parsedData.totalFunding || '',
+              deadline: parsedData.deadline || '',
+              purpose: parsedData.purpose || '',
+              eligibility: parsedData.eligibility || [],
+              eligibleProjects: parsedData.eligibleProjects || [],
+              ineligibleCosts: parsedData.ineligibleCosts || [],
+              documents: parsedData.documents || [],
+              steps: parsedData.steps || [],
+              contactName: parsedData.contactName || '',
+              contactEmail: parsedData.contactEmail || '',
+              contactPhone: parsedData.contactPhone || '',
+              applicationUrl: parsedData.applicationUrl || '',
+              coveragePercent: parsedData.coveragePercent || '',
+              matchRequired: parsedData.matchRequired || '',
+              reimbursement: parsedData.reimbursement || false,
+              notes: parsedData.notes || '',
+              source: url,
+              resources: resourceLinks, // PDF and form download links
+              debugInfo: {
+                method: 'claude_api',
+                fieldsFound: filledFields.length,
+                filledFields: filledFields,
+                textLength: textContent.length,
+                resourcesFound: resourceLinks.length
+              }
+            };
+          } catch (parseError) {
+            Logger.log('JSON parse error: ' + parseError.toString());
+            Logger.log('Problematic JSON: ' + jsonMatch[0].substring(0, 200));
+          }
+        } else {
+          Logger.log('No JSON found in Claude response');
         }
+      } else if (claudeResult.error) {
+        Logger.log('Claude API error: ' + JSON.stringify(claudeResult.error));
       }
 
-      return scrapeGrantRequirementsFallback(textContent, url);
+      Logger.log('Falling back to pattern matching');
+      const fallbackResult = scrapeGrantRequirementsFallback(textContent, url);
+      fallbackResult.resources = resourceLinks;
+      fallbackResult.debugInfo = { method: 'fallback', reason: 'claude_no_json', textLength: textContent.length, resourcesFound: resourceLinks.length };
+      return fallbackResult;
 
     } catch (claudeError) {
       Logger.log('Claude API error for grant scraping: ' + claudeError.toString());
-      return scrapeGrantRequirementsFallback(textContent, url);
+      const fallbackResult = scrapeGrantRequirementsFallback(textContent, url);
+      fallbackResult.resources = resourceLinks;
+      fallbackResult.debugInfo = { method: 'fallback', reason: 'claude_exception', error: claudeError.toString(), resourcesFound: resourceLinks.length };
+      return fallbackResult;
     }
 
   } catch (error) {
@@ -90731,6 +90908,17 @@ function scrapeGrantRequirementsFallback(textContent, url) {
   // Check for reimbursement
   const reimbursement = /reimbursement/i.test(textContent);
 
+  // Try to infer organization from URL
+  if (!organization) {
+    if (url.includes('pa.gov/services/pda') || url.includes('agriculture.pa.gov')) {
+      organization = 'Pennsylvania Department of Agriculture';
+    } else if (url.includes('usda.gov')) {
+      organization = 'USDA';
+    } else if (url.includes('pa.gov')) {
+      organization = 'Commonwealth of Pennsylvania';
+    }
+  }
+
   return {
     success: true,
     grantName: grantName,
@@ -90746,6 +90934,7 @@ function scrapeGrantRequirementsFallback(textContent, url) {
     contactPhone: contactPhone,
     reimbursement: reimbursement,
     source: url,
+    resources: [], // Will be populated from main function if available
     method: 'pattern-matching'
   };
 }
@@ -110462,6 +110651,44 @@ function logMarketingCampaign(data) {
 // =============================================================================
 // PART 4: SOCIAL MEDIA AD INTEGRATION
 // =============================================================================
+
+/**
+ * Setup Meta Ads credentials - RUN THIS ONCE to configure Meta Marketing API
+ * Sets the access token and ad account ID in Script Properties
+ */
+function setupMetaAdsCredentials() {
+  const props = PropertiesService.getScriptProperties();
+
+  // Tiny Seed Farm Meta Ads credentials
+  props.setProperty('META_ACCESS_TOKEN', 'EAAUpwKHfKx8BQuXYY8fkiIcNOcViTeaK8eeenZAwSvZCIENeTBRyjBLc0sjJDORZAnTYnBSDZBo5OCoDO3KwBUo9YIqE7JlW7KXdP1aQVmN8DAisXmKkZCtG7kEYmWp8sb4rwLCNyr00FTWqNY4mXiloIot3ttBD4JFojl2By5uYotAyew7NzIimDylDYxRsciifWaT6t');
+  props.setProperty('META_AD_ACCOUNT_ID', 'act_204217464187803');
+  props.setProperty('META_PAGE_ID', ''); // Add if needed for page posts
+
+  Logger.log('Meta Ads credentials configured successfully!');
+  Logger.log('Ad Account: act_204217464187803 (Tiny Seed Farm)');
+
+  return {
+    success: true,
+    message: 'Meta Ads credentials configured',
+    adAccountId: 'act_204217464187803'
+  };
+}
+
+/**
+ * Get current Meta Ads configuration status
+ */
+function getMetaAdsStatus() {
+  const props = PropertiesService.getScriptProperties();
+  const accessToken = props.getProperty('META_ACCESS_TOKEN');
+  const adAccountId = props.getProperty('META_AD_ACCOUNT_ID');
+
+  return {
+    configured: !!(accessToken && adAccountId),
+    adAccountId: adAccountId || 'Not set',
+    tokenSet: !!accessToken,
+    tokenPreview: accessToken ? accessToken.substring(0, 20) + '...' : 'Not set'
+  };
+}
 
 /**
  * Create a Meta (Facebook/Instagram) Ad Campaign
