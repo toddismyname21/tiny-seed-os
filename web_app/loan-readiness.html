@@ -13111,14 +13111,58 @@
                     // Populate form fields with scraped data
                     if (result.grantName) document.getElementById('newGrantName').value = result.grantName;
                     if (result.organization) document.getElementById('newGrantSource').value = result.organization;
-                    if (result.amount) document.getElementById('newGrantAmount').value = result.amount;
+
+                    // Build comprehensive amount string
+                    let amountStr = result.amount || '';
+                    if (result.coveragePercent) amountStr += ` (${result.coveragePercent} coverage)`;
+                    if (result.totalFunding) amountStr += ` - Total: ${result.totalFunding}`;
+                    if (amountStr) document.getElementById('newGrantAmount').value = amountStr;
+
                     if (result.deadline) document.getElementById('newGrantDeadline').value = result.deadline;
-                    if (result.eligibility?.length) document.getElementById('newGrantEligibility').value = result.eligibility.join('\n');
+
+                    // Combine eligibility with eligible projects
+                    let allEligibility = [];
+                    if (result.eligibility?.length) allEligibility.push(...result.eligibility);
+                    if (result.eligibleProjects?.length) {
+                        allEligibility.push('--- Eligible Project Types ---');
+                        allEligibility.push(...result.eligibleProjects);
+                    }
+                    if (allEligibility.length) document.getElementById('newGrantEligibility').value = allEligibility.join('\n');
+
                     if (result.documents?.length) document.getElementById('newGrantDocs').value = result.documents.join(', ');
                     if (result.steps?.length) document.getElementById('newGrantSteps').value = result.steps.join('\n');
                     document.getElementById('newGrantLink').value = url;
 
-                    showNotification('Grant requirements extracted!', 'success');
+                    // Build comprehensive notes
+                    let notes = [];
+                    if (result.purpose) notes.push(`PURPOSE: ${result.purpose}`);
+                    if (result.reimbursement) notes.push('⚠️ REIMBURSEMENT-BASED: You pay first, then get reimbursed');
+                    if (result.matchRequired) notes.push(`MATCH REQUIRED: ${result.matchRequired}`);
+                    if (result.ineligibleCosts?.length) notes.push(`INELIGIBLE COSTS: ${result.ineligibleCosts.join(', ')}`);
+                    if (result.notes) notes.push(`NOTES: ${result.notes}`);
+                    if (result.contactName) notes.push(`CONTACT: ${result.contactName}${result.contactPhone ? ' | ' + result.contactPhone : ''}${result.contactEmail ? ' | ' + result.contactEmail : ''}`);
+                    if (result.applicationUrl) notes.push(`APPLY AT: ${result.applicationUrl}`);
+                    if (notes.length) document.getElementById('newGrantNotes').value = notes.join('\n\n');
+
+                    // Try to populate contacts if fields exist
+                    if (result.contactName && document.getElementById('newGrantContact1Name')) {
+                        document.getElementById('newGrantContact1Name').value = result.contactName;
+                    }
+                    if (result.contactEmail && document.getElementById('newGrantContact1Email')) {
+                        document.getElementById('newGrantContact1Email').value = result.contactEmail;
+                    }
+
+                    // Show summary of what was found
+                    const foundItems = [];
+                    if (result.grantName) foundItems.push('Name');
+                    if (result.amount) foundItems.push('Amount');
+                    if (result.deadline) foundItems.push('Deadline');
+                    if (result.eligibility?.length) foundItems.push(`${result.eligibility.length} eligibility items`);
+                    if (result.documents?.length) foundItems.push(`${result.documents.length} required docs`);
+                    if (result.steps?.length) foundItems.push(`${result.steps.length} steps`);
+                    if (result.contactName) foundItems.push('Contact info');
+
+                    showNotification(`Extracted: ${foundItems.join(', ')}`, 'success');
                 } else {
                     statusText.innerHTML = '<i class="fas fa-exclamation-triangle" style="color: var(--warning);"></i> ' + (result.error || 'Could not extract requirements. Please fill in manually.');
                     showNotification(result.error || 'Scan failed. Please fill in manually.', 'warning');

@@ -90471,10 +90471,62 @@ function scrapeGrantRequirements(params) {
 
     const claudePayload = {
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 2500,
+      max_tokens: 4000,
       messages: [{
         role: 'user',
-        content: 'You are analyzing a grant program webpage to extract application requirements.\n\nURL: ' + url + '\n\nPage content:\n' + textContent + '\n\nExtract the following information and return it as JSON:\n1. grantName: Name of the grant program\n2. organization: Funding organization\n3. amount: Award amount or range\n4. deadline: Application deadline (YYYY-MM-DD format if possible)\n5. eligibility: Array of eligibility requirements\n6. documents: Array of required documents\n7. steps: Array of application process steps\n8. awardTimeline: When awards are typically announced\n\nReturn ONLY valid JSON with this structure:\n{\n  "grantName": "...",\n  "organization": "...",\n  "amount": "...",\n  "deadline": "...",\n  "eligibility": ["...", "..."],\n  "documents": ["...", "..."],\n  "steps": ["...", "..."],\n  "awardTimeline": "..."\n}'
+        content: `You are analyzing a grant program webpage to extract ALL application details for a farm applying for funding.
+
+URL: ${url}
+
+Page content:
+${textContent}
+
+Extract EVERY piece of useful information and return it as JSON. Be thorough - this will be used to prepare a grant application.
+
+Required fields:
+1. grantName: Full official name of the grant program
+2. organization: Funding organization (e.g., "Pennsylvania Department of Agriculture")
+3. amount: Award amount, range, or maximum (e.g., "$15,000 max, covers 75% of costs")
+4. totalFunding: Total program funding available if mentioned
+5. deadline: Application deadline (include if rolling, or specific date)
+6. purpose: What the grant is designed to fund (1-2 sentences)
+7. eligibility: Array of ALL eligibility requirements found
+8. eligibleProjects: Array of eligible project types or uses
+9. ineligibleCosts: Array of what CANNOT be funded
+10. documents: Array of ALL required documents and forms
+11. steps: Array of application process steps
+12. contactName: Name of program contact person
+13. contactEmail: Email address
+14. contactPhone: Phone number
+15. applicationUrl: Link to apply if found
+16. coveragePercent: What percentage of costs are covered (e.g., "75%")
+17. matchRequired: What the applicant must contribute
+18. reimbursement: Is this reimbursement-based? (true/false)
+19. notes: Any other important details, tips, or warnings
+
+Return ONLY valid JSON. Include empty strings or empty arrays for fields not found.
+
+{
+  "grantName": "...",
+  "organization": "...",
+  "amount": "...",
+  "totalFunding": "...",
+  "deadline": "...",
+  "purpose": "...",
+  "eligibility": ["..."],
+  "eligibleProjects": ["..."],
+  "ineligibleCosts": ["..."],
+  "documents": ["..."],
+  "steps": ["..."],
+  "contactName": "...",
+  "contactEmail": "...",
+  "contactPhone": "...",
+  "applicationUrl": "...",
+  "coveragePercent": "...",
+  "matchRequired": "...",
+  "reimbursement": false,
+  "notes": "..."
+}`
       }]
     };
 
@@ -90502,11 +90554,22 @@ function scrapeGrantRequirements(params) {
             grantName: parsedData.grantName || '',
             organization: parsedData.organization || '',
             amount: parsedData.amount || '',
+            totalFunding: parsedData.totalFunding || '',
             deadline: parsedData.deadline || '',
+            purpose: parsedData.purpose || '',
             eligibility: parsedData.eligibility || [],
+            eligibleProjects: parsedData.eligibleProjects || [],
+            ineligibleCosts: parsedData.ineligibleCosts || [],
             documents: parsedData.documents || [],
             steps: parsedData.steps || [],
-            awardTimeline: parsedData.awardTimeline || '',
+            contactName: parsedData.contactName || '',
+            contactEmail: parsedData.contactEmail || '',
+            contactPhone: parsedData.contactPhone || '',
+            applicationUrl: parsedData.applicationUrl || '',
+            coveragePercent: parsedData.coveragePercent || '',
+            matchRequired: parsedData.matchRequired || '',
+            reimbursement: parsedData.reimbursement || false,
+            notes: parsedData.notes || '',
             source: url
           };
         }
