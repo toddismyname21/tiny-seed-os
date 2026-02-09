@@ -885,6 +885,56 @@
             margin-bottom: 1rem;
         }
 
+        /* Excel Preview Styles */
+        .excel-preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        .excel-preview-table th,
+        .excel-preview-table td {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border);
+            text-align: left;
+            white-space: nowrap;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .excel-preview-table th {
+            background: var(--bg-lighter);
+            color: var(--primary);
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+
+        .excel-preview-table tr:nth-child(even) {
+            background: rgba(42, 157, 143, 0.03);
+        }
+
+        .excel-preview-table tr:hover {
+            background: rgba(42, 157, 143, 0.08);
+        }
+
+        .excel-file-icon {
+            color: #217346;
+        }
+
+        .excel-info-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            background: rgba(33, 115, 70, 0.15);
+            border: 1px solid rgba(33, 115, 70, 0.3);
+            border-radius: 4px;
+            font-size: 0.75rem;
+            color: #217346;
+        }
+
         /* Notification */
         .notification {
             position: fixed;
@@ -2723,16 +2773,41 @@
                     <label>Expiration Date (if applicable)</label>
                     <input type="date" id="uploadExpiration">
                 </div>
-                <input type="file" id="uploadFile" style="display: none;" accept=".pdf,.jpg,.jpeg,.png">
+                <input type="file" id="uploadFile" style="display: none;">
                 <div class="upload-zone" id="uploadZone">
                     <i class="fas fa-cloud-upload-alt" id="uploadIcon"></i>
                     <p id="uploadText">Drag and drop file here, or click to browse</p>
-                    <p id="uploadHint" style="font-size: 0.8rem; color: var(--text-secondary);">PDF, JPG, PNG up to 10MB</p>
+                    <p id="uploadHint" style="font-size: 0.8rem; color: var(--text-secondary);">PDF, Images, Excel, Word, CSV, and more - up to 10MB</p>
+                </div>
+
+                <!-- Excel Preview Section (hidden by default) -->
+                <div id="excelPreviewSection" style="display: none; margin-top: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                        <h4 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-file-excel" style="color: #217346;"></i>
+                            <span id="excelFileName">Excel Preview</span>
+                        </h4>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <label style="font-size: 0.85rem; color: var(--text-secondary);">Sheet:</label>
+                            <select id="excelSheetSelector" onchange="selectExcelSheet(this.value)" style="padding: 0.25rem 0.5rem; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-size: 0.85rem;">
+                            </select>
+                        </div>
+                    </div>
+                    <div id="excelPreviewTable" style="max-height: 250px; overflow: auto; border: 1px solid var(--border); border-radius: 8px; background: var(--bg);">
+                        <!-- Preview table will be inserted here -->
+                    </div>
+                    <p id="excelRowCount" style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.5rem;"></p>
+                </div>
+
+                <!-- Loading Spinner (hidden by default) -->
+                <div id="excelLoadingSpinner" style="display: none; text-align: center; padding: 2rem;">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--primary);"></i>
+                    <p style="margin-top: 0.5rem; color: var(--text-secondary);">Parsing Excel file...</p>
                 </div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal('uploadModal')">Cancel</button>
-                <button class="btn btn-primary" onclick="uploadDocument()">
+                <button class="btn btn-primary" id="uploadDocumentBtn" onclick="uploadDocument()">
                     <i class="fas fa-upload"></i> Upload
                 </button>
             </div>
@@ -3142,15 +3217,188 @@
                 zone.style.background = 'transparent';
                 if (e.dataTransfer.files.length) {
                     input.files = e.dataTransfer.files;
-                    showFileSelected(e.dataTransfer.files[0].name);
+                    handleVaultFileSelection(e.dataTransfer.files[0]);
                 }
             });
 
             input.addEventListener('change', () => {
                 if (input.files.length) {
-                    showFileSelected(input.files[0].name);
+                    handleVaultFileSelection(input.files[0]);
                 }
             });
+        }
+
+        // Excel file handling for Document Vault
+        let currentExcelWorkbook = null;
+        let currentExcelData = null;
+        let currentExcelFileName = '';
+
+        function isExcelFile(fileName) {
+            const ext = fileName.toLowerCase().split('.').pop();
+            return ['xlsx', 'xls', 'csv'].includes(ext);
+        }
+
+        function handleVaultFileSelection(file) {
+            showFileSelected(file.name);
+
+            // Check if it's an Excel/CSV file
+            if (isExcelFile(file.name)) {
+                parseVaultExcelFile(file);
+                updateUploadButtonForExcel(true);
+            } else {
+                // Hide Excel preview for non-Excel files
+                hideExcelPreview();
+                updateUploadButtonForExcel(false);
+            }
+        }
+
+        function updateUploadButtonForExcel(isExcel) {
+            const btn = document.getElementById('uploadDocumentBtn');
+            if (btn) {
+                if (isExcel) {
+                    btn.innerHTML = '<i class="fas fa-check-circle"></i> Confirm & Upload Excel';
+                } else {
+                    btn.innerHTML = '<i class="fas fa-upload"></i> Upload';
+                }
+            }
+        }
+
+        function hideExcelPreview() {
+            const previewSection = document.getElementById('excelPreviewSection');
+            const spinner = document.getElementById('excelLoadingSpinner');
+            if (previewSection) previewSection.style.display = 'none';
+            if (spinner) spinner.style.display = 'none';
+            currentExcelWorkbook = null;
+            currentExcelData = null;
+        }
+
+        async function parseVaultExcelFile(file) {
+            const previewSection = document.getElementById('excelPreviewSection');
+            const spinner = document.getElementById('excelLoadingSpinner');
+            const previewTable = document.getElementById('excelPreviewTable');
+            const sheetSelector = document.getElementById('excelSheetSelector');
+            const fileNameEl = document.getElementById('excelFileName');
+            const rowCountEl = document.getElementById('excelRowCount');
+
+            // Show loading spinner
+            spinner.style.display = 'block';
+            previewSection.style.display = 'none';
+
+            currentExcelFileName = file.name;
+
+            try {
+                const data = await file.arrayBuffer();
+
+                // Parse with SheetJS
+                currentExcelWorkbook = XLSX.read(data, { type: 'array', cellDates: true });
+
+                // Populate sheet selector
+                sheetSelector.innerHTML = '';
+                currentExcelWorkbook.SheetNames.forEach((name, index) => {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    option.textContent = name;
+                    sheetSelector.appendChild(option);
+                });
+
+                // Parse first sheet by default
+                selectExcelSheet(currentExcelWorkbook.SheetNames[0]);
+
+                // Update UI
+                fileNameEl.textContent = file.name;
+                spinner.style.display = 'none';
+                previewSection.style.display = 'block';
+
+                showNotification('Excel file parsed successfully! Review the preview below.', 'success');
+            } catch (error) {
+                console.error('Error parsing Excel file:', error);
+                spinner.style.display = 'none';
+                showNotification('Error parsing Excel file: ' + error.message, 'error');
+            }
+        }
+
+        function selectExcelSheet(sheetName) {
+            if (!currentExcelWorkbook) return;
+
+            const sheet = currentExcelWorkbook.Sheets[sheetName];
+            const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+
+            currentExcelData = {
+                sheetName: sheetName,
+                headers: jsonData[0] || [],
+                rows: jsonData.slice(1),
+                allData: jsonData
+            };
+
+            renderExcelPreview(currentExcelData);
+        }
+
+        function renderExcelPreview(data) {
+            const previewTable = document.getElementById('excelPreviewTable');
+            const rowCountEl = document.getElementById('excelRowCount');
+
+            if (!data || data.allData.length === 0) {
+                previewTable.innerHTML = '<p style="padding: 1rem; color: var(--text-secondary);">No data found in this sheet.</p>';
+                rowCountEl.textContent = '';
+                return;
+            }
+
+            // Create preview table (show first 10 rows max)
+            const maxPreviewRows = 10;
+            const headers = data.headers;
+            const previewRows = data.rows.slice(0, maxPreviewRows);
+            const totalRows = data.rows.length;
+
+            let tableHtml = '<table class="excel-preview-table"><thead><tr>';
+
+            // Render headers
+            headers.forEach((header, index) => {
+                const displayHeader = header || `Column ${index + 1}`;
+                tableHtml += `<th title="${escapeHtml(String(displayHeader))}">${escapeHtml(String(displayHeader))}</th>`;
+            });
+            tableHtml += '</tr></thead><tbody>';
+
+            // Render preview rows
+            previewRows.forEach(row => {
+                tableHtml += '<tr>';
+                headers.forEach((_, index) => {
+                    const cellValue = row[index] !== undefined ? row[index] : '';
+                    const displayValue = formatExcelCellValue(cellValue);
+                    tableHtml += `<td title="${escapeHtml(String(displayValue))}">${escapeHtml(String(displayValue))}</td>`;
+                });
+                tableHtml += '</tr>';
+            });
+
+            tableHtml += '</tbody></table>';
+            previewTable.innerHTML = tableHtml;
+
+            // Show row count
+            if (totalRows > maxPreviewRows) {
+                rowCountEl.innerHTML = `<i class="fas fa-info-circle"></i> Showing ${maxPreviewRows} of ${totalRows} data rows (plus 1 header row). Full data will be saved.`;
+            } else {
+                rowCountEl.innerHTML = `<i class="fas fa-check-circle" style="color: var(--success);"></i> ${totalRows} data rows (plus 1 header row)`;
+            }
+        }
+
+        function formatExcelCellValue(value) {
+            if (value === null || value === undefined) return '';
+            if (value instanceof Date) {
+                return value.toLocaleDateString();
+            }
+            if (typeof value === 'number') {
+                // Format currency-like numbers
+                if (Math.abs(value) >= 100 && Number.isInteger(value * 100)) {
+                    return '$' + value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                }
+                return value.toLocaleString();
+            }
+            return String(value);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         function showFileSelected(fileName) {
@@ -3159,8 +3407,14 @@
             const hint = document.getElementById('uploadHint');
 
             if (icon) {
-                icon.className = 'fas fa-check-circle';
-                icon.style.color = 'var(--success)';
+                // Show Excel icon for Excel files, check icon for others
+                if (isExcelFile(fileName)) {
+                    icon.className = 'fas fa-file-excel';
+                    icon.style.color = '#217346'; // Excel green
+                } else {
+                    icon.className = 'fas fa-check-circle';
+                    icon.style.color = 'var(--success)';
+                }
             }
             if (text) {
                 text.textContent = fileName;
@@ -3189,6 +3443,10 @@
             if (input) {
                 input.value = '';
             }
+
+            // Also reset Excel preview and button
+            hideExcelPreview();
+            updateUploadButtonForExcel(false);
         }
 
         // Load Financial Data
@@ -3424,15 +3682,20 @@
                             const uploaded = uploadedDocuments[doc.id];
                             const statusClass = uploaded ? (isExpired(uploaded.expiration) ? 'expired' : 'uploaded') : 'missing';
                             const statusIcon = uploaded ? (isExpired(uploaded.expiration) ? 'fa-exclamation-triangle' : 'fa-check') : 'fa-times';
+                            const isExcelDoc = uploaded && uploaded.isExcel;
+                            const excelMeta = uploaded && uploaded.excelMetadata;
                             return `
                                 <div class="vault-item">
                                     <div class="vault-item-info">
                                         <div class="vault-item-status ${statusClass}">
-                                            <i class="fas ${statusIcon}"></i>
+                                            <i class="fas ${isExcelDoc ? 'fa-file-excel excel-file-icon' : statusIcon}"></i>
                                         </div>
                                         <div class="vault-item-details">
                                             <h4>${doc.name}</h4>
-                                            <p>${uploaded ? (isExpired(uploaded.expiration) ? 'Expired: ' + uploaded.expiration : 'Uploaded: ' + (uploaded.uploadedAt || 'Unknown')) : 'Not uploaded'}</p>
+                                            <p>
+                                                ${uploaded ? (isExpired(uploaded.expiration) ? 'Expired: ' + uploaded.expiration : 'Uploaded: ' + (uploaded.uploadedAt || 'Unknown')) : 'Not uploaded'}
+                                                ${excelMeta ? `<span class="excel-info-badge" style="margin-left: 0.5rem;"><i class="fas fa-table"></i> ${excelMeta.rowCount} rows</span>` : ''}
+                                            </p>
                                         </div>
                                     </div>
                                     <div style="display: flex; gap: 0.25rem;">
@@ -3696,11 +3959,45 @@
                 return;
             }
 
-            showNotification('Uploading document...', 'info');
+            // Check if this is an Excel file with preview data
+            const isExcel = isExcelFile(file.name);
+            if (isExcel && !currentExcelData) {
+                showNotification('Please wait for Excel file to finish parsing...', 'warning');
+                return;
+            }
+
+            showNotification(isExcel ? 'Uploading Excel document with parsed data...' : 'Uploading document...', 'info');
 
             try {
                 // Convert file to base64
                 const base64 = await fileToBase64(file);
+
+                // Build upload payload
+                const uploadPayload = {
+                    action: 'uploadLoanDocument',
+                    base64: base64,
+                    fileName: file.name,
+                    category: category,
+                    documentType: docType,
+                    expiration: expiration || '',
+                    mimeType: file.type
+                };
+
+                // Include parsed Excel data if available
+                if (isExcel && currentExcelData) {
+                    uploadPayload.excelData = {
+                        sheetName: currentExcelData.sheetName,
+                        headers: currentExcelData.headers,
+                        rowCount: currentExcelData.rows.length,
+                        // Include all data as JSON (for storage/processing)
+                        data: currentExcelData.allData
+                    };
+                    console.log('Including parsed Excel data:', {
+                        sheetName: currentExcelData.sheetName,
+                        headers: currentExcelData.headers,
+                        rowCount: currentExcelData.rows.length
+                    });
+                }
 
                 // Upload to Google Drive via backend using POST (base64 data is too large for GET)
                 const response = await fetch(API_URL, {
@@ -3708,15 +4005,7 @@
                     headers: {
                         'Content-Type': 'text/plain'
                     },
-                    body: JSON.stringify({
-                        action: 'uploadLoanDocument',
-                        base64: base64,
-                        fileName: file.name,
-                        category: category,
-                        documentType: docType,
-                        expiration: expiration || '',
-                        mimeType: file.type
-                    })
+                    body: JSON.stringify(uploadPayload)
                 });
                 const result = await response.json();
 
@@ -3726,7 +4015,7 @@
                     console.log(`✅ Upload successful! Adding ${docType} to uploadedDocuments`);
 
                     // Update local state IMMEDIATELY
-                    uploadedDocuments[docType] = {
+                    const docRecord = {
                         documentType: docType,
                         category: category,
                         fileName: file.name,
@@ -3734,8 +4023,21 @@
                         fileId: result.fileId,
                         expiration: expiration || null,
                         uploadedAt: new Date().toISOString().split('T')[0],
-                        status: 'uploaded'
+                        status: 'uploaded',
+                        isExcel: isExcel
                     };
+
+                    // Store Excel metadata if present
+                    if (isExcel && currentExcelData) {
+                        docRecord.excelMetadata = {
+                            sheetName: currentExcelData.sheetName,
+                            headers: currentExcelData.headers,
+                            rowCount: currentExcelData.rows.length,
+                            sheetCount: currentExcelWorkbook ? currentExcelWorkbook.SheetNames.length : 1
+                        };
+                    }
+
+                    uploadedDocuments[docType] = docRecord;
 
                     console.log(`✅ uploadedDocuments now has ${Object.keys(uploadedDocuments).length} documents:`, Object.keys(uploadedDocuments));
 
@@ -3755,12 +4057,13 @@
                     console.log('🔄 renderAll() complete');
 
                     // Show success with lender info
+                    const excelInfo = isExcel && currentExcelData ? ` (${currentExcelData.rows.length} rows parsed)` : '';
                     if (affectedLenderNames.length > 0) {
-                        showNotification(`✅ ${docType} uploaded! Lender checklists updated: ${affectedLenderNames.join(', ')}`, 'success');
+                        showNotification(`${docType} uploaded${excelInfo}! Lender checklists updated: ${affectedLenderNames.join(', ')}`, 'success');
                         // Highlight affected lender cards with pulse animation
                         highlightAffectedLenders(affectedLenderIds);
                     } else {
-                        showNotification('Document uploaded to Google Drive successfully!', 'success');
+                        showNotification(`Document uploaded to Google Drive successfully!${excelInfo}`, 'success');
                     }
 
                     // Force switch to Lender Checklists tab to show the update
