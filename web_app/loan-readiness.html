@@ -7072,6 +7072,7 @@
                         <tr>
                             <th style="width: 40px;"><input type="checkbox" id="selectAllProducts" onchange="toggleSelectAllProducts()"></th>
                             <th style="cursor: pointer;" onclick="sortRefinementTable('title')">Product <i class="fas fa-sort"></i></th>
+                            <th style="cursor: pointer;" onclick="sortRefinementTable('sourceFile')">Source <i class="fas fa-sort"></i></th>
                             <th style="cursor: pointer;" onclick="sortRefinementTable('category')">Category <i class="fas fa-sort"></i></th>
                             <th style="cursor: pointer;" onclick="sortRefinementTable('sales')">Amount <i class="fas fa-sort"></i></th>
                             <th style="cursor: pointer;" onclick="sortRefinementTable('year')">Year <i class="fas fa-sort"></i></th>
@@ -7081,7 +7082,7 @@
                     </thead>
                     <tbody id="refinementTableBody">
                         <tr>
-                            <td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                            <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
                                 <i class="fas fa-upload" style="font-size: 2rem; margin-bottom: 0.5rem; display: block;"></i>
                                 Upload a sales file to review and refine the parsed data
                             </td>
@@ -11209,6 +11210,9 @@
                     throw new Error('No data parsed from file');
                 }
 
+                // Add source filename to rawData for tracking
+                rawData.sourceFile = file.name;
+
                 console.log(`📁 ${file.name}: Parsed ${rawData.products.length} products from ${rawData.source}`);
 
                 await sleep(300);
@@ -11682,8 +11686,9 @@
         function categorizeSalesData(rawData) {
             const products = rawData.products || [];
             const source = rawData.source || 'unknown';
+            const sourceFile = rawData.sourceFile || 'unknown';
 
-            console.log('📊 Categorizing', products.length, 'products from source:', source);
+            console.log('📊 Categorizing', products.length, 'products from source:', source, 'file:', sourceFile);
 
             // SMART PARSING: Group by PRODUCT YEAR, not transaction year
             // "2024 Tiny Seed Farm Summer CSA" sold in 2023 should count as 2024 CSA
@@ -11737,7 +11742,8 @@
                                     quantity: qtyPerYear,
                                     productYear: year,
                                     originalSales: p.sales,
-                                    distributedAcrossYears: allYears.length
+                                    distributedAcrossYears: allYears.length,
+                                    sourceFile: sourceFile
                                 });
                             });
                             return; // Skip the normal year assignment below
@@ -11779,7 +11785,8 @@
                 byProductYear[productYear].push({
                     ...p,
                     productYear: productYear,
-                    transactionYear: extractValidYear(p.date)
+                    transactionYear: extractValidYear(p.date),
+                    sourceFile: sourceFile
                 });
             });
 
@@ -14810,7 +14817,7 @@
             if (filteredProducts.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
                             <i class="fas fa-search" style="font-size: 2rem; margin-bottom: 0.5rem; display: block;"></i>
                             No products match your search criteria
                         </td>
@@ -14848,12 +14855,16 @@
                 const isSelected = selectedProductIds.has(p.id);
                 const excludedClass = p.excluded ? 'style="opacity: 0.5; text-decoration: line-through;"' : '';
 
+                const shortSourceFile = (p.sourceFile || 'unknown').replace(/^.*[\\/]/, '').substring(0, 25);
                 html += `
-                    <tr data-product-id="${p.id}" ${excludedClass}>
+                    <tr data-product-id="${p.id}" data-source="${p.sourceFile || ''}" ${excludedClass}>
                         <td>
                             <input type="checkbox" class="product-checkbox" ${isSelected ? 'checked' : ''} onchange="toggleProductSelection('${p.id}')">
                         </td>
-                        <td class="product-title" title="${p.title}">${p.title}</td>
+                        <td class="product-title" title="${p.title}">${p.title || '<em>No product name</em>'}</td>
+                        <td style="font-size: 0.75rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${p.sourceFile || 'unknown'}">
+                            <i class="fas fa-file-csv" style="color: var(--text-secondary);"></i> ${shortSourceFile}
+                        </td>
                         <td>
                             <span class="category-badge ${p.category}">
                                 <i class="fas ${getCategoryIcon(p.category)}"></i>
@@ -14875,7 +14886,7 @@
                             </div>
                         </td>
                         <td>
-                            <button class="action-btn" onclick="openCorrectionModal({title: '${p.title.replace(/'/g, "\\'")}', sales: ${p.sales}, qty: ${p.quantity || 1}}, '${p.category}', ${p.confidence})" title="Recategorize">
+                            <button class="action-btn" onclick="openCorrectionModal({title: '${(p.title || '').replace(/'/g, "\\'")}', sales: ${p.sales}, qty: ${p.quantity || 1}, sourceFile: '${(p.sourceFile || '').replace(/'/g, "\\'")}'}, '${p.category}', ${p.confidence})" title="Recategorize">
                                 <i class="fas fa-tags"></i>
                             </button>
                             <button class="action-btn ${p.excluded ? '' : 'danger'}" onclick="toggleExcludeProduct('${p.id}')" title="${p.excluded ? 'Include' : 'Exclude'}">
@@ -15253,16 +15264,32 @@
                 title: p.title,
                 category: p.category,
                 sales: p.sales,
-                confidence: p.confidence
+                confidence: p.confidence,
+                sourceFile: p.sourceFile
             }));
+
+            // Get source file breakdown
+            const sourceFiles = {};
+            allParsedProducts.forEach(p => {
+                const file = p.sourceFile || 'unknown';
+                if (!sourceFiles[file]) {
+                    sourceFiles[file] = { count: 0, revenue: 0, noTitle: 0 };
+                }
+                sourceFiles[file].count++;
+                sourceFiles[file].revenue += p.sales || 0;
+                if (!p.title || p.title.trim() === '') {
+                    sourceFiles[file].noTitle++;
+                }
+            });
 
             return {
                 totalProducts,
                 lowConfidenceCount: lowConfidence.length,
                 uncategorizedCount: uncategorized.length,
                 categoryBreakdown,
+                sourceFiles,
                 sampleProducts,
-                lowConfidenceProducts: lowConfidence.slice(0, 10).map(p => ({ title: p.title, sales: p.sales, confidence: p.confidence }))
+                lowConfidenceProducts: lowConfidence.slice(0, 10).map(p => ({ title: p.title, sales: p.sales, confidence: p.confidence, sourceFile: p.sourceFile }))
             };
         }
 
@@ -15307,6 +15334,63 @@
                         action: 'applyPattern',
                         params: { pattern: p.pattern, category: p.suggestedCategory }
                     }))
+                };
+            }
+
+            // Check for source file + condition rules (e.g., "POS sales from 2023_sales.csv with no product are farmers market")
+            const sourceFileMatch = q.match(/(?:pos\s*sales?|sales?|products?|items?)\s*(?:from|in)\s*['""]?([^'""]+\.csv)['""]?\s*(?:with|that have|without)?\s*(no\s*product|empty\s*title|no\s*title|blank)?\s*(?:are|should be|is)\s*([a-z\s]+)/i);
+            if (sourceFileMatch) {
+                const sourceFile = sourceFileMatch[1].trim();
+                const condition = (sourceFileMatch[2] || '').trim().toLowerCase();
+                const category = sourceFileMatch[3].trim();
+
+                // Find matching products from that source file
+                let matches = allParsedProducts.filter(p => {
+                    const matchesFile = (p.sourceFile || '').toLowerCase().includes(sourceFile.toLowerCase());
+                    if (!matchesFile) return false;
+
+                    // Check condition
+                    if (condition.includes('no') || condition.includes('empty') || condition.includes('blank')) {
+                        return !p.title || p.title.trim() === '';
+                    }
+                    return true;
+                });
+
+                if (matches.length === 0) {
+                    return { message: `I couldn't find any products from "${sourceFile}"${condition ? ' with ' + condition : ''}. Available source files: ${[...new Set(allParsedProducts.map(p => p.sourceFile).filter(Boolean))].join(', ')}` };
+                }
+
+                // Map category name to internal key
+                const categoryMap = {
+                    'csa': 'csa', 'csa subscription': 'csa', 'csa subscriptions': 'csa',
+                    'flower': 'flowers', 'flowers': 'flowers', 'flower subscription': 'flowers',
+                    'flower sales': 'flowerSales', 'bouquet': 'flowerSales', 'bouquets': 'flowerSales',
+                    'event': 'events', 'events': 'events', 'agritourism': 'events',
+                    'addon': 'addons', 'add-on': 'addons', 'partner': 'addons',
+                    'market': 'markets', 'farmers market': 'markets', 'farmer market': 'markets',
+                    'wholesale': 'wholesale', 'restaurant': 'wholesale'
+                };
+
+                const catKey = Object.keys(categoryMap).find(k => category.includes(k));
+                const targetCategory = catKey ? categoryMap[catKey] : null;
+
+                if (!targetCategory) {
+                    return {
+                        message: `I found <strong>${matches.length}</strong> products from "${sourceFile}"${condition ? ' with ' + condition : ''}, but I'm not sure which category "${category}" maps to. Try: CSA, Flowers, Flower Sales, Events, Add-ons, Markets, or Wholesale.`,
+                        suggestions: [
+                            { label: 'Farmers Markets', action: 'bulkCategorizeFromFile', params: { sourceFile, condition, category: 'markets' } },
+                            { label: 'CSA Subscriptions', action: 'bulkCategorizeFromFile', params: { sourceFile, condition, category: 'csa' } },
+                            { label: 'Wholesale', action: 'bulkCategorizeFromFile', params: { sourceFile, condition, category: 'wholesale' } }
+                        ]
+                    };
+                }
+
+                return {
+                    message: `Found <strong>${matches.length}</strong> products from "${sourceFile}"${condition ? ' with ' + condition : ''}. Ready to categorize them as <strong>${getCategoryDisplayName(targetCategory)}</strong>?`,
+                    suggestions: [
+                        { label: `Yes, categorize ${matches.length} items`, action: 'bulkCategorizeFromFile', params: { sourceFile, condition, category: targetCategory } },
+                        { label: 'Show me the matches first', action: 'filterBySourceFile', params: { sourceFile, condition } }
+                    ]
                 };
             }
 
@@ -15485,6 +15569,44 @@
 
                 case 'suggestPatterns':
                     askParserAI('What patterns do you see in the product names?');
+                    break;
+
+                case 'filterBySourceFile':
+                    // Filter products from a specific source file
+                    const sourceMatches = allParsedProducts.filter(p => {
+                        const matchesFile = (p.sourceFile || '').toLowerCase().includes(params.sourceFile.toLowerCase());
+                        if (!matchesFile) return false;
+                        if (params.condition && (params.condition.includes('no') || params.condition.includes('empty'))) {
+                            return !p.title || p.title.trim() === '';
+                        }
+                        return true;
+                    });
+                    filteredProducts = sourceMatches;
+                    renderRefinementTable();
+                    addChatMessage('assistant', `Showing ${sourceMatches.length} products from "${params.sourceFile}"${params.condition ? ' with ' + params.condition : ''}.`);
+                    break;
+
+                case 'bulkCategorizeFromFile':
+                    // Categorize products from a specific source file
+                    const fileMatches = allParsedProducts.filter(p => {
+                        const matchesFile = (p.sourceFile || '').toLowerCase().includes(params.sourceFile.toLowerCase());
+                        if (!matchesFile) return false;
+                        if (params.condition && (params.condition.includes('no') || params.condition.includes('empty'))) {
+                            return !p.title || p.title.trim() === '';
+                        }
+                        return true;
+                    });
+                    let fileCount = 0;
+                    fileMatches.forEach(p => {
+                        p.category = params.category;
+                        p.categoryName = getCategoryDisplayName(params.category);
+                        p.confidence = 95;
+                        fileCount++;
+                    });
+                    renderRefinementTable();
+                    updateRefinementSummary();
+                    addChatMessage('assistant', `Done! Recategorized <strong>${fileCount}</strong> products from "${params.sourceFile}" as <strong>${getCategoryDisplayName(params.category)}</strong>.`);
+                    showNotification(`${fileCount} products recategorized`, 'success');
                     break;
             }
         }
