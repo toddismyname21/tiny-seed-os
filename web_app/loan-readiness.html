@@ -4695,6 +4695,137 @@
             animation: highlightEdit 2s ease-out;
         }
 
+        /* AI Parser Chat Styles */
+        .parser-chat-message {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            animation: fadeInUp 0.3s ease-out;
+        }
+
+        .parser-chat-message:last-child {
+            margin-bottom: 0;
+        }
+
+        .parser-chat-message .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .parser-chat-message.assistant .message-avatar {
+            background: linear-gradient(135deg, var(--primary), var(--info));
+            color: white;
+        }
+
+        .parser-chat-message.user .message-avatar {
+            background: var(--gold);
+            color: white;
+        }
+
+        .parser-chat-message .message-content {
+            flex: 1;
+            background: var(--bg-lighter);
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            font-size: 0.9rem;
+        }
+
+        .parser-chat-message.user .message-content {
+            background: rgba(42, 157, 143, 0.15);
+        }
+
+        .parser-chat-message .message-content strong {
+            display: block;
+            margin-bottom: 0.25rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .parser-chat-message .message-content p {
+            margin: 0;
+        }
+
+        .parser-chat-message .message-content ul {
+            margin: 0.5rem 0 0 1rem;
+            padding: 0;
+        }
+
+        .parser-chat-message .message-content li {
+            margin-bottom: 0.25rem;
+        }
+
+        .parser-chat-message .suggestion-chips {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-top: 0.75rem;
+        }
+
+        .parser-chat-message .suggestion-chip {
+            padding: 0.25rem 0.75rem;
+            background: var(--primary);
+            color: white;
+            border-radius: 16px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+        }
+
+        .parser-chat-message .suggestion-chip:hover {
+            background: var(--secondary);
+            transform: scale(1.05);
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 0.5rem;
+        }
+
+        .typing-indicator span {
+            width: 8px;
+            height: 8px;
+            background: var(--text-secondary);
+            border-radius: 50%;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+                opacity: 0.4;
+            }
+            30% {
+                transform: translateY(-6px);
+                opacity: 1;
+            }
+        }
+
     </style>
 </head>
 <body>
@@ -6975,6 +7106,65 @@
                     <button class="btn btn-secondary btn-sm" onclick="clearBulkSelection()">
                         <i class="fas fa-times"></i> Clear Selection
                     </button>
+                </div>
+            </div>
+
+            <!-- AI Parser Assistant Chat -->
+            <div id="parserAssistantSection" style="margin-top: 1.5rem; border-top: 2px solid var(--border); padding-top: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h4 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-robot" style="color: var(--primary);"></i>
+                        AI Parser Assistant
+                        <span class="badge" style="background: var(--primary); font-size: 0.7rem;">Chat</span>
+                    </h4>
+                    <button class="btn btn-secondary btn-sm" onclick="toggleParserChat()">
+                        <i class="fas fa-chevron-down" id="parserChatToggleIcon"></i>
+                    </button>
+                </div>
+
+                <div id="parserChatContainer" style="display: block;">
+                    <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;">
+                        <i class="fas fa-info-circle"></i>
+                        Talk to the AI about your data. Provide context like "All items from 'Harvie' are CSA subscriptions" or ask "Why wasn't this product categorized correctly?"
+                    </p>
+
+                    <!-- Quick Context Buttons -->
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem;">
+                        <button class="btn btn-secondary btn-sm" onclick="askParserAI('Show me all uncategorized or low-confidence items')">
+                            <i class="fas fa-question-circle"></i> Show Uncertain Items
+                        </button>
+                        <button class="btn btn-secondary btn-sm" onclick="askParserAI('What patterns do you see in the product names that could help categorization?')">
+                            <i class="fas fa-lightbulb"></i> Suggest Patterns
+                        </button>
+                        <button class="btn btn-secondary btn-sm" onclick="openBulkContextModal()">
+                            <i class="fas fa-magic"></i> Add Bulk Context
+                        </button>
+                    </div>
+
+                    <!-- Chat Messages -->
+                    <div id="parserChatMessages" style="max-height: 300px; overflow-y: auto; background: var(--bg); border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+                        <div class="parser-chat-message assistant">
+                            <div class="message-avatar"><i class="fas fa-robot"></i></div>
+                            <div class="message-content">
+                                <strong>AI Parser Assistant</strong>
+                                <p>I can help you understand and fix the categorization. Try asking me about specific products, or provide context like:</p>
+                                <ul style="margin: 0.5rem 0 0 1rem; font-size: 0.85rem;">
+                                    <li>"All products with 'Harvie' are CSA subscriptions"</li>
+                                    <li>"Why is 'DIY Bloom Bucket' in the wrong category?"</li>
+                                    <li>"Products from 2024 starting with 'Weekly' are flower subscriptions"</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chat Input -->
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="text" id="parserChatInput" placeholder="Ask about the data or provide context..."
+                            style="flex: 1;" onkeypress="if(event.key === 'Enter') sendParserMessage()">
+                        <button class="btn btn-primary" onclick="sendParserMessage()">
+                            <i class="fas fa-paper-plane"></i> Send
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -14907,6 +15097,416 @@
             renderRefinementTable();
             updateRefinementSummary();
             showNotification(`${count} products excluded from analysis`, 'success');
+        }
+
+        // ====== AI PARSER ASSISTANT CHAT ======
+
+        let parserChatHistory = [];
+
+        function toggleParserChat() {
+            const container = document.getElementById('parserChatContainer');
+            const icon = document.getElementById('parserChatToggleIcon');
+            if (container.style.display === 'none') {
+                container.style.display = 'block';
+                icon.classList.remove('fa-chevron-right');
+                icon.classList.add('fa-chevron-down');
+            } else {
+                container.style.display = 'none';
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-right');
+            }
+        }
+
+        function sendParserMessage() {
+            const input = document.getElementById('parserChatInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            // Add user message to chat
+            addChatMessage('user', message);
+            input.value = '';
+
+            // Process the message
+            askParserAI(message);
+        }
+
+        function addChatMessage(role, content, suggestions = []) {
+            const container = document.getElementById('parserChatMessages');
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `parser-chat-message ${role}`;
+
+            const avatar = role === 'user' ? 'fa-user' : 'fa-robot';
+            const name = role === 'user' ? 'You' : 'AI Parser Assistant';
+
+            let suggestionsHtml = '';
+            if (suggestions.length > 0) {
+                suggestionsHtml = `
+                    <div class="suggestion-chips">
+                        ${suggestions.map(s => `<button class="suggestion-chip" onclick="applyParserSuggestion('${s.action}', ${JSON.stringify(s.params).replace(/"/g, '&quot;')})">${s.label}</button>`).join('')}
+                    </div>
+                `;
+            }
+
+            messageDiv.innerHTML = `
+                <div class="message-avatar"><i class="fas ${avatar}"></i></div>
+                <div class="message-content">
+                    <strong>${name}</strong>
+                    <div>${content}</div>
+                    ${suggestionsHtml}
+                </div>
+            `;
+
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+
+            parserChatHistory.push({ role, content });
+        }
+
+        function showTypingIndicator() {
+            const container = document.getElementById('parserChatMessages');
+            const typingDiv = document.createElement('div');
+            typingDiv.id = 'typingIndicator';
+            typingDiv.className = 'parser-chat-message assistant';
+            typingDiv.innerHTML = `
+                <div class="message-avatar"><i class="fas fa-robot"></i></div>
+                <div class="message-content">
+                    <div class="typing-indicator">
+                        <span></span><span></span><span></span>
+                    </div>
+                </div>
+            `;
+            container.appendChild(typingDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function hideTypingIndicator() {
+            const indicator = document.getElementById('typingIndicator');
+            if (indicator) indicator.remove();
+        }
+
+        async function askParserAI(question) {
+            showTypingIndicator();
+
+            // Gather context about the current data
+            const context = gatherParserContext();
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'parserAssistant',
+                        question: question,
+                        context: context,
+                        chatHistory: parserChatHistory.slice(-6) // Last 6 messages for context
+                    })
+                });
+
+                const data = await response.json();
+                hideTypingIndicator();
+
+                if (data.success && data.response) {
+                    addChatMessage('assistant', data.response, data.suggestions || []);
+
+                    // If AI suggested recategorizations, offer to apply them
+                    if (data.recategorizations && data.recategorizations.length > 0) {
+                        showRecategorizationSuggestions(data.recategorizations);
+                    }
+                } else {
+                    // Fallback to local processing
+                    const localResponse = processParserQuestionLocally(question, context);
+                    addChatMessage('assistant', localResponse.message, localResponse.suggestions || []);
+                }
+            } catch (error) {
+                console.error('Parser AI error:', error);
+                hideTypingIndicator();
+
+                // Fallback to local processing
+                const localResponse = processParserQuestionLocally(question, gatherParserContext());
+                addChatMessage('assistant', localResponse.message, localResponse.suggestions || []);
+            }
+        }
+
+        function gatherParserContext() {
+            // Get summary of current parsed data
+            const totalProducts = allParsedProducts.length;
+            const lowConfidence = allParsedProducts.filter(p => p.confidence < 70);
+            const uncategorized = allParsedProducts.filter(p => p.category === 'uncategorized' || !p.category);
+
+            // Get category breakdown
+            const categoryBreakdown = {};
+            allParsedProducts.forEach(p => {
+                const cat = p.category || 'uncategorized';
+                if (!categoryBreakdown[cat]) {
+                    categoryBreakdown[cat] = { count: 0, revenue: 0, products: [] };
+                }
+                categoryBreakdown[cat].count++;
+                categoryBreakdown[cat].revenue += p.sales || 0;
+                if (categoryBreakdown[cat].products.length < 5) {
+                    categoryBreakdown[cat].products.push(p.title);
+                }
+            });
+
+            // Sample of product names for pattern detection
+            const sampleProducts = allParsedProducts.slice(0, 50).map(p => ({
+                title: p.title,
+                category: p.category,
+                sales: p.sales,
+                confidence: p.confidence
+            }));
+
+            return {
+                totalProducts,
+                lowConfidenceCount: lowConfidence.length,
+                uncategorizedCount: uncategorized.length,
+                categoryBreakdown,
+                sampleProducts,
+                lowConfidenceProducts: lowConfidence.slice(0, 10).map(p => ({ title: p.title, sales: p.sales, confidence: p.confidence }))
+            };
+        }
+
+        function processParserQuestionLocally(question, context) {
+            const q = question.toLowerCase();
+
+            // Check for show uncertain/low confidence request
+            if (q.includes('uncertain') || q.includes('low confidence') || q.includes('uncategorized')) {
+                const items = context.lowConfidenceProducts;
+                if (items.length === 0) {
+                    return { message: 'All products have been categorized with good confidence. No uncertain items found.' };
+                }
+
+                let html = `<p>Found <strong>${context.lowConfidenceCount}</strong> items with low confidence. Here are some:</p><ul>`;
+                items.forEach(p => {
+                    html += `<li><strong>${p.title}</strong> - ${formatMoney(p.sales)} (${p.confidence}% confidence)</li>`;
+                });
+                html += '</ul><p>Click on any product in the table above to recategorize it, or tell me how to categorize them.</p>';
+
+                return {
+                    message: html,
+                    suggestions: [
+                        { label: 'Filter low confidence', action: 'filterLowConfidence', params: {} },
+                        { label: 'Show all uncategorized', action: 'filterUncategorized', params: {} }
+                    ]
+                };
+            }
+
+            // Check for pattern suggestions
+            if (q.includes('pattern') || q.includes('suggest')) {
+                const patterns = detectProductPatterns(context.sampleProducts);
+                let html = `<p>I found these patterns in your product names:</p><ul>`;
+                patterns.forEach(p => {
+                    html += `<li><strong>${p.pattern}</strong> - appears ${p.count} times, could be <strong>${p.suggestedCategory}</strong></li>`;
+                });
+                html += '</ul><p>Would you like me to apply any of these patterns?</p>';
+
+                return {
+                    message: html,
+                    suggestions: patterns.slice(0, 3).map(p => ({
+                        label: `Apply "${p.pattern}" → ${p.suggestedCategory}`,
+                        action: 'applyPattern',
+                        params: { pattern: p.pattern, category: p.suggestedCategory }
+                    }))
+                };
+            }
+
+            // Check for context-setting statements (e.g., "All X are Y")
+            const contextMatch = q.match(/(?:all|every|any)?\s*(?:products?|items?|sales?)?\s*(?:with|from|containing|that have|starting with|named)?\s*['""]?([^'""]+)['""]?\s*(?:are|should be|is|belongs? to)\s*([a-z\s]+)/i);
+            if (contextMatch) {
+                const keyword = contextMatch[1].trim();
+                const category = contextMatch[2].trim();
+
+                // Find matching products
+                const matches = allParsedProducts.filter(p =>
+                    p.title.toLowerCase().includes(keyword.toLowerCase())
+                );
+
+                if (matches.length === 0) {
+                    return { message: `I couldn't find any products matching "${keyword}". Can you check the spelling or try a different term?` };
+                }
+
+                // Map category name to internal key
+                const categoryMap = {
+                    'csa': 'csa', 'csa subscription': 'csa', 'csa subscriptions': 'csa',
+                    'flower': 'flowers', 'flowers': 'flowers', 'flower subscription': 'flowers',
+                    'flower sales': 'flowerSales', 'bouquet': 'flowerSales', 'bouquets': 'flowerSales',
+                    'event': 'events', 'events': 'events', 'agritourism': 'events',
+                    'addon': 'addons', 'add-on': 'addons', 'partner': 'addons',
+                    'market': 'markets', 'farmers market': 'markets',
+                    'wholesale': 'wholesale', 'restaurant': 'wholesale'
+                };
+
+                const catKey = Object.keys(categoryMap).find(k => category.includes(k));
+                const targetCategory = catKey ? categoryMap[catKey] : null;
+
+                if (!targetCategory) {
+                    return {
+                        message: `I understood you want to categorize "${keyword}" products, but I'm not sure which category "${category}" maps to. Try: CSA, Flowers, Flower Sales, Events, Add-ons, Markets, or Wholesale.`,
+                        suggestions: [
+                            { label: 'CSA Subscriptions', action: 'bulkCategorize', params: { keyword, category: 'csa' } },
+                            { label: 'Flower Subscriptions', action: 'bulkCategorize', params: { keyword, category: 'flowers' } },
+                            { label: 'Wholesale', action: 'bulkCategorize', params: { keyword, category: 'wholesale' } }
+                        ]
+                    };
+                }
+
+                return {
+                    message: `Found <strong>${matches.length}</strong> products containing "${keyword}". Ready to recategorize them as <strong>${getCategoryDisplayName(targetCategory)}</strong>?`,
+                    suggestions: [
+                        { label: `Yes, categorize ${matches.length} items`, action: 'bulkCategorize', params: { keyword, category: targetCategory } },
+                        { label: 'Show me the matches first', action: 'filterByKeyword', params: { keyword } }
+                    ]
+                };
+            }
+
+            // Default helpful response
+            return {
+                message: `<p>I can help you with:</p>
+                    <ul>
+                        <li><strong>Show uncertain items</strong> - Find products with low confidence</li>
+                        <li><strong>Suggest patterns</strong> - Detect patterns in product names</li>
+                        <li><strong>Apply rules</strong> - Tell me things like "All products with 'Harvie' are CSA subscriptions"</li>
+                    </ul>
+                    <p>What would you like to do?</p>`,
+                suggestions: [
+                    { label: 'Show uncertain items', action: 'showUncertain', params: {} },
+                    { label: 'Suggest patterns', action: 'suggestPatterns', params: {} }
+                ]
+            };
+        }
+
+        function detectProductPatterns(products) {
+            const patterns = [];
+            const wordCounts = {};
+
+            // Count common words/phrases
+            products.forEach(p => {
+                const words = p.title.toLowerCase().split(/\s+/);
+                words.forEach(word => {
+                    if (word.length > 3) {
+                        wordCounts[word] = (wordCounts[word] || 0) + 1;
+                    }
+                });
+
+                // Also check for common 2-word phrases
+                for (let i = 0; i < words.length - 1; i++) {
+                    const phrase = words[i] + ' ' + words[i + 1];
+                    wordCounts[phrase] = (wordCounts[phrase] || 0) + 1;
+                }
+            });
+
+            // Find patterns that appear multiple times
+            const commonPatterns = Object.entries(wordCounts)
+                .filter(([word, count]) => count >= 3)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10);
+
+            // Suggest categories based on keywords
+            commonPatterns.forEach(([pattern, count]) => {
+                let suggestedCategory = 'uncategorized';
+                const p = pattern.toLowerCase();
+
+                if (p.includes('csa') || p.includes('share') || p.includes('veggie') || p.includes('vegetable')) {
+                    suggestedCategory = 'CSA Subscriptions';
+                } else if (p.includes('flower') || p.includes('bloom') || p.includes('bouquet') || p.includes('dahlia')) {
+                    suggestedCategory = 'Flower Subscriptions';
+                } else if (p.includes('mushroom') || p.includes('bread') || p.includes('cheese') || p.includes('coffee')) {
+                    suggestedCategory = 'Partner Add-Ons';
+                } else if (p.includes('pick') || p.includes('u-pick') || p.includes('workshop') || p.includes('event')) {
+                    suggestedCategory = 'Farm Events';
+                }
+
+                if (suggestedCategory !== 'uncategorized') {
+                    patterns.push({ pattern, count, suggestedCategory });
+                }
+            });
+
+            return patterns;
+        }
+
+        function getCategoryDisplayName(category) {
+            const names = {
+                csa: 'CSA Subscriptions',
+                flowers: 'Flower Subscriptions',
+                flowerSales: 'Flower Sales',
+                events: 'Farm Events',
+                addons: 'Partner Add-Ons',
+                markets: 'Farmers Markets',
+                wholesale: 'Wholesale'
+            };
+            return names[category] || category;
+        }
+
+        function applyParserSuggestion(action, params) {
+            switch (action) {
+                case 'filterLowConfidence':
+                    document.getElementById('productSearchInput').value = '';
+                    filteredProducts = allParsedProducts.filter(p => p.confidence < 70);
+                    renderRefinementTable();
+                    addChatMessage('assistant', `Filtered to ${filteredProducts.length} low-confidence items.`);
+                    break;
+
+                case 'filterUncategorized':
+                    document.getElementById('categoryFilterSelect').value = 'uncategorized';
+                    filterParsedProducts();
+                    addChatMessage('assistant', `Showing uncategorized items.`);
+                    break;
+
+                case 'filterByKeyword':
+                    document.getElementById('productSearchInput').value = params.keyword;
+                    filterParsedProducts();
+                    addChatMessage('assistant', `Filtering products containing "${params.keyword}".`);
+                    break;
+
+                case 'bulkCategorize':
+                    const matches = allParsedProducts.filter(p =>
+                        p.title.toLowerCase().includes(params.keyword.toLowerCase())
+                    );
+                    let count = 0;
+                    matches.forEach(p => {
+                        p.category = params.category;
+                        p.categoryName = getCategoryDisplayName(params.category);
+                        p.confidence = 95; // High confidence after manual categorization
+                        count++;
+                    });
+                    renderRefinementTable();
+                    updateRefinementSummary();
+                    addChatMessage('assistant', `Done! Recategorized <strong>${count}</strong> products as <strong>${getCategoryDisplayName(params.category)}</strong>.`);
+                    showNotification(`${count} products recategorized`, 'success');
+                    break;
+
+                case 'applyPattern':
+                    applyParserSuggestion('bulkCategorize', { keyword: params.pattern, category: params.category });
+                    break;
+
+                case 'showUncertain':
+                    askParserAI('Show me all uncertain items');
+                    break;
+
+                case 'suggestPatterns':
+                    askParserAI('What patterns do you see in the product names?');
+                    break;
+            }
+        }
+
+        function openBulkContextModal() {
+            const context = prompt('Enter a rule for categorization:\n\nExamples:\n• "All products with Harvie are CSA subscriptions"\n• "Anything starting with 2024 Weekly is a flower subscription"\n• "Products from Square POS are farmers market sales"');
+            if (context) {
+                askParserAI(context);
+            }
+        }
+
+        function showRecategorizationSuggestions(recategorizations) {
+            let html = '<p><strong>Suggested recategorizations:</strong></p><ul>';
+            recategorizations.slice(0, 5).forEach(r => {
+                html += `<li>"${r.title}" → ${getCategoryDisplayName(r.newCategory)}</li>`;
+            });
+            html += '</ul>';
+
+            addChatMessage('assistant', html, [
+                { label: `Apply all ${recategorizations.length} changes`, action: 'applyRecategorizations', params: { items: recategorizations } },
+                { label: 'Review each one', action: 'reviewRecategorizations', params: { items: recategorizations } }
+            ]);
         }
 
         // ====== REVENUE TREND CHART ======
