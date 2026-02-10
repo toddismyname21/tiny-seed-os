@@ -21,6 +21,7 @@
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDkAfsMpi7Arqb43gBAitN0WEUs4V13N8Y" async defer></script>
     <!-- QR/Barcode Scanner Library -->
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
     <!-- PWA Install Prompt -->
     <script src="install-prompt.js" defer></script>
     <style>
@@ -11296,6 +11297,7 @@
             <button class="inventory-tab active" onclick="switchInventoryTab('count')" data-tab="count">Count</button>
             <button class="inventory-tab" onclick="switchInventoryTab('history')" data-tab="history">History</button>
             <button class="inventory-tab" onclick="switchInventoryTab('report')" data-tab="report">Report</button>
+            <button class="inventory-tab" onclick="switchInventoryTab('qr')" data-tab="qr">QR Labels</button>
         </div>
         <div class="inventory-content">
             <!-- Count Tab -->
@@ -11576,6 +11578,85 @@
                 <button class="inventory-submit-btn secondary" onclick="generateInventoryReport()">
                     <i class="fas fa-file-export"></i> Generate Report
                 </button>
+            </div>
+
+            <!-- QR Labels Tab -->
+            <div id="inventoryQRTab" class="inventory-panel">
+                <div class="qr-section" style="padding: 16px;">
+                    <div style="background: var(--bg-card); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                        <h3 style="margin: 0 0 8px 0; font-size: 16px; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-qrcode" style="color: var(--primary);"></i>
+                            QR Code Labels
+                        </h3>
+                        <p style="margin: 0; font-size: 13px; color: var(--text-secondary);">
+                            Generate QR codes for your inventory items. Print and apply to persistent items for easy scanning.
+                        </p>
+                    </div>
+
+                    <!-- Quick Generate Section -->
+                    <div style="background: var(--bg-card); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                        <h4 style="margin: 0 0 12px 0; font-size: 14px;">Generate Single Label</h4>
+                        <div style="display: grid; gap: 12px;">
+                            <input type="text" id="qrItemName" placeholder="Item name (e.g., Felco Pruners #7)"
+                                style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-dark); color: var(--text-primary); font-size: 15px;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                <select id="qrItemLocation" style="padding: 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-dark); color: var(--text-primary); font-size: 14px;">
+                                    <option value="">Location (optional)</option>
+                                    <option value="barn">Barn</option>
+                                    <option value="greenhouse">Greenhouse</option>
+                                    <option value="cooler">Cooler</option>
+                                    <option value="packhouse">Packhouse</option>
+                                    <option value="shed">Shed</option>
+                                    <option value="field">Field</option>
+                                </select>
+                                <input type="text" id="qrItemId" placeholder="Asset ID (optional)"
+                                    style="padding: 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-dark); color: var(--text-primary); font-size: 14px;">
+                            </div>
+                            <button onclick="generateSingleQR()" style="padding: 14px; border-radius: 12px; border: none; background: var(--primary); color: white; font-weight: 600; font-size: 15px; cursor: pointer;">
+                                <i class="fas fa-qrcode"></i> Generate QR Code
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Single QR Preview -->
+                    <div id="singleQRPreview" style="display: none; background: var(--bg-card); border-radius: 12px; padding: 16px; margin-bottom: 16px; text-align: center;">
+                        <div id="singleQRCode" style="display: inline-block; background: white; padding: 16px; border-radius: 8px; margin-bottom: 12px;"></div>
+                        <div id="singleQRLabel" style="font-size: 14px; font-weight: 600; margin-bottom: 8px;"></div>
+                        <div style="display: flex; gap: 8px; justify-content: center;">
+                            <button onclick="printSingleQR()" style="padding: 10px 20px; border-radius: 8px; border: none; background: var(--secondary); color: white; font-weight: 600; cursor: pointer;">
+                                <i class="fas fa-print"></i> Print
+                            </button>
+                            <button onclick="downloadSingleQR()" style="padding: 10px 20px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-dark); color: var(--text-primary); cursor: pointer;">
+                                <i class="fas fa-download"></i> Save
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Bulk Generate Section -->
+                    <div style="background: var(--bg-card); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                        <h4 style="margin: 0 0 12px 0; font-size: 14px; display: flex; align-items: center; justify-content: space-between;">
+                            <span>Bulk Generate from Today's Count</span>
+                            <span id="bulkQRCount" style="background: var(--primary); color: white; padding: 2px 10px; border-radius: 12px; font-size: 12px;">0 items</span>
+                        </h4>
+                        <p style="margin: 0 0 12px 0; font-size: 13px; color: var(--text-secondary);">
+                            Generate QR labels for all items you counted today.
+                        </p>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                            <button onclick="generateBulkQR()" style="padding: 12px; border-radius: 10px; border: none; background: var(--success); color: white; font-weight: 600; font-size: 14px; cursor: pointer;">
+                                <i class="fas fa-layer-group"></i> Generate All
+                            </button>
+                            <button onclick="printBulkQR()" id="printBulkBtn" style="padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-dark); color: var(--text-primary); font-weight: 600; font-size: 14px; cursor: pointer;" disabled>
+                                <i class="fas fa-print"></i> Print Sheet
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Bulk QR Preview Grid -->
+                    <div id="bulkQRPreview" style="display: none; background: var(--bg-card); border-radius: 12px; padding: 16px;">
+                        <h4 style="margin: 0 0 12px 0; font-size: 14px;">Preview - QR Labels</h4>
+                        <div id="bulkQRGrid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -15858,11 +15939,14 @@
             document.getElementById('inventoryCountTab').classList.toggle('active', tab === 'count');
             document.getElementById('inventoryHistoryTab').classList.toggle('active', tab === 'history');
             document.getElementById('inventoryReportTab').classList.toggle('active', tab === 'report');
+            document.getElementById('inventoryQRTab').classList.toggle('active', tab === 'qr');
 
             if (tab === 'history') {
                 loadInventoryHistory();
             } else if (tab === 'report') {
                 updateInventoryReportStats();
+            } else if (tab === 'qr') {
+                updateBulkQRCount();
             }
         }
 
@@ -16561,6 +16645,203 @@
             // For mobile, copy to clipboard
             navigator.clipboard?.writeText(csvContent);
             showToast('Report copied to clipboard!', 'success');
+        }
+
+        // ============================================
+        // QR CODE LABEL GENERATION
+        // ============================================
+        let generatedQRCodes = [];
+
+        function updateBulkQRCount() {
+            const count = InventoryState.currentCount.length;
+            const badge = document.getElementById('bulkQRCount');
+            if (badge) badge.textContent = count + ' items';
+        }
+
+        async function generateSingleQR() {
+            const name = document.getElementById('qrItemName').value.trim();
+            if (!name) {
+                showToast('Please enter an item name', 'error');
+                return;
+            }
+
+            const location = document.getElementById('qrItemLocation').value;
+            const assetId = document.getElementById('qrItemId').value.trim() || 'TSF-' + Date.now().toString(36).toUpperCase();
+
+            // QR data contains item info as JSON
+            const qrData = JSON.stringify({
+                id: assetId,
+                name: name,
+                loc: location,
+                farm: 'TinySeed',
+                ts: Date.now()
+            });
+
+            try {
+                const container = document.getElementById('singleQRCode');
+                container.innerHTML = '';
+
+                await QRCode.toCanvas(container, qrData, {
+                    width: 150,
+                    margin: 2,
+                    color: { dark: '#000000', light: '#ffffff' }
+                });
+
+                // Also create as image for saving
+                const dataUrl = await QRCode.toDataURL(qrData, { width: 300, margin: 2 });
+                container.dataset.qrImage = dataUrl;
+                container.dataset.qrName = name;
+                container.dataset.qrId = assetId;
+
+                document.getElementById('singleQRLabel').innerHTML = `
+                    <strong>${name}</strong><br>
+                    <span style="font-size: 11px; color: var(--text-secondary);">ID: ${assetId}${location ? ' | ' + location : ''}</span>
+                `;
+
+                document.getElementById('singleQRPreview').style.display = 'block';
+                showToast('QR code generated!', 'success');
+            } catch (err) {
+                console.error('QR generation error:', err);
+                showToast('Failed to generate QR code', 'error');
+            }
+        }
+
+        function printSingleQR() {
+            const container = document.getElementById('singleQRCode');
+            const name = container.dataset.qrName || 'Item';
+            const id = container.dataset.qrId || '';
+            const imgData = container.dataset.qrImage;
+
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Print QR Label</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+                        .label { display: inline-block; border: 2px solid #000; padding: 15px; margin: 10px; }
+                        .label img { display: block; margin: 0 auto 10px; }
+                        .label-name { font-size: 14px; font-weight: bold; margin-bottom: 4px; }
+                        .label-id { font-size: 10px; color: #666; }
+                        @media print { body { padding: 0; } .label { border: 1px solid #000; } }
+                    </style>
+                </head>
+                <body>
+                    <div class="label">
+                        <img src="${imgData}" width="120" height="120">
+                        <div class="label-name">${name}</div>
+                        <div class="label-id">${id}</div>
+                    </div>
+                    <script>window.onload = function() { window.print(); }</script>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+
+        function downloadSingleQR() {
+            const container = document.getElementById('singleQRCode');
+            const imgData = container.dataset.qrImage;
+            const name = container.dataset.qrName || 'item';
+
+            const link = document.createElement('a');
+            link.download = `qr-${name.replace(/\s+/g, '-').toLowerCase()}.png`;
+            link.href = imgData;
+            link.click();
+            showToast('QR code saved!', 'success');
+        }
+
+        async function generateBulkQR() {
+            const items = InventoryState.currentCount;
+            if (items.length === 0) {
+                showToast('No items in today\'s count', 'info');
+                return;
+            }
+
+            const grid = document.getElementById('bulkQRGrid');
+            grid.innerHTML = '<div style="text-align: center; padding: 20px; grid-column: span 2;"><i class="fas fa-spinner fa-spin"></i> Generating...</div>';
+            document.getElementById('bulkQRPreview').style.display = 'block';
+
+            generatedQRCodes = [];
+
+            try {
+                let html = '';
+                for (const item of items) {
+                    const assetId = 'TSF-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substr(2, 3).toUpperCase();
+                    const qrData = JSON.stringify({
+                        id: assetId,
+                        name: item.name,
+                        qty: item.qty,
+                        unit: item.unit,
+                        loc: item.location,
+                        farm: 'TinySeed'
+                    });
+
+                    const dataUrl = await QRCode.toDataURL(qrData, { width: 200, margin: 1 });
+                    generatedQRCodes.push({ name: item.name, id: assetId, location: item.location, qty: item.qty, unit: item.unit, dataUrl });
+
+                    html += `
+                        <div style="background: white; border-radius: 8px; padding: 10px; text-align: center;">
+                            <img src="${dataUrl}" style="width: 80px; height: 80px;">
+                            <div style="font-size: 11px; color: #333; font-weight: 600; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${item.name}</div>
+                            <div style="font-size: 9px; color: #666;">${assetId}</div>
+                        </div>
+                    `;
+                }
+
+                grid.innerHTML = html;
+                document.getElementById('printBulkBtn').disabled = false;
+                showToast(`Generated ${items.length} QR codes!`, 'success');
+            } catch (err) {
+                console.error('Bulk QR error:', err);
+                grid.innerHTML = '<div style="text-align: center; padding: 20px; grid-column: span 2; color: #e63946;">Failed to generate QR codes</div>';
+            }
+        }
+
+        function printBulkQR() {
+            if (generatedQRCodes.length === 0) {
+                showToast('Generate QR codes first', 'info');
+                return;
+            }
+
+            const printWindow = window.open('', '_blank');
+            const labelsHtml = generatedQRCodes.map(item => `
+                <div class="label">
+                    <img src="${item.dataUrl}" width="80" height="80">
+                    <div class="label-name">${item.name}</div>
+                    <div class="label-id">${item.id}</div>
+                    ${item.location ? `<div class="label-loc">${item.location}</div>` : ''}
+                </div>
+            `).join('');
+
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Print QR Labels</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 10px; }
+                        .labels { display: flex; flex-wrap: wrap; gap: 8px; }
+                        .label { border: 1px solid #ccc; padding: 8px; text-align: center; width: 110px; page-break-inside: avoid; }
+                        .label img { display: block; margin: 0 auto 4px; }
+                        .label-name { font-size: 10px; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+                        .label-id { font-size: 8px; color: #666; }
+                        .label-loc { font-size: 8px; color: #888; }
+                        @media print {
+                            body { padding: 0; }
+                            .labels { gap: 4px; }
+                            .label { border: 0.5px solid #000; padding: 4px; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="labels">${labelsHtml}</div>
+                    <script>window.onload = function() { window.print(); }</script>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
         }
 
         // ============================================
