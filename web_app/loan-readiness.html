@@ -4501,6 +4501,200 @@
             font-size: 0.9rem;
         }
 
+        /* Data Refinement Table Styles */
+        .refinement-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .refinement-table th {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 2px solid var(--border);
+            font-weight: 600;
+            color: var(--text);
+            white-space: nowrap;
+        }
+
+        .refinement-table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        .refinement-table tbody tr:hover {
+            background: rgba(42, 157, 143, 0.05);
+        }
+
+        .refinement-table .product-title {
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .refinement-table .category-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .refinement-table .category-badge.csa {
+            background: rgba(42, 157, 143, 0.15);
+            color: var(--success);
+        }
+
+        .refinement-table .category-badge.flowers {
+            background: rgba(244, 162, 97, 0.15);
+            color: var(--warning);
+        }
+
+        .refinement-table .category-badge.events {
+            background: rgba(139, 195, 74, 0.15);
+            color: #8bc34a;
+        }
+
+        .refinement-table .category-badge.addons {
+            background: rgba(14, 165, 233, 0.15);
+            color: var(--info);
+        }
+
+        .refinement-table .category-badge.markets {
+            background: rgba(155, 89, 182, 0.15);
+            color: var(--purple);
+        }
+
+        .refinement-table .category-badge.wholesale {
+            background: rgba(244, 162, 97, 0.15);
+            color: var(--gold);
+        }
+
+        .refinement-table .category-badge.flowerSales {
+            background: rgba(233, 30, 99, 0.15);
+            color: #e91e63;
+        }
+
+        .refinement-table .category-badge.uncategorized {
+            background: rgba(150, 150, 150, 0.15);
+            color: var(--text-secondary);
+        }
+
+        .refinement-table .confidence-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .refinement-table .confidence-bar {
+            width: 60px;
+            height: 6px;
+            background: var(--bg);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .refinement-table .confidence-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .refinement-table .confidence-fill.high {
+            background: var(--success);
+        }
+
+        .refinement-table .confidence-fill.medium {
+            background: var(--warning);
+        }
+
+        .refinement-table .confidence-fill.low {
+            background: var(--danger);
+        }
+
+        .refinement-table .amount-editable {
+            padding: 0.25rem 0.5rem;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            background: transparent;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--success);
+            transition: all 0.2s ease;
+        }
+
+        .refinement-table .amount-editable:hover {
+            border-color: var(--border);
+            background: var(--bg);
+        }
+
+        .refinement-table .amount-editable:focus {
+            border-color: var(--primary);
+            background: var(--bg);
+            outline: none;
+        }
+
+        .refinement-table .action-btn {
+            padding: 0.25rem 0.5rem;
+            border: none;
+            background: var(--bg);
+            border-radius: 4px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+        }
+
+        .refinement-table .action-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .refinement-table .action-btn.danger:hover {
+            background: var(--danger);
+        }
+
+        /* Revenue Insights */
+        .revenue-insights .insight-card {
+            padding: 1rem;
+            background: var(--bg-lighter);
+            border-radius: 8px;
+            border-left: 4px solid var(--success);
+        }
+
+        .revenue-insights .insight-card.warning {
+            border-left-color: var(--warning);
+        }
+
+        .revenue-insights .insight-card.info {
+            border-left-color: var(--info);
+        }
+
+        .revenue-insights .insight-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .revenue-insights .insight-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        /* Highlight animation for edited rows */
+        @keyframes highlightEdit {
+            0% { background: rgba(42, 157, 143, 0.3); }
+            100% { background: transparent; }
+        }
+
+        .refinement-table tr.just-edited {
+            animation: highlightEdit 2s ease-out;
+        }
+
     </style>
 </head>
 <body>
@@ -6651,6 +6845,137 @@
                     <li><strong>Edit if needed</strong> - Click any value to manually adjust. Add Farmers Market and Wholesale data that is not in Shopify.</li>
                     <li><strong>Save &amp; Generate Plans</strong> - Your data is saved and used to create accurate loan documents</li>
                 </ol>
+            </div>
+        </div>
+
+        <!-- Revenue Trend Visualization -->
+        <div class="card" id="revenueTrendCard" style="display: none;">
+            <div class="card-header">
+                <h2><i class="fas fa-chart-area"></i> Revenue Growth Visualization</h2>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn-secondary btn-sm" onclick="toggleChartType()">
+                        <i class="fas fa-exchange-alt"></i> Toggle View
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="exportRevenueChart()">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                </div>
+            </div>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                <i class="fas fa-trending-up" style="color: var(--success);"></i>
+                Visual representation of your farm's revenue growth by category over time. This is powerful data for loan applications.
+            </p>
+
+            <!-- Chart Container -->
+            <div style="height: 400px; position: relative;">
+                <canvas id="revenueTrendChart"></canvas>
+            </div>
+
+            <!-- Key Insights -->
+            <div id="revenueInsights" class="revenue-insights" style="display: none; margin-top: 1.5rem; padding: 1rem; background: rgba(42, 157, 143, 0.1); border-radius: 12px;">
+                <h4 style="margin: 0 0 1rem 0; color: var(--primary);"><i class="fas fa-lightbulb"></i> Key Insights for Loan Application</h4>
+                <div id="revenueInsightsList" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;"></div>
+            </div>
+        </div>
+
+        <!-- Data Review & Refinement Panel -->
+        <div class="card" id="dataRefinementCard" style="display: none;">
+            <div class="card-header">
+                <h2><i class="fas fa-search-dollar"></i> Data Review & Refinement</h2>
+                <span class="badge" style="background: linear-gradient(135deg, var(--gold), var(--warning));">Review AI Parsing</span>
+            </div>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                <i class="fas fa-exclamation-triangle" style="color: var(--warning);"></i>
+                AI categorization is not always perfect. Search for products, review categorizations, and fix any errors. Changes are reflected in your business plan automatically.
+            </p>
+
+            <!-- Search and Filter Bar -->
+            <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 250px;">
+                    <div class="input-group" style="margin-bottom: 0;">
+                        <div style="position: relative;">
+                            <i class="fas fa-search" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-secondary);"></i>
+                            <input type="text" id="productSearchInput" placeholder="Search products... e.g., 'flower', 'subscription', 'CSA'" style="padding-left: 2.5rem; width: 100%;" oninput="filterParsedProducts()">
+                        </div>
+                    </div>
+                </div>
+                <select id="categoryFilterSelect" onchange="filterParsedProducts()" style="min-width: 180px;">
+                    <option value="all">All Categories</option>
+                    <option value="csa">CSA Subscriptions</option>
+                    <option value="flowers">Flower Subscriptions</option>
+                    <option value="flowerSales">Flower Sales</option>
+                    <option value="events">Farm Events</option>
+                    <option value="addons">Partner Add-Ons</option>
+                    <option value="markets">Farmers Markets</option>
+                    <option value="wholesale">Wholesale</option>
+                    <option value="uncategorized">Uncategorized</option>
+                </select>
+                <select id="yearFilterRefine" onchange="filterParsedProducts()" style="min-width: 120px;">
+                    <option value="all">All Years</option>
+                </select>
+                <button class="btn btn-secondary btn-sm" onclick="showBulkEditOptions()">
+                    <i class="fas fa-list-check"></i> Bulk Edit
+                </button>
+            </div>
+
+            <!-- Results Summary -->
+            <div id="refinementResultsSummary" style="display: flex; gap: 1.5rem; margin-bottom: 1rem; padding: 0.75rem 1rem; background: var(--bg-lighter); border-radius: 8px; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-cube" style="color: var(--info);"></i>
+                    <span id="refinementTotalProducts">0 products</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-dollar-sign" style="color: var(--success);"></i>
+                    <span id="refinementTotalRevenue">$0</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-exclamation-circle" style="color: var(--warning);"></i>
+                    <span id="refinementLowConfidence">0 low confidence</span>
+                </div>
+            </div>
+
+            <!-- Products Table -->
+            <div style="overflow-x: auto; max-height: 500px; overflow-y: auto;">
+                <table class="refinement-table" id="refinementTable">
+                    <thead style="position: sticky; top: 0; background: var(--bg-lighter); z-index: 1;">
+                        <tr>
+                            <th style="width: 40px;"><input type="checkbox" id="selectAllProducts" onchange="toggleSelectAllProducts()"></th>
+                            <th style="cursor: pointer;" onclick="sortRefinementTable('title')">Product <i class="fas fa-sort"></i></th>
+                            <th style="cursor: pointer;" onclick="sortRefinementTable('category')">Category <i class="fas fa-sort"></i></th>
+                            <th style="cursor: pointer;" onclick="sortRefinementTable('sales')">Amount <i class="fas fa-sort"></i></th>
+                            <th style="cursor: pointer;" onclick="sortRefinementTable('year')">Year <i class="fas fa-sort"></i></th>
+                            <th style="cursor: pointer;" onclick="sortRefinementTable('confidence')">Confidence <i class="fas fa-sort"></i></th>
+                            <th style="width: 100px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="refinementTableBody">
+                        <tr>
+                            <td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                <i class="fas fa-upload" style="font-size: 2rem; margin-bottom: 0.5rem; display: block;"></i>
+                                Upload a sales file to review and refine the parsed data
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Quick Actions -->
+            <div id="bulkActionsBar" style="display: none; margin-top: 1rem; padding: 1rem; background: rgba(67, 97, 238, 0.1); border-radius: 8px; border: 1px solid rgba(67, 97, 238, 0.3);">
+                <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                    <span id="selectedProductsCount" style="font-weight: 600;">0 selected</span>
+                    <button class="btn btn-secondary btn-sm" onclick="bulkRecategorize()">
+                        <i class="fas fa-tags"></i> Change Category
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="bulkAdjustAmount()">
+                        <i class="fas fa-calculator"></i> Adjust Amount
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="bulkExclude()">
+                        <i class="fas fa-ban"></i> Exclude from Analysis
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="clearBulkSelection()">
+                        <i class="fas fa-times"></i> Clear Selection
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -10392,6 +10717,12 @@
             if (accumulatedSalesData) {
                 displayParsedData(accumulatedSalesData);
 
+                // Populate the data refinement panel
+                populateRefinementPanel(accumulatedSalesData);
+
+                // Show revenue trend chart
+                showRevenueTrendChart(accumulatedSalesData);
+
                 // Show success celebration
                 showImportSuccess({
                     files: allParsedData.length,
@@ -14060,6 +14391,682 @@
         // Log when modal system is ready
         console.log('%c AI Recategorization Modal Ready', 'color: #2a9d8f; font-weight: bold; font-size: 12px;');
         console.log('Click any product row to recategorize, or run testCorrectionModal() to test.');
+
+        // ====== DATA REFINEMENT & VISUALIZATION FUNCTIONS ======
+
+        // Store all products for filtering and editing
+        let allParsedProducts = [];
+        let filteredProducts = [];
+        let selectedProductIds = new Set();
+        let refinementSortKey = 'sales';
+        let refinementSortDir = 'desc';
+        let revenueTrendChartInstance = null;
+        let chartType = 'line'; // 'line' or 'bar'
+
+        // Populate the refinement panel with all parsed products
+        function populateRefinementPanel(data) {
+            const card = document.getElementById('dataRefinementCard');
+            if (!card) return;
+
+            card.style.display = 'block';
+
+            // Flatten all products from all categories with their category info
+            allParsedProducts = [];
+
+            // Helper to add products with category
+            function addProducts(products, category, categoryName) {
+                if (!products || !Array.isArray(products)) return;
+                products.forEach((p, idx) => {
+                    allParsedProducts.push({
+                        id: `${category}_${idx}_${Date.now()}`,
+                        ...p,
+                        category: category,
+                        categoryName: categoryName,
+                        confidence: p.confidence || 85,
+                        year: p.year || extractYear(p.date) || 'Unknown',
+                        excluded: false
+                    });
+                });
+            }
+
+            // CSA
+            if (data.csa) {
+                ['summer', 'spring', 'fall', 'thanksgiving'].forEach(season => {
+                    if (data.csa[season] && data.csa[season].amount > 0) {
+                        allParsedProducts.push({
+                            id: `csa_${season}_${Date.now()}`,
+                            title: `${season.charAt(0).toUpperCase() + season.slice(1)} CSA`,
+                            sales: data.csa[season].amount,
+                            quantity: data.csa[season].count,
+                            category: 'csa',
+                            categoryName: 'CSA Subscriptions',
+                            confidence: 95,
+                            year: data.productYear || 'All',
+                            excluded: false
+                        });
+                    }
+                });
+            }
+
+            // Flowers
+            if (data.flowers) {
+                ['standard', 'fullBloom', 'petiteBloom', 'dahlia'].forEach(type => {
+                    if (data.flowers[type] && data.flowers[type].amount > 0) {
+                        const displayNames = { standard: 'Standard Weekly', fullBloom: 'Full Bloom', petiteBloom: 'Petite Bloom', dahlia: 'Dahlia CSA' };
+                        allParsedProducts.push({
+                            id: `flowers_${type}_${Date.now()}`,
+                            title: displayNames[type],
+                            sales: data.flowers[type].amount,
+                            quantity: data.flowers[type].count,
+                            category: 'flowers',
+                            categoryName: 'Flower Subscriptions',
+                            confidence: 95,
+                            year: data.productYear || 'All',
+                            excluded: false
+                        });
+                    }
+                });
+            }
+
+            // Flower Sales
+            addProducts(data.flowerSales?.products, 'flowerSales', 'Flower Sales');
+
+            // Events
+            addProducts(data.events?.products, 'events', 'Farm Events');
+
+            // Add-ons
+            if (data.addons) {
+                ['mushrooms', 'bread', 'cheese', 'coffee'].forEach(type => {
+                    if (data.addons[type] && data.addons[type].amount > 0) {
+                        allParsedProducts.push({
+                            id: `addons_${type}_${Date.now()}`,
+                            title: `${type.charAt(0).toUpperCase() + type.slice(1)} Add-On`,
+                            sales: data.addons[type].amount,
+                            quantity: data.addons[type].count,
+                            category: 'addons',
+                            categoryName: 'Partner Add-Ons',
+                            confidence: 90,
+                            year: data.productYear || 'All',
+                            excluded: false
+                        });
+                    }
+                });
+            }
+
+            // Markets
+            addProducts(data.markets?.products, 'markets', 'Farmers Markets');
+
+            // Wholesale
+            addProducts(data.wholesale?.products, 'wholesale', 'Wholesale');
+
+            // Update year filter options
+            updateRefinementYearFilter(data.availableYears);
+
+            // Display all products
+            filteredProducts = [...allParsedProducts];
+            renderRefinementTable();
+            updateRefinementSummary();
+
+            console.log('%c Data Refinement Panel Ready', 'color: #f4a261; font-weight: bold; font-size: 12px;');
+            console.log(`Loaded ${allParsedProducts.length} products for review`);
+        }
+
+        function extractYear(dateStr) {
+            if (!dateStr) return null;
+            const match = String(dateStr).match(/20\d{2}/);
+            return match ? match[0] : null;
+        }
+
+        function updateRefinementYearFilter(years) {
+            const select = document.getElementById('yearFilterRefine');
+            if (!select) return;
+
+            select.innerHTML = '<option value="all">All Years</option>';
+            if (years && years.length > 0) {
+                years.forEach(year => {
+                    const opt = document.createElement('option');
+                    opt.value = year;
+                    opt.textContent = year;
+                    select.appendChild(opt);
+                });
+            }
+        }
+
+        function filterParsedProducts() {
+            const searchTerm = document.getElementById('productSearchInput')?.value?.toLowerCase() || '';
+            const categoryFilter = document.getElementById('categoryFilterSelect')?.value || 'all';
+            const yearFilter = document.getElementById('yearFilterRefine')?.value || 'all';
+
+            filteredProducts = allParsedProducts.filter(p => {
+                // Search filter
+                if (searchTerm && !p.title.toLowerCase().includes(searchTerm)) {
+                    return false;
+                }
+                // Category filter
+                if (categoryFilter !== 'all' && p.category !== categoryFilter) {
+                    return false;
+                }
+                // Year filter
+                if (yearFilter !== 'all' && String(p.year) !== yearFilter) {
+                    return false;
+                }
+                return true;
+            });
+
+            renderRefinementTable();
+            updateRefinementSummary();
+        }
+
+        function renderRefinementTable() {
+            const tbody = document.getElementById('refinementTableBody');
+            if (!tbody) return;
+
+            if (filteredProducts.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                            <i class="fas fa-search" style="font-size: 2rem; margin-bottom: 0.5rem; display: block;"></i>
+                            No products match your search criteria
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            // Sort products
+            const sorted = [...filteredProducts].sort((a, b) => {
+                let aVal = a[refinementSortKey];
+                let bVal = b[refinementSortKey];
+
+                if (refinementSortKey === 'sales') {
+                    aVal = parseFloat(aVal) || 0;
+                    bVal = parseFloat(bVal) || 0;
+                } else if (refinementSortKey === 'confidence') {
+                    aVal = parseInt(aVal) || 0;
+                    bVal = parseInt(bVal) || 0;
+                } else {
+                    aVal = String(aVal || '').toLowerCase();
+                    bVal = String(bVal || '').toLowerCase();
+                }
+
+                if (refinementSortDir === 'asc') {
+                    return aVal > bVal ? 1 : -1;
+                } else {
+                    return aVal < bVal ? 1 : -1;
+                }
+            });
+
+            let html = '';
+            sorted.forEach(p => {
+                const confClass = p.confidence >= 80 ? 'high' : (p.confidence >= 60 ? 'medium' : 'low');
+                const isSelected = selectedProductIds.has(p.id);
+                const excludedClass = p.excluded ? 'style="opacity: 0.5; text-decoration: line-through;"' : '';
+
+                html += `
+                    <tr data-product-id="${p.id}" ${excludedClass}>
+                        <td>
+                            <input type="checkbox" class="product-checkbox" ${isSelected ? 'checked' : ''} onchange="toggleProductSelection('${p.id}')">
+                        </td>
+                        <td class="product-title" title="${p.title}">${p.title}</td>
+                        <td>
+                            <span class="category-badge ${p.category}">
+                                <i class="fas ${getCategoryIcon(p.category)}"></i>
+                                ${p.categoryName || p.category}
+                            </span>
+                        </td>
+                        <td>
+                            <input type="text" class="amount-editable" value="${formatMoney(p.sales)}"
+                                onchange="updateProductAmount('${p.id}', this.value)"
+                                onclick="this.select()" title="Click to edit amount">
+                        </td>
+                        <td>${p.year}</td>
+                        <td>
+                            <div class="confidence-indicator">
+                                <div class="confidence-bar">
+                                    <div class="confidence-fill ${confClass}" style="width: ${p.confidence}%;"></div>
+                                </div>
+                                <span style="font-size: 0.75rem; color: var(--text-secondary);">${p.confidence}%</span>
+                            </div>
+                        </td>
+                        <td>
+                            <button class="action-btn" onclick="openCorrectionModal({title: '${p.title.replace(/'/g, "\\'")}', sales: ${p.sales}, qty: ${p.quantity || 1}}, '${p.category}', ${p.confidence})" title="Recategorize">
+                                <i class="fas fa-tags"></i>
+                            </button>
+                            <button class="action-btn ${p.excluded ? '' : 'danger'}" onclick="toggleExcludeProduct('${p.id}')" title="${p.excluded ? 'Include' : 'Exclude'}">
+                                <i class="fas ${p.excluded ? 'fa-plus' : 'fa-ban'}"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        function getCategoryIcon(category) {
+            const icons = {
+                csa: 'fa-box-open',
+                flowers: 'fa-seedling',
+                flowerSales: 'fa-spa',
+                events: 'fa-tractor',
+                addons: 'fa-handshake',
+                markets: 'fa-store',
+                wholesale: 'fa-building',
+                uncategorized: 'fa-question-circle'
+            };
+            return icons[category] || 'fa-tag';
+        }
+
+        function updateRefinementSummary() {
+            const activeProducts = filteredProducts.filter(p => !p.excluded);
+            const totalProducts = activeProducts.length;
+            const totalRevenue = activeProducts.reduce((sum, p) => sum + (parseFloat(p.sales) || 0), 0);
+            const lowConfidence = activeProducts.filter(p => p.confidence < 70).length;
+
+            document.getElementById('refinementTotalProducts').textContent = `${totalProducts} products`;
+            document.getElementById('refinementTotalRevenue').textContent = formatMoney(totalRevenue);
+            document.getElementById('refinementLowConfidence').textContent = `${lowConfidence} low confidence`;
+        }
+
+        function sortRefinementTable(key) {
+            if (refinementSortKey === key) {
+                refinementSortDir = refinementSortDir === 'asc' ? 'desc' : 'asc';
+            } else {
+                refinementSortKey = key;
+                refinementSortDir = 'desc';
+            }
+            renderRefinementTable();
+        }
+
+        function toggleProductSelection(productId) {
+            if (selectedProductIds.has(productId)) {
+                selectedProductIds.delete(productId);
+            } else {
+                selectedProductIds.add(productId);
+            }
+            updateBulkActionsBar();
+        }
+
+        function toggleSelectAllProducts() {
+            const checkbox = document.getElementById('selectAllProducts');
+            if (checkbox.checked) {
+                filteredProducts.forEach(p => selectedProductIds.add(p.id));
+            } else {
+                selectedProductIds.clear();
+            }
+            renderRefinementTable();
+            updateBulkActionsBar();
+        }
+
+        function updateBulkActionsBar() {
+            const bar = document.getElementById('bulkActionsBar');
+            const count = document.getElementById('selectedProductsCount');
+
+            if (selectedProductIds.size > 0) {
+                bar.style.display = 'block';
+                count.textContent = `${selectedProductIds.size} selected`;
+            } else {
+                bar.style.display = 'none';
+            }
+        }
+
+        function clearBulkSelection() {
+            selectedProductIds.clear();
+            document.getElementById('selectAllProducts').checked = false;
+            renderRefinementTable();
+            updateBulkActionsBar();
+        }
+
+        function updateProductAmount(productId, newValue) {
+            const product = allParsedProducts.find(p => p.id === productId);
+            if (!product) return;
+
+            // Parse the new value
+            const numericValue = parseFloat(String(newValue).replace(/[^0-9.-]/g, '')) || 0;
+            const oldValue = product.sales;
+
+            product.sales = numericValue;
+
+            // Highlight the edited row
+            const row = document.querySelector(`tr[data-product-id="${productId}"]`);
+            if (row) {
+                row.classList.add('just-edited');
+                setTimeout(() => row.classList.remove('just-edited'), 2000);
+            }
+
+            // Update summary
+            updateRefinementSummary();
+
+            // Log the change
+            console.log(`Updated "${product.title}" amount: ${formatMoney(oldValue)} → ${formatMoney(numericValue)}`);
+
+            // Update the chart
+            if (revenueTrendChartInstance && accumulatedSalesData) {
+                showRevenueTrendChart(accumulatedSalesData);
+            }
+
+            showNotification(`Amount updated: ${formatMoney(numericValue)}`, 'success');
+        }
+
+        function toggleExcludeProduct(productId) {
+            const product = allParsedProducts.find(p => p.id === productId);
+            if (!product) return;
+
+            product.excluded = !product.excluded;
+            renderRefinementTable();
+            updateRefinementSummary();
+
+            showNotification(product.excluded ? 'Product excluded from analysis' : 'Product included in analysis', 'info');
+        }
+
+        function showBulkEditOptions() {
+            showNotification('Select products using checkboxes, then use bulk actions', 'info');
+        }
+
+        function bulkRecategorize() {
+            if (selectedProductIds.size === 0) {
+                showNotification('Select products first', 'warning');
+                return;
+            }
+            // Open a category selector
+            const category = prompt('Enter new category (csa, flowers, flowerSales, events, addons, markets, wholesale):');
+            if (!category) return;
+
+            const categoryNames = {
+                csa: 'CSA Subscriptions',
+                flowers: 'Flower Subscriptions',
+                flowerSales: 'Flower Sales',
+                events: 'Farm Events',
+                addons: 'Partner Add-Ons',
+                markets: 'Farmers Markets',
+                wholesale: 'Wholesale'
+            };
+
+            if (!categoryNames[category]) {
+                showNotification('Invalid category', 'error');
+                return;
+            }
+
+            let count = 0;
+            selectedProductIds.forEach(id => {
+                const product = allParsedProducts.find(p => p.id === id);
+                if (product) {
+                    product.category = category;
+                    product.categoryName = categoryNames[category];
+                    count++;
+                }
+            });
+
+            clearBulkSelection();
+            renderRefinementTable();
+            showNotification(`${count} products recategorized to ${categoryNames[category]}`, 'success');
+        }
+
+        function bulkAdjustAmount() {
+            if (selectedProductIds.size === 0) {
+                showNotification('Select products first', 'warning');
+                return;
+            }
+
+            const adjustment = prompt('Enter adjustment percentage (e.g., +10 or -20):');
+            if (!adjustment) return;
+
+            const percent = parseFloat(adjustment) / 100;
+            if (isNaN(percent)) {
+                showNotification('Invalid percentage', 'error');
+                return;
+            }
+
+            let count = 0;
+            selectedProductIds.forEach(id => {
+                const product = allParsedProducts.find(p => p.id === id);
+                if (product) {
+                    product.sales = product.sales * (1 + percent);
+                    count++;
+                }
+            });
+
+            clearBulkSelection();
+            renderRefinementTable();
+            updateRefinementSummary();
+            showNotification(`${count} products adjusted by ${adjustment}%`, 'success');
+        }
+
+        function bulkExclude() {
+            if (selectedProductIds.size === 0) {
+                showNotification('Select products first', 'warning');
+                return;
+            }
+
+            let count = 0;
+            selectedProductIds.forEach(id => {
+                const product = allParsedProducts.find(p => p.id === id);
+                if (product) {
+                    product.excluded = true;
+                    count++;
+                }
+            });
+
+            clearBulkSelection();
+            renderRefinementTable();
+            updateRefinementSummary();
+            showNotification(`${count} products excluded from analysis`, 'success');
+        }
+
+        // ====== REVENUE TREND CHART ======
+
+        function showRevenueTrendChart(data) {
+            const card = document.getElementById('revenueTrendCard');
+            if (!card) return;
+
+            card.style.display = 'block';
+
+            if (!data.byYear || Object.keys(data.byYear).length < 1) {
+                // Not enough data for a chart
+                document.getElementById('revenueTrendChart').parentElement.innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-secondary);">
+                        <div style="text-align: center;">
+                            <i class="fas fa-chart-line" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                            <p>Upload multiple years of data to see trends</p>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            const ctx = document.getElementById('revenueTrendChart').getContext('2d');
+            const years = Object.keys(data.byYear).sort();
+
+            // Prepare datasets
+            const categories = [
+                { key: 'csa', label: 'CSA Subscriptions', color: 'rgba(42, 157, 143, 0.8)' },
+                { key: 'flowers', label: 'Flower Subscriptions', color: 'rgba(244, 162, 97, 0.8)' },
+                { key: 'flowerSales', label: 'Flower Sales', color: 'rgba(233, 30, 99, 0.8)' },
+                { key: 'events', label: 'Farm Events', color: 'rgba(139, 195, 74, 0.8)' },
+                { key: 'addons', label: 'Partner Add-Ons', color: 'rgba(14, 165, 233, 0.8)' },
+                { key: 'markets', label: 'Farmers Markets', color: 'rgba(155, 89, 182, 0.8)' },
+                { key: 'wholesale', label: 'Wholesale', color: 'rgba(244, 162, 97, 0.8)' }
+            ];
+
+            const datasets = categories.map(cat => ({
+                label: cat.label,
+                data: years.map(y => data.byYear[y]?.[cat.key]?.total || 0),
+                borderColor: cat.color,
+                backgroundColor: cat.color.replace('0.8', '0.2'),
+                fill: chartType === 'line',
+                tension: 0.4,
+                borderWidth: 2
+            })).filter(ds => ds.data.some(v => v > 0)); // Only include categories with data
+
+            // Destroy existing chart
+            if (revenueTrendChartInstance) {
+                revenueTrendChartInstance.destroy();
+            }
+
+            revenueTrendChartInstance = new Chart(ctx, {
+                type: chartType,
+                data: {
+                    labels: years,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: 'rgba(255, 255, 255, 0.8)',
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + formatMoney(context.raw);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: 'rgba(255, 255, 255, 0.7)' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        y: {
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.7)',
+                                callback: function(value) {
+                                    return '$' + (value / 1000).toFixed(0) + 'k';
+                                }
+                            },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        }
+                    },
+                    interaction: {
+                        mode: 'nearest',
+                        axis: 'x',
+                        intersect: false
+                    }
+                }
+            });
+
+            // Generate insights
+            generateRevenueInsights(data, years);
+        }
+
+        function toggleChartType() {
+            chartType = chartType === 'line' ? 'bar' : 'line';
+            if (accumulatedSalesData) {
+                showRevenueTrendChart(accumulatedSalesData);
+            }
+        }
+
+        function exportRevenueChart() {
+            const canvas = document.getElementById('revenueTrendChart');
+            if (!canvas) return;
+
+            const link = document.createElement('a');
+            link.download = 'tiny-seed-revenue-trends.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+
+            showNotification('Chart exported as PNG', 'success');
+        }
+
+        function generateRevenueInsights(data, years) {
+            const insightsContainer = document.getElementById('revenueInsightsList');
+            const insightsSection = document.getElementById('revenueInsights');
+
+            if (!insightsContainer || years.length < 2) {
+                if (insightsSection) insightsSection.style.display = 'none';
+                return;
+            }
+
+            insightsSection.style.display = 'block';
+
+            const firstYear = years[0];
+            const lastYear = years[years.length - 1];
+            const firstTotal = data.byYear[firstYear]?.grandTotal || 0;
+            const lastTotal = data.byYear[lastYear]?.grandTotal || 0;
+
+            // Calculate CAGR
+            const yearsDiff = parseInt(lastYear) - parseInt(firstYear);
+            const cagr = yearsDiff > 0 && firstTotal > 0
+                ? ((Math.pow(lastTotal / firstTotal, 1 / yearsDiff) - 1) * 100).toFixed(1)
+                : 0;
+
+            // Find fastest growing category
+            let fastestGrowth = { category: '', growth: 0 };
+            const categoryNames = {
+                csa: 'CSA Subscriptions',
+                flowers: 'Flower Subscriptions',
+                flowerSales: 'Flower Sales',
+                events: 'Farm Events',
+                addons: 'Partner Add-Ons',
+                markets: 'Farmers Markets',
+                wholesale: 'Wholesale'
+            };
+
+            Object.keys(categoryNames).forEach(cat => {
+                const first = data.byYear[firstYear]?.[cat]?.total || 0;
+                const last = data.byYear[lastYear]?.[cat]?.total || 0;
+                if (first > 0) {
+                    const growth = ((last - first) / first * 100);
+                    if (growth > fastestGrowth.growth) {
+                        fastestGrowth = { category: categoryNames[cat], growth };
+                    }
+                }
+            });
+
+            // Find most consistent category
+            let mostConsistent = { category: '', variance: Infinity };
+            Object.keys(categoryNames).forEach(cat => {
+                const values = years.map(y => data.byYear[y]?.[cat]?.total || 0).filter(v => v > 0);
+                if (values.length > 1) {
+                    const avg = values.reduce((a, b) => a + b, 0) / values.length;
+                    const variance = values.reduce((sum, v) => sum + Math.pow(v - avg, 2), 0) / values.length;
+                    const cv = Math.sqrt(variance) / avg; // Coefficient of variation
+                    if (cv < mostConsistent.variance) {
+                        mostConsistent = { category: categoryNames[cat], variance: cv };
+                    }
+                }
+            });
+
+            let html = `
+                <div class="insight-card">
+                    <div class="insight-value">${cagr}%</div>
+                    <div class="insight-label">Compound Annual Growth Rate (${firstYear}-${lastYear})</div>
+                </div>
+                <div class="insight-card">
+                    <div class="insight-value">${formatMoney(lastTotal - firstTotal)}</div>
+                    <div class="insight-label">Total Revenue Growth</div>
+                </div>
+            `;
+
+            if (fastestGrowth.growth > 0) {
+                html += `
+                    <div class="insight-card info">
+                        <div class="insight-value">${fastestGrowth.category}</div>
+                        <div class="insight-label">Fastest Growing (+${fastestGrowth.growth.toFixed(0)}%)</div>
+                    </div>
+                `;
+            }
+
+            if (mostConsistent.variance < Infinity) {
+                html += `
+                    <div class="insight-card">
+                        <div class="insight-value">${mostConsistent.category}</div>
+                        <div class="insight-label">Most Consistent Revenue Stream</div>
+                    </div>
+                `;
+            }
+
+            insightsContainer.innerHTML = html;
+        }
 
         // ====== ENHANCED GRANTS DASHBOARD FUNCTIONS ======
 

@@ -40,6 +40,47 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-02-09 - Desktop_Claude (AI Plan Generator Enhancement)
+
+### Files Modified
+- `web_app/loan-readiness.html` - Added Data Refinement Panel and Revenue Trend Visualization
+
+### HTML Added
+- Revenue Trend Visualization card with Chart.js chart and insights
+- Data Review & Refinement Panel with search, filter, and edit capabilities
+- Bulk actions bar for multi-product operations
+
+### CSS Added
+- `.refinement-table` - Full table styling with hover, edit, and confidence indicators
+- `.category-badge.[category]` - Color-coded category badges
+- `.confidence-indicator` / `.confidence-bar` / `.confidence-fill` - Visual confidence levels
+- `.amount-editable` - Inline editable amount fields
+- `.revenue-insights` / `.insight-card` - Insight cards for loan-relevant data points
+- `@keyframes highlightEdit` - Animation for recently edited rows
+
+### Functions Added
+- `populateRefinementPanel(data)` - Populates refinement table with all parsed products
+- `filterParsedProducts()` - Filters products by search, category, and year
+- `renderRefinementTable()` - Renders sortable product table with edit capabilities
+- `updateProductAmount(productId, newValue)` - Updates individual product amounts
+- `toggleExcludeProduct(productId)` - Excludes products from analysis
+- `bulkRecategorize()` / `bulkAdjustAmount()` / `bulkExclude()` - Bulk operations
+- `showRevenueTrendChart(data)` - Creates Chart.js line/bar chart of revenue over time
+- `generateRevenueInsights(data, years)` - Calculates CAGR, growth, and insights
+- `toggleChartType()` - Switches between line and bar chart
+- `exportRevenueChart()` - Exports chart as PNG
+
+### Reason
+User requested ability to refine AI parsing (e.g., fix wrong $26,000 flower subscriptions error),
+view categories broken down by year, and visualize change over time for loan applications.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions - existing recategorization modal enhanced, not duplicated
+- [x] No duplicates created
+
+---
+
 ## 2026-02-09 - Backend_Claude (Chief of Staff Module Integration)
 
 ### Files Modified
