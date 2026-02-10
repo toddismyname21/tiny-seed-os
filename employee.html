@@ -7552,6 +7552,300 @@
             color: var(--text-secondary);
         }
 
+        .inventory-photo-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .inventory-photo-btn {
+            flex: 1;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .inventory-photo-btn:active {
+            transform: scale(0.98);
+        }
+
+        .inventory-photo-preview {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 2px solid #10b981;
+        }
+
+        .inventory-photo-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .inventory-photo-remove {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: rgba(239, 68, 68, 0.9);
+            border: none;
+            color: white;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* AI Label Scanner Hero Button */
+        .inventory-ai-scan-hero {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 20px;
+            background: linear-gradient(135deg, #8b5cf6, #6366f1);
+            border-radius: 16px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+        }
+
+        .inventory-ai-scan-hero:active {
+            transform: scale(0.98);
+        }
+
+        .ai-scan-icon {
+            position: relative;
+            width: 60px;
+            height: 60px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            color: white;
+        }
+
+        .ai-sparkle {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            font-size: 16px;
+            color: #fbbf24;
+            animation: sparkle 1.5s ease-in-out infinite;
+        }
+
+        @keyframes sparkle {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+
+        .ai-scan-text {
+            flex: 1;
+            color: white;
+        }
+
+        .ai-scan-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .ai-scan-subtitle {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        /* Location & Category Selectors Row */
+        .inventory-selectors-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .inventory-selector-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .inventory-selector-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .inventory-select-with-add {
+            display: flex;
+            gap: 6px;
+        }
+
+        .inventory-select-with-add .inventory-select {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .inventory-add-select-btn {
+            width: 40px;
+            height: 40px;
+            flex-shrink: 0;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .inventory-add-select-btn:active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* AI Processing Overlay */
+        .ai-processing-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10001;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .ai-processing-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255,255,255,0.2);
+            border-top-color: #8b5cf6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .ai-processing-text {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .ai-processing-subtext {
+            font-size: 14px;
+            opacity: 0.7;
+        }
+
+        /* AI Result Card */
+        .ai-result-card {
+            background: var(--bg-elevated);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 2px solid #8b5cf6;
+        }
+
+        .ai-result-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .ai-result-header i {
+            color: #8b5cf6;
+            font-size: 18px;
+        }
+
+        .ai-result-header span {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .ai-result-fields {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .ai-result-field {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+        }
+
+        .ai-result-field .label {
+            color: var(--text-secondary);
+        }
+
+        .ai-result-field .value {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .ai-result-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .ai-result-actions button {
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .ai-result-actions .accept-btn {
+            background: #10b981;
+            color: white;
+        }
+
+        .ai-result-actions .edit-btn {
+            background: var(--bg);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
         .inventory-count-list {
             margin-bottom: 20px;
         }
@@ -10993,22 +11287,198 @@
         <div class="inventory-content">
             <!-- Count Tab -->
             <div id="inventoryCountTab" class="inventory-panel active">
-                <div class="inventory-location-select">
-                    <label>Location</label>
-                    <select id="inventoryLocation" class="inventory-select">
-                        <option value="">-- Select Location --</option>
-                        <option value="cooler-1">Cooler 1</option>
-                        <option value="cooler-2">Cooler 2</option>
-                        <option value="greenhouse-1">Greenhouse 1</option>
-                        <option value="greenhouse-2">Greenhouse 2</option>
-                        <option value="field-storage">Field Storage</option>
-                        <option value="barn">Barn</option>
-                    </select>
+                <!-- AI Scan Hero Button -->
+                <div class="inventory-ai-scan-hero" onclick="captureInventoryPhotoWithAI()">
+                    <div class="ai-scan-icon">
+                        <i class="fas fa-camera"></i>
+                        <i class="fas fa-magic ai-sparkle"></i>
+                    </div>
+                    <div class="ai-scan-text">
+                        <div class="ai-scan-title">AI Label Scanner</div>
+                        <div class="ai-scan-subtitle">Take a photo - AI reads the label automatically</div>
+                    </div>
+                </div>
+
+                <!-- Location & Category Row -->
+                <div class="inventory-selectors-row">
+                    <div class="inventory-selector-group">
+                        <label>Location</label>
+                        <div class="inventory-select-with-add">
+                            <select id="inventoryLocation" class="inventory-select">
+                                <option value="">-- Select --</option>
+                                <optgroup label="Storage">
+                                    <option value="cooler-1">Cooler 1</option>
+                                    <option value="cooler-2">Cooler 2</option>
+                                    <option value="walk-in">Walk-in Cooler</option>
+                                    <option value="seed-storage">Seed Storage</option>
+                                    <option value="supply-closet">Supply Closet</option>
+                                    <option value="chemical-storage">Chemical Storage</option>
+                                </optgroup>
+                                <optgroup label="Growing Areas">
+                                    <option value="greenhouse-1">Greenhouse 1</option>
+                                    <option value="greenhouse-2">Greenhouse 2</option>
+                                    <option value="high-tunnel-1">High Tunnel 1</option>
+                                    <option value="high-tunnel-2">High Tunnel 2</option>
+                                    <option value="propagation-house">Propagation House</option>
+                                    <option value="field-a">Field A</option>
+                                    <option value="field-b">Field B</option>
+                                    <option value="field-c">Field C</option>
+                                </optgroup>
+                                <optgroup label="Buildings">
+                                    <option value="barn">Barn</option>
+                                    <option value="garage">Garage</option>
+                                    <option value="packing-shed">Packing Shed</option>
+                                    <option value="wash-station">Wash Station</option>
+                                    <option value="tool-shed">Tool Shed</option>
+                                    <option value="pump-house">Pump House</option>
+                                    <option value="office">Office</option>
+                                </optgroup>
+                                <optgroup label="Outdoor">
+                                    <option value="parking-area">Parking Area</option>
+                                    <option value="loading-dock">Loading Dock</option>
+                                    <option value="compost-area">Compost Area</option>
+                                    <option value="irrigation-main">Irrigation Main</option>
+                                    <option value="equipment-yard">Equipment Yard</option>
+                                </optgroup>
+                                <optgroup label="Vehicles">
+                                    <option value="farm-truck">Farm Truck</option>
+                                    <option value="delivery-van">Delivery Van</option>
+                                    <option value="trailer">Trailer</option>
+                                    <option value="personal-vehicle">Personal Vehicle</option>
+                                </optgroup>
+                            </select>
+                            <button class="inventory-add-select-btn" onclick="addCustomLocation()" title="Add Location">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="inventory-selector-group">
+                        <label>Category</label>
+                        <div class="inventory-select-with-add">
+                            <select id="inventoryCategory" class="inventory-select">
+                                <option value="">-- Select --</option>
+                                <optgroup label="Growing">
+                                    <option value="seeds">Seeds</option>
+                                    <option value="transplants">Transplants/Starts</option>
+                                    <option value="produce">Produce/Harvest</option>
+                                    <option value="flowers">Cut Flowers</option>
+                                    <option value="dried-flowers">Dried Flowers</option>
+                                </optgroup>
+                                <optgroup label="Floral Supplies">
+                                    <option value="floral-containers">Floral Containers/Vases</option>
+                                    <option value="floral-foam">Floral Foam/Mechanics</option>
+                                    <option value="floral-wire">Floral Wire/Tape</option>
+                                    <option value="ribbon">Ribbon/Wrapping</option>
+                                    <option value="bouquet-supplies">Bouquet Supplies</option>
+                                    <option value="wreath-supplies">Wreath Supplies</option>
+                                </optgroup>
+                                <optgroup label="Equipment & Assets">
+                                    <option value="tractor">Tractors</option>
+                                    <option value="implements">Implements/Attachments</option>
+                                    <option value="vehicles">Vehicles</option>
+                                    <option value="power-tools">Power Tools</option>
+                                    <option value="hand-tools">Hand Tools</option>
+                                    <option value="pruners-snips">Pruners/Snips/Scissors</option>
+                                    <option value="irrigation-equip">Irrigation Equipment</option>
+                                    <option value="greenhouse-equip">Greenhouse Equipment</option>
+                                    <option value="cooler-equip">Cooler/Refrigeration</option>
+                                    <option value="scales">Scales/Weighing</option>
+                                </optgroup>
+                                <optgroup label="Growing Supplies">
+                                    <option value="irrigation-parts">Irrigation Parts/Supplies</option>
+                                    <option value="soil-amendments">Soil Amendments</option>
+                                    <option value="fertilizer">Fertilizer</option>
+                                    <option value="pest-control">Pest Control</option>
+                                    <option value="row-cover">Row Cover/Fabric</option>
+                                    <option value="trellising">Trellising/Stakes/Netting</option>
+                                    <option value="pots-trays">Pots/Trays/Cell Packs</option>
+                                    <option value="soil-media">Potting Soil/Media</option>
+                                    <option value="plant-markers">Plant Markers/Labels</option>
+                                </optgroup>
+                                <optgroup label="Harvest & Packing">
+                                    <option value="harvest-bins">Harvest Bins/Totes</option>
+                                    <option value="harvest-knives">Harvest Knives/Tools</option>
+                                    <option value="csa-boxes">CSA Boxes</option>
+                                    <option value="produce-bags">Produce Bags</option>
+                                    <option value="clamshells">Clamshells/Containers</option>
+                                    <option value="rubber-bands">Rubber Bands/Twist Ties</option>
+                                    <option value="labels-stickers">Labels/Stickers</option>
+                                    <option value="plu-codes">PLU Stickers</option>
+                                </optgroup>
+                                <optgroup label="Cleaning & Sanitation">
+                                    <option value="cleaning-supplies">Cleaning Supplies</option>
+                                    <option value="sanitizers">Sanitizers</option>
+                                    <option value="brushes-scrubbers">Brushes/Scrubbers</option>
+                                    <option value="towels-rags">Towels/Rags</option>
+                                    <option value="gloves">Gloves</option>
+                                    <option value="aprons">Aprons</option>
+                                </optgroup>
+                                <optgroup label="Infrastructure">
+                                    <option value="lumber">Lumber/Building</option>
+                                    <option value="fencing">Fencing</option>
+                                    <option value="hardware">Hardware/Fasteners</option>
+                                    <option value="electrical">Electrical</option>
+                                    <option value="plumbing">Plumbing</option>
+                                    <option value="paint">Paint/Stain</option>
+                                </optgroup>
+                                <optgroup label="Office & Admin">
+                                    <option value="office-supplies">Office Supplies</option>
+                                    <option value="printer-supplies">Printer/Ink/Paper</option>
+                                    <option value="books">Books/References</option>
+                                    <option value="binders-folders">Binders/Folders</option>
+                                    <option value="signage">Signage/Displays</option>
+                                </optgroup>
+                                <optgroup label="Market & Sales">
+                                    <option value="market-display">Market Display Items</option>
+                                    <option value="tablecloths">Tablecloths/Covers</option>
+                                    <option value="price-signs">Price Signs</option>
+                                    <option value="cash-supplies">Cash Box/Change</option>
+                                    <option value="bags-customers">Customer Bags</option>
+                                </optgroup>
+                                <optgroup label="Safety & PPE">
+                                    <option value="safety-glasses">Safety Glasses</option>
+                                    <option value="ear-protection">Ear Protection</option>
+                                    <option value="work-gloves">Work Gloves</option>
+                                    <option value="sun-protection">Sun Protection</option>
+                                    <option value="first-aid">First Aid</option>
+                                    <option value="boots">Boots/Footwear</option>
+                                </optgroup>
+                                <optgroup label="Seed Inventory">
+                                    <option value="seed-packets">Seed Packets</option>
+                                    <option value="seed-bulk">Bulk Seeds</option>
+                                    <option value="seed-organic">Organic Seeds</option>
+                                    <option value="cover-crop-seed">Cover Crop Seed</option>
+                                </optgroup>
+                                <optgroup label="Propagation">
+                                    <option value="cell-trays">Cell Trays</option>
+                                    <option value="plug-trays">Plug Trays</option>
+                                    <option value="nursery-pots">Nursery Pots</option>
+                                    <option value="potting-mix">Potting Mix/Media</option>
+                                    <option value="heat-mats">Heat Mats</option>
+                                    <option value="grow-lights">Grow Lights</option>
+                                    <option value="humidity-domes">Humidity Domes</option>
+                                </optgroup>
+                                <optgroup label="Other">
+                                    <option value="fuel">Fuel/Oils/Lubricants</option>
+                                    <option value="tarps">Tarps/Covers</option>
+                                    <option value="rope-twine">Rope/Twine/Cord</option>
+                                    <option value="tape">Tape (Various)</option>
+                                    <option value="batteries">Batteries</option>
+                                    <option value="coolers">Coolers/Insulated Bags</option>
+                                    <option value="ice-packs">Ice Packs</option>
+                                    <option value="other">Other</option>
+                                </optgroup>
+                            </select>
+                            <button class="inventory-add-select-btn" onclick="addCustomCategory()" title="Add Category">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="inventory-item-entry">
                     <div class="inventory-entry-row">
-                        <input type="text" id="inventoryItemName" class="inventory-input" placeholder="Item name or scan barcode">
+                        <input type="text" id="inventoryItemName" class="inventory-input" placeholder="Item name (or use AI scan above)">
                         <button class="inventory-quick-scan" onclick="openScanner('inventory-item')">
                             <i class="fas fa-qrcode"></i>
                         </button>
@@ -11018,12 +11488,37 @@
                         <select id="inventoryItemUnit" class="inventory-select unit">
                             <option value="each">Each</option>
                             <option value="lbs">Lbs</option>
+                            <option value="oz">Oz</option>
+                            <option value="bags">Bags</option>
+                            <option value="boxes">Boxes</option>
                             <option value="cases">Cases</option>
                             <option value="bunches">Bunches</option>
                             <option value="flats">Flats</option>
+                            <option value="trays">Trays</option>
+                            <option value="packets">Packets</option>
+                            <option value="rolls">Rolls</option>
+                            <option value="feet">Feet</option>
+                            <option value="yards">Yards</option>
+                            <option value="gallons">Gallons</option>
+                            <option value="quarts">Quarts</option>
+                            <option value="pallets">Pallets</option>
+                            <option value="bundles">Bundles</option>
+                            <option value="sets">Sets</option>
                         </select>
                         <button class="inventory-add-btn" onclick="addInventoryItem()">
                             <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    <!-- Photo capture for inventory -->
+                    <div class="inventory-photo-row" id="inventoryPhotoRow">
+                        <div class="inventory-photo-preview" id="inventoryPhotoPreview" style="display: none;">
+                            <img id="inventoryPhotoImg" src="" alt="Inventory photo">
+                            <button class="inventory-photo-remove" onclick="removeInventoryPhoto()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <button class="inventory-photo-btn" onclick="captureInventoryPhoto()">
+                            <i class="fas fa-camera"></i> Take Photo
                         </button>
                     </div>
                 </div>
@@ -14603,7 +15098,7 @@
                 { id: 'field', icon: 'fa-seedling', label: 'Field', permission: 'base' },
                 { id: 'tractor', icon: 'fa-tractor', label: 'Tractor', permission: 'tractor' },
                 { id: 'packhouse', icon: 'fa-warehouse', label: 'Packhouse', permission: 'base' },
-                { id: 'inventory', icon: 'fa-clipboard-list', label: 'Inventory', permission: 'inventory' },
+                { id: 'inventory', icon: 'fa-clipboard-list', label: 'Inventory', permission: 'base' },
                 { id: 'garage', icon: 'fa-wrench', label: 'Garage', permission: 'garage' },
                 { id: 'driver', icon: 'fa-truck', label: 'Driver', permission: 'base' }
                 // Costing is NOT in the mode selector - it's task-assigned
@@ -15228,6 +15723,8 @@
             renderInventoryCountList();
             loadInventoryHistory();
             updateInventoryReportStats();
+            // Load custom locations and categories from localStorage
+            loadCustomLocationsAndCategories();
         }
 
         function switchInventoryTab(tab) {
@@ -15248,16 +15745,26 @@
             }
         }
 
+        // Store current inventory photo and AI result
+        let currentInventoryPhoto = null;
+        let currentAIResult = null;
+
+        // Custom locations and categories (persisted to localStorage)
+        let customLocations = JSON.parse(localStorage.getItem('tsf_inventory_locations') || '[]');
+        let customCategories = JSON.parse(localStorage.getItem('tsf_inventory_categories') || '[]');
+
         function addInventoryItem() {
             const nameInput = document.getElementById('inventoryItemName');
             const qtyInput = document.getElementById('inventoryItemQty');
             const unitSelect = document.getElementById('inventoryItemUnit');
             const locationSelect = document.getElementById('inventoryLocation');
+            const categorySelect = document.getElementById('inventoryCategory');
 
             const name = nameInput.value.trim();
             const qty = parseFloat(qtyInput.value);
             const unit = unitSelect.value;
             const location = locationSelect.value;
+            const category = categorySelect?.value || '';
 
             if (!name || !qty || !location) {
                 showToast('Please fill in item name, quantity, and location', 'error');
@@ -15270,15 +15777,354 @@
                 qty,
                 unit,
                 location,
+                category,
+                photo: currentInventoryPhoto,
+                aiParsed: currentAIResult ? true : false,
                 timestamp: new Date().toISOString()
             });
 
-            // Clear inputs
+            // Clear inputs and photo
             nameInput.value = '';
             qtyInput.value = '';
+            removeInventoryPhoto();
+            currentAIResult = null;
+
+            // Remove AI result card if present
+            const aiResultCard = document.querySelector('.ai-result-card');
+            if (aiResultCard) aiResultCard.remove();
 
             renderInventoryCountList();
             showToast(`Added ${qty} ${unit} of ${name}`, 'success');
+        }
+
+        // ============================================
+        // AI LABEL SCANNING
+        // ============================================
+        async function captureInventoryPhotoWithAI() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.capture = 'environment';
+
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    // Show processing overlay
+                    showAIProcessingOverlay();
+
+                    const reader = new FileReader();
+                    reader.onload = async (event) => {
+                        const compressed = await compressPhoto(event.target.result, 1200);
+                        currentInventoryPhoto = compressed;
+
+                        // Send to AI for label parsing
+                        try {
+                            const result = await parseInventoryLabelWithAI(compressed);
+                            hideAIProcessingOverlay();
+
+                            if (result.success && result.data) {
+                                currentAIResult = result.data;
+                                showAIResultCard(result.data, compressed);
+                            } else {
+                                // AI couldn't parse - just show photo preview
+                                showToast('Photo captured. Please enter details manually.', 'info');
+                                showInventoryPhotoPreview(compressed);
+                            }
+                        } catch (error) {
+                            console.error('AI parsing error:', error);
+                            hideAIProcessingOverlay();
+                            showToast('AI parsing failed. Please enter details manually.', 'warning');
+                            showInventoryPhotoPreview(compressed);
+                        }
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            input.click();
+        }
+
+        function showAIProcessingOverlay() {
+            const overlay = document.createElement('div');
+            overlay.className = 'ai-processing-overlay';
+            overlay.id = 'aiProcessingOverlay';
+            overlay.innerHTML = `
+                <div class="ai-processing-spinner"></div>
+                <div class="ai-processing-text">Reading Label...</div>
+                <div class="ai-processing-subtext">AI is analyzing the photo</div>
+            `;
+            document.body.appendChild(overlay);
+        }
+
+        function hideAIProcessingOverlay() {
+            const overlay = document.getElementById('aiProcessingOverlay');
+            if (overlay) overlay.remove();
+        }
+
+        async function parseInventoryLabelWithAI(photoBase64) {
+            // Send to backend for AI parsing
+            const response = await fetch(CONFIG.API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'parseInventoryLabel',
+                    photo: photoBase64,
+                    context: 'farm inventory label scanning'
+                })
+            });
+
+            return await response.json();
+        }
+
+        function showAIResultCard(data, photoUrl) {
+            // Remove any existing AI result card
+            const existing = document.querySelector('.ai-result-card');
+            if (existing) existing.remove();
+
+            const entryDiv = document.querySelector('.inventory-item-entry');
+            const resultCard = document.createElement('div');
+            resultCard.className = 'ai-result-card';
+            resultCard.innerHTML = `
+                <div class="ai-result-header">
+                    <i class="fas fa-magic"></i>
+                    <span>AI Detected</span>
+                </div>
+                <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+                    <div style="width: 80px; height: 80px; border-radius: 8px; overflow: hidden; flex-shrink: 0;">
+                        <img src="${photoUrl}" style="width: 100%; height: 100%; object-fit: cover;">
+                    </div>
+                    <div class="ai-result-fields" style="flex: 1;">
+                        <div class="ai-result-field">
+                            <span class="label">Item:</span>
+                            <span class="value">${data.name || 'Unknown'}</span>
+                        </div>
+                        <div class="ai-result-field">
+                            <span class="label">Quantity:</span>
+                            <span class="value">${data.quantity || '?'} ${data.unit || 'each'}</span>
+                        </div>
+                        ${data.category ? `
+                        <div class="ai-result-field">
+                            <span class="label">Category:</span>
+                            <span class="value">${data.category}</span>
+                        </div>
+                        ` : ''}
+                        ${data.brand ? `
+                        <div class="ai-result-field">
+                            <span class="label">Brand:</span>
+                            <span class="value">${data.brand}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+                <div class="ai-result-actions">
+                    <button class="edit-btn" onclick="editAIResult()">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                    <button class="accept-btn" onclick="acceptAIResult()">
+                        <i class="fas fa-check"></i> Add Item
+                    </button>
+                </div>
+            `;
+
+            entryDiv.insertBefore(resultCard, entryDiv.firstChild);
+        }
+
+        function acceptAIResult() {
+            if (!currentAIResult) return;
+
+            // Populate form fields with AI result
+            document.getElementById('inventoryItemName').value = currentAIResult.name || '';
+            document.getElementById('inventoryItemQty').value = currentAIResult.quantity || '';
+
+            // Set unit if recognized
+            if (currentAIResult.unit) {
+                const unitSelect = document.getElementById('inventoryItemUnit');
+                const unitOption = Array.from(unitSelect.options).find(o =>
+                    o.value.toLowerCase() === currentAIResult.unit.toLowerCase() ||
+                    o.text.toLowerCase().includes(currentAIResult.unit.toLowerCase())
+                );
+                if (unitOption) unitSelect.value = unitOption.value;
+            }
+
+            // Set category if recognized
+            if (currentAIResult.category) {
+                const categorySelect = document.getElementById('inventoryCategory');
+                const catOption = Array.from(categorySelect.options).find(o =>
+                    o.value.toLowerCase() === currentAIResult.category.toLowerCase() ||
+                    o.text.toLowerCase().includes(currentAIResult.category.toLowerCase())
+                );
+                if (catOption) categorySelect.value = catOption.value;
+            }
+
+            // Add the item
+            addInventoryItem();
+        }
+
+        function editAIResult() {
+            if (!currentAIResult) return;
+
+            // Populate form fields for manual editing
+            document.getElementById('inventoryItemName').value = currentAIResult.name || '';
+            document.getElementById('inventoryItemQty').value = currentAIResult.quantity || '';
+
+            if (currentAIResult.unit) {
+                const unitSelect = document.getElementById('inventoryItemUnit');
+                const unitOption = Array.from(unitSelect.options).find(o =>
+                    o.value.toLowerCase() === currentAIResult.unit.toLowerCase()
+                );
+                if (unitOption) unitSelect.value = unitOption.value;
+            }
+
+            if (currentAIResult.category) {
+                const categorySelect = document.getElementById('inventoryCategory');
+                const catOption = Array.from(categorySelect.options).find(o =>
+                    o.value.toLowerCase() === currentAIResult.category.toLowerCase()
+                );
+                if (catOption) categorySelect.value = catOption.value;
+            }
+
+            // Remove AI card so user can edit
+            const aiResultCard = document.querySelector('.ai-result-card');
+            if (aiResultCard) aiResultCard.remove();
+
+            // Show photo preview instead
+            showInventoryPhotoPreview(currentInventoryPhoto);
+
+            showToast('Edit the fields and tap + to add', 'info');
+        }
+
+        function showInventoryPhotoPreview(photoUrl) {
+            const preview = document.getElementById('inventoryPhotoPreview');
+            const img = document.getElementById('inventoryPhotoImg');
+            if (preview && img) {
+                img.src = photoUrl;
+                preview.style.display = 'block';
+            }
+        }
+
+        // ============================================
+        // CUSTOM LOCATIONS & CATEGORIES
+        // ============================================
+        function addCustomLocation() {
+            const name = prompt('Enter new location name:');
+            if (!name || !name.trim()) return;
+
+            const value = name.trim().toLowerCase().replace(/\s+/g, '-');
+
+            // Check if already exists
+            const locationSelect = document.getElementById('inventoryLocation');
+            const exists = Array.from(locationSelect.options).some(o => o.value === value);
+            if (exists) {
+                showToast('Location already exists', 'warning');
+                return;
+            }
+
+            // Add to select
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = name.trim();
+            locationSelect.appendChild(option);
+            locationSelect.value = value;
+
+            // Save to localStorage
+            customLocations.push({ value, label: name.trim() });
+            localStorage.setItem('tsf_inventory_locations', JSON.stringify(customLocations));
+
+            showToast(`Added location: ${name.trim()}`, 'success');
+        }
+
+        function addCustomCategory() {
+            const name = prompt('Enter new category name:');
+            if (!name || !name.trim()) return;
+
+            const value = name.trim().toLowerCase().replace(/\s+/g, '-');
+
+            // Check if already exists
+            const categorySelect = document.getElementById('inventoryCategory');
+            const exists = Array.from(categorySelect.options).some(o => o.value === value);
+            if (exists) {
+                showToast('Category already exists', 'warning');
+                return;
+            }
+
+            // Add to select
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = name.trim();
+            categorySelect.appendChild(option);
+            categorySelect.value = value;
+
+            // Save to localStorage
+            customCategories.push({ value, label: name.trim() });
+            localStorage.setItem('tsf_inventory_categories', JSON.stringify(customCategories));
+
+            showToast(`Added category: ${name.trim()}`, 'success');
+        }
+
+        function loadCustomLocationsAndCategories() {
+            // Load custom locations
+            const locationSelect = document.getElementById('inventoryLocation');
+            if (locationSelect) {
+                customLocations.forEach(loc => {
+                    const exists = Array.from(locationSelect.options).some(o => o.value === loc.value);
+                    if (!exists) {
+                        const option = document.createElement('option');
+                        option.value = loc.value;
+                        option.textContent = loc.label;
+                        locationSelect.appendChild(option);
+                    }
+                });
+            }
+
+            // Load custom categories
+            const categorySelect = document.getElementById('inventoryCategory');
+            if (categorySelect) {
+                customCategories.forEach(cat => {
+                    const exists = Array.from(categorySelect.options).some(o => o.value === cat.value);
+                    if (!exists) {
+                        const option = document.createElement('option');
+                        option.value = cat.value;
+                        option.textContent = cat.label;
+                        categorySelect.appendChild(option);
+                    }
+                });
+            }
+        }
+
+        // Inventory photo capture functions (manual, non-AI)
+        function captureInventoryPhoto() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.capture = 'environment';
+
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = async (event) => {
+                        const compressed = await compressPhoto(event.target.result, 1200);
+                        currentInventoryPhoto = compressed;
+                        showInventoryPhotoPreview(compressed);
+                        showToast('Photo captured!', 'success');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            input.click();
+        }
+
+        function removeInventoryPhoto() {
+            currentInventoryPhoto = null;
+            currentAIResult = null;
+            const preview = document.getElementById('inventoryPhotoPreview');
+            if (preview) {
+                preview.style.display = 'none';
+            }
+            // Also remove AI result card if present
+            const aiResultCard = document.querySelector('.ai-result-card');
+            if (aiResultCard) aiResultCard.remove();
         }
 
         function removeInventoryItem(itemId) {
@@ -15300,12 +16146,20 @@
             }
 
             list.innerHTML = InventoryState.currentCount.map(item => `
-                <div class="inventory-count-item">
-                    <div>
+                <div class="inventory-count-item" style="display: flex; align-items: center; gap: 10px;">
+                    ${item.photo ? `
+                        <div style="width: 50px; height: 50px; border-radius: 8px; overflow: hidden; flex-shrink: 0;">
+                            <img src="${item.photo}" style="width: 100%; height: 100%; object-fit: cover;" onclick="viewInventoryPhoto('${item.id}')">
+                        </div>
+                    ` : ''}
+                    <div style="flex: 1; min-width: 0;">
                         <div class="inventory-count-item-name">${item.name}</div>
-                        <div style="font-size: 12px; color: var(--text-secondary);">${item.location}</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">
+                            ${item.location}
+                            ${item.photo ? '<i class="fas fa-camera" style="margin-left: 6px; color: #10b981;"></i>' : ''}
+                        </div>
                     </div>
-                    <div style="display: flex; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
                         <span class="inventory-count-item-qty">${item.qty} ${item.unit}</span>
                         <button class="inventory-count-item-remove" onclick="removeInventoryItem(${item.id})">
                             <i class="fas fa-times"></i>
@@ -15313,6 +16167,26 @@
                     </div>
                 </div>
             `).join('');
+        }
+
+        // View full inventory photo
+        function viewInventoryPhoto(itemId) {
+            const item = InventoryState.currentCount.find(i => i.id === parseInt(itemId));
+            if (item && item.photo) {
+                // Simple fullscreen view
+                const viewer = document.createElement('div');
+                viewer.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.95); z-index: 10000; display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 20px;';
+                viewer.innerHTML = `
+                    <img src="${item.photo}" style="max-width: 100%; max-height: 80vh; object-fit: contain; border-radius: 8px;">
+                    <div style="color: white; margin-top: 15px; text-align: center;">
+                        <div style="font-size: 18px; font-weight: 600;">${item.name}</div>
+                        <div style="font-size: 14px; opacity: 0.7;">${item.qty} ${item.unit} @ ${item.location}</div>
+                    </div>
+                    <button onclick="this.parentElement.remove()" style="margin-top: 20px; padding: 12px 30px; background: white; border: none; border-radius: 25px; font-size: 16px; font-weight: 600; cursor: pointer;">Close</button>
+                `;
+                viewer.onclick = (e) => { if (e.target === viewer) viewer.remove(); };
+                document.body.appendChild(viewer);
+            }
         }
 
         async function submitInventoryCount() {
@@ -15349,7 +16223,8 @@
                     unit: item.unit,
                     location: item.location,
                     appliedBy: AppState.employee?.Name || 'Unknown',
-                    notes: `Inventory count by ${AppState.employee?.Name || 'Unknown'} at ${item.location}`
+                    notes: `Inventory count by ${AppState.employee?.Name || 'Unknown'} at ${item.location}`,
+                    photo: item.photo || null
                 };
 
                 if (AppState.isOnline) {

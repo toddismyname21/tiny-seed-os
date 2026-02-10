@@ -1324,6 +1324,16 @@
                         <input type="number" id="panelTraysNeeded" min="0" onchange="panelFieldChange('Trays_Needed', this.value)">
                     </div>
                 </div>
+                <div class="panel-field-row">
+                    <div class="panel-field">
+                        <label>In-Row Spacing (in)</label>
+                        <input type="number" id="panelSpacing" min="1" max="72" placeholder="e.g., 12" onchange="panelFieldChange('In_Row_Spacing_In', this.value)">
+                    </div>
+                    <div class="panel-field">
+                        <label>Rows Per Bed</label>
+                        <input type="number" id="panelRowsPerBed" min="1" max="10" placeholder="e.g., 3" onchange="panelFieldChange('Rows_Per_Bed', this.value)">
+                    </div>
+                </div>
                 <div class="panel-field">
                     <label>Target Bed</label>
                     <input type="text" id="panelBed" placeholder="e.g., F3L-01" onchange="panelFieldChange('Target_Bed_ID', this.value)">
@@ -1389,6 +1399,9 @@
                 <span>All changes saved</span>
             </div>
             <div class="panel-footer-actions">
+                <button class="btn btn-success" onclick="duplicatePlanting()" title="Create a copy of this planting">
+                    <i class="fas fa-copy"></i> Duplicate
+                </button>
                 <button class="btn btn-secondary" onclick="closeEditPanel()">Close</button>
             </div>
         </div>
@@ -1768,6 +1781,9 @@
                             <div class="action-btns">
                                 <button class="action-btn edit" title="Edit All Fields" onclick="openEditPanel('${p.Batch_ID}')">
                                     <i class="fas fa-expand"></i>
+                                </button>
+                                <button class="action-btn" style="background: var(--success);" title="Duplicate Planting" onclick="quickDuplicate('${p.Batch_ID}')">
+                                    <i class="fas fa-copy"></i>
                                 </button>
                                 <button class="action-btn mark" title="Mark Complete" onclick="markSown('${p.Batch_ID}')">
                                     <i class="fas fa-check"></i>
@@ -2193,6 +2209,8 @@
             document.getElementById('panelActGHSow').value = formatDateForInput(planting.Act_GH_Sow);
             document.getElementById('panelActTransplant').value = formatDateForInput(planting.Act_Transplant);
             document.getElementById('panelStatus').value = planting.STATUS || 'Planned';
+            document.getElementById('panelSpacing').value = planting.In_Row_Spacing_In || '';
+            document.getElementById('panelRowsPerBed').value = planting.Rows_Per_Bed || '';
 
             // Reset save status
             updatePanelSaveStatus('saved');
@@ -2213,6 +2231,66 @@
 
             // Refresh table to show any changes
             filterPlantings();
+        }
+
+        async function duplicatePlanting() {
+            if (!currentEditId) return;
+
+            const original = allPlantings.find(p => p.Batch_ID === currentEditId);
+            if (!original) {
+                showError('Could not find planting to duplicate');
+                return;
+            }
+
+            // Generate new batch ID
+            const timestamp = Date.now();
+            const random = Math.random().toString(36).substr(2, 4).toUpperCase();
+            const newBatchId = `${original.Crop?.substring(0,3).toUpperCase() || 'NEW'}-${timestamp}-${random}`;
+
+            // Create copy with new ID and reset status
+            const duplicate = {
+                ...original,
+                Batch_ID: newBatchId,
+                STATUS: 'Planned',
+                Act_GH_Sow: '',
+                Act_Transplant: '',
+                Notes: original.Notes ? `[Duplicated from ${currentEditId}] ${original.Notes}` : `[Duplicated from ${currentEditId}]`
+            };
+
+            updatePanelSaveStatus('saving');
+
+            try {
+                // Save the duplicate to server
+                const response = await fetch(`${API_BASE}?action=addPlanting`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ planting: duplicate })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Add to local state
+                    allPlantings.push(duplicate);
+                    filterPlantings();
+
+                    // Close current panel and open the duplicate for editing
+                    closeEditPanel();
+
+                    // Small delay to allow UI to update
+                    setTimeout(() => {
+                        openEditPanel(newBatchId);
+                        showSuccess(`Planting duplicated! New ID: ${newBatchId}`);
+                    }, 100);
+                } else {
+                    showError(result.error || 'Failed to create duplicate');
+                    updatePanelSaveStatus('saved');
+                }
+            } catch (error) {
+                console.error('Duplicate error:', error);
+                showError('Error duplicating planting: ' + error.message);
+                updatePanelSaveStatus('saved');
+            }
         }
 
         async function panelFieldChange(field, value) {
@@ -2362,6 +2440,64 @@
 
             toast.classList.add('show');
             setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        function showSuccess(message) {
+            showToast(message, 'success');
+        }
+
+        function showError(message) {
+            showToast(message, 'error');
+        }
+
+        async function quickDuplicate(batchId) {
+            const original = allPlantings.find(p => p.Batch_ID === batchId);
+            if (!original) {
+                showError('Could not find planting to duplicate');
+                return;
+            }
+
+            // Generate new batch ID
+            const timestamp = Date.now();
+            const random = Math.random().toString(36).substr(2, 4).toUpperCase();
+            const newBatchId = `${original.Crop?.substring(0,3).toUpperCase() || 'NEW'}-${timestamp}-${random}`;
+
+            // Create copy with new ID and reset status
+            const duplicate = {
+                ...original,
+                Batch_ID: newBatchId,
+                STATUS: 'Planned',
+                Act_GH_Sow: '',
+                Act_Transplant: '',
+                Notes: original.Notes ? `[Duplicated from ${batchId}] ${original.Notes}` : `[Duplicated from ${batchId}]`
+            };
+
+            showToast('Duplicating planting...', 'info');
+
+            try {
+                const response = await fetch(`${API_BASE}?action=addPlanting`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ planting: duplicate })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    allPlantings.push(duplicate);
+                    filterPlantings();
+                    showSuccess(`Duplicated! Opening ${newBatchId} for editing...`);
+
+                    setTimeout(() => {
+                        openEditPanel(newBatchId);
+                    }, 300);
+                } else {
+                    showError(result.error || 'Failed to duplicate');
+                }
+            } catch (error) {
+                console.error('Duplicate error:', error);
+                showError('Error duplicating: ' + error.message);
+            }
         }
 
         // ========================================

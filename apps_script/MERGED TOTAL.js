@@ -16484,6 +16484,8 @@ function doPost(e) {
         return jsonResponse(saveProduct(data));
       case 'recordTransaction':
         return jsonResponse(recordTransaction(data));
+      case 'parseInventoryLabel':
+        return jsonResponse(parseInventoryLabel(data));
       case 'adjustInventory':
         return jsonResponse(adjustInventory(data));
       case 'uploadProductPhoto':
@@ -17203,6 +17205,8 @@ function doPost(e) {
         return jsonResponse(typeof categorizeSalesData === 'function' ? categorizeSalesData(data) : { success: false, error: 'UniversalParser not loaded' });
       case 'storeParsedSalesData':
         return jsonResponse(typeof storeParsedSalesData === 'function' ? storeParsedSalesData(data) : { success: false, error: 'UniversalParser not loaded' });
+      case 'parserAssistant':
+        return jsonResponse(handleParserAssistant(data));
       case 'initializeParserSheets':
         return jsonResponse(typeof initializeParserSheets === 'function' ? initializeParserSheets() : { success: false, error: 'UniversalParser not loaded' });
       case 'resolveParseError':
@@ -28689,33 +28693,71 @@ function getSystemStatus() {
     const data = sheet.getDataRange().getValues();
     const headers = data[0];
 
-    // Find column indices for updatable fields
-    const colIndices = {
-      Crop: headers.indexOf('Crop'),
-      Variety: headers.indexOf('Variety'),
-      DTM: headers.indexOf('DTM'),
-      Spacing: headers.indexOf('Spacing'),
-      Rows_Per_Bed: headers.indexOf('Rows_Per_Bed'),
-      Tray_Cell_Count: headers.indexOf('Tray_Cell_Count'),
-      Nursery_Days: headers.indexOf('Nursery_Days'),
-      Planting_Method: headers.indexOf('Planting_Method')
+    // Find column indices for updatable fields - support multiple column name formats
+    const findCol = (names) => {
+      for (const name of names) {
+        const idx = headers.indexOf(name);
+        if (idx >= 0) return idx;
+      }
+      return -1;
     };
 
-    // Find the row matching crop (and variety if provided)
-    let targetRow = -1;
-    for (let i = 1; i < data.length; i++) {
-      const rowCrop = data[i][colIndices.Crop];
-      const rowVariety = colIndices.Variety >= 0 ? data[i][colIndices.Variety] : '';
+    const colIndices = {
+      Crop: findCol(['Crop_Name', 'Crop', 'crop_name', 'crop']),
+      Variety: findCol(['Variety_Default', 'Variety', 'variety']),
+      DTM: findCol(['DTM_Average', 'DTM', 'dtm']),
+      Spacing: findCol(['In_Row_Spacing_In', 'Spacing', 'spacing', 'In_Row_Spacing']),
+      Rows_Per_Bed: findCol(['Rows_Per_Bed', 'rows_per_bed']),
+      Tray_Cell_Count: findCol(['Tray_Cell_Count', 'tray_cell_count']),
+      Nursery_Days: findCol(['Nursery_Days', 'nursery_days']),
+      Planting_Method: findCol(['Calc_Method', 'Planting_Method', 'Rec_Direct', 'Rec_Transplant'])
+    };
 
-      if (rowCrop === cropName) {
-        if (variety && rowVariety === variety) {
+    // Find the row matching crop (and variety if provided) - case insensitive
+    let targetRow = -1;
+    const cropNameLower = cropName.toLowerCase();
+    const varietyLower = variety ? variety.toLowerCase() : '';
+
+    for (let i = 1; i < data.length; i++) {
+      const rowCrop = colIndices.Crop >= 0 ? String(data[i][colIndices.Crop] || '').toLowerCase() : '';
+      const rowVariety = colIndices.Variety >= 0 ? String(data[i][colIndices.Variety] || '').toLowerCase() : '';
+
+      if (rowCrop === cropNameLower) {
+        if (varietyLower && rowVariety === varietyLower) {
           targetRow = i + 1;
           break;
-        } else if (!variety) {
+        } else if (!varietyLower) {
           targetRow = i + 1;
           break;
         }
       }
+    }
+
+    // If not found, try to create the profile
+    if (targetRow === -1) {
+      // Auto-create the crop profile if it doesn't exist
+      const newRow = headers.map(h => '');
+      if (colIndices.Crop >= 0) newRow[colIndices.Crop] = cropName;
+      if (colIndices.Variety >= 0 && variety) newRow[colIndices.Variety] = variety;
+      if (params.dtm !== undefined && colIndices.DTM >= 0) newRow[colIndices.DTM] = params.dtm;
+      if (params.spacing !== undefined && colIndices.Spacing >= 0) newRow[colIndices.Spacing] = params.spacing;
+      if (params.rowsPerBed !== undefined && colIndices.Rows_Per_Bed >= 0) newRow[colIndices.Rows_Per_Bed] = params.rowsPerBed;
+      if (params.trayCellCount !== undefined && colIndices.Tray_Cell_Count >= 0) newRow[colIndices.Tray_Cell_Count] = params.trayCellCount;
+      if (params.nurseryDays !== undefined && colIndices.Nursery_Days >= 0) newRow[colIndices.Nursery_Days] = params.nurseryDays;
+      if (params.plantingMethod !== undefined && colIndices.Planting_Method >= 0) newRow[colIndices.Planting_Method] = params.plantingMethod;
+
+      sheet.appendRow(newRow);
+
+      // Clear crop profiles cache so new profile is visible
+      if (typeof SmartCache !== 'undefined' && SmartCache.clear) {
+        SmartCache.clear('crop_profiles');
+      }
+
+      return {
+        success: true,
+        message: `Created new crop profile for: ${cropName}${variety ? ' - ' + variety : ''}`,
+        created: true
+      };
     }
 
     if (targetRow === -1) {
@@ -28753,6 +28795,11 @@ function getSystemStatus() {
       updates.push('Planting_Method');
     }
 
+    // Clear crop profiles cache so updates are visible immediately
+    if (typeof SmartCache !== 'undefined' && SmartCache.clear) {
+      SmartCache.clear('crop_profiles');
+    }
+
     return {
       success: true,
       message: `Updated ${cropName} profile`,
@@ -28778,14 +28825,20 @@ function createCropProfile(params) {
 
     const newRow = headers.map(header => {
       switch (header) {
+        // Support both old and new column names
+        case 'Crop_Name':
         case 'Crop': return cropName;
+        case 'Variety_Default':
         case 'Variety': return variety;
         case 'Primary_Category': return params.category || 'Veg';
+        case 'DTM_Average':
         case 'DTM': return params.dtm || 45;
+        case 'In_Row_Spacing_In':
         case 'Spacing': return params.spacing || 8;
         case 'Rows_Per_Bed': return params.rowsPerBed || 4;
         case 'Tray_Cell_Count': return params.trayCellCount || 128;
         case 'Nursery_Days': return params.nurseryDays || 28;
+        case 'Calc_Method':
         case 'Planting_Method': return params.plantingMethod || 'Transplant';
         default: return '';
       }
@@ -28793,11 +28846,16 @@ function createCropProfile(params) {
 
     sheet.appendRow(newRow);
 
+    // Clear cache so new profile is visible
+    if (typeof SmartCache !== 'undefined' && SmartCache.clear) {
+      SmartCache.clear('crop_profiles');
+    }
+
     return {
       success: true,
       message: 'Created profile for ' + cropName + (variety ? ' - ' + variety : ''),
       profile: {
-        Crop: cropName,
+        Crop_Name: cropName,
         Variety: variety,
         Primary_Category: params.category || 'Veg',
         DTM: params.dtm || 45,
@@ -29871,6 +29929,138 @@ function saveProduct(data) {
       timestamp: now
     };
   } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Parse an inventory label using AI vision
+ * @param {Object} data - { photo: base64ImageData, context: string }
+ * @returns {Object} - { success: boolean, data: { name, quantity, unit, category, brand, etc } }
+ */
+function parseInventoryLabel(data) {
+  try {
+    const photo = data.photo || '';
+    const context = data.context || 'farm inventory';
+
+    if (!photo) {
+      return { success: false, error: 'No photo provided' };
+    }
+
+    // Extract base64 content (remove data URL prefix if present)
+    let base64Content = photo;
+    if (photo.includes(',')) {
+      base64Content = photo.split(',')[1];
+    }
+
+    // Call Claude API for vision analysis
+    const apiKey = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
+    if (!apiKey) {
+      return { success: false, error: 'AI API key not configured' };
+    }
+
+    const prompt = `You are analyzing a photo of a product label or item for a small organic farm inventory. This farm grows vegetables, cut flowers, and sells CSA boxes.
+
+Extract the following information from the image:
+1. Product name (the main item name - be specific)
+2. Quantity (numerical value if visible, estimate if counting items)
+3. Unit of measurement (each, lbs, oz, bags, boxes, cases, bunches, flats, trays, packets, rolls, feet, yards, gallons, quarts, pallets, bundles, sets)
+4. Category - choose the BEST match:
+   GROWING: seeds, seed-packets, seed-bulk, transplants, produce, flowers, cut-flowers, dried-flowers
+   FLORAL: floral-containers, floral-foam, floral-wire, ribbon, bouquet-supplies, wreath-supplies
+   EQUIPMENT: tractor, implements, vehicles, power-tools, hand-tools, pruners-snips, scales, irrigation-equip, greenhouse-equip, cooler-equip
+   GROWING SUPPLIES: irrigation-parts, soil-amendments, fertilizer, pest-control, row-cover, trellising, pots-trays, soil-media, plant-markers
+   HARVEST/PACKING: harvest-bins, harvest-knives, csa-boxes, produce-bags, clamshells, rubber-bands, labels-stickers
+   CLEANING: cleaning-supplies, sanitizers, brushes-scrubbers, towels-rags, gloves, aprons
+   INFRASTRUCTURE: lumber, fencing, hardware, electrical, plumbing, paint
+   OFFICE: office-supplies, printer-supplies, books, binders-folders, signage
+   MARKET: market-display, tablecloths, price-signs, cash-supplies, bags-customers
+   SAFETY: safety-glasses, ear-protection, work-gloves, sun-protection, first-aid, boots
+   PROPAGATION: cell-trays, plug-trays, nursery-pots, potting-mix, heat-mats, grow-lights, humidity-domes
+   OTHER: fuel, tarps, rope-twine, tape, batteries, coolers, ice-packs, other
+5. Brand name (if visible - common farm brands: Johnny's, Fedco, High Mowing, Gardener's Supply, etc.)
+6. Additional details (size, variety, model number, organic certification, etc.)
+
+If you cannot determine a field from the image, use null for that field.
+For quantity, provide just the number. For unit, use the closest match.
+
+Respond in valid JSON format only:
+{
+  "name": "Product Name",
+  "quantity": 10,
+  "unit": "bags",
+  "category": "fertilizer",
+  "brand": "Brand Name or null",
+  "details": "Any additional info"
+}`;
+
+    const payload = {
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 500,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: 'image/jpeg',
+                data: base64Content
+              }
+            },
+            {
+              type: 'text',
+              text: prompt
+            }
+          ]
+        }
+      ]
+    };
+
+    const response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    });
+
+    const responseCode = response.getResponseCode();
+    const responseText = response.getContentText();
+
+    if (responseCode !== 200) {
+      console.error('AI API error:', responseCode, responseText);
+      return { success: false, error: 'AI processing failed: ' + responseCode };
+    }
+
+    const result = JSON.parse(responseText);
+    const content = result.content?.[0]?.text || '';
+
+    // Parse the JSON from Claude's response
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsedData = JSON.parse(jsonMatch[0]);
+      return {
+        success: true,
+        data: {
+          name: parsedData.name || null,
+          quantity: parsedData.quantity || null,
+          unit: parsedData.unit || 'each',
+          category: parsedData.category || 'other',
+          brand: parsedData.brand || null,
+          details: parsedData.details || null
+        }
+      };
+    } else {
+      return { success: false, error: 'Could not parse AI response' };
+    }
+
+  } catch (error) {
+    console.error('parseInventoryLabel error:', error);
     return { success: false, error: error.toString() };
   }
 }
@@ -107167,6 +107357,258 @@ function parseUniversalDocument(params) {
   }
 
   return result;
+}
+
+// ===============================================================================
+// PARSER ASSISTANT - Natural Language AI for Sales Data Categorization
+// ===============================================================================
+
+/**
+ * Handle natural language requests from the Parser Assistant chat
+ * Uses Claude AI to understand user intent and return structured actions
+ * @param {Object} params - { question, context, chatHistory }
+ * @returns {Object} { success, response, suggestions, recategorizations }
+ */
+function handleParserAssistant(params) {
+  try {
+    const question = params.question || '';
+    const context = params.context || {};
+    const chatHistory = params.chatHistory || [];
+
+    // Build context summary for Claude
+    const contextSummary = buildParserContextSummary(context);
+
+    // Build the conversation history
+    const historyText = chatHistory.slice(-6).map(m =>
+      `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`
+    ).join('\n');
+
+    // Create the prompt for Claude
+    const prompt = `You are an AI assistant helping a farmer categorize their sales data for loan applications. You understand natural, conversational language and can interpret what the user means even when they're not precise.
+
+## CONTEXT - Current Data State:
+${contextSummary}
+
+## CONVERSATION HISTORY:
+${historyText || 'No previous messages'}
+
+## USER'S CURRENT MESSAGE:
+${question}
+
+## YOUR TASK:
+Understand what the user wants to do with their sales data and respond helpfully. Common requests include:
+- Categorizing products (e.g., "those POS sales with no name are farmers market sales")
+- Fixing miscategorizations (e.g., "the flower stuff is wrong, those are subscriptions not one-time sales")
+- Understanding their data (e.g., "what's taking up the most revenue?")
+- Finding problems (e.g., "show me what looks wrong" or "what needs fixing?")
+- Applying rules (e.g., "anything from the 2023 file without a product name is market sales")
+
+## AVAILABLE CATEGORIES:
+- csa: CSA Vegetable Subscriptions (recurring veggie box memberships)
+- flowers: Flower Subscriptions (recurring bouquet subscriptions)
+- flowerSales: Flower Sales (one-time bouquet purchases)
+- events: Events & Agritourism (workshops, tours, dinners)
+- addons: Partner Add-ons (mushrooms, bread, cheese, coffee from partners)
+- markets: Farmers Markets (POS/cash sales at markets)
+- wholesale: Wholesale/Restaurant (B2B sales to restaurants, stores)
+
+## RESPONSE FORMAT:
+Respond in JSON format:
+{
+  "response": "Your friendly, conversational response to the user (can include HTML like <strong>, <ul>, <li>)",
+  "suggestions": [
+    {"label": "Button text", "action": "actionName", "params": {"key": "value"}}
+  ],
+  "recategorizations": [
+    {"pattern": "text pattern to match", "sourceFile": "optional file filter", "condition": "optional condition like 'no title'", "category": "target category key"}
+  ],
+  "understood": true/false
+}
+
+Available actions for suggestions:
+- bulkCategorize: Apply a pattern match to recategorize (params: keyword, category)
+- bulkCategorizeFromFile: Recategorize based on source file (params: sourceFile, condition, category)
+- bulkCategorizeByColumn: Recategorize based on a column value like Sales Channel (params: column, value, category, optionally sourceFile)
+- filterByKeyword: Filter the table to show matching items (params: keyword)
+- filterBySourceFile: Filter by source file (params: sourceFile, condition)
+- filterByColumn: Filter by column value (params: column, value, optionally sourceFile)
+- filterLowConfidence: Show items with low confidence
+- filterUncategorized: Show uncategorized items
+- showUncertain: Show items needing review
+- suggestPatterns: Auto-detect patterns
+- applyRecategorizations: Apply multiple recategorization rules at once
+
+IMPORTANT - When the user mentions:
+- "Point of Sale" or "POS" in the Sales Channel → they usually mean farmers market sales
+- "Online Store" in the Sales Channel → usually CSA subscriptions or direct sales
+- Items with no product name/title → often farmers market cash sales
+- Specific files like "2023_sales.csv" or "2025_sales_actual_season.csv" → filter by that source file
+
+If you understand what the user wants to recategorize, include the recategorizations array with these fields:
+- pattern: text pattern to match in product title (optional)
+- sourceFile: filter by source file name (optional)
+- column: column name to filter by, like "salesChannel" (optional)
+- value: value to match in that column (optional)
+- condition: special condition like "no title" (optional)
+- category: target category key (required)
+
+The frontend will offer to apply them.
+
+Be conversational and helpful. Understand natural language - users won't always use exact column names. "POS sales" means Sales Channel = "Point of Sale". "That file" refers to files mentioned earlier. If you're not sure what they mean, ask clarifying questions. Reference specific products, files, or sales channels from the context when relevant.`;
+
+    // Call Claude API
+    const apiKey = PropertiesService.getScriptProperties().getProperty('CLAUDE_API_KEY');
+    if (!apiKey) {
+      return {
+        success: false,
+        error: 'Claude API key not configured',
+        response: "I'm sorry, but I can't process natural language right now because the AI service isn't configured. You can still use the manual categorization tools above."
+      };
+    }
+
+    const response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+      method: 'post',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      payload: JSON.stringify({
+        model: 'claude-3-5-haiku-20241022',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      }),
+      muteHttpExceptions: true
+    });
+
+    const responseCode = response.getResponseCode();
+    if (responseCode !== 200) {
+      Logger.log('[ParserAssistant] API error: ' + response.getContentText());
+      return {
+        success: false,
+        error: 'AI service error',
+        response: "I had trouble understanding that. Could you try rephrasing? For example: 'The POS sales without product names are farmers market sales.'"
+      };
+    }
+
+    const result = JSON.parse(response.getContentText());
+    const aiText = result.content[0].text;
+
+    // Parse the JSON response from Claude
+    try {
+      // Extract JSON from the response (Claude might include extra text)
+      const jsonMatch = aiText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        return {
+          success: true,
+          response: parsed.response || aiText,
+          suggestions: parsed.suggestions || [],
+          recategorizations: parsed.recategorizations || []
+        };
+      } else {
+        // Claude returned plain text, use it as-is
+        return {
+          success: true,
+          response: aiText,
+          suggestions: []
+        };
+      }
+    } catch (parseError) {
+      // JSON parsing failed, use the raw text
+      return {
+        success: true,
+        response: aiText,
+        suggestions: []
+      };
+    }
+
+  } catch (error) {
+    Logger.log('[ParserAssistant] Error: ' + error.toString());
+    return {
+      success: false,
+      error: error.toString(),
+      response: "Sorry, I encountered an error. Please try again or use the manual categorization tools."
+    };
+  }
+}
+
+/**
+ * Build a summary of the parser context for the AI
+ */
+function buildParserContextSummary(context) {
+  const lines = [];
+
+  lines.push(`Total Products: ${context.totalProducts || 0}`);
+  lines.push(`Low Confidence Items: ${context.lowConfidenceCount || 0}`);
+  lines.push(`Uncategorized Items: ${context.uncategorizedCount || 0}`);
+
+  // Source files with sales channel breakdown
+  if (context.sourceFiles && Object.keys(context.sourceFiles).length > 0) {
+    lines.push('\nSource Files:');
+    Object.entries(context.sourceFiles).forEach(([file, info]) => {
+      lines.push(`  - ${file}: ${info.count} items, $${(info.revenue || 0).toLocaleString()} revenue${info.noTitle > 0 ? ', ' + info.noTitle + ' with no title' : ''}`);
+      // Show sales channels for this file
+      if (info.salesChannels && Object.keys(info.salesChannels).length > 0) {
+        Object.entries(info.salesChannels).forEach(([channel, chInfo]) => {
+          if (channel && channel !== 'unknown') {
+            lines.push(`      • Sales Channel "${channel}": ${chInfo.count} items, $${(chInfo.revenue || 0).toLocaleString()}`);
+          }
+        });
+      }
+    });
+  }
+
+  // Sales channels breakdown (global)
+  if (context.salesChannels && Object.keys(context.salesChannels).length > 0) {
+    lines.push('\nSales Channels (all files):');
+    Object.entries(context.salesChannels).forEach(([channel, info]) => {
+      lines.push(`  - "${channel}": ${info.count} items, $${(info.revenue || 0).toLocaleString()}`);
+      if (info.sampleProducts && info.sampleProducts.length > 0) {
+        lines.push(`    Sample products: ${info.sampleProducts.join(', ')}`);
+      }
+    });
+  }
+
+  // Category breakdown
+  if (context.categoryBreakdown && Object.keys(context.categoryBreakdown).length > 0) {
+    lines.push('\nCurrent Category Breakdown:');
+    Object.entries(context.categoryBreakdown).forEach(([cat, info]) => {
+      const catName = getCategoryDisplayNameBackend(cat);
+      lines.push(`  - ${catName}: ${info.count} items, $${(info.revenue || 0).toLocaleString()}`);
+      if (info.products && info.products.length > 0) {
+        lines.push(`    Examples: ${info.products.slice(0, 3).join(', ')}`);
+      }
+    });
+  }
+
+  // Sample of low confidence products
+  if (context.lowConfidenceProducts && context.lowConfidenceProducts.length > 0) {
+    lines.push('\nProducts Needing Review:');
+    context.lowConfidenceProducts.slice(0, 5).forEach(p => {
+      const channelInfo = p.salesChannel ? ` [${p.salesChannel}]` : '';
+      lines.push(`  - "${p.title || '(no title)'}"${channelInfo} from ${p.sourceFile || 'unknown file'} - $${(p.sales || 0).toLocaleString()} (${p.confidence || 0}% confidence)`);
+    });
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * Get display name for category (backend version)
+ */
+function getCategoryDisplayNameBackend(category) {
+  const names = {
+    'csa': 'CSA Subscriptions',
+    'flowers': 'Flower Subscriptions',
+    'flowerSales': 'Flower Sales',
+    'events': 'Events & Agritourism',
+    'addons': 'Partner Add-ons',
+    'markets': 'Farmers Markets',
+    'wholesale': 'Wholesale/Restaurant',
+    'uncategorized': 'Uncategorized'
+  };
+  return names[category] || category;
 }
 
 // ===============================================================================

@@ -3189,9 +3189,11 @@
 
         /* File Cards */
         .file-card {
+            position: relative;
             background: var(--bg-lighter);
             border-radius: 10px;
             padding: 1rem;
+            padding-right: 2.5rem;
             display: flex;
             align-items: center;
             gap: 1rem;
@@ -8023,35 +8025,37 @@
                             <option value="drivers_license">Driver's License</option>
                             <option value="passport">Passport</option>
                             <option value="ssn_card">Social Security Card</option>
-                            <option value="birth_certificate">Birth Certificate</option>
-                            <option value="pa_residency_proof">PA Residency Proof</option>
+                            <option value="references">References/Letters of Support</option>
                         </optgroup>
                         <optgroup label="Financial Statements">
-                            <option value="balance_sheet">Balance Sheet (Current)</option>
-                            <option value="net_worth_statement">Net Worth Statement</option>
-                            <option value="cash_flow_projection">Cash Flow Projection</option>
+                            <option value="bank_statements_12mo">Bank Statements (12 months)</option>
                             <option value="profit_loss">Profit & Loss Statement</option>
-                            <option value="bank_statements">Bank Statements (3-6 mo)</option>
+                            <option value="balance_sheet">Balance Sheet</option>
+                            <option value="cash_flow_projection">Cash Flow Projection</option>
+                            <option value="net_worth_statement">Net Worth Statement</option>
                         </optgroup>
                         <optgroup label="Tax Returns">
+                            <option value="tax_returns_3yr">Tax Returns (3 years combined)</option>
                             <option value="tax_return_2023">Federal Tax Return 2023</option>
                             <option value="tax_return_2024">Federal Tax Return 2024</option>
                             <option value="tax_return_2025">Federal Tax Return 2025</option>
+                            <option value="schedule_f_3yr">Schedule F (3 years combined)</option>
                             <option value="schedule_f_2023">Schedule F 2023</option>
                             <option value="schedule_f_2024">Schedule F 2024</option>
                             <option value="schedule_f_2025">Schedule F 2025</option>
                         </optgroup>
                         <optgroup label="Farm Business Documents">
                             <option value="business_plan">Farm Business Plan</option>
-                            <option value="production_history">Production History (3 yr)</option>
+                            <option value="production_records">Crop/Production Records</option>
                             <option value="marketing_plan">Marketing Plan</option>
-                            <option value="asset_schedule">Asset Schedule</option>
-                            <option value="equipment_list">Equipment Inventory</option>
+                            <option value="equipment_list">Equipment List with Values</option>
+                            <option value="land_property_docs">Land/Property Documentation</option>
                             <option value="beginning_farmer_certification">Beginning Farmer Certification</option>
                         </optgroup>
-                        <optgroup label="Legal Documents">
-                            <option value="llc_articles">LLC Articles of Organization</option>
+                        <optgroup label="Legal & Insurance Documents">
+                            <option value="llc_articles">LLC/Business Formation Docs</option>
                             <option value="ein_letter">EIN Confirmation Letter</option>
+                            <option value="insurance_certificates">Insurance Certificates (All)</option>
                             <option value="insurance_liability">Liability Insurance</option>
                             <option value="insurance_property">Property Insurance</option>
                             <option value="organic_certification">Organic Certification</option>
@@ -8728,6 +8732,55 @@
             }
         };
 
+        // Document ID mapping: maps individual uploads to vault requirements
+        // If you upload "tax_return_2024", it also counts toward "tax_returns_3yr"
+        const DOCUMENT_ID_MAPPING = {
+            // Tax returns - individual years map to combined requirement
+            'tax_return_2023': ['tax_returns_3yr'],
+            'tax_return_2024': ['tax_returns_3yr'],
+            'tax_return_2025': ['tax_returns_3yr'],
+            'tax_returns_3yr': ['tax_return_2023', 'tax_return_2024', 'tax_return_2025'],
+
+            // Schedule F - individual years map to combined requirement
+            'schedule_f_2023': ['schedule_f_3yr'],
+            'schedule_f_2024': ['schedule_f_3yr'],
+            'schedule_f_2025': ['schedule_f_3yr'],
+            'schedule_f_3yr': ['schedule_f_2023', 'schedule_f_2024', 'schedule_f_2025'],
+
+            // Bank statements - alias
+            'bank_statements': ['bank_statements_12mo'],
+            'bank_statements_12mo': ['bank_statements'],
+
+            // Production records/history - alias
+            'production_history': ['production_records'],
+            'production_records': ['production_history'],
+
+            // Insurance - individual policies map to combined certificates
+            'insurance_liability': ['insurance_certificates'],
+            'insurance_property': ['insurance_certificates'],
+            'insurance_certificates': ['insurance_liability', 'insurance_property'],
+
+            // Asset schedule maps to equipment list
+            'asset_schedule': ['equipment_list'],
+            'equipment_list': ['asset_schedule']
+        };
+
+        // Helper: Check if a document (or any of its mapped variants) is uploaded
+        function isDocumentUploaded(docId) {
+            // Direct check
+            if (uploadedDocuments[docId]) return uploadedDocuments[docId];
+
+            // Check mapped variants
+            const mappings = DOCUMENT_ID_MAPPING[docId];
+            if (mappings) {
+                for (const mappedId of mappings) {
+                    if (uploadedDocuments[mappedId]) return uploadedDocuments[mappedId];
+                }
+            }
+
+            return null;
+        }
+
         // State
         let uploadedDocuments = {};
         let applications = [];
@@ -9083,7 +9136,8 @@
                 <div class="single-lender-checklist">
                     <h4 style="margin-bottom: 1rem;"><i class="fas fa-list-check"></i> Requirements Checklist</h4>
                     ${requirements.map(req => {
-                        const isComplete = uploadedDocuments[req.id];
+                        // Use helper to check for document or mapped variants
+                        const isComplete = isDocumentUploaded(req.id);
                         return `
                             <div class="checklist-item ${isComplete ? 'completed' : ''}">
                                 <input type="checkbox" ${isComplete ? 'checked' : ''}
@@ -9887,7 +9941,8 @@
                     totalPoints += weight;
                     breakdown[priority].total++;
 
-                    if (uploadedDocuments[doc.id]) {
+                    // Use helper to check for document or mapped variants
+                    if (isDocumentUploaded(doc.id)) {
                         earnedPoints += weight;
                         breakdown[priority].have++;
                     }
@@ -9989,7 +10044,8 @@
                     </div>
                     <div class="vault-items">
                         ${sortedDocs.map(doc => {
-                            const uploaded = uploadedDocuments[doc.id];
+                            // Use helper to check for document or mapped variants
+                            const uploaded = isDocumentUploaded(doc.id);
                             const statusClass = uploaded ? (isExpired(uploaded.expiration) ? 'expired' : 'uploaded') : 'missing';
                             const statusIcon = uploaded ? (isExpired(uploaded.expiration) ? 'fa-exclamation-triangle' : 'fa-check') : 'fa-times';
                             const isExcelDoc = uploaded && uploaded.isExcel;
@@ -10106,7 +10162,8 @@
                         </p>
                         <div style="max-height: 200px; overflow-y: auto; margin-bottom: 1rem;">
                             ${lender.requiredDocs.map(docId => {
-                                const uploaded = uploadedDocuments[docId];
+                                // Use helper to check for document or mapped variants
+                                const uploaded = isDocumentUploaded(docId);
                                 const docName = getDocName(docId);
                                 return `
                                     <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
@@ -10183,7 +10240,8 @@
             const missing = [];
 
             requiredDocs.forEach(docId => {
-                if (uploadedDocuments[docId]) {
+                // Use helper to check for document or mapped variants
+                if (isDocumentUploaded(docId)) {
                     complete++;
                 } else {
                     // For custom lenders, get name from customRequirements
@@ -10210,7 +10268,8 @@
         function getCategoryStatus(docs) {
             let complete = 0;
             docs.forEach(doc => {
-                if (uploadedDocuments[doc.id]) complete++;
+                // Use helper to check for document or mapped variants
+                if (isDocumentUploaded(doc.id)) complete++;
             });
             const statusClass = complete === docs.length ? 'complete' : complete > 0 ? 'partial' : 'missing';
             return { complete, total: docs.length, class: statusClass };
@@ -10462,12 +10521,17 @@
             resetUploadZone();
         }
 
-        // Helper function to convert file to base64
+        // Helper function to convert file to base64 (returns raw base64 without data URL prefix)
         function fileToBase64(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.readAsDataURL(file);
-                reader.onload = () => resolve(reader.result);
+                reader.onload = () => {
+                    // Strip the data URL prefix (e.g., "data:application/pdf;base64,")
+                    const result = reader.result;
+                    const base64Only = result.split(',')[1] || result;
+                    resolve(base64Only);
+                };
                 reader.onerror = error => reject(error);
             });
         }
@@ -11685,7 +11749,7 @@
                     headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'parseUniversalDocument',
-                        base64: base64,
+                        fileContent: base64,
                         fileName: file.name,
                         mimeType: 'application/pdf'
                     })
@@ -11693,12 +11757,23 @@
                 const result = await response.json();
 
                 if (result.success && result.data) {
-                    return result.data;
+                    // Transform backend response to match expected format
+                    const records = result.data.records || [];
+                    const products = records.map(r => ({
+                        title: r.productName || r.title || r.product || r.name || 'Unknown',
+                        sales: parseFloat(r.revenue || r.sales || r.amount || r.total || 0),
+                        quantity: parseInt(r.quantity || r.qty || 1),
+                        date: r.date || r.orderDate || '',
+                        salesChannel: r.channel || r.salesChannel || 'PDF Import'
+                    }));
+                    return { products, source: 'pdf_ai', totalProducts: products.length };
                 } else {
                     throw new Error(result.error || 'Failed to parse PDF file');
                 }
             } catch (err) {
-                throw new Error('PDF parsing requires backend AI processing');
+                console.error('PDF parsing error:', err);
+                showNotification('PDF parsing failed: ' + err.message + '. Try exporting as CSV for better results.', 'error');
+                throw new Error('PDF parsing failed: ' + err.message);
             }
         }
 
@@ -15300,26 +15375,51 @@
                 }
             });
 
-            // Sample of product names for pattern detection
+            // Sample of product names for pattern detection - include all useful fields
             const sampleProducts = allParsedProducts.slice(0, 50).map(p => ({
                 title: p.title,
                 category: p.category,
                 sales: p.sales,
                 confidence: p.confidence,
-                sourceFile: p.sourceFile
+                sourceFile: p.sourceFile,
+                salesChannel: p.salesChannel || p.channel || '',
+                date: p.date || ''
             }));
 
-            // Get source file breakdown
+            // Get source file breakdown with sales channel info
             const sourceFiles = {};
             allParsedProducts.forEach(p => {
                 const file = p.sourceFile || 'unknown';
                 if (!sourceFiles[file]) {
-                    sourceFiles[file] = { count: 0, revenue: 0, noTitle: 0 };
+                    sourceFiles[file] = { count: 0, revenue: 0, noTitle: 0, salesChannels: {} };
                 }
                 sourceFiles[file].count++;
                 sourceFiles[file].revenue += p.sales || 0;
                 if (!p.title || p.title.trim() === '') {
                     sourceFiles[file].noTitle++;
+                }
+                // Track sales channels per file
+                const channel = p.salesChannel || p.channel || 'unknown';
+                if (!sourceFiles[file].salesChannels[channel]) {
+                    sourceFiles[file].salesChannels[channel] = { count: 0, revenue: 0 };
+                }
+                sourceFiles[file].salesChannels[channel].count++;
+                sourceFiles[file].salesChannels[channel].revenue += p.sales || 0;
+            });
+
+            // Get unique sales channels across all data
+            const salesChannels = {};
+            allParsedProducts.forEach(p => {
+                const channel = p.salesChannel || p.channel || '';
+                if (channel) {
+                    if (!salesChannels[channel]) {
+                        salesChannels[channel] = { count: 0, revenue: 0, sampleProducts: [] };
+                    }
+                    salesChannels[channel].count++;
+                    salesChannels[channel].revenue += p.sales || 0;
+                    if (salesChannels[channel].sampleProducts.length < 3) {
+                        salesChannels[channel].sampleProducts.push(p.title || '(no title)');
+                    }
                 }
             });
 
@@ -15329,8 +15429,15 @@
                 uncategorizedCount: uncategorized.length,
                 categoryBreakdown,
                 sourceFiles,
+                salesChannels,
                 sampleProducts,
-                lowConfidenceProducts: lowConfidence.slice(0, 10).map(p => ({ title: p.title, sales: p.sales, confidence: p.confidence, sourceFile: p.sourceFile }))
+                lowConfidenceProducts: lowConfidence.slice(0, 10).map(p => ({
+                    title: p.title,
+                    sales: p.sales,
+                    confidence: p.confidence,
+                    sourceFile: p.sourceFile,
+                    salesChannel: p.salesChannel || p.channel || ''
+                }))
             };
         }
 
@@ -15648,6 +15755,82 @@
                     updateRefinementSummary();
                     addChatMessage('assistant', `Done! Recategorized <strong>${fileCount}</strong> products from "${params.sourceFile}" as <strong>${getCategoryDisplayName(params.category)}</strong>.`);
                     showNotification(`${fileCount} products recategorized`, 'success');
+                    break;
+
+                case 'bulkCategorizeByColumn':
+                    // Categorize products based on a column value (e.g., salesChannel = "Point of Sale")
+                    const columnName = params.column || 'salesChannel';
+                    const columnValue = params.value || '';
+                    const sourceFilter = params.sourceFile || '';
+
+                    const columnMatches = allParsedProducts.filter(p => {
+                        // Check source file filter if provided
+                        if (sourceFilter && !(p.sourceFile || '').toLowerCase().includes(sourceFilter.toLowerCase())) {
+                            return false;
+                        }
+                        // Check the column value (case-insensitive partial match)
+                        const pValue = String(p[columnName] || p.salesChannel || p.channel || '').toLowerCase();
+                        return pValue.includes(columnValue.toLowerCase());
+                    });
+
+                    let colCount = 0;
+                    columnMatches.forEach(p => {
+                        p.category = params.category;
+                        p.categoryName = getCategoryDisplayName(params.category);
+                        p.confidence = 95;
+                        colCount++;
+                    });
+                    renderRefinementTable();
+                    updateRefinementSummary();
+                    addChatMessage('assistant', `Done! Recategorized <strong>${colCount}</strong> products where ${columnName} contains "${columnValue}" as <strong>${getCategoryDisplayName(params.category)}</strong>.`);
+                    showNotification(`${colCount} products recategorized`, 'success');
+                    break;
+
+                case 'filterByColumn':
+                    // Filter products by column value
+                    const filterCol = params.column || 'salesChannel';
+                    const filterVal = params.value || '';
+                    const filterSource = params.sourceFile || '';
+
+                    filteredProducts = allParsedProducts.filter(p => {
+                        if (filterSource && !(p.sourceFile || '').toLowerCase().includes(filterSource.toLowerCase())) {
+                            return false;
+                        }
+                        const pVal = String(p[filterCol] || p.salesChannel || p.channel || '').toLowerCase();
+                        return pVal.includes(filterVal.toLowerCase());
+                    });
+                    renderRefinementTable();
+                    addChatMessage('assistant', `Showing ${filteredProducts.length} products where ${filterCol} contains "${filterVal}".`);
+                    break;
+
+                case 'applyRecategorizations':
+                    // Apply AI-suggested recategorizations
+                    if (params.items && Array.isArray(params.items)) {
+                        let applied = 0;
+                        params.items.forEach(item => {
+                            // Find matching products and recategorize
+                            const matches = allParsedProducts.filter(p => {
+                                if (item.pattern && !p.title.toLowerCase().includes(item.pattern.toLowerCase())) return false;
+                                if (item.sourceFile && !(p.sourceFile || '').toLowerCase().includes(item.sourceFile.toLowerCase())) return false;
+                                if (item.column && item.value) {
+                                    const colVal = String(p[item.column] || p.salesChannel || '').toLowerCase();
+                                    if (!colVal.includes(item.value.toLowerCase())) return false;
+                                }
+                                if (item.condition === 'no title' && p.title && p.title.trim() !== '') return false;
+                                return true;
+                            });
+                            matches.forEach(p => {
+                                p.category = item.category;
+                                p.categoryName = getCategoryDisplayName(item.category);
+                                p.confidence = 95;
+                                applied++;
+                            });
+                        });
+                        renderRefinementTable();
+                        updateRefinementSummary();
+                        addChatMessage('assistant', `Applied ${params.items.length} rules, recategorized <strong>${applied}</strong> products.`);
+                        showNotification(`${applied} products recategorized`, 'success');
+                    }
                     break;
             }
         }
@@ -16447,7 +16630,8 @@
                     }
                 }
 
-                const hasDocument = vaultDocId && uploadedDocuments[vaultDocId];
+                // Use helper to check for document or mapped variants
+                const hasDocument = vaultDocId && isDocumentUploaded(vaultDocId);
                 if (hasDocument) available++;
 
                 // Check if document is shared across multiple grants/loans
@@ -16805,7 +16989,8 @@
                             break;
                         }
                     }
-                    documentStatus[doc] = vaultDocId && uploadedDocuments[vaultDocId] ? 'available' : 'missing';
+                    // Use helper to check for document or mapped variants
+                    documentStatus[doc] = vaultDocId && isDocumentUploaded(vaultDocId) ? 'available' : 'missing';
                 });
 
                 const response = await fetch(API_URL, {
@@ -17037,7 +17222,8 @@
                     }
                 }
 
-                if (vaultDocId && uploadedDocuments[vaultDocId]) {
+                // Use helper to check for document or mapped variants
+                if (vaultDocId && isDocumentUploaded(vaultDocId)) {
                     if (!grant.checklist) grant.checklist = {};
                     if (!grant.checklist['doc_' + idx]) {
                         grant.checklist['doc_' + idx] = true;
