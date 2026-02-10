@@ -29994,9 +29994,12 @@ Respond in valid JSON format only:
   "details": "Any additional info"
 }`;
 
+    // Log for debugging
+    Logger.log('parseInventoryLabel: Processing image, base64 length: ' + base64Content.length);
+
     const payload = {
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 500,
+      max_tokens: 1000,
       messages: [
         {
           role: 'user',
@@ -30032,31 +30035,48 @@ Respond in valid JSON format only:
     const responseCode = response.getResponseCode();
     const responseText = response.getContentText();
 
+    Logger.log('parseInventoryLabel: API response code: ' + responseCode);
+
     if (responseCode !== 200) {
-      console.error('AI API error:', responseCode, responseText);
-      return { success: false, error: 'AI processing failed: ' + responseCode };
+      Logger.log('AI API error: ' + responseCode + ' - ' + responseText);
+      // Try to extract error message
+      try {
+        const errObj = JSON.parse(responseText);
+        const errMsg = errObj.error?.message || errObj.message || responseText.substring(0, 200);
+        return { success: false, error: 'AI error: ' + errMsg };
+      } catch (e) {
+        return { success: false, error: 'AI processing failed: ' + responseCode };
+      }
     }
 
     const result = JSON.parse(responseText);
     const content = result.content?.[0]?.text || '';
+    Logger.log('parseInventoryLabel: AI response content length: ' + content.length);
 
     // Parse the JSON from Claude's response
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
-      const parsedData = JSON.parse(jsonMatch[0]);
-      return {
-        success: true,
-        data: {
-          name: parsedData.name || null,
-          quantity: parsedData.quantity || null,
-          unit: parsedData.unit || 'each',
-          category: parsedData.category || 'other',
-          brand: parsedData.brand || null,
-          details: parsedData.details || null
-        }
-      };
+      try {
+        const parsedData = JSON.parse(jsonMatch[0]);
+        Logger.log('parseInventoryLabel: Parsed data: ' + JSON.stringify(parsedData));
+        return {
+          success: true,
+          data: {
+            name: parsedData.name || null,
+            quantity: parsedData.quantity || null,
+            unit: parsedData.unit || 'each',
+            category: parsedData.category || 'other',
+            brand: parsedData.brand || null,
+            details: parsedData.details || null
+          }
+        };
+      } catch (parseErr) {
+        Logger.log('parseInventoryLabel: JSON parse error: ' + parseErr);
+        return { success: false, error: 'Could not parse AI response JSON' };
+      }
     } else {
-      return { success: false, error: 'Could not parse AI response' };
+      Logger.log('parseInventoryLabel: No JSON found in response: ' + content.substring(0, 500));
+      return { success: false, error: 'AI response was not in expected format' };
     }
 
   } catch (error) {

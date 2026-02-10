@@ -15945,16 +15945,20 @@
 
                             if (result.success && result.data) {
                                 currentAIResult = result.data;
+                                currentAIResult.photo = compressed; // Store photo with result
                                 showAIResultCard(result.data, compressed);
+                                showToast('✨ AI detected: ' + (result.data.name || 'item'), 'success');
                             } else {
-                                // AI couldn't parse - just show photo preview
-                                showToast('Photo captured. Please enter details manually.', 'info');
+                                // AI couldn't parse - show error and photo preview
+                                const errorMsg = result.error || 'Could not read label';
+                                console.error('AI parse failed:', errorMsg);
+                                showToast('AI: ' + errorMsg + '. Enter details manually.', 'warning');
                                 showInventoryPhotoPreview(compressed);
                             }
                         } catch (error) {
                             console.error('AI parsing error:', error);
                             hideAIProcessingOverlay();
-                            showToast('AI parsing failed. Please enter details manually.', 'warning');
+                            showToast('AI connection error. Enter details manually.', 'warning');
                             showInventoryPhotoPreview(compressed);
                         }
                     };
@@ -15983,18 +15987,47 @@
         }
 
         async function parseInventoryLabelWithAI(photoBase64) {
-            // Send to backend for AI parsing
-            const response = await fetch(CONFIG.API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'parseInventoryLabel',
-                    photo: photoBase64,
-                    context: 'farm inventory label scanning'
-                })
-            });
+            // Compress image further for API call (smaller = faster)
+            const compressedForAPI = await compressPhoto(photoBase64, 800);
 
-            return await response.json();
+            console.log('Sending photo to AI for parsing...');
+            console.log('Photo size:', Math.round(compressedForAPI.length / 1024), 'KB');
+
+            try {
+                // Send to backend for AI parsing with timeout
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+
+                const response = await fetch(CONFIG.API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'parseInventoryLabel',
+                        photo: compressedForAPI,
+                        context: 'farm inventory label scanning'
+                    }),
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+
+                if (!response.ok) {
+                    console.error('API response not OK:', response.status, response.statusText);
+                    return { success: false, error: `API error: ${response.status}` };
+                }
+
+                const result = await response.json();
+                console.log('AI parsing result:', result);
+
+                return result;
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    console.error('AI parsing timed out');
+                    return { success: false, error: 'Request timed out - try again' };
+                }
+                console.error('AI parsing fetch error:', error);
+                return { success: false, error: error.message };
+            }
         }
 
         function showAIResultCard(data, photoUrl) {
