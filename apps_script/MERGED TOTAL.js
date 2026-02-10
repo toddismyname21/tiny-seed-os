@@ -56243,10 +56243,15 @@ const MARKETING_SHEETS = {
  */
 function submitFarmPic(data) {
     try {
+        Logger.log('submitFarmPic: Starting');
+        Logger.log('submitFarmPic: Employee: ' + (data.employeeName || 'unknown'));
+        Logger.log('submitFarmPic: Has image data: ' + (data.imageData ? 'yes (' + data.imageData.length + ' chars)' : 'no'));
+
         const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
         let sheet = ss.getSheetByName(MARKETING_SHEETS.FARM_PICS);
 
         if (!sheet) {
+            Logger.log('submitFarmPic: Creating new sheet');
             sheet = ss.insertSheet(MARKETING_SHEETS.FARM_PICS);
             sheet.appendRow([
                 'Pic_ID', 'Employee_ID', 'Employee_Name', 'Category', 'Caption',
@@ -56256,19 +56261,34 @@ function submitFarmPic(data) {
         }
 
         const picId = 'FP_' + Date.now();
+        Logger.log('submitFarmPic: PicId = ' + picId);
 
         // If image data is provided, save to Google Drive
         let imageUrl = '';
         let thumbnailUrl = '';
+        let imageSaveError = '';
 
-        if (data.imageData && data.imageData.startsWith('data:image')) {
-            const saved = saveImageToDrive(data.imageData, picId);
-            if (saved.success) {
-                imageUrl = saved.url;
-                thumbnailUrl = saved.thumbnailUrl;
+        if (data.imageData) {
+            // Check if it's a data URL or already a URL
+            if (data.imageData.startsWith('data:')) {
+                Logger.log('submitFarmPic: Saving image to Drive...');
+                const saved = saveImageToDrive(data.imageData, picId);
+                if (saved.success) {
+                    imageUrl = saved.url;
+                    thumbnailUrl = saved.thumbnailUrl;
+                    Logger.log('submitFarmPic: Image saved successfully');
+                } else {
+                    imageSaveError = saved.error || 'Unknown error saving image';
+                    Logger.log('submitFarmPic: Image save failed: ' + imageSaveError);
+                }
+            } else if (data.imageData.startsWith('http')) {
+                // Already a URL
+                imageUrl = data.imageData;
+                thumbnailUrl = data.imageData;
             }
         }
 
+        // Always save the record, even if image upload failed
         sheet.appendRow([
             picId,
             data.employeeId || '',
@@ -56282,16 +56302,31 @@ function submitFarmPic(data) {
             '',
             '',
             '',
-            ''
+            imageSaveError ? 'Image upload issue: ' + imageSaveError : ''
         ]);
+
+        Logger.log('submitFarmPic: Record saved to sheet');
+
+        // Return success even if image failed - record is still saved
+        if (imageSaveError) {
+            return {
+                success: true,
+                picId: picId,
+                message: 'Photo record saved! (Image may need re-upload)',
+                warning: imageSaveError
+            };
+        }
 
         return {
             success: true,
             picId: picId,
-            message: 'Photo submitted for marketing review!'
+            message: 'Photo submitted for marketing review!',
+            imageUrl: imageUrl
         };
     } catch (error) {
-        return { success: false, error: error.toString() };
+        Logger.log('submitFarmPic ERROR: ' + error.toString());
+        Logger.log('submitFarmPic ERROR Stack: ' + (error.stack || 'no stack'));
+        return { success: false, error: 'Failed to submit photo: ' + error.toString() };
     }
 }
 
@@ -56300,6 +56335,14 @@ function submitFarmPic(data) {
  */
 function saveImageToDrive(base64Data, picId) {
     try {
+        Logger.log('saveImageToDrive: Starting for picId ' + picId);
+        Logger.log('saveImageToDrive: Image data length: ' + (base64Data ? base64Data.length : 0));
+
+        if (!base64Data || base64Data.length < 100) {
+            Logger.log('saveImageToDrive: Invalid image data');
+            return { success: false, error: 'Invalid image data' };
+        }
+
         // Create or get Marketing folder
         let folder;
         const folders = DriveApp.getFoldersByName('Tiny Seed Marketing');
@@ -56308,11 +56351,37 @@ function saveImageToDrive(base64Data, picId) {
         } else {
             folder = DriveApp.createFolder('Tiny Seed Marketing');
         }
+        Logger.log('saveImageToDrive: Got folder');
 
-        // Extract base64 content
-        const contentType = base64Data.match(/data:([^;]+);/)[1];
-        const base64Content = base64Data.replace(/^data:image\/\w+;base64,/, '');
-        const blob = Utilities.newBlob(Utilities.base64Decode(base64Content), contentType, picId + '.jpg');
+        // Extract content type with better error handling
+        let contentType = 'image/jpeg'; // Default
+        const contentTypeMatch = base64Data.match(/data:([^;]+);/);
+        if (contentTypeMatch && contentTypeMatch[1]) {
+            contentType = contentTypeMatch[1];
+        }
+        Logger.log('saveImageToDrive: Content type: ' + contentType);
+
+        // Extract base64 content - handle various formats
+        let base64Content = base64Data;
+        if (base64Data.includes('base64,')) {
+            base64Content = base64Data.split('base64,')[1];
+        } else if (base64Data.includes(',')) {
+            base64Content = base64Data.split(',')[1];
+        }
+
+        if (!base64Content || base64Content.length < 50) {
+            Logger.log('saveImageToDrive: Failed to extract base64 content');
+            return { success: false, error: 'Failed to extract image data' };
+        }
+
+        Logger.log('saveImageToDrive: Base64 content length: ' + base64Content.length);
+
+        // Decode and create blob
+        const decoded = Utilities.base64Decode(base64Content);
+        Logger.log('saveImageToDrive: Decoded length: ' + decoded.length);
+
+        const extension = contentType.includes('png') ? '.png' : '.jpg';
+        const blob = Utilities.newBlob(decoded, contentType, picId + extension);
 
         const file = folder.createFile(blob);
         file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
@@ -56321,10 +56390,12 @@ function saveImageToDrive(base64Data, picId) {
         const url = 'https://drive.google.com/uc?id=' + fileId;
         const thumbnailUrl = 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w200';
 
+        Logger.log('saveImageToDrive: Success! File ID: ' + fileId);
         return { success: true, url: url, thumbnailUrl: thumbnailUrl, fileId: fileId };
     } catch (error) {
-        Logger.log('Error saving image to Drive: ' + error);
-        return { success: false, error: error.toString() };
+        Logger.log('saveImageToDrive ERROR: ' + error.toString());
+        Logger.log('saveImageToDrive ERROR Stack: ' + error.stack);
+        return { success: false, error: 'Drive save failed: ' + error.toString() };
     }
 }
 
