@@ -18869,8 +18869,46 @@
         // ============================================
         const QuickPhotoState = {
             selectedFile: null,
-            imageData: null
+            imageData: null,
+            compressedData: null
         };
+
+        // Compress image for upload (max 1200px width, 0.8 quality)
+        async function compressPhotoForUpload(base64Data, maxWidth = 1200, quality = 0.8) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = function() {
+                    try {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+
+                        // Scale down if too large
+                        if (width > maxWidth) {
+                            height = (height * maxWidth) / width;
+                            width = maxWidth;
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        // Convert to JPEG for better compression
+                        const compressed = canvas.toDataURL('image/jpeg', quality);
+                        console.log('Photo compressed: ' + (base64Data.length / 1024).toFixed(1) + 'KB -> ' + (compressed.length / 1024).toFixed(1) + 'KB');
+                        resolve(compressed);
+                    } catch (err) {
+                        reject(err);
+                    }
+                };
+                img.onerror = function() {
+                    reject(new Error('Failed to load image for compression'));
+                };
+                img.src = base64Data;
+            });
+        }
 
         function quickCapturePhoto() {
             document.getElementById('quickPhotoInput').click();
@@ -18880,18 +18918,34 @@
             document.getElementById('quickGalleryInput').click();
         }
 
-        function handleQuickPhotoSelect(event) {
+        async function handleQuickPhotoSelect(event) {
             const file = event.target.files[0];
             if (!file) return;
 
             QuickPhotoState.selectedFile = file;
+            showLoading();
 
             const reader = new FileReader();
-            reader.onload = function(e) {
-                QuickPhotoState.imageData = e.target.result;
-                document.getElementById('quickPhotoImg').src = e.target.result;
-                document.getElementById('quickPhotoPreview').style.display = 'block';
-                document.getElementById('quickPhotoSubmit').style.display = 'flex';
+            reader.onload = async function(e) {
+                try {
+                    // Store original for preview
+                    QuickPhotoState.imageData = e.target.result;
+                    document.getElementById('quickPhotoImg').src = e.target.result;
+
+                    // Pre-compress for upload
+                    QuickPhotoState.compressedData = await compressPhotoForUpload(e.target.result);
+
+                    document.getElementById('quickPhotoPreview').style.display = 'block';
+                    document.getElementById('quickPhotoSubmit').style.display = 'flex';
+                } catch (err) {
+                    console.error('Error processing photo:', err);
+                    showToast('Error processing photo', 'error');
+                }
+                hideLoading();
+            };
+            reader.onerror = function() {
+                hideLoading();
+                showToast('Error reading photo', 'error');
             };
             reader.readAsDataURL(file);
         }
@@ -18899,6 +18953,7 @@
         function removeQuickPhoto() {
             QuickPhotoState.selectedFile = null;
             QuickPhotoState.imageData = null;
+            QuickPhotoState.compressedData = null;
             document.getElementById('quickPhotoImg').src = '';
             document.getElementById('quickPhotoPreview').style.display = 'none';
             document.getElementById('quickPhotoSubmit').style.display = 'none';
@@ -18908,7 +18963,7 @@
         }
 
         async function submitQuickPhoto() {
-            if (!QuickPhotoState.imageData) {
+            if (!QuickPhotoState.imageData && !QuickPhotoState.compressedData) {
                 showToast('Please select a photo', 'error');
                 return;
             }
@@ -18918,31 +18973,55 @@
             try {
                 const caption = document.getElementById('quickPhotoCaption').value;
 
+                // Use compressed data if available, otherwise compress now
+                let imageToSend = QuickPhotoState.compressedData;
+                if (!imageToSend && QuickPhotoState.imageData) {
+                    console.log('Compressing photo before upload...');
+                    imageToSend = await compressPhotoForUpload(QuickPhotoState.imageData);
+                }
+
+                console.log('Submitting photo, size: ' + (imageToSend.length / 1024).toFixed(1) + 'KB');
+
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+
                 const response = await fetch(CONFIG.API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    signal: controller.signal,
                     body: JSON.stringify({
                         action: 'submitFarmPic',
                         employeeId: AppState.employee?.Employee_ID || 'unknown',
                         employeeName: AppState.employee?.Name || 'Team Member',
-                        category: 'quick', // Quick capture category
+                        category: 'quick',
                         caption: caption,
-                        imageData: QuickPhotoState.imageData,
+                        imageData: imageToSend,
                         timestamp: new Date().toISOString()
                     })
                 });
 
+                clearTimeout(timeoutId);
+
+                if (!response.ok) {
+                    throw new Error('Server error: ' + response.status);
+                }
+
                 const data = await response.json();
 
                 if (data.success) {
-                    showToast('Photo sent to marketing!', 'success');
+                    showToast(data.warning ? 'Photo submitted (with note)' : 'Photo sent to marketing!', 'success');
                     removeQuickPhoto();
                 } else {
+                    console.error('Submit failed:', data.error);
                     showToast(data.error || 'Failed to submit', 'error');
                 }
             } catch (error) {
                 console.error('Submit quick photo error:', error);
-                showToast('Error submitting photo', 'error');
+                if (error.name === 'AbortError') {
+                    showToast('Request timed out - try a smaller photo', 'error');
+                } else {
+                    showToast('Error: ' + (error.message || 'Failed to submit'), 'error');
+                }
             }
 
             hideLoading();
