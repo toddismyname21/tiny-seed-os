@@ -11564,11 +11564,8 @@
                 }
                 // For POS rows without title, use transaction date
                 else if (salesChannel.includes('point of sale') || posLocation) {
-                    // POS row - extract year from transaction date
-                    const dateMatch = (p.date || '').match(/^(\d{4})/);
-                    if (dateMatch) {
-                        productYear = dateMatch[1];
-                    }
+                    // POS row - extract year from transaction date (validated)
+                    productYear = extractValidYear(p.date);
                 }
 
                 // Extract PRODUCT YEAR from the product name (e.g., "2024 Tiny Seed Farm Summer CSA")
@@ -11576,16 +11573,13 @@
                     productYear = extractProductYear(title);
                 }
 
-                // If no year in product name, use transaction year
+                // If no year in product name, use transaction year (validated)
                 if (!productYear && p.date) {
-                    const yearMatch = p.date.match(/^(\d{4})/);
-                    if (yearMatch) {
-                        productYear = yearMatch[1];
-                    }
+                    productYear = extractValidYear(p.date);
                 }
 
                 // Default to current year if still no year
-                if (!productYear) {
+                if (!productYear || !isValidYear(productYear)) {
                     productYear = new Date().getFullYear().toString();
                 }
 
@@ -11595,7 +11589,7 @@
                 byProductYear[productYear].push({
                     ...p,
                     productYear: productYear,
-                    transactionYear: p.date ? p.date.match(/^(\d{4})/)?.[1] : null
+                    transactionYear: extractValidYear(p.date)
                 });
             });
 
@@ -11603,7 +11597,29 @@
             const resultByYear = {};
             let allYearsResult = createEmptyResult();
 
-            Object.keys(byProductYear).sort().forEach(year => {
+            // Only process valid years (2020-2030), merge invalid years into current year
+            const validYears = Object.keys(byProductYear).filter(year => isValidYear(year)).sort();
+            const invalidYears = Object.keys(byProductYear).filter(year => !isValidYear(year));
+            const currentYear = new Date().getFullYear().toString();
+
+            // Merge products from invalid years into current year
+            if (invalidYears.length > 0) {
+                console.log('⚠️ Invalid years detected and merged into ' + currentYear + ':', invalidYears.join(', '));
+                if (!byProductYear[currentYear]) {
+                    byProductYear[currentYear] = [];
+                }
+                invalidYears.forEach(invalidYear => {
+                    byProductYear[currentYear].push(...byProductYear[invalidYear]);
+                    delete byProductYear[invalidYear];
+                });
+                // Re-add current year to valid years if not already there
+                if (!validYears.includes(currentYear)) {
+                    validYears.push(currentYear);
+                    validYears.sort();
+                }
+            }
+
+            validYears.forEach(year => {
                 const yearProducts = byProductYear[year];
                 const yearResult = categorizeProducts(yearProducts);
                 yearResult.productYear = year;
@@ -11618,12 +11634,12 @@
 
             // Return all years combined for display, but store breakdown
             allYearsResult.byYear = resultByYear;
-            allYearsResult.availableYears = Object.keys(byProductYear).sort();
+            allYearsResult.availableYears = validYears;
             allYearsResult.totalProducts = products.length;
 
             // Log the smart breakdown for debugging
             console.log('%c CATEGORIZATION COMPLETE ', 'background: #f4a261; color: black; font-size: 14px; padding: 4px 8px;');
-            console.log('📊 Years detected:', Object.keys(byProductYear).sort().join(', '));
+            console.log('📊 Valid years detected:', validYears.join(', '));
 
             // Count categories with data
             let categoriesWithData = 0;
@@ -11656,6 +11672,24 @@
             return allYearsResult;
         }
 
+        // Helper to validate a year is in reasonable range (2020-2030)
+        function isValidYear(yearStr) {
+            if (!yearStr) return false;
+            const yearNum = parseInt(yearStr);
+            return yearNum >= 2020 && yearNum <= 2030;
+        }
+
+        // Extract and validate year from any string
+        function extractValidYear(str) {
+            if (!str) return null;
+            // Look for years in format 2020-2030
+            const matches = String(str).match(/\b(202[0-9]|2030)\b/g);
+            if (matches && matches.length > 0) {
+                return matches[0]; // Return first valid year found
+            }
+            return null;
+        }
+
         function extractProductYear(title) {
             // Extract the product year from product names like:
             // "2024 Tiny Seed Farm Summer CSA" → 2024
@@ -11663,26 +11697,10 @@
             // "2025 Weekly Large Summer Veggie Share--Late Start" → 2025
             // "2025 Spring Flower Subscription" → 2025
 
-            const lowerTitle = title.toLowerCase();
+            if (!title) return null;
 
-            // Pattern 1: Year at the beginning
-            const yearStart = title.match(/^(\d{4})\s/);
-            if (yearStart) {
-                return yearStart[1];
-            }
-
-            // Pattern 2: Year anywhere in product name for CSA/subscription products
-            const yearAnywhere = title.match(/(\d{4})/);
-            if (yearAnywhere) {
-                const year = yearAnywhere[1];
-                const yearNum = parseInt(year);
-                // Sanity check - should be a reasonable year (2020-2030)
-                if (yearNum >= 2020 && yearNum <= 2030) {
-                    return year;
-                }
-            }
-
-            return null;
+            // Use the validated year extraction
+            return extractValidYear(title);
         }
 
         // ====== RULE MATCHING ENGINE ======
@@ -12838,8 +12856,8 @@
             // Clear existing options except "All Years"
             select.innerHTML = '<option value="all">All Years</option>';
 
-            // Add year options
-            years.forEach(year => {
+            // Add year options - only valid years (2020-2030)
+            years.filter(year => isValidYear(year)).forEach(year => {
                 const option = document.createElement('option');
                 option.value = year;
                 option.textContent = year;
@@ -14550,9 +14568,8 @@
         }
 
         function extractYear(dateStr) {
-            if (!dateStr) return null;
-            const match = String(dateStr).match(/20\d{2}/);
-            return match ? match[0] : null;
+            // Use the centralized validated year extraction
+            return extractValidYear(dateStr);
         }
 
         function updateRefinementYearFilter(years) {
@@ -14561,7 +14578,8 @@
 
             select.innerHTML = '<option value="all">All Years</option>';
             if (years && years.length > 0) {
-                years.forEach(year => {
+                // Only add valid years (2020-2030)
+                years.filter(year => isValidYear(year)).forEach(year => {
                     const opt = document.createElement('option');
                     opt.value = year;
                     opt.textContent = year;
