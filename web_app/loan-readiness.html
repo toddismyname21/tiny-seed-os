@@ -10871,6 +10871,8 @@
 
         // Accumulated results from all files
         let accumulatedSalesData = null;
+        // Track all uploaded file data for proper accumulation
+        let allUploadedFileData = [];
 
         // Main file upload handler
         async function handleFileUpload(files) {
@@ -10879,32 +10881,45 @@
             // Show uploaded files section
             document.getElementById('uploadedFilesList').style.display = 'block';
 
-            // Reset accumulated data when new files are uploaded
-            accumulatedSalesData = null;
-
-            // Parse all files and accumulate results
-            const allParsedData = [];
+            // Parse NEW files and add to accumulated data (don't reset!)
+            const newParsedData = [];
             for (const file of files) {
+                // Check if file was already uploaded (by name)
+                const alreadyUploaded = allUploadedFileData.some(f => f.fileName === file.name);
+                if (alreadyUploaded) {
+                    showNotification(`${file.name} was already uploaded. Skipping duplicate.`, 'warning');
+                    continue;
+                }
+
                 // Add file card
                 addFileCard(file);
 
                 // Parse the file and collect result
                 const fileData = await parseFile(file);
                 if (fileData) {
-                    allParsedData.push({ fileName: file.name, data: fileData });
+                    newParsedData.push({ fileName: file.name, data: fileData });
+                    allUploadedFileData.push({ fileName: file.name, data: fileData });
                 }
             }
 
-            // Process results - merge if multiple files, or just display single file
-            if (allParsedData.length > 1) {
-                console.log('%c MERGING DATA FROM ALL FILES ', 'background: #9b59b6; color: white; font-size: 14px; padding: 4px 8px;');
-                accumulatedSalesData = mergeAllParsedData(allParsedData);
-            } else if (allParsedData.length === 1) {
-                // Single file
-                accumulatedSalesData = allParsedData[0].data;
+            // If no new files were parsed, exit
+            if (newParsedData.length === 0) {
+                return;
             }
 
-            // Display the final merged/single result
+            // Merge ALL uploaded files (existing + new)
+            console.log('%c MERGING DATA FROM ALL FILES ', 'background: #9b59b6; color: white; font-size: 14px; padding: 4px 8px;');
+            console.log(`Total files: ${allUploadedFileData.length} (${newParsedData.length} new)`);
+
+            if (allUploadedFileData.length === 1) {
+                // Single file
+                accumulatedSalesData = allUploadedFileData[0].data;
+            } else {
+                // Merge all files
+                accumulatedSalesData = mergeAllParsedData(allUploadedFileData);
+            }
+
+            // Display the final merged result
             if (accumulatedSalesData) {
                 displayParsedData(accumulatedSalesData);
 
@@ -10916,7 +10931,7 @@
 
                 // Show success celebration
                 showImportSuccess({
-                    files: allParsedData.length,
+                    files: allUploadedFileData.length,
                     products: accumulatedSalesData.totalProducts || 0,
                     revenue: accumulatedSalesData.grandTotal || 0,
                     years: accumulatedSalesData.availableYears?.length || 0
@@ -11060,23 +11075,47 @@
         function deleteUploadedFile(fileId) {
             // Remove from DOM
             const card = document.getElementById(fileId);
+            let fileName = null;
             if (card) {
+                // Get filename from card
+                const h4 = card.querySelector('h4');
+                if (h4) fileName = h4.textContent;
                 card.remove();
             }
 
             // Remove from uploadedSalesFiles array
             const index = uploadedSalesFiles.findIndex(f => f.id === fileId);
             if (index > -1) {
+                if (!fileName) fileName = uploadedSalesFiles[index].file?.name;
                 uploadedSalesFiles.splice(index, 1);
             }
 
-            // Clear data from salesDataByYear if this was the source
+            // Remove from allUploadedFileData array
+            if (fileName) {
+                const dataIndex = allUploadedFileData.findIndex(f => f.fileName === fileName);
+                if (dataIndex > -1) {
+                    allUploadedFileData.splice(dataIndex, 1);
+                }
+            }
+
             // Reset display if no files left
             if (uploadedSalesFiles.length === 0) {
                 document.getElementById('uploadedFilesList').style.display = 'none';
                 document.getElementById('mergeYearsBtn').style.display = 'none';
-                // Clear all the form fields
                 clearAllSalesData();
+            } else {
+                // Re-merge remaining files and update display
+                if (allUploadedFileData.length === 1) {
+                    accumulatedSalesData = allUploadedFileData[0].data;
+                } else if (allUploadedFileData.length > 1) {
+                    accumulatedSalesData = mergeAllParsedData(allUploadedFileData);
+                }
+
+                if (accumulatedSalesData) {
+                    displayParsedData(accumulatedSalesData);
+                    populateRefinementPanel(accumulatedSalesData);
+                    showRevenueTrendChart(accumulatedSalesData);
+                }
             }
 
             showNotification('File removed', 'info');
@@ -11137,6 +11176,8 @@
             // Clear stored data
             salesDataByYear = {};
             parsedSalesData = null;
+            accumulatedSalesData = null;
+            allUploadedFileData = [];
 
             // Hide and reset Revenue Trend Visualization
             const revenueTrendCard = document.getElementById('revenueTrendCard');
