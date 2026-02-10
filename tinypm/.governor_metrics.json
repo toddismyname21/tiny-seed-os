@@ -1,0 +1,46 @@
+{
+  "version": "1.0.0",
+  "started": "2026-02-09T11:11:52.508220",
+  "gates": {
+    "intake": {
+      "processed": 0,
+      "blocked": 0,
+      "allowed": 0,
+      "deferred": 0
+    },
+    "context": {
+      "processed": 0,
+      "redacted": 0,
+      "conflicts": 0
+    },
+    "pre_llm": {
+      "processed": 0,
+      "modified": 0,
+      "blocked": 0
+    },
+    "post_response": {
+      "processed": 0,
+      "accepted": 0,
+      "rejected": 0,
+      "modified": 0
+    },
+    "action": {
+      "processed": 0,
+      "allowed": 0,
+      "blocked": 0,
+      "escalated": 0
+    },
+    "persistence": {
+      "processed": 0,
+      "allowed": 0,
+      "blocked": 0,
+      "drift_corrected": 0
+    }
+  },
+  "latency_ms": {
+    "total": [],
+    "per_gate": {}
+  },
+  "circuit_breakers": {},
+  "cache_stats": {}
+}

@@ -1,0 +1,709 @@
+{
+  "decisions": [
+    {
+      "action_id": "0f2f9740-0f78-4d05-8a50-86fcf5520393",
+      "action_type": "suggest_task",
+      "timestamp": "2026-02-09T10:28:27.635459",
+      "outcome": "approved",
+      "gate_failed": null,
+      "reason": "All gates passed",
+      "gate_results": [
+        {
+          "gate": "source_verification",
+          "passed": true,
+          "score": 0.8,
+          "reason": "Low-risk action type does not require memory sources",
+          "details": {
+            "action_type": "suggest_task"
+          }
+        },
+        {
+          "gate": "confidence_check",
+          "passed": true,
+          "score": 0.85,
+          "reason": "Confidence (85.0%) meets threshold (80%)",
+          "details": {
+            "provided_confidence": 0.85,
+            "final_confidence": 0.85,
+            "threshold_min": 0.8,
+            "threshold_auto": 0.95,
+            "threshold_clarify": 0.7,
+            "used_scorer": false
+          }
+        },
+        {
+          "gate": "impact_analysis",
+          "passed": true,
+          "score": 0.895,
+          "reason": "Impact score (10.5%) within acceptable range",
+          "details": {
+            "impact_score": 0.105,
+            "impact_factors": {
+              "irreversible": 0.0,
+              "affects_external": 0.0,
+              "affects_users": 1.0,
+              "financial": 0.0,
+              "data_modification": 0.0,
+              "communication": 0.0
+            },
+            "risk_level": "low",
+            "max_allowed": 0.7,
+            "is_reversible": true
+          }
+        },
+        {
+          "gate": "dependency_check",
+          "passed": true,
+          "score": 1.0,
+          "reason": "No dependencies to check",
+          "details": {
+            "has_dependencies": false
+          }
+        },
+        {
+          "gate": "human_override",
+          "passed": true,
+          "score": 1.0,
+          "reason": "No human overrides apply",
+          "details": {
+            "checked_blocks": 0
+          }
+        }
+      ],
+      "action_summary": "Recommend weekly review for the team",
+      "risk_level": "low",
+      "total_score": 0.909,
+      "metadata": {},
+      "original_action": {
+        "type": "suggest_task",
+        "content": "Recommend weekly review for the team",
+        "memory_sources": [],
+        "confidence": 0.85
+      }
+    },
+    {
+      "action_id": "8efcc7ee-725a-47ed-916a-643ad454215a",
+      "action_type": "send_email",
+      "timestamp": "2026-02-09T10:28:27.635731",
+      "outcome": "needs_approval",
+      "gate_failed": "source_verification",
+      "reason": "High-risk action blocked by 'source_verification': No memory sources provided for action that requires grounding",
+      "gate_results": [
+        {
+          "gate": "source_verification",
+          "passed": false,
+          "score": 0.0,
+          "reason": "No memory sources provided for action that requires grounding",
+          "details": {
+            "action_type": "send_email",
+            "requires_sources": true
+          }
+        },
+        {
+          "gate": "confidence_check",
+          "passed": false,
+          "score": 0.65,
+          "reason": "Low confidence (65.0%) - blocked",
+          "details": {
+            "provided_confidence": 0.65,
+            "final_confidence": 0.65,
+            "threshold_min": 0.8,
+            "threshold_auto": 0.95,
+            "threshold_clarify": 0.7,
+            "used_scorer": false
+          }
+        },
+        {
+          "gate": "impact_analysis",
+          "passed": false,
+          "score": 0.21999999999999997,
+          "reason": "High impact (78.0%): irreversible, affects_external, affects_users, communication",
+          "details": {
+            "impact_score": 0.78,
+            "impact_factors": {
+              "irreversible": 1.0,
+              "affects_external": 1.0,
+              "affects_users": 1.0,
+              "financial": 0.0,
+              "data_modification": 0.0,
+              "communication": 1.0
+            },
+            "risk_level": "high",
+            "max_allowed": 0.7,
+            "is_reversible": false
+          }
+        },
+        {
+          "gate": "dependency_check",
+          "passed": true,
+          "score": 1.0,
+          "reason": "No dependencies to check",
+          "details": {
+            "has_dependencies": false
+          }
+        },
+        {
+          "gate": "human_override",
+          "passed": true,
+          "score": 1.0,
+          "reason": "No human overrides apply",
+          "details": {
+            "checked_blocks": 0
+          }
+        }
+      ],
+      "action_summary": "Send reminder to team",
+      "risk_level": "high",
+      "total_score": 0.5740000000000001,
+      "metadata": {},
+      "original_action": {
+        "type": "send_email",
+        "content": "Send reminder to team",
+        "memory_sources": [],
+        "confidence": 0.65
+      }
+    },
+    {
+      "action_id": "940d04c8-c912-4b48-b077-3a10926be30a",
+      "action_type": "suggest_task_reminder",
+      "timestamp": "2026-02-09T10:28:42.466460",
+      "outcome": "approved",
+      "gate_failed": null,
+      "reason": "All gates passed",
+      "gate_results": [
+        {
+          "gate": "source_verification",
+          "passed": true,
+          "score": 1.0,
+          "reason": "Verified 1/1 sources",
+          "details": {
+            "verified_sources": [
+              "calendar_preferences"
+            ],
+            "missing_sources": [],
+            "stale_sources": [],
+            "verification_ratio": 1.0,
+            "threshold": 0.5
+          }
+        },
+        {
+          "gate": "confidence_check",
+          "passed": true,
+          "score": 0.85,
+          "reason": "Confidence (85.0%) meets threshold (80%)",
+          "details": {
+            "provided_confidence": 0.85,
+            "final_confidence": 0.85,
+            "threshold_min": 0.8,
+            "threshold_auto": 0.95,
+            "threshold_clarify": 0.7,
+            "used_scorer": false
+          }
+        },
+        {
+          "gate": "impact_analysis",
+          "passed": true,
+          "score": 0.85,
+          "reason": "Impact score (15.0%) within acceptable range",
+          "details": {
+            "impact_score": 0.15,
+            "impact_factors": {
+              "irreversible": 0.0,
+              "affects_external": 0.0,
+              "affects_users": 1.0,
+              "financial": 0.0,
+              "data_modification": 0.0,
+              "communication": 0.0
+            },
+            "risk_level": "medium",
+            "max_allowed": 0.7,
+            "is_reversible": true
+          }
+        },
+        {
+          "gate": "dependency_check",
+          "passed": true,
+          "score": 1.0,
+          "reason": "No dependencies to check",
+          "details": {
+            "has_dependencies": false
+          }
+        },
+        {
+          "gate": "human_override",
+          "passed": true,
+          "score": 1.0,
+          "reason": "No human overrides apply",
+          "details": {
+            "checked_blocks": 0
+          }
+        }
+      ],
+      "action_summary": "Remind about the weekly team review",
+      "risk_level": "medium",
+      "total_score": 0.9400000000000001,
+      "metadata": {
+        "is_suggestion": true
+      },
+      "original_action": {
+        "type": "suggest_task_reminder",
+        "content": "Remind about the weekly team review",
+        "memory_sources": [
+          "calendar_preferences"
+        ],
+        "confidence": 0.85
+      }
+    },
+    {
+      "action_id": "a3a089ae-3e82-462f-8a15-90625a2d35a2",
+      "action_type": "create_task",
+      "timestamp": "2026-02-09T10:28:42.466957",
+      "outcome": "approved",
+      "gate_failed": null,
+      "reason": "All gates passed",
+      "gate_results": [
+        {
+          "gate": "source_verification",
+          "passed": true,
+          "score": 1.0,
+          "reason": "Verified 1/1 sources",
+          "details": {
+            "verified_sources": [
+              "project_context"
+            ],
+            "missing_sources": [],
+            "stale_sources": [],
+            "verification_ratio": 1.0,
+            "threshold": 0.5
+          }
+        },
+        {
+          "gate": "confidence_check",
+          "passed": true,
+          "score": 0.9,
+          "reason": "Confidence (90.0%) meets threshold (80%)",
+          "details": {
+            "provided_confidence": 0.9,
+            "final_confidence": 0.9,
+            "threshold_min": 0.8,
+            "threshold_auto": 0.95,
+            "threshold_clarify": 0.7,
+            "used_scorer": false
+          }
+        },
+        {
+          "gate": "impact_analysis",
+          "passed": true,
+          "score": 0.85,
+          "reason": "Impact score (15.0%) within acceptable range",
+          "details": {
+            "impact_score": 0.15,
+            "impact_factors": {
+              "irreversible": 0.0,
+              "affects_external": 0.0,
+              "affects_users": 0.0,
+              "financial": 0.0,
+              "data_modification": 1.0,
+              "communication": 0.0
+            },
+            "risk_level": "medium",
+            "max_allowed": 0.7,
+            "is_reversible": true
+          }
+        },
+        {
+          "gate": "dependency_check",
+          "passed": true,
+          "score": 1.0,
+          "reason": "No dependencies to check",
+          "details": {
+            "has_dependencies": false
+          }
+        },
+        {
+          "gate": "human_override",
+          "passed": true,
+          "score": 1.0,
+          "reason": "No human overrides apply",
+          "details": {
+            "checked_blocks": 0
+          }
+        }
+      ],
+      "action_summary": "Create new task for code review",
+      "risk_level": "medium",
+      "total_score": 0.95,
+      "metadata": {},
+      "original_action": {
+        "type": "create_task",
+        "content": "Create new task for code review",
+        "memory_sources": [
+          "project_context"
+        ],
+        "confidence": 0.9
+      }
+    },
+    {
+      "action_id": "c7bd798f-81a8-4d7f-8770-6408763d2185",
+      "action_type": "create_task",
+      "timestamp": "2026-02-09T10:28:42.467402",
+      "outcome": "approved",
+      "gate_failed": null,
+      "reason": "All gates passed",
+      "gate_results": [
+        {
+          "gate": "source_verification",
+          "passed": true,
+          "score": 1.0,
+          "reason": "Verified 1/1 sources",
+          "details": {
+            "verified_sources": [
+              "team_preferences"
+            ],
+            "missing_sources": [],
+            "stale_sources": [],
+            "verification_ratio": 1.0,
+            "threshold": 0.5
+          }
+        },
+        {
+          "gate": "confidence_check",
+          "passed": true,
+          "score": 0.88,
+          "reason": "Confidence (88.0%) meets threshold (80%)",
+          "details": {
+            "provided_confidence": 0.88,
+            "final_confidence": 0.88,
+            "threshold_min": 0.8,
+            "threshold_auto": 0.95,
+            "threshold_clarify": 0.7,
+            "used_scorer": false
+          }
+        },
+        {
+          "gate": "impact_analysis",
+          "passed": true,
+          "score": 0.85,
+          "reason": "Impact score (15.0%) within acceptable range",
+          "details": {
+            "impact_score": 0.15,
+            "impact_factors": {
+              "irreversible": 0.0,
+              "affects_external": 0.0,
+              "affects_users": 0.0,
+              "financial": 0.0,
+              "data_modification": 1.0,
+              "communication": 0.0
+            },
+            "risk_level": "medium",
+            "max_allowed": 0.7,
+            "is_reversible": true
+          }
+        },
+        {
+          "gate": "dependency_check",
+          "passed": true,
+          "score": 1.0,
+          "reason": "No dependencies to check",
+          "details": {
+            "has_dependencies": false
+          }
+        },
+        {
+          "gate": "human_override",
+          "passed": true,
+          "score": 1.0,
+          "reason": "No human overrides apply",
+          "details": {
+            "checked_blocks": 0
+          }
+        }
+      ],
+      "action_summary": "Create task for weekly review",
+      "risk_level": "medium",
+      "total_score": 0.9460000000000001,
+      "metadata": {},
+      "original_action": {
+        "type": "create_task",
+        "content": "Create task for weekly review",
+        "memory_sources": [
+          "team_preferences"
+        ],
+        "confidence": 0.88
+      }
+    },
+    {
+      "action_id": "b675be6c-1727-4bbb-86ac-58bd12f6a426",
+      "action_type": "suggest_task",
+      "timestamp": "2026-02-09T10:28:49.229785",
+      "outcome": "approved",
+      "gate_failed": null,
+      "reason": "All gates passed",
+      "gate_results": [
+        {
+          "gate": "source_verification",
+          "passed": true,
+          "score": 1.0,
+          "reason": "Verified 2/2 sources",
+          "details": {
+            "verified_sources": [
+              "team_preferences",
+              "calendar_availability"
+            ],
+            "missing_sources": [],
+            "stale_sources": [],
+            "verification_ratio": 1.0,
+            "threshold": 0.5
+          }
+        },
+        {
+          "gate": "confidence_check",
+          "passed": true,
+          "score": 0.85,
+          "reason": "Confidence (85.0%) meets threshold (80%)",
+          "details": {
+            "provided_confidence": 0.85,
+            "final_confidence": 0.85,
+            "threshold_min": 0.8,
+            "threshold_auto": 0.95,
+            "threshold_clarify": 0.7,
+            "used_scorer": false
+          }
+        },
+        {
+          "gate": "impact_analysis",
+          "passed": true,
+          "score": 0.895,
+          "reason": "Impact score (10.5%) within acceptable range",
+          "details": {
+            "impact_score": 0.105,
+            "impact_factors": {
+              "irreversible": 0.0,
+              "affects_external": 0.0,
+              "affects_users": 1.0,
+              "financial": 0.0,
+              "data_modification": 0.0,
+              "communication": 0.0
+            },
+            "risk_level": "low",
+            "max_allowed": 0.7,
+            "is_reversible": true
+          }
+        },
+        {
+          "gate": "dependency_check",
+          "passed": true,
+          "score": 1.0,
+          "reason": "No dependencies to check",
+          "details": {
+            "has_dependencies": false
+          }
+        },
+        {
+          "gate": "human_override",
+          "passed": true,
+          "score": 1.0,
+          "reason": "No human overrides apply",
+          "details": {
+            "checked_blocks": 0
+          }
+        }
+      ],
+      "action_summary": "Recommend weekly review meeting for the team",
+      "risk_level": "low",
+      "total_score": 0.9490000000000001,
+      "metadata": {
+        "test": true
+      },
+      "original_action": {
+        "type": "suggest_task",
+        "content": "Recommend weekly review meeting for the team",
+        "memory_sources": [
+          "team_preferences",
+          "calendar_availability"
+        ],
+        "confidence": 0.85
+      }
+    },
+    {
+      "action_id": "f2eef43e-4eeb-455f-b524-337a6eb34d99",
+      "action_type": "autonomous_action",
+      "timestamp": "2026-02-09T10:29:15.941803",
+      "outcome": "needs_approval",
+      "gate_failed": "human_override",
+      "reason": "High-risk action blocked by 'human_override': Action type 'autonomous_action' is blocked by user",
+      "gate_results": [
+        {
+          "gate": "source_verification",
+          "passed": true,
+          "score": 1.0,
+          "reason": "Verified 1/1 sources",
+          "details": {
+            "verified_sources": [
+              "weekly_report_template"
+            ],
+            "missing_sources": [],
+            "stale_sources": [],
+            "verification_ratio": 1.0,
+            "threshold": 0.5
+          }
+        },
+        {
+          "gate": "confidence_check",
+          "passed": true,
+          "score": 0.95,
+          "reason": "High confidence (95.0%) - auto-approved",
+          "details": {
+            "provided_confidence": 0.95,
+            "final_confidence": 0.95,
+            "threshold_min": 0.8,
+            "threshold_auto": 0.95,
+            "threshold_clarify": 0.7,
+            "used_scorer": false
+          }
+        },
+        {
+          "gate": "impact_analysis",
+          "passed": true,
+          "score": 0.48,
+          "reason": "Impact score (52.0%) within acceptable range",
+          "details": {
+            "impact_score": 0.52,
+            "impact_factors": {
+              "irreversible": 0.0,
+              "affects_external": 1.0,
+              "affects_users": 1.0,
+              "financial": 0.0,
+              "data_modification": 0.0,
+              "communication": 1.0
+            },
+            "risk_level": "high",
+            "max_allowed": 0.7,
+            "is_reversible": true
+          }
+        },
+        {
+          "gate": "dependency_check",
+          "passed": true,
+          "score": 1.0,
+          "reason": "No dependencies to check",
+          "details": {
+            "has_dependencies": false
+          }
+        },
+        {
+          "gate": "human_override",
+          "passed": false,
+          "score": 0.0,
+          "reason": "Action type 'autonomous_action' is blocked by user",
+          "details": {
+            "blocked_type": "autonomous_action"
+          }
+        }
+      ],
+      "action_summary": "Auto-send weekly report to team",
+      "risk_level": "high",
+      "total_score": 0.6859999999999999,
+      "metadata": {},
+      "original_action": {
+        "type": "autonomous_action",
+        "content": "Auto-send weekly report to team",
+        "memory_sources": [
+          "weekly_report_template"
+        ],
+        "confidence": 0.95
+      }
+    },
+    {
+      "action_id": "7f75885a-5ac9-45ad-a923-a53640f3ac95",
+      "action_type": "autonomous_action",
+      "timestamp": "2026-02-09T10:29:15.943133",
+      "outcome": "approved",
+      "gate_failed": null,
+      "reason": "All gates passed",
+      "gate_results": [
+        {
+          "gate": "source_verification",
+          "passed": true,
+          "score": 1.0,
+          "reason": "Verified 1/1 sources",
+          "details": {
+            "verified_sources": [
+              "weekly_report_template"
+            ],
+            "missing_sources": [],
+            "stale_sources": [],
+            "verification_ratio": 1.0,
+            "threshold": 0.5
+          }
+        },
+        {
+          "gate": "confidence_check",
+          "passed": true,
+          "score": 0.95,
+          "reason": "High confidence (95.0%) - auto-approved",
+          "details": {
+            "provided_confidence": 0.95,
+            "final_confidence": 0.95,
+            "threshold_min": 0.8,
+            "threshold_auto": 0.95,
+            "threshold_clarify": 0.7,
+            "used_scorer": false
+          }
+        },
+        {
+          "gate": "impact_analysis",
+          "passed": true,
+          "score": 0.48,
+          "reason": "Impact score (52.0%) within acceptable range",
+          "details": {
+            "impact_score": 0.52,
+            "impact_factors": {
+              "irreversible": 0.0,
+              "affects_external": 1.0,
+              "affects_users": 1.0,
+              "financial": 0.0,
+              "data_modification": 0.0,
+              "communication": 1.0
+            },
+            "risk_level": "high",
+            "max_allowed": 0.7,
+            "is_reversible": true
+          }
+        },
+        {
+          "gate": "dependency_check",
+          "passed": true,
+          "score": 1.0,
+          "reason": "No dependencies to check",
+          "details": {
+            "has_dependencies": false
+          }
+        },
+        {
+          "gate": "human_override",
+          "passed": true,
+          "score": 1.0,
+          "reason": "No human overrides apply",
+          "details": {
+            "checked_blocks": 0
+          }
+        }
+      ],
+      "action_summary": "Auto-send weekly report to team",
+      "risk_level": "high",
+      "total_score": 0.8859999999999999,
+      "metadata": {},
+      "original_action": {
+        "type": "autonomous_action",
+        "content": "Auto-send weekly report to team",
+        "memory_sources": [
+          "weekly_report_template"
+        ],
+        "confidence": 0.95
+      }
+    }
+  ],
+  "total_decisions": 8,
+  "last_updated": "2026-02-09T10:29:15.943140"
+}

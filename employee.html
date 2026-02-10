@@ -23505,12 +23505,40 @@
             clearNoteForm();
         }
 
-        function loadFieldNotes() {
-            // Load from localStorage
+        async function loadFieldNotes() {
+            // Load from localStorage first (for immediate display)
             const saved = localStorage.getItem('tsf_field_notes');
             FieldNotes.notes = saved ? JSON.parse(saved) : [];
             renderNotesList();
             updateNotesBadge();
+
+            // Then try to sync from cloud
+            try {
+                const response = await fetch(CONFIG.API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'getFieldNotes',
+                        employeeId: AppState.employee?.Employee_ID || ''
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success && result.notes) {
+                    // Merge cloud notes with local notes (cloud takes priority)
+                    const cloudIds = new Set(result.notes.map(n => n.id));
+                    const localOnly = FieldNotes.notes.filter(n => !cloudIds.has(n.id) && n.pendingSync);
+
+                    // Combine: cloud notes + pending local notes
+                    FieldNotes.notes = [...result.notes, ...localOnly];
+                    saveFieldNotesToStorage();
+                    renderNotesList();
+                    updateNotesBadge();
+                    console.log('Field notes synced from cloud:', result.notes.length);
+                }
+            } catch (error) {
+                console.log('Working offline, using local notes');
+            }
         }
 
         function saveFieldNotesToStorage() {
@@ -23560,12 +23588,14 @@
             clearNotePhoto();
         }
 
-        function saveFieldNote() {
+        async function saveFieldNote() {
             const text = document.getElementById('noteText').value.trim();
             if (!text) {
                 showToast('Please enter a note', 'error');
                 return;
             }
+
+            showLoading();
 
             const note = {
                 id: Date.now().toString(),
@@ -23576,15 +23606,58 @@
                 photo: FieldNotes.photoData,
                 createdAt: new Date().toISOString(),
                 createdBy: AppState.employee?.Name || 'Unknown',
+                employeeId: AppState.employee?.Employee_ID || '',
                 completed: false,
-                convertedToTask: false
+                convertedToTask: false,
+                status: 'pending'
             };
 
+            // Try to save to backend (Google Sheets)
+            try {
+                // Compress photo if present
+                let photoToSend = note.photo;
+                if (photoToSend && photoToSend.startsWith('data:')) {
+                    photoToSend = await compressPhotoForUpload(photoToSend, 800, 0.7);
+                }
+
+                const response = await fetch(CONFIG.API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'saveFieldNote',
+                        text: note.text,
+                        category: note.category,
+                        priority: note.priority,
+                        location: note.location,
+                        photo: photoToSend,
+                        createdBy: note.createdBy,
+                        employeeId: note.employeeId
+                    })
+                });
+
+                const result = await response.json();
+                console.log('Field note save result:', result);
+
+                if (result.success) {
+                    note.id = result.noteId; // Use server-generated ID
+                    note.syncedToCloud = true;
+                    showToast('Note saved to cloud!', 'success');
+                } else {
+                    note.pendingSync = true;
+                    showToast('Saved locally (will sync later)', 'info');
+                }
+            } catch (error) {
+                console.error('Error saving to backend:', error);
+                note.pendingSync = true;
+                showToast('Saved locally (offline mode)', 'info');
+            }
+
+            // Always save locally too for offline access
             FieldNotes.notes.unshift(note);
             saveFieldNotesToStorage();
             renderNotesList();
             clearNoteForm();
-            showToast('Note saved!', 'success');
+            hideLoading();
         }
 
         async function saveFieldNoteAsTask() {
@@ -23847,8 +23920,23 @@
             }
         }
 
-        function deleteNote(noteId) {
+        async function deleteNote(noteId) {
             if (confirm('Delete this note?')) {
+                // Try to delete from backend
+                try {
+                    await fetch(CONFIG.API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'deleteFieldNote',
+                            noteId: noteId
+                        })
+                    });
+                } catch (e) {
+                    console.log('Offline delete, will sync later');
+                }
+
+                // Always delete locally
                 FieldNotes.notes = FieldNotes.notes.filter(n => n.id !== noteId);
                 saveFieldNotesToStorage();
                 renderNotesList();
@@ -23863,34 +23951,66 @@
                 return;
             }
 
+            showLoading();
             showToast(`Syncing ${pendingNotes.length} notes...`, 'info');
 
+            let syncedCount = 0;
             for (const note of pendingNotes) {
                 try {
-                    if (note.convertedToTask) {
-                        const response = await fetch(`${CONFIG.API_URL}?action=createTask`, {
+                    // First sync the note itself to cloud
+                    if (!note.syncedToCloud) {
+                        const noteResponse = await fetch(CONFIG.API_URL, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
+                                action: 'saveFieldNote',
+                                text: note.text,
+                                category: note.category,
+                                priority: note.priority,
+                                location: note.location,
+                                photo: null, // Don't re-upload photo
+                                createdBy: note.createdBy,
+                                employeeId: AppState.employee?.Employee_ID || ''
+                            })
+                        });
+                        const noteResult = await noteResponse.json();
+                        if (noteResult.success) {
+                            note.syncedToCloud = true;
+                            note.cloudId = noteResult.noteId;
+                        }
+                    }
+
+                    // Then create task if marked for conversion
+                    if (note.convertedToTask && !note.taskId) {
+                        const response = await fetch(CONFIG.API_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                action: 'createTask',
                                 title: note.text.substring(0, 100),
-                                description: note.text,
+                                description: note.text + (note.location ? '\n\nLocation: ' + note.location : ''),
                                 priority: note.priority === 'urgent' ? 'Critical' : note.priority.charAt(0).toUpperCase() + note.priority.slice(1),
-                                source: 'field_note'
+                                category: note.category,
+                                source: 'field_note',
+                                createdBy: note.createdBy
                             })
                         });
                         const result = await response.json();
                         if (result.success) {
-                            note.pendingSync = false;
                             note.taskId = result.taskId;
                         }
                     }
+
+                    note.pendingSync = false;
+                    syncedCount++;
                 } catch (e) {
                     console.error('Sync error:', e);
                 }
             }
 
             saveFieldNotesToStorage();
-            showToast('Sync complete!', 'success');
+            hideLoading();
+            showToast(`Synced ${syncedCount} of ${pendingNotes.length} notes!`, syncedCount === pendingNotes.length ? 'success' : 'info');
         }
 
         async function loadDeliveryRoutes() {

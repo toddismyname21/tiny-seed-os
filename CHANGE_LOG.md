@@ -40,6 +40,59 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-02-09 - Desktop_Claude (AI Parser Natural Language Enhancement)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Added `handleParserAssistant` function for natural language AI
+- `web_app/loan-readiness.html` - Enhanced parser assistant with column-based filtering
+
+### Functions Added (Backend)
+- `handleParserAssistant(params)` - AI-powered natural language understanding for categorization requests
+- `buildParserContextSummary(context)` - Builds context for AI including sales channels, source files
+- `getCategoryDisplayNameBackend(category)` - Category display names for backend
+
+### Functions Modified (Frontend)
+- `gatherParserContext()` - Now includes salesChannels breakdown per file and globally
+- `applyParserSuggestion()` - Added `bulkCategorizeByColumn`, `filterByColumn`, `applyRecategorizations` actions
+
+### New Capabilities
+- Users can now say "POS sales from 2025_sales.csv are farmers market sales" naturally
+- AI understands "Point of Sale" means farmers market, "Online Store" means subscriptions
+- Can filter/categorize by any column value (salesChannel, etc.)
+- Sales channel breakdown shown in context for AI to reference
+
+### Reason
+User reported the parser required exact language. Now uses Claude AI for natural language understanding to interpret conversational requests about categorizing sales data.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
+## 2026-02-09 - Desktop_Claude (File Deletion & PDF Parsing Fix)
+
+### Files Modified
+- `web_app/loan-readiness.html` - Fixed file deletion buttons and PDF parsing
+
+### CSS Fixed
+- `.file-card` - Added `position: relative` and `padding-right` so delete buttons are visible
+
+### Functions Modified
+- `fileToBase64()` - Now strips data URL prefix, returns raw base64 only
+- `parsePDFFile()` - Fixed parameter name (`base64` → `fileContent`), added response transformation, improved error handling
+
+### Reason
+User reported: 1) Individual file delete buttons were invisible due to CSS positioning issue, 2) PDF parsing was failing due to parameter name mismatch between frontend and backend
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-02-09 - Desktop_Claude (AI Plan Generator Enhancement)
 
 ### Files Modified

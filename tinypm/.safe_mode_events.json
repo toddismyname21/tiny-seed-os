@@ -76,6 +76,24 @@
       "acknowledged_by": null,
       "acknowledged_at": null,
       "notes": null
+    },
+    {
+      "id": "9d2e72a5",
+      "timestamp": "2026-02-09T10:59:29.323466",
+      "previous_level": "lockdown",
+      "new_level": "green",
+      "triggered_by": [],
+      "metrics_snapshot": {
+        "abstain_rate": 0.0,
+        "conflict_rate": 0.0,
+        "low_confidence_rate": 0.0,
+        "validation_failure_rate": 0.0,
+        "circuit_breaker_rate": 0.0
+      },
+      "auto_triggered": true,
+      "acknowledged_by": null,
+      "acknowledged_at": null,
+      "notes": null
     }
   ]
 }

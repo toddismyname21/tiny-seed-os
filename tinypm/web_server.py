@@ -1040,6 +1040,15 @@ class TinyPMHandler(SimpleHTTPRequestHandler):
         elif path.startswith("/api/replay/lineage/"):
             decision_id = path.split("/")[-1]
             self.api_replay_lineage(decision_id)
+        # Governor API endpoints
+        elif path == "/api/governor/status":
+            self.api_governor_status()
+        # Predictions API endpoint
+        elif path == "/api/predictions":
+            self.api_get_predictions()
+        # Leaderboard API endpoint
+        elif path == "/api/leaderboard/weekly":
+            self.api_get_leaderboard()
         else:
             super().do_GET()
 
@@ -1298,6 +1307,62 @@ class TinyPMHandler(SimpleHTTPRequestHandler):
             "project": board.get("project", "Tiny Seed Farm OS"),
         }
         self.send_json(stats)
+
+    def api_governor_status(self):
+        """Return Governor status - stub for now until governor is fully integrated."""
+        try:
+            from governor import get_governor, SafeLevel
+            governor = get_governor()
+            if hasattr(governor, 'get_status'):
+                self.send_json(governor.get_status())
+            else:
+                self.send_json({
+                    "status": "active",
+                    "safe_level": "GREEN",
+                    "circuit_breakers": {},
+                    "metrics": {"requests_total": 0, "requests_blocked": 0}
+                })
+        except ImportError:
+            # Governor not available, return stub
+            self.send_json({
+                "status": "active",
+                "safe_level": "GREEN",
+                "circuit_breakers": {},
+                "metrics": {"requests_total": 0, "requests_blocked": 0}
+            })
+
+    def api_get_predictions(self):
+        """Return AI predictions for the user."""
+        board = load_board()
+        tasks = board.get("tasks", [])
+        # Generate simple predictions based on task data
+        predictions = []
+        pending_tasks = [t for t in tasks if t.get("status") == "pending"]
+        if len(pending_tasks) > 5:
+            predictions.append({
+                "action_type": "prioritize_tasks",
+                "confidence": 0.85,
+                "reason": f"You have {len(pending_tasks)} pending tasks. Consider prioritizing."
+            })
+        in_progress = [t for t in tasks if t.get("status") == "in_progress"]
+        if len(in_progress) > 3:
+            predictions.append({
+                "action_type": "focus_mode",
+                "confidence": 0.75,
+                "reason": "Multiple tasks in progress. Consider focusing on one at a time."
+            })
+        self.send_json({"predictions": predictions})
+
+    def api_get_leaderboard(self):
+        """Return weekly leaderboard data."""
+        board = load_board()
+        tasks = board.get("tasks", [])
+        # Calculate completed tasks per user/role
+        completed = [t for t in tasks if t.get("status") == "done"]
+        leaderboard = [
+            {"name": "You", "score": len(completed), "streak": 1, "rank": 1}
+        ]
+        self.send_json({"leaderboard": leaderboard, "period": "weekly"})
 
     def api_create_task(self, data: dict):
         board = load_board()

@@ -234,9 +234,20 @@
       "context": [],
       "created": "2026-01-31",
       "updated": "2026-01-31"
+    },
+    {
+      "id": "TASK-021",
+      "title": "GET ALL PAPERWORK TOGETHER FOR ALBERTA'S CIVIL COMPLAINT",
+      "description": "I need to compile all documents for a civil complaint against Alberta's they owe over $5000 and have created problems for my business cashflow at important times.",
+      "role": "researcher",
+      "priority": "high",
+      "status": "pending",
+      "context": [],
+      "created": "2026-02-09",
+      "updated": "2026-02-09"
     }
   ],
-  "next_id": 21,
+  "next_id": 22,
   "activity": [
     {
       "id": 1,

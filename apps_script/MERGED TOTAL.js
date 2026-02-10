@@ -16460,6 +16460,19 @@ function doPost(e) {
         return jsonResponse(addTask(data.task || data));
       case 'createTask':
         return jsonResponse(createTask(data));
+
+      // ============ FIELD NOTES SYSTEM (EMPLOYEE APP) ============
+      case 'saveFieldNote':
+        return jsonResponse(saveFieldNote(data));
+      case 'getFieldNotes':
+        return jsonResponse(getFieldNotes(data));
+      case 'updateFieldNote':
+        return jsonResponse(updateFieldNote(data));
+      case 'deleteFieldNote':
+        return jsonResponse(deleteFieldNote(data));
+      case 'bulkSyncFieldNotes':
+        return jsonResponse(bulkSyncFieldNotes(data));
+
       case 'recordHarvest':
         return recordHarvest(data.harvest);
 
@@ -24997,6 +25010,370 @@ function createTask(params) {
 
 // Alias for backwards compatibility
 function addTask(params) { return createTask(params); }
+
+// =============================================================================
+// FIELD NOTES SYSTEM - Employee App Notes saved to Google Sheets
+// =============================================================================
+
+/**
+ * Save a field note to the FIELD_NOTES sheet
+ */
+function saveFieldNote(data) {
+    try {
+        Logger.log('saveFieldNote: Starting with data: ' + JSON.stringify(data).substring(0, 500));
+
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        let sheet = ss.getSheetByName('FIELD_NOTES');
+
+        // Create sheet if doesn't exist
+        if (!sheet) {
+            sheet = ss.insertSheet('FIELD_NOTES');
+            sheet.appendRow([
+                'Note_ID', 'Text', 'Category', 'Priority', 'Location', 'Photo_URL',
+                'Created_At', 'Created_By', 'Employee_ID', 'Status', 'Converted_To_Task',
+                'Task_ID', 'Completed_At', 'Reviewed_At', 'Notes'
+            ]);
+            sheet.getRange(1, 1, 1, 15).setFontWeight('bold');
+            sheet.setFrozenRows(1);
+        }
+
+        const noteId = 'FN_' + Date.now();
+        const now = new Date().toISOString();
+
+        // Handle photo - save to Drive if provided
+        let photoUrl = '';
+        if (data.photo && data.photo.startsWith('data:')) {
+            const saved = saveImageToDrive(data.photo, noteId);
+            if (saved.success) {
+                photoUrl = saved.url;
+            }
+        } else if (data.photo && data.photo.startsWith('http')) {
+            photoUrl = data.photo;
+        }
+
+        sheet.appendRow([
+            noteId,
+            data.text || '',
+            data.category || 'observation',
+            data.priority || 'medium',
+            data.location || '',
+            photoUrl,
+            now,
+            data.createdBy || data.employeeName || 'Unknown',
+            data.employeeId || '',
+            'pending', // pending, reviewed, completed, deleted
+            false, // converted_to_task
+            '', // task_id
+            '', // completed_at
+            '', // reviewed_at
+            '' // notes
+        ]);
+
+        Logger.log('saveFieldNote: Saved note ' + noteId);
+
+        return {
+            success: true,
+            noteId: noteId,
+            message: 'Field note saved!'
+        };
+    } catch (error) {
+        Logger.log('saveFieldNote ERROR: ' + error.toString());
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Get field notes from the sheet
+ */
+function getFieldNotes(params) {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        const sheet = ss.getSheetByName('FIELD_NOTES');
+
+        if (!sheet || sheet.getLastRow() < 2) {
+            return { success: true, notes: [] };
+        }
+
+        const data = sheet.getDataRange().getValues();
+        const headers = data[0];
+        const notes = [];
+
+        // Build column index map
+        const colIdx = {};
+        headers.forEach((h, i) => colIdx[h] = i);
+
+        for (let i = 1; i < data.length; i++) {
+            const row = data[i];
+            const status = row[colIdx['Status']] || 'pending';
+
+            // Filter by employee if provided
+            if (params.employeeId && row[colIdx['Employee_ID']] !== params.employeeId) {
+                continue;
+            }
+
+            // Skip deleted unless explicitly requesting
+            if (status === 'deleted' && !params.includeDeleted) {
+                continue;
+            }
+
+            notes.push({
+                id: row[colIdx['Note_ID']],
+                text: row[colIdx['Text']],
+                category: row[colIdx['Category']],
+                priority: row[colIdx['Priority']],
+                location: row[colIdx['Location']],
+                photo: row[colIdx['Photo_URL']],
+                createdAt: row[colIdx['Created_At']],
+                createdBy: row[colIdx['Created_By']],
+                employeeId: row[colIdx['Employee_ID']],
+                status: status,
+                convertedToTask: row[colIdx['Converted_To_Task']] === true || row[colIdx['Converted_To_Task']] === 'TRUE',
+                taskId: row[colIdx['Task_ID']],
+                completedAt: row[colIdx['Completed_At']],
+                reviewedAt: row[colIdx['Reviewed_At']],
+                notes: row[colIdx['Notes']]
+            });
+        }
+
+        // Sort by createdAt descending
+        notes.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        return { success: true, notes: notes };
+    } catch (error) {
+        Logger.log('getFieldNotes ERROR: ' + error.toString());
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Update a field note (mark complete, convert to task, etc.)
+ */
+function updateFieldNote(data) {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        const sheet = ss.getSheetByName('FIELD_NOTES');
+
+        if (!sheet) {
+            return { success: false, error: 'Field notes sheet not found' };
+        }
+
+        const allData = sheet.getDataRange().getValues();
+        const headers = allData[0];
+
+        // Find column indices
+        const colIdx = {};
+        headers.forEach((h, i) => colIdx[h] = i);
+
+        // Find the note row
+        const noteIdCol = colIdx['Note_ID'];
+        let rowIndex = -1;
+        for (let i = 1; i < allData.length; i++) {
+            if (allData[i][noteIdCol] === data.noteId) {
+                rowIndex = i + 1; // 1-indexed for sheet
+                break;
+            }
+        }
+
+        if (rowIndex === -1) {
+            return { success: false, error: 'Note not found' };
+        }
+
+        const now = new Date().toISOString();
+
+        // Update fields based on action
+        if (data.status) {
+            sheet.getRange(rowIndex, colIdx['Status'] + 1).setValue(data.status);
+            if (data.status === 'completed') {
+                sheet.getRange(rowIndex, colIdx['Completed_At'] + 1).setValue(now);
+            }
+            if (data.status === 'reviewed') {
+                sheet.getRange(rowIndex, colIdx['Reviewed_At'] + 1).setValue(now);
+            }
+        }
+
+        if (data.convertedToTask) {
+            sheet.getRange(rowIndex, colIdx['Converted_To_Task'] + 1).setValue(true);
+            if (data.taskId) {
+                sheet.getRange(rowIndex, colIdx['Task_ID'] + 1).setValue(data.taskId);
+            }
+        }
+
+        if (data.notes) {
+            sheet.getRange(rowIndex, colIdx['Notes'] + 1).setValue(data.notes);
+        }
+
+        return { success: true, message: 'Note updated' };
+    } catch (error) {
+        Logger.log('updateFieldNote ERROR: ' + error.toString());
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Delete a field note (soft delete - marks as deleted)
+ */
+function deleteFieldNote(data) {
+    return updateFieldNote({ noteId: data.noteId, status: 'deleted' });
+}
+
+/**
+ * Bulk sync field notes from mobile app localStorage
+ */
+function bulkSyncFieldNotes(data) {
+    try {
+        const results = [];
+        const notes = data.notes || [];
+
+        for (const note of notes) {
+            // Check if note already exists
+            const existing = findFieldNoteById(note.id);
+            if (existing) {
+                // Update existing
+                results.push({ id: note.id, action: 'skipped', reason: 'already exists' });
+            } else {
+                // Save new
+                const result = saveFieldNote({
+                    text: note.text,
+                    category: note.category,
+                    priority: note.priority,
+                    location: note.location,
+                    photo: note.photo,
+                    createdBy: note.createdBy,
+                    employeeId: data.employeeId
+                });
+                results.push({
+                    id: note.id,
+                    newId: result.noteId,
+                    action: result.success ? 'saved' : 'error',
+                    error: result.error
+                });
+            }
+        }
+
+        return { success: true, results: results };
+    } catch (error) {
+        Logger.log('bulkSyncFieldNotes ERROR: ' + error.toString());
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Helper to find a field note by ID
+ */
+function findFieldNoteById(noteId) {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        const sheet = ss.getSheetByName('FIELD_NOTES');
+        if (!sheet || sheet.getLastRow() < 2) return null;
+
+        const data = sheet.getDataRange().getValues();
+        const noteIdCol = data[0].indexOf('Note_ID');
+
+        for (let i = 1; i < data.length; i++) {
+            if (data[i][noteIdCol] === noteId) {
+                return data[i];
+            }
+        }
+        return null;
+    } catch (e) {
+        return null;
+    }
+}
+
+/**
+ * Send Sunday reminder to review field notes
+ * Set up with: ScriptApp.newTrigger('sendFieldNotesWeeklyReminder').timeBased().onWeekDay(ScriptApp.WeekDay.SUNDAY).atHour(8).create();
+ */
+function sendFieldNotesWeeklyReminder() {
+    try {
+        Logger.log('sendFieldNotesWeeklyReminder: Starting Sunday review reminder');
+
+        // Get pending notes count
+        const result = getFieldNotes({ includeDeleted: false });
+        if (!result.success) {
+            Logger.log('Failed to get notes: ' + result.error);
+            return;
+        }
+
+        const pendingNotes = result.notes.filter(n => n.status === 'pending' && !n.convertedToTask);
+
+        if (pendingNotes.length === 0) {
+            Logger.log('No pending notes to review');
+            return;
+        }
+
+        // Build summary
+        const urgentCount = pendingNotes.filter(n => n.priority === 'urgent' || n.priority === 'high').length;
+        const categories = {};
+        pendingNotes.forEach(n => {
+            categories[n.category] = (categories[n.category] || 0) + 1;
+        });
+
+        let message = `📝 WEEKLY FIELD NOTES REVIEW\n\n`;
+        message += `You have ${pendingNotes.length} field notes to review:\n`;
+        if (urgentCount > 0) {
+            message += `  🔴 ${urgentCount} urgent/high priority\n`;
+        }
+
+        // Add category breakdown
+        Object.keys(categories).forEach(cat => {
+            const emoji = cat === 'issue' ? '⚠️' : cat === 'observation' ? '👁️' : cat === 'idea' ? '💡' : '📋';
+            message += `  ${emoji} ${categories[cat]} ${cat}\n`;
+        });
+
+        message += `\nReview in the employee app to:\n`;
+        message += `  ✅ Convert to tasks\n`;
+        message += `  🗑️ Delete resolved notes\n`;
+        message += `  📌 Mark as reviewed\n`;
+
+        // Send SMS reminder
+        const ownerPhone = '7177255177'; // Todd's phone
+        try {
+            sendSMS(ownerPhone, message);
+            Logger.log('Sent Sunday field notes reminder');
+        } catch (smsError) {
+            Logger.log('SMS error: ' + smsError.toString());
+        }
+
+        // Also create a reminder task
+        createTask({
+            title: 'Review ' + pendingNotes.length + ' Field Notes',
+            description: message,
+            priority: urgentCount > 0 ? 'High' : 'Medium',
+            category: 'Admin',
+            source: 'weekly_field_notes_reminder',
+            dueDate: new Date().toISOString().split('T')[0]
+        });
+
+        return { success: true, noteCount: pendingNotes.length };
+    } catch (error) {
+        Logger.log('sendFieldNotesWeeklyReminder ERROR: ' + error.toString());
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Setup the Sunday field notes reminder trigger
+ */
+function setupFieldNotesReminderTrigger() {
+    // Delete existing triggers for this function
+    const triggers = ScriptApp.getProjectTriggers();
+    triggers.forEach(trigger => {
+        if (trigger.getHandlerFunction() === 'sendFieldNotesWeeklyReminder') {
+            ScriptApp.deleteTrigger(trigger);
+        }
+    });
+
+    // Create new Sunday 8am trigger
+    ScriptApp.newTrigger('sendFieldNotesWeeklyReminder')
+        .timeBased()
+        .onWeekDay(ScriptApp.WeekDay.SUNDAY)
+        .atHour(8)
+        .create();
+
+    Logger.log('Field notes Sunday reminder trigger created');
+    return { success: true, message: 'Sunday reminder trigger created for 8am' };
+}
 
 /**
  * Create a new invoice draft from Chief of Staff action
