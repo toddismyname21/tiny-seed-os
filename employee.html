@@ -23529,7 +23529,10 @@
 
             // Create task via API
             try {
+                showToast('Creating task...', 'info');
+
                 const taskData = {
+                    action: 'createTask',
                     title: text.substring(0, 100),
                     description: text + (location ? `\n\nLocation: ${location}` : ''),
                     priority: priorityMap[priority] || 'Medium',
@@ -23539,13 +23542,16 @@
                     location: location
                 };
 
-                const response = await fetch(`${CONFIG.API_URL}?action=createTask`, {
+                console.log('Creating task with data:', taskData);
+
+                const response = await fetch(CONFIG.API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(taskData)
                 });
 
                 const result = await response.json();
+                console.log('Task creation result:', result);
 
                 // Also save as a note with convertedToTask flag
                 const note = {

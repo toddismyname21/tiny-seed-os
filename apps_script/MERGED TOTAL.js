@@ -16457,7 +16457,9 @@ function doPost(e) {
       case 'bulkAddPlantings':
         return bulkAddPlantings(data.plantings);
       case 'addTask':
-        return addTask(data.task);
+        return jsonResponse(addTask(data.task || data));
+      case 'createTask':
+        return jsonResponse(createTask(data));
       case 'recordHarvest':
         return recordHarvest(data.harvest);
 
@@ -24928,35 +24930,59 @@ function bulkAddPlantings(plantings) { return jsonResponse({success: false, mess
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Create a new task from Chief of Staff action
+ * Create a new task from Chief of Staff action or Field Notes
  */
 function createTask(params) {
   try {
+    Logger.log('createTask: Starting with params: ' + JSON.stringify(params));
+
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let taskSheet = ss.getSheetByName('TASKS');
 
-    // Create sheet if it doesn't exist
+    // Create sheet if it doesn't exist with expanded columns
     if (!taskSheet) {
       taskSheet = ss.insertSheet('TASKS');
-      taskSheet.getRange(1, 1, 1, 9).setValues([['ID', 'Title', 'Description', 'DueDate', 'Priority', 'Status', 'CreatedAt', 'SourceActionId', 'CompletedAt']]);
-      taskSheet.getRange(1, 1, 1, 9).setFontWeight('bold');
+      taskSheet.getRange(1, 1, 1, 13).setValues([[
+        'ID', 'Title', 'Description', 'DueDate', 'Priority', 'Status',
+        'CreatedAt', 'CreatedBy', 'Source', 'Category', 'Location', 'AssignedTo', 'CompletedAt'
+      ]]);
+      taskSheet.getRange(1, 1, 1, 13).setFontWeight('bold');
       taskSheet.setFrozenRows(1);
     }
 
+    // Check if we need to add missing columns
+    const headers = taskSheet.getRange(1, 1, 1, taskSheet.getLastColumn()).getValues()[0];
+    const requiredHeaders = ['CreatedBy', 'Source', 'Category', 'Location', 'AssignedTo'];
+    requiredHeaders.forEach(h => {
+      if (!headers.includes(h)) {
+        taskSheet.getRange(1, taskSheet.getLastColumn() + 1).setValue(h);
+      }
+    });
+
     const taskId = 'TASK-' + Date.now();
     const now = new Date().toISOString();
+
+    // Map priority - handle various formats
+    let priority = (params.priority || 'Medium').toUpperCase();
+    if (priority === 'CRITICAL') priority = 'URGENT';
 
     taskSheet.appendRow([
       taskId,
       params.title || 'Untitled Task',
       params.description || '',
       params.dueDate || '',
-      params.priority || 'MEDIUM',
+      priority,
       'PENDING',
       now,
-      params.sourceActionId || '',
+      params.createdBy || params.employeeName || '',
+      params.source || 'manual',
+      params.category || '',
+      params.location || '',
+      params.assignedTo || '',
       ''
     ]);
+
+    Logger.log('createTask: Created task ' + taskId);
 
     return {
       success: true,
