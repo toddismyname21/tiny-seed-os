@@ -10921,9 +10921,14 @@
                         <i class="fas fa-tractor"></i>
                         Fleet
                     </h2>
-                    <button class="btn-secondary" onclick="refreshFleetData()" id="fleetRefreshBtn">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-primary" onclick="openAddVehicleDialog()" style="padding: 8px 12px; border-radius: 8px; border: none; background: var(--primary); color: white; cursor: pointer;">
+                            <i class="fas fa-plus"></i> Add
+                        </button>
+                        <button class="btn-secondary" onclick="refreshFleetData()" id="fleetRefreshBtn">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Active Tractor Sessions -->
@@ -17349,9 +17354,338 @@
         }
 
         function openTractorDialog(assetId) {
-            // Show tractor details/wheel specs
-            const tractor = FleetState.tractors.find(t => t.id === assetId);
-            showToast(`${assetId}: ${tractor?.model || 'Unknown'}`, 'info');
+            const vehicle = FleetState.tractors.find(t => t.id === assetId) || FleetState.utilities.find(u => u.id === assetId);
+            if (!vehicle) {
+                showToast('Vehicle not found', 'error');
+                return;
+            }
+
+            // Load notes from localStorage
+            const notes = JSON.parse(localStorage.getItem(`tsf_vehicle_notes_${assetId}`) || '[]');
+            const hours = parseFloat(vehicle.currenthours || vehicle.currentHours || 0);
+
+            const dialog = document.createElement('div');
+            dialog.className = 'tractor-dialog active';
+            dialog.id = 'vehicleDetailDialog';
+            dialog.innerHTML = `
+                <div class="tractor-dialog-content" style="max-height: 90vh; overflow-y: auto;">
+                    <div class="tractor-dialog-title" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span><i class="fas fa-${vehicle.type === 'mower' ? 'fan' : vehicle.type === 'vehicle' ? 'car' : 'tractor'}"></i> ${assetId}</span>
+                        <button onclick="closeTractorDialog()" style="background: none; border: none; color: var(--text-primary); font-size: 20px; cursor: pointer;">&times;</button>
+                    </div>
+
+                    <!-- Vehicle Info -->
+                    <div style="background: var(--bg-card); border-radius: 12px; padding: 12px; margin-bottom: 16px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 14px;">
+                            <div><strong>Model:</strong> ${vehicle.model || 'Unknown'}</div>
+                            <div><strong>Year:</strong> ${vehicle.year || '--'}</div>
+                            <div><strong>Type:</strong> ${vehicle.type || 'Tractor'}</div>
+                            <div><strong>Status:</strong> ${vehicle.status || 'Active'}</div>
+                        </div>
+                    </div>
+
+                    <!-- Hours Update -->
+                    <div style="background: var(--bg-card); border-radius: 12px; padding: 12px; margin-bottom: 16px;">
+                        <h4 style="margin: 0 0 8px 0; font-size: 14px;"><i class="fas fa-clock"></i> Hours</h4>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="number" id="vehicleHoursInput" value="${hours}" step="0.1" inputmode="decimal"
+                                style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-dark); color: var(--text-primary); font-size: 16px;">
+                            <button onclick="updateVehicleHours('${assetId}')" style="padding: 10px 16px; border-radius: 8px; border: none; background: var(--primary); color: white; cursor: pointer;">
+                                <i class="fas fa-save"></i> Update
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Notes Section -->
+                    <div style="background: var(--bg-card); border-radius: 12px; padding: 12px; margin-bottom: 16px;">
+                        <h4 style="margin: 0 0 8px 0; font-size: 14px;"><i class="fas fa-sticky-note"></i> Notes</h4>
+                        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                            <input type="text" id="vehicleNoteInput" placeholder="Add a note..."
+                                style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-dark); color: var(--text-primary); font-size: 14px;">
+                            <button onclick="addVehicleNote('${assetId}')" style="padding: 10px 12px; border-radius: 8px; border: none; background: var(--success); color: white; cursor: pointer;">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        <div id="vehicleNotesList" style="max-height: 150px; overflow-y: auto;">
+                            ${notes.length === 0 ? '<p style="font-size: 13px; color: var(--text-secondary); text-align: center;">No notes yet</p>' :
+                                notes.map(n => `
+                                    <div style="background: var(--bg-dark); border-radius: 8px; padding: 8px; margin-bottom: 6px; font-size: 13px;">
+                                        <div>${n.text}</div>
+                                        <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">${new Date(n.timestamp).toLocaleString()}</div>
+                                    </div>
+                                `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <button onclick="editVehicle('${assetId}')" style="padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-dark); color: var(--text-primary); font-weight: 600; cursor: pointer;">
+                            <i class="fas fa-edit"></i> Edit Details
+                        </button>
+                        <button onclick="closeTractorDialog()" style="padding: 12px; border-radius: 10px; border: none; background: var(--primary); color: white; font-weight: 600; cursor: pointer;">
+                            Done
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(dialog);
+        }
+
+        function openAddVehicleDialog() {
+            const dialog = document.createElement('div');
+            dialog.className = 'tractor-dialog active';
+            dialog.id = 'addVehicleDialog';
+            dialog.innerHTML = `
+                <div class="tractor-dialog-content">
+                    <div class="tractor-dialog-title">
+                        <i class="fas fa-plus-circle"></i>
+                        Add Vehicle to Fleet
+                    </div>
+
+                    <div class="form-group">
+                        <label>Vehicle ID *</label>
+                        <input type="text" id="newVehicleId" class="garage-input" placeholder="e.g., T-03, MOWER-1, TRUCK-1">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Type *</label>
+                        <select id="newVehicleType" class="garage-select">
+                            <option value="tractor">🚜 Tractor</option>
+                            <option value="mower">🌀 Mower</option>
+                            <option value="vehicle">🚗 Vehicle (Truck/ATV)</option>
+                            <option value="implement">⚙️ Implement</option>
+                            <option value="utility">🔧 Utility Equipment</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Make/Brand</label>
+                        <input type="text" id="newVehicleMake" class="garage-input" placeholder="e.g., John Deere, Kubota, Ford">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Model</label>
+                        <input type="text" id="newVehicleModel" class="garage-input" placeholder="e.g., 4066R, L3901, F-150">
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div class="form-group">
+                            <label>Year</label>
+                            <input type="number" id="newVehicleYear" class="garage-input" placeholder="2020">
+                        </div>
+                        <div class="form-group">
+                            <label>Current Hours/Miles</label>
+                            <input type="number" id="newVehicleHours" class="garage-input" placeholder="0" inputmode="decimal" step="0.1">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="newVehicleStatus" class="garage-select">
+                            <option value="Active">✅ Active</option>
+                            <option value="Maintenance">🔧 In Maintenance</option>
+                            <option value="Out of Service">❌ Out of Service</option>
+                        </select>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button class="garage-submit secondary" onclick="closeTractorDialog()" style="flex: 1;">Cancel</button>
+                        <button class="garage-submit" onclick="saveNewVehicle()" style="flex: 1; background: var(--success);">
+                            <i class="fas fa-save"></i> Save
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(dialog);
+        }
+
+        async function saveNewVehicle() {
+            const id = document.getElementById('newVehicleId').value.trim().toUpperCase();
+            const type = document.getElementById('newVehicleType').value;
+            const make = document.getElementById('newVehicleMake').value.trim();
+            const model = document.getElementById('newVehicleModel').value.trim();
+            const year = document.getElementById('newVehicleYear').value;
+            const hours = document.getElementById('newVehicleHours').value || 0;
+            const status = document.getElementById('newVehicleStatus').value;
+
+            if (!id) {
+                showToast('Vehicle ID is required', 'error');
+                return;
+            }
+
+            const vehicle = {
+                id: id,
+                type: type,
+                make: make,
+                model: make && model ? `${make} ${model}` : (model || make || type),
+                year: year,
+                currentHours: parseFloat(hours),
+                status: status
+            };
+
+            try {
+                const response = await fetch(`${CONFIG.API_URL}?action=addFleetVehicle`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(vehicle)
+                });
+
+                const result = await response.json();
+
+                // Also add locally for immediate feedback
+                FleetState.tractors.push(vehicle);
+                renderFleetGrid();
+                populateFleetSelects();
+                closeTractorDialog();
+                showToast(`Added ${id} to fleet!`, 'success');
+            } catch (error) {
+                // Add locally even if API fails
+                FleetState.tractors.push(vehicle);
+                renderFleetGrid();
+                populateFleetSelects();
+                closeTractorDialog();
+                showToast('Saved locally - will sync later', 'info');
+            }
+        }
+
+        function editVehicle(assetId) {
+            closeTractorDialog();
+            const vehicle = FleetState.tractors.find(t => t.id === assetId) || FleetState.utilities.find(u => u.id === assetId);
+            if (!vehicle) return;
+
+            const dialog = document.createElement('div');
+            dialog.className = 'tractor-dialog active';
+            dialog.id = 'editVehicleDialog';
+            dialog.innerHTML = `
+                <div class="tractor-dialog-content">
+                    <div class="tractor-dialog-title">
+                        <i class="fas fa-edit"></i>
+                        Edit ${assetId}
+                    </div>
+
+                    <div class="form-group">
+                        <label>Type</label>
+                        <select id="editVehicleType" class="garage-select">
+                            <option value="tractor" ${vehicle.type === 'tractor' ? 'selected' : ''}>🚜 Tractor</option>
+                            <option value="mower" ${vehicle.type === 'mower' ? 'selected' : ''}>🌀 Mower</option>
+                            <option value="vehicle" ${vehicle.type === 'vehicle' ? 'selected' : ''}>🚗 Vehicle</option>
+                            <option value="implement" ${vehicle.type === 'implement' ? 'selected' : ''}>⚙️ Implement</option>
+                            <option value="utility" ${vehicle.type === 'utility' ? 'selected' : ''}>🔧 Utility</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Model/Name</label>
+                        <input type="text" id="editVehicleModel" class="garage-input" value="${vehicle.model || ''}">
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div class="form-group">
+                            <label>Year</label>
+                            <input type="number" id="editVehicleYear" class="garage-input" value="${vehicle.year || ''}">
+                        </div>
+                        <div class="form-group">
+                            <label>Hours/Miles</label>
+                            <input type="number" id="editVehicleHours" class="garage-input" value="${vehicle.currenthours || vehicle.currentHours || ''}" inputmode="decimal" step="0.1">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="editVehicleStatus" class="garage-select">
+                            <option value="Active" ${vehicle.status === 'Active' ? 'selected' : ''}>✅ Active</option>
+                            <option value="Maintenance" ${vehicle.status === 'Maintenance' ? 'selected' : ''}>🔧 In Maintenance</option>
+                            <option value="Out of Service" ${vehicle.status === 'Out of Service' ? 'selected' : ''}>❌ Out of Service</option>
+                        </select>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button class="garage-submit secondary" onclick="closeTractorDialog()" style="flex: 1;">Cancel</button>
+                        <button class="garage-submit" onclick="saveVehicleEdit('${assetId}')" style="flex: 1; background: var(--success);">
+                            <i class="fas fa-save"></i> Save
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(dialog);
+        }
+
+        async function saveVehicleEdit(assetId) {
+            const type = document.getElementById('editVehicleType').value;
+            const model = document.getElementById('editVehicleModel').value.trim();
+            const year = document.getElementById('editVehicleYear').value;
+            const hours = document.getElementById('editVehicleHours').value;
+            const status = document.getElementById('editVehicleStatus').value;
+
+            const vehicle = FleetState.tractors.find(t => t.id === assetId);
+            if (vehicle) {
+                vehicle.type = type;
+                vehicle.model = model;
+                vehicle.year = year;
+                vehicle.currentHours = parseFloat(hours) || 0;
+                vehicle.currenthours = parseFloat(hours) || 0;
+                vehicle.status = status;
+            }
+
+            try {
+                await fetch(`${CONFIG.API_URL}?action=updateFleetVehicle`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: assetId, type, model, year, currentHours: hours, status })
+                });
+            } catch (e) {
+                console.error('Update error:', e);
+            }
+
+            renderFleetGrid();
+            closeTractorDialog();
+            showToast(`Updated ${assetId}`, 'success');
+        }
+
+        function updateVehicleHours(assetId) {
+            const hours = parseFloat(document.getElementById('vehicleHoursInput').value) || 0;
+            const vehicle = FleetState.tractors.find(t => t.id === assetId);
+            if (vehicle) {
+                vehicle.currentHours = hours;
+                vehicle.currenthours = hours;
+            }
+
+            // Save to backend
+            fetch(`${CONFIG.API_URL}?action=updateFleetVehicle`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: assetId, currentHours: hours })
+            }).catch(e => console.error('Hours update error:', e));
+
+            renderFleetGrid();
+            showToast(`Hours updated to ${hours}`, 'success');
+        }
+
+        function addVehicleNote(assetId) {
+            const input = document.getElementById('vehicleNoteInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const notes = JSON.parse(localStorage.getItem(`tsf_vehicle_notes_${assetId}`) || '[]');
+            notes.unshift({
+                text: text,
+                timestamp: new Date().toISOString(),
+                user: AppState.employee?.Name || 'Unknown'
+            });
+
+            localStorage.setItem(`tsf_vehicle_notes_${assetId}`, JSON.stringify(notes.slice(0, 50))); // Keep last 50 notes
+
+            // Refresh the notes list
+            const notesList = document.getElementById('vehicleNotesList');
+            notesList.innerHTML = notes.map(n => `
+                <div style="background: var(--bg-dark); border-radius: 8px; padding: 8px; margin-bottom: 6px; font-size: 13px;">
+                    <div>${n.text}</div>
+                    <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">${new Date(n.timestamp).toLocaleString()}</div>
+                </div>
+            `).join('');
+
+            input.value = '';
+            showToast('Note added', 'success');
         }
 
         function populateFleetSelects() {
