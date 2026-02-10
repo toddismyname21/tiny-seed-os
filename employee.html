@@ -9941,6 +9941,19 @@
             <!-- More Tab -->
             <div id="moreTab" class="tab-panel">
                 <div class="more-menu">
+                    <!-- FIELD NOTES - Priority Feature -->
+                    <div class="more-item" onclick="openFieldNotes()" style="border: 2px solid var(--primary); background: rgba(45, 90, 39, 0.1);">
+                        <div class="more-item-icon" style="background: linear-gradient(135deg, #2d5a27, #4a7c43);">
+                            <i class="fas fa-clipboard-list"></i>
+                        </div>
+                        <div class="more-item-text">
+                            <h3>📝 Field Notes & Tasks</h3>
+                            <p>Quick notes, photos → convert to tasks</p>
+                        </div>
+                        <span class="notes-badge" id="notesBadge" style="display: none; background: #e63946; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold;">0</span>
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+
                     <div class="more-item" onclick="openTreatmentLog()">
                         <div class="more-item-icon treatment">
                             <i class="fas fa-spray-can"></i>
@@ -11760,6 +11773,114 @@
                 <div class="empty-state">
                     <i class="fas fa-truck"></i>
                     <p>No deliveries assigned today</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Field Notes Panel -->
+    <div class="slide-panel" id="fieldNotesPanel">
+        <div class="panel-header">
+            <button class="panel-back" onclick="closeFieldNotes()">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2>📝 Field Notes</h2>
+            <div class="panel-actions">
+                <button class="panel-action-btn" onclick="syncNotes()" title="Sync Notes">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                </button>
+            </div>
+        </div>
+        <div class="panel-content" style="padding: 16px;">
+            <!-- Quick Add Note Section -->
+            <div class="note-add-section" style="background: var(--bg-card); border-radius: 16px; padding: 16px; margin-bottom: 16px;">
+                <h3 style="margin: 0 0 12px 0; font-size: 16px; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-plus-circle" style="color: var(--primary);"></i>
+                    Quick Add Note
+                </h3>
+
+                <!-- Note Text -->
+                <textarea id="noteText" placeholder="What did you notice? Issues, observations, things to remember..."
+                    style="width: 100%; min-height: 80px; padding: 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-dark); color: var(--text-primary); font-size: 16px; resize: vertical; font-family: inherit;"></textarea>
+
+                <!-- Category & Priority Row -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
+                    <div>
+                        <label style="font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Category</label>
+                        <select id="noteCategory" style="width: 100%; padding: 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-dark); color: var(--text-primary); font-size: 14px;">
+                            <option value="observation">👁️ Observation</option>
+                            <option value="issue">⚠️ Issue/Problem</option>
+                            <option value="repair">🔧 Needs Repair</option>
+                            <option value="supply">📦 Supply Needed</option>
+                            <option value="planting">🌱 Planting Note</option>
+                            <option value="harvest">🥬 Harvest Note</option>
+                            <option value="pest">🐛 Pest/Disease</option>
+                            <option value="irrigation">💧 Irrigation</option>
+                            <option value="equipment">🚜 Equipment</option>
+                            <option value="idea">💡 Idea</option>
+                            <option value="todo">✅ To-Do</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Priority</label>
+                        <select id="notePriority" style="width: 100%; padding: 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-dark); color: var(--text-primary); font-size: 14px;">
+                            <option value="low">🟢 Low - Whenever</option>
+                            <option value="medium" selected>🟡 Medium - This Week</option>
+                            <option value="high">🟠 High - Today/Tomorrow</option>
+                            <option value="urgent">🔴 Urgent - ASAP!</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Location -->
+                <div style="margin-top: 12px;">
+                    <label style="font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Location (optional)</label>
+                    <input type="text" id="noteLocation" placeholder="e.g., Field 3, Greenhouse, Barn..."
+                        style="width: 100%; padding: 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-dark); color: var(--text-primary); font-size: 14px;">
+                </div>
+
+                <!-- Photo Capture -->
+                <div style="margin-top: 12px;">
+                    <label style="font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 4px;">Add Photo</label>
+                    <div style="display: flex; gap: 8px;">
+                        <button onclick="captureNotePhoto()" style="flex: 1; padding: 12px; border-radius: 10px; border: 1px dashed var(--border); background: var(--bg-dark); color: var(--text-primary); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            <i class="fas fa-camera"></i> Take Photo
+                        </button>
+                        <input type="file" id="notePhotoInput" accept="image/*" capture="environment" style="display: none;" onchange="handleNotePhoto(event)">
+                    </div>
+                    <div id="notePhotoPreview" style="display: none; margin-top: 8px; position: relative;">
+                        <img id="notePhotoImg" style="width: 100%; max-height: 200px; object-fit: cover; border-radius: 10px;">
+                        <button onclick="clearNotePhoto()" style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.7); color: white; border: none; border-radius: 50%; width: 32px; height: 32px; cursor: pointer;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px;">
+                    <button onclick="saveFieldNote()" style="padding: 14px; border-radius: 12px; border: none; background: var(--primary); color: white; font-weight: 600; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <i class="fas fa-save"></i> Save Note
+                    </button>
+                    <button onclick="saveFieldNoteAsTask()" style="padding: 14px; border-radius: 12px; border: none; background: var(--secondary); color: white; font-weight: 600; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <i class="fas fa-tasks"></i> Save as Task
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filter Tabs -->
+            <div style="display: flex; gap: 8px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 8px;">
+                <button class="note-filter-btn active" data-filter="all" onclick="filterNotes('all')" style="padding: 8px 16px; border-radius: 20px; border: 1px solid var(--border); background: var(--primary); color: white; font-size: 13px; white-space: nowrap; cursor: pointer;">All</button>
+                <button class="note-filter-btn" data-filter="pending" onclick="filterNotes('pending')" style="padding: 8px 16px; border-radius: 20px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); font-size: 13px; white-space: nowrap; cursor: pointer;">📌 Pending</button>
+                <button class="note-filter-btn" data-filter="urgent" onclick="filterNotes('urgent')" style="padding: 8px 16px; border-radius: 20px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); font-size: 13px; white-space: nowrap; cursor: pointer;">🔴 Urgent</button>
+                <button class="note-filter-btn" data-filter="tasks" onclick="filterNotes('tasks')" style="padding: 8px 16px; border-radius: 20px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); font-size: 13px; white-space: nowrap; cursor: pointer;">✅ Tasks</button>
+            </div>
+
+            <!-- Notes List -->
+            <div id="fieldNotesList" style="display: flex; flex-direction: column; gap: 12px;">
+                <!-- Notes will be populated here -->
+                <div class="empty-state" style="text-align: center; padding: 40px 20px; color: var(--text-secondary);">
+                    <i class="fas fa-sticky-note" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+                    <p>No notes yet. Start documenting what you see!</p>
                 </div>
             </div>
         </div>
@@ -22636,6 +22757,407 @@
 
         function closeDeliveries() {
             document.getElementById('deliveryPanel').classList.remove('active');
+        }
+
+        // ============================================
+        // FIELD NOTES SYSTEM
+        // ============================================
+        let FieldNotes = {
+            notes: [],
+            currentFilter: 'all',
+            photoData: null
+        };
+
+        function openFieldNotes() {
+            document.getElementById('fieldNotesPanel').classList.add('active');
+            loadFieldNotes();
+        }
+
+        function closeFieldNotes() {
+            document.getElementById('fieldNotesPanel').classList.remove('active');
+            clearNoteForm();
+        }
+
+        function loadFieldNotes() {
+            // Load from localStorage
+            const saved = localStorage.getItem('tsf_field_notes');
+            FieldNotes.notes = saved ? JSON.parse(saved) : [];
+            renderNotesList();
+            updateNotesBadge();
+        }
+
+        function saveFieldNotesToStorage() {
+            localStorage.setItem('tsf_field_notes', JSON.stringify(FieldNotes.notes));
+            updateNotesBadge();
+        }
+
+        function updateNotesBadge() {
+            const badge = document.getElementById('notesBadge');
+            const pendingCount = FieldNotes.notes.filter(n => !n.completed && !n.convertedToTask).length;
+            if (pendingCount > 0) {
+                badge.textContent = pendingCount;
+                badge.style.display = 'inline';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        function captureNotePhoto() {
+            document.getElementById('notePhotoInput').click();
+        }
+
+        function handleNotePhoto(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                FieldNotes.photoData = e.target.result;
+                document.getElementById('notePhotoImg').src = e.target.result;
+                document.getElementById('notePhotoPreview').style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function clearNotePhoto() {
+            FieldNotes.photoData = null;
+            document.getElementById('notePhotoInput').value = '';
+            document.getElementById('notePhotoPreview').style.display = 'none';
+        }
+
+        function clearNoteForm() {
+            document.getElementById('noteText').value = '';
+            document.getElementById('noteCategory').value = 'observation';
+            document.getElementById('notePriority').value = 'medium';
+            document.getElementById('noteLocation').value = '';
+            clearNotePhoto();
+        }
+
+        function saveFieldNote() {
+            const text = document.getElementById('noteText').value.trim();
+            if (!text) {
+                showToast('Please enter a note', 'error');
+                return;
+            }
+
+            const note = {
+                id: Date.now().toString(),
+                text: text,
+                category: document.getElementById('noteCategory').value,
+                priority: document.getElementById('notePriority').value,
+                location: document.getElementById('noteLocation').value.trim(),
+                photo: FieldNotes.photoData,
+                createdAt: new Date().toISOString(),
+                createdBy: AppState.employee?.Name || 'Unknown',
+                completed: false,
+                convertedToTask: false
+            };
+
+            FieldNotes.notes.unshift(note);
+            saveFieldNotesToStorage();
+            renderNotesList();
+            clearNoteForm();
+            showToast('Note saved!', 'success');
+        }
+
+        async function saveFieldNoteAsTask() {
+            const text = document.getElementById('noteText').value.trim();
+            if (!text) {
+                showToast('Please enter a note', 'error');
+                return;
+            }
+
+            const category = document.getElementById('noteCategory').value;
+            const priority = document.getElementById('notePriority').value;
+            const location = document.getElementById('noteLocation').value.trim();
+
+            // Map priority to task priority
+            const priorityMap = {
+                'low': 'Low',
+                'medium': 'Medium',
+                'high': 'High',
+                'urgent': 'Critical'
+            };
+
+            // Create task via API
+            try {
+                const taskData = {
+                    title: text.substring(0, 100),
+                    description: text + (location ? `\n\nLocation: ${location}` : ''),
+                    priority: priorityMap[priority] || 'Medium',
+                    category: category,
+                    createdBy: AppState.employee?.Name || 'Field Note',
+                    source: 'field_note',
+                    location: location
+                };
+
+                const response = await fetch(`${CONFIG.API_URL}?action=createTask`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(taskData)
+                });
+
+                const result = await response.json();
+
+                // Also save as a note with convertedToTask flag
+                const note = {
+                    id: Date.now().toString(),
+                    text: text,
+                    category: category,
+                    priority: priority,
+                    location: location,
+                    photo: FieldNotes.photoData,
+                    createdAt: new Date().toISOString(),
+                    createdBy: AppState.employee?.Name || 'Unknown',
+                    completed: false,
+                    convertedToTask: true,
+                    taskId: result.taskId || null
+                };
+
+                FieldNotes.notes.unshift(note);
+                saveFieldNotesToStorage();
+                renderNotesList();
+                clearNoteForm();
+
+                if (result.success) {
+                    showToast('Task created successfully!', 'success');
+                } else {
+                    showToast('Note saved, task creation pending sync', 'info');
+                }
+            } catch (error) {
+                console.error('Error creating task:', error);
+                // Still save locally
+                const note = {
+                    id: Date.now().toString(),
+                    text: text,
+                    category: document.getElementById('noteCategory').value,
+                    priority: priority,
+                    location: location,
+                    photo: FieldNotes.photoData,
+                    createdAt: new Date().toISOString(),
+                    createdBy: AppState.employee?.Name || 'Unknown',
+                    completed: false,
+                    convertedToTask: true,
+                    pendingSync: true
+                };
+
+                FieldNotes.notes.unshift(note);
+                saveFieldNotesToStorage();
+                renderNotesList();
+                clearNoteForm();
+                showToast('Task saved locally - will sync when online', 'info');
+            }
+        }
+
+        function filterNotes(filter) {
+            FieldNotes.currentFilter = filter;
+
+            // Update filter buttons
+            document.querySelectorAll('.note-filter-btn').forEach(btn => {
+                btn.style.background = btn.dataset.filter === filter ? 'var(--primary)' : 'var(--bg-card)';
+                btn.style.color = btn.dataset.filter === filter ? 'white' : 'var(--text-primary)';
+            });
+
+            renderNotesList();
+        }
+
+        function renderNotesList() {
+            const container = document.getElementById('fieldNotesList');
+            let notes = [...FieldNotes.notes];
+
+            // Apply filter
+            switch (FieldNotes.currentFilter) {
+                case 'pending':
+                    notes = notes.filter(n => !n.completed && !n.convertedToTask);
+                    break;
+                case 'urgent':
+                    notes = notes.filter(n => n.priority === 'urgent' || n.priority === 'high');
+                    break;
+                case 'tasks':
+                    notes = notes.filter(n => n.convertedToTask);
+                    break;
+            }
+
+            if (notes.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state" style="text-align: center; padding: 40px 20px; color: var(--text-secondary);">
+                        <i class="fas fa-sticky-note" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+                        <p>${FieldNotes.currentFilter === 'all' ? 'No notes yet. Start documenting!' : 'No notes in this category.'}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = notes.map(note => {
+                const categoryIcons = {
+                    'observation': '👁️',
+                    'issue': '⚠️',
+                    'repair': '🔧',
+                    'supply': '📦',
+                    'planting': '🌱',
+                    'harvest': '🥬',
+                    'pest': '🐛',
+                    'irrigation': '💧',
+                    'equipment': '🚜',
+                    'idea': '💡',
+                    'todo': '✅'
+                };
+
+                const priorityColors = {
+                    'low': '#22c55e',
+                    'medium': '#eab308',
+                    'high': '#f97316',
+                    'urgent': '#ef4444'
+                };
+
+                const timeAgo = getTimeAgo(new Date(note.createdAt));
+
+                return `
+                    <div class="note-card" style="background: var(--bg-card); border-radius: 12px; padding: 14px; border-left: 4px solid ${priorityColors[note.priority]}; ${note.completed ? 'opacity: 0.6;' : ''}">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                            <span style="font-size: 20px;">${categoryIcons[note.category] || '📝'}</span>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                ${note.convertedToTask ? '<span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px;">✓ Task</span>' : ''}
+                                <span style="font-size: 12px; color: var(--text-secondary);">${timeAgo}</span>
+                            </div>
+                        </div>
+                        <p style="margin: 0 0 8px 0; font-size: 15px; line-height: 1.4; ${note.completed ? 'text-decoration: line-through;' : ''}">${note.text}</p>
+                        ${note.location ? `<p style="margin: 0 0 8px 0; font-size: 13px; color: var(--text-secondary);"><i class="fas fa-map-marker-alt"></i> ${note.location}</p>` : ''}
+                        ${note.photo ? `<img src="${note.photo}" style="width: 100%; max-height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 8px;">` : ''}
+                        <div style="display: flex; gap: 8px; margin-top: 8px;">
+                            ${!note.completed ? `
+                                <button onclick="markNoteComplete('${note.id}')" style="flex: 1; padding: 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-dark); color: var(--text-primary); font-size: 13px; cursor: pointer;">
+                                    <i class="fas fa-check"></i> Done
+                                </button>
+                            ` : ''}
+                            ${!note.convertedToTask && !note.completed ? `
+                                <button onclick="convertNoteToTask('${note.id}')" style="flex: 1; padding: 8px; border-radius: 8px; border: 1px solid var(--primary); background: transparent; color: var(--primary); font-size: 13px; cursor: pointer;">
+                                    <i class="fas fa-tasks"></i> → Task
+                                </button>
+                            ` : ''}
+                            <button onclick="deleteNote('${note.id}')" style="padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-dark); color: #ef4444; font-size: 13px; cursor: pointer;">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getTimeAgo(date) {
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays === 1) return 'Yesterday';
+            if (diffDays < 7) return `${diffDays}d ago`;
+            return date.toLocaleDateString();
+        }
+
+        function markNoteComplete(noteId) {
+            const note = FieldNotes.notes.find(n => n.id === noteId);
+            if (note) {
+                note.completed = true;
+                note.completedAt = new Date().toISOString();
+                saveFieldNotesToStorage();
+                renderNotesList();
+                showToast('Note marked complete', 'success');
+            }
+        }
+
+        async function convertNoteToTask(noteId) {
+            const note = FieldNotes.notes.find(n => n.id === noteId);
+            if (!note) return;
+
+            const priorityMap = {
+                'low': 'Low',
+                'medium': 'Medium',
+                'high': 'High',
+                'urgent': 'Critical'
+            };
+
+            try {
+                const taskData = {
+                    title: note.text.substring(0, 100),
+                    description: note.text + (note.location ? `\n\nLocation: ${note.location}` : ''),
+                    priority: priorityMap[note.priority] || 'Medium',
+                    category: note.category,
+                    createdBy: note.createdBy,
+                    source: 'field_note'
+                };
+
+                const response = await fetch(`${CONFIG.API_URL}?action=createTask`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(taskData)
+                });
+
+                const result = await response.json();
+
+                note.convertedToTask = true;
+                note.taskId = result.taskId || null;
+                saveFieldNotesToStorage();
+                renderNotesList();
+
+                showToast(result.success ? 'Converted to task!' : 'Saved, will sync later', result.success ? 'success' : 'info');
+            } catch (error) {
+                note.convertedToTask = true;
+                note.pendingSync = true;
+                saveFieldNotesToStorage();
+                renderNotesList();
+                showToast('Saved locally - will sync when online', 'info');
+            }
+        }
+
+        function deleteNote(noteId) {
+            if (confirm('Delete this note?')) {
+                FieldNotes.notes = FieldNotes.notes.filter(n => n.id !== noteId);
+                saveFieldNotesToStorage();
+                renderNotesList();
+                showToast('Note deleted', 'success');
+            }
+        }
+
+        async function syncNotes() {
+            const pendingNotes = FieldNotes.notes.filter(n => n.pendingSync);
+            if (pendingNotes.length === 0) {
+                showToast('All notes synced!', 'success');
+                return;
+            }
+
+            showToast(`Syncing ${pendingNotes.length} notes...`, 'info');
+
+            for (const note of pendingNotes) {
+                try {
+                    if (note.convertedToTask) {
+                        const response = await fetch(`${CONFIG.API_URL}?action=createTask`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                title: note.text.substring(0, 100),
+                                description: note.text,
+                                priority: note.priority === 'urgent' ? 'Critical' : note.priority.charAt(0).toUpperCase() + note.priority.slice(1),
+                                source: 'field_note'
+                            })
+                        });
+                        const result = await response.json();
+                        if (result.success) {
+                            note.pendingSync = false;
+                            note.taskId = result.taskId;
+                        }
+                    }
+                } catch (e) {
+                    console.error('Sync error:', e);
+                }
+            }
+
+            saveFieldNotesToStorage();
+            showToast('Sync complete!', 'success');
         }
 
         async function loadDeliveryRoutes() {
