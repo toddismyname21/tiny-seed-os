@@ -10946,6 +10946,44 @@
             // Clear stored data
             salesDataByYear = {};
             parsedSalesData = null;
+
+            // Hide and reset Revenue Trend Visualization
+            const revenueTrendCard = document.getElementById('revenueTrendCard');
+            if (revenueTrendCard) revenueTrendCard.style.display = 'none';
+            if (typeof revenueTrendChartInstance !== 'undefined' && revenueTrendChartInstance) {
+                revenueTrendChartInstance.destroy();
+                revenueTrendChartInstance = null;
+            }
+            const revenueInsights = document.getElementById('revenueInsights');
+            if (revenueInsights) revenueInsights.style.display = 'none';
+
+            // Hide and reset Data Refinement Panel
+            const dataRefinementCard = document.getElementById('dataRefinementCard');
+            if (dataRefinementCard) dataRefinementCard.style.display = 'none';
+            if (typeof allParsedProducts !== 'undefined') allParsedProducts = [];
+            if (typeof filteredProducts !== 'undefined') filteredProducts = [];
+            if (typeof selectedProductIds !== 'undefined') selectedProductIds.clear();
+            const refinementTableBody = document.getElementById('refinementTableBody');
+            if (refinementTableBody) {
+                refinementTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                            <i class="fas fa-upload" style="font-size: 2rem; margin-bottom: 0.5rem; display: block;"></i>
+                            Upload a sales file to review and refine the parsed data
+                        </td>
+                    </tr>
+                `;
+            }
+            const bulkActionsBar = document.getElementById('bulkActionsBar');
+            if (bulkActionsBar) bulkActionsBar.style.display = 'none';
+
+            // Reset search and filters
+            const searchInput = document.getElementById('productSearchInput');
+            if (searchInput) searchInput.value = '';
+            const categoryFilter = document.getElementById('categoryFilterSelect');
+            if (categoryFilter) categoryFilter.value = 'all';
+            const yearFilterRefine = document.getElementById('yearFilterRefine');
+            if (yearFilterRefine) yearFilterRefine.value = 'all';
         }
 
         // ====== FILE PARSING ======
