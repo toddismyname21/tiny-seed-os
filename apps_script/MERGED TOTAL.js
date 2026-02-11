@@ -120249,7 +120249,7 @@ function generateRotationRecommendations(conflicts, safeFamilies) {
  */
 function getVarieties(params) {
   try {
-    const ss = getMainSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const varietySheet = ss.getSheetByName('REF_Varieties');
 
     if (!varietySheet) {
@@ -120298,7 +120298,7 @@ function getVarieties(params) {
  */
 function getVarietiesFromPlanning(params) {
   try {
-    const ss = getMainSpreadsheet();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const varietySet = new Map(); // Use Map to dedupe and store crop info
 
     // Check multiple planning sheets
