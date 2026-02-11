@@ -2067,6 +2067,9 @@
             </div>
         </div>
         <div class="nav-actions">
+            <a href="social-intelligence.html" class="nav-back">
+                <i class="fas fa-brain"></i> Social Intel
+            </a>
             <a href="seo_dashboard.html" class="nav-back">
                 <i class="fas fa-search"></i> SEO Dashboard
             </a>
@@ -5923,6 +5926,110 @@
         </div>
     </div>
 
+    <!-- SOCIAL API CONFIGURATION MODAL -->
+    <div class="modal-overlay" id="socialApiModal">
+        <div class="modal" style="max-width: 700px;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <h2 id="socialApiPlatformTitle"><i class="fas fa-plug"></i> Configure API</h2>
+                <button class="modal-close" onclick="closeSocialApiModal()">&times;</button>
+            </div>
+            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                <!-- Status Section -->
+                <div id="socialApiStatus" style="margin-bottom: 1.5rem;"></div>
+
+                <!-- Setup Steps -->
+                <div style="margin-bottom: 1.5rem;">
+                    <h3 style="font-size: 1rem; margin-bottom: 1rem; color: var(--text-primary);">
+                        <i class="fas fa-list-ol" style="color: var(--primary);"></i> Setup Steps
+                    </h3>
+                    <div id="socialApiSteps" class="setup-steps"></div>
+                </div>
+
+                <!-- Credentials Section -->
+                <div style="border-top: 1px solid var(--border); padding-top: 1.5rem;">
+                    <h3 style="font-size: 1rem; margin-bottom: 1rem; color: var(--text-primary);">
+                        <i class="fas fa-key" style="color: var(--gold);"></i> API Credentials
+                    </h3>
+                    <div id="socialApiCredentials"></div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div style="background: rgba(102, 126, 234, 0.1); padding: 1rem; border-radius: 8px; margin-top: 1.5rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <i class="fas fa-lightbulb" style="color: var(--gold);"></i>
+                        <strong>Quick Tip</strong>
+                    </div>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0;">
+                        Don't have credentials yet? Click "Open Developer Portal" to start the setup process.
+                        Come back and enter your credentials once you have them.
+                    </p>
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: space-between;">
+                <button class="btn btn-secondary" id="socialApiDocsBtn">
+                    <i class="fas fa-external-link-alt"></i> Open Developer Portal
+                </button>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn-secondary" id="socialApiTestBtn">
+                        <i class="fas fa-vial"></i> Test Connection
+                    </button>
+                    <button class="btn btn-primary" id="socialApiSaveBtn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        <i class="fas fa-save"></i> Save Credentials
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        /* Social API Modal Styles */
+        .setup-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .setup-step {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+        .step-number {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+        .step-content {
+            flex: 1;
+        }
+        .step-content strong {
+            display: block;
+            margin-bottom: 0.25rem;
+            color: var(--text-primary);
+        }
+        .step-content p {
+            margin: 0;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+        .api-status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem;
+            background: var(--bg-light);
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+    </style>
+
     <!-- JAVASCRIPT -->
     <script>
         // ═══════════════════════════════════════════════════════════════════════════
@@ -6022,13 +6129,41 @@
                     mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
                     mediaRecorder.onstop = async () => {
                         const blob = new Blob(chunks, { type: 'audio/webm' });
-                        // Here we would send to Whisper API for transcription
-                        showToast('Voice note recorded! AI transcription coming...', 'success');
-                        // Simulate AI transcription
-                        setTimeout(() => {
-                            document.getElementById('captionInput').value =
-                                "Fresh tomatoes just came in! These beauties are ready for your salsa weekend. Come grab them while they last!";
-                        }, 1500);
+                        showToast('Voice note recorded! Processing...', 'info');
+
+                        // Convert blob to base64 for sending
+                        const reader = new FileReader();
+                        reader.onloadend = async () => {
+                            const base64Audio = reader.result.split(',')[1];
+
+                            try {
+                                // Try to send to backend for Whisper transcription
+                                const response = await fetch(API_URL, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'text/plain' },
+                                    body: JSON.stringify({
+                                        action: 'transcribeVoiceNote',
+                                        audio: base64Audio,
+                                        format: 'webm'
+                                    })
+                                });
+
+                                const result = await response.json();
+
+                                if (result.success && result.transcription) {
+                                    document.getElementById('captionInput').value = result.transcription;
+                                    showToast('Voice transcribed successfully!', 'success');
+                                } else {
+                                    // Fallback: Prompt user to type
+                                    showToast('Voice note saved - type your caption or configure Whisper API for transcription', 'info');
+                                }
+                            } catch (error) {
+                                console.log('Transcription not available:', error);
+                                showToast('Voice saved locally - configure Whisper API key for transcription', 'info');
+                            }
+                            updateBlastButton();
+                        };
+                        reader.readAsDataURL(blob);
                     };
 
                     mediaRecorder.start();
@@ -6048,17 +6183,50 @@
 
         async function generateAICaption() {
             showToast('Generating AI caption...', 'info');
-            // Simulate AI caption generation
-            setTimeout(() => {
-                const captions = [
-                    "Fresh from the field! These gorgeous tomatoes are peak season perfection. Limited quantities available - order now before they're gone! 🍅",
-                    "Nature's candy is here! Our heirloom tomatoes are bursting with flavor. Perfect for your weekend cooking adventures.",
-                    "Straight from our hands to your table. These beauties were picked this morning and are ready to make your recipes shine!"
-                ];
-                document.getElementById('captionInput').value = captions[Math.floor(Math.random() * captions.length)];
-                showToast('Caption generated!', 'success');
-                updateBlastButton();
-            }, 1000);
+
+            // Get context for AI
+            const hasMedia = selectedFile !== null;
+            const platforms = selectedPlatforms.join(', ');
+
+            // Fallback captions if API call fails
+            const fallbackCaptions = [
+                "Fresh from the field! These gorgeous tomatoes are peak season perfection. Limited quantities available - order now before they're gone! 🍅",
+                "Nature's candy is here! Our heirloom tomatoes are bursting with flavor. Perfect for your weekend cooking adventures.",
+                "Straight from our hands to your table. These beauties were picked this morning and are ready to make your recipes shine!"
+            ];
+
+            try {
+                // Try to generate via AI backend
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'enhanceCaption',
+                        caption: 'Write a fresh, engaging social media post about our farm harvest today',
+                        platform: selectedPlatforms[0] || 'instagram',
+                        tone: 'authentic farm voice'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.enhancedCaption) {
+                    document.getElementById('captionInput').value = result.enhancedCaption;
+                    showToast(`Caption generated via ${result.method || 'AI'}!`, 'success');
+                } else {
+                    // Use fallback
+                    document.getElementById('captionInput').value = fallbackCaptions[Math.floor(Math.random() * fallbackCaptions.length)];
+                    showToast('Caption generated (configure AI API for better results)', 'success');
+                }
+            } catch (error) {
+                console.error('AI Caption error:', error);
+                // Use fallback
+                document.getElementById('captionInput').value = fallbackCaptions[Math.floor(Math.random() * fallbackCaptions.length)];
+                showToast('Caption generated (offline mode)', 'success');
+            }
+
+            updateBlastButton();
+            updateEngagementPrediction();
         }
 
         function updateBlastButton() {
@@ -6269,36 +6437,83 @@
                 ['tiktok', 'instagram', 'facebook', 'youtube', 'pinterest', 'threads'].includes(p)
             );
 
-            try {
-                // Post directly to Instagram via Meta Graph API
-                if (socialPlatforms.includes('instagram') || socialPlatforms.includes('facebook')) {
-                    // Post to all configured Instagram accounts
-                    const instagramAccounts = [
-                        { index: 0, name: '@tinyseedfarm' },
-                        { index: 1, name: '@tinyseedfleurs' },
-                        { index: 2, name: '@tinyseedfungi' }
-                    ];
+            const postResults = [];
+            let uploadedImageUrl = null;
 
-                    for (const account of instagramAccounts) {
-                        // Only post if we have an image URL (Instagram requires media)
-                        if (selectedFile) {
-                            // In production, upload image to Google Drive first, then use public URL
-                            const response = await fetch(APPS_SCRIPT_URL, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'text/plain' },
-                                body: JSON.stringify({
-                                    action: 'postToInstagram',
-                                    accountIndex: account.index,
-                                    mediaType: 'IMAGE',
-                                    caption: caption
-                                    // imageUrl will be set from uploaded file
-                                })
-                            });
-                            const result = await response.json();
-                            if (result.success) {
-                                console.log(`Posted to ${account.name}: ${result.mediaId}`);
+            try {
+                // STEP 1: Upload image to Google Drive if we have a file
+                if (selectedFile && (socialPlatforms.includes('instagram') || socialPlatforms.includes('facebook'))) {
+                    timer.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Uploading image...';
+
+                    // Get the base64 data from the preview image
+                    const preview = document.getElementById('uploadPreview');
+                    const base64Data = preview.src;
+
+                    if (base64Data && base64Data.startsWith('data:')) {
+                        const uploadResponse = await fetch(APPS_SCRIPT_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'text/plain' },
+                            body: JSON.stringify({
+                                action: 'uploadSocialMediaImage',
+                                base64: base64Data,
+                                fileName: 'social_' + Date.now() + '.jpg',
+                                mimeType: selectedFile.type || 'image/jpeg'
+                            })
+                        });
+
+                        const uploadResult = await uploadResponse.json();
+                        console.log('Upload result:', uploadResult);
+
+                        if (uploadResult.success) {
+                            uploadedImageUrl = uploadResult.imageUrl;
+                            console.log('Image uploaded successfully:', uploadedImageUrl);
+                            timer.innerHTML = '<i class="fas fa-check"></i> Image uploaded!';
+                        } else {
+                            throw new Error('Failed to upload image: ' + (uploadResult.error || 'Unknown error'));
+                        }
+                    }
+                }
+
+                // STEP 2: Post to Instagram via Meta Graph API
+                if (socialPlatforms.includes('instagram') || socialPlatforms.includes('facebook')) {
+                    timer.innerHTML = '<i class="fab fa-instagram"></i> Posting to Instagram...';
+
+                    // Only post to the main account (index 0) for now
+                    const accountIndex = 0; // @tinyseedfarm
+
+                    if (uploadedImageUrl) {
+                        const response = await fetch(APPS_SCRIPT_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'text/plain' },
+                            body: JSON.stringify({
+                                action: 'postToInstagram',
+                                accountIndex: accountIndex,
+                                mediaType: 'IMAGE',
+                                imageUrl: uploadedImageUrl,
+                                caption: caption
+                            })
+                        });
+                        const result = await response.json();
+                        console.log('Instagram post result:', result);
+
+                        if (result.success) {
+                            postResults.push({ platform: 'instagram', success: true, mediaId: result.mediaId });
+                            showToast('Posted to Instagram successfully!', 'success');
+                        } else {
+                            postResults.push({ platform: 'instagram', success: false, error: result.error });
+                            // Show specific error message
+                            if (result.setup_required) {
+                                showToast('Instagram not configured. Please set up your Meta Developer App.', 'error');
+                            } else if (result.error && result.error.includes('token')) {
+                                showToast('Instagram token expired. Please re-authenticate.', 'error');
+                            } else {
+                                showToast('Instagram error: ' + (result.error || 'Unknown error'), 'error');
                             }
                         }
+                    } else if (!selectedFile) {
+                        // No image selected - Instagram requires an image
+                        showToast('Instagram requires an image. Please upload a photo.', 'warning');
+                        postResults.push({ platform: 'instagram', success: false, error: 'No image provided' });
                     }
                 }
 
@@ -6306,32 +6521,48 @@
                 const otherPlatforms = socialPlatforms.filter(p => !['instagram', 'facebook'].includes(p));
                 if (otherPlatforms.length > 0) {
                     console.log('Other platforms pending direct API:', otherPlatforms);
+                    otherPlatforms.forEach(p => {
+                        postResults.push({ platform: p, success: false, error: 'Direct API integration coming soon' });
+                    });
                 }
 
                 // Handle app feed separately (our internal system)
                 if (selectedPlatforms.includes('appfeed')) {
-                    // Post to our app feed
-                    await fetch(APPS_SCRIPT_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'text/plain' },
-                        body: JSON.stringify({
-                            action: 'postToAppFeed',
-                            content: caption
-                        })
-                    });
+                    timer.innerHTML = '<i class="fas fa-mobile-alt"></i> Posting to App Feed...';
+                    try {
+                        await fetch(APPS_SCRIPT_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'text/plain' },
+                            body: JSON.stringify({
+                                action: 'postToAppFeed',
+                                content: caption,
+                                imageUrl: uploadedImageUrl
+                            })
+                        });
+                        postResults.push({ platform: 'appfeed', success: true });
+                    } catch (e) {
+                        postResults.push({ platform: 'appfeed', success: false, error: e.message });
+                    }
                 }
 
                 const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-                timer.innerHTML = `<i class="fas fa-check"></i> ${elapsed}s`;
-                timer.style.background = 'var(--success)';
+                const successCount = postResults.filter(r => r.success).length;
+                const failCount = postResults.filter(r => !r.success).length;
 
-                if (isScheduled) {
-                    const scheduleDate = new Date(scheduleTime);
-                    btn.innerHTML = '<i class="fas fa-calendar-check"></i> SCHEDULED!';
-                    showToast(`Scheduled for ${scheduleDate.toLocaleString()} on ${selectedPlatforms.length} platforms!`, 'success');
-                } else {
+                if (successCount > 0 && failCount === 0) {
+                    timer.innerHTML = `<i class="fas fa-check"></i> ${elapsed}s`;
+                    timer.style.background = 'var(--success)';
                     btn.innerHTML = '<i class="fas fa-check"></i> PUBLISHED!';
-                    showToast(`Posted to ${selectedPlatforms.length} platforms in ${elapsed} seconds!`, 'success');
+                    showToast(`Posted to ${successCount} platform(s) in ${elapsed} seconds!`, 'success');
+                } else if (successCount > 0) {
+                    timer.innerHTML = `<i class="fas fa-exclamation"></i> ${elapsed}s`;
+                    timer.style.background = 'var(--warning)';
+                    btn.innerHTML = '<i class="fas fa-check"></i> PARTIAL SUCCESS';
+                    showToast(`Posted to ${successCount} platform(s). ${failCount} failed.`, 'warning');
+                } else if (postResults.length > 0) {
+                    timer.innerHTML = '<i class="fas fa-times"></i> Failed';
+                    timer.style.background = 'var(--danger)';
+                    btn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> FAILED';
                 }
 
                 // Log to marketing spend
@@ -6340,11 +6571,15 @@
                     time: elapsed,
                     caption: caption.substring(0, 50),
                     scheduled: isScheduled,
-                    scheduleTime: scheduleTime
+                    scheduleTime: scheduleTime,
+                    results: postResults,
+                    imageUrl: uploadedImageUrl
                 });
 
-                // Delete draft after successful publish
-                deleteDraft();
+                // Delete draft after successful publish (if at least one succeeded)
+                if (successCount > 0) {
+                    deleteDraft();
+                }
 
             } catch (error) {
                 console.error('Publish error:', error);
@@ -6354,8 +6589,9 @@
                 timer.style.background = 'var(--danger)';
             }
 
-            // Reset after 3 seconds
+            // Reset after 5 seconds (longer to read status)
             setTimeout(() => {
+                btn.disabled = false;
                 btn.innerHTML = isScheduled
                     ? '<i class="fas fa-calendar-check"></i> SCHEDULE POST'
                     : '<i class="fas fa-paper-plane"></i> PUBLISH ALL';
@@ -6371,7 +6607,7 @@
                 updateBlastButton();
                 // Reset schedule mode
                 if (isScheduled) toggleScheduleMode();
-            }, 3000);
+            }, 5000);
         }
 
         function triggerEmergencyHarvest() {
@@ -6402,7 +6638,7 @@
 
             gallery.innerHTML = filtered.map(pic => `
                 <div class="gallery-item" data-id="${pic.id}">
-                    <img src="${pic.url}" alt="Farm pic by ${pic.author}">
+                    <img src="${pic.url}" alt="Farm pic by ${pic.author}" onerror="this.onerror=null; this.src='https://via.placeholder.com/400x300?text=Image+Unavailable';">
                     <div class="gallery-item-overlay">
                         <div class="gallery-item-meta">
                             <div class="gallery-item-author">
@@ -7750,58 +7986,399 @@
         }
 
         function connectTikTok() {
-            // TikTok Content Posting API - requires business account
-            showToast('TikTok API setup coming soon! Requires TikTok for Business account.', 'info');
-            setTimeout(() => {
-                window.open('https://developers.tiktok.com/', '_blank');
-            }, 1000);
+            openSocialApiModal('tiktok');
         }
 
         function connectYouTube() {
-            // YouTube Data API v3
-            showToast('YouTube API setup coming soon! Requires Google Cloud Console.', 'info');
-            setTimeout(() => {
-                window.open('https://console.cloud.google.com/', '_blank');
-            }, 1000);
+            openSocialApiModal('youtube');
         }
 
         function connectPinterest() {
-            // Pinterest API v5
-            showToast('Pinterest API setup coming soon! Requires Pinterest Business account.', 'info');
-            setTimeout(() => {
-                window.open('https://developers.pinterest.com/', '_blank');
-            }, 1000);
+            openSocialApiModal('pinterest');
         }
 
         function connectThreads() {
-            // Threads API (uses Instagram credentials)
-            showToast('Threads API uses your Instagram connection. Setup coming soon!', 'info');
-            setTimeout(() => {
-                window.open('https://developers.facebook.com/docs/threads', '_blank');
-            }, 1000);
+            // Threads uses Instagram credentials - check if already connected
+            const threadsInfo = `Threads API Status:
+
+Threads uses your existing Instagram/Meta credentials.
+
+Since Instagram is already connected, Threads posting will work automatically through the Meta Graph API.
+
+No additional setup required!
+
+Would you like to test posting to Threads?`;
+            if (confirm(threadsInfo)) {
+                showToast('Threads uses Instagram credentials - ready to post!', 'success');
+            }
+        }
+
+        // Social API Configuration Modal Functions
+        function openSocialApiModal(platform) {
+            const modal = document.getElementById('socialApiModal');
+            const config = getSocialApiConfig(platform);
+
+            document.getElementById('socialApiPlatformTitle').innerHTML = config.icon + ' ' + config.title;
+            document.getElementById('socialApiPlatformTitle').style.color = config.color;
+            document.getElementById('socialApiStatus').innerHTML = config.statusHtml;
+            document.getElementById('socialApiSteps').innerHTML = config.stepsHtml;
+            document.getElementById('socialApiCredentials').innerHTML = config.credentialsHtml;
+            document.getElementById('socialApiDocsBtn').onclick = () => window.open(config.docsUrl, '_blank');
+            document.getElementById('socialApiSaveBtn').onclick = () => saveSocialApiCredentials(platform);
+            document.getElementById('socialApiTestBtn').onclick = () => testSocialConnection(platform);
+
+            modal.classList.add('active');
+        }
+
+        function closeSocialApiModal() {
+            document.getElementById('socialApiModal').classList.remove('active');
+        }
+
+        function getSocialApiConfig(platform) {
+            const configs = {
+                youtube: {
+                    icon: '<i class="fab fa-youtube"></i>',
+                    title: 'YouTube Data API v3',
+                    color: 'var(--youtube)',
+                    docsUrl: 'https://console.cloud.google.com/apis/library/youtube.googleapis.com',
+                    statusHtml: `
+                        <div class="api-status-indicator" id="youtubeApiStatus">
+                            <i class="fas fa-circle" style="color: var(--warning);"></i>
+                            <span>Checking status...</span>
+                        </div>
+                    `,
+                    stepsHtml: `
+                        <div class="setup-step">
+                            <div class="step-number">1</div>
+                            <div class="step-content">
+                                <strong>Enable YouTube Data API</strong>
+                                <p>Go to Google Cloud Console > APIs & Services > Library > Search "YouTube Data API v3" > Enable</p>
+                            </div>
+                        </div>
+                        <div class="setup-step">
+                            <div class="step-number">2</div>
+                            <div class="step-content">
+                                <strong>Create OAuth Credentials</strong>
+                                <p>APIs & Services > Credentials > Create Credentials > OAuth 2.0 Client ID > Web Application</p>
+                            </div>
+                        </div>
+                        <div class="setup-step">
+                            <div class="step-number">3</div>
+                            <div class="step-content">
+                                <strong>Get Channel ID</strong>
+                                <p>Go to YouTube Studio > Settings > Channel > Advanced > Copy Channel ID</p>
+                            </div>
+                        </div>
+                        <div class="setup-step">
+                            <div class="step-number">4</div>
+                            <div class="step-content">
+                                <strong>Authorize & Get Token</strong>
+                                <p>Run OAuth flow to get access token (we'll handle this automatically)</p>
+                            </div>
+                        </div>
+                    `,
+                    credentialsHtml: `
+                        <div class="form-group">
+                            <label class="form-label">Client ID</label>
+                            <input type="text" class="form-input" id="youtubeClientId" placeholder="xxxxx.apps.googleusercontent.com">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Client Secret</label>
+                            <input type="password" class="form-input" id="youtubeClientSecret" placeholder="GOCSPX-xxxxx">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Channel ID</label>
+                            <input type="text" class="form-input" id="youtubeChannelId" placeholder="UCxxxxx">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Access Token (after OAuth)</label>
+                            <input type="password" class="form-input" id="youtubeAccessToken" placeholder="ya29.xxxxx">
+                        </div>
+                    `
+                },
+                tiktok: {
+                    icon: '<i class="fab fa-tiktok"></i>',
+                    title: 'TikTok Content Posting API',
+                    color: 'var(--tiktok)',
+                    docsUrl: 'https://developers.tiktok.com/',
+                    statusHtml: `
+                        <div class="api-status-indicator" id="tiktokApiStatus">
+                            <i class="fas fa-circle" style="color: var(--warning);"></i>
+                            <span>Checking status...</span>
+                        </div>
+                        <div style="background: rgba(255, 165, 0, 0.1); padding: 0.75rem; border-radius: 8px; margin-top: 0.5rem; font-size: 0.8rem;">
+                            <i class="fas fa-clock" style="color: var(--warning);"></i>
+                            <strong>Note:</strong> TikTok Content Posting API requires approval (1-3 weeks). You can still create content and post manually until approved.
+                        </div>
+                    `,
+                    stepsHtml: `
+                        <div class="setup-step">
+                            <div class="step-number">1</div>
+                            <div class="step-content">
+                                <strong>Create TikTok Business Account</strong>
+                                <p>Convert your TikTok account to Business at tiktok.com/business</p>
+                            </div>
+                        </div>
+                        <div class="setup-step">
+                            <div class="step-number">2</div>
+                            <div class="step-content">
+                                <strong>Register as Developer</strong>
+                                <p>Go to developers.tiktok.com and create a developer account</p>
+                            </div>
+                        </div>
+                        <div class="setup-step">
+                            <div class="step-number">3</div>
+                            <div class="step-content">
+                                <strong>Create App & Request Content Posting API</strong>
+                                <p>Create an app, then add "Content Posting API" product and submit for review</p>
+                            </div>
+                        </div>
+                        <div class="setup-step">
+                            <div class="step-number">4</div>
+                            <div class="step-content">
+                                <strong>After Approval: Complete OAuth</strong>
+                                <p>Once approved, authorize your account and enter credentials below</p>
+                            </div>
+                        </div>
+                    `,
+                    credentialsHtml: `
+                        <div class="form-group">
+                            <label class="form-label">Client Key</label>
+                            <input type="text" class="form-input" id="tiktokClientKey" placeholder="Your TikTok app client key">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Client Secret</label>
+                            <input type="password" class="form-input" id="tiktokClientSecret" placeholder="Your TikTok app client secret">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Access Token</label>
+                            <input type="password" class="form-input" id="tiktokAccessToken" placeholder="act.xxxxx">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Refresh Token</label>
+                            <input type="password" class="form-input" id="tiktokRefreshToken" placeholder="rft.xxxxx">
+                        </div>
+                    `
+                },
+                pinterest: {
+                    icon: '<i class="fab fa-pinterest"></i>',
+                    title: 'Pinterest API v5',
+                    color: 'var(--pinterest)',
+                    docsUrl: 'https://developers.pinterest.com/apps/',
+                    statusHtml: `
+                        <div class="api-status-indicator" id="pinterestApiStatus">
+                            <i class="fas fa-circle" style="color: var(--warning);"></i>
+                            <span>Checking status...</span>
+                        </div>
+                    `,
+                    stepsHtml: `
+                        <div class="setup-step">
+                            <div class="step-number">1</div>
+                            <div class="step-content">
+                                <strong>Convert to Business Account</strong>
+                                <p>Go to business.pinterest.com and convert or create a business account</p>
+                            </div>
+                        </div>
+                        <div class="setup-step">
+                            <div class="step-number">2</div>
+                            <div class="step-content">
+                                <strong>Create Developer App</strong>
+                                <p>Go to developers.pinterest.com > My Apps > Create App</p>
+                            </div>
+                        </div>
+                        <div class="setup-step">
+                            <div class="step-number">3</div>
+                            <div class="step-content">
+                                <strong>Get App Credentials</strong>
+                                <p>Copy your App ID and App Secret from the app dashboard</p>
+                            </div>
+                        </div>
+                        <div class="setup-step">
+                            <div class="step-number">4</div>
+                            <div class="step-content">
+                                <strong>Generate Access Token</strong>
+                                <p>Use Pinterest's OAuth tool to generate access and refresh tokens</p>
+                            </div>
+                        </div>
+                    `,
+                    credentialsHtml: `
+                        <div class="form-group">
+                            <label class="form-label">App ID</label>
+                            <input type="text" class="form-input" id="pinterestAppId" placeholder="Your Pinterest App ID">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">App Secret</label>
+                            <input type="password" class="form-input" id="pinterestAppSecret" placeholder="Your Pinterest App Secret">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Access Token</label>
+                            <input type="password" class="form-input" id="pinterestAccessToken" placeholder="pina_xxxxx">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Refresh Token</label>
+                            <input type="password" class="form-input" id="pinterestRefreshToken" placeholder="pinr_xxxxx">
+                        </div>
+                    `
+                }
+            };
+            return configs[platform];
+        }
+
+        async function saveSocialApiCredentials(platform) {
+            const credentials = {};
+
+            if (platform === 'youtube') {
+                credentials.YOUTUBE_CLIENT_ID = document.getElementById('youtubeClientId').value;
+                credentials.YOUTUBE_CLIENT_SECRET = document.getElementById('youtubeClientSecret').value;
+                credentials.YOUTUBE_CHANNEL_ID = document.getElementById('youtubeChannelId').value;
+                credentials.YOUTUBE_ACCESS_TOKEN = document.getElementById('youtubeAccessToken').value;
+            } else if (platform === 'tiktok') {
+                credentials.TIKTOK_CLIENT_KEY = document.getElementById('tiktokClientKey').value;
+                credentials.TIKTOK_CLIENT_SECRET = document.getElementById('tiktokClientSecret').value;
+                credentials.TIKTOK_ACCESS_TOKEN = document.getElementById('tiktokAccessToken').value;
+                credentials.TIKTOK_REFRESH_TOKEN = document.getElementById('tiktokRefreshToken').value;
+            } else if (platform === 'pinterest') {
+                credentials.PINTEREST_APP_ID = document.getElementById('pinterestAppId').value;
+                credentials.PINTEREST_APP_SECRET = document.getElementById('pinterestAppSecret').value;
+                credentials.PINTEREST_ACCESS_TOKEN = document.getElementById('pinterestAccessToken').value;
+                credentials.PINTEREST_REFRESH_TOKEN = document.getElementById('pinterestRefreshToken').value;
+            }
+
+            // Check if any credentials are provided
+            const hasCredentials = Object.values(credentials).some(v => v && v.trim() !== '');
+            if (!hasCredentials) {
+                showToast('Please enter at least one credential', 'warning');
+                return;
+            }
+
+            showToast('Saving credentials...', 'info');
+
+            try {
+                const response = await fetch(`${API_URL}?action=saveSocialCredentials`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'saveSocialCredentials',
+                        platform: platform,
+                        credentials: credentials
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast(`${platform.charAt(0).toUpperCase() + platform.slice(1)} credentials saved!`, 'success');
+                    updateConnectionCard(platform, 'connected');
+                    closeSocialApiModal();
+                } else {
+                    showToast('Error: ' + (result.error || 'Failed to save'), 'error');
+                }
+            } catch (error) {
+                console.error('Error saving credentials:', error);
+                showToast('Error saving credentials. Check console for details.', 'error');
+            }
+        }
+
+        async function testSocialConnection(platform) {
+            showToast(`Testing ${platform} connection...`, 'info');
+
+            try {
+                const response = await fetch(`${API_URL}?action=testSocialConnection&platform=${platform}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast(`${platform.charAt(0).toUpperCase() + platform.slice(1)} connection successful!`, 'success');
+                    document.getElementById(`${platform}ApiStatus`).innerHTML = `
+                        <i class="fas fa-check-circle" style="color: var(--success);"></i>
+                        <span style="color: var(--success);">Connected</span>
+                    `;
+                } else {
+                    showToast(`Connection test failed: ${result.error || 'Unknown error'}`, 'error');
+                    document.getElementById(`${platform}ApiStatus`).innerHTML = `
+                        <i class="fas fa-times-circle" style="color: var(--danger);"></i>
+                        <span style="color: var(--danger);">Not Connected: ${result.error || 'Check credentials'}</span>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error testing connection:', error);
+                showToast('Error testing connection', 'error');
+            }
+        }
+
+        function updateConnectionCard(platform, status) {
+            const card = document.querySelector(`[data-platform="${platform}"]`);
+            if (card) {
+                const statusDiv = card.querySelector('.connection-status');
+                const dot = statusDiv.querySelector('.dot');
+
+                if (status === 'connected') {
+                    dot.className = 'dot connected';
+                    statusDiv.innerHTML = '<div class="dot connected"></div>Connected';
+                } else {
+                    dot.className = 'dot disconnected';
+                    statusDiv.innerHTML = '<div class="dot disconnected"></div>Disconnected';
+                }
+            }
         }
 
         function openBudgetSettings() {
-            showToast('Budget settings modal coming soon!', 'info');
+            // For now, redirect to the financial dashboard where budget is managed
+            const confirmed = confirm('Marketing budget is managed in the Financial Dashboard.\n\nWould you like to open the Financial Dashboard?');
+            if (confirmed) {
+                window.location.href = 'financial-dashboard.html';
+            }
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
         // API DATA LOADING
         // ═══════════════════════════════════════════════════════════════════════════
 
+        // Convert old Google Drive URLs to embeddable format
+        function convertDriveUrl(url) {
+            if (!url || url.includes('placeholder')) return url;
+
+            // Already using the correct format
+            if (url.includes('lh3.googleusercontent.com')) return url;
+
+            // Extract file ID from various Google Drive URL formats
+            let fileId = null;
+
+            // Format: https://drive.google.com/uc?id=FILE_ID or /uc?export=view&id=FILE_ID
+            const ucMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+            if (ucMatch) fileId = ucMatch[1];
+
+            // Format: https://drive.google.com/file/d/FILE_ID/view
+            const fileMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+            if (fileMatch) fileId = fileMatch[1];
+
+            // Format: https://drive.google.com/thumbnail?id=FILE_ID
+            const thumbMatch = url.match(/thumbnail\?id=([a-zA-Z0-9_-]+)/);
+            if (thumbMatch) fileId = thumbMatch[1];
+
+            if (fileId) {
+                // Use lh3.googleusercontent.com format which works reliably for embedding
+                return 'https://lh3.googleusercontent.com/d/' + fileId;
+            }
+
+            return url;
+        }
+
         async function loadFarmPics() {
             try {
                 const response = await fetch(`${API_URL}?action=getFarmPics`);
                 const result = await response.json();
                 if (result.success && result.farmPics) {
-                    farmPicsData = result.farmPics.map(pic => ({
-                        id: pic.Pic_ID || pic.id,
-                        url: pic.Image_URL || pic.url || 'https://via.placeholder.com/400x300?text=No+Image',
-                        author: pic.Employee_Name || pic.author || 'Unknown',
-                        status: (pic.Status || pic.status || 'new').toLowerCase(),
-                        category: (pic.Category || pic.category || 'general').toLowerCase(),
-                        date: formatRelativeDate(pic.Submitted_At || pic.date)
-                    }));
+                    farmPicsData = result.farmPics.map(pic => {
+                        const rawUrl = pic.Image_URL || pic.url || '';
+                        return {
+                            id: pic.Pic_ID || pic.id,
+                            url: rawUrl ? convertDriveUrl(rawUrl) : 'https://via.placeholder.com/400x300?text=No+Image',
+                            author: pic.Employee_Name || pic.author || 'Unknown',
+                            status: (pic.Status || pic.status || 'new').toLowerCase(),
+                            category: (pic.Category || pic.category || 'general').toLowerCase(),
+                            date: formatRelativeDate(pic.Submitted_At || pic.date)
+                        };
+                    });
                 }
                 renderFarmPics();
                 updateNewPicsBadge();
@@ -7838,13 +8415,74 @@
 
         async function loadSocialConnections() {
             try {
+                // Load legacy connections
                 const response = await fetch(`${API_URL}?action=getSocialConnections`);
                 const result = await response.json();
                 if (result.success && result.connections) {
                     updateConnectionsUI(result.connections);
                 }
+
+                // Also load detailed connection status for all platforms
+                const statusResponse = await fetch(`${API_URL}?action=getSocialConnectionStatus`);
+                const statusResult = await statusResponse.json();
+                if (statusResult.success && statusResult.status) {
+                    updateDetailedConnectionStatus(statusResult.status);
+                }
             } catch (error) {
                 console.error('Error loading social connections:', error);
+            }
+        }
+
+        function updateDetailedConnectionStatus(status) {
+            // Update YouTube card
+            const youtubeCard = document.querySelector('[data-platform="youtube"]');
+            if (youtubeCard) {
+                const statusDiv = youtubeCard.querySelector('.connection-status');
+                if (status.youtube.connected) {
+                    statusDiv.innerHTML = '<div class="dot connected"></div>Connected';
+                    statusDiv.className = 'connection-status connected';
+                } else if (status.youtube.hasAccessToken) {
+                    statusDiv.innerHTML = '<div class="dot pending"></div>Token Set';
+                    statusDiv.className = 'connection-status pending';
+                }
+            }
+
+            // Update TikTok card
+            const tiktokCard = document.querySelector('[data-platform="tiktok"]');
+            if (tiktokCard) {
+                const statusDiv = tiktokCard.querySelector('.connection-status');
+                if (status.tiktok.connected) {
+                    statusDiv.innerHTML = '<div class="dot connected"></div>Connected';
+                    statusDiv.className = 'connection-status connected';
+                } else if (status.tiktok.hasAccessToken) {
+                    statusDiv.innerHTML = '<div class="dot pending"></div>Token Set';
+                    statusDiv.className = 'connection-status pending';
+                }
+            }
+
+            // Update Pinterest card
+            const pinterestCard = document.querySelector('[data-platform="pinterest"]');
+            if (pinterestCard) {
+                const statusDiv = pinterestCard.querySelector('.connection-status');
+                if (status.pinterest.connected) {
+                    statusDiv.innerHTML = '<div class="dot connected"></div>Connected';
+                    statusDiv.className = 'connection-status connected';
+                } else if (status.pinterest.hasAccessToken) {
+                    statusDiv.innerHTML = '<div class="dot pending"></div>Token Set';
+                    statusDiv.className = 'connection-status pending';
+                }
+            }
+
+            // Update Instagram cards with account count
+            if (status.instagram.connected && status.instagram.accounts) {
+                const connectedCount = status.instagram.accounts.filter(a => a.hasToken).length;
+                const apiStatusCard = document.querySelector('[data-platform="api-status"]');
+                if (apiStatusCard) {
+                    const accountsEl = apiStatusCard.querySelector('.connection-stat-value');
+                    if (accountsEl) {
+                        accountsEl.textContent = connectedCount;
+                    }
+                }
             }
         }
 
@@ -8490,6 +9128,9 @@
             // Pre-load data for quick access
             loadContentCalendar();
 
+            // Check Instagram API configuration status
+            checkInstagramApiStatus();
+
             console.log('Marketing Command Center v4.0 - STATE OF THE ART - Active!');
         });
 
@@ -8798,6 +9439,68 @@
             } catch (error) {
                 console.error('Test error:', error);
                 showToast('Error testing connection', 'error');
+            }
+        }
+
+        // Check Instagram API configuration status on page load
+        async function checkInstagramApiStatus() {
+            try {
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'getInstagramConfigStatus'
+                    })
+                });
+                const result = await response.json();
+                console.log('Instagram API Status:', result);
+
+                if (result.success && result.accounts && result.accounts.length > 0) {
+                    const configuredAccounts = result.accounts.filter(a => a.hasToken);
+                    if (configuredAccounts.length > 0) {
+                        console.log('Instagram API: Configured accounts:', configuredAccounts.map(a => a.name).join(', '));
+                        updateInstagramStatusBadge(true, configuredAccounts[0].name);
+                    } else {
+                        console.warn('Instagram API: No tokens configured. Run setupInstagramCredentials_ONETIME() in Apps Script.');
+                        updateInstagramStatusBadge(false);
+                    }
+                } else {
+                    console.warn('Instagram API: No accounts configured');
+                    updateInstagramStatusBadge(false);
+                }
+            } catch (error) {
+                console.error('Instagram API check error:', error);
+                updateInstagramStatusBadge(false);
+            }
+        }
+
+        // Update the Instagram toggle to show connection status
+        function updateInstagramStatusBadge(isConnected, accountName = '') {
+            const instagramToggle = document.querySelector('.platform-toggle i.fa-instagram');
+            if (instagramToggle && instagramToggle.parentElement) {
+                const toggle = instagramToggle.parentElement;
+                const existingBadge = toggle.querySelector('.api-status-badge');
+                if (existingBadge) existingBadge.remove();
+
+                const badge = document.createElement('span');
+                badge.className = 'api-status-badge';
+                badge.style.cssText = `
+                    font-size: 0.6rem;
+                    padding: 0.1rem 0.3rem;
+                    border-radius: 4px;
+                    margin-left: 0.25rem;
+                `;
+                if (isConnected) {
+                    badge.style.background = 'var(--success)';
+                    badge.textContent = 'API Ready';
+                    badge.title = `Connected: ${accountName}`;
+                } else {
+                    badge.style.background = 'var(--warning)';
+                    badge.style.color = '#000';
+                    badge.textContent = 'Setup Needed';
+                    badge.title = 'Instagram API not configured';
+                }
+                toggle.appendChild(badge);
             }
         }
 

@@ -1283,6 +1283,15 @@
                         <input type="text" id="panelVariety" disabled>
                     </div>
                 </div>
+                <div class="panel-field">
+                    <label>Category <span style="color: var(--text-secondary); font-weight: normal;">(Override auto-detection)</span></label>
+                    <select id="panelCategory" onchange="panelFieldChange('Category', this.value)">
+                        <option value="">Auto-detect</option>
+                        <option value="Vegetable">Vegetable</option>
+                        <option value="Floral">Floral</option>
+                        <option value="Herb">Herb</option>
+                    </select>
+                </div>
             </div>
 
             <div class="panel-section">
@@ -1413,6 +1422,7 @@
         // CONFIGURATION
         // ========================================
         const API_URL = TINY_SEED_API.MAIN_API;
+        const API_BASE = TINY_SEED_API.MAIN_API;  // Added: Was missing, causing POST failures
 
         // State
         let allPlantings = [];
@@ -1498,8 +1508,12 @@
                 fields.map(f => `<option value="${f}">${f}</option>`).join('');
         }
 
-        // Infer crop category from crop name for crops that don't have explicit Category data
-        function getCropCategory(cropName) {
+        // Get crop category - use stored Category if available, otherwise infer from name
+        function getCropCategory(cropName, storedCategory = null) {
+            // If a stored category exists, use it
+            if (storedCategory && storedCategory !== '') {
+                return storedCategory;
+            }
             if (!cropName) return 'Vegetable';
             const crop = cropName.toLowerCase();
 
@@ -2197,6 +2211,8 @@
             document.getElementById('panelBatchId').textContent = batchId;
             document.getElementById('panelCrop').value = planting.Crop || '';
             document.getElementById('panelVariety').value = planting.Variety || '';
+            // Set category - use stored value or empty for auto-detect
+            document.getElementById('panelCategory').value = planting.Category || '';
             document.getElementById('panelMethod').value = planting.Planting_Method || 'Transplant';
             document.getElementById('panelFeet').value = planting.Feet_Used || '';
             document.getElementById('panelTraySize').value = planting.Tray_Cell_Count || '';
@@ -2260,10 +2276,10 @@
             updatePanelSaveStatus('saving');
 
             try {
-                // Save the duplicate to server
+                // Save the duplicate to server (using text/plain to avoid CORS preflight)
                 const response = await fetch(`${API_BASE}?action=addPlanting`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({ planting: duplicate })
                 });
 
@@ -2475,9 +2491,10 @@
             showToast('Duplicating planting...', 'info');
 
             try {
+                // Using text/plain to avoid CORS preflight issues
                 const response = await fetch(`${API_BASE}?action=addPlanting`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({ planting: duplicate })
                 });
 

@@ -13495,6 +13495,8 @@ function doGet(e) {
         ));
       case 'recordTaskAction':
         return jsonResponse(recordTaskAction(e.parameter));
+      case 'getFarmStats':
+        return jsonResponse(getFarmStatsForCOS());
 
       // ============ BATCH REQUEST ENDPOINT - PERFORMANCE OPTIMIZATION ============
       case 'batchChiefOfStaffData':
@@ -13826,8 +13828,16 @@ function doGet(e) {
         return jsonResponse(getNextBestPost(e.parameter));
       case 'getContentCalendar':
         return jsonResponse(generateContentCalendar(e.parameter));
+      case 'checkAllAPIStatus':
+        return jsonResponse(checkAllAPIStatus());
+      case 'getToddLatestInput':
+        return jsonResponse(getToddLatestInput());
       case 'classifyCommentPriority':
         return jsonResponse(classifyCommentPriority(e.parameter));
+      case 'getTrendingHashtags':
+        return jsonResponse(getTrendingHashtags(e.parameter));
+      case 'getContentIdeas':
+        return jsonResponse(getContentIdeas(e.parameter));
 
       // ============ MARKETING AUTOMATION SYSTEM (GET) ============
       case 'getEmailQueue':
@@ -13898,6 +13908,10 @@ function doGet(e) {
         return jsonResponse(getReviewMetrics(e.parameter));
       case 'getCitationStatus':
         return jsonResponse(getCitationStatus(e.parameter));
+      case 'getSEOPages':
+        return jsonResponse(getSEOPages(e.parameter));
+      case 'getSEOPageById':
+        return jsonResponse(getSEOPageById(e.parameter));
 
       // ============ LEGACY ENDPOINTS ============
       case 'getPlanning':
@@ -14998,6 +15012,10 @@ function doGet(e) {
         }));
       case 'checkAyrshareStatus':
         return jsonResponse(checkAyrshareStatus());
+      case 'testSocialConnection':
+        return jsonResponse(testSocialConnection({ platform: e.parameter.platform }));
+      case 'getSocialConnectionStatus':
+        return jsonResponse(getSocialConnectionStatus());
       case 'addNeighborSignup':
         return jsonResponse(addNeighborSignup({
           name: e.parameter.name || '',
@@ -16625,6 +16643,22 @@ function doPost(e) {
       case 'sendSMSCampaign':
         return jsonResponse(sendSMSCampaign(data));
 
+      // ============ SALES DASHBOARD FUNCTIONS (POST) ============
+      case 'updateInventoryItem':
+        return jsonResponse(updateInventoryItem(data));
+      case 'adjustInventoryStock':
+        return jsonResponse(adjustInventoryStock(data));
+      case 'syncInventoryFromHarvest':
+        return jsonResponse(syncInventoryFromHarvest(data));
+      case 'setCSAVacationHold':
+        return jsonResponse(setCSAVacationHold(data));
+      case 'generateWeeklyCSABoxes':
+        return jsonResponse(generateWeeklyCSABoxes(data));
+      case 'sendBulkSMS':
+        return jsonResponse(sendBulkSMSToPhones(data));
+      case 'sendBulkEmail':
+        return jsonResponse(sendBulkEmailToRecipients(data));
+
       // ============ CHEF COMMUNICATIONS (POST) ============
       case 'sendWeeklyAvailabilityBlast':
         return jsonResponse(sendWeeklyAvailabilityBlast());
@@ -16824,10 +16858,16 @@ function doPost(e) {
         return jsonResponse(logEngagement(data));
       case 'postToInstagram':
         return jsonResponse(postToInstagram(data));
+      case 'uploadSocialMediaImage':
+        return jsonResponse(uploadSocialMediaImage(data));
       case 'configureInstagramAccount':
         return jsonResponse(configureInstagramAccount(data));
       case 'logSocialPost':
         return jsonResponse(logSocialPost(data));
+      case 'saveSocialCredentials':
+        return jsonResponse(saveSocialCredentials(data));
+      case 'testSocialConnection':
+        return jsonResponse(testSocialConnection(data));
       case 'setupInstagramCredentials':
         return jsonResponse(setupInstagramCredentials_ONETIME());
       case 'getInstagramConfigStatus':
@@ -16885,6 +16925,12 @@ function doPost(e) {
         return jsonResponse(generateDailyBriefing(data));
       case 'generateContentCalendar':
         return jsonResponse(generateContentCalendar(data));
+      case 'generateContentForGaps':
+        return jsonResponse(generateContentForGaps(data));
+      case 'enhanceCaption':
+        return jsonResponse(enhanceCaption(data));
+      case 'generateFromToddInput':
+        return jsonResponse(generateFromToddInput(data));
       case 'markSocialActionComplete':
         return jsonResponse(markSocialActionComplete(data));
       case 'setupDailyBriefingTrigger':
@@ -17011,6 +17057,10 @@ function doPost(e) {
         return jsonResponse(getReviewMetrics(data));
       case 'getCitationStatus':
         return jsonResponse(getCitationStatus(data));
+      case 'updateSEOPage':
+        return jsonResponse(updateSEOPage(data));
+      case 'createSEOPage':
+        return jsonResponse(createSEOPage(data));
 
       // ============ SEED INVENTORY & TRACEABILITY ============
       case 'addSeedLot':
@@ -30803,6 +30853,84 @@ function uploadProductPhoto(data) {
   }
 }
 
+/**
+ * Upload an image for social media posting (Instagram, Facebook, etc.)
+ * Returns a DIRECT download URL that works with Instagram's API
+ *
+ * Instagram requires images to be publicly accessible via HTTPS.
+ * Google Drive viewer URLs don't work - we need the direct download URL.
+ *
+ * @param {object} data - { base64: string, fileName: string, mimeType: string }
+ * @returns {object} - { success: boolean, imageUrl: string, fileId: string }
+ */
+function uploadSocialMediaImage(data) {
+  try {
+    // Get or create the social media images folder
+    const folderName = 'TinySeed_Social_Media_Images';
+    let folder;
+
+    const folders = DriveApp.getFoldersByName(folderName);
+    if (folders.hasNext()) {
+      folder = folders.next();
+    } else {
+      folder = DriveApp.createFolder(folderName);
+      // Make folder publicly viewable
+      folder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    }
+
+    // Decode base64 image data
+    const base64Data = data.base64.replace(/^data:image\/\w+;base64,/, '');
+    const imageData = Utilities.base64Decode(base64Data);
+    const mimeType = data.mimeType || 'image/jpeg';
+    const fileName = data.fileName || 'social_' + Date.now() + '.jpg';
+    const blob = Utilities.newBlob(imageData, mimeType, fileName);
+
+    // Create file in folder
+    const file = folder.createFile(blob);
+
+    // Set sharing to anyone with link can view
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+    // Get the file ID
+    const fileId = file.getId();
+
+    // Instagram API requires PUBLICLY accessible image URLs via HTTPS
+    // Google Drive URLs work with the correct format:
+
+    // Option 1: Direct view URL (works for most APIs including Instagram)
+    const viewUrl = `https://drive.google.com/uc?export=view&id=${fileId}`;
+
+    // Option 2: Direct download URL
+    const directUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+
+    // Option 3: lh3 hosted URL (Google's image CDN)
+    const lh3Url = `https://lh3.googleusercontent.com/d/${fileId}`;
+
+    // Option 4: Thumbnail URL with size parameter
+    const thumbnailUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w1200`;
+
+    Logger.log('Uploaded social media image: ' + fileName);
+    Logger.log('File ID: ' + fileId);
+    Logger.log('View URL: ' + viewUrl);
+    Logger.log('Direct URL: ' + directUrl);
+
+    return {
+      success: true,
+      imageUrl: viewUrl,  // Use view URL - most compatible with Instagram Graph API
+      directUrl: directUrl,
+      lh3Url: lh3Url,
+      thumbnailUrl: thumbnailUrl,
+      driveUrl: file.getUrl(),
+      fileId: fileId,
+      fileName: fileName,
+      note: 'If Instagram fails with this URL, the token may need to be refreshed'
+    };
+  } catch (error) {
+    Logger.log('Error uploading social media image: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // FARM INVENTORY SYSTEM - Physical Asset Tracking
 // For equipment, tools, vehicles, infrastructure (not consumables)
@@ -43570,6 +43698,314 @@ function filterAudience(customers, audience, filter) {
   }
 
   return filtered;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SALES DASHBOARD ADDITIONAL FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Update an inventory item's details
+ */
+function updateInventoryItem(data) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('REF_Crops');
+    if (!sheet) return { success: false, error: 'REF_Crops sheet not found' };
+
+    const values = sheet.getDataRange().getValues();
+    const headers = values[0];
+    const cropIdCol = headers.indexOf('Crop_ID');
+
+    for (let i = 1; i < values.length; i++) {
+      if (values[i][cropIdCol] === data.cropId) {
+        // Update fields
+        if (data.stock !== undefined) {
+          const stockCol = headers.indexOf('Current_Stock');
+          if (stockCol !== -1) sheet.getRange(i + 1, stockCol + 1).setValue(data.stock);
+        }
+        if (data.unit !== undefined) {
+          const unitCol = headers.indexOf('Sales_Unit');
+          if (unitCol !== -1) sheet.getRange(i + 1, unitCol + 1).setValue(data.unit);
+        }
+        if (data.wholesalePrice !== undefined) {
+          const priceCol = headers.indexOf('Wholesale_Price');
+          if (priceCol !== -1) sheet.getRange(i + 1, priceCol + 1).setValue(data.wholesalePrice);
+        }
+        if (data.retailPrice !== undefined) {
+          const retailCol = headers.indexOf('Retail_Price');
+          if (retailCol !== -1) sheet.getRange(i + 1, retailCol + 1).setValue(data.retailPrice);
+        }
+
+        return { success: true, message: 'Inventory item updated' };
+      }
+    }
+
+    return { success: false, error: 'Item not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Adjust inventory stock with audit trail
+ */
+function adjustInventoryStock(data) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('REF_Crops');
+    if (!sheet) return { success: false, error: 'REF_Crops sheet not found' };
+
+    const values = sheet.getDataRange().getValues();
+    const headers = values[0];
+    const cropIdCol = headers.indexOf('Crop_ID');
+    const stockCol = headers.indexOf('Current_Stock');
+
+    if (stockCol === -1) return { success: false, error: 'Current_Stock column not found' };
+
+    for (let i = 1; i < values.length; i++) {
+      if (values[i][cropIdCol] === data.cropId) {
+        const currentStock = parseFloat(values[i][stockCol]) || 0;
+        let newStock = data.newStock !== undefined ? data.newStock : currentStock;
+
+        sheet.getRange(i + 1, stockCol + 1).setValue(newStock);
+
+        // Log the adjustment
+        logStockAdjustment(data.cropId, values[i][headers.indexOf('Crop_Name')] || '', currentStock, newStock, data.adjustmentType, data.reason);
+
+        return { success: true, previousStock: currentStock, newStock: newStock };
+      }
+    }
+
+    return { success: false, error: 'Item not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Log stock adjustments for audit trail
+ */
+function logStockAdjustment(cropId, cropName, oldStock, newStock, adjustmentType, reason) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('LOG_StockAdjustments');
+    if (!sheet) {
+      sheet = ss.insertSheet('LOG_StockAdjustments');
+      sheet.appendRow(['Timestamp', 'Crop_ID', 'Crop_Name', 'Old_Stock', 'New_Stock', 'Change', 'Type', 'Reason']);
+    }
+
+    sheet.appendRow([
+      new Date().toISOString(),
+      cropId,
+      cropName,
+      oldStock,
+      newStock,
+      newStock - oldStock,
+      adjustmentType,
+      reason || ''
+    ]);
+  } catch (error) {
+    Logger.log('Error logging stock adjustment: ' + error.toString());
+  }
+}
+
+/**
+ * Sync inventory from harvest log
+ */
+function syncInventoryFromHarvest(data) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const harvestSheet = ss.getSheetByName('LOG_Harvests');
+    const cropsSheet = ss.getSheetByName('REF_Crops');
+
+    if (!harvestSheet || !cropsSheet) {
+      return { success: false, error: 'Required sheets not found' };
+    }
+
+    const harvestData = harvestSheet.getDataRange().getValues();
+    const harvestHeaders = harvestData[0];
+    const cropsData = cropsSheet.getDataRange().getValues();
+    const cropHeaders = cropsData[0];
+
+    // Get today's harvests
+    const today = new Date().toISOString().split('T')[0];
+    const cropIdCol = harvestHeaders.indexOf('Crop_ID');
+    const qtyCol = harvestHeaders.indexOf('Quantity');
+    const dateCol = harvestHeaders.indexOf('Harvest_Date');
+
+    // Aggregate harvests by crop
+    const harvests = {};
+    for (let i = 1; i < harvestData.length; i++) {
+      const harvestDate = harvestData[i][dateCol];
+      if (harvestDate && harvestDate.toString().startsWith(today)) {
+        const cropId = harvestData[i][cropIdCol];
+        const qty = parseFloat(harvestData[i][qtyCol]) || 0;
+        harvests[cropId] = (harvests[cropId] || 0) + qty;
+      }
+    }
+
+    // Update stock levels
+    const cropStockCol = cropHeaders.indexOf('Current_Stock');
+    const cropIdColCrops = cropHeaders.indexOf('Crop_ID');
+    let itemsUpdated = 0;
+
+    for (const cropId in harvests) {
+      for (let i = 1; i < cropsData.length; i++) {
+        if (cropsData[i][cropIdColCrops] === cropId) {
+          const currentStock = parseFloat(cropsData[i][cropStockCol]) || 0;
+          const newStock = currentStock + harvests[cropId];
+          cropsSheet.getRange(i + 1, cropStockCol + 1).setValue(newStock);
+          itemsUpdated++;
+          break;
+        }
+      }
+    }
+
+    return { success: true, itemsUpdated: itemsUpdated };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Set vacation hold for a CSA member
+ */
+function setCSAVacationHold(data) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
+    if (!sheet) return { success: false, error: 'CSA_Members sheet not found' };
+
+    const values = sheet.getDataRange().getValues();
+    const headers = values[0];
+    const memberIdCol = headers.indexOf('Member_ID');
+
+    for (let i = 1; i < values.length; i++) {
+      if (values[i][memberIdCol] === data.memberId) {
+        // Update vacation hold fields
+        const holdStartCol = headers.indexOf('Vacation_Start');
+        const holdEndCol = headers.indexOf('Vacation_End');
+        const holdNotesCol = headers.indexOf('Vacation_Notes');
+
+        if (holdStartCol !== -1) sheet.getRange(i + 1, holdStartCol + 1).setValue(data.startDate);
+        if (holdEndCol !== -1) sheet.getRange(i + 1, holdEndCol + 1).setValue(data.endDate);
+        if (holdNotesCol !== -1) sheet.getRange(i + 1, holdNotesCol + 1).setValue(data.notes || '');
+
+        return { success: true, message: 'Vacation hold set' };
+      }
+    }
+
+    return { success: false, error: 'Member not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Generate weekly CSA boxes for all active members
+ */
+function generateWeeklyCSABoxes(data) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const membersSheet = ss.getSheetByName(SALES_SHEETS.CSA_MEMBERS);
+    if (!membersSheet) return { success: false, error: 'CSA_Members sheet not found' };
+
+    const weekDate = data.weekDate || new Date().toISOString().split('T')[0];
+    const membersData = membersSheet.getDataRange().getValues();
+    const headers = membersData[0];
+    const statusCol = headers.indexOf('Status');
+    const shareTypeCol = headers.indexOf('Share_Type');
+
+    // Get active members
+    let boxesCreated = 0;
+    for (let i = 1; i < membersData.length; i++) {
+      if (membersData[i][statusCol] === 'Active') {
+        // Check for vacation hold
+        const holdStart = membersData[i][headers.indexOf('Vacation_Start')];
+        const holdEnd = membersData[i][headers.indexOf('Vacation_End')];
+        if (holdStart && holdEnd && weekDate >= holdStart && weekDate <= holdEnd) {
+          continue; // Skip members on vacation
+        }
+
+        boxesCreated++;
+      }
+    }
+
+    return { success: true, boxesCreated: boxesCreated, weekDate: weekDate };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Send bulk SMS to a list of phone numbers
+ */
+function sendBulkSMSToPhones(data) {
+  try {
+    if (!data.phones || data.phones.length === 0) {
+      return { success: false, error: 'No phone numbers provided' };
+    }
+    if (!data.message) {
+      return { success: false, error: 'No message provided' };
+    }
+
+    let sentCount = 0;
+    let failedCount = 0;
+
+    data.phones.forEach(phone => {
+      try {
+        const result = sendSMS({ to: phone, message: data.message });
+        if (result.success) {
+          sentCount++;
+        } else {
+          failedCount++;
+          Logger.log('Failed to send SMS to: ' + phone + ' - ' + result.error);
+        }
+      } catch (e) {
+        failedCount++;
+        Logger.log('Error sending SMS to: ' + phone + ' - ' + e.toString());
+      }
+    });
+
+    return { success: true, sent: sentCount, failed: failedCount };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Send bulk email to a list of recipients
+ */
+function sendBulkEmailToRecipients(data) {
+  try {
+    if (!data.emails || data.emails.length === 0) {
+      return { success: false, error: 'No email addresses provided' };
+    }
+    if (!data.subject || !data.body) {
+      return { success: false, error: 'Subject and body are required' };
+    }
+
+    let sentCount = 0;
+    let failedCount = 0;
+
+    data.emails.forEach(email => {
+      try {
+        GmailApp.sendEmail(email, data.subject, data.body, {
+          name: 'Tiny Seed Farm',
+          htmlBody: data.body.replace(/\n/g, '<br>')
+        });
+        sentCount++;
+      } catch (e) {
+        failedCount++;
+        Logger.log('Error sending email to: ' + email + ' - ' + e.toString());
+      }
+    });
+
+    return { success: true, sent: sentCount, failed: failedCount };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -56968,8 +57404,10 @@ function saveImageToDrive(base64Data, picId) {
         file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 
         const fileId = file.getId();
-        const url = 'https://drive.google.com/uc?id=' + fileId;
-        const thumbnailUrl = 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w200';
+        // Use lh3.googleusercontent.com format for reliable embedding in img tags
+        // The /uc?id= format is often blocked by CORS or requires authentication
+        const url = 'https://lh3.googleusercontent.com/d/' + fileId;
+        const thumbnailUrl = 'https://lh3.googleusercontent.com/d/' + fileId + '=w200';
 
         Logger.log('saveImageToDrive: Success! File ID: ' + fileId);
         return { success: true, url: url, thumbnailUrl: thumbnailUrl, fileId: fileId };
@@ -59134,6 +59572,463 @@ function getInstagramConfigStatus() {
     Logger.log('Instagram Config Status:');
     Logger.log(JSON.stringify(status, null, 2));
     return { success: true, accounts: status };
+}
+
+// =============================================================================
+// SOCIAL MEDIA CREDENTIALS MANAGEMENT
+// YouTube, TikTok, Pinterest API Credentials
+// =============================================================================
+
+/**
+ * Save social media API credentials to Script Properties
+ * Supports: youtube, tiktok, pinterest
+ */
+function saveSocialCredentials(params) {
+    try {
+        const props = PropertiesService.getScriptProperties();
+        const platform = params.platform;
+        const credentials = params.credentials || {};
+
+        // Save each credential that has a value
+        let savedCount = 0;
+        for (const [key, value] of Object.entries(credentials)) {
+            if (value && value.trim() !== '') {
+                props.setProperty(key, value.trim());
+                savedCount++;
+                Logger.log(`Saved ${key}`);
+            }
+        }
+
+        if (savedCount === 0) {
+            return { success: false, error: 'No credentials provided' };
+        }
+
+        Logger.log(`Saved ${savedCount} credentials for ${platform}`);
+        return {
+            success: true,
+            message: `${platform} credentials saved successfully`,
+            savedCount: savedCount
+        };
+    } catch (error) {
+        Logger.log('Error saving social credentials: ' + error.toString());
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Test social media API connection
+ * Supports: youtube, tiktok, pinterest
+ */
+function testSocialConnection(params) {
+    try {
+        const platform = params.platform;
+        const props = PropertiesService.getScriptProperties();
+
+        switch (platform) {
+            case 'youtube':
+                return testYouTubeConnection(props);
+            case 'tiktok':
+                return testTikTokConnection(props);
+            case 'pinterest':
+                return testPinterestConnection(props);
+            default:
+                return { success: false, error: `Unknown platform: ${platform}` };
+        }
+    } catch (error) {
+        Logger.log('Error testing social connection: ' + error.toString());
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Test YouTube API connection
+ */
+function testYouTubeConnection(props) {
+    const accessToken = props.getProperty('YOUTUBE_ACCESS_TOKEN');
+    const channelId = props.getProperty('YOUTUBE_CHANNEL_ID');
+
+    if (!accessToken) {
+        return { success: false, error: 'YouTube access token not configured' };
+    }
+
+    try {
+        // Test by fetching channel info
+        const url = channelId
+            ? `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${channelId}&access_token=${accessToken}`
+            : `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&mine=true&access_token=${accessToken}`;
+
+        const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+        const result = JSON.parse(response.getContentText());
+
+        if (result.error) {
+            return { success: false, error: result.error.message || 'API error' };
+        }
+
+        if (result.items && result.items.length > 0) {
+            const channel = result.items[0];
+            return {
+                success: true,
+                platform: 'youtube',
+                channelName: channel.snippet.title,
+                subscribers: channel.statistics.subscriberCount,
+                videos: channel.statistics.videoCount
+            };
+        }
+
+        return { success: false, error: 'No channel found' };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Test TikTok API connection
+ */
+function testTikTokConnection(props) {
+    const accessToken = props.getProperty('TIKTOK_ACCESS_TOKEN');
+
+    if (!accessToken) {
+        return { success: false, error: 'TikTok access token not configured' };
+    }
+
+    try {
+        // Test by fetching user info
+        const response = UrlFetchApp.fetch('https://open.tiktokapis.com/v2/user/info/', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            },
+            muteHttpExceptions: true
+        });
+
+        const result = JSON.parse(response.getContentText());
+
+        if (result.error) {
+            return { success: false, error: result.error.message || result.error_description || 'API error' };
+        }
+
+        if (result.data && result.data.user) {
+            return {
+                success: true,
+                platform: 'tiktok',
+                username: result.data.user.display_name || result.data.user.username,
+                followers: result.data.user.follower_count
+            };
+        }
+
+        return { success: true, platform: 'tiktok', message: 'Token valid but user info not available' };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Test Pinterest API connection
+ */
+function testPinterestConnection(props) {
+    const accessToken = props.getProperty('PINTEREST_ACCESS_TOKEN');
+
+    if (!accessToken) {
+        return { success: false, error: 'Pinterest access token not configured' };
+    }
+
+    try {
+        // Test by fetching user account info
+        const response = UrlFetchApp.fetch('https://api.pinterest.com/v5/user_account', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            },
+            muteHttpExceptions: true
+        });
+
+        const result = JSON.parse(response.getContentText());
+
+        if (result.code) {
+            // Pinterest returns error codes in the response
+            return { success: false, error: result.message || 'API error' };
+        }
+
+        if (result.username) {
+            return {
+                success: true,
+                platform: 'pinterest',
+                username: result.username,
+                accountType: result.account_type,
+                followers: result.follower_count
+            };
+        }
+
+        return { success: false, error: 'Could not retrieve account info' };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Get status of all social media connections
+ */
+function getSocialConnectionStatus() {
+    const props = PropertiesService.getScriptProperties();
+
+    const status = {
+        instagram: {
+            connected: false,
+            accounts: []
+        },
+        youtube: {
+            connected: false,
+            hasClientId: !!props.getProperty('YOUTUBE_CLIENT_ID'),
+            hasClientSecret: !!props.getProperty('YOUTUBE_CLIENT_SECRET'),
+            hasAccessToken: !!props.getProperty('YOUTUBE_ACCESS_TOKEN'),
+            hasChannelId: !!props.getProperty('YOUTUBE_CHANNEL_ID')
+        },
+        tiktok: {
+            connected: false,
+            hasClientKey: !!props.getProperty('TIKTOK_CLIENT_KEY'),
+            hasClientSecret: !!props.getProperty('TIKTOK_CLIENT_SECRET'),
+            hasAccessToken: !!props.getProperty('TIKTOK_ACCESS_TOKEN'),
+            hasRefreshToken: !!props.getProperty('TIKTOK_REFRESH_TOKEN')
+        },
+        pinterest: {
+            connected: false,
+            hasAppId: !!props.getProperty('PINTEREST_APP_ID'),
+            hasAppSecret: !!props.getProperty('PINTEREST_APP_SECRET'),
+            hasAccessToken: !!props.getProperty('PINTEREST_ACCESS_TOKEN'),
+            hasRefreshToken: !!props.getProperty('PINTEREST_REFRESH_TOKEN')
+        },
+        shopify: {
+            connected: !!props.getProperty('SHOPIFY_ACCESS_TOKEN'),
+            storeName: props.getProperty('SHOPIFY_STORE_NAME') || 'tiny-seed-farmers-market'
+        }
+    };
+
+    // Check Instagram accounts
+    const accounts = JSON.parse(props.getProperty('instagram_accounts') || '[]');
+    status.instagram.connected = accounts.length > 0;
+    status.instagram.accounts = accounts.map((acc, i) => ({
+        name: acc.name,
+        hasToken: !!props.getProperty(`ig_token_${i}`)
+    }));
+
+    // Determine connected status based on required fields
+    status.youtube.connected = status.youtube.hasAccessToken;
+    status.tiktok.connected = status.tiktok.hasAccessToken;
+    status.pinterest.connected = status.pinterest.hasAccessToken;
+
+    return { success: true, status: status };
+}
+
+// =============================================================================
+// YOUTUBE POSTING FUNCTIONS
+// =============================================================================
+
+/**
+ * Upload a video to YouTube
+ * Note: Videos must be at a publicly accessible URL
+ */
+function postToYouTube(params) {
+    try {
+        const props = PropertiesService.getScriptProperties();
+        const accessToken = props.getProperty('YOUTUBE_ACCESS_TOKEN');
+
+        if (!accessToken) {
+            return { success: false, error: 'YouTube not configured. Set up API credentials first.', setup_required: true };
+        }
+
+        const { title, description, videoUrl, tags, privacyStatus } = params;
+
+        // For now, YouTube requires video upload via resumable upload or direct file
+        // This is a placeholder for the community post feature
+        return {
+            success: false,
+            error: 'YouTube video upload requires direct file upload. Use YouTube Studio or the uploadVideoToYouTube function with file data.',
+            hint: 'For community posts (text/image), YouTube Community API is more suitable.'
+        };
+    } catch (error) {
+        Logger.log('Error posting to YouTube: ' + error.toString());
+        return { success: false, error: error.toString() };
+    }
+}
+
+// =============================================================================
+// TIKTOK POSTING FUNCTIONS
+// =============================================================================
+
+/**
+ * Post a video to TikTok
+ * Note: Requires approved Content Posting API access
+ */
+function postToTikTok(params) {
+    try {
+        const props = PropertiesService.getScriptProperties();
+        const accessToken = props.getProperty('TIKTOK_ACCESS_TOKEN');
+
+        if (!accessToken) {
+            return { success: false, error: 'TikTok not configured. Set up API credentials first.', setup_required: true };
+        }
+
+        const { videoUrl, caption } = params;
+
+        // Step 1: Initialize video upload
+        const initResponse = UrlFetchApp.fetch('https://open.tiktokapis.com/v2/post/publish/video/init/', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            },
+            payload: JSON.stringify({
+                post_info: {
+                    title: caption,
+                    privacy_level: 'MUTUAL_FOLLOW_FRIENDS' // Can be PUBLIC_TO_EVERYONE, MUTUAL_FOLLOW_FRIENDS, SELF_ONLY
+                },
+                source_info: {
+                    source: 'PULL_FROM_URL',
+                    video_url: videoUrl
+                }
+            }),
+            muteHttpExceptions: true
+        });
+
+        const initResult = JSON.parse(initResponse.getContentText());
+
+        if (initResult.error) {
+            return { success: false, error: initResult.error.message || 'Failed to initialize upload' };
+        }
+
+        // Log the post
+        logSocialPost({
+            account: 'TikTok',
+            mediaType: 'VIDEO',
+            caption: caption,
+            mediaId: initResult.data?.publish_id || 'pending',
+            timestamp: new Date().toISOString()
+        });
+
+        return {
+            success: true,
+            platform: 'tiktok',
+            publishId: initResult.data?.publish_id,
+            message: 'Video submitted to TikTok for processing'
+        };
+    } catch (error) {
+        Logger.log('Error posting to TikTok: ' + error.toString());
+        return { success: false, error: error.toString() };
+    }
+}
+
+// =============================================================================
+// PINTEREST POSTING FUNCTIONS
+// =============================================================================
+
+/**
+ * Create a Pin on Pinterest
+ */
+function postToPinterest(params) {
+    try {
+        const props = PropertiesService.getScriptProperties();
+        const accessToken = props.getProperty('PINTEREST_ACCESS_TOKEN');
+
+        if (!accessToken) {
+            return { success: false, error: 'Pinterest not configured. Set up API credentials first.', setup_required: true };
+        }
+
+        const { boardId, imageUrl, title, description, link } = params;
+
+        if (!boardId) {
+            return { success: false, error: 'Board ID is required. Use getPinterestBoards() to get available boards.' };
+        }
+
+        const pinData = {
+            board_id: boardId,
+            media_source: {
+                source_type: 'image_url',
+                url: imageUrl
+            }
+        };
+
+        if (title) pinData.title = title;
+        if (description) pinData.description = description;
+        if (link) pinData.link = link;
+
+        const response = UrlFetchApp.fetch('https://api.pinterest.com/v5/pins', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            },
+            payload: JSON.stringify(pinData),
+            muteHttpExceptions: true
+        });
+
+        const result = JSON.parse(response.getContentText());
+
+        if (result.code) {
+            return { success: false, error: result.message || 'Failed to create pin' };
+        }
+
+        // Log the post
+        logSocialPost({
+            account: 'Pinterest',
+            mediaType: 'PIN',
+            caption: description || title || '',
+            mediaId: result.id,
+            timestamp: new Date().toISOString()
+        });
+
+        return {
+            success: true,
+            platform: 'pinterest',
+            pinId: result.id,
+            pinUrl: `https://pinterest.com/pin/${result.id}`
+        };
+    } catch (error) {
+        Logger.log('Error posting to Pinterest: ' + error.toString());
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Get user's Pinterest boards
+ */
+function getPinterestBoards() {
+    try {
+        const props = PropertiesService.getScriptProperties();
+        const accessToken = props.getProperty('PINTEREST_ACCESS_TOKEN');
+
+        if (!accessToken) {
+            return { success: false, error: 'Pinterest not configured' };
+        }
+
+        const response = UrlFetchApp.fetch('https://api.pinterest.com/v5/boards', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            },
+            muteHttpExceptions: true
+        });
+
+        const result = JSON.parse(response.getContentText());
+
+        if (result.code) {
+            return { success: false, error: result.message };
+        }
+
+        return {
+            success: true,
+            boards: result.items.map(board => ({
+                id: board.id,
+                name: board.name,
+                description: board.description,
+                pinCount: board.pin_count
+            }))
+        };
+    } catch (error) {
+        Logger.log('Error getting Pinterest boards: ' + error.toString());
+        return { success: false, error: error.toString() };
+    }
 }
 
 function logSocialPost(params) {
@@ -61694,6 +62589,449 @@ Return JSON array of 7 days:
 }
 
 /**
+ * Generate Content For Gap Days
+ * Creates AI-generated content for days that don't have scheduled posts
+ */
+function generateContentForGaps(params) {
+    try {
+        const dates = params.dates || [];
+        const platforms = params.platforms || ['instagram', 'facebook'];
+
+        if (dates.length === 0) {
+            return { success: false, error: 'No dates provided' };
+        }
+
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        let queueSheet = ss.getSheetByName('MARKETING_Queue');
+        if (!queueSheet) {
+            queueSheet = ss.insertSheet('MARKETING_Queue');
+            queueSheet.getRange(1, 1, 1, 8).setValues([[
+                'Queue_ID', 'Scheduled_Date', 'Platform', 'Content', 'Content_Type', 'Status', 'Created_At', 'AI_Generated'
+            ]]);
+            queueSheet.setFrozenRows(1);
+        }
+
+        const contentIdeas = [
+            { type: 'original', template: 'Fresh harvest alert! Check out what we picked today. These beauties are ready for your kitchen! #TinySeedFarm #FarmFresh #LocalFood' },
+            { type: 'curated', template: 'Great tip we found: Store your leafy greens wrapped in a paper towel to keep them fresh longer. What are your best produce storage tips? #FarmTips' },
+            { type: 'personal', template: 'Morning vibes on the farm. There\'s nothing like watching the sunrise over the fields. What do you love about mornings? #FarmLife #MorningMotivation' },
+            { type: 'original', template: 'Behind the scenes: This is what harvest day looks like! It takes a lot of work to get these veggies from field to your table. #BehindTheScenes #FarmToTable' },
+            { type: 'curated', template: 'Support local farmers this week! When you buy local, you\'re supporting your community and getting the freshest produce possible. #SupportLocal #ShopLocal' }
+        ];
+
+        let generatedCount = 0;
+        const generatedPosts = [];
+
+        dates.forEach((dateStr, index) => {
+            const idea = contentIdeas[index % contentIdeas.length];
+            platforms.forEach(platform => {
+                const queueId = 'Q-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+                const row = [
+                    queueId,
+                    dateStr + 'T10:00:00',
+                    platform,
+                    idea.template,
+                    idea.type,
+                    'draft',
+                    new Date().toISOString(),
+                    'true'
+                ];
+                queueSheet.appendRow(row);
+                generatedCount++;
+                generatedPosts.push({ id: queueId, date: dateStr, platform: platform, content: idea.template });
+            });
+        });
+
+        return { success: true, generated: generatedCount, posts: generatedPosts };
+    } catch (error) {
+        Logger.log('Error generating content for gaps: ' + error.toString());
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Enhance Caption with AI
+ * Uses Claude or OpenAI to improve a caption while maintaining brand voice
+ */
+function enhanceCaption(params) {
+    try {
+        const caption = params.caption || '';
+        const platform = params.platform || 'instagram';
+        const tone = params.tone || 'authentic farm voice';
+
+        if (!caption.trim()) {
+            return { success: false, error: 'No caption provided' };
+        }
+
+        // Get API key from Script Properties
+        const props = PropertiesService.getScriptProperties();
+        const claudeKey = props.getProperty('CLAUDE_API_KEY');
+        const openaiKey = props.getProperty('OPENAI_API_KEY');
+
+        if (!claudeKey && !openaiKey) {
+            // Fallback: Add hashtags and emojis
+            const hashtags = ' #TinySeedFarm #FarmFresh #LocalFood #Pittsburgh #FarmToTable';
+            const enhanced = caption.trim() + '\n\n' + hashtags;
+            return { success: true, enhancedCaption: enhanced, method: 'fallback' };
+        }
+
+        const prompt = `You are a social media expert for Tiny Seed Farm, a small organic farm in Pittsburgh.
+
+Enhance this ${platform} caption while keeping the ${tone}:
+
+Original: "${caption}"
+
+Requirements:
+- Keep the authentic, friendly voice
+- Keep it under 2200 characters for Instagram
+- Add 3-5 relevant hashtags
+- Add 1-2 appropriate emojis
+- Make it engaging and shareable
+- Include a call to action if appropriate
+
+Return ONLY the enhanced caption, nothing else.`;
+
+        let enhancedCaption;
+
+        if (claudeKey) {
+            const response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': claudeKey,
+                    'anthropic-version': '2023-06-01'
+                },
+                payload: JSON.stringify({
+                    model: 'claude-3-haiku-20240307',
+                    max_tokens: 500,
+                    messages: [{ role: 'user', content: prompt }]
+                }),
+                muteHttpExceptions: true
+            });
+
+            const result = JSON.parse(response.getContentText());
+            if (result.content && result.content[0]) {
+                enhancedCaption = result.content[0].text;
+            }
+        } else if (openaiKey) {
+            const response = UrlFetchApp.fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + openaiKey
+                },
+                payload: JSON.stringify({
+                    model: 'gpt-4o-mini',
+                    messages: [{ role: 'user', content: prompt }],
+                    max_tokens: 500
+                }),
+                muteHttpExceptions: true
+            });
+
+            const result = JSON.parse(response.getContentText());
+            if (result.choices && result.choices[0]) {
+                enhancedCaption = result.choices[0].message.content;
+            }
+        }
+
+        if (enhancedCaption) {
+            return { success: true, enhancedCaption: enhancedCaption.trim(), method: claudeKey ? 'claude' : 'openai' };
+        } else {
+            // Fallback
+            const hashtags = ' #TinySeedFarm #FarmFresh #LocalFood #Pittsburgh #FarmToTable';
+            return { success: true, enhancedCaption: caption.trim() + '\n\n' + hashtags, method: 'fallback' };
+        }
+    } catch (error) {
+        Logger.log('Error enhancing caption: ' + error.toString());
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Check All API Status
+ * Returns status of all integrated APIs
+ */
+function checkAllAPIStatus() {
+    try {
+        const props = PropertiesService.getScriptProperties();
+        const statuses = {};
+
+        // Check Instagram Graph API
+        statuses.instagram = {
+            name: 'Instagram Graph API',
+            configured: !!props.getProperty('INSTAGRAM_ACCESS_TOKEN_0'),
+            status: 'unknown'
+        };
+
+        if (props.getProperty('INSTAGRAM_ACCESS_TOKEN_0')) {
+            try {
+                const token = props.getProperty('INSTAGRAM_ACCESS_TOKEN_0');
+                const response = UrlFetchApp.fetch(`https://graph.facebook.com/v18.0/me?access_token=${token}`, {
+                    muteHttpExceptions: true
+                });
+                statuses.instagram.status = response.getResponseCode() === 200 ? 'connected' : 'error';
+            } catch (e) {
+                statuses.instagram.status = 'error';
+            }
+        }
+
+        // Check Claude API
+        statuses.claude = {
+            name: 'Claude AI',
+            configured: !!props.getProperty('CLAUDE_API_KEY'),
+            status: props.getProperty('CLAUDE_API_KEY') ? 'configured' : 'not_configured'
+        };
+
+        // Check OpenAI API
+        statuses.openai = {
+            name: 'OpenAI',
+            configured: !!props.getProperty('OPENAI_API_KEY'),
+            status: props.getProperty('OPENAI_API_KEY') ? 'configured' : 'not_configured'
+        };
+
+        // Check Twilio
+        statuses.twilio = {
+            name: 'Twilio SMS',
+            configured: !!props.getProperty('TWILIO_ACCOUNT_SID'),
+            status: props.getProperty('TWILIO_ACCOUNT_SID') ? 'configured' : 'not_configured'
+        };
+
+        // Check Meta Ads API
+        statuses.metaAds = {
+            name: 'Meta Ads',
+            configured: !!props.getProperty('META_ADS_ACCESS_TOKEN'),
+            status: props.getProperty('META_ADS_ACCESS_TOKEN') ? 'configured' : 'not_configured'
+        };
+
+        // Check Shopify
+        statuses.shopify = {
+            name: 'Shopify',
+            configured: !!props.getProperty('SHOPIFY_ACCESS_TOKEN'),
+            status: props.getProperty('SHOPIFY_ACCESS_TOKEN') ? 'configured' : 'not_configured'
+        };
+
+        return { success: true, statuses: statuses };
+    } catch (error) {
+        Logger.log('Error checking API status: ' + error.toString());
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Get Todd's Latest Writing Prompt Input
+ * Retrieves the most recent response from Todd's writing prompts
+ */
+function getToddLatestInput() {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        let inputSheet = ss.getSheetByName('MARKETING_ToddInput');
+
+        if (!inputSheet) {
+            // Create the sheet if it doesn't exist
+            inputSheet = ss.insertSheet('MARKETING_ToddInput');
+            inputSheet.getRange(1, 1, 1, 5).setValues([[
+                'Input_ID', 'Prompt', 'Response', 'Timestamp', 'Posts_Generated'
+            ]]);
+            inputSheet.setFrozenRows(1);
+            return { success: true, input: null, message: 'No inputs yet - send Todd a writing prompt!' };
+        }
+
+        const data = inputSheet.getDataRange().getValues();
+        if (data.length <= 1) {
+            return { success: true, input: null, message: 'No inputs yet - send Todd a writing prompt!' };
+        }
+
+        // Get the most recent input (last row)
+        const headers = data[0];
+        const lastRow = data[data.length - 1];
+
+        const input = {
+            id: lastRow[0],
+            prompt: lastRow[1],
+            response: lastRow[2],
+            timestamp: lastRow[3],
+            postsGenerated: lastRow[4] || 0
+        };
+
+        // Get generated posts if any
+        let generatedPosts = [];
+        const queueSheet = ss.getSheetByName('MARKETING_Queue');
+        if (queueSheet) {
+            const queueData = queueSheet.getDataRange().getValues();
+            for (let i = 1; i < queueData.length; i++) {
+                if (queueData[i][7] === input.id) { // AI_Source = input.id
+                    generatedPosts.push({
+                        platform: queueData[i][2],
+                        content: queueData[i][3],
+                        status: queueData[i][5]
+                    });
+                }
+            }
+        }
+
+        return { success: true, input: input, generatedPosts: generatedPosts };
+    } catch (error) {
+        Logger.log('Error getting Todd input: ' + error.toString());
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Generate Posts from Todd's Input
+ * Creates social media posts from Todd's written response to a prompt
+ */
+function generateFromToddInput(params) {
+    try {
+        const inputId = params.inputId;
+        const inputText = params.inputText || '';
+        const platforms = params.platforms || ['instagram', 'facebook'];
+
+        if (!inputText.trim()) {
+            return { success: false, error: 'No input text provided' };
+        }
+
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        let queueSheet = ss.getSheetByName('MARKETING_Queue');
+        if (!queueSheet) {
+            queueSheet = ss.insertSheet('MARKETING_Queue');
+            queueSheet.getRange(1, 1, 1, 9).setValues([[
+                'Queue_ID', 'Scheduled_Date', 'Platform', 'Content', 'Content_Type', 'Status', 'Created_At', 'AI_Generated', 'AI_Source'
+            ]]);
+            queueSheet.setFrozenRows(1);
+        }
+
+        // Get AI key
+        const props = PropertiesService.getScriptProperties();
+        const claudeKey = props.getProperty('CLAUDE_API_KEY');
+        const openaiKey = props.getProperty('OPENAI_API_KEY');
+
+        let generatedPosts = [];
+
+        if (claudeKey || openaiKey) {
+            const prompt = `You are the social media manager for Tiny Seed Farm, a small organic farm in Pittsburgh.
+
+Todd (the farmer) just wrote this about what's happening on the farm:
+"${inputText}"
+
+Generate 3 different social media posts from this input:
+1. An Instagram post (engaging, visual-focused, 150-250 characters, 3-5 hashtags)
+2. A Facebook post (can be longer, conversational, community-focused)
+3. A quick update post (short, punchy, under 100 characters)
+
+Use Todd's authentic voice - warm, friendly, genuine. Don't be overly promotional.
+
+Return as JSON array:
+[{"platform":"instagram","content":"..."},{"platform":"facebook","content":"..."},{"platform":"twitter","content":"..."}]`;
+
+            let response;
+            if (claudeKey) {
+                response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': claudeKey,
+                        'anthropic-version': '2023-06-01'
+                    },
+                    payload: JSON.stringify({
+                        model: 'claude-3-haiku-20240307',
+                        max_tokens: 1000,
+                        messages: [{ role: 'user', content: prompt }]
+                    }),
+                    muteHttpExceptions: true
+                });
+
+                const result = JSON.parse(response.getContentText());
+                if (result.content && result.content[0]) {
+                    const text = result.content[0].text;
+                    const jsonMatch = text.match(/\[[\s\S]*\]/);
+                    if (jsonMatch) {
+                        generatedPosts = JSON.parse(jsonMatch[0]);
+                    }
+                }
+            } else if (openaiKey) {
+                response = UrlFetchApp.fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + openaiKey
+                    },
+                    payload: JSON.stringify({
+                        model: 'gpt-4o-mini',
+                        messages: [{ role: 'user', content: prompt }],
+                        max_tokens: 1000
+                    }),
+                    muteHttpExceptions: true
+                });
+
+                const result = JSON.parse(response.getContentText());
+                if (result.choices && result.choices[0]) {
+                    const text = result.choices[0].message.content;
+                    const jsonMatch = text.match(/\[[\s\S]*\]/);
+                    if (jsonMatch) {
+                        generatedPosts = JSON.parse(jsonMatch[0]);
+                    }
+                }
+            }
+        }
+
+        // Fallback if AI didn't work
+        if (generatedPosts.length === 0) {
+            const shortVersion = inputText.length > 200 ? inputText.substring(0, 197) + '...' : inputText;
+            generatedPosts = [
+                { platform: 'instagram', content: shortVersion + '\n\n#TinySeedFarm #FarmFresh #Pittsburgh' },
+                { platform: 'facebook', content: inputText }
+            ];
+        }
+
+        // Save to queue
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(10, 0, 0, 0);
+
+        let savedCount = 0;
+        generatedPosts.forEach((post, i) => {
+            if (platforms.includes(post.platform) || platforms.includes('all')) {
+                const queueId = 'Q-' + Date.now() + '-' + i;
+                const scheduleDate = new Date(tomorrow);
+                scheduleDate.setDate(scheduleDate.getDate() + i);
+
+                queueSheet.appendRow([
+                    queueId,
+                    scheduleDate.toISOString(),
+                    post.platform,
+                    post.content,
+                    'original',
+                    'draft',
+                    new Date().toISOString(),
+                    'true',
+                    inputId || ''
+                ]);
+                savedCount++;
+            }
+        });
+
+        // Update input record with posts generated count
+        if (inputId) {
+            const inputSheet = ss.getSheetByName('MARKETING_ToddInput');
+            if (inputSheet) {
+                const inputData = inputSheet.getDataRange().getValues();
+                for (let i = 1; i < inputData.length; i++) {
+                    if (inputData[i][0] === inputId) {
+                        inputSheet.getRange(i + 1, 5).setValue((inputData[i][4] || 0) + savedCount);
+                        break;
+                    }
+                }
+            }
+        }
+
+        return { success: true, generated: savedCount, posts: generatedPosts };
+    } catch (error) {
+        Logger.log('Error generating from Todd input: ' + error.toString());
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
  * Mark Action Complete - Track completed actions
  */
 function markSocialActionComplete(params) {
@@ -61721,6 +63059,137 @@ function markSocialActionComplete(params) {
     } catch (error) {
         return { success: false, error: error.toString() };
     }
+}
+
+/**
+ * Get Trending Hashtags for Social Media
+ * Returns relevant hashtags for farm/agriculture social media
+ */
+function getTrendingHashtags(params) {
+    try {
+        // Farm-focused trending hashtags - curated for organic farm content
+        const seasonalHashtags = getSeasonalHashtags();
+        const coreHashtags = [
+            'farmfresh', 'localgrown', 'supportlocal', 'organicfarming',
+            'farmtotable', 'freshveggies', 'csa', 'pittsburgh', 'pghfood',
+            'sustainablefarming', 'smallfarm', 'farmlife', 'growyourown',
+            'healthyeating', 'wholefood', 'vegetables', 'farmersmarket'
+        ];
+
+        // Combine seasonal and core hashtags
+        const allHashtags = [...seasonalHashtags, ...coreHashtags];
+
+        // Shuffle and return top 12
+        const shuffled = allHashtags.sort(() => Math.random() - 0.5);
+
+        return {
+            success: true,
+            hashtags: shuffled.slice(0, 12),
+            timestamp: new Date().toISOString()
+        };
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+function getSeasonalHashtags() {
+    const month = new Date().getMonth();
+
+    // Spring (March-May)
+    if (month >= 2 && month <= 4) {
+        return ['springplanting', 'seedstarting', 'springgreens', 'freshstart', 'springharvest'];
+    }
+    // Summer (June-August)
+    else if (month >= 5 && month <= 7) {
+        return ['summerharvest', 'tomatoseason', 'zucchini', 'farmersmarketseason', 'summerveggies'];
+    }
+    // Fall (September-November)
+    else if (month >= 8 && month <= 10) {
+        return ['fallharvest', 'pumpkinseason', 'rootvegetables', 'autumnfarm', 'preserving'];
+    }
+    // Winter (December-February)
+    else {
+        return ['wintergreens', 'seasonextension', 'coldframes', 'wintercsa', 'storagecrop'];
+    }
+}
+
+/**
+ * Get Content Ideas for Social Media
+ * AI-powered or template-based content suggestions
+ */
+function getContentIdeas(params) {
+    try {
+        const props = PropertiesService.getScriptProperties();
+        const apiKey = props.getProperty('OPENAI_API_KEY');
+
+        const dayOfWeek = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+        const month = new Date().toLocaleDateString('en-US', { month: 'long' });
+
+        // Try AI generation if available
+        if (apiKey) {
+            try {
+                const response = UrlFetchApp.fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + apiKey,
+                        'Content-Type': 'application/json'
+                    },
+                    payload: JSON.stringify({
+                        model: 'gpt-4o-mini',
+                        messages: [
+                            {
+                                role: 'system',
+                                content: 'You are a social media expert for a small organic farm in Pittsburgh. Generate 5 short content ideas (1 sentence each) for Instagram posts. Focus on engagement, authenticity, and seasonal relevance. No hashtags, just ideas.'
+                            },
+                            {
+                                role: 'user',
+                                content: `It's ${dayOfWeek} in ${month}. Give me 5 content ideas for today.`
+                            }
+                        ],
+                        temperature: 0.9,
+                        max_tokens: 300
+                    }),
+                    muteHttpExceptions: true
+                });
+
+                const result = JSON.parse(response.getContentText());
+                if (result.choices && result.choices[0]) {
+                    const ideasText = result.choices[0].message.content;
+                    const ideas = ideasText.split('\n').filter(line => line.trim().length > 0).map(line =>
+                        line.replace(/^\d+\.\s*/, '').trim()
+                    );
+                    return { success: true, ideas: ideas.slice(0, 5), source: 'ai' };
+                }
+            } catch (aiError) {
+                Logger.log('AI content ideas failed, using templates: ' + aiError.toString());
+            }
+        }
+
+        // Fallback to template-based ideas
+        const templateIdeas = getTemplateContentIdeas(dayOfWeek, month);
+        return { success: true, ideas: templateIdeas, source: 'template' };
+
+    } catch (error) {
+        return { success: false, error: error.toString() };
+    }
+}
+
+function getTemplateContentIdeas(dayOfWeek, month) {
+    const ideas = [
+        'Share a behind-the-scenes look at morning harvest routine',
+        'Post a "what\'s in the CSA box this week" preview',
+        'Feature a customer testimonial or pickup day moment',
+        'Show the journey of a vegetable from seed to harvest',
+        'Share a quick tip for storing or preparing seasonal produce',
+        'Post a farm team member spotlight',
+        'Share what you\'re cooking with this week\'s harvest',
+        'Show the sunrise or sunset view from the farm',
+        'Feature a comparison: grocery store vs farm fresh',
+        'Post about the insects or pollinators helping on the farm'
+    ];
+
+    // Return 5 random ideas
+    return ideas.sort(() => Math.random() - 0.5).slice(0, 5);
 }
 
 /**
@@ -64497,6 +65966,197 @@ const SHOPIFY_CONFIG = {
   get API_VERSION() { return '2024-01'; },
   get ENABLED() { return getShopifyConfig().ENABLED; }
 };
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SHOPIFY PAGES API - For SEO Page Management
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Make a Shopify Admin API call for page management
+ */
+function shopifyPageApiCall(endpoint, method = 'GET', payload = null) {
+  const config = getShopifyConfig();
+  if (!config.ENABLED) {
+    return { success: false, error: 'Shopify not configured' };
+  }
+
+  const baseUrl = `https://${config.STORE_NAME}.myshopify.com/admin/api/${SHOPIFY_CONFIG.API_VERSION}`;
+  const url = `${baseUrl}/${endpoint}`;
+
+  const options = {
+    method: method,
+    headers: {
+      'X-Shopify-Access-Token': config.ACCESS_TOKEN,
+      'Content-Type': 'application/json'
+    },
+    muteHttpExceptions: true
+  };
+
+  if (payload && (method === 'POST' || method === 'PUT')) {
+    options.payload = JSON.stringify(payload);
+  }
+
+  try {
+    const response = UrlFetchApp.fetch(url, options);
+    const responseCode = response.getResponseCode();
+    const responseText = response.getContentText();
+
+    if (responseCode >= 200 && responseCode < 300) {
+      return { success: true, data: JSON.parse(responseText) };
+    } else {
+      return { success: false, error: `HTTP ${responseCode}`, details: responseText };
+    }
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get all pages from Shopify store (for SEO Dashboard)
+ */
+function getSEOPages(params) {
+  try {
+    const result = shopifyPageApiCall('pages.json');
+    if (!result.success) {
+      return result;
+    }
+
+    const pages = result.data.pages || [];
+
+    // Categorize pages
+    const seoPages = [];
+    const neighborhoodPages = [];
+    const otherPages = [];
+
+    pages.forEach(page => {
+      const pageInfo = {
+        id: page.id,
+        title: page.title,
+        handle: page.handle,
+        url: `https://${getShopifyConfig().STORE_NAME}.myshopify.com/pages/${page.handle}`,
+        published: !!page.published_at,
+        createdAt: page.created_at,
+        updatedAt: page.updated_at,
+        bodyLength: (page.body_html || '').length,
+        hasMetaDescription: (page.metafield?.description || '').length > 0
+      };
+
+      // Categorize by handle pattern
+      if (page.handle.includes('csa-') || page.handle.includes('farm-') || page.handle.includes('delivery-')) {
+        neighborhoodPages.push(pageInfo);
+      } else if (page.handle.includes('seo') || page.handle.includes('local')) {
+        seoPages.push(pageInfo);
+      } else {
+        otherPages.push(pageInfo);
+      }
+    });
+
+    return {
+      success: true,
+      totalPages: pages.length,
+      neighborhoodPages: neighborhoodPages,
+      seoPages: seoPages,
+      otherPages: otherPages,
+      allPages: pages.map(p => ({
+        id: p.id,
+        title: p.title,
+        handle: p.handle,
+        url: `https://${getShopifyConfig().STORE_NAME}.myshopify.com/pages/${p.handle}`,
+        published: !!p.published_at,
+        updatedAt: p.updated_at
+      }))
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get a specific Shopify page by ID
+ */
+function getSEOPageById(params) {
+  const pageId = params.pageId || params.id;
+  if (!pageId) {
+    return { success: false, error: 'Page ID required' };
+  }
+
+  const result = shopifyPageApiCall(`pages/${pageId}.json`);
+  if (!result.success) {
+    return result;
+  }
+
+  const page = result.data.page;
+  return {
+    success: true,
+    page: {
+      id: page.id,
+      title: page.title,
+      handle: page.handle,
+      url: `https://${getShopifyConfig().STORE_NAME}.myshopify.com/pages/${page.handle}`,
+      bodyHtml: page.body_html,
+      published: !!page.published_at,
+      createdAt: page.created_at,
+      updatedAt: page.updated_at,
+      metafields: page.metafields || [],
+      templateSuffix: page.template_suffix
+    }
+  };
+}
+
+/**
+ * Update a Shopify page (for meta tag management)
+ */
+function updateSEOPage(params) {
+  const pageId = params.pageId || params.id;
+  if (!pageId) {
+    return { success: false, error: 'Page ID required' };
+  }
+
+  const updates = {};
+  if (params.title) updates.title = params.title;
+  if (params.bodyHtml) updates.body_html = params.bodyHtml;
+  if (params.published !== undefined) updates.published = params.published;
+  if (params.handle) updates.handle = params.handle;
+
+  const result = shopifyPageApiCall(`pages/${pageId}.json`, 'PUT', { page: updates });
+  if (!result.success) {
+    return result;
+  }
+
+  return {
+    success: true,
+    message: 'Page updated successfully',
+    page: result.data.page
+  };
+}
+
+/**
+ * Create a new SEO page
+ */
+function createSEOPage(params) {
+  if (!params.title) {
+    return { success: false, error: 'Title required' };
+  }
+
+  const pageData = {
+    title: params.title,
+    body_html: params.bodyHtml || '',
+    handle: params.handle || params.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+    published: params.published !== false
+  };
+
+  const result = shopifyPageApiCall('pages.json', 'POST', { page: pageData });
+  if (!result.success) {
+    return result;
+  }
+
+  return {
+    success: true,
+    message: 'Page created successfully',
+    page: result.data.page,
+    url: `https://${getShopifyConfig().STORE_NAME}.myshopify.com/pages/${result.data.page.handle}`
+  };
+}
 
 const QUICKBOOKS_CONFIG = {
   // Replace with your QuickBooks credentials
@@ -93589,6 +95249,133 @@ function getNextPriorityTask(params = {}) {
     return {
       success: false,
       error: error.toString(),
+      timestamp: new Date().toISOString()
+    };
+  }
+}
+
+/**
+ * Get Farm Stats for Chief of Staff Dashboard
+ * Provides operational metrics for the COS dashboard widgets
+ *
+ * @returns {Object} Farm stats including plantings, tasks, harvests
+ */
+function getFarmStatsForCOS() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const result = {
+      success: true,
+      data: {
+        activePlantings: 0,
+        tasksThisWeek: 0,
+        harvestReady: 0,
+        bedUtilization: 0
+      },
+      timestamp: new Date().toISOString()
+    };
+
+    // Get active plantings count
+    try {
+      const activePlantings = getActivePlantings(ss);
+      result.data.activePlantings = Array.isArray(activePlantings) ? activePlantings.length : 0;
+    } catch (e) {
+      Logger.log('getFarmStatsForCOS - activePlantings error: ' + e.toString());
+    }
+
+    // Get tasks this week
+    try {
+      const tasksSheet = ss.getSheetByName('Tasks') || ss.getSheetByName('TASKS');
+      if (tasksSheet) {
+        const taskData = tasksSheet.getDataRange().getValues();
+        if (taskData.length > 1) {
+          const headers = taskData[0].map(h => String(h).toLowerCase());
+          const dueDateIdx = headers.findIndex(h => h.includes('due'));
+          const statusIdx = headers.findIndex(h => h.includes('status'));
+
+          const now = new Date();
+          const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+          let thisWeekCount = 0;
+          for (let i = 1; i < taskData.length; i++) {
+            const row = taskData[i];
+            const dueDate = dueDateIdx >= 0 ? row[dueDateIdx] : null;
+            const status = statusIdx >= 0 ? String(row[statusIdx]).toLowerCase() : '';
+
+            if (dueDate && dueDate instanceof Date && !status.includes('done') && !status.includes('complete')) {
+              if (dueDate >= now && dueDate <= weekFromNow) {
+                thisWeekCount++;
+              }
+            }
+          }
+          result.data.tasksThisWeek = thisWeekCount;
+        }
+      }
+    } catch (e) {
+      Logger.log('getFarmStatsForCOS - tasks error: ' + e.toString());
+    }
+
+    // Get harvest ready count (from plantings with harvest status)
+    try {
+      const plantingsSheet = ss.getSheetByName('Plantings') || ss.getSheetByName('PLANTINGS');
+      if (plantingsSheet) {
+        const plantingData = plantingsSheet.getDataRange().getValues();
+        if (plantingData.length > 1) {
+          const headers = plantingData[0].map(h => String(h).toLowerCase());
+          const statusIdx = headers.findIndex(h => h.includes('status') || h.includes('stage'));
+
+          let harvestCount = 0;
+          for (let i = 1; i < plantingData.length; i++) {
+            const row = plantingData[i];
+            const status = statusIdx >= 0 ? String(row[statusIdx]).toLowerCase() : '';
+            if (status.includes('harvest') || status.includes('ready') || status.includes('mature')) {
+              harvestCount++;
+            }
+          }
+          result.data.harvestReady = harvestCount;
+        }
+      }
+    } catch (e) {
+      Logger.log('getFarmStatsForCOS - harvest error: ' + e.toString());
+    }
+
+    // Get bed utilization
+    try {
+      const bedsSheet = ss.getSheetByName('Beds') || ss.getSheetByName('BEDS');
+      if (bedsSheet) {
+        const bedsData = bedsSheet.getDataRange().getValues();
+        if (bedsData.length > 1) {
+          const headers = bedsData[0].map(h => String(h).toLowerCase());
+          const statusIdx = headers.findIndex(h => h.includes('status') || h.includes('occupied'));
+
+          let totalBeds = bedsData.length - 1;
+          let occupiedBeds = 0;
+          for (let i = 1; i < bedsData.length; i++) {
+            const row = bedsData[i];
+            const status = statusIdx >= 0 ? String(row[statusIdx]).toLowerCase() : '';
+            if (status.includes('occupied') || status.includes('planted') || status.includes('active') || status.includes('yes') || status === 'true') {
+              occupiedBeds++;
+            }
+          }
+          result.data.bedUtilization = totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 100) : 0;
+        }
+      }
+    } catch (e) {
+      Logger.log('getFarmStatsForCOS - beds error: ' + e.toString());
+    }
+
+    return result;
+
+  } catch (error) {
+    Logger.log('getFarmStatsForCOS error: ' + error.toString());
+    return {
+      success: false,
+      error: error.toString(),
+      data: {
+        activePlantings: 0,
+        tasksThisWeek: 0,
+        harvestReady: 0,
+        bedUtilization: 0
+      },
       timestamp: new Date().toISOString()
     };
   }

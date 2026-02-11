@@ -728,6 +728,18 @@
                     <input type="text" id="newVarietyInput" placeholder="Enter new variety name..." style="display: none; margin-top: 8px;" onchange="onNewVarietyInput()">
                 </div>
             </div>
+
+            <div class="form-row" style="margin-top: 1rem;">
+                <div class="form-group">
+                    <label>Category <span style="color: var(--text-secondary); font-weight: normal;">(Override auto-detection)</span></label>
+                    <select id="categoryOverride" onchange="onCategoryOverrideChange()">
+                        <option value="">Auto-detect from toggle above</option>
+                        <option value="Vegetable">Vegetable</option>
+                        <option value="Floral">Floral</option>
+                        <option value="Herb">Herb</option>
+                    </select>
+                </div>
+            </div>
         </section>
 
         <!-- Grow Settings -->
@@ -1009,6 +1021,7 @@
         let savedPlantingsThisSession = 0;
         let isNewCrop = false;
         let isNewVariety = false;
+        let categoryOverrideValue = ''; // Empty means use auto-detection from toggle
 
         // Crop icons
         const cropIcons = {
@@ -1255,7 +1268,24 @@
             document.querySelectorAll('.category-btn').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.category === category);
             });
+            // Clear category override when toggle is used
+            document.getElementById('categoryOverride').value = '';
+            categoryOverrideValue = '';
             populateCropDropdown();
+        }
+
+        function onCategoryOverrideChange() {
+            categoryOverrideValue = document.getElementById('categoryOverride').value;
+            console.log('Category override set to:', categoryOverrideValue || 'Auto-detect');
+        }
+
+        // Get the effective category for saving - respects override if set
+        function getEffectiveCategory() {
+            if (categoryOverrideValue && categoryOverrideValue !== '') {
+                return categoryOverrideValue;
+            }
+            // Auto-detect based on toggle
+            return currentCategory === 'veg' ? 'Vegetable' : 'Floral';
         }
 
         function populateCropDropdown() {
@@ -1936,6 +1966,7 @@
                     Batch_ID: batchId,
                     Crop: cropName,
                     Variety: variety || 'Standard',
+                    Category: getEffectiveCategory(),
                     Planting_Method: settings.method,
                     Target_Bed_ID: bed,
                     Feet_Used: bedFeet,
@@ -1958,7 +1989,7 @@
                         action: 'createCropProfile',
                         cropName: cropName,
                         variety: variety || '',
-                        category: currentCategory === 'veg' ? 'Veg' : 'Floral',
+                        category: getEffectiveCategory(),
                         dtm: settings.dtm,
                         spacing: settings.spacing,
                         rowsPerBed: settings.rows,
@@ -2051,6 +2082,8 @@
             document.getElementById('successionCheckbox').checked = false;
             document.getElementById('successionOptions').classList.remove('visible');
             document.getElementById('settingsWarning').classList.remove('visible');
+            document.getElementById('categoryOverride').value = '';
+            categoryOverrideValue = '';
 
             selectedCrop = null;
             selectedVariety = null;
