@@ -31175,18 +31175,21 @@ function uploadSocialMediaImage(data) {
     Logger.log('Uploaded social media image: ' + fileName);
     Logger.log('File ID: ' + fileId);
     Logger.log('View URL: ' + viewUrl);
-    Logger.log('Direct URL: ' + directUrl);
+    Logger.log('lh3 URL: ' + lh3Url);
 
+    // IMPORTANT: Instagram often blocks drive.google.com URLs
+    // Use lh3.googleusercontent.com format which is Google's image CDN
+    // This format works more reliably with Instagram's Graph API
     return {
       success: true,
-      imageUrl: viewUrl,  // Use view URL - most compatible with Instagram Graph API
-      directUrl: directUrl,
-      lh3Url: lh3Url,
+      imageUrl: lh3Url,  // PRIMARY: Use lh3 URL - most reliable for Instagram
+      viewUrl: viewUrl,  // FALLBACK 1: Drive view URL
+      directUrl: directUrl,  // FALLBACK 2: Drive download URL
       thumbnailUrl: thumbnailUrl,
       driveUrl: file.getUrl(),
       fileId: fileId,
       fileName: fileName,
-      note: 'If Instagram fails with this URL, the token may need to be refreshed'
+      note: 'Using lh3.googleusercontent.com format for Instagram compatibility'
     };
   } catch (error) {
     Logger.log('Error uploading social media image: ' + error.toString());
