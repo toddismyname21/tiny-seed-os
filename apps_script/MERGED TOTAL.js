@@ -16495,6 +16495,14 @@ function doPost(e) {
         return jsonResponse(bulkSyncSoilData(data));
 
       // ============ INVENTORY SYSTEM POST ENDPOINTS ============
+      case 'addInventoryLocation':
+        return jsonResponse(addInventoryLocation(data));
+      case 'addInventoryCategory':
+        return jsonResponse(addInventoryCategory(data));
+      case 'getInventoryLocations':
+        return jsonResponse(getInventoryLocations());
+      case 'getInventoryCategories':
+        return jsonResponse(getInventoryCategories());
       case 'saveProduct':
         return jsonResponse(saveProduct(data));
       case 'recordTransaction':
@@ -30274,6 +30282,176 @@ function getTransactionHistory(params) {
   } catch (error) {
     return { success: false, error: error.toString() };
   }
+}
+
+// =============================================================================
+// INVENTORY LOCATIONS & CATEGORIES - User-defined custom options
+// =============================================================================
+
+/**
+ * Add a custom inventory location
+ */
+function addInventoryLocation(data) {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        let sheet = ss.getSheetByName('INVENTORY_LOCATIONS');
+
+        if (!sheet) {
+            sheet = ss.insertSheet('INVENTORY_LOCATIONS');
+            sheet.appendRow(['Location_ID', 'Value', 'Label', 'Group', 'Created_At', 'Created_By']);
+            sheet.getRange(1, 1, 1, 6).setFontWeight('bold');
+            sheet.setFrozenRows(1);
+        }
+
+        const value = (data.value || data.name || '').toLowerCase().replace(/\s+/g, '-');
+        const label = data.label || data.name || '';
+
+        if (!value || !label) {
+            return { success: false, error: 'Location name is required' };
+        }
+
+        // Check for duplicates
+        const existingData = sheet.getDataRange().getValues();
+        const valueCol = existingData[0].indexOf('Value');
+        for (let i = 1; i < existingData.length; i++) {
+            if (existingData[i][valueCol] === value) {
+                return { success: false, error: 'Location already exists' };
+            }
+        }
+
+        const locationId = 'LOC_' + Date.now();
+        sheet.appendRow([
+            locationId,
+            value,
+            label,
+            data.group || 'Custom',
+            new Date().toISOString(),
+            data.createdBy || ''
+        ]);
+
+        return { success: true, locationId: locationId, value: value, label: label };
+    } catch (error) {
+        Logger.log('addInventoryLocation ERROR: ' + error.toString());
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Add a custom inventory category
+ */
+function addInventoryCategory(data) {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        let sheet = ss.getSheetByName('INVENTORY_CATEGORIES');
+
+        if (!sheet) {
+            sheet = ss.insertSheet('INVENTORY_CATEGORIES');
+            sheet.appendRow(['Category_ID', 'Value', 'Label', 'Group', 'Created_At', 'Created_By']);
+            sheet.getRange(1, 1, 1, 6).setFontWeight('bold');
+            sheet.setFrozenRows(1);
+        }
+
+        const value = (data.value || data.name || '').toLowerCase().replace(/\s+/g, '-');
+        const label = data.label || data.name || '';
+
+        if (!value || !label) {
+            return { success: false, error: 'Category name is required' };
+        }
+
+        // Check for duplicates
+        const existingData = sheet.getDataRange().getValues();
+        const valueCol = existingData[0].indexOf('Value');
+        for (let i = 1; i < existingData.length; i++) {
+            if (existingData[i][valueCol] === value) {
+                return { success: false, error: 'Category already exists' };
+            }
+        }
+
+        const categoryId = 'CAT_' + Date.now();
+        sheet.appendRow([
+            categoryId,
+            value,
+            label,
+            data.group || 'Custom',
+            new Date().toISOString(),
+            data.createdBy || ''
+        ]);
+
+        return { success: true, categoryId: categoryId, value: value, label: label };
+    } catch (error) {
+        Logger.log('addInventoryCategory ERROR: ' + error.toString());
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Get all inventory locations (default + custom)
+ */
+function getInventoryLocations() {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        const sheet = ss.getSheetByName('INVENTORY_LOCATIONS');
+
+        if (!sheet || sheet.getLastRow() < 2) {
+            return { success: true, locations: [] };
+        }
+
+        const data = sheet.getDataRange().getValues();
+        const headers = data[0];
+        const locations = [];
+
+        const colIdx = {};
+        headers.forEach((h, i) => colIdx[h] = i);
+
+        for (let i = 1; i < data.length; i++) {
+            locations.push({
+                id: data[i][colIdx['Location_ID']],
+                value: data[i][colIdx['Value']],
+                label: data[i][colIdx['Label']],
+                group: data[i][colIdx['Group']] || 'Custom'
+            });
+        }
+
+        return { success: true, locations: locations };
+    } catch (error) {
+        Logger.log('getInventoryLocations ERROR: ' + error.toString());
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Get all inventory categories (default + custom)
+ */
+function getInventoryCategories() {
+    try {
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        const sheet = ss.getSheetByName('INVENTORY_CATEGORIES');
+
+        if (!sheet || sheet.getLastRow() < 2) {
+            return { success: true, categories: [] };
+        }
+
+        const data = sheet.getDataRange().getValues();
+        const headers = data[0];
+        const categories = [];
+
+        const colIdx = {};
+        headers.forEach((h, i) => colIdx[h] = i);
+
+        for (let i = 1; i < data.length; i++) {
+            categories.push({
+                id: data[i][colIdx['Category_ID']],
+                value: data[i][colIdx['Value']],
+                label: data[i][colIdx['Label']],
+                group: data[i][colIdx['Group']] || 'Custom'
+            });
+        }
+
+        return { success: true, categories: categories };
+    } catch (error) {
+        Logger.log('getInventoryCategories ERROR: ' + error.toString());
+        return { success: false, error: error.toString() };
+    }
 }
 
 /**

@@ -16246,15 +16246,16 @@
         }
 
         // ============================================
-        // CUSTOM LOCATIONS & CATEGORIES
+        // CUSTOM LOCATIONS & CATEGORIES (Synced to Google Sheets)
         // ============================================
-        function addCustomLocation() {
+        async function addCustomLocation() {
             const name = prompt('Enter new location name:');
             if (!name || !name.trim()) return;
 
             const value = name.trim().toLowerCase().replace(/\s+/g, '-');
+            const label = name.trim();
 
-            // Check if already exists
+            // Check if already exists locally
             const locationSelect = document.getElementById('inventoryLocation');
             const exists = Array.from(locationSelect.options).some(o => o.value === value);
             if (exists) {
@@ -16262,27 +16263,50 @@
                 return;
             }
 
-            // Add to select
+            // Add to select immediately for instant feedback
             const option = document.createElement('option');
             option.value = value;
-            option.textContent = name.trim();
+            option.textContent = label;
             locationSelect.appendChild(option);
             locationSelect.value = value;
 
-            // Save to localStorage
-            customLocations.push({ value, label: name.trim() });
+            // Save to localStorage as backup
+            customLocations.push({ value, label });
             localStorage.setItem('tsf_inventory_locations', JSON.stringify(customLocations));
 
-            showToast(`Added location: ${name.trim()}`, 'success');
+            // Save to backend (Google Sheets)
+            try {
+                const response = await fetch(CONFIG.API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'addInventoryLocation',
+                        name: label,
+                        value: value,
+                        label: label,
+                        createdBy: AppState.employee?.Name || 'Unknown'
+                    })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showToast(`Location "${label}" added to records!`, 'success');
+                } else {
+                    showToast(`Added locally: ${result.error || 'Will sync later'}`, 'info');
+                }
+            } catch (error) {
+                console.error('Error saving location to backend:', error);
+                showToast(`Location added locally (will sync later)`, 'info');
+            }
         }
 
-        function addCustomCategory() {
+        async function addCustomCategory() {
             const name = prompt('Enter new category name:');
             if (!name || !name.trim()) return;
 
             const value = name.trim().toLowerCase().replace(/\s+/g, '-');
+            const label = name.trim();
 
-            // Check if already exists
+            // Check if already exists locally
             const categorySelect = document.getElementById('inventoryCategory');
             const exists = Array.from(categorySelect.options).some(o => o.value === value);
             if (exists) {
@@ -16290,23 +16314,47 @@
                 return;
             }
 
-            // Add to select
+            // Add to select immediately for instant feedback
             const option = document.createElement('option');
             option.value = value;
-            option.textContent = name.trim();
+            option.textContent = label;
             categorySelect.appendChild(option);
             categorySelect.value = value;
 
-            // Save to localStorage
-            customCategories.push({ value, label: name.trim() });
+            // Save to localStorage as backup
+            customCategories.push({ value, label });
             localStorage.setItem('tsf_inventory_categories', JSON.stringify(customCategories));
 
-            showToast(`Added category: ${name.trim()}`, 'success');
+            // Save to backend (Google Sheets)
+            try {
+                const response = await fetch(CONFIG.API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'addInventoryCategory',
+                        name: label,
+                        value: value,
+                        label: label,
+                        createdBy: AppState.employee?.Name || 'Unknown'
+                    })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showToast(`Category "${label}" added to records!`, 'success');
+                } else {
+                    showToast(`Added locally: ${result.error || 'Will sync later'}`, 'info');
+                }
+            } catch (error) {
+                console.error('Error saving category to backend:', error);
+                showToast(`Category added locally (will sync later)`, 'info');
+            }
         }
 
-        function loadCustomLocationsAndCategories() {
-            // Load custom locations
+        async function loadCustomLocationsAndCategories() {
             const locationSelect = document.getElementById('inventoryLocation');
+            const categorySelect = document.getElementById('inventoryCategory');
+
+            // First load from localStorage for instant display
             if (locationSelect) {
                 customLocations.forEach(loc => {
                     const exists = Array.from(locationSelect.options).some(o => o.value === loc.value);
@@ -16319,8 +16367,6 @@
                 });
             }
 
-            // Load custom categories
-            const categorySelect = document.getElementById('inventoryCategory');
             if (categorySelect) {
                 customCategories.forEach(cat => {
                     const exists = Array.from(categorySelect.options).some(o => o.value === cat.value);
@@ -16331,6 +16377,64 @@
                         categorySelect.appendChild(option);
                     }
                 });
+            }
+
+            // Then fetch from backend and merge
+            try {
+                const [locResponse, catResponse] = await Promise.all([
+                    fetch(CONFIG.API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'getInventoryLocations' })
+                    }),
+                    fetch(CONFIG.API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'getInventoryCategories' })
+                    })
+                ]);
+
+                const [locData, catData] = await Promise.all([locResponse.json(), catResponse.json()]);
+
+                // Add cloud locations to select
+                if (locData.success && locData.locations && locationSelect) {
+                    locData.locations.forEach(loc => {
+                        const exists = Array.from(locationSelect.options).some(o => o.value === loc.value);
+                        if (!exists) {
+                            const option = document.createElement('option');
+                            option.value = loc.value;
+                            option.textContent = loc.label;
+                            locationSelect.appendChild(option);
+                            // Also add to local cache
+                            if (!customLocations.some(l => l.value === loc.value)) {
+                                customLocations.push({ value: loc.value, label: loc.label });
+                            }
+                        }
+                    });
+                    localStorage.setItem('tsf_inventory_locations', JSON.stringify(customLocations));
+                }
+
+                // Add cloud categories to select
+                if (catData.success && catData.categories && categorySelect) {
+                    catData.categories.forEach(cat => {
+                        const exists = Array.from(categorySelect.options).some(o => o.value === cat.value);
+                        if (!exists) {
+                            const option = document.createElement('option');
+                            option.value = cat.value;
+                            option.textContent = cat.label;
+                            categorySelect.appendChild(option);
+                            // Also add to local cache
+                            if (!customCategories.some(c => c.value === cat.value)) {
+                                customCategories.push({ value: cat.value, label: cat.label });
+                            }
+                        }
+                    });
+                    localStorage.setItem('tsf_inventory_categories', JSON.stringify(customCategories));
+                }
+
+                console.log('Loaded custom locations/categories from cloud');
+            } catch (error) {
+                console.log('Using local locations/categories (offline)');
             }
         }
 
