@@ -1,5 +1,5 @@
 /**
- * Tiny Seed Farm - Service Worker v3
+ * Tiny Seed Farm - Service Worker v4
  * Optimized PWA with advanced caching strategies
  * - Cache-first for static assets
  * - Network-first for API calls
@@ -7,7 +7,7 @@
  * - Push notification support
  */
 
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const CACHE_NAME = `tiny-seed-mobile-${CACHE_VERSION}`;
 const STATIC_CACHE_NAME = `tiny-seed-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE_NAME = `tiny-seed-dynamic-${CACHE_VERSION}`;
@@ -74,15 +74,19 @@ const CACHE_DURATION = {
  * Install Event - Pre-cache critical assets
  */
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing service worker v3...');
+  console.log('[SW] Installing service worker v4...');
 
   event.waitUntil(
     Promise.all([
-      // Cache static assets
+      // Cache static assets (use Promise.allSettled so one failure doesn't break everything)
       caches.open(STATIC_CACHE_NAME)
         .then((cache) => {
           console.log('[SW] Pre-caching static assets');
-          return cache.addAll(STATIC_ASSETS);
+          return Promise.allSettled(
+            STATIC_ASSETS.map(url =>
+              cache.add(url).catch(err => console.log('[SW] Could not cache:', url, err))
+            )
+          );
         }),
       // Try to cache HTML pages
       caches.open(CACHE_NAME)
@@ -117,7 +121,7 @@ self.addEventListener('install', (event) => {
  * Activate Event - Clean up old caches
  */
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating service worker v3...');
+  console.log('[SW] Activating service worker v4...');
 
   event.waitUntil(
     caches.keys()

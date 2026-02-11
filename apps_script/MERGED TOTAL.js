@@ -2406,6 +2406,15 @@ function gatherChiefOfStaffContext() {
     context.recentCheckins = [];
   }
 
+  // 15. SMART FARM INTELLIGENCE - Yield predictions, variety performance, succession gaps, risk alerts
+  try {
+    if (typeof getIntelligenceContextForCOS === 'function') {
+      context.farmIntelligence = getIntelligenceContextForCOS();
+    }
+  } catch (e) {
+    context.farmIntelligence = null;
+  }
+
   return context;
 }
 
@@ -16323,6 +16332,82 @@ function doGet(e) {
         };
         return jsonResponse(requestMarketingApproval(testCampaign));
 
+      // ============ SMART FARM INTELLIGENCE - PHASE 1: DATA FOUNDATION (2026-02-11) ============
+      case 'initializeIntelligenceSheets':
+        return jsonResponse(initializeIntelligenceSheets());
+      case 'migrateHistoricalData':
+        return jsonResponse(migrateHistoricalData());
+      case 'getIntelligenceSystemStatus':
+        return jsonResponse(getIntelligenceSystemStatus());
+      case 'getBedCropRankings':
+        return jsonResponse(getBedCropRankings(e.parameter));
+
+      // ============ SMART FARM INTELLIGENCE - PHASE 2: YIELD PREDICTION ENGINE (2026-02-11) ============
+      case 'getYieldPrediction':
+        return jsonResponse(getYieldPrediction(e.parameter));
+
+      // ============ SMART FARM INTELLIGENCE - PHASE 3: VARIETY PERFORMANCE TRACKER (2026-02-11) ============
+      case 'getVarietyRankings':
+        return jsonResponse(getVarietyRankings(e.parameter));
+      case 'submitVarietyReview':
+        return jsonResponse(submitVarietyReview(e.parameter));
+      case 'getVarietyPerformance':
+        return jsonResponse(getVarietyPerformance(e.parameter));
+      case 'getVarietyPerformanceSummary':
+        return jsonResponse(getVarietyPerformanceSummary(e.parameter));
+
+      // ============ SMART FARM INTELLIGENCE - PHASE 4: BED/LOCATION INTELLIGENCE (2026-02-11) ============
+      case 'getBedRecommendations':
+        return jsonResponse(getBedRecommendations(e.parameter));
+      case 'getCropRotationPlan':
+        return jsonResponse(getCropRotationPlan(e.parameter));
+      case 'getBedHistory':
+        return jsonResponse(getBedHistory(e.parameter));
+      case 'checkRotationSafety':
+        return jsonResponse(checkRotationSafety(e.parameter.bedId, e.parameter.crop));
+      case 'getBedScore':
+        return jsonResponse(calculateBedScore(e.parameter.bedId, e.parameter.crop, e.parameter.variety));
+
+      // ============ SMART FARM INTELLIGENCE - PHASE 5: SUCCESSION GAP ANALYZER (2026-02-11) ============
+      case 'getSuccessionGaps':
+        return jsonResponse(getSuccessionGaps(e.parameter));
+      case 'getSuccessionCalendar':
+        return jsonResponse(getSuccessionCalendar(e.parameter));
+      case 'initializeSuccessionPatterns':
+        return jsonResponse(initializeSuccessionPatternsSheet());
+
+      // ============ SMART FARM INTELLIGENCE - PHASE 6: RISK SCORING ENGINE (2026-02-11) ============
+      case 'getRiskScore':
+        return jsonResponse(getRiskScore(e.parameter));
+      case 'getRiskHistory':
+        return jsonResponse(getRiskHistory(e.parameter));
+      case 'initializeRiskHistory':
+        return jsonResponse(initializeRiskHistorySheet());
+
+      // ============ SMART FARM INTELLIGENCE - PHASE 7: REVENUE OPTIMIZER (2026-02-11) ============
+      case 'getRevenueOptimization':
+        return jsonResponse(getRevenueOptimization(e.parameter));
+      case 'getProfitBySquareFoot':
+        return jsonResponse(getProfitBySquareFoot(e.parameter));
+      case 'getRevenueBenchmarks':
+        return jsonResponse(getRevenueBenchmarks(e.parameter));
+      case 'getCropProfitability':
+        return jsonResponse(calculateCropProfitability(
+          e.parameter.crop,
+          e.parameter.variety,
+          e.parameter.year
+        ));
+      case 'initializeRevenueBenchmarks':
+        return jsonResponse(initializeRevenueBenchmarksSheet());
+
+      // ============ SMART FARM INTELLIGENCE - PHASE 8: DASHBOARD & INTEGRATION (2026-02-11) ============
+      case 'getIntelligenceDashboard':
+        return jsonResponse(getIntelligenceDashboard());
+      case 'getIntelligenceAlerts':
+        return jsonResponse(getIntelligenceAlerts(e.parameter));
+      case 'getIntelligenceFeedbackSummary':
+        return jsonResponse(getIntelligenceFeedbackSummary(e.parameter));
+
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
     }
@@ -17247,6 +17332,14 @@ function doPost(e) {
       case 'updateTaskEstimate':
         return jsonResponse(typeof updateTaskEstimate === 'function' ? updateTaskEstimate(data.taskId, data.learnedEstimate) : { success: false, error: 'Not available' });
 
+      // ============ SMART FARM INTELLIGENCE - PHASE 2: YIELD PREDICTION ENGINE (POST) (2026-02-11) ============
+      case 'recordActualYield':
+        return jsonResponse(recordActualYield(data));
+      case 'recordIntelligenceFeedback':
+        return jsonResponse(recordIntelligenceFeedback(data));
+      case 'recalculateYieldModel':
+        return jsonResponse(recalculateYieldModel(data.crop, data.variety));
+
       // ============ CRITICAL TASK SMS API (2026-02-03) ============
       case 'sendCriticalTaskSMS':
         return jsonResponse(sendCriticalTaskSMS(data.taskId, data.recipientId, data.reason));
@@ -17316,6 +17409,20 @@ function doPost(e) {
         return jsonResponse(typeof resolveParseError === 'function' ? resolveParseError(data) : { success: false, error: 'UniversalParser not loaded' });
       case 'clearParsedData':
         return jsonResponse(typeof clearParsedData === 'function' ? clearParsedData(data) : { success: false, error: 'UniversalParser not loaded' });
+
+      // ============ SMART FARM INTELLIGENCE - PHASE 6: RISK SCORING ENGINE (2026-02-11) ============
+      case 'recordRiskEvent':
+        return jsonResponse(recordRiskEvent(data));
+
+      // ============ SMART FARM INTELLIGENCE - PHASE 7: REVENUE OPTIMIZER (2026-02-11) ============
+      case 'saveRevenueBenchmark':
+        return jsonResponse(saveRevenueBenchmark(data));
+      case 'bulkImportBenchmarks':
+        return jsonResponse(bulkImportRevenueBenchmarks(data));
+
+      // ============ SMART FARM INTELLIGENCE - PHASE 8: DASHBOARD & INTEGRATION (2026-02-11) ============
+      case 'submitIntelligenceFeedback':
+        return jsonResponse(submitIntelligenceFeedback(data));
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
@@ -114660,4 +114767,5474 @@ function getShopifyDiscountCodes(priceRuleId) {
     Logger.log('Error getting discount codes: ' + error.toString());
     return { success: false, error: error.toString() };
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SMART FARM INTELLIGENCE - PHASE 5: SUCCESSION GAP ANALYZER
+// Team 3 Implementation - 2026-02-11
+// Analyzes planting successions to identify gaps in harvest continuity
+// ═══════════════════════════════════════════════════════════════════════════
+
+const SUCCESSION_PATTERNS_HEADERS = [
+  'Pattern_ID', 'Crop', 'Variety', 'Year', 'Week', 'Expected_Harvest_Lbs',
+  'Actual_Harvest_Lbs', 'Market_Demand_Lbs', 'Gap_Type', 'Gap_Amount',
+  'Revenue_Lost', 'Storage_Cost', 'Successions_Planted', 'Succession_Interval_Days',
+  'Recommended_Adjustment', 'Confidence'
+];
+
+/**
+ * Initialize the SUCCESSION_PATTERNS sheet with proper headers
+ */
+function initializeSuccessionPatternsSheet() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('SUCCESSION_PATTERNS');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('SUCCESSION_PATTERNS');
+      sheet.getRange(1, 1, 1, SUCCESSION_PATTERNS_HEADERS.length).setValues([SUCCESSION_PATTERNS_HEADERS]);
+      sheet.getRange(1, 1, 1, SUCCESSION_PATTERNS_HEADERS.length).setFontWeight('bold');
+      sheet.setFrozenRows(1);
+
+      sheet.setColumnWidth(1, 120);
+      sheet.setColumnWidth(2, 100);
+      sheet.setColumnWidth(3, 120);
+      sheet.setColumnWidth(15, 200);
+    }
+
+    return {
+      success: true,
+      message: 'SUCCESSION_PATTERNS sheet initialized',
+      sheetName: 'SUCCESSION_PATTERNS',
+      headers: SUCCESSION_PATTERNS_HEADERS
+    };
+  } catch (error) {
+    Logger.log('initializeSuccessionPatternsSheet error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Crop yield estimates in lbs per bed foot for harvest projections
+ */
+const CROP_YIELD_ESTIMATES = {
+  'Lettuce': { lbsPerFoot: 0.5, harvestWindowDays: 14, pricePerLb: 6.00 },
+  'Spinach': { lbsPerFoot: 0.4, harvestWindowDays: 21, pricePerLb: 8.00 },
+  'Kale': { lbsPerFoot: 0.6, harvestWindowDays: 28, pricePerLb: 5.00 },
+  'Arugula': { lbsPerFoot: 0.35, harvestWindowDays: 14, pricePerLb: 9.00 },
+  'Chard': { lbsPerFoot: 0.5, harvestWindowDays: 28, pricePerLb: 5.00 },
+  'Beets': { lbsPerFoot: 1.0, harvestWindowDays: 7, pricePerLb: 3.50 },
+  'Carrots': { lbsPerFoot: 1.5, harvestWindowDays: 14, pricePerLb: 3.00 },
+  'Radish': { lbsPerFoot: 0.3, harvestWindowDays: 7, pricePerLb: 4.00 },
+  'Tomatoes': { lbsPerFoot: 2.5, harvestWindowDays: 60, pricePerLb: 4.00 },
+  'Peppers': { lbsPerFoot: 1.5, harvestWindowDays: 45, pricePerLb: 5.00 },
+  'Cucumbers': { lbsPerFoot: 2.0, harvestWindowDays: 30, pricePerLb: 2.50 },
+  'Zucchini': { lbsPerFoot: 3.0, harvestWindowDays: 45, pricePerLb: 2.00 },
+  'Beans': { lbsPerFoot: 0.5, harvestWindowDays: 14, pricePerLb: 6.00 },
+  'Peas': { lbsPerFoot: 0.3, harvestWindowDays: 14, pricePerLb: 8.00 },
+  'Broccoli': { lbsPerFoot: 0.8, harvestWindowDays: 7, pricePerLb: 4.00 },
+  'Cauliflower': { lbsPerFoot: 1.0, harvestWindowDays: 7, pricePerLb: 4.50 },
+  'Cabbage': { lbsPerFoot: 1.5, harvestWindowDays: 7, pricePerLb: 2.00 },
+  'Basil': { lbsPerFoot: 0.25, harvestWindowDays: 21, pricePerLb: 12.00 },
+  'Cilantro': { lbsPerFoot: 0.2, harvestWindowDays: 14, pricePerLb: 10.00 },
+  'Parsley': { lbsPerFoot: 0.2, harvestWindowDays: 28, pricePerLb: 8.00 }
+};
+
+/**
+ * Get ISO week date from week number - for Succession module
+ */
+function getDateFromWeekForSuccession(year, week) {
+  const jan1 = new Date(year, 0, 1);
+  const jan1DayOfWeek = jan1.getDay();
+  const daysToFirstMonday = (jan1DayOfWeek <= 1) ? (1 - jan1DayOfWeek) : (8 - jan1DayOfWeek);
+  const firstMonday = new Date(year, 0, 1 + daysToFirstMonday);
+  const targetDate = new Date(firstMonday.getTime() + ((week - 1) * 7 * 24 * 60 * 60 * 1000));
+  return targetDate;
+}
+
+/**
+ * Get ISO week number from date - for Succession module
+ */
+function getWeekNumberForSuccession(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+}
+
+/**
+ * Calculate projected harvest volume for a planting in a target week
+ */
+function projectHarvestVolume(planting, targetWeek, targetYear) {
+  const crop = planting.Crop || planting.crop;
+  const yieldData = CROP_YIELD_ESTIMATES[crop] || { lbsPerFoot: 0.5, harvestWindowDays: 14, pricePerLb: 3.00 };
+  const bedFeet = planting.Bed_Feet || planting.bedFeet || 50;
+
+  const transplantDate = planting.Act_Transplant || planting.Actual_Transplant || planting.Plan_Transplant;
+  const sowDate = planting.Act_Field_Sow || planting.Actual_Field_Sow || planting.Act_GH_Sow || planting.Actual_GH_Sow;
+  const dtm = planting.DTM || (CROP_GDD_TARGETS[crop] ? CROP_GDD_TARGETS[crop] / 20 : 60);
+
+  const plantDate = transplantDate || sowDate;
+  if (!plantDate) {
+    return { harvestLbs: 0, inWindow: false, confidence: 0 };
+  }
+
+  const plantDateObj = new Date(plantDate);
+  const harvestStartDate = new Date(plantDateObj.getTime() + (dtm * 24 * 60 * 60 * 1000));
+  const harvestEndDate = new Date(harvestStartDate.getTime() + (yieldData.harvestWindowDays * 24 * 60 * 60 * 1000));
+
+  const targetWeekStart = getDateFromWeekForSuccession(targetYear, targetWeek);
+  const targetWeekEnd = new Date(targetWeekStart.getTime() + (6 * 24 * 60 * 60 * 1000));
+
+  const overlaps = harvestStartDate <= targetWeekEnd && harvestEndDate >= targetWeekStart;
+  if (!overlaps) {
+    return { harvestLbs: 0, inWindow: false, confidence: 100 };
+  }
+
+  const overlapStart = Math.max(harvestStartDate.getTime(), targetWeekStart.getTime());
+  const overlapEnd = Math.min(harvestEndDate.getTime(), targetWeekEnd.getTime());
+  const overlapDays = (overlapEnd - overlapStart) / (24 * 60 * 60 * 1000);
+  const windowDays = Math.min(7, yieldData.harvestWindowDays);
+  const overlapPct = Math.min(1, overlapDays / windowDays);
+
+  const totalYield = bedFeet * yieldData.lbsPerFoot;
+  const weekYield = totalYield * overlapPct;
+
+  return {
+    harvestLbs: Math.round(weekYield * 10) / 10,
+    inWindow: true,
+    harvestStartDate: harvestStartDate.toISOString().split('T')[0],
+    harvestEndDate: harvestEndDate.toISOString().split('T')[0],
+    overlapPct: Math.round(overlapPct * 100),
+    confidence: plantDate ? 80 : 50
+  };
+}
+
+/**
+ * Estimate weekly demand for a crop based on historical patterns
+ */
+function estimateWeeklyDemand(crop, week, year) {
+  try {
+    const weekStart = getDateFromWeekForSuccession(year, week);
+    const demandResult = typeof getAggregatedDemand === 'function'
+      ? getAggregatedDemand({ weekStart: weekStart.toISOString().split('T')[0] })
+      : null;
+
+    if (demandResult && demandResult.success && demandResult.demand) {
+      const cropDemand = demandResult.demand.find(d =>
+        d.cropName && d.cropName.toLowerCase() === crop.toLowerCase()
+      );
+      if (cropDemand) {
+        return {
+          demandLbs: cropDemand.totalQty,
+          byChannel: cropDemand.byChannel,
+          confidence: 90,
+          source: 'aggregated_demand'
+        };
+      }
+    }
+
+    let seasonMultiplier = 1.0;
+    if (week >= 14 && week <= 26) seasonMultiplier = 1.3;
+    else if (week >= 27 && week <= 35) seasonMultiplier = 1.2;
+    else if (week >= 36 && week <= 44) seasonMultiplier = 1.1;
+    else seasonMultiplier = 0.6;
+
+    let baseDemand = 30;
+    if (['Lettuce', 'Spinach', 'Kale', 'Arugula'].includes(crop)) baseDemand = 50;
+    else if (['Tomatoes', 'Cucumbers', 'Zucchini'].includes(crop)) baseDemand = 80;
+    else if (['Carrots', 'Beets'].includes(crop)) baseDemand = 40;
+    else if (['Basil', 'Cilantro', 'Parsley'].includes(crop)) baseDemand = 15;
+
+    return {
+      demandLbs: Math.round(baseDemand * seasonMultiplier),
+      byChannel: { csa: 40, wholesale: 35, market: 25 },
+      confidence: 50,
+      source: 'seasonal_estimate'
+    };
+  } catch (error) {
+    Logger.log('estimateWeeklyDemand error: ' + error.toString());
+    return { demandLbs: 30, confidence: 30, source: 'fallback' };
+  }
+}
+
+/**
+ * GET /api?action=getSuccessionGaps
+ * Analyze succession gaps for crops in a date range
+ */
+function getSuccessionGaps(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const planningSheet = ss.getSheetByName('PLANNING_2026');
+
+    if (!planningSheet) {
+      return { success: false, error: 'PLANNING_2026 sheet not found' };
+    }
+
+    const startDate = params.startDate ? new Date(params.startDate) : new Date();
+    const endDate = params.endDate ? new Date(params.endDate) : new Date(startDate.getTime() + (90 * 24 * 60 * 60 * 1000));
+    const filterCrop = params.crop || null;
+
+    const data = planningSheet.getDataRange().getValues();
+    const headers = data[0];
+    const colMap = {};
+    headers.forEach((h, i) => { colMap[String(h).toLowerCase().replace(/\s+/g, '_')] = i; });
+
+    const plantings = [];
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const crop = row[colMap['crop']] || row[2];
+      if (!crop) continue;
+      if (filterCrop && crop.toLowerCase() !== filterCrop.toLowerCase()) continue;
+
+      plantings.push({
+        Batch_ID: row[colMap['batch_id']] || row[1],
+        Crop: crop,
+        Variety: row[colMap['variety']] || row[3],
+        Bed_Feet: row[colMap['bed_feet']] || row[6] || 50,
+        DTM: row[colMap['dtm']] || row[28] || 60,
+        Plan_Transplant: row[colMap['plan_transplant']] || row[13],
+        Act_Transplant: row[colMap['act_transplant']] || row[14],
+        Act_GH_Sow: row[colMap['act_gh_sow']] || row[10],
+        Act_Field_Sow: row[colMap['act_field_sow']] || row[12],
+        Status: row[colMap['status']] || row[0]
+      });
+    }
+
+    const gaps = [];
+    const crops = [...new Set(plantings.map(p => p.Crop))];
+
+    for (const crop of crops) {
+      const cropPlantings = plantings.filter(p => p.Crop === crop);
+      let currentDate = new Date(startDate);
+
+      while (currentDate <= endDate) {
+        const week = getWeekNumberForSuccession(currentDate);
+        const year = currentDate.getFullYear();
+
+        let totalExpectedHarvest = 0;
+        let successionCount = 0;
+
+        for (const planting of cropPlantings) {
+          const projection = projectHarvestVolume(planting, week, year);
+          if (projection.inWindow) {
+            totalExpectedHarvest += projection.harvestLbs;
+            successionCount++;
+          }
+        }
+
+        const demandEstimate = estimateWeeklyDemand(crop, week, year);
+        const demandLbs = demandEstimate.demandLbs;
+        const gapLbs = totalExpectedHarvest - demandLbs;
+        const weekStartDate = getDateFromWeekForSuccession(year, week);
+        const yieldData = CROP_YIELD_ESTIMATES[crop] || { pricePerLb: 3.00, lbsPerFoot: 0.5 };
+
+        let gapType = 'BALANCED';
+        let recommendation = null;
+        let priority = 'LOW';
+        let revenueAtRisk = 0;
+
+        if (gapLbs < -10) {
+          gapType = 'SHORTAGE';
+          revenueAtRisk = Math.abs(gapLbs) * yieldData.pricePerLb;
+          priority = gapLbs < -30 ? 'HIGH' : 'MEDIUM';
+
+          const dtm = cropPlantings[0]?.DTM || 60;
+          const plantByDate = new Date(weekStartDate.getTime() - (dtm * 24 * 60 * 60 * 1000));
+          const bedFeetNeeded = Math.ceil(Math.abs(gapLbs) / (yieldData.lbsPerFoot || 0.5));
+
+          recommendation = {
+            action: 'ADD_SUCCESSION',
+            details: `Plant ${bedFeetNeeded} bed feet (${Math.ceil(Math.abs(gapLbs))} lbs needed) by ${plantByDate.toISOString().split('T')[0]} to fill Week ${week} gap`,
+            priority: priority,
+            confidence: Math.min(90, demandEstimate.confidence + 20)
+          };
+        } else if (gapLbs > 20) {
+          gapType = 'SURPLUS';
+          priority = gapLbs > 50 ? 'MEDIUM' : 'LOW';
+
+          recommendation = {
+            action: 'MARKET_SURPLUS',
+            details: `${Math.round(gapLbs)} lbs surplus expected. Consider wholesale push, farmers market extra, or processing/storage.`,
+            priority: priority,
+            confidence: Math.min(85, demandEstimate.confidence + 10)
+          };
+        }
+
+        if (gapType !== 'BALANCED') {
+          gaps.push({
+            crop: crop,
+            week: week,
+            week_start: weekStartDate.toISOString().split('T')[0],
+            gap_type: gapType,
+            expected_harvest_lbs: Math.round(totalExpectedHarvest * 10) / 10,
+            projected_demand_lbs: demandLbs,
+            gap_lbs: Math.round(gapLbs * 10) / 10,
+            revenue_at_risk: Math.round(revenueAtRisk * 100) / 100,
+            successions_planted: successionCount,
+            recommendation: recommendation
+          });
+        }
+
+        currentDate = new Date(currentDate.getTime() + (7 * 24 * 60 * 60 * 1000));
+      }
+    }
+
+    gaps.sort((a, b) => {
+      if (a.gap_type === 'SHORTAGE' && b.gap_type !== 'SHORTAGE') return -1;
+      if (a.gap_type !== 'SHORTAGE' && b.gap_type === 'SHORTAGE') return 1;
+      return b.revenue_at_risk - a.revenue_at_risk;
+    });
+
+    const shortages = gaps.filter(g => g.gap_type === 'SHORTAGE');
+    const surpluses = gaps.filter(g => g.gap_type === 'SURPLUS');
+    const totalRevenueAtRisk = shortages.reduce((sum, g) => sum + g.revenue_at_risk, 0);
+
+    return {
+      success: true,
+      analysis_period: { start: startDate.toISOString().split('T')[0], end: endDate.toISOString().split('T')[0] },
+      gaps: gaps,
+      summary: {
+        total_gaps: gaps.length,
+        shortages: shortages.length,
+        surpluses: surpluses.length,
+        total_revenue_at_risk: Math.round(totalRevenueAtRisk * 100) / 100,
+        crops_analyzed: crops.length,
+        plantings_analyzed: plantings.length
+      },
+      generated_at: new Date().toISOString()
+    };
+
+  } catch (error) {
+    Logger.log('getSuccessionGaps error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * GET /api?action=getSuccessionCalendar
+ * Return week-by-week view of succession status
+ */
+function getSuccessionCalendar(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const planningSheet = ss.getSheetByName('PLANNING_2026');
+
+    if (!planningSheet) {
+      return { success: false, error: 'PLANNING_2026 sheet not found' };
+    }
+
+    const startDate = params.startDate ? new Date(params.startDate) : new Date();
+    const endDate = params.endDate ? new Date(params.endDate) : new Date(startDate.getTime() + (90 * 24 * 60 * 60 * 1000));
+    const filterCrop = params.crop || null;
+
+    const data = planningSheet.getDataRange().getValues();
+    const headers = data[0];
+    const colMap = {};
+    headers.forEach((h, i) => { colMap[String(h).toLowerCase().replace(/\s+/g, '_')] = i; });
+
+    const plantings = [];
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const crop = row[colMap['crop']] || row[2];
+      if (!crop) continue;
+      if (filterCrop && crop.toLowerCase() !== filterCrop.toLowerCase()) continue;
+
+      plantings.push({
+        Batch_ID: row[colMap['batch_id']] || row[1],
+        Crop: crop,
+        Variety: row[colMap['variety']] || row[3],
+        Bed_Feet: row[colMap['bed_feet']] || row[6] || 50,
+        DTM: row[colMap['dtm']] || row[28] || 60,
+        Plan_Transplant: row[colMap['plan_transplant']] || row[13],
+        Act_Transplant: row[colMap['act_transplant']] || row[14],
+        Act_GH_Sow: row[colMap['act_gh_sow']] || row[10],
+        Act_Field_Sow: row[colMap['act_field_sow']] || row[12],
+        Status: row[colMap['status']] || row[0]
+      });
+    }
+
+    const calendar = [];
+    const crops = filterCrop ? [filterCrop] : [...new Set(plantings.map(p => p.Crop))];
+
+    let currentDate = new Date(startDate);
+    while (currentDate <= endDate) {
+      const week = getWeekNumberForSuccession(currentDate);
+      const year = currentDate.getFullYear();
+      const weekStart = getDateFromWeekForSuccession(year, week);
+      const weekEnd = new Date(weekStart.getTime() + (6 * 24 * 60 * 60 * 1000));
+
+      const weekEntry = {
+        week: week,
+        year: year,
+        week_start: weekStart.toISOString().split('T')[0],
+        week_end: weekEnd.toISOString().split('T')[0],
+        crops: {}
+      };
+
+      let totalExpected = 0;
+      let totalDemand = 0;
+      const actionItems = [];
+
+      for (const crop of crops) {
+        const cropPlantings = plantings.filter(p => p.Crop === crop);
+        let cropExpected = 0;
+        let successionCount = 0;
+        const harvestingBatches = [];
+
+        for (const planting of cropPlantings) {
+          const projection = projectHarvestVolume(planting, week, year);
+          if (projection.inWindow) {
+            cropExpected += projection.harvestLbs;
+            successionCount++;
+            harvestingBatches.push(planting.Batch_ID);
+          }
+        }
+
+        const demandEstimate = estimateWeeklyDemand(crop, week, year);
+        const cropDemand = demandEstimate.demandLbs;
+        const gap = cropExpected - cropDemand;
+
+        let status = 'BALANCED';
+        let statusColor = '#4ade80';
+
+        if (gap < -10) {
+          status = 'SHORTAGE';
+          statusColor = '#ef4444';
+          actionItems.push(`${crop}: ${Math.abs(Math.round(gap))} lbs shortage - need more successions`);
+        } else if (gap > 20) {
+          status = 'SURPLUS';
+          statusColor = '#f59e0b';
+          actionItems.push(`${crop}: ${Math.round(gap)} lbs surplus - find additional markets`);
+        }
+
+        weekEntry.crops[crop] = {
+          expected_harvest_lbs: Math.round(cropExpected * 10) / 10,
+          projected_demand_lbs: cropDemand,
+          gap_lbs: Math.round(gap * 10) / 10,
+          status: status,
+          status_color: statusColor,
+          successions_active: successionCount,
+          batches: harvestingBatches
+        };
+
+        totalExpected += cropExpected;
+        totalDemand += cropDemand;
+      }
+
+      weekEntry.total_expected_lbs = Math.round(totalExpected * 10) / 10;
+      weekEntry.total_demand_lbs = Math.round(totalDemand * 10) / 10;
+      weekEntry.total_gap_lbs = Math.round((totalExpected - totalDemand) * 10) / 10;
+      weekEntry.overall_status = totalExpected >= totalDemand * 0.9
+        ? (totalExpected > totalDemand * 1.2 ? 'SURPLUS' : 'BALANCED')
+        : 'SHORTAGE';
+      weekEntry.action_items = actionItems;
+
+      calendar.push(weekEntry);
+      currentDate = new Date(currentDate.getTime() + (7 * 24 * 60 * 60 * 1000));
+    }
+
+    return {
+      success: true,
+      analysis_period: { start: startDate.toISOString().split('T')[0], end: endDate.toISOString().split('T')[0] },
+      crops_included: crops,
+      calendar: calendar,
+      generated_at: new Date().toISOString()
+    };
+
+  } catch (error) {
+    Logger.log('getSuccessionCalendar error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SMART FARM INTELLIGENCE - PHASE 6: RISK SCORING ENGINE
+// Team 3 Implementation - 2026-02-11
+// Comprehensive risk assessment for planting decisions
+// ═══════════════════════════════════════════════════════════════════════════
+
+const RISK_HISTORY_HEADERS = [
+  'Risk_ID', 'Date', 'Crop', 'Variety', 'Bed_ID', 'Risk_Type', 'Risk_Severity',
+  'Impact_Type', 'Impact_Pct', 'Weather_Context', 'Season', 'Week_Of_Year',
+  'Preventable', 'Prevention_Notes', 'Resolution'
+];
+
+const RISK_TYPES = {
+  WEATHER: { name: 'Weather Risk', weight: 0.25 },
+  DISEASE: { name: 'Disease Risk', weight: 0.30 },
+  PEST: { name: 'Pest Risk', weight: 0.20 },
+  ROTATION: { name: 'Rotation Risk', weight: 0.15 },
+  SEASONAL: { name: 'Seasonal Risk', weight: 0.10 }
+};
+
+const CROP_FAMILIES_FOR_RISK = {
+  'Brassicaceae': ['Broccoli', 'Cabbage', 'Cauliflower', 'Kale', 'Radish', 'Arugula'],
+  'Solanaceae': ['Tomatoes', 'Peppers', 'Eggplant', 'Potatoes'],
+  'Cucurbitaceae': ['Cucumbers', 'Squash', 'Zucchini', 'Melons', 'Pumpkin'],
+  'Asteraceae': ['Lettuce', 'Sunflowers', 'Artichokes'],
+  'Chenopodiaceae': ['Beets', 'Chard', 'Spinach'],
+  'Apiaceae': ['Carrots', 'Celery', 'Parsley', 'Cilantro'],
+  'Fabaceae': ['Beans', 'Peas'],
+  'Alliaceae': ['Onions', 'Garlic', 'Leeks'],
+  'Lamiaceae': ['Basil', 'Mint', 'Oregano']
+};
+
+/**
+ * Initialize the RISK_HISTORY sheet
+ */
+function initializeRiskHistorySheet() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('RISK_HISTORY');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('RISK_HISTORY');
+      sheet.getRange(1, 1, 1, RISK_HISTORY_HEADERS.length).setValues([RISK_HISTORY_HEADERS]);
+      sheet.getRange(1, 1, 1, RISK_HISTORY_HEADERS.length).setFontWeight('bold');
+      sheet.setFrozenRows(1);
+      sheet.setColumnWidth(1, 120);
+      sheet.setColumnWidth(6, 100);
+      sheet.setColumnWidth(14, 200);
+    }
+
+    return {
+      success: true,
+      message: 'RISK_HISTORY sheet initialized',
+      sheetName: 'RISK_HISTORY',
+      headers: RISK_HISTORY_HEADERS
+    };
+  } catch (error) {
+    Logger.log('initializeRiskHistorySheet error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getCropFamilyForRisk(crop) {
+  for (const [family, crops] of Object.entries(CROP_FAMILIES_FOR_RISK)) {
+    if (crops.some(c => c.toLowerCase() === crop.toLowerCase())) {
+      return family;
+    }
+  }
+  return 'Unknown';
+}
+
+function calculateWeatherRisk(plantingDate, crop) {
+  try {
+    const weatherResult = typeof getWeather === 'function' ? getWeather({}) : null;
+    let score = 20;
+    const details = [];
+
+    const tenderCrops = ['Tomatoes', 'Peppers', 'Eggplant', 'Basil', 'Cucumbers', 'Squash', 'Zucchini', 'Melons', 'Beans'];
+    const coolSeasonCrops = ['Lettuce', 'Spinach', 'Peas', 'Broccoli', 'Cabbage', 'Kale', 'Arugula'];
+    const isTender = tenderCrops.some(c => c.toLowerCase() === crop.toLowerCase());
+    const isCoolSeason = coolSeasonCrops.some(c => c.toLowerCase() === crop.toLowerCase());
+
+    if (weatherResult && weatherResult.success && weatherResult.forecast) {
+      const forecast = weatherResult.forecast;
+      const frostDays = forecast.filter(day => day.low <= 36);
+
+      if (frostDays.length > 0 && isTender) {
+        score += 40;
+        details.push(`Frost risk: ${frostDays.length} days with lows below 36F`);
+      } else if (frostDays.length > 0) {
+        score += 20;
+        details.push(`Cool temps: ${frostDays.length} days with lows below 36F`);
+      }
+
+      const hotDays = forecast.filter(day => day.high > 85);
+      if (hotDays.length > 0 && isCoolSeason) {
+        score += 35;
+        details.push(`Heat stress: ${hotDays.length} days above 85F for cool-season crop`);
+      }
+
+      const drySpell = forecast.filter(day => day.precipProbability < 20).length >= 5;
+      if (drySpell) {
+        score += 15;
+        details.push('Dry conditions expected');
+      }
+
+      const heavyRain = forecast.filter(day => day.precipitation > 1).length;
+      if (heavyRain > 2) {
+        score += 25;
+        details.push(`Flooding risk: ${heavyRain} days with heavy precipitation`);
+      }
+    } else {
+      score = 35;
+      details.push('Weather forecast unavailable');
+    }
+
+    const plantMonth = plantingDate.getMonth() + 1;
+    if (isTender && plantMonth < 5) {
+      score += 30;
+      details.push('Tender crop before last frost date');
+    } else if (isCoolSeason && plantMonth >= 6 && plantMonth <= 8) {
+      score += 20;
+      details.push('Cool-season crop in summer');
+    }
+
+    return { score: Math.min(100, score), details: details.join('; ') || 'Normal conditions', factors: details };
+  } catch (error) {
+    return { score: 30, details: 'Unable to assess', factors: [] };
+  }
+}
+
+function calculateDiseaseRisk(crop, variety, bedId) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const riskSheet = ss.getSheetByName('RISK_HISTORY');
+    let score = 15;
+    const details = [];
+
+    if (riskSheet) {
+      const data = riskSheet.getDataRange().getValues();
+      const headers = data[0];
+      const colMap = {};
+      headers.forEach((h, i) => { colMap[h] = i; });
+
+      const threeYearsAgo = new Date();
+      threeYearsAgo.setFullYear(threeYearsAgo.getFullYear() - 3);
+
+      let bedDiseaseEvents = 0;
+      let cropDiseaseEvents = 0;
+
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        const eventDate = new Date(row[colMap['Date']]);
+        const riskType = row[colMap['Risk_Type']];
+        if (eventDate < threeYearsAgo) continue;
+        if (!['DISEASE', 'fungal', 'bacterial', 'viral'].includes(riskType)) continue;
+
+        if (row[colMap['Bed_ID']] === bedId) bedDiseaseEvents++;
+        if (row[colMap['Crop']] && row[colMap['Crop']].toLowerCase() === crop.toLowerCase()) cropDiseaseEvents++;
+      }
+
+      if (bedDiseaseEvents > 0) {
+        score += bedDiseaseEvents * 15;
+        details.push(`${bedDiseaseEvents} disease events in this bed`);
+      }
+      if (cropDiseaseEvents > 0) {
+        score += cropDiseaseEvents * 10;
+        details.push(`${cropDiseaseEvents} disease events for ${crop}`);
+      }
+    }
+
+    if (typeof getDiseaseRisk === 'function') {
+      const diseaseRiskData = getDiseaseRisk({});
+      if (diseaseRiskData.success && diseaseRiskData.data) {
+        const lateBlight = diseaseRiskData.data.late_blight;
+        const solanaceaeCrops = ['Tomatoes', 'Peppers', 'Eggplant', 'Potatoes'];
+        if (solanaceaeCrops.some(c => c.toLowerCase() === crop.toLowerCase()) && lateBlight && lateBlight.risk_level !== 'LOW') {
+          score += lateBlight.risk_level === 'HIGH' ? 40 : 20;
+          details.push(`Late blight risk: ${lateBlight.risk_level}`);
+        }
+      }
+    }
+
+    if (details.length === 0) details.push('No disease history');
+    return { score: Math.min(100, score), details: details.join('; '), factors: details };
+  } catch (error) {
+    return { score: 20, details: 'Unable to assess', factors: [] };
+  }
+}
+
+function calculateRotationRisk(bedId, crop) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const planningSheet = ss.getSheetByName('PLANNING_2026');
+    let score = 10;
+    const details = [];
+    const cropFamily = getCropFamilyForRisk(crop);
+
+    if (planningSheet) {
+      const data = planningSheet.getDataRange().getValues();
+      const headers = data[0];
+      const colMap = {};
+      headers.forEach((h, i) => { colMap[String(h).toLowerCase().replace(/\s+/g, '_')] = i; });
+
+      const threeYearsAgo = new Date();
+      threeYearsAgo.setFullYear(threeYearsAgo.getFullYear() - 3);
+      const recentPlantings = [];
+
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        const rowBedId = row[colMap['bed_id']] || row[5];
+        if (rowBedId !== bedId) continue;
+
+        const rowCrop = row[colMap['crop']] || row[2];
+        const plantDate = row[colMap['plan_transplant']] || row[colMap['act_transplant']] || row[13];
+        if (!rowCrop || !plantDate) continue;
+
+        const plantDateObj = new Date(plantDate);
+        if (plantDateObj >= threeYearsAgo) {
+          recentPlantings.push({ crop: rowCrop, family: getCropFamilyForRisk(rowCrop), year: plantDateObj.getFullYear() });
+        }
+      }
+
+      const sameFamilyPlantings = recentPlantings.filter(p => p.family === cropFamily);
+      if (sameFamilyPlantings.length > 0) {
+        const yearsAgo = sameFamilyPlantings.map(p => new Date().getFullYear() - p.year);
+        const mostRecent = Math.min(...yearsAgo);
+
+        if (mostRecent === 0) {
+          score += 50;
+          details.push(`Same family (${cropFamily}) planted this year - HIGH risk`);
+        } else if (mostRecent === 1) {
+          score += 35;
+          details.push(`Same family (${cropFamily}) planted last year`);
+        } else if (mostRecent === 2) {
+          score += 20;
+          details.push(`Same family (${cropFamily}) planted 2 years ago`);
+        }
+      } else if (recentPlantings.length > 0) {
+        details.push(`Good rotation - no ${cropFamily} in last 3 years`);
+        score = 5;
+      }
+
+      const lastPlanting = recentPlantings.sort((a, b) => b.year - a.year)[0];
+      if (lastPlanting && lastPlanting.family === 'Fabaceae') {
+        score = Math.max(5, score - 10);
+        details.push('Follows nitrogen-fixer');
+      }
+    }
+
+    if (details.length === 0) {
+      details.push('No planting history for this bed');
+      score = 25;
+    }
+
+    return { score: Math.min(100, score), details: details.join('; '), factors: details };
+  } catch (error) {
+    return { score: 30, details: 'Unable to assess', factors: [] };
+  }
+}
+
+function calculateSeasonalRisk(plantingDate, crop) {
+  const month = plantingDate.getMonth() + 1;
+  let score = 10;
+  const details = [];
+
+  const plantingWindows = {
+    'Lettuce': { optimalStart: 3, optimalEnd: 5, fallStart: 8, fallEnd: 10 },
+    'Spinach': { optimalStart: 3, optimalEnd: 5, fallStart: 8, fallEnd: 10 },
+    'Kale': { optimalStart: 3, optimalEnd: 5, fallStart: 7, fallEnd: 9 },
+    'Broccoli': { optimalStart: 3, optimalEnd: 5, fallStart: 7, fallEnd: 8 },
+    'Peas': { optimalStart: 3, optimalEnd: 4, fallStart: 8, fallEnd: 9 },
+    'Radish': { optimalStart: 3, optimalEnd: 5, fallStart: 8, fallEnd: 10 },
+    'Arugula': { optimalStart: 3, optimalEnd: 5, fallStart: 8, fallEnd: 10 },
+    'Tomatoes': { optimalStart: 5, optimalEnd: 6 },
+    'Peppers': { optimalStart: 5, optimalEnd: 6 },
+    'Cucumbers': { optimalStart: 5, optimalEnd: 7 },
+    'Squash': { optimalStart: 5, optimalEnd: 7 },
+    'Zucchini': { optimalStart: 5, optimalEnd: 7 },
+    'Beans': { optimalStart: 5, optimalEnd: 7 },
+    'Basil': { optimalStart: 5, optimalEnd: 7 },
+    'Melons': { optimalStart: 5, optimalEnd: 6 }
+  };
+
+  const window = plantingWindows[crop];
+  if (window) {
+    const inSpringWindow = month >= window.optimalStart && month <= window.optimalEnd;
+    const inFallWindow = window.fallStart && month >= window.fallStart && month <= window.fallEnd;
+
+    if (inSpringWindow || inFallWindow) {
+      score = 5;
+      details.push('Within optimal window');
+    } else {
+      let monthsOff = 0;
+      if (month < window.optimalStart) monthsOff = window.optimalStart - month;
+      else if (month > window.optimalEnd && (!window.fallStart || month < window.fallStart)) monthsOff = month - window.optimalEnd;
+      else if (window.fallEnd && month > window.fallEnd) monthsOff = month - window.fallEnd;
+
+      score = Math.min(80, 20 + (monthsOff * 15));
+      details.push(`${monthsOff} month(s) outside optimal window`);
+    }
+  } else {
+    score = 15;
+    details.push('No planting window data');
+  }
+
+  return { score: score, details: details.join('; '), factors: details };
+}
+
+/**
+ * GET /api?action=getRiskScore
+ * Calculate comprehensive risk score for a planting
+ */
+function getRiskScore(params) {
+  try {
+    const crop = params.crop;
+    const variety = params.variety || '';
+    const bedId = params.bedId || '';
+    const plantingDate = params.plantingDate ? new Date(params.plantingDate) : new Date();
+
+    if (!crop) return { success: false, error: 'Crop parameter is required' };
+
+    const weatherRisk = calculateWeatherRisk(plantingDate, crop);
+    const diseaseRisk = calculateDiseaseRisk(crop, variety, bedId);
+    const rotationRisk = calculateRotationRisk(bedId, crop);
+    const seasonalRisk = calculateSeasonalRisk(plantingDate, crop);
+
+    const factors = [
+      { category: 'WEATHER', score: weatherRisk.score, details: weatherRisk.details, weight: RISK_TYPES.WEATHER.weight },
+      { category: 'DISEASE', score: diseaseRisk.score, details: diseaseRisk.details, weight: RISK_TYPES.DISEASE.weight },
+      { category: 'ROTATION', score: rotationRisk.score, details: rotationRisk.details, weight: RISK_TYPES.ROTATION.weight },
+      { category: 'SEASONAL', score: seasonalRisk.score, details: seasonalRisk.details, weight: RISK_TYPES.SEASONAL.weight }
+    ];
+
+    const totalWeight = factors.reduce((sum, f) => sum + f.weight, 0);
+    factors.forEach(f => f.weight = f.weight / totalWeight);
+
+    const compositeScore = Math.round(factors.reduce((sum, f) => sum + (f.score * f.weight), 0));
+
+    let riskLevel = 'LOW';
+    let riskColor = '#4ade80';
+    if (compositeScore >= 70) { riskLevel = 'HIGH'; riskColor = '#ef4444'; }
+    else if (compositeScore >= 45) { riskLevel = 'MODERATE'; riskColor = '#f59e0b'; }
+    else if (compositeScore < 25) { riskLevel = 'MINIMAL'; riskColor = '#22c55e'; }
+
+    const mitigations = [];
+    const tenderCrops = ['Tomatoes', 'Peppers', 'Eggplant', 'Basil', 'Cucumbers', 'Squash', 'Zucchini', 'Melons', 'Beans'];
+
+    if (weatherRisk.score >= 40) {
+      if (tenderCrops.some(c => c.toLowerCase() === crop.toLowerCase())) {
+        mitigations.push({ factor: 'WEATHER', action: 'Have row cover ready for frost protection', impact: `Could reduce risk to ${Math.round(weatherRisk.score * 0.6)}` });
+      }
+      mitigations.push({ factor: 'WEATHER', action: 'Monitor forecast daily', impact: 'Flexible scheduling reduces exposure' });
+    }
+
+    if (diseaseRisk.score >= 40) {
+      mitigations.push({ factor: 'DISEASE', action: 'Apply preventive organic fungicide', impact: `Could reduce risk to ${Math.round(diseaseRisk.score * 0.5)}` });
+      mitigations.push({ factor: 'DISEASE', action: 'Increase plant spacing', impact: 'Reduces humidity and disease spread' });
+    }
+
+    if (rotationRisk.score >= 40) {
+      mitigations.push({ factor: 'ROTATION', action: 'Consider alternative bed location', impact: `Moving bed could reduce risk significantly` });
+      mitigations.push({ factor: 'ROTATION', action: 'Add soil amendments and beneficial microbes', impact: 'Helps suppress soilborne pathogens' });
+    }
+
+    if (seasonalRisk.score >= 40) {
+      mitigations.push({ factor: 'SEASONAL', action: 'Delay planting to optimal window', impact: 'In-season planting improves success' });
+      mitigations.push({ factor: 'SEASONAL', action: 'Use season extension tools', impact: 'Can extend windows by 2-4 weeks' });
+    }
+
+    return {
+      success: true,
+      crop: crop,
+      variety: variety,
+      bed_id: bedId,
+      planting_date: plantingDate.toISOString().split('T')[0],
+      risk_score: compositeScore,
+      risk_level: riskLevel,
+      risk_color: riskColor,
+      factors: factors,
+      mitigations: mitigations,
+      calculated_at: new Date().toISOString()
+    };
+
+  } catch (error) {
+    Logger.log('getRiskScore error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * POST /api?action=recordRiskEvent
+ * Log a risk event to RISK_HISTORY
+ */
+function recordRiskEvent(data) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('RISK_HISTORY');
+
+    if (!sheet) {
+      initializeRiskHistorySheet();
+      sheet = ss.getSheetByName('RISK_HISTORY');
+    }
+
+    const riskId = 'RISK_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+    const eventDate = data.date ? new Date(data.date) : new Date();
+    const weekOfYear = getWeekNumberForSuccession(eventDate);
+    const month = eventDate.getMonth() + 1;
+
+    let season = 'Winter';
+    if (month >= 3 && month <= 5) season = 'Spring';
+    else if (month >= 6 && month <= 8) season = 'Summer';
+    else if (month >= 9 && month <= 11) season = 'Fall';
+
+    const row = [
+      riskId,
+      eventDate.toISOString().split('T')[0],
+      data.crop || '',
+      data.variety || '',
+      data.bedId || '',
+      data.riskType || 'OTHER',
+      data.severity || 'MODERATE',
+      data.impactType || 'YIELD_LOSS',
+      data.impactPct || 0,
+      data.weatherContext || '',
+      season,
+      weekOfYear,
+      data.preventable || 'Unknown',
+      data.preventionNotes || '',
+      data.resolution || ''
+    ];
+
+    sheet.appendRow(row);
+
+    return {
+      success: true,
+      risk_id: riskId,
+      message: 'Risk event recorded successfully',
+      event: { id: riskId, date: eventDate.toISOString().split('T')[0], crop: data.crop, type: data.riskType, severity: data.severity }
+    };
+
+  } catch (error) {
+    Logger.log('recordRiskEvent error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * GET /api?action=getRiskHistory
+ * Retrieve risk history with optional filters
+ */
+function getRiskHistory(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('RISK_HISTORY');
+
+    if (!sheet) {
+      return { success: true, events: [], message: 'No RISK_HISTORY sheet found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length < 2) {
+      return { success: true, events: [], message: 'No risk events recorded' };
+    }
+
+    const headers = data[0];
+    const colMap = {};
+    headers.forEach((h, i) => { colMap[h] = i; });
+
+    const events = [];
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (!row[0]) continue;
+
+      const eventDate = new Date(row[colMap['Date']]);
+      if (params.crop && row[colMap['Crop']] !== params.crop) continue;
+      if (params.bedId && row[colMap['Bed_ID']] !== params.bedId) continue;
+      if (params.riskType && row[colMap['Risk_Type']] !== params.riskType) continue;
+      if (params.startDate && eventDate < new Date(params.startDate)) continue;
+      if (params.endDate && eventDate > new Date(params.endDate)) continue;
+
+      events.push({
+        risk_id: row[colMap['Risk_ID']],
+        date: row[colMap['Date']],
+        crop: row[colMap['Crop']],
+        variety: row[colMap['Variety']],
+        bed_id: row[colMap['Bed_ID']],
+        risk_type: row[colMap['Risk_Type']],
+        severity: row[colMap['Risk_Severity']],
+        impact_type: row[colMap['Impact_Type']],
+        impact_pct: row[colMap['Impact_Pct']],
+        weather_context: row[colMap['Weather_Context']],
+        season: row[colMap['Season']],
+        week_of_year: row[colMap['Week_Of_Year']],
+        preventable: row[colMap['Preventable']],
+        prevention_notes: row[colMap['Prevention_Notes']],
+        resolution: row[colMap['Resolution']]
+      });
+    }
+
+    events.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    const byType = {};
+    const bySeverity = {};
+    events.forEach(e => {
+      byType[e.risk_type] = (byType[e.risk_type] || 0) + 1;
+      bySeverity[e.severity] = (bySeverity[e.severity] || 0) + 1;
+    });
+
+    return {
+      success: true,
+      events: events,
+      total_events: events.length,
+      summary: {
+        by_type: byType,
+        by_severity: bySeverity,
+        preventable_count: events.filter(e => e.preventable === 'Yes').length,
+        date_range: events.length > 0 ? { earliest: events[events.length - 1].date, latest: events[0].date } : null
+      }
+    };
+
+  } catch (error) {
+    Logger.log('getRiskHistory error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SMART FARM INTELLIGENCE - PHASE 7: REVENUE OPTIMIZER
+// Production-ready revenue optimization engine for Tiny Seed Farm
+// Added: 2026-02-11
+// ═══════════════════════════════════════════════════════════════════════════
+
+const REVENUE_BENCHMARKS_SHEET = 'REVENUE_BENCHMARKS';
+const REVENUE_BENCHMARKS_HEADERS = [
+  'Benchmark_ID', 'Crop', 'Variety', 'Year', 'Avg_Price_Per_Lb', 'Avg_Yield_Per_Ft',
+  'Revenue_Per_Ft', 'Labor_Cost_Per_Ft', 'Seed_Cost_Per_Ft', 'Other_Costs_Per_Ft',
+  'Profit_Per_Ft', 'Profit_Margin', 'Market_Channel', 'Season', 'Demand_Rating',
+  'Grow_Recommendation', 'Rank_By_Profit', 'Notes', 'Created_At', 'Updated_At'
+];
+
+const INTELLIGENCE_FEEDBACK_SHEET = 'INTELLIGENCE_FEEDBACK';
+const INTELLIGENCE_FEEDBACK_HEADERS = [
+  'Feedback_ID', 'Recommendation_Type', 'Recommendation_ID', 'Accepted',
+  'Outcome', 'Rating', 'Comments', 'User_ID', 'Created_At', 'Training_Included'
+];
+
+// Revenue optimization configuration
+const REVENUE_CONFIG = {
+  // Constraints for CSA variety requirements
+  CSA_MIN_VARIETIES: 8,
+  CSA_MIN_CROP_FAMILIES: 5,
+  // Rotation constraints
+  MIN_ROTATION_YEARS: 3,
+  // Labor capacity (hours per week available)
+  WEEKLY_LABOR_HOURS: 160,
+  // Default costs if not specified
+  DEFAULT_LABOR_COST_PER_FT: 0.50,
+  DEFAULT_SEED_COST_PER_FT: 0.10,
+  DEFAULT_OTHER_COST_PER_FT: 0.15,
+  // Market channel multipliers
+  CHANNEL_MULTIPLIERS: {
+    csa: 1.0,
+    wholesale: 0.6,
+    farmers_market: 1.2,
+    direct: 1.1
+  },
+  // Season definitions
+  SEASONS: {
+    spring: { months: [3, 4, 5], name: 'Spring' },
+    summer: { months: [6, 7, 8], name: 'Summer' },
+    fall: { months: [9, 10, 11], name: 'Fall' },
+    winter: { months: [12, 1, 2], name: 'Winter' }
+  }
+};
+
+/**
+ * Initialize REVENUE_BENCHMARKS sheet with headers
+ */
+function initializeRevenueBenchmarksSheet() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(REVENUE_BENCHMARKS_SHEET);
+
+    if (!sheet) {
+      sheet = ss.insertSheet(REVENUE_BENCHMARKS_SHEET);
+      sheet.getRange(1, 1, 1, REVENUE_BENCHMARKS_HEADERS.length).setValues([REVENUE_BENCHMARKS_HEADERS]);
+      sheet.getRange(1, 1, 1, REVENUE_BENCHMARKS_HEADERS.length)
+        .setBackground('#1b5e20')
+        .setFontColor('#ffffff')
+        .setFontWeight('bold');
+      sheet.setFrozenRows(1);
+
+      // Set column widths
+      sheet.setColumnWidth(1, 120);  // Benchmark_ID
+      sheet.setColumnWidth(2, 120);  // Crop
+      sheet.setColumnWidth(3, 120);  // Variety
+      sheet.setColumnWidth(4, 60);   // Year
+      sheet.setColumnWidth(5, 100);  // Avg_Price_Per_Lb
+      sheet.setColumnWidth(6, 100);  // Avg_Yield_Per_Ft
+      sheet.setColumnWidth(7, 100);  // Revenue_Per_Ft
+      sheet.setColumnWidth(8, 100);  // Labor_Cost_Per_Ft
+      sheet.setColumnWidth(9, 100);  // Seed_Cost_Per_Ft
+      sheet.setColumnWidth(10, 100); // Other_Costs_Per_Ft
+      sheet.setColumnWidth(11, 100); // Profit_Per_Ft
+      sheet.setColumnWidth(12, 80);  // Profit_Margin
+
+      // Add sample data for reference
+      const sampleData = [
+        ['BM-001', 'Salad Mix', 'Spring Mix', 2025, 8.00, 0.50, 4.00, 0.60, 0.15, 0.20, 3.05, 76, 'csa', 'spring', 'high', 'highly_recommended', 1, 'Top performer', new Date().toISOString(), new Date().toISOString()],
+        ['BM-002', 'Tomato', 'Cherokee Purple', 2025, 4.50, 0.75, 3.38, 0.80, 0.25, 0.30, 2.03, 60, 'farmers_market', 'summer', 'high', 'recommended', 2, 'Heirloom premium', new Date().toISOString(), new Date().toISOString()],
+        ['BM-003', 'Kale', 'Red Russian', 2025, 3.50, 0.60, 2.10, 0.40, 0.10, 0.15, 1.45, 69, 'csa', 'fall', 'medium', 'recommended', 3, 'Easy to grow', new Date().toISOString(), new Date().toISOString()],
+        ['BM-004', 'Carrots', 'Napoli', 2025, 3.00, 0.40, 1.20, 0.50, 0.08, 0.12, 0.50, 42, 'wholesale', 'fall', 'medium', 'conditional', 5, 'Volume crop', new Date().toISOString(), new Date().toISOString()]
+      ];
+      if (sampleData.length > 0) {
+        sheet.getRange(2, 1, sampleData.length, sampleData[0].length).setValues(sampleData);
+      }
+
+      return { success: true, message: 'REVENUE_BENCHMARKS sheet created with sample data' };
+    }
+
+    return { success: true, message: 'REVENUE_BENCHMARKS sheet already exists' };
+  } catch (error) {
+    Logger.log('Error initializing REVENUE_BENCHMARKS: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Initialize INTELLIGENCE_FEEDBACK sheet
+ */
+function initializeIntelligenceFeedbackSheet() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(INTELLIGENCE_FEEDBACK_SHEET);
+
+    if (!sheet) {
+      sheet = ss.insertSheet(INTELLIGENCE_FEEDBACK_SHEET);
+      sheet.getRange(1, 1, 1, INTELLIGENCE_FEEDBACK_HEADERS.length).setValues([INTELLIGENCE_FEEDBACK_HEADERS]);
+      sheet.getRange(1, 1, 1, INTELLIGENCE_FEEDBACK_HEADERS.length)
+        .setBackground('#0d47a1')
+        .setFontColor('#ffffff')
+        .setFontWeight('bold');
+      sheet.setFrozenRows(1);
+
+      return { success: true, message: 'INTELLIGENCE_FEEDBACK sheet created' };
+    }
+
+    return { success: true, message: 'INTELLIGENCE_FEEDBACK sheet already exists' };
+  } catch (error) {
+    Logger.log('Error initializing INTELLIGENCE_FEEDBACK: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get revenue benchmarks with optional filters
+ * @param {Object} params - Optional filters: crop, variety, year, channel, season
+ */
+function getRevenueBenchmarks(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(REVENUE_BENCHMARKS_SHEET);
+
+    if (!sheet || sheet.getLastRow() < 2) {
+      // Initialize with sample data if not exists
+      initializeRevenueBenchmarksSheet();
+      return { success: true, benchmarks: [], message: 'Sheet initialized, no data yet' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const benchmarks = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (!row[0]) continue; // Skip empty rows
+
+      const benchmark = {};
+      headers.forEach((header, idx) => {
+        benchmark[header] = row[idx];
+      });
+
+      // Apply filters
+      if (params) {
+        if (params.crop && benchmark.Crop.toLowerCase() !== params.crop.toLowerCase()) continue;
+        if (params.variety && benchmark.Variety.toLowerCase() !== params.variety.toLowerCase()) continue;
+        if (params.year && String(benchmark.Year) !== String(params.year)) continue;
+        if (params.channel && benchmark.Market_Channel !== params.channel) continue;
+        if (params.season && benchmark.Season !== params.season) continue;
+      }
+
+      benchmarks.push(benchmark);
+    }
+
+    // Sort by Profit_Per_Ft descending
+    benchmarks.sort((a, b) => (b.Profit_Per_Ft || 0) - (a.Profit_Per_Ft || 0));
+
+    return {
+      success: true,
+      count: benchmarks.length,
+      benchmarks: benchmarks
+    };
+  } catch (error) {
+    Logger.log('Error getting revenue benchmarks: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Save a revenue benchmark record
+ */
+function saveRevenueBenchmark(data) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(REVENUE_BENCHMARKS_SHEET);
+
+    if (!sheet) {
+      initializeRevenueBenchmarksSheet();
+      sheet = ss.getSheetByName(REVENUE_BENCHMARKS_SHEET);
+    }
+
+    const benchmarkId = data.Benchmark_ID || 'BM-' + Date.now();
+    const now = new Date().toISOString();
+
+    // Calculate derived values if not provided
+    const revenuePerFt = data.Revenue_Per_Ft || (parseFloat(data.Avg_Price_Per_Lb || 0) * parseFloat(data.Avg_Yield_Per_Ft || 0));
+    const laborCost = parseFloat(data.Labor_Cost_Per_Ft || REVENUE_CONFIG.DEFAULT_LABOR_COST_PER_FT);
+    const seedCost = parseFloat(data.Seed_Cost_Per_Ft || REVENUE_CONFIG.DEFAULT_SEED_COST_PER_FT);
+    const otherCost = parseFloat(data.Other_Costs_Per_Ft || REVENUE_CONFIG.DEFAULT_OTHER_COST_PER_FT);
+    const totalCost = laborCost + seedCost + otherCost;
+    const profitPerFt = revenuePerFt - totalCost;
+    const profitMargin = revenuePerFt > 0 ? Math.round((profitPerFt / revenuePerFt) * 100) : 0;
+
+    const row = [
+      benchmarkId,
+      data.Crop || '',
+      data.Variety || '',
+      data.Year || new Date().getFullYear(),
+      parseFloat(data.Avg_Price_Per_Lb || 0),
+      parseFloat(data.Avg_Yield_Per_Ft || 0),
+      revenuePerFt,
+      laborCost,
+      seedCost,
+      otherCost,
+      profitPerFt,
+      profitMargin,
+      data.Market_Channel || 'csa',
+      data.Season || 'summer',
+      data.Demand_Rating || 'medium',
+      data.Grow_Recommendation || 'recommended',
+      data.Rank_By_Profit || 0,
+      data.Notes || '',
+      now,
+      now
+    ];
+
+    sheet.appendRow(row);
+
+    return {
+      success: true,
+      benchmark_id: benchmarkId,
+      profit_per_ft: profitPerFt,
+      profit_margin: profitMargin
+    };
+  } catch (error) {
+    Logger.log('Error saving revenue benchmark: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Bulk import revenue benchmarks
+ */
+function bulkImportRevenueBenchmarks(data) {
+  try {
+    if (!data.benchmarks || !Array.isArray(data.benchmarks)) {
+      return { success: false, error: 'benchmarks array required' };
+    }
+
+    let imported = 0;
+    let errors = [];
+
+    for (const benchmark of data.benchmarks) {
+      const result = saveRevenueBenchmark(benchmark);
+      if (result.success) {
+        imported++;
+      } else {
+        errors.push({ benchmark: benchmark.Crop + '/' + benchmark.Variety, error: result.error });
+      }
+    }
+
+    return {
+      success: true,
+      imported: imported,
+      total: data.benchmarks.length,
+      errors: errors
+    };
+  } catch (error) {
+    Logger.log('Error bulk importing benchmarks: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Calculate profitability for a specific crop/variety
+ * @param {string} crop - Crop name
+ * @param {string} variety - Variety name (optional)
+ * @param {number} year - Year (optional, defaults to current)
+ */
+function calculateCropProfitability(crop, variety, year) {
+  try {
+    if (!crop) {
+      return { success: false, error: 'crop parameter required' };
+    }
+
+    const currentYear = year || new Date().getFullYear();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+    // Get benchmark data
+    const benchmarkResult = getRevenueBenchmarks({ crop: crop, variety: variety, year: currentYear });
+    let benchmark = null;
+
+    if (benchmarkResult.benchmarks && benchmarkResult.benchmarks.length > 0) {
+      benchmark = benchmarkResult.benchmarks[0];
+    }
+
+    // Get historical harvest data
+    const harvestSheet = ss.getSheetByName('HARVESTS') || ss.getSheetByName('LOG_Harvests');
+    let harvests = [];
+    let totalYield = 0;
+    let harvestCount = 0;
+
+    if (harvestSheet) {
+      const hData = harvestSheet.getDataRange().getValues();
+      const hHeaders = hData[0];
+      const cropIdx = hHeaders.findIndex(h => String(h).toLowerCase().includes('crop'));
+      const varietyIdx = hHeaders.findIndex(h => String(h).toLowerCase().includes('variety'));
+      const qtyIdx = hHeaders.findIndex(h => String(h).toLowerCase().includes('quantity') || String(h).toLowerCase().includes('qty'));
+      const dateIdx = hHeaders.findIndex(h => String(h).toLowerCase().includes('date'));
+
+      for (let i = 1; i < hData.length; i++) {
+        const row = hData[i];
+        const rowCrop = String(row[cropIdx] || '').toLowerCase();
+        const rowVariety = String(row[varietyIdx] || '').toLowerCase();
+        const harvestDate = row[dateIdx];
+
+        if (rowCrop.includes(crop.toLowerCase())) {
+          if (!variety || rowVariety.includes(variety.toLowerCase())) {
+            const qty = parseFloat(row[qtyIdx]) || 0;
+            totalYield += qty;
+            harvestCount++;
+
+            if (harvestDate instanceof Date && harvestDate.getFullYear() === currentYear) {
+              harvests.push({
+                variety: row[varietyIdx],
+                quantity: qty,
+                date: harvestDate
+              });
+            }
+          }
+        }
+      }
+    }
+
+    // Get labor cost data from TIME_LEARNING if available
+    let laborCostPerFt = REVENUE_CONFIG.DEFAULT_LABOR_COST_PER_FT;
+    // Check if there's a learning data sheet
+    const timeLearningSheet = ss.getSheetByName('TIME_LEARNING') || ss.getSheetByName('Labor_Tracking');
+    if (timeLearningSheet) {
+      // Use average labor cost from time tracking
+      const tlData = timeLearningSheet.getDataRange().getValues();
+      const tlHeaders = tlData[0];
+      const taskCropIdx = tlHeaders.findIndex(h => String(h).toLowerCase().includes('crop'));
+      const hoursIdx = tlHeaders.findIndex(h => String(h).toLowerCase().includes('hour') || String(h).toLowerCase().includes('time'));
+      const sqftIdx = tlHeaders.findIndex(h => String(h).toLowerCase().includes('sqft') || String(h).toLowerCase().includes('sq_ft') || String(h).toLowerCase().includes('area'));
+
+      let totalHours = 0;
+      let totalSqft = 0;
+
+      for (let i = 1; i < tlData.length; i++) {
+        const row = tlData[i];
+        if (String(row[taskCropIdx] || '').toLowerCase().includes(crop.toLowerCase())) {
+          totalHours += parseFloat(row[hoursIdx]) || 0;
+          totalSqft += parseFloat(row[sqftIdx]) || 0;
+        }
+      }
+
+      if (totalSqft > 0) {
+        // Assume $15/hr labor rate
+        laborCostPerFt = (totalHours * 15) / totalSqft;
+      }
+    }
+
+    // Calculate profitability
+    const avgPricePerLb = benchmark ? benchmark.Avg_Price_Per_Lb : 3.50;
+    const avgYieldPerFt = benchmark ? benchmark.Avg_Yield_Per_Ft : (harvestCount > 0 ? totalYield / 100 : 0.5); // Approximate
+    const seedCostPerFt = benchmark ? benchmark.Seed_Cost_Per_Ft : REVENUE_CONFIG.DEFAULT_SEED_COST_PER_FT;
+    const otherCostsPerFt = benchmark ? benchmark.Other_Costs_Per_Ft : REVENUE_CONFIG.DEFAULT_OTHER_COST_PER_FT;
+
+    const revenuePerFt = avgPricePerLb * avgYieldPerFt;
+    const totalCostPerFt = laborCostPerFt + seedCostPerFt + otherCostsPerFt;
+    const profitPerFt = revenuePerFt - totalCostPerFt;
+    const profitMargin = revenuePerFt > 0 ? Math.round((profitPerFt / revenuePerFt) * 100) : 0;
+
+    return {
+      success: true,
+      crop: crop,
+      variety: variety || 'All varieties',
+      year: currentYear,
+      metrics: {
+        avg_price_per_lb: avgPricePerLb,
+        avg_yield_per_ft: avgYieldPerFt,
+        revenue_per_ft: Math.round(revenuePerFt * 100) / 100,
+        labor_cost_per_ft: Math.round(laborCostPerFt * 100) / 100,
+        seed_cost_per_ft: Math.round(seedCostPerFt * 100) / 100,
+        other_costs_per_ft: Math.round(otherCostsPerFt * 100) / 100,
+        total_cost_per_ft: Math.round(totalCostPerFt * 100) / 100,
+        profit_per_ft: Math.round(profitPerFt * 100) / 100,
+        profit_margin: profitMargin
+      },
+      data_sources: {
+        benchmark_found: !!benchmark,
+        harvest_records: harvestCount,
+        labor_data: timeLearningSheet ? 'from_tracking' : 'default'
+      },
+      recommendation: profitMargin >= 60 ? 'highly_recommended' :
+                      profitMargin >= 40 ? 'recommended' :
+                      profitMargin >= 20 ? 'conditional' : 'review_needed'
+    };
+  } catch (error) {
+    Logger.log('Error calculating crop profitability: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get profit per square foot rankings for all crops
+ * @param {Object} params - Optional: year, limit
+ */
+function getProfitBySquareFoot(params) {
+  try {
+    const year = params && params.year ? parseInt(params.year) : new Date().getFullYear();
+    const limit = params && params.limit ? parseInt(params.limit) : 20;
+
+    // Get all benchmarks
+    const benchmarkResult = getRevenueBenchmarks({ year: year });
+
+    if (!benchmarkResult.success || !benchmarkResult.benchmarks.length) {
+      // If no benchmarks, try to calculate from available data
+      return calculateProfitRankingsFromData(year, limit);
+    }
+
+    // Rank by profit per square foot
+    const rankings = benchmarkResult.benchmarks
+      .filter(b => b.Profit_Per_Ft !== undefined)
+      .sort((a, b) => (b.Profit_Per_Ft || 0) - (a.Profit_Per_Ft || 0))
+      .slice(0, limit)
+      .map((b, idx) => ({
+        rank: idx + 1,
+        crop: b.Crop,
+        variety: b.Variety,
+        profit_per_ft: b.Profit_Per_Ft,
+        revenue_per_ft: b.Revenue_Per_Ft,
+        profit_margin: b.Profit_Margin,
+        market_channel: b.Market_Channel,
+        season: b.Season,
+        demand_rating: b.Demand_Rating,
+        recommendation: b.Grow_Recommendation
+      }));
+
+    return {
+      success: true,
+      year: year,
+      rankings: rankings,
+      summary: {
+        top_crop: rankings[0] ? rankings[0].crop : null,
+        avg_profit_per_ft: rankings.length > 0 ?
+          Math.round((rankings.reduce((sum, r) => sum + r.profit_per_ft, 0) / rankings.length) * 100) / 100 : 0,
+        avg_profit_margin: rankings.length > 0 ?
+          Math.round(rankings.reduce((sum, r) => sum + r.profit_margin, 0) / rankings.length) : 0
+      }
+    };
+  } catch (error) {
+    Logger.log('Error getting profit rankings: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Calculate profit rankings from harvest and sales data when no benchmarks exist
+ */
+function calculateProfitRankingsFromData(year, limit) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const cropData = {};
+
+    // Get harvest data
+    const harvestSheet = ss.getSheetByName('HARVESTS') || ss.getSheetByName('LOG_Harvests');
+    if (harvestSheet) {
+      const hData = harvestSheet.getDataRange().getValues();
+      const hHeaders = hData[0];
+      const cropIdx = hHeaders.findIndex(h => String(h).toLowerCase().includes('crop'));
+      const varietyIdx = hHeaders.findIndex(h => String(h).toLowerCase().includes('variety'));
+      const qtyIdx = hHeaders.findIndex(h => String(h).toLowerCase().includes('quantity') || String(h).toLowerCase().includes('qty'));
+
+      for (let i = 1; i < hData.length; i++) {
+        const row = hData[i];
+        const crop = row[cropIdx] || 'Unknown';
+        const variety = row[varietyIdx] || 'Unknown';
+        const key = crop + '|' + variety;
+        const qty = parseFloat(row[qtyIdx]) || 0;
+
+        if (!cropData[key]) {
+          cropData[key] = { crop, variety, totalYield: 0, avgPrice: 3.50 };
+        }
+        cropData[key].totalYield += qty;
+      }
+    }
+
+    // Sort by estimated profit (yield * estimated price - estimated cost)
+    const rankings = Object.values(cropData)
+      .map((c, idx) => {
+        const estimatedRevenuePerFt = c.avgPrice * (c.totalYield / 100); // Approximate
+        const estimatedCostPerFt = 0.75; // Default
+        const profitPerFt = estimatedRevenuePerFt - estimatedCostPerFt;
+        return {
+          rank: 0,
+          crop: c.crop,
+          variety: c.variety,
+          profit_per_ft: Math.round(profitPerFt * 100) / 100,
+          revenue_per_ft: Math.round(estimatedRevenuePerFt * 100) / 100,
+          profit_margin: estimatedRevenuePerFt > 0 ? Math.round((profitPerFt / estimatedRevenuePerFt) * 100) : 0,
+          market_channel: 'csa',
+          season: 'summer',
+          demand_rating: 'medium',
+          recommendation: 'needs_benchmark',
+          estimated: true
+        };
+      })
+      .sort((a, b) => b.profit_per_ft - a.profit_per_ft)
+      .slice(0, limit)
+      .map((r, idx) => ({ ...r, rank: idx + 1 }));
+
+    return {
+      success: true,
+      year: year,
+      rankings: rankings,
+      note: 'Rankings estimated from harvest data - add benchmarks for accuracy',
+      summary: {
+        top_crop: rankings[0] ? rankings[0].crop : null,
+        avg_profit_per_ft: rankings.length > 0 ?
+          Math.round((rankings.reduce((sum, r) => sum + r.profit_per_ft, 0) / rankings.length) * 100) / 100 : 0,
+        avg_profit_margin: rankings.length > 0 ?
+          Math.round(rankings.reduce((sum, r) => sum + r.profit_margin, 0) / rankings.length) : 0
+      }
+    };
+  } catch (error) {
+    Logger.log('Error calculating profit rankings: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Main revenue optimization function
+ * @param {Object} params - availableSqFt, season, channel (csa|wholesale|farmers_market|all)
+ */
+function getRevenueOptimization(params) {
+  try {
+    const availableSqFt = parseInt(params.availableSqFt) || 5000;
+    const season = params.season || getCurrentSeason();
+    const channel = params.channel || 'all';
+
+    // Get profit rankings
+    const profitData = getProfitBySquareFoot({ year: new Date().getFullYear(), limit: 50 });
+    if (!profitData.success || !profitData.rankings.length) {
+      return {
+        success: false,
+        error: 'No profit data available. Initialize benchmarks first.',
+        action: 'Call initializeRevenueBenchmarks to add data'
+      };
+    }
+
+    // Filter by channel if specified
+    let eligibleCrops = profitData.rankings;
+    if (channel !== 'all') {
+      eligibleCrops = eligibleCrops.filter(c =>
+        c.market_channel === channel || c.market_channel === 'all'
+      );
+    }
+
+    // Filter by season
+    eligibleCrops = eligibleCrops.filter(c =>
+      !c.season || c.season === season || c.season === 'all_season'
+    );
+
+    // Apply constraints and optimize allocation
+    const constraints = [];
+    const recommendations = [];
+    let remainingSqFt = availableSqFt;
+    let projectedRevenue = 0;
+    let projectedProfit = 0;
+
+    // CSA constraint: minimum variety count
+    if (channel === 'csa' || channel === 'all') {
+      const uniqueCrops = new Set();
+      eligibleCrops.forEach(c => uniqueCrops.add(c.crop));
+      if (uniqueCrops.size >= REVENUE_CONFIG.CSA_MIN_VARIETIES) {
+        constraints.push('CSA variety requirements met (' + uniqueCrops.size + ' crops available)');
+      } else {
+        constraints.push('Warning: Only ' + uniqueCrops.size + ' crops available, CSA needs ' + REVENUE_CONFIG.CSA_MIN_VARIETIES);
+      }
+    }
+
+    // Allocate space to highest profit crops
+    const usedCrops = new Set();
+    for (const crop of eligibleCrops) {
+      if (remainingSqFt <= 0) break;
+
+      // Don't allocate more than 30% to any single crop for diversification
+      const maxAllocation = Math.min(remainingSqFt, availableSqFt * 0.30);
+
+      // Calculate optimal allocation
+      let allocation = maxAllocation;
+
+      // Adjust based on demand rating
+      if (crop.demand_rating === 'low') {
+        allocation = Math.min(allocation, availableSqFt * 0.10);
+      } else if (crop.demand_rating === 'high') {
+        allocation = Math.min(allocation, availableSqFt * 0.25);
+      }
+
+      // Round to practical size (100 sqft increments)
+      allocation = Math.floor(allocation / 100) * 100;
+      if (allocation < 100) allocation = 100;
+      if (allocation > remainingSqFt) allocation = remainingSqFt;
+
+      const cropRevenue = allocation * crop.revenue_per_ft;
+      const cropProfit = allocation * crop.profit_per_ft;
+
+      recommendations.push({
+        rank: recommendations.length + 1,
+        crop: crop.crop,
+        variety: crop.variety,
+        recommended_sq_ft: allocation,
+        profit_per_sq_ft: crop.profit_per_ft,
+        projected_revenue: Math.round(cropRevenue),
+        projected_profit: Math.round(cropProfit),
+        confidence: crop.estimated ? 65 : 85,
+        notes: generateCropNote(crop)
+      });
+
+      projectedRevenue += cropRevenue;
+      projectedProfit += cropProfit;
+      remainingSqFt -= allocation;
+      usedCrops.add(crop.crop);
+    }
+
+    // Check rotation constraints
+    constraints.push('Minimum ' + REVENUE_CONFIG.CSA_MIN_CROP_FAMILIES + ' crop families for rotation');
+
+    // Calculate overall metrics
+    const profitMargin = projectedRevenue > 0 ? Math.round((projectedProfit / projectedRevenue) * 100) : 0;
+
+    return {
+      success: true,
+      optimization: {
+        available_sq_ft: availableSqFt,
+        allocated_sq_ft: availableSqFt - remainingSqFt,
+        unallocated_sq_ft: remainingSqFt,
+        season: season,
+        channel: channel,
+        projected_revenue: Math.round(projectedRevenue),
+        projected_profit: Math.round(projectedProfit),
+        profit_margin: profitMargin
+      },
+      recommendations: recommendations,
+      constraints_applied: constraints,
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    Logger.log('Error in revenue optimization: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Generate note for crop recommendation
+ */
+function generateCropNote(crop) {
+  const notes = [];
+
+  if (crop.profit_margin >= 70) notes.push('High margin');
+  if (crop.demand_rating === 'high') notes.push('Strong demand');
+  if (crop.estimated) notes.push('Needs benchmark data');
+  if (crop.recommendation === 'highly_recommended') notes.push('Top performer');
+
+  return notes.join(', ') || 'Standard recommendation';
+}
+
+/**
+ * Get current season based on month
+ */
+function getCurrentSeason() {
+  const month = new Date().getMonth() + 1;
+  for (const [season, config] of Object.entries(REVENUE_CONFIG.SEASONS)) {
+    if (config.months.includes(month)) {
+      return season;
+    }
+  }
+  return 'summer';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SMART FARM INTELLIGENCE - PHASE 8: DASHBOARD & INTEGRATION
+// Unified intelligence dashboard and Chief of Staff integration
+// Added: 2026-02-11
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Get consolidated intelligence dashboard - all intelligence summaries in one call
+ */
+function getIntelligenceDashboard() {
+  try {
+    const startTime = Date.now();
+
+    // Gather all intelligence metrics
+    const dashboard = {
+      yield_predictions: gatherYieldPredictions(),
+      variety_insights: gatherVarietyInsights(),
+      bed_status: gatherBedStatus(),
+      succession_health: gatherSuccessionHealth(),
+      risk_overview: gatherRiskOverview(),
+      revenue_tracking: gatherRevenueTracking()
+    };
+
+    return {
+      success: true,
+      dashboard: dashboard,
+      last_model_update: getLastModelUpdate(),
+      processing_time_ms: Date.now() - startTime,
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    Logger.log('Error building intelligence dashboard: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Gather yield prediction summary
+ */
+function gatherYieldPredictions() {
+  try {
+    // Count active batches from PLANNING or production tracking sheets
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const planningSheet = ss.getSheetByName('PLANNING_2026') || ss.getSheetByName('PLANNING_2025');
+
+    let batchesInGround = 0;
+    let predictedTotalHarvest = 0;
+    let confidenceSum = 0;
+    let alertCount = 0;
+    const alerts = [];
+
+    if (planningSheet) {
+      const data = planningSheet.getDataRange().getValues();
+      const headers = data[0];
+      const statusIdx = headers.findIndex(h => String(h).toLowerCase().includes('status'));
+      const yieldIdx = headers.findIndex(h => String(h).toLowerCase().includes('yield') || String(h).toLowerCase().includes('expected'));
+
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        const status = String(row[statusIdx] || '').toLowerCase();
+
+        if (status.includes('planted') || status.includes('growing') || status.includes('in_ground')) {
+          batchesInGround++;
+          const expectedYield = parseFloat(row[yieldIdx]) || 0;
+          predictedTotalHarvest += expectedYield;
+          confidenceSum += 75; // Default confidence
+
+          // Check for potential issues
+          if (expectedYield === 0) {
+            alerts.push({
+              type: 'missing_yield_data',
+              batch: row[0] || 'Unknown',
+              message: 'No expected yield specified'
+            });
+            alertCount++;
+          }
+        }
+      }
+    }
+
+    return {
+      batches_in_ground: batchesInGround,
+      predicted_total_harvest: Math.round(predictedTotalHarvest),
+      confidence_avg: batchesInGround > 0 ? Math.round(confidenceSum / batchesInGround) : 0,
+      alerts: alerts.slice(0, 5), // Top 5 alerts
+      alert_count: alertCount
+    };
+  } catch (error) {
+    Logger.log('Error gathering yield predictions: ' + error.toString());
+    return { batches_in_ground: 0, predicted_total_harvest: 0, confidence_avg: 0, alerts: [] };
+  }
+}
+
+/**
+ * Gather variety insights summary
+ */
+function gatherVarietyInsights() {
+  try {
+    // Get top and bottom performers from benchmarks
+    const benchmarks = getRevenueBenchmarks({});
+    const topPerformers = [];
+    const underperformers = [];
+
+    if (benchmarks.success && benchmarks.benchmarks.length > 0) {
+      const sorted = benchmarks.benchmarks.sort((a, b) => (b.Profit_Margin || 0) - (a.Profit_Margin || 0));
+
+      // Top 3 performers
+      for (let i = 0; i < Math.min(3, sorted.length); i++) {
+        topPerformers.push({
+          crop: sorted[i].Crop,
+          variety: sorted[i].Variety,
+          profit_margin: sorted[i].Profit_Margin,
+          recommendation: sorted[i].Grow_Recommendation
+        });
+      }
+
+      // Bottom 3 (underperformers)
+      for (let i = sorted.length - 1; i >= Math.max(0, sorted.length - 3); i--) {
+        if (sorted[i].Profit_Margin < 40) {
+          underperformers.push({
+            crop: sorted[i].Crop,
+            variety: sorted[i].Variety,
+            profit_margin: sorted[i].Profit_Margin,
+            issue: sorted[i].Profit_Margin < 20 ? 'Low margin' : 'Below target'
+          });
+        }
+      }
+    }
+
+    // Count new trials (varieties added this year)
+    const currentYear = new Date().getFullYear();
+    const newTrials = benchmarks.benchmarks ?
+      benchmarks.benchmarks.filter(b => b.Year === currentYear && b.Grow_Recommendation === 'trial').length : 0;
+
+    return {
+      top_performers: topPerformers,
+      underperformers: underperformers,
+      new_trials: newTrials
+    };
+  } catch (error) {
+    Logger.log('Error gathering variety insights: ' + error.toString());
+    return { top_performers: [], underperformers: [], new_trials: 0 };
+  }
+}
+
+/**
+ * Gather bed status summary
+ */
+function gatherBedStatus() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+    // Try to find beds/fields sheet
+    const bedsSheet = ss.getSheetByName('BEDS') || ss.getSheetByName('Fields') || ss.getSheetByName('FIELDS');
+    let totalBeds = 0;
+    let optimalMatches = 0;
+    const rotationWarnings = [];
+
+    if (bedsSheet) {
+      const data = bedsSheet.getDataRange().getValues();
+      totalBeds = data.length - 1; // Subtract header row
+
+      // Check for rotation warnings
+      const headers = data[0];
+      const bedIdIdx = headers.findIndex(h => String(h).toLowerCase().includes('bed') || String(h).toLowerCase().includes('id'));
+      const cropIdx = headers.findIndex(h => String(h).toLowerCase().includes('crop') || String(h).toLowerCase().includes('current'));
+      const lastCropIdx = headers.findIndex(h => String(h).toLowerCase().includes('last') || String(h).toLowerCase().includes('previous'));
+
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        const currentCrop = String(row[cropIdx] || '').toLowerCase();
+        const lastCrop = String(row[lastCropIdx] || '').toLowerCase();
+
+        // Check for same family rotation issue
+        if (currentCrop && lastCrop && currentCrop === lastCrop) {
+          rotationWarnings.push({
+            bed: row[bedIdIdx],
+            issue: 'Same crop planted consecutively',
+            crop: currentCrop
+          });
+        }
+
+        // Assume optimal if no issues
+        if (!currentCrop || (currentCrop !== lastCrop)) {
+          optimalMatches++;
+        }
+      }
+    }
+
+    return {
+      total_beds: totalBeds,
+      optimal_matches: optimalMatches,
+      rotation_warnings: rotationWarnings.slice(0, 5)
+    };
+  } catch (error) {
+    Logger.log('Error gathering bed status: ' + error.toString());
+    return { total_beds: 0, optimal_matches: 0, rotation_warnings: [] };
+  }
+}
+
+/**
+ * Gather succession health summary
+ */
+function gatherSuccessionHealth() {
+  try {
+    // Check if getSuccessionGaps function exists and call it
+    let gaps = [];
+    let surpluses = [];
+    let revenueAtRisk = 0;
+    const actionItems = [];
+
+    if (typeof getSuccessionGaps === 'function') {
+      const gapResult = getSuccessionGaps({ weeks: 4 });
+      if (gapResult.success && gapResult.gaps) {
+        gaps = gapResult.gaps;
+        revenueAtRisk = gapResult.total_revenue_at_risk || 0;
+      }
+    }
+
+    // Generate action items from gaps
+    gaps.forEach((gap, idx) => {
+      if (idx < 5) {
+        actionItems.push({
+          priority: gap.severity === 'critical' ? 'high' : 'medium',
+          action: 'Plant ' + gap.crop + ' to cover gap in week ' + gap.week,
+          revenue_impact: gap.revenue_at_risk || 0
+        });
+      }
+    });
+
+    return {
+      gaps_next_4_weeks: gaps.length,
+      surpluses_next_4_weeks: surpluses.length,
+      revenue_at_risk: revenueAtRisk,
+      action_items: actionItems
+    };
+  } catch (error) {
+    Logger.log('Error gathering succession health: ' + error.toString());
+    return { gaps_next_4_weeks: 0, surpluses_next_4_weeks: 0, revenue_at_risk: 0, action_items: [] };
+  }
+}
+
+/**
+ * Gather risk overview summary
+ */
+function gatherRiskOverview() {
+  try {
+    let highRisk = 0;
+    let moderateRisk = 0;
+    let lowRisk = 0;
+    const topRiskFactors = [];
+
+    // Check if getRiskScore function exists
+    if (typeof getRiskScore === 'function') {
+      // Get risk history if available
+      const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+      const riskSheet = ss.getSheetByName('RISK_HISTORY');
+
+      if (riskSheet && riskSheet.getLastRow() > 1) {
+        const data = riskSheet.getDataRange().getValues();
+        const headers = data[0];
+        const scoreIdx = headers.findIndex(h => String(h).toLowerCase().includes('score'));
+        const factorIdx = headers.findIndex(h => String(h).toLowerCase().includes('factor'));
+
+        const factorCounts = {};
+
+        for (let i = 1; i < data.length; i++) {
+          const row = data[i];
+          const score = parseFloat(row[scoreIdx]) || 50;
+
+          if (score >= 70) highRisk++;
+          else if (score >= 40) moderateRisk++;
+          else lowRisk++;
+
+          // Count risk factors
+          const factor = row[factorIdx] || 'Unknown';
+          factorCounts[factor] = (factorCounts[factor] || 0) + 1;
+        }
+
+        // Get top risk factors
+        Object.entries(factorCounts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3)
+          .forEach(([factor, count]) => {
+            topRiskFactors.push({ factor: factor, count: count });
+          });
+      }
+    }
+
+    return {
+      high_risk_batches: highRisk,
+      moderate_risk_batches: moderateRisk,
+      low_risk_batches: lowRisk,
+      top_risk_factors: topRiskFactors
+    };
+  } catch (error) {
+    Logger.log('Error gathering risk overview: ' + error.toString());
+    return { high_risk_batches: 0, moderate_risk_batches: 0, low_risk_batches: 0, top_risk_factors: [] };
+  }
+}
+
+/**
+ * Gather revenue tracking summary
+ */
+function gatherRevenueTracking() {
+  try {
+    const currentYear = new Date().getFullYear();
+    const lastYear = currentYear - 1;
+
+    // Get profit rankings
+    const currentProfit = getProfitBySquareFoot({ year: currentYear, limit: 10 });
+    const lastProfit = getProfitBySquareFoot({ year: lastYear, limit: 10 });
+
+    let ytdRevenue = 0;
+    let ytdProfit = 0;
+    let lastYearRevenue = 0;
+    const topProfitCrops = [];
+
+    // Calculate from benchmarks
+    const benchmarks = getRevenueBenchmarks({ year: currentYear });
+    if (benchmarks.success && benchmarks.benchmarks.length > 0) {
+      benchmarks.benchmarks.forEach(b => {
+        // Estimate based on typical planting area
+        const estimatedSqFt = 500; // Default per crop
+        ytdRevenue += (b.Revenue_Per_Ft || 0) * estimatedSqFt;
+        ytdProfit += (b.Profit_Per_Ft || 0) * estimatedSqFt;
+      });
+
+      // Top 3 profit crops
+      currentProfit.rankings.slice(0, 3).forEach(r => {
+        topProfitCrops.push({
+          crop: r.crop,
+          variety: r.variety,
+          profit_per_ft: r.profit_per_ft
+        });
+      });
+    }
+
+    // Calculate YoY comparison
+    const lastBenchmarks = getRevenueBenchmarks({ year: lastYear });
+    if (lastBenchmarks.success && lastBenchmarks.benchmarks.length > 0) {
+      lastBenchmarks.benchmarks.forEach(b => {
+        const estimatedSqFt = 500;
+        lastYearRevenue += (b.Revenue_Per_Ft || 0) * estimatedSqFt;
+      });
+    }
+
+    const yoyChange = lastYearRevenue > 0 ?
+      Math.round(((ytdRevenue - lastYearRevenue) / lastYearRevenue) * 100) : 0;
+
+    return {
+      ytd_revenue: Math.round(ytdRevenue),
+      ytd_profit: Math.round(ytdProfit),
+      vs_last_year: {
+        change_percent: yoyChange,
+        direction: yoyChange >= 0 ? 'up' : 'down'
+      },
+      top_profit_crops: topProfitCrops
+    };
+  } catch (error) {
+    Logger.log('Error gathering revenue tracking: ' + error.toString());
+    return { ytd_revenue: 0, ytd_profit: 0, vs_last_year: { change_percent: 0, direction: 'flat' }, top_profit_crops: [] };
+  }
+}
+
+/**
+ * Get last model update timestamp
+ */
+function getLastModelUpdate() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const benchmarkSheet = ss.getSheetByName(REVENUE_BENCHMARKS_SHEET);
+
+    if (benchmarkSheet && benchmarkSheet.getLastRow() > 1) {
+      const lastRow = benchmarkSheet.getLastRow();
+      const headers = benchmarkSheet.getRange(1, 1, 1, benchmarkSheet.getLastColumn()).getValues()[0];
+      const updatedIdx = headers.findIndex(h => String(h).toLowerCase().includes('updated'));
+
+      if (updatedIdx >= 0) {
+        const lastUpdated = benchmarkSheet.getRange(lastRow, updatedIdx + 1).getValue();
+        return lastUpdated ? new Date(lastUpdated).toISOString() : new Date().toISOString();
+      }
+    }
+    return new Date().toISOString();
+  } catch (error) {
+    return new Date().toISOString();
+  }
+}
+
+/**
+ * Get intelligence alerts - prioritized action list
+ * @param {Object} params - Optional: threshold, types
+ */
+function getIntelligenceAlerts(params) {
+  try {
+    const threshold = params && params.threshold ? parseInt(params.threshold) : 60;
+    const alerts = [];
+
+    // 1. Yield prediction alerts
+    const yieldData = gatherYieldPredictions();
+    if (yieldData.alerts && yieldData.alerts.length > 0) {
+      yieldData.alerts.forEach(alert => {
+        alerts.push({
+          type: 'yield_prediction',
+          priority: 'medium',
+          title: 'Yield Data Missing',
+          message: alert.message,
+          batch: alert.batch,
+          action_required: 'Add expected yield to planning'
+        });
+      });
+    }
+
+    // 2. High-risk planting alerts
+    const riskData = gatherRiskOverview();
+    if (riskData.high_risk_batches > 0) {
+      alerts.push({
+        type: 'risk_alert',
+        priority: 'high',
+        title: 'High Risk Plantings',
+        message: riskData.high_risk_batches + ' batches have high risk scores',
+        action_required: 'Review risk factors and take preventive action'
+      });
+    }
+
+    // 3. Succession gap alerts
+    const successionData = gatherSuccessionHealth();
+    if (successionData.gaps_next_4_weeks > 0) {
+      alerts.push({
+        type: 'succession_gap',
+        priority: successionData.revenue_at_risk > 500 ? 'high' : 'medium',
+        title: 'Succession Gaps Detected',
+        message: successionData.gaps_next_4_weeks + ' gaps in next 4 weeks, $' + successionData.revenue_at_risk + ' at risk',
+        action_required: 'Schedule additional plantings',
+        action_items: successionData.action_items
+      });
+    }
+
+    // 4. Underperforming variety alerts
+    const varietyData = gatherVarietyInsights();
+    if (varietyData.underperformers && varietyData.underperformers.length > 0) {
+      varietyData.underperformers.forEach(v => {
+        if (v.profit_margin < 20) {
+          alerts.push({
+            type: 'variety_performance',
+            priority: 'low',
+            title: 'Underperforming Variety',
+            message: v.crop + ' (' + v.variety + ') has only ' + v.profit_margin + '% margin',
+            action_required: 'Consider replacing with higher-performing variety'
+          });
+        }
+      });
+    }
+
+    // 5. Rotation warnings
+    const bedData = gatherBedStatus();
+    if (bedData.rotation_warnings && bedData.rotation_warnings.length > 0) {
+      bedData.rotation_warnings.forEach(warning => {
+        alerts.push({
+          type: 'rotation_warning',
+          priority: 'medium',
+          title: 'Crop Rotation Issue',
+          message: 'Bed ' + warning.bed + ': ' + warning.issue,
+          action_required: 'Plan different crop for next planting'
+        });
+      });
+    }
+
+    // Sort by priority
+    const priorityOrder = { high: 0, medium: 1, low: 2 };
+    alerts.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+
+    return {
+      success: true,
+      alert_count: alerts.length,
+      high_priority_count: alerts.filter(a => a.priority === 'high').length,
+      alerts: alerts,
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    Logger.log('Error getting intelligence alerts: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Submit feedback on an intelligence recommendation
+ * @param {Object} data - recommendationType, recommendationId, accepted, outcome, rating, comments
+ */
+function submitIntelligenceFeedback(data) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(INTELLIGENCE_FEEDBACK_SHEET);
+
+    if (!sheet) {
+      initializeIntelligenceFeedbackSheet();
+      sheet = ss.getSheetByName(INTELLIGENCE_FEEDBACK_SHEET);
+    }
+
+    const feedbackId = 'FB-' + Date.now();
+    const now = new Date().toISOString();
+
+    const row = [
+      feedbackId,
+      data.recommendationType || 'general',
+      data.recommendationId || '',
+      data.accepted === true || data.accepted === 'true',
+      data.outcome || '',
+      parseInt(data.rating) || 0,
+      data.comments || '',
+      data.userId || 'system',
+      now,
+      false // training_included
+    ];
+
+    sheet.appendRow(row);
+
+    return {
+      success: true,
+      feedback_id: feedbackId,
+      message: 'Feedback recorded successfully'
+    };
+  } catch (error) {
+    Logger.log('Error submitting intelligence feedback: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get intelligence feedback summary
+ * @param {Object} params - Optional: recommendationType, days
+ */
+function getIntelligenceFeedbackSummary(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(INTELLIGENCE_FEEDBACK_SHEET);
+
+    if (!sheet || sheet.getLastRow() < 2) {
+      return { success: true, feedback_count: 0, summary: {} };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const days = params && params.days ? parseInt(params.days) : 30;
+    const filterType = params ? params.recommendationType : null;
+
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+
+    let totalFeedback = 0;
+    let acceptedCount = 0;
+    let totalRating = 0;
+    let ratedCount = 0;
+    const typeBreakdown = {};
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const feedback = {};
+      headers.forEach((h, idx) => feedback[h] = row[idx]);
+
+      // Filter by date
+      const feedbackDate = new Date(feedback.Created_At);
+      if (feedbackDate < cutoffDate) continue;
+
+      // Filter by type
+      if (filterType && feedback.Recommendation_Type !== filterType) continue;
+
+      totalFeedback++;
+      if (feedback.Accepted) acceptedCount++;
+      if (feedback.Rating > 0) {
+        totalRating += feedback.Rating;
+        ratedCount++;
+      }
+
+      // Type breakdown
+      const type = feedback.Recommendation_Type || 'general';
+      if (!typeBreakdown[type]) {
+        typeBreakdown[type] = { count: 0, accepted: 0, avg_rating: 0, ratings: [] };
+      }
+      typeBreakdown[type].count++;
+      if (feedback.Accepted) typeBreakdown[type].accepted++;
+      if (feedback.Rating > 0) typeBreakdown[type].ratings.push(feedback.Rating);
+    }
+
+    // Calculate averages
+    Object.keys(typeBreakdown).forEach(type => {
+      const ratings = typeBreakdown[type].ratings;
+      typeBreakdown[type].avg_rating = ratings.length > 0 ?
+        Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 10) / 10 : 0;
+      typeBreakdown[type].acceptance_rate = typeBreakdown[type].count > 0 ?
+        Math.round((typeBreakdown[type].accepted / typeBreakdown[type].count) * 100) : 0;
+      delete typeBreakdown[type].ratings;
+    });
+
+    return {
+      success: true,
+      period_days: days,
+      feedback_count: totalFeedback,
+      summary: {
+        acceptance_rate: totalFeedback > 0 ? Math.round((acceptedCount / totalFeedback) * 100) : 0,
+        average_rating: ratedCount > 0 ? Math.round((totalRating / ratedCount) * 10) / 10 : 0,
+        type_breakdown: typeBreakdown
+      }
+    };
+  } catch (error) {
+    Logger.log('Error getting feedback summary: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get intelligence context for Chief of Staff integration
+ * Returns summarized intelligence data for conversation context
+ */
+function getIntelligenceContextForCOS() {
+  try {
+    const context = {};
+
+    // Get top 5 profit rankings (lightweight)
+    const profitData = getProfitBySquareFoot({ limit: 5 });
+    if (profitData.success) {
+      context.topProfitCrops = profitData.rankings.map(r => ({
+        crop: r.crop,
+        variety: r.variety,
+        profit_per_ft: r.profit_per_ft
+      }));
+    }
+
+    // Get high-priority alerts only
+    const alertData = getIntelligenceAlerts({ threshold: 70 });
+    if (alertData.success) {
+      context.highPriorityAlerts = alertData.alerts.filter(a => a.priority === 'high').slice(0, 3);
+      context.alertCount = alertData.alert_count;
+    }
+
+    // Get succession gap summary (lightweight)
+    const successionData = gatherSuccessionHealth();
+    context.successionGaps = {
+      count: successionData.gaps_next_4_weeks,
+      revenue_at_risk: successionData.revenue_at_risk
+    };
+
+    // Get risk summary
+    const riskData = gatherRiskOverview();
+    context.riskSummary = {
+      high: riskData.high_risk_batches,
+      moderate: riskData.moderate_risk_batches,
+      low: riskData.low_risk_batches
+    };
+
+    // Get variety insights
+    const varietyData = gatherVarietyInsights();
+    context.topPerformers = varietyData.top_performers;
+
+    return context;
+  } catch (error) {
+    Logger.log('Error getting intelligence context for COS: ' + error.toString());
+    return null;
+  }
+}
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// SMART FARM INTELLIGENCE SYSTEM - PHASE 1: DATA FOUNDATION & PHASE 2: YIELD PREDICTION
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// Created: 2026-02-11
+// Purpose: Yield prediction, variety performance tracking, and intelligent crop-bed matching
+//
+// SHEETS CREATED:
+// - YIELD_MODELS: Stores yield predictions and accuracy tracking
+// - VARIETY_PERFORMANCE: Aggregated variety metrics across all years
+// - BED_CROP_RANKINGS: Optimal crop-bed pairings based on historical data
+// - MODEL_METADATA: Tracks all learning model versions and parameters
+// - INTELLIGENCE_FEEDBACK: User feedback on recommendations for model improvement
+//
+// API ENDPOINTS:
+// GET:
+// - initializeIntelligenceSheets - Creates all 5 intelligence sheets
+// - migrateHistoricalData - Populates from PLANNING_2026, HARVEST_LOG, VARIETY_REVIEWS
+// - getYieldPrediction - Get yield prediction for crop/variety/bed
+// - getVarietyPerformance - Get variety performance data
+// - getBedCropRankings - Get bed-crop ranking data
+// - getIntelligenceSystemStatus - Get system status
+//
+// POST:
+// - recordActualYield - Record actual yield and update models
+// - recordIntelligenceFeedback - Record user feedback on recommendations
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+// Sheet definitions for the Smart Farm Intelligence System
+const SMART_INTEL_SHEETS = {
+  YIELD_MODELS: {
+    name: 'YIELD_MODELS',
+    headers: [
+      'Model_ID', 'Crop', 'Variety', 'Bed_ID', 'Season', 'Year',
+      'Predicted_Yield_Per_Ft', 'Actual_Yield_Per_Ft', 'Variance_Pct',
+      'Confidence_Level', 'Sample_Size', 'Input_Features', 'Model_Type',
+      'Last_Updated', 'Notes'
+    ],
+    color: '#e6f3e6'
+  },
+  VARIETY_PERFORMANCE: {
+    name: 'VARIETY_PERFORMANCE',
+    headers: [
+      'Performance_ID', 'Crop', 'Variety', 'Source', 'Years_Grown',
+      'Avg_Yield_Per_Ft', 'Yield_Consistency', 'Avg_DTM', 'Disease_Incidents',
+      'Disease_Resistance_Score', 'Quality_Score', 'Market_Value_Index',
+      'Grow_Again_Pct', 'Total_Beds_Grown', 'Total_Revenue', 'Composite_Score',
+      'Rank_Overall', 'Rank_For_Bed_Type', 'Last_Calculated'
+    ],
+    color: '#f3e6ff'
+  },
+  BED_CROP_RANKINGS: {
+    name: 'BED_CROP_RANKINGS',
+    headers: [
+      'Ranking_ID', 'Bed_ID', 'Bed_Name', 'Bed_Type', 'Soil_Type',
+      'Sun_Exposure', 'Crop', 'Variety', 'Performance_Score', 'Yield_Multiplier',
+      'Times_Grown', 'Last_Grown', 'Rotation_Gap_Years', 'Rotation_Conflicts',
+      'Recommended', 'Confidence'
+    ],
+    color: '#fff3e6'
+  },
+  MODEL_METADATA: {
+    name: 'MODEL_METADATA',
+    headers: [
+      'Metadata_ID', 'Model_Type', 'Model_Version', 'Training_Date',
+      'Training_Samples', 'Validation_Score', 'Active', 'Parameters', 'Notes'
+    ],
+    color: '#e6f3ff'
+  },
+  INTELLIGENCE_FEEDBACK: {
+    name: 'INTELLIGENCE_FEEDBACK',
+    headers: [
+      'Feedback_ID', 'Timestamp', 'Recommendation_Type', 'Recommendation_ID',
+      'User_ID', 'Accepted', 'Outcome', 'Rating', 'Comments', 'Used_For_Training'
+    ],
+    color: '#ffe6e6'
+  }
+};
+
+/**
+ * Initialize all Intelligence System sheets
+ * Creates sheets if they don't exist, adds headers and formatting
+ * @returns {Object} Result with created/existing sheets list
+ */
+function initializeIntelligenceSheets() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const results = {
+      created: [],
+      existing: [],
+      errors: []
+    };
+
+    for (const [key, config] of Object.entries(SMART_INTEL_SHEETS)) {
+      try {
+        let sheet = ss.getSheetByName(config.name);
+
+        if (!sheet) {
+          sheet = ss.insertSheet(config.name);
+          sheet.getRange(1, 1, 1, config.headers.length).setValues([config.headers]);
+          const headerRange = sheet.getRange(1, 1, 1, config.headers.length);
+          headerRange.setFontWeight('bold');
+          headerRange.setBackground(config.color);
+          headerRange.setWrap(true);
+          sheet.setFrozenRows(1);
+          for (let i = 1; i <= config.headers.length; i++) {
+            sheet.autoResizeColumn(i);
+          }
+          results.created.push(config.name);
+        } else {
+          results.existing.push(config.name);
+        }
+      } catch (sheetError) {
+        results.errors.push({ sheet: config.name, error: sheetError.toString() });
+      }
+    }
+
+    return {
+      success: true,
+      message: `Intelligence sheets initialized. Created: ${results.created.length}, Existing: ${results.existing.length}`,
+      created: results.created,
+      existing: results.existing,
+      errors: results.errors,
+      timestamp: new Date().toISOString()
+    };
+
+  } catch (error) {
+    Logger.log('Error initializing intelligence sheets: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Migrate historical data from existing sheets to Intelligence System
+ * Pulls data from PLANNING_2026, HARVEST_LOG, VARIETY_REVIEWS
+ * @returns {Object} Migration results
+ */
+function migrateHistoricalData() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const results = {
+      yieldModels: 0,
+      varietyPerformance: 0,
+      bedRankings: 0,
+      errors: []
+    };
+
+    const initResult = initializeIntelligenceSheets();
+    if (!initResult.success) {
+      return { success: false, error: 'Failed to initialize sheets: ' + initResult.error };
+    }
+
+    const yieldData = buildYieldDataFromHistory_Intel(ss);
+    if (yieldData.error) {
+      results.errors.push({ source: 'yield_data', error: yieldData.error });
+    } else {
+      results.yieldModels = saveYieldModels_Intel(ss, yieldData.models);
+    }
+
+    const varietyData = buildVarietyPerformanceFromHistory_Intel(ss);
+    if (varietyData.error) {
+      results.errors.push({ source: 'variety_data', error: varietyData.error });
+    } else {
+      results.varietyPerformance = saveVarietyPerformance_Intel(ss, varietyData.performances);
+    }
+
+    const rankingsData = buildBedCropRankingsFromHistory_Intel(ss);
+    if (rankingsData.error) {
+      results.errors.push({ source: 'rankings_data', error: rankingsData.error });
+    } else {
+      results.bedRankings = saveBedCropRankings_Intel(ss, rankingsData.rankings);
+    }
+
+    logModelMetadata_Intel(ss, {
+      modelType: 'Initial_Migration',
+      version: '1.0',
+      samples: results.yieldModels + results.varietyPerformance + results.bedRankings,
+      notes: 'Initial migration from PLANNING_2026, HARVEST_LOG, VARIETY_REVIEWS'
+    });
+
+    return {
+      success: true,
+      message: 'Historical data migration complete',
+      results: results,
+      timestamp: new Date().toISOString()
+    };
+
+  } catch (error) {
+    Logger.log('Error migrating historical data: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Build yield data from PLANNING_2026 and HARVEST_LOG
+ */
+function buildYieldDataFromHistory_Intel(ss) {
+  try {
+    const models = [];
+    const planningSheet = ss.getSheetByName('PLANNING_2026');
+    const harvestSheet = ss.getSheetByName('HARVEST_LOG');
+
+    if (!planningSheet) {
+      return { models: [], error: 'PLANNING_2026 sheet not found' };
+    }
+
+    const planningData = planningSheet.getDataRange().getValues();
+    const planningHeaders = planningData[0];
+
+    const cols = {
+      batchId: planningHeaders.indexOf('Batch_ID'),
+      crop: planningHeaders.indexOf('Crop'),
+      variety: planningHeaders.indexOf('Variety'),
+      bedId: planningHeaders.indexOf('Target_Bed_ID') !== -1 ? planningHeaders.indexOf('Target_Bed_ID') : planningHeaders.indexOf('Bed_ID'),
+      feetUsed: planningHeaders.indexOf('Feet_Used') !== -1 ? planningHeaders.indexOf('Feet_Used') : planningHeaders.indexOf('Row_Feet'),
+      method: planningHeaders.indexOf('Method'),
+      transplantDate: planningHeaders.indexOf('Transplant_Date') !== -1 ? planningHeaders.indexOf('Transplant_Date') : planningHeaders.indexOf('Target_Transplant'),
+      firstHarvest: planningHeaders.indexOf('First_Harvest') !== -1 ? planningHeaders.indexOf('First_Harvest') : planningHeaders.indexOf('Target_First_Harvest'),
+      status: planningHeaders.indexOf('STATUS')
+    };
+
+    let harvestMap = new Map();
+    if (harvestSheet && harvestSheet.getLastRow() > 1) {
+      const harvestData = harvestSheet.getDataRange().getValues();
+      const harvestHeaders = harvestData[0];
+      const hCols = {
+        batchId: harvestHeaders.findIndex(h => String(h).toLowerCase().includes('batch')),
+        quantity: harvestHeaders.findIndex(h => String(h).toLowerCase().includes('quantity') || String(h).toLowerCase().includes('amount')),
+        unit: harvestHeaders.findIndex(h => String(h).toLowerCase().includes('unit')),
+        date: harvestHeaders.findIndex(h => String(h).toLowerCase().includes('date'))
+      };
+
+      for (let i = 1; i < harvestData.length; i++) {
+        const row = harvestData[i];
+        const batchId = row[hCols.batchId];
+        if (!batchId) continue;
+
+        if (!harvestMap.has(batchId)) {
+          harvestMap.set(batchId, { totalQuantity: 0, harvests: [] });
+        }
+        const entry = harvestMap.get(batchId);
+        const qty = parseFloat(row[hCols.quantity]) || 0;
+        entry.totalQuantity += qty;
+        entry.harvests.push({
+          quantity: qty,
+          unit: row[hCols.unit],
+          date: row[hCols.date]
+        });
+      }
+    }
+
+    const cropVarietyData = new Map();
+
+    for (let i = 1; i < planningData.length; i++) {
+      const row = planningData[i];
+      const batchId = row[cols.batchId];
+      const crop = row[cols.crop];
+      const variety = row[cols.variety];
+      const bedId = row[cols.bedId];
+      const feetUsed = parseFloat(row[cols.feetUsed]) || 0;
+
+      if (!crop || feetUsed <= 0) continue;
+
+      const key = `${crop}|${variety || 'Mixed'}`;
+      if (!cropVarietyData.has(key)) {
+        cropVarietyData.set(key, {
+          crop: crop,
+          variety: variety || 'Mixed',
+          totalFeet: 0,
+          totalYield: 0,
+          samples: [],
+          beds: new Set()
+        });
+      }
+
+      const entry = cropVarietyData.get(key);
+      entry.totalFeet += feetUsed;
+      entry.beds.add(bedId);
+
+      if (harvestMap.has(batchId)) {
+        const harvestInfo = harvestMap.get(batchId);
+        entry.totalYield += harvestInfo.totalQuantity;
+        entry.samples.push({
+          batchId: batchId,
+          bedId: bedId,
+          feet: feetUsed,
+          yield: harvestInfo.totalQuantity,
+          yieldPerFt: feetUsed > 0 ? harvestInfo.totalQuantity / feetUsed : 0
+        });
+      }
+    }
+
+    const now = new Date().toISOString();
+    const year = new Date().getFullYear();
+
+    for (const [key, data] of cropVarietyData) {
+      if (data.samples.length > 0) {
+        const avgYieldPerFt = data.totalFeet > 0 ? data.totalYield / data.totalFeet : 0;
+
+        const yieldPerFtValues = data.samples.map(s => s.yieldPerFt).filter(v => v > 0);
+        let variance = 0;
+        if (yieldPerFtValues.length > 1) {
+          const mean = yieldPerFtValues.reduce((a, b) => a + b, 0) / yieldPerFtValues.length;
+          variance = yieldPerFtValues.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / yieldPerFtValues.length;
+        }
+
+        const confidence = Math.min(95, 50 + data.samples.length * 5);
+
+        models.push({
+          modelId: generateId('YM'),
+          crop: data.crop,
+          variety: data.variety,
+          bedId: 'ALL',
+          season: getSeasonFromDate_Intel(new Date()),
+          year: year,
+          predictedYieldPerFt: avgYieldPerFt.toFixed(3),
+          actualYieldPerFt: avgYieldPerFt.toFixed(3),
+          variancePct: variance > 0 ? (Math.sqrt(variance) / avgYieldPerFt * 100).toFixed(1) : '0',
+          confidenceLevel: confidence,
+          sampleSize: data.samples.length,
+          inputFeatures: JSON.stringify(['feet_used', 'bed_id', 'harvest_qty']),
+          modelType: 'Historical_Average',
+          lastUpdated: now,
+          notes: `Migrated from ${data.beds.size} beds, ${data.samples.length} harvests`
+        });
+      }
+    }
+
+    return { models: models, error: null };
+
+  } catch (error) {
+    Logger.log('Error building yield data: ' + error.toString());
+    return { models: [], error: error.toString() };
+  }
+}
+
+/**
+ * Determine growing season based on date
+ */
+function getSeasonFromDate_Intel(date) {
+  const month = date.getMonth() + 1;
+  if (month >= 3 && month <= 5) return 'Spring';
+  if (month >= 6 && month <= 8) return 'Summer';
+  if (month >= 9 && month <= 11) return 'Fall';
+  return 'Winter';
+}
+
+/**
+ * Build variety performance data from historical records
+ */
+function buildVarietyPerformanceFromHistory_Intel(ss) {
+  try {
+    const performances = [];
+    const planningSheet = ss.getSheetByName('PLANNING_2026');
+    const reviewsSheet = ss.getSheetByName('VARIETY_REVIEWS');
+
+    if (!planningSheet) {
+      return { performances: [], error: 'PLANNING_2026 sheet not found' };
+    }
+
+    const varietyData = new Map();
+
+    const planningData = planningSheet.getDataRange().getValues();
+    const planningHeaders = planningData[0];
+    const pCols = {
+      crop: planningHeaders.indexOf('Crop'),
+      variety: planningHeaders.indexOf('Variety'),
+      bedId: planningHeaders.indexOf('Target_Bed_ID') !== -1 ? planningHeaders.indexOf('Target_Bed_ID') : planningHeaders.indexOf('Bed_ID'),
+      feetUsed: planningHeaders.indexOf('Feet_Used') !== -1 ? planningHeaders.indexOf('Feet_Used') : planningHeaders.indexOf('Row_Feet'),
+      source: planningHeaders.indexOf('Seed_Source') !== -1 ? planningHeaders.indexOf('Seed_Source') : planningHeaders.indexOf('Source')
+    };
+
+    for (let i = 1; i < planningData.length; i++) {
+      const row = planningData[i];
+      const crop = row[pCols.crop];
+      const variety = row[pCols.variety] || 'Mixed';
+      if (!crop) continue;
+
+      const key = `${crop}|${variety}`;
+      if (!varietyData.has(key)) {
+        varietyData.set(key, {
+          crop: crop,
+          variety: variety,
+          source: row[pCols.source] || '',
+          years: new Set([new Date().getFullYear()]),
+          totalFeet: 0,
+          totalYield: 0,
+          beds: new Set(),
+          diseaseIncidents: 0,
+          reviews: []
+        });
+      }
+
+      const entry = varietyData.get(key);
+      entry.totalFeet += parseFloat(row[pCols.feetUsed]) || 0;
+      if (row[pCols.bedId]) entry.beds.add(row[pCols.bedId]);
+      if (row[pCols.source] && !entry.source) entry.source = row[pCols.source];
+    }
+
+    if (reviewsSheet && reviewsSheet.getLastRow() > 1) {
+      const reviewsData = reviewsSheet.getDataRange().getValues();
+      const reviewHeaders = reviewsData[0];
+      const rCols = {
+        crop: reviewHeaders.findIndex(h => String(h).toLowerCase().includes('crop')),
+        variety: reviewHeaders.findIndex(h => String(h).toLowerCase().includes('variety')),
+        performance: reviewHeaders.findIndex(h => String(h).toLowerCase().includes('performance')),
+        yield: reviewHeaders.findIndex(h => String(h).toLowerCase().includes('yield')),
+        disease: reviewHeaders.findIndex(h => String(h).toLowerCase().includes('disease')),
+        quality: reviewHeaders.findIndex(h => String(h).toLowerCase().includes('quality') || String(h).toLowerCase().includes('flavor')),
+        growAgain: reviewHeaders.findIndex(h => String(h).toLowerCase().includes('grow_again') || String(h).toLowerCase().includes('again')),
+        season: reviewHeaders.findIndex(h => String(h).toLowerCase().includes('season') || String(h).toLowerCase().includes('year'))
+      };
+
+      for (let i = 1; i < reviewsData.length; i++) {
+        const row = reviewsData[i];
+        const crop = row[rCols.crop];
+        const variety = row[rCols.variety] || 'Mixed';
+        if (!crop) continue;
+
+        const key = `${crop}|${variety}`;
+        if (!varietyData.has(key)) {
+          varietyData.set(key, {
+            crop: crop,
+            variety: variety,
+            source: '',
+            years: new Set(),
+            totalFeet: 0,
+            totalYield: 0,
+            beds: new Set(),
+            diseaseIncidents: 0,
+            reviews: []
+          });
+        }
+
+        const entry = varietyData.get(key);
+
+        if (rCols.season !== -1) {
+          const seasonVal = String(row[rCols.season]);
+          const yearMatch = seasonVal.match(/20\d{2}/);
+          if (yearMatch) entry.years.add(parseInt(yearMatch[0]));
+        }
+
+        entry.reviews.push({
+          performance: parseFloat(row[rCols.performance]) || 0,
+          yield: parseFloat(row[rCols.yield]) || 0,
+          disease: parseFloat(row[rCols.disease]) || 0,
+          quality: parseFloat(row[rCols.quality]) || 0,
+          growAgain: row[rCols.growAgain]
+        });
+      }
+    }
+
+    const now = new Date().toISOString();
+    let rank = 1;
+
+    const sortedEntries = Array.from(varietyData.entries()).map(([key, data]) => {
+      const avgYieldPerFt = data.totalFeet > 0 ? data.totalYield / data.totalFeet : 0;
+
+      let avgPerformance = 0, avgQuality = 0, avgDisease = 0, growAgainPct = 0;
+      if (data.reviews.length > 0) {
+        avgPerformance = data.reviews.reduce((sum, r) => sum + r.performance, 0) / data.reviews.length;
+        avgQuality = data.reviews.reduce((sum, r) => sum + r.quality, 0) / data.reviews.length;
+        avgDisease = data.reviews.reduce((sum, r) => sum + r.disease, 0) / data.reviews.length;
+        const growAgainCount = data.reviews.filter(r =>
+          String(r.growAgain).toLowerCase() === 'yes' ||
+          String(r.growAgain).toLowerCase() === 'true' ||
+          r.growAgain === true
+        ).length;
+        growAgainPct = (growAgainCount / data.reviews.length) * 100;
+      }
+
+      const compositeScore = (
+        (avgPerformance * 0.3) +
+        (avgQuality * 0.25) +
+        (avgDisease * 0.2) +
+        (growAgainPct / 10 * 0.25)
+      ) || 0;
+
+      return { key, data, avgYieldPerFt, avgPerformance, avgQuality, avgDisease, growAgainPct, compositeScore };
+    }).sort((a, b) => b.compositeScore - a.compositeScore);
+
+    for (const entry of sortedEntries) {
+      const data = entry.data;
+
+      performances.push({
+        performanceId: generateId('VP'),
+        crop: data.crop,
+        variety: data.variety,
+        source: data.source,
+        yearsGrown: data.years.size,
+        avgYieldPerFt: entry.avgYieldPerFt.toFixed(3),
+        yieldConsistency: '0',
+        avgDTM: '0',
+        diseaseIncidents: data.diseaseIncidents,
+        diseaseResistanceScore: entry.avgDisease.toFixed(1),
+        qualityScore: entry.avgQuality.toFixed(1),
+        marketValueIndex: '1.0',
+        growAgainPct: entry.growAgainPct.toFixed(0),
+        totalBedsGrown: data.beds.size,
+        totalRevenue: '0',
+        compositeScore: entry.compositeScore.toFixed(2),
+        rankOverall: rank,
+        rankForBedType: rank,
+        lastCalculated: now
+      });
+
+      rank++;
+    }
+
+    return { performances: performances, error: null };
+
+  } catch (error) {
+    Logger.log('Error building variety performance: ' + error.toString());
+    return { performances: [], error: error.toString() };
+  }
+}
+
+/**
+ * Build bed-crop rankings from historical planting data
+ */
+function buildBedCropRankingsFromHistory_Intel(ss) {
+  try {
+    const rankings = [];
+    const planningSheet = ss.getSheetByName('PLANNING_2026');
+    const bedsSheet = ss.getSheetByName('REF_Beds');
+
+    if (!planningSheet) {
+      return { rankings: [], error: 'PLANNING_2026 sheet not found' };
+    }
+
+    const bedInfo = new Map();
+    if (bedsSheet && bedsSheet.getLastRow() > 1) {
+      const bedsData = bedsSheet.getDataRange().getValues();
+      const bedsHeaders = bedsData[0];
+      const bCols = {
+        bedId: bedsHeaders.findIndex(h => String(h).toLowerCase().includes('bed_id') || String(h).toLowerCase() === 'id'),
+        bedName: bedsHeaders.findIndex(h => String(h).toLowerCase().includes('name')),
+        bedType: bedsHeaders.findIndex(h => String(h).toLowerCase().includes('type')),
+        soilType: bedsHeaders.findIndex(h => String(h).toLowerCase().includes('soil')),
+        sunExposure: bedsHeaders.findIndex(h => String(h).toLowerCase().includes('sun') || String(h).toLowerCase().includes('exposure'))
+      };
+
+      for (let i = 1; i < bedsData.length; i++) {
+        const row = bedsData[i];
+        const bedId = row[bCols.bedId];
+        if (!bedId) continue;
+
+        bedInfo.set(bedId, {
+          name: row[bCols.bedName] || bedId,
+          type: row[bCols.bedType] || 'Standard',
+          soilType: row[bCols.soilType] || 'Unknown',
+          sunExposure: row[bCols.sunExposure] || 'Full Sun'
+        });
+      }
+    }
+
+    const planningData = planningSheet.getDataRange().getValues();
+    const planningHeaders = planningData[0];
+    const pCols = {
+      crop: planningHeaders.indexOf('Crop'),
+      variety: planningHeaders.indexOf('Variety'),
+      bedId: planningHeaders.indexOf('Target_Bed_ID') !== -1 ? planningHeaders.indexOf('Target_Bed_ID') : planningHeaders.indexOf('Bed_ID'),
+      transplantDate: planningHeaders.indexOf('Transplant_Date') !== -1 ? planningHeaders.indexOf('Transplant_Date') : planningHeaders.indexOf('Target_Transplant'),
+      status: planningHeaders.indexOf('STATUS')
+    };
+
+    const bedCropData = new Map();
+
+    for (let i = 1; i < planningData.length; i++) {
+      const row = planningData[i];
+      const crop = row[pCols.crop];
+      const variety = row[pCols.variety] || 'Mixed';
+      const bedId = row[pCols.bedId];
+
+      if (!crop || !bedId) continue;
+
+      const key = `${bedId}|${crop}|${variety}`;
+      if (!bedCropData.has(key)) {
+        bedCropData.set(key, {
+          bedId: bedId,
+          crop: crop,
+          variety: variety,
+          timesGrown: 0,
+          lastGrown: null,
+          years: new Set()
+        });
+      }
+
+      const entry = bedCropData.get(key);
+      entry.timesGrown++;
+
+      const plantDate = row[pCols.transplantDate];
+      if (plantDate instanceof Date) {
+        if (!entry.lastGrown || plantDate > entry.lastGrown) {
+          entry.lastGrown = plantDate;
+        }
+        entry.years.add(plantDate.getFullYear());
+      }
+    }
+
+    const now = new Date().toISOString();
+    const currentYear = new Date().getFullYear();
+
+    for (const [key, data] of bedCropData) {
+      const bed = bedInfo.get(data.bedId) || {
+        name: data.bedId,
+        type: 'Standard',
+        soilType: 'Unknown',
+        sunExposure: 'Full Sun'
+      };
+
+      let rotationGap = 0;
+      if (data.lastGrown) {
+        rotationGap = currentYear - data.lastGrown.getFullYear();
+      }
+
+      const performanceScore = Math.min(10, 5 + data.timesGrown * 0.5);
+      const rotationConflicts = rotationGap < 2 ? 'Same crop grown within 2 years' : '';
+
+      rankings.push({
+        rankingId: generateId('BR'),
+        bedId: data.bedId,
+        bedName: bed.name,
+        bedType: bed.type,
+        soilType: bed.soilType,
+        sunExposure: bed.sunExposure,
+        crop: data.crop,
+        variety: data.variety,
+        performanceScore: performanceScore.toFixed(1),
+        yieldMultiplier: '1.00',
+        timesGrown: data.timesGrown,
+        lastGrown: data.lastGrown ? data.lastGrown.toISOString().split('T')[0] : '',
+        rotationGapYears: rotationGap,
+        rotationConflicts: rotationConflicts,
+        recommended: rotationGap >= 2 ? 'Yes' : 'Caution',
+        confidence: Math.min(90, 50 + data.timesGrown * 10)
+      });
+    }
+
+    rankings.sort((a, b) => parseFloat(b.performanceScore) - parseFloat(a.performanceScore));
+
+    return { rankings: rankings, error: null };
+
+  } catch (error) {
+    Logger.log('Error building bed-crop rankings: ' + error.toString());
+    return { rankings: [], error: error.toString() };
+  }
+}
+
+function saveYieldModels_Intel(ss, models) {
+  if (!models || models.length === 0) return 0;
+
+  const sheet = ss.getSheetByName(SMART_INTEL_SHEETS.YIELD_MODELS.name);
+  if (!sheet) return 0;
+
+  const rows = models.map(m => [
+    m.modelId, m.crop, m.variety, m.bedId, m.season, m.year,
+    m.predictedYieldPerFt, m.actualYieldPerFt, m.variancePct,
+    m.confidenceLevel, m.sampleSize, m.inputFeatures, m.modelType,
+    m.lastUpdated, m.notes
+  ]);
+
+  if (rows.length > 0) {
+    sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
+  }
+
+  return rows.length;
+}
+
+function saveVarietyPerformance_Intel(ss, performances) {
+  if (!performances || performances.length === 0) return 0;
+
+  const sheet = ss.getSheetByName(SMART_INTEL_SHEETS.VARIETY_PERFORMANCE.name);
+  if (!sheet) return 0;
+
+  const rows = performances.map(p => [
+    p.performanceId, p.crop, p.variety, p.source, p.yearsGrown,
+    p.avgYieldPerFt, p.yieldConsistency, p.avgDTM, p.diseaseIncidents,
+    p.diseaseResistanceScore, p.qualityScore, p.marketValueIndex,
+    p.growAgainPct, p.totalBedsGrown, p.totalRevenue, p.compositeScore,
+    p.rankOverall, p.rankForBedType, p.lastCalculated
+  ]);
+
+  if (rows.length > 0) {
+    sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
+  }
+
+  return rows.length;
+}
+
+function saveBedCropRankings_Intel(ss, rankings) {
+  if (!rankings || rankings.length === 0) return 0;
+
+  const sheet = ss.getSheetByName(SMART_INTEL_SHEETS.BED_CROP_RANKINGS.name);
+  if (!sheet) return 0;
+
+  const rows = rankings.map(r => [
+    r.rankingId, r.bedId, r.bedName, r.bedType, r.soilType,
+    r.sunExposure, r.crop, r.variety, r.performanceScore, r.yieldMultiplier,
+    r.timesGrown, r.lastGrown, r.rotationGapYears, r.rotationConflicts,
+    r.recommended, r.confidence
+  ]);
+
+  if (rows.length > 0) {
+    sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
+  }
+
+  return rows.length;
+}
+
+function logModelMetadata_Intel(ss, metadata) {
+  const sheet = ss.getSheetByName(SMART_INTEL_SHEETS.MODEL_METADATA.name);
+  if (!sheet) return;
+
+  const row = [
+    generateId('MM'),
+    metadata.modelType,
+    metadata.version,
+    new Date().toISOString(),
+    metadata.samples,
+    metadata.validationScore || '',
+    true,
+    JSON.stringify(metadata.parameters || {}),
+    metadata.notes || ''
+  ];
+
+  sheet.appendRow(row);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// PHASE 2: YIELD PREDICTION ENGINE
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * GET /api?action=getYieldPrediction
+ * Get a yield prediction for a specific crop/variety/bed combination
+ */
+function getYieldPrediction(params) {
+  try {
+    const crop = params.crop;
+    const variety = params.variety || '';
+    const bedId = params.bedId || '';
+    const plantingDate = params.plantingDate ? new Date(params.plantingDate) : new Date();
+    const rowFeet = parseFloat(params.rowFeet) || 0;
+
+    if (!crop) {
+      return { success: false, error: 'crop parameter is required' };
+    }
+    if (rowFeet <= 0) {
+      return { success: false, error: 'rowFeet parameter must be greater than 0' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+    const yieldData = getHistoricalYieldData_Intel(ss, crop, variety);
+
+    let baseYieldPerFt = yieldData.avgYieldPerFt || 0;
+    let confidence = yieldData.confidence || 50;
+    let sampleSize = yieldData.sampleSize || 0;
+
+    if (baseYieldPerFt === 0) {
+      const profileData = getCropProfileYield_Intel(ss, crop, variety);
+      baseYieldPerFt = profileData.yieldPerFt || 1.0;
+      confidence = 40;
+      sampleSize = 0;
+    }
+
+    let bedMultiplier = 1.0;
+    let bedFactor = null;
+    if (bedId) {
+      const bedData = getBedPerformanceMultiplier_Intel(ss, bedId, crop, variety);
+      bedMultiplier = bedData.multiplier || 1.0;
+      if (bedData.timesGrown > 0) {
+        bedFactor = {
+          name: 'Bed Performance',
+          impact: `${bedMultiplier >= 1 ? '+' : ''}${((bedMultiplier - 1) * baseYieldPerFt).toFixed(2)} lbs/ft`,
+          multiplier: bedMultiplier,
+          timesGrown: bedData.timesGrown
+        };
+      }
+    }
+
+    const seasonalMultiplier = getSeasonalMultiplier_Intel(plantingDate, crop);
+    let seasonalFactor = null;
+    if (seasonalMultiplier !== 1.0) {
+      seasonalFactor = {
+        name: 'Seasonal Timing',
+        impact: `${seasonalMultiplier >= 1 ? '+' : ''}${((seasonalMultiplier - 1) * baseYieldPerFt).toFixed(2)} lbs/ft`,
+        multiplier: seasonalMultiplier,
+        season: getSeasonFromDate_Intel(plantingDate)
+      };
+    }
+
+    const adjustedYieldPerFt = baseYieldPerFt * bedMultiplier * seasonalMultiplier;
+    const predictedYieldLbs = adjustedYieldPerFt * rowFeet;
+
+    if (sampleSize >= 10) {
+      confidence = Math.min(95, confidence + 20);
+    } else if (sampleSize >= 5) {
+      confidence = Math.min(85, confidence + 10);
+    }
+
+    const varianceMultiplier = yieldData.varianceMultiplier || 0.2;
+    const rangeLow = predictedYieldLbs * (1 - varianceMultiplier);
+    const rangeHigh = predictedYieldLbs * (1 + varianceMultiplier);
+
+    const comparableBatches = getComparableBatches_Intel(ss, crop, variety, bedId, 5);
+
+    const factors = [];
+    factors.push({
+      name: 'Historical Average',
+      impact: `${baseYieldPerFt.toFixed(2)} lbs/ft base`
+    });
+    if (bedFactor) factors.push(bedFactor);
+    if (seasonalFactor) factors.push(seasonalFactor);
+
+    return {
+      success: true,
+      prediction: {
+        crop: crop,
+        variety: variety || 'All Varieties',
+        bedId: bedId || 'Not Specified',
+        rowFeet: rowFeet,
+        predicted_yield_lbs: Math.round(predictedYieldLbs * 10) / 10,
+        yield_per_ft: Math.round(adjustedYieldPerFt * 1000) / 1000,
+        confidence: Math.round(confidence),
+        range: {
+          low: Math.round(rangeLow * 10) / 10,
+          high: Math.round(rangeHigh * 10) / 10
+        },
+        factors: factors,
+        comparable_batches: comparableBatches,
+        model_info: {
+          sample_size: sampleSize,
+          last_updated: yieldData.lastUpdated || new Date().toISOString(),
+          model_type: sampleSize > 0 ? 'Historical_Average' : 'Default_Estimate'
+        }
+      },
+      timestamp: new Date().toISOString()
+    };
+
+  } catch (error) {
+    Logger.log('Error in getYieldPrediction: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getHistoricalYieldData_Intel(ss, crop, variety) {
+  const sheet = ss.getSheetByName(SMART_INTEL_SHEETS.YIELD_MODELS.name);
+  if (!sheet || sheet.getLastRow() <= 1) {
+    return { avgYieldPerFt: 0, confidence: 50, sampleSize: 0, varianceMultiplier: 0.2 };
+  }
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const cols = {
+    crop: headers.indexOf('Crop'),
+    variety: headers.indexOf('Variety'),
+    predictedYield: headers.indexOf('Predicted_Yield_Per_Ft'),
+    actualYield: headers.indexOf('Actual_Yield_Per_Ft'),
+    variance: headers.indexOf('Variance_Pct'),
+    confidence: headers.indexOf('Confidence_Level'),
+    sampleSize: headers.indexOf('Sample_Size'),
+    lastUpdated: headers.indexOf('Last_Updated')
+  };
+
+  let matches = [];
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (row[cols.crop] === crop) {
+      if (!variety || row[cols.variety] === variety || row[cols.variety] === 'Mixed') {
+        matches.push({
+          yieldPerFt: parseFloat(row[cols.actualYield]) || parseFloat(row[cols.predictedYield]) || 0,
+          variance: parseFloat(row[cols.variance]) || 0,
+          confidence: parseFloat(row[cols.confidence]) || 50,
+          sampleSize: parseInt(row[cols.sampleSize]) || 0,
+          lastUpdated: row[cols.lastUpdated]
+        });
+      }
+    }
+  }
+
+  if (matches.length === 0) {
+    return { avgYieldPerFt: 0, confidence: 50, sampleSize: 0, varianceMultiplier: 0.2 };
+  }
+
+  if (variety) {
+    const exactMatch = matches.find(m => m.yieldPerFt > 0);
+    if (exactMatch) {
+      return {
+        avgYieldPerFt: exactMatch.yieldPerFt,
+        confidence: exactMatch.confidence,
+        sampleSize: exactMatch.sampleSize,
+        varianceMultiplier: exactMatch.variance / 100 || 0.2,
+        lastUpdated: exactMatch.lastUpdated
+      };
+    }
+  }
+
+  const totalSamples = matches.reduce((sum, m) => sum + m.sampleSize, 0);
+  const avgYield = matches.reduce((sum, m) => sum + m.yieldPerFt * m.sampleSize, 0) / Math.max(1, totalSamples);
+  const avgVariance = matches.reduce((sum, m) => sum + m.variance, 0) / matches.length;
+
+  return {
+    avgYieldPerFt: avgYield,
+    confidence: Math.min(90, 50 + totalSamples * 2),
+    sampleSize: totalSamples,
+    varianceMultiplier: avgVariance / 100 || 0.2,
+    lastUpdated: matches[0].lastUpdated
+  };
+}
+
+function getCropProfileYield_Intel(ss, crop, variety) {
+  const profileSheet = ss.getSheetByName('REF_CropProfiles');
+  if (!profileSheet || profileSheet.getLastRow() <= 1) {
+    return { yieldPerFt: 1.0 };
+  }
+
+  const data = profileSheet.getDataRange().getValues();
+  const headers = data[0];
+  const cols = {
+    crop: headers.findIndex(h => String(h).toLowerCase().includes('crop')),
+    variety: headers.findIndex(h => String(h).toLowerCase().includes('variety')),
+    yield: headers.findIndex(h => String(h).toLowerCase().includes('yield'))
+  };
+
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (row[cols.crop] === crop) {
+      if (!variety || row[cols.variety] === variety) {
+        const yieldVal = parseFloat(row[cols.yield]);
+        if (yieldVal > 0) {
+          return { yieldPerFt: yieldVal };
+        }
+      }
+    }
+  }
+
+  return { yieldPerFt: 1.0 };
+}
+
+function getBedPerformanceMultiplier_Intel(ss, bedId, crop, variety) {
+  const sheet = ss.getSheetByName(SMART_INTEL_SHEETS.BED_CROP_RANKINGS.name);
+  if (!sheet || sheet.getLastRow() <= 1) {
+    return { multiplier: 1.0, timesGrown: 0 };
+  }
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const cols = {
+    bedId: headers.indexOf('Bed_ID'),
+    crop: headers.indexOf('Crop'),
+    variety: headers.indexOf('Variety'),
+    multiplier: headers.indexOf('Yield_Multiplier'),
+    timesGrown: headers.indexOf('Times_Grown')
+  };
+
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (row[cols.bedId] === bedId && row[cols.crop] === crop) {
+      if (!variety || row[cols.variety] === variety || row[cols.variety] === 'Mixed') {
+        return {
+          multiplier: parseFloat(row[cols.multiplier]) || 1.0,
+          timesGrown: parseInt(row[cols.timesGrown]) || 0
+        };
+      }
+    }
+  }
+
+  return { multiplier: 1.0, timesGrown: 0 };
+}
+
+function getSeasonalMultiplier_Intel(plantingDate, crop) {
+  const month = plantingDate.getMonth() + 1;
+
+  const optimalMonths = {
+    'Tomato': [4, 5, 6],
+    'Pepper': [4, 5, 6],
+    'Squash': [5, 6, 7],
+    'Cucumber': [5, 6, 7],
+    'Lettuce': [3, 4, 9, 10],
+    'Spinach': [3, 4, 9, 10],
+    'Kale': [3, 4, 8, 9],
+    'Beans': [5, 6, 7],
+    'Carrot': [4, 5, 8, 9],
+    'Beet': [4, 5, 8, 9]
+  };
+
+  const optimal = optimalMonths[crop];
+  if (!optimal) return 1.0;
+
+  if (optimal.includes(month)) {
+    return 1.1;
+  }
+
+  for (const m of optimal) {
+    if (Math.abs(month - m) === 1) {
+      return 1.0;
+    }
+  }
+
+  return 0.9;
+}
+
+function getComparableBatches_Intel(ss, crop, variety, bedId, limit) {
+  const batches = [];
+  const planningSheet = ss.getSheetByName('PLANNING_2026');
+
+  if (!planningSheet || planningSheet.getLastRow() <= 1) {
+    return batches;
+  }
+
+  const planData = planningSheet.getDataRange().getValues();
+  const planHeaders = planData[0];
+  const pCols = {
+    batchId: planHeaders.indexOf('Batch_ID'),
+    crop: planHeaders.indexOf('Crop'),
+    variety: planHeaders.indexOf('Variety'),
+    bedId: planHeaders.indexOf('Target_Bed_ID') !== -1 ? planHeaders.indexOf('Target_Bed_ID') : planHeaders.indexOf('Bed_ID'),
+    feetUsed: planHeaders.indexOf('Feet_Used') !== -1 ? planHeaders.indexOf('Feet_Used') : planHeaders.indexOf('Row_Feet'),
+    year: planHeaders.indexOf('Year')
+  };
+
+  for (let i = 1; i < planData.length && batches.length < limit; i++) {
+    const row = planData[i];
+    if (row[pCols.crop] === crop) {
+      if (!variety || row[pCols.variety] === variety) {
+        const batchBed = row[pCols.bedId];
+        if (!bedId || batchBed === bedId || !batchBed) {
+          batches.push({
+            year: row[pCols.year] || new Date().getFullYear(),
+            bed: batchBed || 'Unknown',
+            yield: 0,
+            notes: ''
+          });
+        }
+      }
+    }
+  }
+
+  return batches;
+}
+
+/**
+ * POST /api?action=recordActualYield
+ * Record the actual yield for a batch and update models
+ */
+function recordActualYield(params) {
+  try {
+    const batchId = params.batchId;
+    const actualYieldLbs = parseFloat(params.actualYieldLbs);
+    const qualityNotes = params.qualityNotes || '';
+
+    if (!batchId) {
+      return { success: false, error: 'batchId parameter is required' };
+    }
+    if (isNaN(actualYieldLbs) || actualYieldLbs < 0) {
+      return { success: false, error: 'actualYieldLbs must be a non-negative number' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+    const planningSheet = ss.getSheetByName('PLANNING_2026');
+    if (!planningSheet) {
+      return { success: false, error: 'PLANNING_2026 sheet not found' };
+    }
+
+    const planData = planningSheet.getDataRange().getValues();
+    const planHeaders = planData[0];
+    const pCols = {
+      batchId: planHeaders.indexOf('Batch_ID'),
+      crop: planHeaders.indexOf('Crop'),
+      variety: planHeaders.indexOf('Variety'),
+      bedId: planHeaders.indexOf('Target_Bed_ID') !== -1 ? planHeaders.indexOf('Target_Bed_ID') : planHeaders.indexOf('Bed_ID'),
+      feetUsed: planHeaders.indexOf('Feet_Used') !== -1 ? planHeaders.indexOf('Feet_Used') : planHeaders.indexOf('Row_Feet')
+    };
+
+    let batchRow = null;
+    for (let i = 1; i < planData.length; i++) {
+      if (planData[i][pCols.batchId] === batchId) {
+        batchRow = planData[i];
+        break;
+      }
+    }
+
+    if (!batchRow) {
+      return { success: false, error: `Batch ${batchId} not found in PLANNING_2026` };
+    }
+
+    const crop = batchRow[pCols.crop];
+    const variety = batchRow[pCols.variety] || 'Mixed';
+    const bedId = batchRow[pCols.bedId] || '';
+    const feetUsed = parseFloat(batchRow[pCols.feetUsed]) || 0;
+
+    if (feetUsed <= 0) {
+      return { success: false, error: `Batch ${batchId} has no feet used recorded` };
+    }
+
+    const actualYieldPerFt = actualYieldLbs / feetUsed;
+
+    const yieldSheet = ss.getSheetByName(SMART_INTEL_SHEETS.YIELD_MODELS.name);
+    if (!yieldSheet) {
+      return { success: false, error: 'YIELD_MODELS sheet not found. Run initializeIntelligenceSheets first.' };
+    }
+
+    const existingPrediction = getHistoricalYieldData_Intel(ss, crop, variety);
+    const predictedYieldPerFt = existingPrediction.avgYieldPerFt || actualYieldPerFt;
+
+    const variance = predictedYieldPerFt > 0
+      ? ((actualYieldPerFt - predictedYieldPerFt) / predictedYieldPerFt) * 100
+      : 0;
+
+    const now = new Date().toISOString();
+    const modelId = generateId('YM');
+
+    const newRow = [
+      modelId,
+      crop,
+      variety,
+      bedId || 'ALL',
+      getSeasonFromDate_Intel(new Date()),
+      new Date().getFullYear(),
+      predictedYieldPerFt.toFixed(3),
+      actualYieldPerFt.toFixed(3),
+      variance.toFixed(1),
+      Math.min(95, 60 + existingPrediction.sampleSize * 2),
+      existingPrediction.sampleSize + 1,
+      JSON.stringify({ batch_id: batchId, feet_used: feetUsed, quality_notes: qualityNotes }),
+      'Actual_Record',
+      now,
+      `Batch ${batchId}: ${actualYieldLbs} lbs from ${feetUsed} ft. ${qualityNotes}`
+    ];
+
+    yieldSheet.appendRow(newRow);
+
+    let modelUpdated = false;
+    if (Math.abs(variance) > 20) {
+      recalculateYieldModel(crop, variety);
+      modelUpdated = true;
+    }
+
+    if (bedId) {
+      updateBedCropRanking_Intel(ss, bedId, crop, variety, actualYieldPerFt);
+    }
+
+    return {
+      success: true,
+      result: {
+        batchId: batchId,
+        crop: crop,
+        variety: variety,
+        bedId: bedId,
+        feetUsed: feetUsed,
+        actualYieldLbs: actualYieldLbs,
+        actualYieldPerFt: Math.round(actualYieldPerFt * 1000) / 1000,
+        predictedYieldPerFt: Math.round(predictedYieldPerFt * 1000) / 1000,
+        variancePct: Math.round(variance * 10) / 10,
+        modelUpdated: modelUpdated,
+        modelId: modelId
+      },
+      timestamp: now
+    };
+
+  } catch (error) {
+    Logger.log('Error in recordActualYield: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+function updateBedCropRanking_Intel(ss, bedId, crop, variety, yieldPerFt) {
+  const sheet = ss.getSheetByName(SMART_INTEL_SHEETS.BED_CROP_RANKINGS.name);
+  if (!sheet || sheet.getLastRow() <= 1) return;
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const cols = {
+    bedId: headers.indexOf('Bed_ID'),
+    crop: headers.indexOf('Crop'),
+    variety: headers.indexOf('Variety'),
+    timesGrown: headers.indexOf('Times_Grown'),
+    multiplier: headers.indexOf('Yield_Multiplier'),
+    lastGrown: headers.indexOf('Last_Grown'),
+    performanceScore: headers.indexOf('Performance_Score')
+  };
+
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (row[cols.bedId] === bedId && row[cols.crop] === crop) {
+      if (!variety || row[cols.variety] === variety || row[cols.variety] === 'Mixed') {
+        const newTimesGrown = (parseInt(row[cols.timesGrown]) || 0) + 1;
+        const today = new Date().toISOString().split('T')[0];
+
+        sheet.getRange(i + 1, cols.timesGrown + 1).setValue(newTimesGrown);
+        sheet.getRange(i + 1, cols.lastGrown + 1).setValue(today);
+
+        const newScore = Math.min(10, 5 + newTimesGrown * 0.5);
+        sheet.getRange(i + 1, cols.performanceScore + 1).setValue(newScore.toFixed(1));
+
+        return;
+      }
+    }
+  }
+
+  const bedsSheet = ss.getSheetByName('REF_Beds');
+  let bedInfo = { name: bedId, type: 'Standard', soilType: 'Unknown', sunExposure: 'Full Sun' };
+
+  if (bedsSheet && bedsSheet.getLastRow() > 1) {
+    const bedsData = bedsSheet.getDataRange().getValues();
+    const bedsHeaders = bedsData[0];
+    const bCols = {
+      bedId: bedsHeaders.findIndex(h => String(h).toLowerCase().includes('bed_id') || String(h).toLowerCase() === 'id'),
+      bedName: bedsHeaders.findIndex(h => String(h).toLowerCase().includes('name')),
+      bedType: bedsHeaders.findIndex(h => String(h).toLowerCase().includes('type')),
+      soilType: bedsHeaders.findIndex(h => String(h).toLowerCase().includes('soil')),
+      sunExposure: bedsHeaders.findIndex(h => String(h).toLowerCase().includes('sun'))
+    };
+
+    for (let i = 1; i < bedsData.length; i++) {
+      if (bedsData[i][bCols.bedId] === bedId) {
+        bedInfo = {
+          name: bedsData[i][bCols.bedName] || bedId,
+          type: bedsData[i][bCols.bedType] || 'Standard',
+          soilType: bedsData[i][bCols.soilType] || 'Unknown',
+          sunExposure: bedsData[i][bCols.sunExposure] || 'Full Sun'
+        };
+        break;
+      }
+    }
+  }
+
+  const newRow = [
+    generateId('BR'),
+    bedId,
+    bedInfo.name,
+    bedInfo.type,
+    bedInfo.soilType,
+    bedInfo.sunExposure,
+    crop,
+    variety || 'Mixed',
+    '5.5',
+    '1.00',
+    1,
+    new Date().toISOString().split('T')[0],
+    0,
+    '',
+    'Yes',
+    60
+  ];
+
+  sheet.appendRow(newRow);
+}
+
+/**
+ * Recalculate yield model for a crop/variety
+ */
+function recalculateYieldModel(crop, variety) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const yieldSheet = ss.getSheetByName(SMART_INTEL_SHEETS.YIELD_MODELS.name);
+
+    if (!yieldSheet) {
+      return { success: false, error: 'YIELD_MODELS sheet not found' };
+    }
+
+    const data = yieldSheet.getDataRange().getValues();
+    const headers = data[0];
+    const cols = {
+      modelId: headers.indexOf('Model_ID'),
+      crop: headers.indexOf('Crop'),
+      variety: headers.indexOf('Variety'),
+      actualYield: headers.indexOf('Actual_Yield_Per_Ft'),
+      modelType: headers.indexOf('Model_Type'),
+      confidence: headers.indexOf('Confidence_Level'),
+      sampleSize: headers.indexOf('Sample_Size')
+    };
+
+    const actuals = [];
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (row[cols.crop] === crop && row[cols.modelType] === 'Actual_Record') {
+        if (!variety || row[cols.variety] === variety || row[cols.variety] === 'Mixed') {
+          const yieldVal = parseFloat(row[cols.actualYield]);
+          if (yieldVal > 0) {
+            actuals.push(yieldVal);
+          }
+        }
+      }
+    }
+
+    if (actuals.length === 0) {
+      return { success: true, message: 'No actual records found for recalculation', samples: 0 };
+    }
+
+    const avgYield = actuals.reduce((sum, v) => sum + v, 0) / actuals.length;
+
+    const variance = actuals.length > 1
+      ? Math.sqrt(actuals.reduce((sum, v) => sum + Math.pow(v - avgYield, 2), 0) / actuals.length)
+      : 0;
+
+    const variancePct = avgYield > 0 ? (variance / avgYield) * 100 : 0;
+    const confidence = Math.min(95, 50 + actuals.length * 5);
+
+    const now = new Date().toISOString();
+    const newRow = [
+      generateId('YM'),
+      crop,
+      variety || 'Mixed',
+      'ALL',
+      getSeasonFromDate_Intel(new Date()),
+      new Date().getFullYear(),
+      avgYield.toFixed(3),
+      avgYield.toFixed(3),
+      variancePct.toFixed(1),
+      confidence,
+      actuals.length,
+      JSON.stringify({ recalculated: true, source_records: actuals.length }),
+      'Recalculated_Average',
+      now,
+      `Recalculated from ${actuals.length} actual records`
+    ];
+
+    yieldSheet.appendRow(newRow);
+
+    logModelMetadata_Intel(ss, {
+      modelType: 'Yield_Recalculation',
+      version: '1.0',
+      samples: actuals.length,
+      validationScore: (100 - variancePct).toFixed(1),
+      notes: `Recalculated for ${crop} ${variety || 'all varieties'}`
+    });
+
+    return {
+      success: true,
+      result: {
+        crop: crop,
+        variety: variety || 'All',
+        newAvgYieldPerFt: Math.round(avgYield * 1000) / 1000,
+        variancePct: Math.round(variancePct * 10) / 10,
+        confidence: confidence,
+        samplesUsed: actuals.length
+      },
+      timestamp: now
+    };
+
+  } catch (error) {
+    Logger.log('Error in recalculateYieldModel: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get variety performance data
+ */
+function getVarietyPerformance(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(SMART_INTEL_SHEETS.VARIETY_PERFORMANCE.name);
+
+    if (!sheet || sheet.getLastRow() <= 1) {
+      return { success: true, performances: [], message: 'No variety performance data found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    let performances = [];
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (!row[0]) continue;
+
+      const record = {};
+      headers.forEach((header, index) => {
+        record[header] = row[index];
+      });
+
+      if (params.crop && record.Crop !== params.crop) continue;
+      if (params.variety && record.Variety !== params.variety) continue;
+      if (params.minScore && parseFloat(record.Composite_Score) < parseFloat(params.minScore)) continue;
+
+      performances.push(record);
+    }
+
+    performances.sort((a, b) => parseFloat(b.Composite_Score) - parseFloat(a.Composite_Score));
+
+    const limit = parseInt(params.limit) || 50;
+    performances = performances.slice(0, limit);
+
+    return {
+      success: true,
+      performances: performances,
+      count: performances.length,
+      timestamp: new Date().toISOString()
+    };
+
+  } catch (error) {
+    Logger.log('Error in getVarietyPerformance: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get bed-crop rankings
+ */
+function getBedCropRankings(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(SMART_INTEL_SHEETS.BED_CROP_RANKINGS.name);
+
+    if (!sheet || sheet.getLastRow() <= 1) {
+      return { success: true, rankings: [], message: 'No bed-crop rankings found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    let rankings = [];
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (!row[0]) continue;
+
+      const record = {};
+      headers.forEach((header, index) => {
+        record[header] = row[index];
+      });
+
+      if (params.bedId && record.Bed_ID !== params.bedId) continue;
+      if (params.crop && record.Crop !== params.crop) continue;
+      if (params.recommendedOnly === 'true' && record.Recommended !== 'Yes') continue;
+
+      rankings.push(record);
+    }
+
+    rankings.sort((a, b) => parseFloat(b.Performance_Score) - parseFloat(a.Performance_Score));
+
+    const limit = parseInt(params.limit) || 100;
+    rankings = rankings.slice(0, limit);
+
+    return {
+      success: true,
+      rankings: rankings,
+      count: rankings.length,
+      timestamp: new Date().toISOString()
+    };
+
+  } catch (error) {
+    Logger.log('Error in getBedCropRankings: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Record user feedback on recommendations
+ */
+function recordIntelligenceFeedback(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(SMART_INTEL_SHEETS.INTELLIGENCE_FEEDBACK.name);
+
+    if (!sheet) {
+      return { success: false, error: 'INTELLIGENCE_FEEDBACK sheet not found' };
+    }
+
+    const feedbackId = generateId('IF');
+    const now = new Date().toISOString();
+
+    const row = [
+      feedbackId,
+      now,
+      params.recommendationType || '',
+      params.recommendationId || '',
+      params.userId || 'anonymous',
+      params.accepted === 'true' || params.accepted === true,
+      params.outcome || '',
+      parseInt(params.rating) || 0,
+      params.comments || '',
+      false
+    ];
+
+    sheet.appendRow(row);
+
+    return {
+      success: true,
+      feedbackId: feedbackId,
+      message: 'Feedback recorded successfully',
+      timestamp: now
+    };
+
+  } catch (error) {
+    Logger.log('Error in recordIntelligenceFeedback: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get intelligence system status and statistics
+ */
+function getIntelligenceSystemStatus() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const status = {
+      sheets: {},
+      totalRecords: 0,
+      lastUpdated: null
+    };
+
+    for (const [key, config] of Object.entries(SMART_INTEL_SHEETS)) {
+      const sheet = ss.getSheetByName(config.name);
+      if (sheet) {
+        const rowCount = Math.max(0, sheet.getLastRow() - 1);
+        status.sheets[config.name] = {
+          exists: true,
+          records: rowCount
+        };
+        status.totalRecords += rowCount;
+      } else {
+        status.sheets[config.name] = {
+          exists: false,
+          records: 0
+        };
+      }
+    }
+
+    return {
+      success: true,
+      status: status,
+      timestamp: new Date().toISOString()
+    };
+
+  } catch (error) {
+    Logger.log('Error in getIntelligenceSystemStatus: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// SMART FARM INTELLIGENCE SYSTEM - PHASE 3: VARIETY PERFORMANCE TRACKER
+// Production-ready variety ranking and performance analysis system
+// Created: 2026-02-11
+// Team 2 - Phase 3 & 4 Implementation
+//
+// API ENDPOINTS ADDED TO doGet (already done in MERGED TOTAL.js):
+// - getVarietyRankings
+// - submitVarietyReview
+// - getVarietyPerformance
+// - getVarietyPerformanceSummary
+// - getBedRecommendations
+// - getCropRotationPlan
+// - getBedHistory
+// - checkRotationSafety
+// - getBedScore (calculateBedScore)
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Performance score weights for variety ranking
+ */
+const VARIETY_PERFORMANCE_WEIGHTS = {
+  YIELD: 0.25,           // 25% - Average yield per foot
+  CONSISTENCY: 0.15,     // 15% - Yield consistency (low variance = good)
+  QUALITY: 0.20,         // 20% - Quality ratings
+  DISEASE_RESISTANCE: 0.15, // 15% - Disease resistance score
+  MARKET_VALUE: 0.15,    // 15% - Market value index
+  GROW_AGAIN: 0.10       // 10% - Grow again percentage
+};
+
+/**
+ * Crop family definitions for rotation planning
+ * Extended from existing CROP_FAMILY_GROUPS
+ */
+const EXTENDED_CROP_FAMILIES = {
+  'Nightshade': ['Tomato', 'Pepper', 'Eggplant', 'Potato', 'Tomatillo', 'Ground Cherry'],
+  'Brassica': ['Cabbage', 'Broccoli', 'Cauliflower', 'Kale', 'Collard', 'Brussels Sprout', 'Kohlrabi', 'Turnip', 'Radish', 'Arugula', 'Mustard', 'Bok Choy', 'Napa Cabbage', 'Mizuna', 'Tatsoi'],
+  'Allium': ['Onion', 'Garlic', 'Leek', 'Scallion', 'Shallot', 'Chives'],
+  'Cucurbit': ['Cucumber', 'Squash', 'Zucchini', 'Pumpkin', 'Melon', 'Watermelon', 'Gourd', 'Winter Squash', 'Summer Squash'],
+  'Legume': ['Bean', 'Pea', 'Lentil', 'Peanut', 'Soybean', 'Clover', 'Vetch', 'Cover Crop', 'Snap Bean', 'Dry Bean'],
+  'Umbelliferae': ['Carrot', 'Parsnip', 'Celery', 'Parsley', 'Dill', 'Fennel', 'Cilantro', 'Celeriac'],
+  'Chenopodiaceae': ['Beet', 'Swiss Chard', 'Spinach', 'Quinoa'],
+  'Asteraceae': ['Lettuce', 'Endive', 'Radicchio', 'Chicory', 'Artichoke', 'Sunflower'],
+  'Poaceae': ['Corn', 'Sweet Corn', 'Popcorn', 'Wheat', 'Oats'],
+  'Convolvulaceae': ['Sweet Potato', 'Morning Glory'],
+  'Lamiaceae': ['Basil', 'Mint', 'Oregano', 'Thyme', 'Sage', 'Rosemary', 'Lavender'],
+  'Amaranthaceae': ['Amaranth', 'Quinoa']
+};
+
+/**
+ * Minimum rotation gap (years) by crop family
+ */
+const ROTATION_GAP_YEARS = {
+  'Nightshade': 3,      // Tomatoes, peppers need 3 years
+  'Brassica': 2,        // Cabbage family needs 2 years
+  'Allium': 2,          // Onion family needs 2 years
+  'Cucurbit': 2,        // Squash family needs 2 years
+  'Legume': 1,          // Beans can return after 1 year
+  'Umbelliferae': 2,    // Carrot family needs 2 years
+  'Chenopodiaceae': 2,  // Beet/chard family needs 2 years
+  'Asteraceae': 1,      // Lettuce family is less demanding
+  'Poaceae': 1,         // Corn can return after 1 year
+  'Convolvulaceae': 3,  // Sweet potatoes need 3 years
+  'Lamiaceae': 2,       // Herbs need 2 years
+  'Other': 1            // Default 1 year gap
+};
+
+/**
+ * GET /api?action=getVarietyRankings
+ * Get ranked list of varieties by performance metrics
+ *
+ * @param {Object} params - Query parameters
+ * @param {string} params.crop - Optional: filter by specific crop
+ * @param {string} params.metric - Sorting metric: yield|quality|profit|composite (default: composite)
+ * @param {number} params.limit - Max results to return (default: 20)
+ * @param {string} params.bedType - Optional: filter by bed type (greenhouse|field|high_tunnel)
+ * @returns {Object} Ranked variety list with performance metrics
+ */
+function getVarietyRankings(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const crop = params.crop || null;
+    const metric = params.metric || 'composite';
+    const limit = parseInt(params.limit) || 20;
+    const bedType = params.bedType || null;
+
+    // Try to get data from VARIETY_PERFORMANCE sheet first (Team 1 creates this)
+    let performanceData = getVarietyPerformanceData(ss);
+
+    // If no VARIETY_PERFORMANCE sheet or empty, calculate from source data
+    if (!performanceData || performanceData.length === 0) {
+      performanceData = calculateVarietyPerformanceFromSources(ss, crop, bedType);
+    } else if (crop) {
+      // Filter by crop if specified
+      performanceData = performanceData.filter(p =>
+        p.crop.toLowerCase() === crop.toLowerCase()
+      );
+    }
+
+    // Apply bed type filter if specified
+    if (bedType && performanceData.length > 0) {
+      performanceData = filterByBedType(performanceData, bedType);
+    }
+
+    // Sort by requested metric
+    performanceData = sortByMetric(performanceData, metric);
+
+    // Apply limit
+    const limitedData = performanceData.slice(0, limit);
+
+    // Build rankings response
+    const rankings = limitedData.map((item, index) => ({
+      rank: index + 1,
+      variety: item.variety,
+      crop: item.crop,
+      source: item.source || 'Unknown',
+      composite_score: Math.round(item.composite_score || 0),
+      metrics: {
+        yield_per_ft: roundToDecimal(item.yield_per_ft, 2),
+        yield_score: Math.round(item.yield_score || 0),
+        quality_score: Math.round(item.quality_score || 0),
+        disease_resistance: Math.round(item.disease_resistance || 0),
+        market_value: Math.round(item.market_value || 0),
+        consistency: Math.round(item.consistency || 0)
+      },
+      years_grown: item.years_grown || 1,
+      total_plantings: item.total_plantings || 0,
+      grow_again_pct: item.grow_again_pct || null,
+      recommendation: generateVarietyRecommendation(item)
+    }));
+
+    return {
+      success: true,
+      crop: crop || 'All Crops',
+      metric_sorted_by: metric,
+      bed_type: bedType || 'all',
+      total_varieties: performanceData.length,
+      rankings: rankings
+    };
+
+  } catch (error) {
+    Logger.log('getVarietyRankings error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * POST /api?action=submitVarietyReview
+ * Submit a new variety review (triggers performance recalculation)
+ *
+ * @param {Object} params - Review parameters
+ * @param {string} params.crop - Crop name
+ * @param {string} params.variety - Variety name
+ * @param {number} params.yieldRating - Yield rating 1-5
+ * @param {number} params.qualityRating - Quality rating 1-5
+ * @param {number} params.diseaseResistance - Disease resistance rating 1-5
+ * @param {string} params.growAgain - 'Yes' or 'No'
+ * @param {string} params.notes - Optional notes
+ * @param {string} params.season - Optional season (defaults to previous year)
+ * @returns {Object} Result with review ID
+ */
+function submitVarietyReview(params) {
+  try {
+    const { crop, variety, yieldRating, qualityRating, diseaseResistance, growAgain, notes, reviewedBy } = params;
+
+    // Validate required fields
+    if (!crop || !variety) {
+      return { success: false, error: 'crop and variety are required' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('VARIETY_REVIEWS');
+
+    // Create sheet if it doesn't exist
+    if (!sheet) {
+      sheet = ss.insertSheet('VARIETY_REVIEWS');
+      sheet.appendRow([
+        'Review_ID', 'Season', 'Crop', 'Variety', 'Source',
+        'Performance_Rating', 'Yield_Rating', 'Disease_Resistance',
+        'Flavor_Quality', 'Market_Appeal', 'Grow_Again', 'Notes',
+        'Reviewed_By', 'Review_Date'
+      ]);
+    }
+
+    const reviewId = `REV-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
+    const season = params.season || (new Date().getFullYear() - 1).toString();
+    const today = new Date().toISOString().split('T')[0];
+
+    // Calculate performance rating as average of provided ratings
+    const ratings = [yieldRating, qualityRating, diseaseResistance].filter(r => r !== undefined && r !== null);
+    const performanceRating = ratings.length > 0
+      ? Math.round(ratings.reduce((a, b) => parseFloat(a) + parseFloat(b), 0) / ratings.length * 10) / 10
+      : '';
+
+    // Look up source from existing data if possible
+    const source = getVarietySource(ss, crop, variety);
+
+    sheet.appendRow([
+      reviewId,
+      season,
+      crop,
+      variety,
+      source,
+      performanceRating,
+      yieldRating || '',
+      diseaseResistance || '',
+      qualityRating || '',  // Flavor_Quality maps to qualityRating
+      qualityRating || '',  // Market_Appeal also maps to qualityRating for now
+      growAgain || '',
+      notes || '',
+      reviewedBy || 'System',
+      today
+    ]);
+
+    return {
+      success: true,
+      reviewId: reviewId,
+      message: `Variety review submitted for ${variety} (${crop})`,
+      crop: crop,
+      variety: variety,
+      performanceRating: performanceRating
+    };
+
+  } catch (error) {
+    Logger.log('submitVarietyReview error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * GET /api?action=getVarietyPerformance
+ * Get detailed performance data for a specific variety
+ *
+ * @param {Object} params
+ * @param {string} params.crop - Crop name
+ * @param {string} params.variety - Variety name
+ * @returns {Object} Detailed variety performance data
+ */
+function getVarietyPerformance(params) {
+  try {
+    const { crop, variety } = params;
+
+    if (!crop || !variety) {
+      return { success: false, error: 'crop and variety are required' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+    // Get all data sources
+    const planningData = getPlantingDataForVariety(ss, crop, variety);
+    const harvestData = getHarvestDataForVariety(ss, crop, variety);
+    const reviewData = getReviewDataForVariety(ss, crop, variety);
+
+    // Calculate comprehensive metrics
+    const performance = calculateVarietyPerformanceMetrics(crop, variety, planningData, harvestData, reviewData);
+
+    return {
+      success: true,
+      crop: crop,
+      variety: variety,
+      performance: performance,
+      data_sources: {
+        plantings_count: planningData.length,
+        harvests_count: harvestData.length,
+        reviews_count: reviewData.length
+      },
+      history: {
+        plantings: planningData.slice(0, 10),
+        recent_harvests: harvestData.slice(0, 10),
+        reviews: reviewData
+      }
+    };
+
+  } catch (error) {
+    Logger.log('getVarietyPerformance error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * GET /api?action=getVarietyPerformanceSummary
+ * Get performance summary for all varieties of a crop
+ */
+function getVarietyPerformanceSummary(params) {
+  try {
+    const crop = params.crop;
+    if (!crop) {
+      return { success: false, error: 'crop parameter is required' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const performanceData = calculateVarietyPerformanceFromSources(ss, crop, null);
+
+    // Group by variety
+    const summaries = performanceData.map(p => ({
+      variety: p.variety,
+      source: p.source || 'Unknown',
+      composite_score: Math.round(p.composite_score || 0),
+      yield_per_ft: roundToDecimal(p.yield_per_ft, 2),
+      quality_score: Math.round(p.quality_score || 0),
+      years_grown: p.years_grown || 1,
+      grow_again_pct: p.grow_again_pct,
+      recommendation: generateVarietyRecommendation(p)
+    }));
+
+    // Sort by composite score
+    summaries.sort((a, b) => (b.composite_score || 0) - (a.composite_score || 0));
+
+    return {
+      success: true,
+      crop: crop,
+      variety_count: summaries.length,
+      summaries: summaries,
+      top_performer: summaries.length > 0 ? summaries[0].variety : null,
+      avoid_list: summaries.filter(s => s.composite_score < 40).map(s => s.variety)
+    };
+
+  } catch (error) {
+    Logger.log('getVarietyPerformanceSummary error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Internal: Calculate variety performance from source sheets
+ */
+function calculateVarietyPerformanceFromSources(ss, cropFilter, bedTypeFilter) {
+  const results = [];
+
+  // Get planning data
+  const planSheet = ss.getSheetByName('PLANNING_2026');
+  let planningData = [];
+  if (planSheet) {
+    const data = planSheet.getDataRange().getValues();
+    const headers = data[0];
+    planningData = data.slice(1).map(row => {
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = row[i]);
+      return obj;
+    }).filter(row => row.Crop);
+  }
+
+  // Get harvest log data
+  const harvestSheet = ss.getSheetByName('HARVEST_LOG');
+  let harvestData = [];
+  if (harvestSheet) {
+    const data = harvestSheet.getDataRange().getValues();
+    const headers = data[0];
+    harvestData = data.slice(1).map(row => {
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = row[i]);
+      return obj;
+    }).filter(row => row.Crop);
+  }
+
+  // Get variety reviews
+  const reviewSheet = ss.getSheetByName('VARIETY_REVIEWS');
+  let reviewData = [];
+  if (reviewSheet) {
+    const data = reviewSheet.getDataRange().getValues();
+    const headers = data[0];
+    reviewData = data.slice(1).map(row => {
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = row[i]);
+      return obj;
+    }).filter(row => row.Crop && row.Variety);
+  }
+
+  // Group by crop+variety
+  const varietyMap = new Map();
+
+  // Process planning data
+  planningData.forEach(p => {
+    const crop = String(p.Crop || '').trim();
+    const variety = String(p.Variety || 'Unknown').trim();
+    if (!crop) return;
+
+    if (cropFilter && crop.toLowerCase() !== cropFilter.toLowerCase()) return;
+
+    const key = `${crop}|${variety}`;
+    if (!varietyMap.has(key)) {
+      varietyMap.set(key, {
+        crop: crop,
+        variety: variety,
+        source: '',
+        plantings: [],
+        harvests: [],
+        reviews: [],
+        bedIds: new Set()
+      });
+    }
+
+    const entry = varietyMap.get(key);
+    entry.plantings.push(p);
+    if (p.Target_Bed_ID) entry.bedIds.add(p.Target_Bed_ID);
+  });
+
+  // Add harvest data
+  harvestData.forEach(h => {
+    const crop = String(h.Crop || '').trim();
+    const variety = String(h.Variety || 'Unknown').trim();
+    if (!crop) return;
+
+    if (cropFilter && crop.toLowerCase() !== cropFilter.toLowerCase()) return;
+
+    const key = `${crop}|${variety}`;
+    if (!varietyMap.has(key)) {
+      varietyMap.set(key, {
+        crop: crop,
+        variety: variety,
+        source: '',
+        plantings: [],
+        harvests: [],
+        reviews: [],
+        bedIds: new Set()
+      });
+    }
+
+    const entry = varietyMap.get(key);
+    entry.harvests.push(h);
+    if (h.Bed_ID) entry.bedIds.add(h.Bed_ID);
+  });
+
+  // Add review data
+  reviewData.forEach(r => {
+    const crop = String(r.Crop || '').trim();
+    const variety = String(r.Variety || '').trim();
+    if (!crop || !variety) return;
+
+    if (cropFilter && crop.toLowerCase() !== cropFilter.toLowerCase()) return;
+
+    const key = `${crop}|${variety}`;
+    if (!varietyMap.has(key)) {
+      varietyMap.set(key, {
+        crop: crop,
+        variety: variety,
+        source: r.Source || '',
+        plantings: [],
+        harvests: [],
+        reviews: [],
+        bedIds: new Set()
+      });
+    }
+
+    const entry = varietyMap.get(key);
+    entry.reviews.push(r);
+    if (r.Source && !entry.source) entry.source = r.Source;
+  });
+
+  // Calculate performance for each variety
+  varietyMap.forEach((data, key) => {
+    const performance = calculateVarietyPerformanceMetrics(
+      data.crop,
+      data.variety,
+      data.plantings,
+      data.harvests,
+      data.reviews
+    );
+
+    results.push({
+      crop: data.crop,
+      variety: data.variety,
+      source: data.source,
+      ...performance,
+      total_plantings: data.plantings.length,
+      bedIds: Array.from(data.bedIds)
+    });
+  });
+
+  return results;
+}
+
+/**
+ * Internal: Calculate composite performance score for a variety
+ */
+function calculateVarietyPerformanceMetrics(crop, variety, plantings, harvests, reviews) {
+  // Calculate yield metrics
+  let yieldPerFt = 0;
+  let yieldScores = [];
+  let totalFeet = 0;
+  let totalYield = 0;
+
+  plantings.forEach(p => {
+    const feet = parseFloat(p.Feet_Used) || parseFloat(p.Feet) || 0;
+    const yieldLbs = parseFloat(p.Yield_Lbs) || parseFloat(p.Actual_Yield) || 0;
+    if (feet > 0 && yieldLbs > 0) {
+      totalFeet += feet;
+      totalYield += yieldLbs;
+      yieldScores.push(yieldLbs / feet);
+    }
+  });
+
+  // Also check harvest log for yield data
+  harvests.forEach(h => {
+    const qty = parseFloat(h.Quantity) || 0;
+    if (qty > 0) {
+      totalYield += qty;
+    }
+  });
+
+  if (totalFeet > 0) {
+    yieldPerFt = totalYield / totalFeet;
+  }
+
+  // Calculate consistency (inverse of coefficient of variation)
+  let consistency = 80; // Default moderate consistency
+  if (yieldScores.length >= 2) {
+    const mean = yieldScores.reduce((a, b) => a + b, 0) / yieldScores.length;
+    if (mean > 0) {
+      const variance = yieldScores.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / yieldScores.length;
+      const stdDev = Math.sqrt(variance);
+      const cv = (stdDev / mean) * 100; // Coefficient of variation
+      consistency = Math.max(0, Math.min(100, 100 - cv * 2)); // Lower CV = higher consistency
+    }
+  }
+
+  // Calculate quality and disease scores from reviews
+  let qualityScore = 70; // Default
+  let diseaseResistance = 70; // Default
+  let marketValue = 70; // Default
+  let growAgainPct = null;
+
+  if (reviews.length > 0) {
+    const qualityRatings = reviews
+      .map(r => parseFloat(r.Flavor_Quality) || parseFloat(r.Quality_Rating) || 0)
+      .filter(r => r > 0);
+    if (qualityRatings.length > 0) {
+      qualityScore = (qualityRatings.reduce((a, b) => a + b, 0) / qualityRatings.length) * 20; // Convert 1-5 to 0-100
+    }
+
+    const diseaseRatings = reviews
+      .map(r => parseFloat(r.Disease_Resistance) || 0)
+      .filter(r => r > 0);
+    if (diseaseRatings.length > 0) {
+      diseaseResistance = (diseaseRatings.reduce((a, b) => a + b, 0) / diseaseRatings.length) * 20;
+    }
+
+    const marketRatings = reviews
+      .map(r => parseFloat(r.Market_Appeal) || 0)
+      .filter(r => r > 0);
+    if (marketRatings.length > 0) {
+      marketValue = (marketRatings.reduce((a, b) => a + b, 0) / marketRatings.length) * 20;
+    }
+
+    // Calculate grow again percentage
+    const growAgainResponses = reviews.filter(r => r.Grow_Again);
+    if (growAgainResponses.length > 0) {
+      const yesCount = growAgainResponses.filter(r =>
+        String(r.Grow_Again).toLowerCase() === 'yes'
+      ).length;
+      growAgainPct = Math.round((yesCount / growAgainResponses.length) * 100);
+    }
+  }
+
+  // Normalize yield score to 0-100 based on crop expectations
+  const expectedYield = getCropExpectedYield(crop);
+  let yieldScore = 70; // Default
+  if (expectedYield > 0 && yieldPerFt > 0) {
+    yieldScore = Math.min(100, (yieldPerFt / expectedYield) * 70); // 70 = meeting expectations
+  }
+
+  // Calculate composite score
+  const compositeScore =
+    (yieldScore * VARIETY_PERFORMANCE_WEIGHTS.YIELD) +
+    (consistency * VARIETY_PERFORMANCE_WEIGHTS.CONSISTENCY) +
+    (qualityScore * VARIETY_PERFORMANCE_WEIGHTS.QUALITY) +
+    (diseaseResistance * VARIETY_PERFORMANCE_WEIGHTS.DISEASE_RESISTANCE) +
+    (marketValue * VARIETY_PERFORMANCE_WEIGHTS.MARKET_VALUE) +
+    ((growAgainPct !== null ? growAgainPct : 70) * VARIETY_PERFORMANCE_WEIGHTS.GROW_AGAIN);
+
+  // Calculate years grown
+  const yearsSet = new Set();
+  plantings.forEach(p => {
+    const date = p.GH_Sow_Date || p.Field_Sow_Date || p.Transplant_Date || p.Plan_GH_Sow;
+    if (date) {
+      const year = new Date(date).getFullYear();
+      if (!isNaN(year)) yearsSet.add(year);
+    }
+  });
+
+  return {
+    yield_per_ft: yieldPerFt,
+    yield_score: yieldScore,
+    consistency: consistency,
+    quality_score: qualityScore,
+    disease_resistance: diseaseResistance,
+    market_value: marketValue,
+    grow_again_pct: growAgainPct,
+    composite_score: compositeScore,
+    years_grown: yearsSet.size || 1
+  };
+}
+
+/**
+ * Internal: Calculate composite score with custom weights
+ */
+function calculateCompositeScore(metrics) {
+  return (
+    (metrics.yield_score || 0) * VARIETY_PERFORMANCE_WEIGHTS.YIELD +
+    (metrics.consistency || 0) * VARIETY_PERFORMANCE_WEIGHTS.CONSISTENCY +
+    (metrics.quality_score || 0) * VARIETY_PERFORMANCE_WEIGHTS.QUALITY +
+    (metrics.disease_resistance || 0) * VARIETY_PERFORMANCE_WEIGHTS.DISEASE_RESISTANCE +
+    (metrics.market_value || 0) * VARIETY_PERFORMANCE_WEIGHTS.MARKET_VALUE +
+    (metrics.grow_again_pct !== null ? metrics.grow_again_pct : 70) * VARIETY_PERFORMANCE_WEIGHTS.GROW_AGAIN
+  );
+}
+
+/**
+ * Internal: Get expected yield for a crop (lbs/ft)
+ */
+function getCropExpectedYield(cropName) {
+  const yieldExpectations = {
+    'Tomato': 3.0,
+    'Pepper': 1.5,
+    'Cucumber': 2.5,
+    'Squash': 3.0,
+    'Zucchini': 3.5,
+    'Lettuce': 0.5,
+    'Kale': 0.8,
+    'Spinach': 0.4,
+    'Bean': 0.8,
+    'Pea': 0.5,
+    'Carrot': 1.2,
+    'Beet': 1.0,
+    'Onion': 1.5,
+    'Garlic': 0.8,
+    'Corn': 1.0,
+    'Eggplant': 2.0,
+    'Broccoli': 0.6,
+    'Cabbage': 2.0,
+    'Cauliflower': 1.5,
+    'Melon': 4.0,
+    'Watermelon': 6.0,
+    'Potato': 2.0,
+    'Sweet Potato': 2.5
+  };
+
+  // Fuzzy match crop name
+  const normalizedCrop = cropName.trim().toLowerCase();
+  for (const [crop, expected] of Object.entries(yieldExpectations)) {
+    if (normalizedCrop.includes(crop.toLowerCase()) || crop.toLowerCase().includes(normalizedCrop)) {
+      return expected;
+    }
+  }
+
+  return 1.0; // Default expected yield
+}
+
+/**
+ * Internal: Generate recommendation text based on performance
+ */
+function generateVarietyRecommendation(performance) {
+  const score = performance.composite_score || 0;
+
+  if (score >= 85) {
+    return 'TOP_PERFORMER - Increase plantings';
+  } else if (score >= 70) {
+    return 'STRONG_PERFORMER - Maintain current levels';
+  } else if (score >= 55) {
+    return 'AVERAGE_PERFORMER - Consider alternatives';
+  } else if (score >= 40) {
+    return 'UNDERPERFORMER - Reduce plantings or trial different conditions';
+  } else {
+    return 'POOR_PERFORMER - Discontinue unless specific use case';
+  }
+}
+
+/**
+ * Internal: Sort performance data by metric
+ */
+function sortByMetric(data, metric) {
+  const sortKey = {
+    'yield': 'yield_per_ft',
+    'quality': 'quality_score',
+    'profit': 'market_value',
+    'composite': 'composite_score',
+    'disease': 'disease_resistance',
+    'consistency': 'consistency'
+  }[metric] || 'composite_score';
+
+  return data.sort((a, b) => (b[sortKey] || 0) - (a[sortKey] || 0));
+}
+
+/**
+ * Internal: Filter by bed type
+ */
+function filterByBedType(data, bedType) {
+  // This would require bed type info attached to performance data
+  // For now, return all data (could be enhanced with bed type filtering)
+  return data;
+}
+
+/**
+ * Internal: Get variety source from planning/variety data
+ */
+function getVarietySource(ss, crop, variety) {
+  const varietySheet = ss.getSheetByName('REF_Varieties');
+  if (varietySheet) {
+    const data = varietySheet.getDataRange().getValues();
+    const headers = data[0];
+    const cropIdx = headers.indexOf('Crop');
+    const varIdx = headers.indexOf('Variety');
+    const vendorIdx = headers.indexOf('Vendor');
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][cropIdx] === crop && data[i][varIdx] === variety) {
+        return data[i][vendorIdx] || '';
+      }
+    }
+  }
+  return '';
+}
+
+/**
+ * Internal: Get VARIETY_PERFORMANCE sheet data
+ */
+function getVarietyPerformanceData(ss) {
+  const sheet = ss.getSheetByName('VARIETY_PERFORMANCE');
+  if (!sheet) return [];
+
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return [];
+
+  const headers = data[0];
+  return data.slice(1).map(row => {
+    const obj = {};
+    headers.forEach((h, i) => obj[h.toLowerCase().replace(/ /g, '_')] = row[i]);
+    return obj;
+  });
+}
+
+/**
+ * Internal: Get planting data for a specific variety
+ */
+function getPlantingDataForVariety(ss, crop, variety) {
+  const sheet = ss.getSheetByName('PLANNING_2026');
+  if (!sheet) return [];
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+
+  return data.slice(1)
+    .map(row => {
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = row[i]);
+      return obj;
+    })
+    .filter(row =>
+      String(row.Crop || '').toLowerCase() === crop.toLowerCase() &&
+      String(row.Variety || '').toLowerCase() === variety.toLowerCase()
+    );
+}
+
+/**
+ * Internal: Get harvest data for a specific variety
+ */
+function getHarvestDataForVariety(ss, crop, variety) {
+  const sheet = ss.getSheetByName('HARVEST_LOG');
+  if (!sheet) return [];
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+
+  return data.slice(1)
+    .map(row => {
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = row[i]);
+      return obj;
+    })
+    .filter(row =>
+      String(row.Crop || '').toLowerCase() === crop.toLowerCase() &&
+      String(row.Variety || '').toLowerCase() === variety.toLowerCase()
+    );
+}
+
+/**
+ * Internal: Get review data for a specific variety
+ */
+function getReviewDataForVariety(ss, crop, variety) {
+  const sheet = ss.getSheetByName('VARIETY_REVIEWS');
+  if (!sheet) return [];
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+
+  return data.slice(1)
+    .map(row => {
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = row[i]);
+      return obj;
+    })
+    .filter(row =>
+      String(row.Crop || '').toLowerCase() === crop.toLowerCase() &&
+      String(row.Variety || '').toLowerCase() === variety.toLowerCase()
+    );
+}
+
+/**
+ * Internal: Round to specified decimal places
+ */
+function roundToDecimal(num, decimals) {
+  if (num === null || num === undefined || isNaN(num)) return 0;
+  return Math.round(num * Math.pow(10, decimals)) / Math.pow(10, decimals);
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// SMART FARM INTELLIGENCE SYSTEM - PHASE 4: BED/LOCATION INTELLIGENCE
+// Production-ready bed recommendation and crop rotation planning system
+// Created: 2026-02-11
+// Team 2 - Phase 3 & 4 Implementation
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Bed scoring weights
+ */
+const BED_SCORE_WEIGHTS = {
+  HISTORICAL_YIELD: 0.30,     // 30% - Historical yield performance
+  ROTATION_SAFETY: 0.35,      // 35% - Rotation compliance (most important)
+  ENVIRONMENT_MATCH: 0.20,    // 20% - Environment suitability
+  AVAILABILITY: 0.15          // 15% - Bed availability
+};
+
+/**
+ * GET /api?action=getBedRecommendations
+ * Get ranked bed recommendations for a crop/variety
+ *
+ * @param {Object} params
+ * @param {string} params.crop - Crop to plant
+ * @param {string} params.variety - Optional variety
+ * @param {string} params.season - Optional: spring|summer|fall (defaults based on current date)
+ * @param {number} params.feetNeeded - Optional: feet of bed space needed
+ * @returns {Object} Ranked bed recommendations with scores and reasons
+ */
+function getBedRecommendations(params) {
+  try {
+    const crop = params.crop;
+    if (!crop) {
+      return { success: false, error: 'crop parameter is required' };
+    }
+
+    const variety = params.variety || null;
+    const season = params.season || getCurrentSeasonForBed();
+    const feetNeeded = parseInt(params.feetNeeded) || 0;
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+    // Get all beds
+    const bedsResult = getBedsData();
+    if (!bedsResult.success || !bedsResult.beds) {
+      return { success: false, error: 'Could not retrieve beds data' };
+    }
+
+    const beds = bedsResult.beds;
+    const recommendations = [];
+
+    // Get historical planting data for all beds
+    const plantingHistory = getAllBedPlantingHistory(ss);
+
+    // Get crop profile for environmental matching
+    const cropProfile = getCropProfileDataForBed(ss, crop);
+    const cropFamily = getExtendedCropFamily(crop);
+
+    // Score each bed
+    for (const bed of beds) {
+      const bedId = bed['Bed ID'] || bed.Bed_ID || bed.ID;
+      if (!bedId) continue;
+
+      const bedHistory = plantingHistory[bedId] || [];
+
+      // Calculate component scores
+      const historicalScore = calculateHistoricalYieldScore(bedHistory, crop, variety);
+      const rotationResult = checkRotationSafety(bedId, crop);
+      const rotationScore = rotationResult.safe ? 100 : Math.max(0, 100 - (rotationResult.yearsNeeded - rotationResult.gapYears) * 30);
+      const environmentScore = calculateEnvironmentScore(bed, cropProfile, season);
+      const availabilityScore = calculateAvailabilityScore(bed, ss, feetNeeded);
+
+      // Calculate composite score
+      const compositeScore =
+        historicalScore * BED_SCORE_WEIGHTS.HISTORICAL_YIELD +
+        rotationScore * BED_SCORE_WEIGHTS.ROTATION_SAFETY +
+        environmentScore * BED_SCORE_WEIGHTS.ENVIRONMENT_MATCH +
+        availabilityScore * BED_SCORE_WEIGHTS.AVAILABILITY;
+
+      // Generate reasons
+      const reasons = [];
+      const warnings = [];
+
+      if (historicalScore >= 70) {
+        const yieldBoost = Math.round((historicalScore - 70) / 3);
+        if (yieldBoost > 0) {
+          reasons.push(`Historically ${yieldBoost}% higher yield for ${crop}`);
+        }
+      }
+
+      if (rotationResult.safe) {
+        reasons.push(`Good rotation - no ${cropFamily} in ${rotationResult.gapYears} years`);
+      } else {
+        warnings.push(`Rotation conflict - ${rotationResult.lastCrop} (${rotationResult.lastYear}), need ${rotationResult.yearsNeeded - rotationResult.gapYears} more years`);
+      }
+
+      if (environmentScore >= 80) {
+        reasons.push(`Optimal conditions for ${season} planting`);
+      }
+
+      if (availabilityScore === 100) {
+        reasons.push('Bed fully available');
+      } else if (availabilityScore < 50) {
+        warnings.push('Limited availability - partially planted');
+      }
+
+      // Get last crop info
+      const lastCropInfo = bedHistory.length > 0
+        ? `${bedHistory[0].crop} (${bedHistory[0].year})`
+        : 'None recorded';
+
+      recommendations.push({
+        bed_id: bedId,
+        bed_name: bed['Field Name'] || bed.Parent_Field || `Bed ${bedId}`,
+        score: Math.round(compositeScore),
+        scores: {
+          historical: Math.round(historicalScore),
+          rotation: Math.round(rotationScore),
+          environment: Math.round(environmentScore),
+          availability: Math.round(availabilityScore)
+        },
+        reasons: reasons,
+        warnings: warnings,
+        last_crop: lastCropInfo,
+        rotation_safe: rotationResult.safe,
+        bed_type: bed.Type || bed.Bed_Type || 'field',
+        bed_length: parseFloat(bed.Length) || 0,
+        parent_field: bed['Parent Field'] || bed.Parent_Field || ''
+      });
+    }
+
+    // Sort by score descending
+    recommendations.sort((a, b) => b.score - a.score);
+
+    // Add rank
+    recommendations.forEach((r, i) => r.rank = i + 1);
+
+    return {
+      success: true,
+      crop: crop,
+      variety: variety || 'Any',
+      season: season,
+      crop_family: cropFamily,
+      total_beds_analyzed: recommendations.length,
+      recommendations: recommendations.slice(0, 20), // Top 20
+      summary: {
+        excellent_options: recommendations.filter(r => r.score >= 80).length,
+        good_options: recommendations.filter(r => r.score >= 60 && r.score < 80).length,
+        rotation_conflicts: recommendations.filter(r => !r.rotation_safe).length
+      }
+    };
+
+  } catch (error) {
+    Logger.log('getBedRecommendations error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * GET /api?action=getCropRotationPlan
+ * Get multi-year rotation plan for beds
+ *
+ * @param {Object} params
+ * @param {string} params.bedId - Optional: specific bed ID (if omitted, returns for all beds)
+ * @param {number} params.years - Years of history to consider (default: 3)
+ * @returns {Object} Rotation plan with recommendations
+ */
+function getCropRotationPlan(params) {
+  try {
+    const bedId = params.bedId || null;
+    const years = parseInt(params.years) || 3;
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+    // Get beds
+    const bedsResult = getBedsData();
+    if (!bedsResult.success) {
+      return { success: false, error: 'Could not retrieve beds data' };
+    }
+
+    let beds = bedsResult.beds;
+    if (bedId) {
+      beds = beds.filter(b => (b['Bed ID'] || b.Bed_ID || b.ID) === bedId);
+      if (beds.length === 0) {
+        return { success: false, error: `Bed ${bedId} not found` };
+      }
+    }
+
+    // Get historical data
+    const plantingHistory = getAllBedPlantingHistory(ss, years + 1);
+
+    const rotationPlans = [];
+
+    for (const bed of beds) {
+      const id = bed['Bed ID'] || bed.Bed_ID || bed.ID;
+      if (!id) continue;
+
+      const history = plantingHistory[id] || [];
+
+      // Group history by year
+      const yearHistory = {};
+      history.forEach(h => {
+        if (!yearHistory[h.year]) yearHistory[h.year] = [];
+        yearHistory[h.year].push(h);
+      });
+
+      // Get families planted in each year
+      const familyHistory = {};
+      Object.entries(yearHistory).forEach(([year, plantings]) => {
+        familyHistory[year] = [...new Set(plantings.map(p => p.family))];
+      });
+
+      // Identify what CAN'T be planted next year due to rotation
+      const currentYear = new Date().getFullYear();
+      const conflicts = [];
+      const safeToPlant = [];
+
+      for (const [family, gapRequired] of Object.entries(ROTATION_GAP_YEARS)) {
+        let lastPlantedYear = null;
+        for (let y = currentYear; y >= currentYear - years; y--) {
+          if (familyHistory[y] && familyHistory[y].includes(family)) {
+            lastPlantedYear = y;
+            break;
+          }
+        }
+
+        if (lastPlantedYear !== null) {
+          const gapYears = currentYear - lastPlantedYear;
+          if (gapYears < gapRequired) {
+            conflicts.push({
+              family: family,
+              last_planted: lastPlantedYear,
+              gap_needed: gapRequired,
+              gap_actual: gapYears,
+              safe_to_plant_year: lastPlantedYear + gapRequired
+            });
+          } else {
+            safeToPlant.push({ family: family, gap_years: gapYears });
+          }
+        } else {
+          safeToPlant.push({ family: family, gap_years: years + 1 });
+        }
+      }
+
+      rotationPlans.push({
+        bed_id: id,
+        bed_name: bed['Field Name'] || bed.Parent_Field || `Bed ${id}`,
+        history_years: Object.keys(yearHistory).sort().reverse(),
+        crop_history: yearHistory,
+        family_history: familyHistory,
+        conflicts: conflicts,
+        safe_families: safeToPlant.map(s => s.family),
+        recommendations: generateRotationRecommendations(conflicts, safeToPlant)
+      });
+    }
+
+    return {
+      success: true,
+      years_analyzed: years,
+      bed_count: rotationPlans.length,
+      rotation_plans: rotationPlans,
+      family_definitions: EXTENDED_CROP_FAMILIES,
+      rotation_requirements: ROTATION_GAP_YEARS
+    };
+
+  } catch (error) {
+    Logger.log('getCropRotationPlan error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * GET /api?action=getBedHistory
+ * Get planting history for a specific bed
+ *
+ * @param {Object} params
+ * @param {string} params.bedId - Bed ID
+ * @param {number} params.years - Years of history (default: 5)
+ * @returns {Object} Bed planting history
+ */
+function getBedHistory(params) {
+  try {
+    const bedId = params.bedId;
+    if (!bedId) {
+      return { success: false, error: 'bedId parameter is required' };
+    }
+
+    const years = parseInt(params.years) || 5;
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+    // Get bed info
+    const bedsResult = getBedsData();
+    let bedInfo = null;
+    if (bedsResult.success && bedsResult.beds) {
+      bedInfo = bedsResult.beds.find(b =>
+        (b['Bed ID'] || b.Bed_ID || b.ID) === bedId
+      );
+    }
+
+    // Get planting history
+    const allHistory = getAllBedPlantingHistory(ss, years);
+    const history = allHistory[bedId] || [];
+
+    // Group by year
+    const byYear = {};
+    history.forEach(h => {
+      if (!byYear[h.year]) byYear[h.year] = [];
+      byYear[h.year].push({
+        crop: h.crop,
+        variety: h.variety,
+        family: h.family,
+        batch_id: h.batchId,
+        sow_date: h.sowDate,
+        harvest_date: h.harvestDate
+      });
+    });
+
+    // Get unique families
+    const familiesUsed = [...new Set(history.map(h => h.family))];
+
+    return {
+      success: true,
+      bed_id: bedId,
+      bed_info: bedInfo || { id: bedId },
+      total_plantings: history.length,
+      years_with_data: Object.keys(byYear).length,
+      history_by_year: byYear,
+      families_used: familiesUsed,
+      most_recent: history.length > 0 ? {
+        crop: history[0].crop,
+        variety: history[0].variety,
+        year: history[0].year,
+        family: history[0].family
+      } : null
+    };
+
+  } catch (error) {
+    Logger.log('getBedHistory error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Internal/API: Check rotation safety for planting a crop in a bed
+ *
+ * @param {string} bedId - Bed ID to check
+ * @param {string} crop - Crop to plant
+ * @returns {Object} Rotation safety result
+ */
+function checkRotationSafety(bedId, crop) {
+  try {
+    if (!bedId || !crop) {
+      return {
+        safe: true,
+        reason: 'Missing bedId or crop - assuming safe',
+        gapYears: 99,
+        yearsNeeded: 0
+      };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const cropFamily = getExtendedCropFamily(crop);
+    const requiredGap = ROTATION_GAP_YEARS[cropFamily] || ROTATION_GAP_YEARS['Other'];
+
+    // Get bed history
+    const allHistory = getAllBedPlantingHistory(ss, requiredGap + 1);
+    const history = allHistory[bedId] || [];
+
+    // Check for same family in rotation period
+    const currentYear = new Date().getFullYear();
+    let lastSameFamilyYear = null;
+    let lastCrop = null;
+    let conflicts = [];
+
+    for (const planting of history) {
+      if (planting.family === cropFamily) {
+        if (lastSameFamilyYear === null || planting.year > lastSameFamilyYear) {
+          lastSameFamilyYear = planting.year;
+          lastCrop = planting.crop;
+        }
+
+        const gapYears = currentYear - planting.year;
+        if (gapYears < requiredGap) {
+          conflicts.push({
+            crop: planting.crop,
+            year: planting.year,
+            family: planting.family,
+            gap: gapYears
+          });
+        }
+      }
+    }
+
+    const gapYears = lastSameFamilyYear ? currentYear - lastSameFamilyYear : requiredGap + 1;
+    const safe = gapYears >= requiredGap;
+
+    return {
+      success: true,
+      safe: safe,
+      bedId: bedId,
+      crop: crop,
+      cropFamily: cropFamily,
+      requiredGap: requiredGap,
+      gapYears: gapYears,
+      yearsNeeded: requiredGap,
+      lastCrop: lastCrop,
+      lastYear: lastSameFamilyYear,
+      conflicts: conflicts,
+      reason: safe
+        ? `Safe: ${cropFamily} family not planted in ${gapYears} years (need ${requiredGap})`
+        : `Rotation conflict: ${lastCrop} (${cropFamily}) planted ${gapYears} year(s) ago, need ${requiredGap} year gap`
+    };
+
+  } catch (error) {
+    Logger.log('checkRotationSafety error: ' + error.toString());
+    return {
+      success: false,
+      safe: false,
+      error: error.toString(),
+      gapYears: 0,
+      yearsNeeded: 3
+    };
+  }
+}
+
+/**
+ * Internal/API: Calculate bed suitability score for a crop
+ *
+ * @param {string} bedId - Bed ID
+ * @param {string} crop - Crop name
+ * @param {string} variety - Optional variety
+ * @returns {Object} Bed score details
+ */
+function calculateBedScore(bedId, crop, variety) {
+  try {
+    if (!bedId || !crop) {
+      return { success: false, error: 'bedId and crop are required' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+    // Get bed info
+    const bedsResult = getBedsData();
+    let bedInfo = null;
+    if (bedsResult.success && bedsResult.beds) {
+      bedInfo = bedsResult.beds.find(b =>
+        (b['Bed ID'] || b.Bed_ID || b.ID) === bedId
+      );
+    }
+
+    if (!bedInfo) {
+      return { success: false, error: `Bed ${bedId} not found` };
+    }
+
+    // Get all scoring components
+    const allHistory = getAllBedPlantingHistory(ss);
+    const bedHistory = allHistory[bedId] || [];
+    const cropProfile = getCropProfileDataForBed(ss, crop);
+    const season = getCurrentSeasonForBed();
+
+    const historicalScore = calculateHistoricalYieldScore(bedHistory, crop, variety);
+    const rotationResult = checkRotationSafety(bedId, crop);
+    const rotationScore = rotationResult.safe ? 100 : Math.max(0, 100 - (rotationResult.yearsNeeded - rotationResult.gapYears) * 30);
+    const environmentScore = calculateEnvironmentScore(bedInfo, cropProfile, season);
+    const availabilityScore = calculateAvailabilityScore(bedInfo, ss, 0);
+
+    const compositeScore =
+      historicalScore * BED_SCORE_WEIGHTS.HISTORICAL_YIELD +
+      rotationScore * BED_SCORE_WEIGHTS.ROTATION_SAFETY +
+      environmentScore * BED_SCORE_WEIGHTS.ENVIRONMENT_MATCH +
+      availabilityScore * BED_SCORE_WEIGHTS.AVAILABILITY;
+
+    return {
+      success: true,
+      bed_id: bedId,
+      crop: crop,
+      variety: variety || 'Any',
+      composite_score: Math.round(compositeScore),
+      component_scores: {
+        historical_yield: Math.round(historicalScore),
+        rotation_safety: Math.round(rotationScore),
+        environment_match: Math.round(environmentScore),
+        availability: Math.round(availabilityScore)
+      },
+      weights_used: BED_SCORE_WEIGHTS,
+      rotation_details: rotationResult,
+      recommendation: compositeScore >= 80
+        ? 'EXCELLENT - Highly recommended'
+        : compositeScore >= 60
+          ? 'GOOD - Suitable option'
+          : compositeScore >= 40
+            ? 'FAIR - Consider alternatives'
+            : 'POOR - Not recommended'
+    };
+
+  } catch (error) {
+    Logger.log('calculateBedScore error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Internal: Get all bed planting history
+ */
+function getAllBedPlantingHistory(ss, years) {
+  years = years || 5;
+  const currentYear = new Date().getFullYear();
+  const history = {};
+
+  // Check current and previous years' planning sheets
+  const sheetNames = [`PLANNING_${currentYear}`];
+  for (let i = 1; i <= years; i++) {
+    sheetNames.push(`PLANNING_${currentYear - i}`);
+  }
+
+  for (const sheetName of sheetNames) {
+    const sheet = ss.getSheetByName(sheetName);
+    if (!sheet) continue;
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    // Find relevant columns
+    const bedCol = headers.findIndex(h =>
+      String(h).toLowerCase().includes('bed') && String(h).toLowerCase().includes('id')
+    );
+    const cropCol = headers.findIndex(h => String(h).toLowerCase() === 'crop');
+    const varietyCol = headers.findIndex(h => String(h).toLowerCase() === 'variety');
+    const batchCol = headers.findIndex(h => String(h).toLowerCase().includes('batch'));
+    const sowCol = headers.findIndex(h =>
+      String(h).toLowerCase().includes('sow') || String(h).toLowerCase().includes('plant')
+    );
+    const harvestCol = headers.findIndex(h => String(h).toLowerCase().includes('harvest'));
+
+    // Extract year from sheet name
+    const yearMatch = sheetName.match(/(\d{4})/);
+    const sheetYear = yearMatch ? parseInt(yearMatch[1]) : currentYear;
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const bedId = bedCol >= 0 ? String(row[bedCol] || '').trim() : null;
+      const crop = cropCol >= 0 ? String(row[cropCol] || '').trim() : null;
+
+      if (!bedId || !crop) continue;
+
+      // Handle beds that might contain multiple bed IDs (comma separated)
+      const bedIds = bedId.split(',').map(b => b.trim()).filter(b => b);
+
+      for (const bid of bedIds) {
+        if (!history[bid]) history[bid] = [];
+
+        const planting = {
+          year: sheetYear,
+          crop: crop,
+          variety: varietyCol >= 0 ? String(row[varietyCol] || '').trim() : '',
+          family: getExtendedCropFamily(crop),
+          batchId: batchCol >= 0 ? String(row[batchCol] || '').trim() : '',
+          sowDate: sowCol >= 0 ? row[sowCol] : null,
+          harvestDate: harvestCol >= 0 ? row[harvestCol] : null
+        };
+
+        history[bid].push(planting);
+      }
+    }
+  }
+
+  // Sort each bed's history by year (most recent first)
+  for (const bedId of Object.keys(history)) {
+    history[bedId].sort((a, b) => b.year - a.year);
+  }
+
+  return history;
+}
+
+/**
+ * Internal: Get extended crop family (uses EXTENDED_CROP_FAMILIES)
+ */
+function getExtendedCropFamily(cropName) {
+  if (!cropName) return 'Other';
+
+  const normalizedCrop = String(cropName).trim().toLowerCase();
+
+  for (const [family, crops] of Object.entries(EXTENDED_CROP_FAMILIES)) {
+    for (const crop of crops) {
+      if (normalizedCrop.includes(crop.toLowerCase()) ||
+          crop.toLowerCase().includes(normalizedCrop)) {
+        return family;
+      }
+    }
+  }
+
+  // Fallback to existing getCropFamily if defined
+  if (typeof CROP_FAMILY_GROUPS !== 'undefined') {
+    for (const [family, crops] of Object.entries(CROP_FAMILY_GROUPS)) {
+      for (const crop of crops) {
+        if (normalizedCrop.includes(crop.toLowerCase()) ||
+            crop.toLowerCase().includes(normalizedCrop)) {
+          return family;
+        }
+      }
+    }
+  }
+
+  return 'Other';
+}
+
+/**
+ * Internal: Calculate historical yield score for a bed
+ */
+function calculateHistoricalYieldScore(bedHistory, crop, variety) {
+  // Default score if no history
+  if (!bedHistory || bedHistory.length === 0) {
+    return 70; // Neutral score - no data
+  }
+
+  // Find plantings of same crop
+  const sameCropPlantings = bedHistory.filter(h =>
+    h.crop.toLowerCase() === crop.toLowerCase() &&
+    (!variety || h.variety.toLowerCase() === variety.toLowerCase())
+  );
+
+  if (sameCropPlantings.length === 0) {
+    // Check if same family has been grown successfully
+    const cropFamily = getExtendedCropFamily(crop);
+    const sameFamilyPlantings = bedHistory.filter(h => h.family === cropFamily);
+
+    if (sameFamilyPlantings.length > 0) {
+      return 75; // Slight positive - same family successful
+    }
+    return 70; // Neutral
+  }
+
+  // We have history for this crop - could enhance with actual yield data
+  // For now, return positive score based on number of successful plantings
+  const score = Math.min(95, 75 + sameCropPlantings.length * 5);
+  return score;
+}
+
+/**
+ * Internal: Calculate environment match score
+ */
+function calculateEnvironmentScore(bed, cropProfile, season) {
+  let score = 70; // Default neutral
+
+  const bedType = String(bed.Type || bed.Bed_Type || 'field').toLowerCase();
+
+  // Match bed type to crop needs
+  if (cropProfile) {
+    const prefersGreenhouse = ['tomato', 'pepper', 'eggplant', 'basil', 'cucumber'].some(c =>
+      String(cropProfile.Crop_Name || '').toLowerCase().includes(c)
+    );
+
+    if (prefersGreenhouse && bedType.includes('greenhouse')) {
+      score += 15;
+    } else if (!prefersGreenhouse && bedType.includes('field')) {
+      score += 10;
+    }
+
+    // Season matching
+    if (season === 'spring' && bedType.includes('greenhouse')) {
+      score += 10; // Greenhouses good for early spring
+    } else if (season === 'summer' && bedType.includes('field')) {
+      score += 5; // Field beds good in summer
+    }
+  }
+
+  return Math.min(100, score);
+}
+
+/**
+ * Internal: Calculate availability score
+ */
+function calculateAvailabilityScore(bed, ss, feetNeeded) {
+  // Check if bed is currently occupied
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth();
+
+  const planSheet = ss.getSheetByName(`PLANNING_${currentYear}`);
+  if (!planSheet) return 100; // No planning data = assume available
+
+  const data = planSheet.getDataRange().getValues();
+  const headers = data[0];
+
+  const bedId = bed['Bed ID'] || bed.Bed_ID || bed.ID;
+  const bedCol = headers.findIndex(h =>
+    String(h).toLowerCase().includes('bed') && String(h).toLowerCase().includes('id')
+  );
+  const statusCol = headers.findIndex(h => String(h).toLowerCase() === 'status');
+
+  if (bedCol < 0) return 100;
+
+  // Check for active plantings in this bed
+  let activePlantings = 0;
+  for (let i = 1; i < data.length; i++) {
+    const rowBed = String(data[i][bedCol] || '');
+    if (rowBed.includes(bedId)) {
+      const status = statusCol >= 0 ? String(data[i][statusCol] || '').toLowerCase() : '';
+      if (!status.includes('complete') && !status.includes('finished') && !status.includes('harvested')) {
+        activePlantings++;
+      }
+    }
+  }
+
+  if (activePlantings === 0) return 100;
+  if (activePlantings === 1) return 60;
+  if (activePlantings === 2) return 30;
+  return 10; // Heavily planted
+}
+
+/**
+ * Internal: Get crop profile data
+ */
+function getCropProfileDataForBed(ss, cropName) {
+  const sheet = ss.getSheetByName('REF_CropProfiles');
+  if (!sheet) return null;
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+
+  for (let i = 1; i < data.length; i++) {
+    const name = String(data[i][0] || '').toLowerCase();
+    if (name === cropName.toLowerCase() || name.includes(cropName.toLowerCase())) {
+      const profile = {};
+      headers.forEach((h, j) => profile[h] = data[i][j]);
+      return profile;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Internal: Get current season based on date
+ */
+function getCurrentSeasonForBed() {
+  const month = new Date().getMonth();
+  if (month >= 2 && month <= 4) return 'spring';
+  if (month >= 5 && month <= 7) return 'summer';
+  if (month >= 8 && month <= 10) return 'fall';
+  return 'winter';
+}
+
+/**
+ * Internal: Generate rotation recommendations
+ */
+function generateRotationRecommendations(conflicts, safeFamilies) {
+  const recommendations = [];
+
+  // Priority planting recommendations
+  const highPrioritySafe = safeFamilies.filter(f =>
+    ['Legume', 'Asteraceae', 'Chenopodiaceae'].includes(f.family)
+  );
+
+  if (highPrioritySafe.length > 0) {
+    recommendations.push({
+      type: 'high_priority',
+      message: `Consider soil-building crops: ${highPrioritySafe.map(f => f.family).join(', ')}`
+    });
+  }
+
+  // Conflict warnings
+  conflicts.forEach(c => {
+    recommendations.push({
+      type: 'warning',
+      message: `Avoid ${c.family} crops until ${c.safe_to_plant_year} (${c.gap_needed - c.gap_actual} more years)`
+    });
+  });
+
+  // General suggestions
+  if (conflicts.some(c => c.family === 'Nightshade')) {
+    recommendations.push({
+      type: 'suggestion',
+      message: 'Good time for leafy greens or legumes to restore soil health'
+    });
+  }
+
+  return recommendations;
 }

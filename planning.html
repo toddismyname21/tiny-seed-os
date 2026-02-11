@@ -1318,13 +1318,13 @@
                 <div class="panel-field-row">
                     <div class="panel-field">
                         <label>Crop</label>
-                        <select id="panelCrop" class="crop-variety-select" disabled onchange="handleCropChange(this.value)">
+                        <select id="panelCrop" class="crop-variety-select" onchange="handleCropChange(this.value)">
                             <option value="">-- Select Crop --</option>
                         </select>
                     </div>
                     <div class="panel-field">
                         <label>Variety</label>
-                        <select id="panelVariety" class="crop-variety-select" disabled onchange="handleVarietyChange(this.value)">
+                        <select id="panelVariety" class="crop-variety-select" onchange="handleVarietyChange(this.value)">
                             <option value="">-- Select Variety --</option>
                         </select>
                     </div>
@@ -2260,20 +2260,11 @@
             // Populate Variety dropdown based on current crop
             populateVarietyDropdown(planting.Crop || '', planting.Variety || '');
 
-            // Handle duplicate mode - enable Crop/Variety editing
-            const cropSelect = document.getElementById('panelCrop');
-            const varietySelect = document.getElementById('panelVariety');
+            // Hide duplicate mode banner (no longer needed for field enabling)
             const duplicateBanner = document.getElementById('duplicateModeBanner');
-
             if (isDuplicatedPlanting) {
-                // Enable Crop and Variety editing for duplicates
-                cropSelect.disabled = false;
-                varietySelect.disabled = false;
                 duplicateBanner.classList.add('active');
             } else {
-                // Normal edit mode - Crop/Variety are read-only
-                cropSelect.disabled = true;
-                varietySelect.disabled = true;
                 duplicateBanner.classList.remove('active');
             }
 

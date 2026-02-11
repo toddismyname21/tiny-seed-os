@@ -6758,7 +6758,7 @@
 
             gallery.innerHTML = filtered.map(pic => `
                 <div class="gallery-item" data-id="${pic.id}">
-                    <img src="${pic.url}" alt="Farm pic by ${pic.author}" onerror="this.onerror=null; this.src='https://via.placeholder.com/400x300?text=Image+Unavailable';">
+                    <img src="${pic.url}" alt="Farm pic by ${pic.author}" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'300\' viewBox=\'0 0 400 300\'%3E%3Crect fill=\'%23333\' width=\'400\' height=\'300\'/%3E%3Ctext fill=\'%23666\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\' font-family=\'sans-serif\' font-size=\'16\'%3ENo Image%3C/text%3E%3C/svg%3E';">
                     <div class="gallery-item-overlay">
                         <div class="gallery-item-meta">
                             <div class="gallery-item-author">
@@ -7683,7 +7683,7 @@
 
             grid.innerHTML = filtered.map(photo => `
                 <div class="photo-library-item" data-id="${photo.id}">
-                    <img src="${photo.url || photo.thumbnailUrl || 'https://via.placeholder.com/150'}" alt="${photo.caption || 'Farm photo'}">
+                    <img src="${photo.url || photo.thumbnailUrl || 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'150\' height=\'150\' viewBox=\'0 0 150 150\'%3E%3Crect fill=\'%23333\' width=\'150\' height=\'150\'/%3E%3Ctext fill=\'%23666\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\' font-family=\'sans-serif\' font-size=\'12\'%3ENo Image%3C/text%3E%3C/svg%3E'}" alt="${photo.caption || 'Farm photo'}">
                     <div class="photo-overlay">
                         <button class="use-photo-btn" onclick="createPostFromPhoto('${photo.id}')">
                             <i class="fas fa-share"></i> Use This Photo
@@ -8492,7 +8492,7 @@ Would you like to test posting to Threads?`;
                         const rawUrl = pic.Image_URL || pic.url || '';
                         return {
                             id: pic.Pic_ID || pic.id,
-                            url: rawUrl ? convertDriveUrl(rawUrl) : 'https://via.placeholder.com/400x300?text=No+Image',
+                            url: rawUrl ? convertDriveUrl(rawUrl) : 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'300\' viewBox=\'0 0 400 300\'%3E%3Crect fill=\'%23333\' width=\'400\' height=\'300\'/%3E%3Ctext fill=\'%23666\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\' font-family=\'sans-serif\' font-size=\'16\'%3ENo Image%3C/text%3E%3C/svg%3E',
                             author: pic.Employee_Name || pic.author || 'Unknown',
                             status: (pic.Status || pic.status || 'new').toLowerCase(),
                             category: (pic.Category || pic.category || 'general').toLowerCase(),
