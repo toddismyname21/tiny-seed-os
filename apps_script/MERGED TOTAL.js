@@ -16408,6 +16408,10 @@ function doGet(e) {
       case 'getIntelligenceFeedbackSummary':
         return jsonResponse(getIntelligenceFeedbackSummary(e.parameter));
 
+      // ============ VARIETY LOOKUP API ============
+      case 'getVarieties':
+        return getVarieties(e.parameter);
+
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
     }
@@ -120237,4 +120241,105 @@ function generateRotationRecommendations(conflicts, safeFamilies) {
   }
 
   return recommendations;
+}
+
+/**
+ * Get all varieties, optionally filtered by crop
+ * GET /api?action=getVarieties&crop=Tomato
+ */
+function getVarieties(params) {
+  try {
+    const ss = getMainSpreadsheet();
+    const varietySheet = ss.getSheetByName('REF_Varieties');
+
+    if (!varietySheet) {
+      // Fall back to extracting from PLANNING sheets
+      return getVarietiesFromPlanning(params);
+    }
+
+    const data = varietySheet.getDataRange().getValues();
+    const headers = data[0];
+    const cropIdx = headers.indexOf('Crop');
+    const varietyIdx = headers.indexOf('Variety');
+    const vendorIdx = headers.indexOf('Vendor');
+    const dtmIdx = headers.indexOf('DTM');
+
+    let varieties = [];
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (!row[varietyIdx]) continue;
+
+      // Filter by crop if specified
+      if (params.crop && row[cropIdx] !== params.crop) continue;
+
+      varieties.push({
+        crop: row[cropIdx] || '',
+        variety: row[varietyIdx] || '',
+        vendor: vendorIdx >= 0 ? row[vendorIdx] || '' : '',
+        dtm: dtmIdx >= 0 ? row[dtmIdx] || '' : ''
+      });
+    }
+
+    // Sort by variety name
+    varieties.sort((a, b) => a.variety.localeCompare(b.variety));
+
+    return jsonResponse({
+      success: true,
+      varieties: varieties,
+      count: varieties.length
+    });
+  } catch (error) {
+    return jsonResponse({ success: false, error: error.toString() }, 500);
+  }
+}
+
+/**
+ * Fallback: get varieties from PLANNING sheets if REF_Varieties doesn't exist
+ */
+function getVarietiesFromPlanning(params) {
+  try {
+    const ss = getMainSpreadsheet();
+    const varietySet = new Map(); // Use Map to dedupe and store crop info
+
+    // Check multiple planning sheets
+    const planningSheets = ['PLANNING_2026', 'PLANNING_2025', 'PLANNING_2024'];
+
+    for (const sheetName of planningSheets) {
+      const sheet = ss.getSheetByName(sheetName);
+      if (!sheet) continue;
+
+      const data = sheet.getDataRange().getValues();
+      const headers = data[0];
+      const cropIdx = headers.indexOf('Crop');
+      const varietyIdx = headers.indexOf('Variety');
+
+      if (cropIdx < 0 || varietyIdx < 0) continue;
+
+      for (let i = 1; i < data.length; i++) {
+        const crop = data[i][cropIdx];
+        const variety = data[i][varietyIdx];
+        if (!variety) continue;
+
+        // Filter by crop if specified
+        if (params.crop && crop !== params.crop) continue;
+
+        const key = `${crop}|${variety}`;
+        if (!varietySet.has(key)) {
+          varietySet.set(key, { crop, variety, vendor: '', dtm: '' });
+        }
+      }
+    }
+
+    const varieties = Array.from(varietySet.values());
+    varieties.sort((a, b) => a.variety.localeCompare(b.variety));
+
+    return jsonResponse({
+      success: true,
+      varieties: varieties,
+      count: varieties.length,
+      source: 'planning_sheets'
+    });
+  } catch (error) {
+    return jsonResponse({ success: false, error: error.toString() }, 500);
+  }
 }

@@ -2308,7 +2308,8 @@
         }
 
         // Populate variety dropdown based on selected crop
-        function populateVarietyDropdown(cropName, selectedVariety) {
+        // Fetches from API + existing plantings + allows adding new
+        async function populateVarietyDropdown(cropName, selectedVariety) {
             const varietySelect = document.getElementById('panelVariety');
 
             if (!cropName) {
@@ -2316,15 +2317,43 @@
                 return;
             }
 
-            // Get all varieties for the selected crop
-            const varieties = [...new Set(
-                allPlantings
-                    .filter(p => p.Crop === cropName)
-                    .map(p => p.Variety)
-            )].filter(v => v).sort();
+            // Start with loading state
+            varietySelect.innerHTML = '<option value="">Loading varieties...</option>';
 
-            varietySelect.innerHTML = '<option value="">-- Select Variety --</option>' +
-                varieties.map(v => `<option value="${v}" ${v === selectedVariety ? 'selected' : ''}>${v}</option>`).join('');
+            // Get varieties from multiple sources
+            let allVarieties = new Set();
+
+            // Source 1: Existing plantings (immediate)
+            allPlantings
+                .filter(p => p.Crop === cropName)
+                .forEach(p => {
+                    if (p.Variety) allVarieties.add(p.Variety);
+                });
+
+            // Source 2: API reference data (async)
+            try {
+                const response = await fetch(`${API_BASE}?action=getVarieties&crop=${encodeURIComponent(cropName)}`);
+                const result = await response.json();
+                if (result.success && result.varieties) {
+                    result.varieties.forEach(v => {
+                        if (v.variety) allVarieties.add(v.variety);
+                    });
+                }
+            } catch (e) {
+                console.log('Could not fetch varieties from API:', e);
+            }
+
+            // Convert to sorted array
+            const varieties = Array.from(allVarieties).sort();
+
+            // Build dropdown HTML
+            let html = '<option value="">-- Select Variety --</option>';
+            html += varieties.map(v =>
+                `<option value="${v}" ${v === selectedVariety ? 'selected' : ''}>${v}</option>`
+            ).join('');
+            html += '<option value="__ADD_NEW__">➕ Add New Variety...</option>';
+
+            varietySelect.innerHTML = html;
 
             // If selected variety isn't in the list, add it
             if (selectedVariety && !varieties.includes(selectedVariety)) {
@@ -2332,7 +2361,8 @@
                 option.value = selectedVariety;
                 option.textContent = selectedVariety;
                 option.selected = true;
-                varietySelect.appendChild(option);
+                // Insert before the "Add New" option
+                varietySelect.insertBefore(option, varietySelect.lastElementChild);
             }
         }
 
@@ -2343,7 +2373,7 @@
             if (!currentEditId) return;
 
             // Update variety dropdown for the new crop
-            populateVarietyDropdown(newCrop, '');
+            await populateVarietyDropdown(newCrop, '');
 
             // Update local state
             const planting = allPlantings.find(p => p.Batch_ID === currentEditId);
@@ -2366,6 +2396,27 @@
         // Note: The disabled state of the field controls whether user can change it
         async function handleVarietyChange(newVariety) {
             if (!currentEditId) return;
+
+            // Handle "Add New Variety" option
+            if (newVariety === '__ADD_NEW__') {
+                const customVariety = prompt('Enter new variety name:');
+                if (!customVariety || !customVariety.trim()) {
+                    // User cancelled - reset to previous value
+                    const planting = allPlantings.find(p => p.Batch_ID === currentEditId);
+                    document.getElementById('panelVariety').value = planting?.Variety || '';
+                    return;
+                }
+                newVariety = customVariety.trim();
+
+                // Add the new variety to the dropdown
+                const varietySelect = document.getElementById('panelVariety');
+                const option = document.createElement('option');
+                option.value = newVariety;
+                option.textContent = newVariety;
+                option.selected = true;
+                // Insert before the "Add New" option
+                varietySelect.insertBefore(option, varietySelect.lastElementChild);
+            }
 
             // Update local state
             const planting = allPlantings.find(p => p.Batch_ID === currentEditId);
