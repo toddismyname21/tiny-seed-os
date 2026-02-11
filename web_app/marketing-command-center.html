@@ -1052,6 +1052,30 @@
             padding: 0.75rem;
             min-height: 100px;
             border: 1px solid var(--border);
+            transition: all 0.2s;
+        }
+
+        .schedule-day:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .schedule-day.today {
+            border-color: var(--info);
+            box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.3);
+        }
+
+        .schedule-day.complete {
+            border-color: var(--success);
+        }
+
+        .schedule-day.partial {
+            border-color: var(--warning);
+        }
+
+        .schedule-day.empty {
+            border-color: var(--danger);
+            opacity: 0.8;
         }
 
         .schedule-day-header {
@@ -1072,6 +1096,15 @@
             border-radius: 4px;
             font-size: 0.7rem;
             margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .schedule-post.empty {
+            background: rgba(128, 128, 128, 0.1);
+            border-left-color: var(--text-secondary);
+            justify-content: center;
         }
 
         /* ============================================= */
@@ -1263,6 +1296,117 @@
         .content-mix-indicator .mix-dot.original { background: var(--success); }
         .content-mix-indicator .mix-dot.personal { background: var(--instagram); }
 
+        /* Content Pillar Indicator */
+        .content-pillar-indicator {
+            display: flex;
+            gap: 0.25rem;
+            align-items: center;
+        }
+
+        .content-pillar-indicator .pillar-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        /* Past day styling */
+        .calendar-day-card.is-past {
+            opacity: 0.7;
+            border-color: var(--border) !important;
+        }
+
+        .calendar-day-card.is-past .calendar-day-header {
+            background: rgba(0,0,0,0.3);
+        }
+
+        .calendar-day-status.gray {
+            background: rgba(128, 128, 128, 0.2);
+            color: #888;
+        }
+
+        /* Pillar badge on post items */
+        .calendar-post-item .pillar-badge {
+            flex-shrink: 0;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        /* Post Detail Modal */
+        .post-detail-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 10000;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .post-detail-modal.active {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .post-detail-content {
+            background: var(--bg-card);
+            border-radius: 16px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .post-detail-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .post-detail-body {
+            padding: 1.5rem;
+        }
+
+        .post-detail-meta {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .post-detail-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            font-size: 0.85rem;
+        }
+
+        .post-detail-content-text {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 1rem;
+            border-radius: 8px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            margin-bottom: 1rem;
+        }
+
+        .post-detail-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border);
+        }
+
         .add-content-btn {
             background: transparent;
             border: 1px dashed var(--text-secondary);
@@ -1450,6 +1594,28 @@
         .btn-sm {
             padding: 0.5rem 1rem;
             font-size: 0.8rem;
+        }
+
+        /* Analytics Period Buttons */
+        .analytics-period-btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            transition: all 0.2s ease;
+        }
+
+        .analytics-period-btn:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: var(--purple);
+        }
+
+        .analytics-period-btn.active {
+            background: var(--purple);
+            border-color: var(--purple);
+            color: white;
+        }
+
+        .analytics-loading {
+            color: var(--purple);
         }
 
         /* ============================================= */
@@ -2221,46 +2387,46 @@
 
             <!-- Brain Stats Row -->
             <div class="stats-grid" style="margin-top: 1.5rem;">
-                <div class="stat-card" style="border-left: 3px solid var(--danger);">
-                    <div class="stat-label">Urgent Actions</div>
-                    <div class="stat-value" id="urgentCount" style="color: var(--danger);">--</div>
-                    <div class="stat-change negative">
-                        <i class="fas fa-exclamation-circle"></i> Respond now
-                    </div>
-                </div>
-                <div class="stat-card" style="border-left: 3px solid var(--warning);">
-                    <div class="stat-label">Today's Tasks</div>
-                    <div class="stat-value" id="todayTaskCount" style="color: var(--warning);">--</div>
-                    <div class="stat-change neutral">
-                        <i class="fas fa-tasks"></i> Complete today
-                    </div>
-                </div>
-                <div class="stat-card" style="border-left: 3px solid var(--success);">
-                    <div class="stat-label">Sentiment Health</div>
-                    <div class="stat-value" id="sentimentScore" style="color: var(--success);">--</div>
-                    <div class="stat-change positive" id="sentimentStatus">
-                        <i class="fas fa-heart"></i> Healthy
+                <div class="stat-card" style="border-left: 3px solid var(--primary);">
+                    <div class="stat-label">Posts This Week</div>
+                    <div class="stat-value" id="weekPostsCount" style="color: var(--primary);">0</div>
+                    <div class="stat-change neutral" id="weekPostsStatus">
+                        <i class="fas fa-chart-line"></i> of 10 goal
                     </div>
                 </div>
                 <div class="stat-card" style="border-left: 3px solid var(--info);">
                     <div class="stat-label">Posts Scheduled</div>
-                    <div class="stat-value" id="scheduledCount" style="color: var(--info);">--</div>
+                    <div class="stat-value" id="scheduledCount" style="color: var(--info);">0</div>
                     <div class="stat-change neutral">
                         <i class="fas fa-calendar"></i> This week
                     </div>
                 </div>
                 <div class="stat-card" style="border-left: 3px solid var(--instagram);">
-                    <div class="stat-label">Instagram Followers</div>
-                    <div class="stat-value" id="statInstagramFollowers" style="color: var(--instagram);">--</div>
-                    <div class="stat-change neutral">
-                        <i class="fab fa-instagram"></i> @tinyseedfarm
+                    <div class="stat-label">@tinyseedfarm</div>
+                    <div class="stat-value" id="igFarmFollowersCard" style="color: var(--instagram);">--</div>
+                    <div class="stat-change neutral" id="igFarmStatus">
+                        <i class="fab fa-instagram"></i> followers
                     </div>
                 </div>
-                <div class="stat-card" style="border-left: 3px solid var(--facebook);">
-                    <div class="stat-label">Facebook Followers</div>
-                    <div class="stat-value" id="statFacebookFollowers" style="color: var(--facebook);">--</div>
-                    <div class="stat-change neutral">
-                        <i class="fab fa-facebook"></i> Tiny Seed Farm
+                <div class="stat-card" style="border-left: 3px solid #E1306C;">
+                    <div class="stat-label">@tinyseedfleurs</div>
+                    <div class="stat-value" id="igFleursFollowersCard" style="color: #E1306C;">--</div>
+                    <div class="stat-change neutral" id="igFleursStatus">
+                        <i class="fab fa-instagram"></i> followers
+                    </div>
+                </div>
+                <div class="stat-card" style="border-left: 3px solid #833AB4;">
+                    <div class="stat-label">@tinyseedfungi</div>
+                    <div class="stat-value" id="igFungiFollowersCard" style="color: #833AB4;">--</div>
+                    <div class="stat-change neutral" id="igFungiStatus">
+                        <i class="fab fa-instagram"></i> followers
+                    </div>
+                </div>
+                <div class="stat-card" style="border-left: 3px solid var(--success);">
+                    <div class="stat-label">Total Followers</div>
+                    <div class="stat-value" id="totalFollowersCard" style="color: var(--success);">--</div>
+                    <div class="stat-change positive" id="totalFollowersStatus">
+                        <i class="fas fa-users"></i> all accounts
                     </div>
                 </div>
             </div>
@@ -2835,6 +3001,34 @@
                             </div>
                         </div>
 
+                        <!-- UTM Link Generator for Post -->
+                        <div id="utmLinkSection" style="background: rgba(67, 97, 238, 0.1); padding: 1rem; border-radius: 12px; border: 1px solid rgba(67, 97, 238, 0.3); margin-bottom: 1rem;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                                <i class="fas fa-link" style="color: var(--info);"></i>
+                                <span style="font-weight: 600; font-size: 0.9rem;">Add Website Link (with UTM tracking)</span>
+                                <span style="font-size: 0.7rem; background: var(--info); color: white; padding: 0.1rem 0.4rem; border-radius: 4px;">SEO</span>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                <input type="url" id="utmBaseUrl" class="caption-input" style="min-height: auto; padding: 0.6rem; flex: 1;" placeholder="https://tinyseedfarm.com (or leave blank for homepage)" oninput="previewUTMLink()">
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                <input type="text" id="utmCampaignName" class="caption-input" style="min-height: auto; padding: 0.6rem;" placeholder="Campaign name (optional)" oninput="previewUTMLink()">
+                                <input type="text" id="utmContentId" class="caption-input" style="min-height: auto; padding: 0.6rem;" placeholder="Content ID (optional)" oninput="previewUTMLink()">
+                            </div>
+                            <div id="utmPreview" style="display: none; background: rgba(0,0,0,0.3); padding: 0.75rem; border-radius: 8px; margin-bottom: 0.5rem;">
+                                <div style="font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Preview URL:</div>
+                                <div id="utmPreviewUrl" style="font-size: 0.8rem; word-break: break-all; color: var(--info);"></div>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button type="button" class="btn btn-sm" style="background: var(--info); flex: 1;" onclick="generateAndInsertUTM()">
+                                    <i class="fas fa-magic"></i> Generate & Add to Caption
+                                </button>
+                                <button type="button" class="btn btn-sm btn-secondary" onclick="copyUTMToClipboard()">
+                                    <i class="fas fa-copy"></i> Copy
+                                </button>
+                            </div>
+                        </div>
+
                         <button class="blast-btn" id="blastBtn" onclick="publishAll()" disabled>
                             <i class="fas fa-paper-plane"></i>
                             PUBLISH ALL
@@ -2962,20 +3156,29 @@
         <div id="scheduleTab" class="tab-content">
             <div class="card">
                 <div class="card-header">
-                    <h3><i class="fas fa-calendar-alt"></i> Content Calendar</h3>
-                    <div style="display: flex; gap: 0.5rem;">
+                    <h3><i class="fas fa-calendar-alt"></i> Quick Calendar View</h3>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
                         <button class="btn btn-sm btn-secondary" onclick="previousWeek()">
                             <i class="fas fa-chevron-left"></i>
                         </button>
-                        <span id="calendarWeek" style="padding: 0.5rem 1rem;">Jan 13 - Jan 19, 2026</span>
+                        <span id="calendarWeek" style="padding: 0.5rem 1rem; min-width: 180px; text-align: center;">Loading...</span>
                         <button class="btn btn-sm btn-secondary" onclick="nextWeek()">
                             <i class="fas fa-chevron-right"></i>
+                        </button>
+                        <button class="btn btn-sm btn-info" onclick="switchTab('contentcalendar')" title="Open Full Calendar View">
+                            <i class="fas fa-expand"></i> Full View
                         </button>
                     </div>
                 </div>
                 <div class="card-body">
                     <div class="schedule-calendar" id="scheduleCalendar">
                         <!-- Calendar will be populated by JavaScript -->
+                    </div>
+                    <div style="text-align: center; margin-top: 1rem;">
+                        <p style="font-size: 0.85rem; color: var(--text-secondary);">
+                            <i class="fas fa-info-circle"></i> For full calendar features including content pillars, gap detection, and post management, use the
+                            <a href="javascript:switchTab('contentcalendar')" style="color: var(--info);">Content Calendar tab</a>.
+                        </p>
                     </div>
                 </div>
             </div>
@@ -3007,7 +3210,7 @@
                     </div>
                     <div class="stat-details">
                         <div class="stat-value"><span id="postsThisWeek">0</span>/10</div>
-                        <div class="stat-label">Posts This Week (Target: 10)</div>
+                        <div class="stat-label">Weekly Posts (Target: 10)</div>
                     </div>
                 </div>
                 <div class="quick-stat-item">
@@ -3015,8 +3218,8 @@
                         <i class="fas fa-layer-group"></i>
                     </div>
                     <div class="stat-details">
-                        <div class="stat-value" id="contentMixDisplay">C:0 O:0 P:0</div>
-                        <div class="stat-label">Content Mix (5-3-2 Rule)</div>
+                        <div class="stat-value" id="contentMixDisplay">Loading...</div>
+                        <div class="stat-label">Content Pillar Mix</div>
                     </div>
                 </div>
                 <div class="quick-stat-item">
@@ -3025,20 +3228,38 @@
                     </div>
                     <div class="stat-details">
                         <div class="stat-value" id="platformsCovered">--</div>
-                        <div class="stat-label">Platforms Covered</div>
+                        <div class="stat-label">Platform Posts (IG:4, FB:7, GBP:2)</div>
                     </div>
                 </div>
             </div>
 
             <!-- 7-Day Calendar Grid -->
             <div class="card">
-                <div class="card-header">
+                <div class="card-header" style="flex-wrap: wrap; gap: 1rem;">
                     <h3><i class="fas fa-calendar-week" style="color: var(--info);"></i> 7-Day Content Calendar</h3>
+
+                    <!-- Week Navigation Controls -->
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <button class="btn btn-sm btn-secondary" onclick="previousWeek()" title="Previous Week">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <span id="calendarWeekContent" style="padding: 0.5rem 1rem; min-width: 180px; text-align: center; font-weight: 500;">
+                            Loading...
+                        </span>
+                        <button class="btn btn-sm btn-secondary" onclick="nextWeek()" title="Next Week">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                        <button id="goToTodayBtn" class="btn btn-sm btn-info" onclick="goToCurrentWeek()" title="Jump to Current Week" style="display: none; margin-left: 0.5rem;">
+                            <i class="fas fa-calendar-day"></i> Today
+                        </button>
+                    </div>
+
                     <div style="display: flex; gap: 0.75rem; align-items: center;">
+                        <!-- Legend -->
                         <div style="display: flex; gap: 0.5rem; font-size: 0.75rem;">
-                            <span style="display: flex; align-items: center; gap: 0.25rem;"><span style="width: 10px; height: 10px; background: var(--success); border-radius: 50%;"></span> 2+ posts</span>
-                            <span style="display: flex; align-items: center; gap: 0.25rem;"><span style="width: 10px; height: 10px; background: var(--warning); border-radius: 50%;"></span> 1 post</span>
-                            <span style="display: flex; align-items: center; gap: 0.25rem;"><span style="width: 10px; height: 10px; background: var(--danger); border-radius: 50%;"></span> No posts</span>
+                            <span style="display: flex; align-items: center; gap: 0.25rem;"><span style="width: 10px; height: 10px; background: var(--success); border-radius: 50%;"></span> Target Met</span>
+                            <span style="display: flex; align-items: center; gap: 0.25rem;"><span style="width: 10px; height: 10px; background: var(--warning); border-radius: 50%;"></span> Needs More</span>
+                            <span style="display: flex; align-items: center; gap: 0.25rem;"><span style="width: 10px; height: 10px; background: var(--danger); border-radius: 50%;"></span> Gap</span>
                         </div>
                         <button class="btn btn-sm btn-secondary" onclick="loadContentCalendar()">
                             <i class="fas fa-sync-alt"></i> Refresh
@@ -3046,6 +3267,16 @@
                     </div>
                 </div>
                 <div class="card-body">
+                    <!-- Content Pillar Legend -->
+                    <div style="display: flex; gap: 1rem; margin-bottom: 1rem; padding: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 8px; flex-wrap: wrap; font-size: 0.75rem;">
+                        <span style="font-weight: 600; color: var(--text-secondary);">Content Pillars:</span>
+                        <span style="display: flex; align-items: center; gap: 0.25rem;"><span style="width: 8px; height: 8px; background: #8B4513; border-radius: 50%;"></span> BTS (Behind Scenes)</span>
+                        <span style="display: flex; align-items: center; gap: 0.25rem;"><span style="width: 8px; height: 8px; background: #22c55e; border-radius: 50%;"></span> PROD (Products)</span>
+                        <span style="display: flex; align-items: center; gap: 0.25rem;"><span style="width: 8px; height: 8px; background: #4361ee; border-radius: 50%;"></span> EDU (Educational)</span>
+                        <span style="display: flex; align-items: center; gap: 0.25rem;"><span style="width: 8px; height: 8px; background: #E1306C; border-radius: 50%;"></span> COMM (Community)</span>
+                        <span style="display: flex; align-items: center; gap: 0.25rem;"><span style="width: 8px; height: 8px; background: #f59e0b; border-radius: 50%;"></span> PROMO (Promotional)</span>
+                        <span style="display: flex; align-items: center; gap: 0.25rem;"><span style="width: 8px; height: 8px; background: #8b5cf6; border-radius: 50%;"></span> SEASON (Seasonal)</span>
+                    </div>
                     <div class="content-calendar-grid" id="contentCalendarGrid">
                         <!-- Calendar days will be populated by JavaScript -->
                         <div style="text-align: center; padding: 3rem; color: var(--text-secondary); grid-column: span 7;">
@@ -3859,7 +4090,20 @@
 
         <!-- ANALYTICS TAB -->
         <div id="analyticsTab" class="tab-content">
-            <!-- Analytics Stats - Populated from Meta Insights API -->
+            <!-- Time Period Filter -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                <h2 style="margin: 0;"><i class="fas fa-chart-line"></i> Social Media Analytics</h2>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <button class="btn btn-sm analytics-period-btn active" data-period="week" onclick="filterAnalytics('week')">This Week</button>
+                    <button class="btn btn-sm analytics-period-btn" data-period="month" onclick="filterAnalytics('month')">This Month</button>
+                    <button class="btn btn-sm analytics-period-btn" data-period="all" onclick="filterAnalytics('all')">All Time</button>
+                    <button class="btn btn-sm" onclick="loadAnalytics()" style="margin-left: 0.5rem;">
+                        <i class="fas fa-sync"></i> Refresh
+                    </button>
+                </div>
+            </div>
+
+            <!-- Analytics Stats - Populated from Post History -->
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-card-header">
@@ -3867,10 +4111,10 @@
                             <i class="fas fa-eye"></i>
                         </div>
                     </div>
-                    <div class="stat-value" id="analyticsReach">--</div>
-                    <div class="stat-label">Total Reach (30 days)</div>
+                    <div class="stat-value" id="analyticsImpressions"><span class="analytics-loading"><i class="fas fa-spinner fa-spin"></i></span></div>
+                    <div class="stat-label">Total Impressions</div>
                     <div class="stat-change neutral">
-                        <i class="fas fa-info-circle"></i> From Meta Insights API
+                        <i class="fas fa-info-circle"></i> Tracked per post
                     </div>
                 </div>
 
@@ -3880,10 +4124,10 @@
                             <i class="fas fa-heart"></i>
                         </div>
                     </div>
-                    <div class="stat-value" id="analyticsEngagements">--</div>
+                    <div class="stat-value" id="analyticsEngagements"><span class="analytics-loading"><i class="fas fa-spinner fa-spin"></i></span></div>
                     <div class="stat-label">Total Engagements</div>
-                    <div class="stat-change neutral">
-                        <i class="fas fa-info-circle"></i> Post to start tracking
+                    <div class="stat-change neutral" id="analyticsEngagementRate">
+                        <i class="fas fa-percentage"></i> <span>--</span>% rate
                     </div>
                 </div>
 
@@ -3893,10 +4137,10 @@
                             <i class="fas fa-user-plus"></i>
                         </div>
                     </div>
-                    <div class="stat-value" id="analyticsCustomers">0</div>
-                    <div class="stat-label">New Followers</div>
+                    <div class="stat-value" id="analyticsFollowers"><span class="analytics-loading"><i class="fas fa-spinner fa-spin"></i></span></div>
+                    <div class="stat-label">Instagram Followers</div>
                     <div class="stat-change neutral">
-                        <i class="fas fa-info-circle"></i> Tracked after posting
+                        <i class="fas fa-info-circle"></i> From Meta API
                     </div>
                 </div>
 
@@ -3906,25 +4150,41 @@
                             <i class="fas fa-paper-plane"></i>
                         </div>
                     </div>
-                    <div class="stat-value" id="analyticsPosts">0</div>
+                    <div class="stat-value" id="analyticsPosts"><span class="analytics-loading"><i class="fas fa-spinner fa-spin"></i></span></div>
                     <div class="stat-label">Posts This Month</div>
-                    <div class="stat-change neutral">
-                        <i class="fas fa-info-circle"></i> Via Direct API
+                    <div class="stat-change neutral" id="analyticsPostsWeek">
+                        <i class="fas fa-calendar-week"></i> <span>--</span> this week
                     </div>
                 </div>
             </div>
 
-            <!-- No Data Message -->
-            <div class="card">
+            <!-- Error State - Hidden by default -->
+            <div class="card" id="analyticsError" style="display: none; border-left: 4px solid var(--danger);">
+                <div class="card-body" style="padding: 1.5rem;">
+                    <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                        <i class="fas fa-exclamation-circle" style="font-size: 1.5rem; color: var(--danger);"></i>
+                        <div>
+                            <h4 style="margin: 0 0 0.25rem 0;">Error Loading Analytics</h4>
+                            <p style="margin: 0; color: var(--text-secondary);" id="analyticsErrorMessage">Unable to fetch analytics data.</p>
+                        </div>
+                        <button class="btn btn-sm" onclick="loadAnalytics()" style="margin-left: auto;">
+                            <i class="fas fa-redo"></i> Retry
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- No Data Message - Hidden when posts exist -->
+            <div class="card" id="analyticsNoData" style="display: none;">
                 <div class="card-header">
                     <h3><i class="fas fa-chart-area"></i> Analytics Dashboard</h3>
                 </div>
                 <div class="card-body" style="text-align: center; padding: 3rem;">
                     <i class="fas fa-chart-line" style="font-size: 4rem; color: var(--purple); opacity: 0.3; margin-bottom: 1.5rem;"></i>
-                    <h3 style="margin-bottom: 0.5rem;">No Analytics Data Yet</h3>
+                    <h3 style="margin-bottom: 0.5rem;">No Posts Yet</h3>
                     <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
-                        Start posting via Direct Meta Graph API to collect engagement data.<br>
-                        Analytics will appear here once you have post activity.
+                        Start posting via Field Mode to collect engagement data.<br>
+                        Analytics will populate automatically once you have post activity.
                     </p>
                     <button class="btn btn-primary" onclick="switchTab('fieldmode')">
                         <i class="fas fa-plus"></i> Create Your First Post
@@ -3932,27 +4192,127 @@
                 </div>
             </div>
 
-            <!-- How Analytics Works -->
-            <div class="card" style="background: linear-gradient(135deg, rgba(155, 89, 182, 0.1) 0%, rgba(225, 48, 108, 0.1) 100%);">
+            <!-- Platform Breakdown & Recent Posts - Shown when posts exist -->
+            <div id="analyticsContent" style="display: none;">
+                <!-- Platform Breakdown -->
+                <div class="card" style="margin-bottom: 1.5rem;">
+                    <div class="card-header">
+                        <h3><i class="fas fa-share-alt"></i> Platform Breakdown</h3>
+                    </div>
+                    <div class="card-body">
+                        <div id="platformBreakdown" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem;">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Posts -->
+                <div class="card" style="margin-bottom: 1.5rem;">
+                    <div class="card-header">
+                        <h3><i class="fas fa-history"></i> Recent Posts</h3>
+                        <span id="recentPostsCount" style="font-size: 0.85rem; color: var(--text-secondary);"></span>
+                    </div>
+                    <div class="card-body" style="padding: 0;">
+                        <div id="recentPostsList" style="max-height: 400px; overflow-y: auto;">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SEO Attribution - UTM Tracking Dashboard -->
+                <div class="card" style="background: linear-gradient(135deg, rgba(67, 97, 238, 0.1) 0%, rgba(42, 157, 143, 0.1) 100%);">
+                    <div class="card-header">
+                        <h3><i class="fas fa-link"></i> SEO Attribution</h3>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <select id="utmPeriodSelect" class="caption-input" style="min-height: auto; padding: 0.4rem 0.75rem; font-size: 0.8rem; width: auto;" onchange="loadUTMAttribution()">
+                                <option value="week">Last 7 Days</option>
+                                <option value="month" selected>Last 30 Days</option>
+                                <option value="quarter">Last 90 Days</option>
+                                <option value="year">This Year</option>
+                                <option value="all">All Time</option>
+                            </select>
+                            <button class="btn btn-sm btn-secondary" onclick="loadUTMAttribution()" style="padding: 0.4rem 0.75rem;">
+                                <i class="fas fa-sync"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- UTM Stats Summary -->
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                            <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px; text-align: center; border-left: 3px solid var(--info);">
+                                <i class="fas fa-mouse-pointer" style="font-size: 1.25rem; color: var(--info); margin-bottom: 0.5rem; display: block;"></i>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);">Total Clicks</div>
+                                <div style="font-size: 1.5rem; font-weight: bold;" id="utmTotalClicks">--</div>
+                            </div>
+                            <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px; text-align: center; border-left: 3px solid var(--success);">
+                                <i class="fas fa-shopping-cart" style="font-size: 1.25rem; color: var(--success); margin-bottom: 0.5rem; display: block;"></i>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);">Conversions</div>
+                                <div style="font-size: 1.5rem; font-weight: bold;" id="utmTotalConversions">--</div>
+                            </div>
+                            <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px; text-align: center; border-left: 3px solid var(--gold);">
+                                <i class="fas fa-percentage" style="font-size: 1.25rem; color: var(--gold); margin-bottom: 0.5rem; display: block;"></i>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);">Conv. Rate</div>
+                                <div style="font-size: 1.5rem; font-weight: bold;" id="utmConversionRate">--%</div>
+                            </div>
+                            <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px; text-align: center; border-left: 3px solid var(--purple);">
+                                <i class="fas fa-dollar-sign" style="font-size: 1.25rem; color: var(--purple); margin-bottom: 0.5rem; display: block;"></i>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);">Revenue</div>
+                                <div style="font-size: 1.5rem; font-weight: bold;" id="utmTotalRevenue">$--</div>
+                            </div>
+                        </div>
+
+                        <!-- Platform Breakdown -->
+                        <div style="margin-bottom: 1.5rem;">
+                            <h4 style="font-size: 0.9rem; margin-bottom: 0.75rem; color: var(--text-secondary);"><i class="fas fa-chart-pie"></i> Clicks by Platform</h4>
+                            <div id="utmPlatformBreakdown" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 0.75rem;">
+                                <!-- Populated by JavaScript -->
+                                <div style="text-align: center; color: var(--text-secondary); padding: 1rem;"><i class="fas fa-spinner fa-spin"></i></div>
+                            </div>
+                        </div>
+
+                        <!-- Top Campaigns -->
+                        <div style="margin-bottom: 1.5rem;">
+                            <h4 style="font-size: 0.9rem; margin-bottom: 0.75rem; color: var(--text-secondary);"><i class="fas fa-trophy"></i> Top Campaigns</h4>
+                            <div id="utmTopCampaigns" style="max-height: 200px; overflow-y: auto;">
+                                <!-- Populated by JavaScript -->
+                                <div style="text-align: center; color: var(--text-secondary); padding: 1rem;"><i class="fas fa-spinner fa-spin"></i></div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Actions -->
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <button class="btn btn-sm" style="background: var(--info);" onclick="openUTMBuilder()">
+                                <i class="fas fa-plus"></i> Create UTM Link
+                            </button>
+                            <button class="btn btn-sm btn-secondary" onclick="showUTMLinksModal()">
+                                <i class="fas fa-list"></i> View All Links
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- How Analytics Works - Always shown -->
+            <div class="card" style="background: linear-gradient(135deg, rgba(155, 89, 182, 0.1) 0%, rgba(225, 48, 108, 0.1) 100%); margin-top: 1.5rem;">
                 <div class="card-header">
                     <h3><i class="fas fa-info-circle"></i> How Analytics Works</h3>
                 </div>
                 <div class="card-body">
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
                         <div style="text-align: center; padding: 1rem;">
-                            <div style="font-size: 2rem; margin-bottom: 0.5rem;">1</div>
+                            <div style="font-size: 2rem; margin-bottom: 0.5rem; color: var(--purple);">1</div>
                             <h4 style="margin-bottom: 0.5rem;">Post Content</h4>
                             <p style="font-size: 0.85rem; color: var(--text-secondary);">Use Field Mode to post directly to Instagram, Facebook & more</p>
                         </div>
                         <div style="text-align: center; padding: 1rem;">
-                            <div style="font-size: 2rem; margin-bottom: 0.5rem;">2</div>
-                            <h4 style="margin-bottom: 0.5rem;">Collect Data</h4>
-                            <p style="font-size: 0.85rem; color: var(--text-secondary);">Meta Insights API tracks likes, comments, shares, and reach</p>
+                            <div style="font-size: 2rem; margin-bottom: 0.5rem; color: var(--purple);">2</div>
+                            <h4 style="margin-bottom: 0.5rem;">Auto-Track</h4>
+                            <p style="font-size: 0.85rem; color: var(--text-secondary);">Posts are logged with platform, timestamp, and content details</p>
                         </div>
                         <div style="text-align: center; padding: 1rem;">
-                            <div style="font-size: 2rem; margin-bottom: 0.5rem;">3</div>
+                            <div style="font-size: 2rem; margin-bottom: 0.5rem; color: var(--purple);">3</div>
                             <h4 style="margin-bottom: 0.5rem;">View Insights</h4>
-                            <p style="font-size: 0.85rem; color: var(--text-secondary);">Analytics populate here from Instagram Insights</p>
+                            <p style="font-size: 0.85rem; color: var(--text-secondary);">Analytics update in real-time from your posting history</p>
                         </div>
                     </div>
                 </div>
@@ -6013,6 +6373,158 @@
         </div>
     </div>
 
+    <!-- UTM BUILDER MODAL -->
+    <div class="modal-overlay" id="utmBuilderModal">
+        <div class="modal" style="max-width: 600px;">
+            <div class="modal-header" style="background: linear-gradient(135deg, var(--info) 0%, var(--success) 100%);">
+                <h3><i class="fas fa-link"></i> UTM Link Builder</h3>
+                <button class="modal-close" onclick="closeUTMBuilder()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.9rem;">
+                    Create trackable links for your social media posts. UTM parameters help you see which posts drive traffic to your website.
+                </p>
+
+                <!-- Base URL -->
+                <div style="margin-bottom: 1rem;">
+                    <label style="font-size: 0.85rem; color: var(--text-secondary); display: block; margin-bottom: 0.5rem;">
+                        Website URL <span style="color: var(--danger);">*</span>
+                    </label>
+                    <input type="url" id="utmModalUrl" class="caption-input" style="min-height: auto; padding: 0.75rem;" placeholder="https://tinyseedfarm.com" value="https://tinyseedfarm.com">
+                </div>
+
+                <!-- Platform (Source) -->
+                <div style="margin-bottom: 1rem;">
+                    <label style="font-size: 0.85rem; color: var(--text-secondary); display: block; margin-bottom: 0.5rem;">
+                        Platform <span style="color: var(--danger);">*</span>
+                    </label>
+                    <select id="utmModalSource" class="caption-input" style="min-height: auto; padding: 0.75rem;" onchange="updateUTMModalPreview()">
+                        <option value="instagram">Instagram</option>
+                        <option value="facebook">Facebook</option>
+                        <option value="tiktok">TikTok</option>
+                        <option value="youtube">YouTube</option>
+                        <option value="pinterest">Pinterest</option>
+                        <option value="twitter">Twitter/X</option>
+                        <option value="threads">Threads</option>
+                        <option value="email">Email</option>
+                        <option value="sms">SMS</option>
+                    </select>
+                </div>
+
+                <!-- Post Type (Medium) -->
+                <div style="margin-bottom: 1rem;">
+                    <label style="font-size: 0.85rem; color: var(--text-secondary); display: block; margin-bottom: 0.5rem;">
+                        Post Type
+                    </label>
+                    <select id="utmModalMedium" class="caption-input" style="min-height: auto; padding: 0.75rem;" onchange="updateUTMModalPreview()">
+                        <option value="social">Feed Post</option>
+                        <option value="story">Story</option>
+                        <option value="reel">Reel/Video</option>
+                        <option value="bio_link">Bio Link</option>
+                        <option value="carousel">Carousel</option>
+                        <option value="email">Email</option>
+                        <option value="sms">SMS</option>
+                    </select>
+                </div>
+
+                <!-- Campaign Name -->
+                <div style="margin-bottom: 1rem;">
+                    <label style="font-size: 0.85rem; color: var(--text-secondary); display: block; margin-bottom: 0.5rem;">
+                        Campaign Name
+                    </label>
+                    <input type="text" id="utmModalCampaign" class="caption-input" style="min-height: auto; padding: 0.75rem;" placeholder="e.g., spring_csa_launch, summer_harvest" oninput="updateUTMModalPreview()">
+                    <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">Use underscores, no spaces. Example: market_day_special</div>
+                </div>
+
+                <!-- Content ID -->
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="font-size: 0.85rem; color: var(--text-secondary); display: block; margin-bottom: 0.5rem;">
+                        Content Identifier (optional)
+                    </label>
+                    <input type="text" id="utmModalContent" class="caption-input" style="min-height: auto; padding: 0.75rem;" placeholder="e.g., tomato_photo, carousel_1" oninput="updateUTMModalPreview()">
+                </div>
+
+                <!-- Preview -->
+                <div style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                    <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;"><i class="fas fa-eye"></i> Preview URL:</div>
+                    <div id="utmModalPreview" style="font-size: 0.85rem; word-break: break-all; color: var(--info); font-family: monospace;">
+                        https://tinyseedfarm.com?utm_source=instagram&utm_medium=social
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeUTMBuilder()">Cancel</button>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn-secondary" onclick="copyUTMFromModal()">
+                        <i class="fas fa-copy"></i> Copy Link
+                    </button>
+                    <button class="btn btn-primary" style="background: var(--info);" onclick="saveUTMFromModal()">
+                        <i class="fas fa-save"></i> Save & Track
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- UTM LINKS LIST MODAL -->
+    <div class="modal-overlay" id="utmLinksModal">
+        <div class="modal" style="max-width: 800px;">
+            <div class="modal-header" style="background: linear-gradient(135deg, var(--info) 0%, var(--purple) 100%);">
+                <h3><i class="fas fa-list"></i> All UTM Links</h3>
+                <button class="modal-close" onclick="closeUTMLinksModal()">&times;</button>
+            </div>
+            <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+                <div id="utmLinksContainer">
+                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 2rem;"></i>
+                        <p style="margin-top: 1rem;">Loading UTM links...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeUTMLinksModal()">Close</button>
+                <button class="btn btn-primary" style="background: var(--info);" onclick="openUTMBuilder()">
+                    <i class="fas fa-plus"></i> Create New Link
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- POST DETAIL MODAL -->
+    <div class="post-detail-modal" id="postDetailModal" onclick="if(event.target === this) closePostDetailModal()">
+        <div class="post-detail-content">
+            <div class="post-detail-header">
+                <h3 id="postDetailTitle"><i class="fas fa-file-alt"></i> Scheduled Post</h3>
+                <button class="modal-close" onclick="closePostDetailModal()">&times;</button>
+            </div>
+            <div class="post-detail-body">
+                <div class="post-detail-meta" id="postDetailMeta">
+                    <!-- Meta items populated by JS -->
+                </div>
+                <div class="post-detail-content-text" id="postDetailText">
+                    <!-- Content populated by JS -->
+                </div>
+                <div id="postDetailMedia" style="margin-bottom: 1rem;">
+                    <!-- Media preview if available -->
+                </div>
+            </div>
+            <div class="post-detail-actions">
+                <button class="btn btn-primary" onclick="editScheduledPost(currentPostDetail)">
+                    <i class="fas fa-edit"></i> Edit Post
+                </button>
+                <button class="btn btn-secondary" onclick="reschedulePost(currentPostDetail)">
+                    <i class="fas fa-calendar-alt"></i> Reschedule
+                </button>
+                <button class="btn btn-info" onclick="duplicatePost(currentPostDetail)">
+                    <i class="fas fa-copy"></i> Duplicate
+                </button>
+                <button class="btn btn-danger" onclick="deleteScheduledPost(currentPostDetail)">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
     <style>
         /* Social API Modal Styles */
         .setup-steps {
@@ -6091,6 +6603,15 @@
             // Load tab-specific data
             if (tabId === 'paidads') {
                 loadPaidAdsTab();
+            } else if (tabId === 'farmpics') {
+                loadFarmPics();
+            } else if (tabId === 'contentcalendar') {
+                loadContentCalendar();
+                loadPhotoLibrary();
+                loadToddInput();
+            } else if (tabId === 'analytics') {
+                loadAnalytics();
+                loadUTMAttribution();
             }
         }
 
@@ -6746,8 +7267,9 @@
 
         function renderFarmPics(filter = 'all') {
             const gallery = document.getElementById('farmPicsGallery');
-            let filtered = farmPicsData;
+            if (!gallery) return;
 
+            let filtered = farmPicsData;
             if (filter !== 'all') {
                 if (['new', 'approved', 'used'].includes(filter)) {
                     filtered = farmPicsData.filter(pic => pic.status === filter);
@@ -6756,30 +7278,25 @@
                 }
             }
 
+            if (filtered.length === 0) {
+                gallery.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--text-secondary);"><i class="fas fa-images" style="font-size: 3rem; opacity: 0.5;"></i><p style="margin-top: 1rem;">' + (farmPicsData.length === 0 ? 'No photos in library' : 'No photos match "' + filter + '" filter') + '</p><p style="font-size: 0.85rem; opacity: 0.7;">Upload via Employee App or MARKETING_FarmPics sheet.</p></div>';
+                return;
+            }
+
             gallery.innerHTML = filtered.map(pic => `
-                <div class="gallery-item" data-id="${pic.id}">
-                    <img src="${pic.url}" alt="Farm pic by ${pic.author}" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'300\' viewBox=\'0 0 400 300\'%3E%3Crect fill=\'%23333\' width=\'400\' height=\'300\'/%3E%3Ctext fill=\'%23666\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\' font-family=\'sans-serif\' font-size=\'16\'%3ENo Image%3C/text%3E%3C/svg%3E';">
+                <div class="gallery-item" data-id="${pic.id}" onclick="openPhotoPreview('${pic.id}')">
+                    <img src="${pic.url}" alt="${pic.altText || pic.caption || 'Farm photo by ' + pic.author}" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'400\\' height=\\'300\\' viewBox=\\'0 0 400 300\\'%3E%3Crect fill=\\'%23333\\' width=\\'400\\' height=\\'300\\'/%3E%3Ctext fill=\\'%23666\\' x=\\'50%25\\' y=\\'50%25\\' text-anchor=\\'middle\\' dy=\\'.3em\\' font-family=\\'sans-serif\\' font-size=\\'16\\'%3ENo Image%3C/text%3E%3C/svg%3E';">
                     <div class="gallery-item-overlay">
                         <div class="gallery-item-meta">
-                            <div class="gallery-item-author">
-                                <i class="fas fa-user-circle"></i>
-                                ${pic.author}
-                            </div>
+                            <div class="gallery-item-author"><i class="fas fa-user-circle"></i> ${pic.author}</div>
                             <span class="gallery-item-status ${pic.status}">${pic.status}</span>
                         </div>
+                        ${pic.date ? '<div style="font-size: 0.7rem; opacity: 0.8; margin-top: 0.25rem;"><i class="fas fa-clock"></i> ' + pic.date + '</div>' : ''}
                     </div>
-                    <div class="gallery-item-actions">
-                        ${pic.status === 'new' ? `
-                            <button class="gallery-action-btn approve" onclick="approvePic(${pic.id})" title="Approve">
-                                <i class="fas fa-check"></i>
-                            </button>
-                        ` : ''}
-                        <button class="gallery-action-btn use" onclick="usePicInPost(${pic.id})" title="Use in post">
-                            <i class="fas fa-share"></i>
-                        </button>
-                        <button class="gallery-action-btn delete" onclick="deletePic(${pic.id})" title="Delete">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                    <div class="gallery-item-actions" onclick="event.stopPropagation()">
+                        ${pic.status === 'new' ? '<button class="gallery-action-btn approve" onclick="approvePic(\'' + pic.id + '\')" title="Approve"><i class="fas fa-check"></i></button>' : ''}
+                        <button class="gallery-action-btn use" onclick="usePicInPost('${pic.id}')" title="Use in post"><i class="fas fa-share"></i></button>
+                        <button class="gallery-action-btn delete" onclick="deletePic('${pic.id}')" title="Delete"><i class="fas fa-trash"></i></button>
                     </div>
                 </div>
             `).join('');
@@ -6791,40 +7308,98 @@
             renderFarmPics(filter);
         }
 
-        function approvePic(id) {
-            const pic = farmPicsData.find(p => p.id === id);
-            if (pic) {
-                pic.status = 'approved';
-                renderFarmPics();
-                updateNewPicsBadge();
-                showToast('Photo approved!', 'success');
-            }
-        }
+        // Approve single photo - syncs with backend
+        async function approvePic(id) {
+            const pic = farmPicsData.find(p => p.id == id);
+            if (!pic) { showToast('Photo not found', 'error'); return; }
 
-        function approveAllPics() {
-            farmPicsData.forEach(pic => {
-                if (pic.status === 'new') pic.status = 'approved';
-            });
+            // Optimistic UI update
+            pic.status = 'approved';
             renderFarmPics();
             updateNewPicsBadge();
-            showToast('All new photos approved!', 'success');
+
+            try {
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({ action: 'approveFarmPic', picId: id, approved: true, approvedBy: 'Admin' })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Photo approved!', 'success');
+                } else {
+                    showToast('Photo approved locally (backend pending)', 'warning');
+                }
+            } catch (error) {
+                console.error('Approve sync error:', error);
+                showToast('Photo approved locally', 'warning');
+            }
         }
 
-        function usePicInPost(id) {
-            const pic = farmPicsData.find(p => p.id === id);
-            if (pic) {
-                pic.status = 'used';
-                switchTab('fieldmode');
-                // Simulate loading the image
-                const preview = document.getElementById('uploadPreview');
-                preview.src = pic.url;
-                preview.classList.add('visible');
-                document.getElementById('uploadIcon').style.display = 'none';
-                document.getElementById('uploadText').textContent = 'Farm pic by ' + pic.author;
-                selectedFile = { name: 'farm_pic_' + id + '.jpg' }; // Fake file object
-                updateBlastButton();
-                showToast('Photo loaded into Field Mode!', 'info');
+        // Approve all new photos - syncs with backend
+        async function approveAllPics() {
+            const newPics = farmPicsData.filter(p => p.status === 'new');
+            if (newPics.length === 0) { showToast('No new photos to approve', 'info'); return; }
+
+            // Optimistic UI update
+            newPics.forEach(pic => pic.status = 'approved');
+            renderFarmPics();
+            updateNewPicsBadge();
+            showToast('Approving ' + newPics.length + ' photos...', 'info');
+
+            // Sync with backend in parallel
+            const results = await Promise.allSettled(
+                newPics.map(pic => fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({ action: 'approveFarmPic', picId: pic.id, approved: true, approvedBy: 'Admin' })
+                }))
+            );
+            const successCount = results.filter(r => r.status === 'fulfilled').length;
+            showToast(successCount + '/' + newPics.length + ' photos approved!', 'success');
+        }
+
+        // Use photo in social post - includes SEO metadata
+        async function usePicInPost(id) {
+            const pic = farmPicsData.find(p => p.id == id);
+            if (!pic) { showToast('Photo not found', 'error'); return; }
+
+            pic.status = 'used';
+            renderFarmPics();
+            updateNewPicsBadge();
+
+            // Switch to field mode
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector('.tab-btn[onclick*="fieldmode"]')?.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById('fieldmodeTab')?.classList.add('active');
+
+            // Load photo with SEO metadata
+            const preview = document.getElementById('uploadPreview');
+            if (preview) { preview.src = pic.url; preview.classList.add('visible'); }
+            const uploadIcon = document.getElementById('uploadIcon');
+            if (uploadIcon) uploadIcon.style.display = 'none';
+            const uploadText = document.getElementById('uploadText');
+            if (uploadText) uploadText.textContent = 'Farm pic by ' + pic.author;
+
+            selectedFile = {
+                name: 'farm_pic_' + id + '.jpg',
+                url: pic.url,
+                altText: pic.altText || pic.caption || 'Farm photo by ' + pic.author,
+                author: pic.author,
+                category: pic.category
+            };
+
+            if (pic.caption) {
+                const captionInput = document.getElementById('captionInput');
+                if (captionInput && !captionInput.value) {
+                    captionInput.value = pic.caption;
+                    if (typeof updateCharCount === 'function') updateCharCount();
+                }
             }
+
+            updateBlastButton();
+            showToast('Photo loaded! Add caption and post.', 'success');
         }
 
         async function deletePic(id) {
@@ -6919,8 +7494,32 @@
 
         function updateNewPicsBadge() {
             const newCount = farmPicsData.filter(p => p.status === 'new').length;
-            document.getElementById('newPicsBadge').textContent = newCount;
-            document.getElementById('newPicsBadge').style.display = newCount > 0 ? 'inline' : 'none';
+            const badge = document.getElementById('newPicsBadge');
+            if (badge) { badge.textContent = newCount; badge.style.display = newCount > 0 ? 'inline' : 'none'; }
+        }
+
+        // Photo preview modal
+        function openPhotoPreview(id) {
+            const pic = farmPicsData.find(p => p.id == id);
+            if (!pic) return;
+            let modal = document.getElementById('photoPreviewModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'photoPreviewModal';
+                modal.className = 'modal';
+                modal.innerHTML = '<div class="modal-content" style="max-width:800px;"><div class="modal-header"><h3 id="photoPreviewTitle"></h3><button class="modal-close" onclick="closePhotoPreview()">&times;</button></div><div class="modal-body" style="padding:0;"><img id="photoPreviewImg" style="width:100%;max-height:400px;object-fit:contain;background:#000;"><div style="padding:1.5rem;"><div id="photoPreviewMeta"></div><div id="photoPreviewActions" style="display:flex;gap:0.75rem;margin-top:1rem;flex-wrap:wrap;"></div></div></div></div>';
+                document.body.appendChild(modal);
+            }
+            document.getElementById('photoPreviewImg').src = pic.url;
+            document.getElementById('photoPreviewTitle').innerHTML = '<i class="fas fa-image"></i> Photo by ' + pic.author;
+            document.getElementById('photoPreviewMeta').innerHTML = '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;"><div><div style="font-size:0.75rem;color:var(--text-secondary);">Status</div><span class="gallery-item-status ' + pic.status + '">' + pic.status + '</span></div><div><div style="font-size:0.75rem;color:var(--text-secondary);">Category</div>' + (pic.category || 'General') + '</div><div><div style="font-size:0.75rem;color:var(--text-secondary);">Uploaded</div>' + (pic.date || 'Unknown') + '</div><div><div style="font-size:0.75rem;color:var(--text-secondary);">By</div>' + pic.author + '</div></div>' + (pic.caption ? '<div style="margin-top:1rem;"><div style="font-size:0.75rem;color:var(--text-secondary);">Caption (SEO)</div><p>' + pic.caption + '</p></div>' : '');
+            document.getElementById('photoPreviewActions').innerHTML = (pic.status === 'new' ? '<button class="btn btn-success" onclick="approvePic(\'' + pic.id + '\');closePhotoPreview();"><i class="fas fa-check"></i> Approve</button>' : '') + '<button class="btn btn-primary" onclick="usePicInPost(\'' + pic.id + '\');closePhotoPreview();"><i class="fas fa-share"></i> Use in Post</button><button class="btn btn-secondary" onclick="window.open(\'' + pic.url + '\',\'_blank\')"><i class="fas fa-external-link-alt"></i> Full Size</button><button class="btn btn-danger" onclick="deletePic(\'' + pic.id + '\');closePhotoPreview();"><i class="fas fa-trash"></i> Delete</button>';
+            modal.classList.add('active');
+        }
+
+        function closePhotoPreview() {
+            const modal = document.getElementById('photoPreviewModal');
+            if (modal) modal.classList.remove('active');
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -7362,23 +7961,176 @@
 
         // ═══════════════════════════════════════════════════════════════════════════
         // CONTENT CALENDAR - 7-DAY VIEW WITH GAPS DETECTION
+        // Week Navigation, Content Pillars, SEO/AEO Integration
         // ═══════════════════════════════════════════════════════════════════════════
 
         let contentCalendarData = [];
         let photoLibraryData = [];
         let toddInputData = null;
 
+        // Week navigation state - start of the current viewing week (Monday)
+        let calendarWeekStart = getStartOfWeek(new Date());
+
+        // Content Pillars for Farm Social Media (based on best practices research)
+        const CONTENT_PILLARS = {
+            'behind_scenes': { name: 'Behind the Scenes', icon: 'fa-tractor', color: '#8B4513', shortCode: 'BTS' },
+            'product': { name: 'Product Highlight', icon: 'fa-carrot', color: '#22c55e', shortCode: 'PROD' },
+            'educational': { name: 'Educational', icon: 'fa-graduation-cap', color: '#4361ee', shortCode: 'EDU' },
+            'community': { name: 'Community/Personal', icon: 'fa-heart', color: '#E1306C', shortCode: 'COMM' },
+            'promotional': { name: 'Promotional', icon: 'fa-bullhorn', color: '#f59e0b', shortCode: 'PROMO' },
+            'seasonal': { name: 'Seasonal', icon: 'fa-calendar-day', color: '#8b5cf6', shortCode: 'SEASON' }
+        };
+
+        // Optimal posting targets by platform (based on 2025-2026 research)
+        const POSTING_TARGETS = {
+            daily: 2,           // Target: 2 posts per day across platforms
+            weekly: 10,         // Target: 10 posts per week
+            instagram: 4,       // 3-5 posts per week on Instagram
+            facebook: 7,        // 1 post per day on Facebook
+            gbp: 2              // 2 posts per week on Google Business Profile
+        };
+
+        /**
+         * Get the Monday of the week containing the given date
+         */
+        function getStartOfWeek(date) {
+            const d = new Date(date);
+            d.setHours(0, 0, 0, 0);
+            const day = d.getDay();
+            const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust for Monday start
+            return new Date(d.setDate(diff));
+        }
+
+        /**
+         * Format a date range for display (e.g., "Jan 13 - Jan 19, 2026")
+         */
+        function formatWeekRange(startDate) {
+            const endDate = new Date(startDate);
+            endDate.setDate(startDate.getDate() + 6);
+
+            const startMonth = startDate.toLocaleDateString('en-US', { month: 'short' });
+            const endMonth = endDate.toLocaleDateString('en-US', { month: 'short' });
+            const startDay = startDate.getDate();
+            const endDay = endDate.getDate();
+            const year = endDate.getFullYear();
+
+            if (startMonth === endMonth) {
+                return `${startMonth} ${startDay} - ${endDay}, ${year}`;
+            }
+            return `${startMonth} ${startDay} - ${endMonth} ${endDay}, ${year}`;
+        }
+
+        /**
+         * Navigate to the previous week
+         */
+        function previousWeek() {
+            calendarWeekStart = new Date(calendarWeekStart);
+            calendarWeekStart.setDate(calendarWeekStart.getDate() - 7);
+            updateCalendarWeekDisplay();
+            loadContentCalendar();
+        }
+
+        /**
+         * Navigate to the next week
+         */
+        function nextWeek() {
+            calendarWeekStart = new Date(calendarWeekStart);
+            calendarWeekStart.setDate(calendarWeekStart.getDate() + 7);
+            updateCalendarWeekDisplay();
+            loadContentCalendar();
+        }
+
+        /**
+         * Jump to current week
+         */
+        function goToCurrentWeek() {
+            calendarWeekStart = getStartOfWeek(new Date());
+            updateCalendarWeekDisplay();
+            loadContentCalendar();
+        }
+
+        /**
+         * Update the week display in the header
+         */
+        function updateCalendarWeekDisplay() {
+            const weekDisplay = document.getElementById('calendarWeek');
+            const weekDisplayContent = document.getElementById('calendarWeekContent');
+
+            if (weekDisplay) {
+                weekDisplay.textContent = formatWeekRange(calendarWeekStart);
+            }
+            if (weekDisplayContent) {
+                weekDisplayContent.textContent = formatWeekRange(calendarWeekStart);
+            }
+
+            // Check if viewing current week and update "Today" button visibility
+            const today = new Date();
+            const currentWeekStart = getStartOfWeek(today);
+            const isCurrentWeek = calendarWeekStart.getTime() === currentWeekStart.getTime();
+
+            const todayBtn = document.getElementById('goToTodayBtn');
+            if (todayBtn) {
+                todayBtn.style.display = isCurrentWeek ? 'none' : 'inline-flex';
+            }
+        }
+
+        /**
+         * Detect content pillar from post content or type
+         */
+        function detectContentPillar(post) {
+            const content = (post.content || post.Content || '').toLowerCase();
+            const contentType = (post.content_type || post.contentType || post.Content_Type || '').toLowerCase();
+
+            // Check content type first
+            if (contentType.includes('behind') || contentType.includes('bts')) return 'behind_scenes';
+            if (contentType.includes('product') || contentType.includes('harvest')) return 'product';
+            if (contentType.includes('edu') || contentType.includes('tip') || contentType.includes('how')) return 'educational';
+            if (contentType.includes('promo') || contentType.includes('sale') || contentType.includes('csa')) return 'promotional';
+            if (contentType.includes('season') || contentType.includes('holiday')) return 'seasonal';
+            if (contentType.includes('community') || contentType.includes('personal') || contentType.includes('story')) return 'community';
+
+            // Analyze content text
+            if (content.includes('harvest') || content.includes('fresh') || content.includes('available')) return 'product';
+            if (content.includes('tip') || content.includes('learn') || content.includes('did you know')) return 'educational';
+            if (content.includes('behind') || content.includes('morning') || content.includes('day on the farm')) return 'behind_scenes';
+            if (content.includes('sign up') || content.includes('csa') || content.includes('discount') || content.includes('sale')) return 'promotional';
+            if (content.includes('thank') || content.includes('community') || content.includes('you all')) return 'community';
+            if (content.includes('spring') || content.includes('summer') || content.includes('fall') || content.includes('winter')) return 'seasonal';
+
+            return 'community'; // Default fallback
+        }
+
         async function loadContentCalendar() {
             const grid = document.getElementById('contentCalendarGrid');
             if (!grid) return;
 
+            // Show loading state
+            grid.innerHTML = `
+                <div style="text-align: center; padding: 3rem; color: var(--text-secondary); grid-column: span 7;">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 2rem;"></i>
+                    <p style="margin-top: 1rem;">Loading content calendar...</p>
+                </div>
+            `;
+
+            // Calculate date range for the current viewing week
+            const weekEnd = new Date(calendarWeekStart);
+            weekEnd.setDate(calendarWeekStart.getDate() + 6);
+            const startDateStr = calendarWeekStart.toISOString().split('T')[0];
+            const endDateStr = weekEnd.toISOString().split('T')[0];
+
             try {
-                // Fetch queue data from API
-                const response = await fetch(`${API_URL}?action=getMarketingQueue`);
+                // Fetch queue data from API with date range
+                const response = await fetch(`${API_URL}?action=getMarketingQueue&startDate=${startDateStr}&endDate=${endDateStr}`);
                 const result = await response.json();
 
                 if (result.success) {
-                    contentCalendarData = result.queue || [];
+                    // Filter to only posts within the current week view
+                    contentCalendarData = (result.queue || []).filter(post => {
+                        const postDate = post.scheduled_date || post.Scheduled_Date || post.scheduledFor;
+                        if (!postDate) return false;
+                        const pDate = new Date(postDate);
+                        return pDate >= calendarWeekStart && pDate <= weekEnd;
+                    });
                     renderContentCalendar();
                     updateContentGaps();
                     updateQuickStats();
@@ -7390,6 +8142,9 @@
                 console.error('Error loading content calendar:', error);
                 renderEmptyContentCalendar();
             }
+
+            // Update the week display
+            updateCalendarWeekDisplay();
         }
 
         function renderContentCalendar() {
@@ -7400,10 +8155,10 @@
             today.setHours(0, 0, 0, 0);
             const days = [];
 
-            // Generate next 7 days
+            // Generate 7 days starting from calendarWeekStart
             for (let i = 0; i < 7; i++) {
-                const date = new Date(today);
-                date.setDate(today.getDate() + i);
+                const date = new Date(calendarWeekStart);
+                date.setDate(calendarWeekStart.getDate() + i);
                 days.push(date);
             }
 
@@ -7412,11 +8167,14 @@
                 const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
                 const dayNumber = date.getDate();
                 const monthName = date.toLocaleDateString('en-US', { month: 'short' });
-                const isToday = index === 0;
+
+                // Check if this day is today (compare without time)
+                const isToday = date.toDateString() === today.toDateString();
+                const isPast = date < today;
 
                 // Filter posts for this day
                 const dayPosts = contentCalendarData.filter(post => {
-                    const postDate = new Date(post.scheduled_date || post.scheduledFor);
+                    const postDate = new Date(post.scheduled_date || post.Scheduled_Date || post.scheduledFor);
                     return postDate.toISOString().split('T')[0] === dateStr;
                 });
 
@@ -7425,23 +8183,34 @@
                 let statusText = 'NEED CONTENT';
                 let statusColorClass = 'red';
 
-                if (postCount >= 2) {
+                if (postCount >= POSTING_TARGETS.daily) {
                     statusClass = 'has-posts';
                     statusText = `${postCount} Posts Scheduled`;
                     statusColorClass = 'green';
-                } else if (postCount === 1) {
+                } else if (postCount > 0) {
                     statusClass = 'few-posts';
-                    statusText = '1 Post (Need More)';
+                    statusText = `${postCount} Post${postCount > 1 ? 's' : ''} (Target: ${POSTING_TARGETS.daily})`;
                     statusColorClass = 'yellow';
                 }
 
-                // Calculate content mix for this day
-                const curated = dayPosts.filter(p => p.content_type === 'curated' || p.type === 'curated').length;
-                const original = dayPosts.filter(p => p.content_type === 'original' || p.type === 'original').length;
-                const personal = dayPosts.filter(p => p.content_type === 'personal' || p.type === 'personal').length;
+                // Past days with no posts show differently
+                if (isPast && postCount === 0) {
+                    statusText = 'No Posts';
+                    statusColorClass = 'gray';
+                }
+
+                // Detect content pillars for each post
+                const pillarCounts = {};
+                dayPosts.forEach(post => {
+                    const pillar = detectContentPillar(post);
+                    pillarCounts[pillar] = (pillarCounts[pillar] || 0) + 1;
+                });
+
+                // Get unique platforms for this day
+                const dayPlatforms = getUniquePlatforms(dayPosts);
 
                 return `
-                    <div class="calendar-day-card ${statusClass} ${isToday ? 'is-today' : ''}" data-date="${dateStr}">
+                    <div class="calendar-day-card ${statusClass} ${isToday ? 'is-today' : ''} ${isPast ? 'is-past' : ''}" data-date="${dateStr}">
                         <div class="calendar-day-header">
                             <div>
                                 <div class="day-name">${dayName}${isToday ? ' (Today)' : ''}</div>
@@ -7451,33 +8220,47 @@
                         </div>
                         <div class="calendar-day-body">
                             <div class="calendar-day-status ${statusColorClass}">
-                                <i class="fas fa-${postCount === 0 ? 'exclamation-triangle' : postCount === 1 ? 'minus-circle' : 'check-circle'}"></i>
+                                <i class="fas fa-${postCount === 0 ? (isPast ? 'times-circle' : 'exclamation-triangle') : postCount < POSTING_TARGETS.daily ? 'minus-circle' : 'check-circle'}"></i>
                                 ${statusText}
                             </div>
-                            ${dayPosts.slice(0, 3).map(post => `
-                                <div class="calendar-post-item">
+                            ${dayPosts.slice(0, 3).map((post, pIdx) => {
+                                const pillar = detectContentPillar(post);
+                                const pillarInfo = CONTENT_PILLARS[pillar];
+                                const platform = (post.platform || post.Platform || 'instagram').toLowerCase();
+                                const postId = post.Queue_ID || post.queueId || post.id || pIdx;
+                                return `
+                                <div class="calendar-post-item" onclick="openPostDetailModal('${postId}')" style="cursor: pointer;">
                                     <div class="platform-icon">
-                                        <i class="${getPlatformIconClass(post.platform)}" style="color: ${getPlatformColorValue(post.platform)};"></i>
+                                        <i class="${getPlatformIconClass(platform)}" style="color: ${getPlatformColorValue(platform)};"></i>
                                     </div>
-                                    <div class="post-preview">${truncateText(post.content || post.contentPreview || 'Post content', 30)}</div>
+                                    <div class="post-preview">${truncateText(post.content || post.Content || post.contentPreview || 'Post content', 25)}</div>
+                                    <div class="pillar-badge" title="${pillarInfo.name}" style="background: ${pillarInfo.color}20; color: ${pillarInfo.color}; padding: 0.1rem 0.3rem; border-radius: 3px; font-size: 0.6rem;">
+                                        ${pillarInfo.shortCode}
+                                    </div>
                                 </div>
-                            `).join('')}
+                            `}).join('')}
                             ${dayPosts.length > 3 ? `<div style="font-size: 0.75rem; color: var(--text-secondary); text-align: center; padding: 0.25rem;">+${dayPosts.length - 3} more</div>` : ''}
-                            ${postCount === 0 ? `
+                            ${postCount === 0 && !isPast ? `
                                 <button class="add-content-btn" onclick="quickAddContentForDate('${dateStr}')">
                                     <i class="fas fa-plus"></i> Add Content
                                 </button>
                             ` : ''}
+                            ${postCount > 0 && postCount < POSTING_TARGETS.daily && !isPast ? `
+                                <button class="add-content-btn" onclick="quickAddContentForDate('${dateStr}')" style="margin-top: 0.5rem;">
+                                    <i class="fas fa-plus"></i> Add More
+                                </button>
+                            ` : ''}
                         </div>
                         <div class="calendar-day-footer">
-                            <div class="content-mix-indicator" title="Curated: ${curated}, Original: ${original}, Personal: ${personal}">
-                                ${curated > 0 ? '<span class="mix-dot curated"></span>'.repeat(Math.min(curated, 3)) : ''}
-                                ${original > 0 ? '<span class="mix-dot original"></span>'.repeat(Math.min(original, 3)) : ''}
-                                ${personal > 0 ? '<span class="mix-dot personal"></span>'.repeat(Math.min(personal, 3)) : ''}
-                                ${postCount === 0 ? '<span style="font-size: 0.7rem; color: var(--text-secondary);">No mix</span>' : ''}
+                            <div class="content-pillar-indicator" title="Content pillars: ${Object.entries(pillarCounts).map(([k, v]) => `${CONTENT_PILLARS[k]?.shortCode || k}: ${v}`).join(', ')}">
+                                ${Object.entries(pillarCounts).slice(0, 4).map(([pillar, count]) => {
+                                    const pillarInfo = CONTENT_PILLARS[pillar];
+                                    return pillarInfo ? `<span class="pillar-dot" style="background: ${pillarInfo.color};" title="${pillarInfo.name}"></span>` : '';
+                                }).join('')}
+                                ${postCount === 0 ? '<span style="font-size: 0.7rem; color: var(--text-secondary);">No content</span>' : ''}
                             </div>
                             <div style="display: flex; gap: 0.25rem;">
-                                ${getUniquePlatforms(dayPosts).map(p => `<i class="${getPlatformIconClass(p)}" style="font-size: 0.7rem; color: ${getPlatformColorValue(p)};"></i>`).join('')}
+                                ${dayPlatforms.map(p => `<i class="${getPlatformIconClass(p)}" style="font-size: 0.7rem; color: ${getPlatformColorValue(p)};"></i>`).join('')}
                             </div>
                         </div>
                     </div>
@@ -7490,11 +8273,13 @@
             if (!grid) return;
 
             const today = new Date();
+            today.setHours(0, 0, 0, 0);
             const days = [];
 
+            // Generate 7 days starting from calendarWeekStart
             for (let i = 0; i < 7; i++) {
-                const date = new Date(today);
-                date.setDate(today.getDate() + i);
+                const date = new Date(calendarWeekStart);
+                date.setDate(calendarWeekStart.getDate() + i);
                 days.push(date);
             }
 
@@ -7503,24 +8288,28 @@
                 const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
                 const dayNumber = date.getDate();
                 const monthName = date.toLocaleDateString('en-US', { month: 'short' });
-                const isToday = index === 0;
+                const isToday = date.toDateString() === today.toDateString();
+                const isPast = date < today;
 
                 return `
-                    <div class="calendar-day-card needs-content ${isToday ? 'is-today' : ''}" data-date="${dateStr}">
+                    <div class="calendar-day-card needs-content ${isToday ? 'is-today' : ''} ${isPast ? 'is-past' : ''}" data-date="${dateStr}">
                         <div class="calendar-day-header">
                             <div>
                                 <div class="day-name">${dayName}${isToday ? ' (Today)' : ''}</div>
                                 <div class="day-date">${monthName} ${dayNumber}</div>
                             </div>
+                            ${isToday ? '<span style="background: var(--info); padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.65rem;">TODAY</span>' : ''}
                         </div>
                         <div class="calendar-day-body">
-                            <div class="calendar-day-status red">
-                                <i class="fas fa-exclamation-triangle"></i>
-                                NEED CONTENT
+                            <div class="calendar-day-status ${isPast ? 'gray' : 'red'}">
+                                <i class="fas fa-${isPast ? 'times-circle' : 'exclamation-triangle'}"></i>
+                                ${isPast ? 'No Posts' : 'NEED CONTENT'}
                             </div>
+                            ${!isPast ? `
                             <button class="add-content-btn" onclick="quickAddContentForDate('${dateStr}')">
                                 <i class="fas fa-plus"></i> Add Content
                             </button>
+                            ` : ''}
                         </div>
                         <div class="calendar-day-footer">
                             <span style="font-size: 0.7rem; color: var(--text-secondary);">No posts</span>
@@ -7529,8 +8318,9 @@
                 `;
             }).join('');
 
-            // Update gaps banner
+            // Update gaps banner and week display
             updateContentGaps();
+            updateCalendarWeekDisplay();
         }
 
         function getContentGaps() {
@@ -7538,21 +8328,27 @@
             today.setHours(0, 0, 0, 0);
             const gaps = [];
 
+            // Check current viewing week for gaps (only future days)
             for (let i = 0; i < 7; i++) {
-                const date = new Date(today);
-                date.setDate(today.getDate() + i);
+                const date = new Date(calendarWeekStart);
+                date.setDate(calendarWeekStart.getDate() + i);
+
+                // Only count future days as gaps (past days can't be filled)
+                if (date < today) continue;
+
                 const dateStr = date.toISOString().split('T')[0];
 
                 const dayPosts = contentCalendarData.filter(post => {
-                    const postDate = new Date(post.scheduled_date || post.scheduledFor);
+                    const postDate = new Date(post.scheduled_date || post.Scheduled_Date || post.scheduledFor);
                     return postDate.toISOString().split('T')[0] === dateStr;
                 });
 
-                if (dayPosts.length === 0) {
+                if (dayPosts.length < POSTING_TARGETS.daily) {
                     gaps.push({
                         date: date,
                         dateStr: dateStr,
-                        dayName: date.toLocaleDateString('en-US', { weekday: 'long' })
+                        dayName: date.toLocaleDateString('en-US', { weekday: 'long' }),
+                        postsNeeded: POSTING_TARGETS.daily - dayPosts.length
                     });
                 }
             }
@@ -7566,48 +8362,89 @@
             const gapsList = document.getElementById('gapDaysList');
             const badge = document.getElementById('contentGapsBadge');
 
+            if (!banner) return;
+
+            // Calculate total posts needed
+            const totalPostsNeeded = gaps.reduce((sum, g) => sum + (g.postsNeeded || POSTING_TARGETS.daily), 0);
+
             if (gaps.length === 0) {
                 banner.classList.add('no-gaps');
                 banner.querySelector('.gaps-text i').className = 'fas fa-check-circle';
                 banner.querySelector('.gaps-text div div:first-child').textContent = 'All Days Covered!';
-                gapsList.textContent = 'Great job! You have content scheduled for all 7 days.';
+                gapsList.innerHTML = `<span style="color: var(--success);">Great job! You've met the posting target (${POSTING_TARGETS.daily} posts/day) for all days this week.</span>`;
                 banner.querySelector('.btn-primary').style.display = 'none';
-                badge.style.display = 'none';
+                if (badge) badge.style.display = 'none';
             } else {
                 banner.classList.remove('no-gaps');
                 banner.querySelector('.gaps-text i').className = 'fas fa-exclamation-triangle';
-                banner.querySelector('.gaps-text div div:first-child').textContent = 'Content Gaps Detected';
-                gapsList.textContent = gaps.map(g => g.dayName).join(', ');
+                banner.querySelector('.gaps-text div div:first-child').textContent = `Content Gaps: ${totalPostsNeeded} posts needed`;
+
+                // Show detailed gap info
+                const gapDetails = gaps.map(g => `${g.dayName} (need ${g.postsNeeded})`).join(', ');
+                gapsList.textContent = gapDetails;
+
                 banner.querySelector('.btn-primary').style.display = 'inline-flex';
-                badge.textContent = gaps.length;
-                badge.style.display = 'inline';
+                if (badge) {
+                    badge.textContent = totalPostsNeeded;
+                    badge.style.display = 'inline';
+                }
             }
         }
 
         function updateQuickStats() {
-            // Posts this week
+            // Posts this week vs target
             const postsThisWeek = contentCalendarData.length;
-            document.getElementById('postsThisWeek').textContent = postsThisWeek;
+            const postsEl = document.getElementById('postsThisWeek');
+            if (postsEl) {
+                postsEl.textContent = postsThisWeek;
+                // Color code based on target
+                const progress = postsThisWeek / POSTING_TARGETS.weekly;
+                postsEl.parentElement.style.color = progress >= 1 ? 'var(--success)' : progress >= 0.7 ? 'var(--warning)' : 'var(--danger)';
+            }
 
-            // Content mix
-            const curated = contentCalendarData.filter(p => p.content_type === 'curated' || p.type === 'curated').length;
-            const original = contentCalendarData.filter(p => p.content_type === 'original' || p.type === 'original').length;
-            const personal = contentCalendarData.filter(p => p.content_type === 'personal' || p.type === 'personal').length;
-            document.getElementById('contentMixDisplay').textContent = `C:${curated} O:${original} P:${personal}`;
+            // Content pillar distribution (more useful than old C/O/P mix)
+            const pillarCounts = {};
+            contentCalendarData.forEach(post => {
+                const pillar = detectContentPillar(post);
+                pillarCounts[pillar] = (pillarCounts[pillar] || 0) + 1;
+            });
 
-            // Platforms covered
-            const platforms = getUniquePlatforms(contentCalendarData);
-            const platformStatus = {
-                'instagram': platforms.includes('instagram') ? 'check' : 'times',
-                'facebook': platforms.includes('facebook') ? 'check' : 'times',
-                'gbp': platforms.includes('gbp') ? 'check' : 'times'
-            };
+            // Show top 3 pillars
+            const sortedPillars = Object.entries(pillarCounts)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 3);
 
-            document.getElementById('platformsCovered').innerHTML = `
-                <span style="color: ${platformStatus.instagram === 'check' ? 'var(--success)' : 'var(--danger)'};">IG <i class="fas fa-${platformStatus.instagram}"></i></span>
-                <span style="color: ${platformStatus.facebook === 'check' ? 'var(--success)' : 'var(--danger)'}; margin-left: 0.5rem;">FB <i class="fas fa-${platformStatus.facebook}"></i></span>
-                <span style="color: ${platformStatus.gbp === 'check' ? 'var(--success)' : 'var(--danger)'}; margin-left: 0.5rem;">GBP <i class="fas fa-${platformStatus.gbp}"></i></span>
-            `;
+            const mixDisplay = document.getElementById('contentMixDisplay');
+            if (mixDisplay) {
+                if (sortedPillars.length > 0) {
+                    mixDisplay.innerHTML = sortedPillars.map(([pillar, count]) => {
+                        const info = CONTENT_PILLARS[pillar];
+                        return `<span style="color: ${info.color};" title="${info.name}">${info.shortCode}:${count}</span>`;
+                    }).join(' ');
+                } else {
+                    mixDisplay.textContent = 'No posts';
+                }
+            }
+
+            // Platforms covered with counts
+            const platformCounts = {};
+            contentCalendarData.forEach(post => {
+                const platform = (post.platform || post.Platform || 'unknown').toLowerCase();
+                platformCounts[platform] = (platformCounts[platform] || 0) + 1;
+            });
+
+            const platformsCoveredEl = document.getElementById('platformsCovered');
+            if (platformsCoveredEl) {
+                const igCount = platformCounts['instagram'] || 0;
+                const fbCount = platformCounts['facebook'] || 0;
+                const gbpCount = platformCounts['gbp'] || 0;
+
+                platformsCoveredEl.innerHTML = `
+                    <span style="color: ${igCount >= POSTING_TARGETS.instagram ? 'var(--success)' : igCount > 0 ? 'var(--warning)' : 'var(--danger)'};" title="Target: ${POSTING_TARGETS.instagram}">IG:${igCount}</span>
+                    <span style="color: ${fbCount >= POSTING_TARGETS.facebook ? 'var(--success)' : fbCount > 0 ? 'var(--warning)' : 'var(--danger)'}; margin-left: 0.5rem;" title="Target: ${POSTING_TARGETS.facebook}">FB:${fbCount}</span>
+                    <span style="color: ${gbpCount >= POSTING_TARGETS.gbp ? 'var(--success)' : gbpCount > 0 ? 'var(--warning)' : 'var(--danger)'}; margin-left: 0.5rem;" title="Target: ${POSTING_TARGETS.gbp}">GBP:${gbpCount}</span>
+                `;
+            }
         }
 
         async function generateContentForGaps() {
@@ -7661,6 +8498,216 @@
             }
 
             showToast(`Adding content for ${new Date(dateStr).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}`, 'info');
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // POST DETAIL MODAL - View/Edit/Delete Scheduled Posts
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        let currentPostDetail = null;
+
+        function openPostDetailModal(postId) {
+            // Find the post in the calendar data
+            const post = contentCalendarData.find(p => {
+                const pId = p.Queue_ID || p.queueId || p.id;
+                return pId == postId;
+            });
+
+            if (!post) {
+                showToast('Post not found', 'error');
+                return;
+            }
+
+            currentPostDetail = post;
+
+            // Determine values with fallbacks
+            const platform = (post.platform || post.Platform || 'instagram').toLowerCase();
+            const content = post.content || post.Content || 'No content';
+            const scheduledDate = post.scheduled_date || post.Scheduled_Date || post.scheduledFor;
+            const status = post.status || post.Status || 'pending';
+            const contentType = post.content_type || post.Content_Type || post.contentType || 'general';
+            const pillar = detectContentPillar(post);
+            const pillarInfo = CONTENT_PILLARS[pillar];
+            const mediaUrl = post.media_url || post.Media_URL || post.mediaUrl;
+
+            // Format date
+            const dateObj = new Date(scheduledDate);
+            const formattedDate = dateObj.toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            const formattedTime = dateObj.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit'
+            });
+
+            // Update modal title
+            document.getElementById('postDetailTitle').innerHTML = `
+                <i class="${getPlatformIconClass(platform)}" style="color: ${getPlatformColorValue(platform)};"></i>
+                ${platform.charAt(0).toUpperCase() + platform.slice(1)} Post
+            `;
+
+            // Update meta info
+            document.getElementById('postDetailMeta').innerHTML = `
+                <div class="post-detail-meta-item">
+                    <i class="fas fa-calendar-alt" style="color: var(--info);"></i>
+                    <span>${formattedDate}</span>
+                </div>
+                <div class="post-detail-meta-item">
+                    <i class="fas fa-clock" style="color: var(--warning);"></i>
+                    <span>${formattedTime}</span>
+                </div>
+                <div class="post-detail-meta-item">
+                    <i class="fas fa-tag" style="color: ${pillarInfo.color};"></i>
+                    <span>${pillarInfo.name}</span>
+                </div>
+                <div class="post-detail-meta-item" style="background: ${status === 'posted' ? 'rgba(34, 197, 94, 0.2)' : status === 'scheduled' ? 'rgba(67, 97, 238, 0.2)' : 'rgba(233, 196, 106, 0.2)'};">
+                    <i class="fas fa-${status === 'posted' ? 'check-circle' : status === 'scheduled' ? 'clock' : 'hourglass-half'}" style="color: ${status === 'posted' ? 'var(--success)' : status === 'scheduled' ? 'var(--info)' : 'var(--warning)'};"></i>
+                    <span>${status.charAt(0).toUpperCase() + status.slice(1)}</span>
+                </div>
+            `;
+
+            // Update content text
+            document.getElementById('postDetailText').textContent = content;
+
+            // Update media preview
+            const mediaContainer = document.getElementById('postDetailMedia');
+            if (mediaUrl) {
+                mediaContainer.innerHTML = `
+                    <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                        <i class="fas fa-image"></i> Media
+                    </div>
+                    <img src="${mediaUrl}" alt="Post media" style="max-width: 100%; border-radius: 8px; max-height: 200px; object-fit: cover;">
+                `;
+            } else {
+                mediaContainer.innerHTML = '';
+            }
+
+            // Show modal
+            document.getElementById('postDetailModal').classList.add('active');
+        }
+
+        function closePostDetailModal() {
+            document.getElementById('postDetailModal').classList.remove('active');
+            currentPostDetail = null;
+        }
+
+        function editScheduledPost(post) {
+            if (!post) return;
+
+            closePostDetailModal();
+
+            // Switch to autopilot tab and populate form
+            switchTab('autopilot');
+
+            // Pre-fill the form with post data
+            const dateInput = document.getElementById('queueScheduledDate');
+            const contentInput = document.getElementById('queueContent');
+            const platformSelect = document.getElementById('queuePlatform');
+
+            if (dateInput && post.scheduled_date) {
+                const d = new Date(post.scheduled_date || post.Scheduled_Date);
+                dateInput.value = d.toISOString().slice(0, 16);
+            }
+            if (contentInput) {
+                contentInput.value = post.content || post.Content || '';
+            }
+            if (platformSelect) {
+                platformSelect.value = (post.platform || post.Platform || 'instagram').toLowerCase();
+            }
+
+            showToast('Edit the post in the form below, then save', 'info');
+        }
+
+        async function reschedulePost(post) {
+            if (!post) return;
+
+            const newDate = prompt('Enter new date (YYYY-MM-DD):', new Date().toISOString().split('T')[0]);
+            if (!newDate) return;
+
+            const newTime = prompt('Enter new time (HH:MM):', '10:00');
+            if (!newTime) return;
+
+            const postId = post.Queue_ID || post.queueId || post.id;
+
+            try {
+                const response = await fetch(`${API_URL}?action=updateMarketingQueueItem`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'updateMarketingQueueItem',
+                        queueId: postId,
+                        scheduled_date: `${newDate}T${newTime}:00`
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Post rescheduled successfully!', 'success');
+                    closePostDetailModal();
+                    await loadContentCalendar();
+                } else {
+                    showToast('Failed to reschedule: ' + (result.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                console.error('Error rescheduling post:', error);
+                showToast('Error rescheduling post', 'error');
+            }
+        }
+
+        function duplicatePost(post) {
+            if (!post) return;
+
+            closePostDetailModal();
+
+            // Switch to autopilot tab and populate form with copied content
+            switchTab('autopilot');
+
+            const contentInput = document.getElementById('queueContent');
+            const platformSelect = document.getElementById('queuePlatform');
+
+            if (contentInput) {
+                contentInput.value = post.content || post.Content || '';
+            }
+            if (platformSelect) {
+                platformSelect.value = (post.platform || post.Platform || 'instagram').toLowerCase();
+            }
+
+            showToast('Post content copied! Select a new date and save.', 'info');
+        }
+
+        async function deleteScheduledPost(post) {
+            if (!post) return;
+
+            const confirmDelete = confirm('Are you sure you want to delete this scheduled post? This cannot be undone.');
+            if (!confirmDelete) return;
+
+            const postId = post.Queue_ID || post.queueId || post.id;
+
+            try {
+                const response = await fetch(`${API_URL}?action=deleteMarketingQueueItem`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'deleteMarketingQueueItem',
+                        queueId: postId
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Post deleted successfully!', 'success');
+                    closePostDetailModal();
+                    await loadContentCalendar();
+                } else {
+                    showToast('Failed to delete: ' + (result.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting post:', error);
+                showToast('Error deleting post', 'error');
+            }
         }
 
         // Helper functions
@@ -8562,6 +9609,10 @@ Would you like to test posting to Threads?`;
         }
 
         async function loadFarmPics() {
+            // Show loading state
+            const gallery = document.getElementById('farmPicsGallery');
+            if (gallery) gallery.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 3rem;"><i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--primary);"></i><p style="margin-top: 1rem; color: var(--text-secondary);">Loading photos...</p></div>';
+
             try {
                 const response = await fetch(`${API_URL}?action=getFarmPics`);
                 const result = await response.json();
@@ -8570,11 +9621,15 @@ Would you like to test posting to Threads?`;
                         const rawUrl = pic.Image_URL || pic.url || '';
                         return {
                             id: pic.Pic_ID || pic.id,
+                            fileId: pic.File_ID || pic.fileId || null,
                             url: rawUrl ? convertDriveUrl(rawUrl) : 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'300\' viewBox=\'0 0 400 300\'%3E%3Crect fill=\'%23333\' width=\'400\' height=\'300\'/%3E%3Ctext fill=\'%23666\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\' font-family=\'sans-serif\' font-size=\'16\'%3ENo Image%3C/text%3E%3C/svg%3E',
                             author: pic.Employee_Name || pic.author || 'Unknown',
                             status: (pic.Status || pic.status || 'new').toLowerCase(),
                             category: (pic.Category || pic.category || 'general').toLowerCase(),
-                            date: formatRelativeDate(pic.Submitted_At || pic.date)
+                            date: formatRelativeDate(pic.Submitted_At || pic.date),
+                            caption: pic.Caption || pic.caption || '',
+                            altText: pic.Alt_Text || pic.altText || pic.Caption || '',
+                            description: pic.Description || pic.description || ''
                         };
                     });
                 }
@@ -8582,7 +9637,7 @@ Would you like to test posting to Threads?`;
                 updateNewPicsBadge();
             } catch (error) {
                 console.error('Error loading farm pics:', error);
-                renderFarmPics(); // Render empty state
+                if (gallery) gallery.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--danger);"><i class="fas fa-exclamation-triangle" style="font-size: 2rem;"></i><p style="margin-top: 1rem;">Error loading photos</p><button class="btn btn-sm btn-primary" style="margin-top: 1rem;" onclick="loadFarmPics()"><i class="fas fa-redo"></i> Retry</button></div>';
             }
         }
 
@@ -8729,15 +9784,236 @@ Would you like to test posting to Threads?`;
         }
 
         function updateDashboardStats(data) {
-            // Update stats if elements exist
-            if (data.instagramFollowers !== undefined) {
-                const el = document.getElementById('statInstagramFollowers');
-                if (el) el.textContent = formatNumber(data.instagramFollowers);
+            // Stats are now loaded separately via loadBrainTabStats()
+            // Individual Instagram account follower counts displayed in stats row
+            console.log('Dashboard stats received:', data);
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // ANALYTICS TAB FUNCTIONALITY
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        let currentAnalyticsPeriod = 'week';
+        let analyticsData = null;
+
+        async function loadAnalytics(period = null) {
+            if (period) currentAnalyticsPeriod = period;
+
+            // Show loading state
+            const loadingHtml = '<span class="analytics-loading"><i class="fas fa-spinner fa-spin"></i></span>';
+            const statsToLoad = ['analyticsPosts', 'analyticsEngagements', 'analyticsImpressions', 'analyticsFollowers'];
+            statsToLoad.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = loadingHtml;
+            });
+
+            // Hide error, content, and no data states while loading
+            const errorEl = document.getElementById('analyticsError');
+            const contentEl = document.getElementById('analyticsContent');
+            const noDataEl = document.getElementById('analyticsNoData');
+            if (errorEl) errorEl.style.display = 'none';
+            if (contentEl) contentEl.style.display = 'none';
+            if (noDataEl) noDataEl.style.display = 'none';
+
+            try {
+                const response = await fetch(`${API_URL}?action=getMarketingAnalytics&period=${currentAnalyticsPeriod}`);
+                const result = await response.json();
+
+                if (result.success && result.analytics) {
+                    analyticsData = result.analytics;
+                    renderAnalytics(result.analytics);
+                } else {
+                    showAnalyticsError(result.error || 'Unable to load analytics');
+                }
+            } catch (error) {
+                console.error('Error loading analytics:', error);
+                showAnalyticsError('Network error: ' + error.message);
             }
-            if (data.facebookFollowers !== undefined) {
-                const el = document.getElementById('statFacebookFollowers');
-                if (el) el.textContent = formatNumber(data.facebookFollowers);
+        }
+
+        function renderAnalytics(analytics) {
+            // Update stat cards
+            const postsMonth = analytics.posts?.thisMonth || 0;
+            const postsWeek = analytics.posts?.thisWeek || 0;
+            const totalPosts = analytics.posts?.total || 0;
+            const engagements = analytics.engagement?.total || 0;
+            const impressions = analytics.engagement?.impressions || 0;
+            const engagementRate = analytics.engagement?.engagementRate || 0;
+            const followers = analytics.instagram?.followers || 0;
+
+            // Update stats
+            const postsEl = document.getElementById('analyticsPosts');
+            if (postsEl) postsEl.textContent = formatNumber(postsMonth);
+
+            const postsWeekEl = document.getElementById('analyticsPostsWeek');
+            if (postsWeekEl) {
+                postsWeekEl.innerHTML = `<i class="fas fa-calendar-week"></i> <span>${postsWeek}</span> this week`;
             }
+
+            const engagementsEl = document.getElementById('analyticsEngagements');
+            if (engagementsEl) engagementsEl.textContent = formatNumber(engagements);
+
+            const engRateEl = document.getElementById('analyticsEngagementRate');
+            if (engRateEl) {
+                engRateEl.innerHTML = `<i class="fas fa-percentage"></i> <span>${engagementRate}</span>% rate`;
+            }
+
+            const impressionsEl = document.getElementById('analyticsImpressions');
+            if (impressionsEl) impressionsEl.textContent = formatNumber(impressions);
+
+            const followersEl = document.getElementById('analyticsFollowers');
+            if (followersEl) followersEl.textContent = followers > 0 ? formatNumber(followers) : '--';
+
+            // Show/hide content based on whether we have posts
+            const errorEl = document.getElementById('analyticsError');
+            const contentEl = document.getElementById('analyticsContent');
+            const noDataEl = document.getElementById('analyticsNoData');
+
+            if (errorEl) errorEl.style.display = 'none';
+
+            if (totalPosts > 0) {
+                if (contentEl) contentEl.style.display = 'block';
+                if (noDataEl) noDataEl.style.display = 'none';
+                renderPlatformBreakdown(analytics.posts?.platformBreakdown || {});
+                renderRecentPosts(analytics.posts?.recentPosts || []);
+            } else {
+                if (contentEl) contentEl.style.display = 'none';
+                if (noDataEl) noDataEl.style.display = 'block';
+            }
+        }
+
+        function renderPlatformBreakdown(breakdown) {
+            const container = document.getElementById('platformBreakdown');
+            if (!container) return;
+
+            const platformColors = {
+                'Instagram': '#E1306C',
+                'Facebook': '#4267B2',
+                'TikTok': '#000000',
+                'Pinterest': '#E60023',
+                'YouTube': '#FF0000',
+                'Threads': '#000000'
+            };
+
+            const platformIcons = {
+                'Instagram': 'fab fa-instagram',
+                'Facebook': 'fab fa-facebook',
+                'TikTok': 'fab fa-tiktok',
+                'Pinterest': 'fab fa-pinterest',
+                'YouTube': 'fab fa-youtube',
+                'Threads': 'fas fa-at'
+            };
+
+            const total = Object.values(breakdown).reduce((a, b) => a + b, 0) || 1;
+
+            let html = '';
+            for (const [platform, count] of Object.entries(breakdown)) {
+                const percentage = ((count / total) * 100).toFixed(0);
+                const color = platformColors[platform] || 'var(--text-secondary)';
+                const icon = platformIcons[platform] || 'fas fa-share-alt';
+
+                html += `
+                    <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px; text-align: center; border-left: 3px solid ${color};">
+                        <i class="${icon}" style="font-size: 1.5rem; color: ${color}; margin-bottom: 0.5rem;"></i>
+                        <div style="font-size: 1.5rem; font-weight: bold;">${count}</div>
+                        <div style="font-size: 0.85rem; color: var(--text-secondary);">${platform}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary);">${percentage}%</div>
+                    </div>
+                `;
+            }
+
+            if (html === '') {
+                html = '<div style="color: var(--text-secondary); text-align: center; padding: 1rem;">No platform data yet</div>';
+            }
+
+            container.innerHTML = html;
+        }
+
+        function renderRecentPosts(posts) {
+            const container = document.getElementById('recentPostsList');
+            const countEl = document.getElementById('recentPostsCount');
+            if (!container) return;
+
+            if (countEl) {
+                countEl.textContent = `${posts.length} recent posts`;
+            }
+
+            if (posts.length === 0) {
+                container.innerHTML = '<div style="color: var(--text-secondary); text-align: center; padding: 2rem;">No posts yet</div>';
+                return;
+            }
+
+            const platformColors = {
+                'Instagram': '#E1306C',
+                'Facebook': '#4267B2',
+                'TikTok': '#000000',
+                'Pinterest': '#E60023',
+                'YouTube': '#FF0000',
+                'Threads': '#000000'
+            };
+
+            let html = '';
+            posts.forEach(post => {
+                const date = new Date(post.timestamp);
+                const formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+                const color = platformColors[post.platform] || 'var(--text-secondary)';
+
+                html += `
+                    <div style="display: flex; align-items: flex-start; gap: 1rem; padding: 1rem; border-bottom: 1px solid var(--border);">
+                        <div style="width: 40px; height: 40px; border-radius: 8px; background: ${color}20; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <i class="fab fa-${post.platform.toLowerCase()}" style="color: ${color};"></i>
+                        </div>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                                <span style="font-weight: 600;">${post.account || post.platform}</span>
+                                <span style="font-size: 0.75rem; color: var(--text-secondary);">${formattedDate}</span>
+                            </div>
+                            <div style="font-size: 0.9rem; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                ${post.captionPreview || 'No caption'}
+                            </div>
+                            <div style="display: flex; gap: 1rem; margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-secondary);">
+                                <span><i class="fas fa-eye"></i> ${formatNumber(post.impressions || 0)}</span>
+                                <span><i class="fas fa-heart"></i> ${formatNumber(post.engagement || 0)}</span>
+                                <span style="text-transform: uppercase; font-size: 0.7rem; background: rgba(255,255,255,0.1); padding: 0.15rem 0.5rem; border-radius: 4px;">${post.mediaType || 'POST'}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function showAnalyticsError(message) {
+            const errorEl = document.getElementById('analyticsError');
+            const errorMsgEl = document.getElementById('analyticsErrorMessage');
+            const contentEl = document.getElementById('analyticsContent');
+            const noDataEl = document.getElementById('analyticsNoData');
+
+            // Set error values on stat cards
+            const statsToUpdate = ['analyticsPosts', 'analyticsEngagements', 'analyticsImpressions', 'analyticsFollowers'];
+            statsToUpdate.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = '--';
+            });
+
+            if (errorMsgEl) errorMsgEl.textContent = message;
+            if (errorEl) errorEl.style.display = 'block';
+            if (contentEl) contentEl.style.display = 'none';
+            if (noDataEl) noDataEl.style.display = 'none';
+        }
+
+        function filterAnalytics(period) {
+            // Update button states
+            document.querySelectorAll('.analytics-period-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.period === period) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // Reload with new period
+            loadAnalytics(period);
         }
 
         // Helper functions
@@ -8907,6 +10183,437 @@ Would you like to test posting to Threads?`;
             document.getElementById('attrPostcard').textContent = attribution.postcard || 0;
             document.getElementById('attrSocial').textContent = attribution.social || 0;
             document.getElementById('attrEmail').textContent = attribution.email || 0;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // UTM TRACKING & SEO ATTRIBUTION FUNCTIONS
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        let utmAttributionData = null;
+
+        /**
+         * Load UTM attribution data from the API
+         */
+        async function loadUTMAttribution() {
+            const period = document.getElementById('utmPeriodSelect')?.value || 'month';
+
+            try {
+                const response = await fetch(`${API_URL}?action=getUTMAttribution&period=${period}`);
+                const data = await response.json();
+
+                if (data.success && data.attribution) {
+                    utmAttributionData = data.attribution;
+                    renderUTMAttribution(data.attribution);
+                } else {
+                    showUTMNoData();
+                }
+            } catch (error) {
+                console.error('Error loading UTM attribution:', error);
+                showUTMNoData();
+            }
+        }
+
+        /**
+         * Render UTM attribution data in the dashboard
+         */
+        function renderUTMAttribution(attribution) {
+            // Update summary stats
+            document.getElementById('utmTotalClicks').textContent = formatNumber(attribution.totalClicks || 0);
+            document.getElementById('utmTotalConversions').textContent = formatNumber(attribution.totalConversions || 0);
+            document.getElementById('utmConversionRate').textContent = (attribution.conversionRate || 0) + '%';
+            document.getElementById('utmTotalRevenue').textContent = '$' + formatNumber(attribution.totalRevenue || 0);
+
+            // Render platform breakdown
+            const platformContainer = document.getElementById('utmPlatformBreakdown');
+            if (platformContainer && attribution.bySource) {
+                const platformColors = {
+                    'instagram': 'var(--instagram)',
+                    'facebook': 'var(--facebook)',
+                    'tiktok': '#69C9D0',
+                    'youtube': 'var(--youtube)',
+                    'pinterest': 'var(--pinterest)',
+                    'twitter': '#1DA1F2',
+                    'email': 'var(--info)',
+                    'sms': 'var(--purple)'
+                };
+
+                const platformIcons = {
+                    'instagram': 'fab fa-instagram',
+                    'facebook': 'fab fa-facebook',
+                    'tiktok': 'fab fa-tiktok',
+                    'youtube': 'fab fa-youtube',
+                    'pinterest': 'fab fa-pinterest',
+                    'twitter': 'fab fa-twitter',
+                    'email': 'fas fa-envelope',
+                    'sms': 'fas fa-sms'
+                };
+
+                const sources = Object.entries(attribution.bySource);
+                if (sources.length === 0) {
+                    platformContainer.innerHTML = '<div style="text-align: center; color: var(--text-secondary); padding: 1rem; grid-column: 1/-1;">No platform data yet. Create UTM links and share them!</div>';
+                } else {
+                    let html = '';
+                    sources.forEach(([source, stats]) => {
+                        const color = platformColors[source] || 'var(--text-secondary)';
+                        const icon = platformIcons[source] || 'fas fa-link';
+                        html += `
+                            <div style="background: rgba(255,255,255,0.05); padding: 0.75rem; border-radius: 8px; text-align: center; border-bottom: 3px solid ${color};">
+                                <i class="${icon}" style="font-size: 1.25rem; color: ${color}; margin-bottom: 0.25rem; display: block;"></i>
+                                <div style="font-size: 1.25rem; font-weight: bold;">${stats.clicks}</div>
+                                <div style="font-size: 0.7rem; color: var(--text-secondary);">${source}</div>
+                            </div>
+                        `;
+                    });
+                    platformContainer.innerHTML = html;
+                }
+            }
+
+            // Render top campaigns
+            const campaignsContainer = document.getElementById('utmTopCampaigns');
+            if (campaignsContainer && attribution.byCampaign) {
+                if (attribution.byCampaign.length === 0) {
+                    campaignsContainer.innerHTML = '<div style="text-align: center; color: var(--text-secondary); padding: 1rem;">No campaign data yet. Create your first UTM-tracked campaign!</div>';
+                } else {
+                    let html = '<table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">';
+                    html += '<thead><tr style="border-bottom: 1px solid var(--border);"><th style="text-align: left; padding: 0.5rem;">Campaign</th><th style="text-align: right; padding: 0.5rem;">Clicks</th><th style="text-align: right; padding: 0.5rem;">Conv.</th><th style="text-align: right; padding: 0.5rem;">Rate</th></tr></thead>';
+                    html += '<tbody>';
+                    attribution.byCampaign.slice(0, 5).forEach((campaign, index) => {
+                        const highlight = index === 0 ? 'background: rgba(255,215,0,0.1);' : '';
+                        html += `
+                            <tr style="border-bottom: 1px solid var(--border); ${highlight}">
+                                <td style="padding: 0.5rem;">${index === 0 ? '<i class="fas fa-trophy" style="color: var(--gold); margin-right: 0.5rem;"></i>' : ''}${campaign.name}</td>
+                                <td style="text-align: right; padding: 0.5rem;">${campaign.clicks}</td>
+                                <td style="text-align: right; padding: 0.5rem;">${campaign.conversions}</td>
+                                <td style="text-align: right; padding: 0.5rem;">${campaign.conversionRate}%</td>
+                            </tr>
+                        `;
+                    });
+                    html += '</tbody></table>';
+                    campaignsContainer.innerHTML = html;
+                }
+            }
+        }
+
+        /**
+         * Show no data state for UTM section
+         */
+        function showUTMNoData() {
+            document.getElementById('utmTotalClicks').textContent = '0';
+            document.getElementById('utmTotalConversions').textContent = '0';
+            document.getElementById('utmConversionRate').textContent = '0%';
+            document.getElementById('utmTotalRevenue').textContent = '$0';
+
+            const platformContainer = document.getElementById('utmPlatformBreakdown');
+            if (platformContainer) {
+                platformContainer.innerHTML = '<div style="text-align: center; color: var(--text-secondary); padding: 1rem; grid-column: 1/-1;">No UTM tracking data yet. Start creating tracked links!</div>';
+            }
+
+            const campaignsContainer = document.getElementById('utmTopCampaigns');
+            if (campaignsContainer) {
+                campaignsContainer.innerHTML = '<div style="text-align: center; color: var(--text-secondary); padding: 1rem;">Create your first UTM campaign to see data here.</div>';
+            }
+        }
+
+        /**
+         * Preview UTM link in Field Mode section
+         */
+        function previewUTMLink() {
+            const baseUrl = document.getElementById('utmBaseUrl')?.value || 'https://tinyseedfarm.com';
+            const campaign = document.getElementById('utmCampaignName')?.value || '';
+            const content = document.getElementById('utmContentId')?.value || '';
+
+            if (!baseUrl) {
+                document.getElementById('utmPreview').style.display = 'none';
+                return;
+            }
+
+            // Get selected platform from the platform toggles
+            let source = 'instagram'; // default
+            const activePlatforms = document.querySelectorAll('.platform-toggle.active');
+            if (activePlatforms.length > 0) {
+                const platformElement = activePlatforms[0];
+                if (platformElement.onclick) {
+                    const onclickStr = platformElement.getAttribute('onclick') || '';
+                    const match = onclickStr.match(/togglePlatform\(this,\s*'(\w+)'\)/);
+                    if (match) source = match[1];
+                }
+            }
+
+            // Get medium from post type
+            let medium = 'social';
+            const igPostType = document.querySelector('input[name="igPostType"]:checked')?.value;
+            if (igPostType === 'STORY') medium = 'story';
+            else if (igPostType === 'REEL') medium = 'reel';
+
+            // Build UTM URL
+            const utmParams = new URLSearchParams();
+            utmParams.set('utm_source', source);
+            utmParams.set('utm_medium', medium);
+            utmParams.set('utm_campaign', campaign || generateAutoUTMCampaign());
+            if (content) utmParams.set('utm_content', content);
+
+            const separator = baseUrl.includes('?') ? '&' : '?';
+            const fullUrl = baseUrl + separator + utmParams.toString();
+
+            document.getElementById('utmPreviewUrl').textContent = fullUrl;
+            document.getElementById('utmPreview').style.display = 'block';
+        }
+
+        /**
+         * Generate automatic campaign name
+         */
+        function generateAutoUTMCampaign() {
+            const now = new Date();
+            const month = now.toLocaleString('en-US', { month: 'short' }).toLowerCase();
+            const year = now.getFullYear();
+            return `tinyseed_${month}${year}`;
+        }
+
+        /**
+         * Generate UTM link and insert into caption
+         */
+        async function generateAndInsertUTM() {
+            const baseUrl = document.getElementById('utmBaseUrl')?.value || 'https://tinyseedfarm.com';
+            const campaign = document.getElementById('utmCampaignName')?.value || '';
+            const content = document.getElementById('utmContentId')?.value || '';
+
+            // Get selected platform
+            let source = 'instagram';
+            const activePlatforms = document.querySelectorAll('.platform-toggle.active');
+            if (activePlatforms.length > 0) {
+                const onclickStr = activePlatforms[0].getAttribute('onclick') || '';
+                const match = onclickStr.match(/togglePlatform\(this,\s*'(\w+)'\)/);
+                if (match) source = match[1];
+            }
+
+            // Get medium
+            let medium = 'social';
+            const igPostType = document.querySelector('input[name="igPostType"]:checked')?.value;
+            if (igPostType === 'STORY') medium = 'story';
+            else if (igPostType === 'REEL') medium = 'reel';
+
+            try {
+                // Call backend to generate and save the UTM link
+                const response = await fetch(`${API_URL}?action=generateUTMLink&url=${encodeURIComponent(baseUrl)}&source=${source}&medium=${medium}&campaign=${encodeURIComponent(campaign || generateAutoUTMCampaign())}&content=${encodeURIComponent(content)}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    // Add URL to caption
+                    const captionInput = document.getElementById('captionInput');
+                    const currentCaption = captionInput.value;
+
+                    // Add link to end of caption
+                    const separator = currentCaption.trim() ? '\n\n' : '';
+                    captionInput.value = currentCaption + separator + data.fullUrl;
+
+                    updateCharCount();
+                    showToast('UTM link added to caption!', 'success');
+                } else {
+                    showToast('Error: ' + (data.error || 'Failed to generate link'), 'error');
+                }
+            } catch (error) {
+                console.error('Error generating UTM link:', error);
+                showToast('Network error generating UTM link', 'error');
+            }
+        }
+
+        /**
+         * Copy UTM link to clipboard
+         */
+        function copyUTMToClipboard() {
+            const url = document.getElementById('utmPreviewUrl')?.textContent;
+            if (url) {
+                navigator.clipboard.writeText(url).then(() => {
+                    showToast('UTM link copied to clipboard!', 'success');
+                }).catch(() => {
+                    showToast('Failed to copy link', 'error');
+                });
+            }
+        }
+
+        // ============ UTM BUILDER MODAL FUNCTIONS ============
+
+        /**
+         * Open UTM Builder modal
+         */
+        function openUTMBuilder() {
+            // Close any other modals
+            closeUTMLinksModal();
+
+            // Reset form
+            document.getElementById('utmModalUrl').value = 'https://tinyseedfarm.com';
+            document.getElementById('utmModalSource').value = 'instagram';
+            document.getElementById('utmModalMedium').value = 'social';
+            document.getElementById('utmModalCampaign').value = '';
+            document.getElementById('utmModalContent').value = '';
+
+            updateUTMModalPreview();
+            document.getElementById('utmBuilderModal').style.display = 'flex';
+        }
+
+        /**
+         * Close UTM Builder modal
+         */
+        function closeUTMBuilder() {
+            document.getElementById('utmBuilderModal').style.display = 'none';
+        }
+
+        /**
+         * Update UTM preview in modal
+         */
+        function updateUTMModalPreview() {
+            const baseUrl = document.getElementById('utmModalUrl')?.value || 'https://tinyseedfarm.com';
+            const source = document.getElementById('utmModalSource')?.value || 'instagram';
+            const medium = document.getElementById('utmModalMedium')?.value || 'social';
+            const campaign = document.getElementById('utmModalCampaign')?.value || generateAutoUTMCampaign();
+            const content = document.getElementById('utmModalContent')?.value || '';
+
+            const utmParams = new URLSearchParams();
+            utmParams.set('utm_source', source);
+            utmParams.set('utm_medium', medium);
+            utmParams.set('utm_campaign', campaign);
+            if (content) utmParams.set('utm_content', content);
+
+            const separator = baseUrl.includes('?') ? '&' : '?';
+            const fullUrl = baseUrl + separator + utmParams.toString();
+
+            document.getElementById('utmModalPreview').textContent = fullUrl;
+        }
+
+        /**
+         * Copy UTM link from modal
+         */
+        function copyUTMFromModal() {
+            const url = document.getElementById('utmModalPreview')?.textContent;
+            if (url) {
+                navigator.clipboard.writeText(url).then(() => {
+                    showToast('UTM link copied to clipboard!', 'success');
+                }).catch(() => {
+                    showToast('Failed to copy link', 'error');
+                });
+            }
+        }
+
+        /**
+         * Save UTM link from modal to tracking sheet
+         */
+        async function saveUTMFromModal() {
+            const baseUrl = document.getElementById('utmModalUrl')?.value;
+            const source = document.getElementById('utmModalSource')?.value;
+            const medium = document.getElementById('utmModalMedium')?.value;
+            const campaign = document.getElementById('utmModalCampaign')?.value || generateAutoUTMCampaign();
+            const content = document.getElementById('utmModalContent')?.value;
+
+            if (!baseUrl) {
+                showToast('Please enter a website URL', 'warning');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}?action=generateUTMLink&url=${encodeURIComponent(baseUrl)}&source=${source}&medium=${medium}&campaign=${encodeURIComponent(campaign)}&content=${encodeURIComponent(content)}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('UTM link saved to tracking!', 'success');
+                    closeUTMBuilder();
+
+                    // Copy to clipboard
+                    navigator.clipboard.writeText(data.fullUrl).then(() => {
+                        showToast('Link copied to clipboard!', 'success');
+                    });
+
+                    // Refresh attribution data
+                    loadUTMAttribution();
+                } else {
+                    showToast('Error: ' + (data.error || 'Failed to save link'), 'error');
+                }
+            } catch (error) {
+                console.error('Error saving UTM link:', error);
+                showToast('Network error saving UTM link', 'error');
+            }
+        }
+
+        // ============ UTM LINKS LIST MODAL FUNCTIONS ============
+
+        /**
+         * Show UTM links list modal
+         */
+        async function showUTMLinksModal() {
+            closeUTMBuilder();
+            document.getElementById('utmLinksModal').style.display = 'flex';
+            await loadUTMLinksForModal();
+        }
+
+        /**
+         * Close UTM links modal
+         */
+        function closeUTMLinksModal() {
+            document.getElementById('utmLinksModal').style.display = 'none';
+        }
+
+        /**
+         * Load UTM links for the modal display
+         */
+        async function loadUTMLinksForModal() {
+            const container = document.getElementById('utmLinksContainer');
+
+            try {
+                const response = await fetch(`${API_URL}?action=getUTMTracking&limit=50`);
+                const data = await response.json();
+
+                if (data.success && data.links && data.links.length > 0) {
+                    let html = '<table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">';
+                    html += '<thead><tr style="border-bottom: 2px solid var(--border);"><th style="text-align: left; padding: 0.75rem;">Date</th><th style="text-align: left; padding: 0.75rem;">Campaign</th><th style="text-align: left; padding: 0.75rem;">Source</th><th style="text-align: right; padding: 0.75rem;">Clicks</th><th style="text-align: right; padding: 0.75rem;">Conv.</th><th style="text-align: center; padding: 0.75rem;">Actions</th></tr></thead>';
+                    html += '<tbody>';
+
+                    data.links.forEach(link => {
+                        const date = link.date ? new Date(link.date).toLocaleDateString() : '--';
+                        html += `
+                            <tr style="border-bottom: 1px solid var(--border);">
+                                <td style="padding: 0.75rem;">${date}</td>
+                                <td style="padding: 0.75rem;">${link.utmcampaign || '--'}</td>
+                                <td style="padding: 0.75rem;"><span style="background: rgba(255,255,255,0.1); padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">${link.utmsource || '--'}</span></td>
+                                <td style="text-align: right; padding: 0.75rem;">${link.clicks || 0}</td>
+                                <td style="text-align: right; padding: 0.75rem;">${link.conversions || 0}</td>
+                                <td style="text-align: center; padding: 0.75rem;">
+                                    <button class="btn btn-sm btn-secondary" onclick="copyUTMLinkToClipboard('${encodeURIComponent(link.fullurl || '')}')" style="padding: 0.25rem 0.5rem;">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+
+                    html += '</tbody></table>';
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 3rem; color: var(--text-secondary);">
+                            <i class="fas fa-link" style="font-size: 3rem; opacity: 0.3; margin-bottom: 1rem;"></i>
+                            <h4>No UTM Links Yet</h4>
+                            <p style="margin-top: 0.5rem;">Create your first tracked link to start measuring social media performance.</p>
+                            <button class="btn btn-primary" style="background: var(--info); margin-top: 1rem;" onclick="openUTMBuilder()">
+                                <i class="fas fa-plus"></i> Create UTM Link
+                            </button>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading UTM links:', error);
+                container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--danger);"><i class="fas fa-exclamation-circle"></i> Error loading links. Please try again.</div>';
+            }
+        }
+
+        /**
+         * Copy a UTM link to clipboard
+         */
+        function copyUTMLinkToClipboard(encodedUrl) {
+            const url = decodeURIComponent(encodedUrl);
+            navigator.clipboard.writeText(url).then(() => {
+                showToast('Link copied!', 'success');
+            }).catch(() => {
+                showToast('Failed to copy', 'error');
+            });
         }
 
         async function loadNeighborSignups() {
@@ -9322,8 +11029,10 @@ Would you like to test posting to Threads?`;
             // Initialize AI Intelligence Engine with 2026 research
             initAIIntelligence();
 
-            // Initialize Content Calendar (lazy load on tab switch)
-            // Pre-load data for quick access
+            // Initialize Content Calendar - update week display and load data
+            if (typeof updateCalendarWeekDisplay === 'function') {
+                updateCalendarWeekDisplay();
+            }
             loadContentCalendar();
 
             // Check Instagram API configuration status
@@ -10380,42 +12089,149 @@ Would you like to test posting to Threads?`;
                 document.getElementById('briefingSummary').textContent = smartBriefing;
                 document.getElementById('briefingTime').textContent = new Date().toLocaleTimeString();
 
-                // Load daily briefing from backend (if available)
+                // Load social briefing from backend (if available)
                 try {
-                    const briefingResponse = await fetch(`${API_URL}?action=getDailyBriefing`);
+                    const briefingResponse = await fetch(`${API_URL}?action=getSocialBriefing`);
                     const briefingData = await briefingResponse.json();
-                    if (briefingData.success && briefingData.summary) {
+                    if (briefingData.success && briefingData.briefing && briefingData.briefing.summary) {
                         // Append backend insights to smart briefing
-                        document.getElementById('briefingSummary').textContent = smartBriefing + ' ' + briefingData.summary;
+                        document.getElementById('briefingSummary').textContent = smartBriefing + ' ' + briefingData.briefing.summary;
                     }
                 } catch (e) {
                     console.log('Using local smart briefing');
                 }
 
-                // Load action queue
+                // Load action queue from unified task system
+                // Updated 2026-02-11: Now uses unified OS task system with marketing category
                 try {
-                    const actionsResponse = await fetch(`${API_URL}?action=getSocialActionQueue`);
+                    // First try unified task system
+                    const actionsResponse = await fetch(`${API_URL}?action=getMarketingTasksFromUnified`);
                     const actionsData = await actionsResponse.json();
 
-                    if (actionsData.success) {
-                        brainData.actionQueue = actionsData;
-                        updateBrainStats(actionsData);
-                        renderActionList('urgentActions', actionsData.urgent || [], 'urgent');
-                        renderActionList('todayActions', actionsData.today || [], 'today');
+                    if (actionsData.success && actionsData.stats && actionsData.stats.total > 0) {
+                        // Use unified task data
+                        brainData.actionQueue = actionsData.actionQueue;
+                        brainData.source = 'unified';
+                        updateBrainStats({ actionQueue: actionsData.actionQueue });
+                        renderActionList('urgentActions', actionsData.actionQueue.urgent || [], 'urgent');
+                        renderActionList('todayActions', actionsData.actionQueue.today || [], 'today');
                     } else {
-                        showEmptyActionStates();
+                        // Fall back to legacy social action queue
+                        const legacyResponse = await fetch(`${API_URL}?action=getSocialActionQueue&syncFromBriefing=true`);
+                        const legacyData = await legacyResponse.json();
+
+                        if (legacyData.success) {
+                            brainData.actionQueue = legacyData.actionQueue || legacyData;
+                            brainData.source = legacyData.source || 'briefing';
+                            updateBrainStats(legacyData);
+                            renderActionList('urgentActions', (legacyData.actionQueue || legacyData).urgent || [], 'urgent');
+                            renderActionList('todayActions', (legacyData.actionQueue || legacyData).today || [], 'today');
+                        } else {
+                            showEmptyActionStates();
+                        }
                     }
                 } catch (e) {
+                    console.error('Error loading action queue:', e);
                     showEmptyActionStates();
                 }
 
                 // Populate calendar preview (coordinated with Schedule tab)
                 populateCalendarPreview();
 
+                // Load Brain Tab Stats (sentiment, scheduled posts, followers)
+                await loadBrainTabStats();
+
             } catch (error) {
                 console.error('Error loading Brain tab:', error);
                 document.getElementById('briefingSummary').textContent =
                     'Ready to help you dominate social media. Use the AI tools below to get started!';
+            }
+        }
+
+        async function loadBrainTabStats() {
+            // 1. Load Posts This Week (from 5-3-2 tracker + analytics)
+            try {
+                const mixData = getContentMixData();
+                const accountData = selectedAccount === 'all' ? mixData.all : mixData[selectedAccount];
+                const totalPosts = accountData.curated + accountData.original + accountData.personal;
+                document.getElementById('weekPostsCount').textContent = totalPosts;
+                const statusEl = document.getElementById('weekPostsStatus');
+                if (totalPosts >= 10) {
+                    statusEl.innerHTML = '<i class="fas fa-check-circle"></i> Goal reached!';
+                    statusEl.className = 'stat-change positive';
+                } else if (totalPosts >= 5) {
+                    statusEl.innerHTML = `<i class="fas fa-chart-line"></i> ${10 - totalPosts} more to goal`;
+                    statusEl.className = 'stat-change neutral';
+                } else {
+                    statusEl.innerHTML = `<i class="fas fa-arrow-up"></i> ${10 - totalPosts} more to goal`;
+                    statusEl.className = 'stat-change negative';
+                }
+            } catch (e) {
+                document.getElementById('weekPostsCount').textContent = '0';
+            }
+
+            // 2. Load Scheduled Posts Count
+            try {
+                const scheduledResponse = await fetch(`${API_URL}?action=getMarketingQueue&status=scheduled`);
+                const scheduledData = await scheduledResponse.json();
+                if (scheduledData.success) {
+                    const posts = scheduledData.queue || scheduledData.posts || [];
+                    const now = new Date();
+                    const weekEnd = new Date(now);
+                    weekEnd.setDate(now.getDate() + 7);
+                    const thisWeekPosts = posts.filter(p => {
+                        const postDate = new Date(p.scheduledDate || p.date);
+                        return postDate >= now && postDate <= weekEnd;
+                    });
+                    document.getElementById('scheduledCount').textContent = thisWeekPosts.length;
+                }
+            } catch (e) {
+                document.getElementById('scheduledCount').textContent = '0';
+            }
+
+            // 5. Load Instagram Followers for each account
+            try {
+                const igResponse = await fetch(`${API_URL}?action=getInstagramFollowerCounts`);
+                const igData = await igResponse.json();
+                console.log('Instagram Follower Data:', igData);
+
+                if (igData.success && igData.accounts && igData.accounts.length > 0) {
+                    let totalFollowers = 0;
+
+                    // Update each account card
+                    igData.accounts.forEach(account => {
+                        totalFollowers += account.followers || 0;
+
+                        if (account.name === 'Tiny Seed Farm' || account.index === 0) {
+                            const el = document.getElementById('igFarmFollowersCard');
+                            if (el) el.textContent = formatNumber(account.followers);
+                            const status = document.getElementById('igFarmStatus');
+                            if (status) status.innerHTML = `<i class="fab fa-instagram"></i> ${account.posts || 0} posts`;
+                        }
+                        if (account.name === 'Tiny Seed Fleurs' || account.index === 1) {
+                            const el = document.getElementById('igFleursFollowersCard');
+                            if (el) el.textContent = formatNumber(account.followers);
+                            const status = document.getElementById('igFleursStatus');
+                            if (status) status.innerHTML = `<i class="fab fa-instagram"></i> ${account.posts || 0} posts`;
+                        }
+                        if (account.name === 'Tiny Seed Fungi' || account.index === 2) {
+                            const el = document.getElementById('igFungiFollowersCard');
+                            if (el) el.textContent = formatNumber(account.followers);
+                            const status = document.getElementById('igFungiStatus');
+                            if (status) status.innerHTML = `<i class="fab fa-instagram"></i> ${account.posts || 0} posts`;
+                        }
+                    });
+
+                    // Update total followers
+                    const totalEl = document.getElementById('totalFollowersCard');
+                    if (totalEl) totalEl.textContent = formatNumber(totalFollowers);
+                    const totalStatus = document.getElementById('totalFollowersStatus');
+                    if (totalStatus) totalStatus.innerHTML = `<i class="fas fa-users"></i> ${igData.accounts.length} accounts`;
+                } else {
+                    console.log('No Instagram accounts data:', igData);
+                }
+            } catch (e) {
+                console.error('Error loading Instagram followers:', e);
             }
         }
 
@@ -10792,18 +12608,21 @@ Would you like to test posting to Threads?`;
             const urgentCount = (data.urgent || []).length;
             const todayCount = (data.today || []).length;
 
-            document.getElementById('urgentCount').textContent = urgentCount;
-            document.getElementById('todayTaskCount').textContent = todayCount;
-            document.getElementById('urgentBadge').textContent = urgentCount;
-            document.getElementById('todayBadge').textContent = todayCount;
+            // Update badges (with defensive checks for removed elements)
+            const urgentBadge = document.getElementById('urgentBadge');
+            const todayBadge = document.getElementById('todayBadge');
+            if (urgentBadge) urgentBadge.textContent = urgentCount;
+            if (todayBadge) todayBadge.textContent = todayCount;
 
             // Update brain badge
             const brainBadge = document.getElementById('brainBadge');
-            if (urgentCount > 0) {
-                brainBadge.style.display = 'inline';
-                brainBadge.textContent = urgentCount;
-            } else {
-                brainBadge.style.display = 'none';
+            if (brainBadge) {
+                if (urgentCount > 0) {
+                    brainBadge.style.display = 'inline';
+                    brainBadge.textContent = urgentCount;
+                } else {
+                    brainBadge.style.display = 'none';
+                }
             }
         }
 
@@ -10821,12 +12640,13 @@ Would you like to test posting to Threads?`;
             }
 
             container.innerHTML = actions.map((action, index) => `
-                <div style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 1rem; margin-bottom: 0.75rem; border-left: 3px solid ${type === 'urgent' ? 'var(--danger)' : 'var(--warning)'};">
+                <div style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 1rem; margin-bottom: 0.75rem; border-left: 3px solid ${type === 'urgent' ? 'var(--danger)' : 'var(--warning)'};" data-task-id="${action.taskId || ''}">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem;">
                         <div style="flex: 1;">
                             <span style="font-size: 0.7rem; background: ${getTypeBadgeColor(action.type)}; color: white; padding: 0.2rem 0.5rem; border-radius: 4px; text-transform: uppercase;">
                                 ${action.type?.replace(/_/g, ' ') || 'Action'}
                             </span>
+                            ${action.taskId ? `<span style="font-size: 0.65rem; color: var(--text-secondary); margin-left: 0.5rem;" title="Synced with unified task system"><i class="fas fa-link"></i> OS Task</span>` : ''}
                             <p style="margin-top: 0.5rem; font-weight: 500;">${action.action || 'Take action'}</p>
                             ${action.draftReply ? `
                                 <div style="background: rgba(0,0,0,0.3); border-radius: 4px; padding: 0.75rem; margin-top: 0.5rem; font-size: 0.85rem; border-left: 2px solid var(--instagram);">
@@ -10834,6 +12654,7 @@ Would you like to test posting to Threads?`;
                                     <p>"${action.draftReply}"</p>
                                 </div>
                             ` : ''}
+                            ${action.dueTime ? `<p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.5rem;"><i class="fas fa-clock"></i> Due by ${action.dueTime}</p>` : ''}
                         </div>
                         <button class="btn btn-sm btn-success" onclick="markActionDone('${type}', ${index})">
                             <i class="fas fa-check"></i> Done
@@ -10858,18 +12679,25 @@ Would you like to test posting to Threads?`;
         async function markActionDone(type, index) {
             try {
                 const action = brainData.actionQueue[type][index];
+
+                // Use the appropriate action based on whether we have a unified task ID
+                const requestAction = action.taskId ? 'completeMarketingTask' : 'markSocialActionComplete';
+
                 await fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
-                        action: 'markSocialActionComplete',
+                        action: requestAction,
+                        taskId: action.taskId || null,
                         actionType: action.type,
-                        actionId: action.commentId || `${type}_${index}`
+                        actionId: action.commentId || `${type}_${index}`,
+                        completedBy: 'owner'
                     })
                 });
                 showToast('Action marked complete!', 'success');
                 loadBrainTab();
             } catch (error) {
+                console.error('Error marking action complete:', error);
                 showToast('Error marking action complete', 'error');
             }
         }

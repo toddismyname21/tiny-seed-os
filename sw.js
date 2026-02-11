@@ -1,13 +1,14 @@
 /**
- * Tiny Seed Farm - Service Worker v4
+ * Tiny Seed Farm - Service Worker v5
  * Optimized PWA with advanced caching strategies
  * - Cache-first for static assets
  * - Network-first for API calls
  * - Background sync for offline task completion
  * - Push notification support
+ * - Fixed: Response clone race condition in staleWhileRevalidate
  */
 
-const CACHE_VERSION = 'v4';
+const CACHE_VERSION = 'v5';
 const CACHE_NAME = `tiny-seed-mobile-${CACHE_VERSION}`;
 const STATIC_CACHE_NAME = `tiny-seed-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE_NAME = `tiny-seed-dynamic-${CACHE_VERSION}`;
@@ -315,8 +316,9 @@ async function staleWhileRevalidate(request) {
   const fetchPromise = fetch(request)
     .then(response => {
       if (response.ok) {
-        const cache = caches.open(DYNAMIC_CACHE_NAME);
-        cache.then(c => c.put(request, response.clone()));
+        // Clone response SYNCHRONOUSLY before any async operations
+        const responseToCache = response.clone();
+        caches.open(DYNAMIC_CACHE_NAME).then(c => c.put(request, responseToCache));
       }
       return response;
     })

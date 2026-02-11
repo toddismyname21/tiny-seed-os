@@ -13783,6 +13783,10 @@ function doGet(e) {
         return jsonResponse(getInstagramInsights(e.parameter));
       case 'debugInstagramTokens':
         return jsonResponse(debugInstagramTokens());
+      case 'getInstagramFollowerCounts':
+        return jsonResponse(getInstagramFollowerCounts());
+      case 'getFacebookPageStats':
+        return jsonResponse(getFacebookPageStats());
       case 'getNeighborSignups':
         return jsonResponse(getNeighborSignups(e.parameter));
       case 'getSocialStats':
@@ -16091,6 +16095,15 @@ function doGet(e) {
       case 'getTaskStats':
         return jsonResponse(getUnifiedTaskStats(e.parameter));
 
+      // ============ CATEGORY-BASED TASK FILTERING API (2026-02-11) ============
+      // Unified task categories: marketing, farm, admin, finance, compliance, sales
+      case 'getTasksByCategory':
+        return jsonResponse(getTasksByCategory(e.parameter));
+      case 'getMarketingTasksFromUnified':
+        return jsonResponse(getMarketingTasksFromUnified(e.parameter));
+      case 'getUnifiedTaskStatsByCategory':
+        return jsonResponse(getUnifiedTaskStatsByCategory(e.parameter));
+
       // ============ TIME TRACKING FEEDBACK LOOP API (2026-02-03) ============
       case 'getTaskTimeHistory':
         return jsonResponse(typeof getTaskTimeHistory === 'function' ? getTaskTimeHistory(e.parameter.taskType, e.parameter.cropId) : { success: false, error: 'Not available' });
@@ -16411,6 +16424,16 @@ function doGet(e) {
       // ============ VARIETY LOOKUP API ============
       case 'getVarieties':
         return getVarieties(e.parameter);
+
+      // ============ UTM TRACKING & SEO ATTRIBUTION SYSTEM (2026-02-11) ============
+      case 'generateUTMLink':
+        return jsonResponse(generateUTMLink(e.parameter));
+      case 'getUTMAttribution':
+        return jsonResponse(getUTMAttribution(e.parameter));
+      case 'getUTMTracking':
+        return jsonResponse(getUTMTracking(e.parameter));
+      case 'initializeUTMTracking':
+        return jsonResponse(initializeUTMTrackingSheet());
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
@@ -16941,6 +16964,10 @@ function doPost(e) {
       // ============ MARKETING AUTOMATION QUEUE SYSTEM (POST) ============
       case 'addToMarketingQueue':
         return jsonResponse(addToMarketingQueue(data));
+      case 'updateMarketingQueueItem':
+        return jsonResponse(updateMarketingQueueItem(data));
+      case 'deleteMarketingQueueItem':
+        return jsonResponse(deleteMarketingQueueItem(data));
       case 'postNow':
         return jsonResponse(postNow(data));
       case 'scheduleGBPPost':
@@ -17330,6 +17357,13 @@ function doPost(e) {
       case 'deleteUnifiedTask':
         return jsonResponse(deleteUnifiedTask(data.taskId));
 
+      // ============ MARKETING TASK INTEGRATION API (2026-02-11) ============
+      // Integrates marketing tasks with unified task system
+      case 'completeMarketingTask':
+        return jsonResponse(completeMarketingTask(data));
+      case 'syncMarketingActionsToUnifiedTasks':
+        return jsonResponse(syncMarketingActionsToUnifiedTasks(data.actions, data.urgencyLevel));
+
       // ============ TIME TRACKING FEEDBACK LOOP API (2026-02-03) ============
       case 'recordTaskTime':
         return jsonResponse(typeof recordTaskTime === 'function' ? recordTaskTime(data.taskId, data.actualMinutes, data.notes) : { success: false, error: 'Not available' });
@@ -17432,6 +17466,14 @@ function doPost(e) {
       case 'deleteFarmPic':
         return deleteFarmPic(data);
 
+      // ============ UTM TRACKING & SEO ATTRIBUTION SYSTEM (POST) (2026-02-11) ============
+      case 'logUTMClick':
+        return jsonResponse(logUTMClick(data));
+      case 'updateUTMConversions':
+        return jsonResponse(updateUTMConversions(data));
+      case 'createUTMCampaign':
+        return jsonResponse(createUTMCampaign(data));
+
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
     }
@@ -17456,6 +17498,617 @@ function jsonResponse(data) {
   return ContentService
     .createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// UTM TRACKING & SEO ATTRIBUTION SYSTEM
+// For Tiny Seed Farm Marketing Command Center
+// Added 2026-02-11
+// ═══════════════════════════════════════════════════════════════════════════
+
+const UTM_TRACKING_SHEET = 'MARKETING_UTM_Tracking';
+const UTM_TRACKING_HEADERS = [
+  'Date', 'Short_Code', 'Full_URL', 'UTM_Source', 'UTM_Medium',
+  'UTM_Campaign', 'UTM_Content', 'Post_ID', 'Clicks', 'Conversions',
+  'Revenue', 'Created_At', 'Last_Click'
+];
+
+// Tiny Seed Farm website URL
+const TINY_SEED_WEBSITE = 'https://tinyseedfarm.com';
+
+// Platform source mappings
+const UTM_SOURCES = {
+  instagram: 'instagram',
+  facebook: 'facebook',
+  tiktok: 'tiktok',
+  youtube: 'youtube',
+  pinterest: 'pinterest',
+  twitter: 'twitter',
+  threads: 'threads',
+  email: 'email',
+  sms: 'sms'
+};
+
+// Medium mappings based on post type
+const UTM_MEDIUMS = {
+  feed: 'social',
+  story: 'story',
+  reel: 'reel',
+  post: 'social',
+  video: 'video',
+  carousel: 'carousel',
+  email: 'email',
+  sms: 'sms',
+  bio: 'bio_link'
+};
+
+/**
+ * Initialize the UTM Tracking sheet
+ * Creates the sheet with headers if it doesn't exist
+ */
+function initializeUTMTrackingSheet() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(UTM_TRACKING_SHEET);
+
+    if (!sheet) {
+      sheet = ss.insertSheet(UTM_TRACKING_SHEET);
+      sheet.getRange(1, 1, 1, UTM_TRACKING_HEADERS.length).setValues([UTM_TRACKING_HEADERS]);
+      sheet.getRange(1, 1, 1, UTM_TRACKING_HEADERS.length)
+        .setBackground('#4267B2')
+        .setFontColor('#ffffff')
+        .setFontWeight('bold');
+      sheet.setFrozenRows(1);
+
+      // Set column widths
+      sheet.setColumnWidth(1, 100);   // Date
+      sheet.setColumnWidth(2, 100);   // Short_Code
+      sheet.setColumnWidth(3, 350);   // Full_URL
+      sheet.setColumnWidth(4, 100);   // UTM_Source
+      sheet.setColumnWidth(5, 100);   // UTM_Medium
+      sheet.setColumnWidth(6, 150);   // UTM_Campaign
+      sheet.setColumnWidth(7, 150);   // UTM_Content
+      sheet.setColumnWidth(8, 120);   // Post_ID
+      sheet.setColumnWidth(9, 80);    // Clicks
+      sheet.setColumnWidth(10, 80);   // Conversions
+      sheet.setColumnWidth(11, 100);  // Revenue
+      sheet.setColumnWidth(12, 150);  // Created_At
+      sheet.setColumnWidth(13, 150);  // Last_Click
+
+      Logger.log('UTM Tracking sheet created successfully');
+    }
+
+    return { success: true, message: 'UTM Tracking sheet initialized', sheetName: UTM_TRACKING_SHEET };
+  } catch (error) {
+    Logger.log('Error initializing UTM tracking sheet: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Generate a UTM-tagged link
+ * @param {Object} params - URL parameters
+ * @param {string} params.url - Base URL to tag (default: Tiny Seed website)
+ * @param {string} params.source - Traffic source (instagram, facebook, tiktok, etc.)
+ * @param {string} params.medium - Marketing medium (social, story, reel, email, etc.)
+ * @param {string} params.campaign - Campaign name
+ * @param {string} params.content - Optional content identifier (post ID, creative variation)
+ * @param {string} params.postId - Optional post ID for linking
+ * @param {boolean} params.saveToSheet - Whether to save to tracking sheet (default: true)
+ * @returns {Object} Generated URL and short code
+ */
+function generateUTMLink(params) {
+  try {
+    // Validate required parameters
+    if (!params.source) {
+      return { success: false, error: 'Source is required (instagram, facebook, tiktok, etc.)' };
+    }
+
+    // Default values
+    const baseUrl = params.url || TINY_SEED_WEBSITE;
+    const source = (params.source || 'social').toLowerCase();
+    const medium = (params.medium || 'social').toLowerCase();
+    const campaign = params.campaign || generateCampaignName();
+    const content = params.content || '';
+    const postId = params.postId || '';
+    const saveToSheet = params.saveToSheet !== 'false' && params.saveToSheet !== false;
+
+    // Build UTM parameters
+    const utmParams = new URLSearchParams();
+    utmParams.set('utm_source', source);
+    utmParams.set('utm_medium', medium);
+    utmParams.set('utm_campaign', campaign);
+    if (content) {
+      utmParams.set('utm_content', content);
+    }
+
+    // Construct full URL
+    const separator = baseUrl.includes('?') ? '&' : '?';
+    const fullUrl = baseUrl + separator + utmParams.toString();
+
+    // Generate short code (simple hash for now - could integrate with bit.ly API)
+    const shortCode = generateShortCode(fullUrl);
+
+    // Save to tracking sheet if requested
+    if (saveToSheet) {
+      const now = new Date();
+      const dateStr = Utilities.formatDate(now, FARM_CONFIG.TIMEZONE, 'yyyy-MM-dd');
+      const timestampStr = now.toISOString();
+
+      const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+      let sheet = ss.getSheetByName(UTM_TRACKING_SHEET);
+
+      if (!sheet) {
+        initializeUTMTrackingSheet();
+        sheet = ss.getSheetByName(UTM_TRACKING_SHEET);
+      }
+
+      // Append new row
+      sheet.appendRow([
+        dateStr,           // Date
+        shortCode,         // Short_Code
+        fullUrl,           // Full_URL
+        source,            // UTM_Source
+        medium,            // UTM_Medium
+        campaign,          // UTM_Campaign
+        content,           // UTM_Content
+        postId,            // Post_ID
+        0,                 // Clicks (starts at 0)
+        0,                 // Conversions (starts at 0)
+        0,                 // Revenue (starts at 0)
+        timestampStr,      // Created_At
+        ''                 // Last_Click (empty initially)
+      ]);
+    }
+
+    return {
+      success: true,
+      fullUrl: fullUrl,
+      shortCode: shortCode,
+      utmParams: {
+        source: source,
+        medium: medium,
+        campaign: campaign,
+        content: content
+      },
+      baseUrl: baseUrl
+    };
+
+  } catch (error) {
+    Logger.log('Error generating UTM link: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Generate a campaign name based on date and platform
+ */
+function generateCampaignName() {
+  const now = new Date();
+  const month = Utilities.formatDate(now, FARM_CONFIG.TIMEZONE, 'MMM').toLowerCase();
+  const year = Utilities.formatDate(now, FARM_CONFIG.TIMEZONE, 'yyyy');
+  return `tinyseed_${month}${year}`;
+}
+
+/**
+ * Generate a short code for the URL (simple implementation)
+ * In production, could integrate with bit.ly, rebrandly, or custom shortener
+ */
+function generateShortCode(url) {
+  // Create a simple hash from the URL + timestamp
+  const timestamp = Date.now().toString(36);
+  const urlHash = Utilities.base64Encode(url).substring(0, 4).replace(/[^a-zA-Z0-9]/g, 'X');
+  return `ts${urlHash}${timestamp.slice(-4)}`;
+}
+
+/**
+ * Log a click on a UTM link (called via webhook or manual entry)
+ * @param {Object} params - Click data
+ * @param {string} params.shortCode - The short code of the UTM link
+ * @param {string} params.utmCampaign - The UTM campaign name
+ * @param {string} params.source - Optional additional source info
+ * @param {string} params.landingPage - The page user landed on
+ */
+function logUTMClick(params) {
+  try {
+    const shortCode = params.shortCode || params.short_code;
+    const utmCampaign = params.utmCampaign || params.utm_campaign || params.campaign;
+
+    if (!shortCode && !utmCampaign) {
+      return { success: false, error: 'Either shortCode or utmCampaign is required' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(UTM_TRACKING_SHEET);
+
+    if (!sheet) {
+      return { success: false, error: 'UTM Tracking sheet not found. Call initializeUTMTracking first.' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const shortCodeCol = headers.indexOf('Short_Code');
+    const campaignCol = headers.indexOf('UTM_Campaign');
+    const clicksCol = headers.indexOf('Clicks');
+    const lastClickCol = headers.indexOf('Last_Click');
+
+    // Find matching row
+    let rowIndex = -1;
+    for (let i = 1; i < data.length; i++) {
+      if (shortCode && data[i][shortCodeCol] === shortCode) {
+        rowIndex = i + 1; // +1 for 1-based indexing
+        break;
+      }
+      if (utmCampaign && data[i][campaignCol] === utmCampaign) {
+        rowIndex = i + 1;
+        break;
+      }
+    }
+
+    if (rowIndex === -1) {
+      return { success: false, error: 'UTM link not found in tracking sheet' };
+    }
+
+    // Increment clicks
+    const currentClicks = sheet.getRange(rowIndex, clicksCol + 1).getValue() || 0;
+    sheet.getRange(rowIndex, clicksCol + 1).setValue(currentClicks + 1);
+
+    // Update last click timestamp
+    sheet.getRange(rowIndex, lastClickCol + 1).setValue(new Date().toISOString());
+
+    return {
+      success: true,
+      message: 'Click logged successfully',
+      totalClicks: currentClicks + 1
+    };
+
+  } catch (error) {
+    Logger.log('Error logging UTM click: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Update conversion data for a UTM link
+ * @param {Object} params - Conversion data
+ * @param {string} params.shortCode - The short code of the UTM link
+ * @param {string} params.utmCampaign - The UTM campaign name
+ * @param {number} params.conversions - Number of conversions to add
+ * @param {number} params.revenue - Revenue to add
+ */
+function updateUTMConversions(params) {
+  try {
+    const shortCode = params.shortCode || params.short_code;
+    const utmCampaign = params.utmCampaign || params.utm_campaign || params.campaign;
+    const conversions = parseInt(params.conversions) || 1;
+    const revenue = parseFloat(params.revenue) || 0;
+
+    if (!shortCode && !utmCampaign) {
+      return { success: false, error: 'Either shortCode or utmCampaign is required' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(UTM_TRACKING_SHEET);
+
+    if (!sheet) {
+      return { success: false, error: 'UTM Tracking sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const shortCodeCol = headers.indexOf('Short_Code');
+    const campaignCol = headers.indexOf('UTM_Campaign');
+    const conversionsCol = headers.indexOf('Conversions');
+    const revenueCol = headers.indexOf('Revenue');
+
+    // Find matching row
+    let rowIndex = -1;
+    for (let i = 1; i < data.length; i++) {
+      if (shortCode && data[i][shortCodeCol] === shortCode) {
+        rowIndex = i + 1;
+        break;
+      }
+      if (utmCampaign && data[i][campaignCol] === utmCampaign) {
+        rowIndex = i + 1;
+        break;
+      }
+    }
+
+    if (rowIndex === -1) {
+      return { success: false, error: 'UTM link not found in tracking sheet' };
+    }
+
+    // Update conversions
+    const currentConversions = sheet.getRange(rowIndex, conversionsCol + 1).getValue() || 0;
+    sheet.getRange(rowIndex, conversionsCol + 1).setValue(currentConversions + conversions);
+
+    // Update revenue
+    const currentRevenue = sheet.getRange(rowIndex, revenueCol + 1).getValue() || 0;
+    sheet.getRange(rowIndex, revenueCol + 1).setValue(currentRevenue + revenue);
+
+    return {
+      success: true,
+      message: 'Conversion logged successfully',
+      totalConversions: currentConversions + conversions,
+      totalRevenue: currentRevenue + revenue
+    };
+
+  } catch (error) {
+    Logger.log('Error updating UTM conversions: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get UTM attribution data for analytics display
+ * @param {Object} params - Query parameters
+ * @param {string} params.period - Time period: 'week', 'month', 'quarter', 'year', 'all'
+ * @param {string} params.source - Filter by source
+ * @param {string} params.campaign - Filter by campaign
+ */
+function getUTMAttribution(params) {
+  try {
+    const period = params.period || 'month';
+    const filterSource = params.source;
+    const filterCampaign = params.campaign;
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(UTM_TRACKING_SHEET);
+
+    if (!sheet) {
+      return {
+        success: true,
+        attribution: {
+          totalClicks: 0,
+          totalConversions: 0,
+          totalRevenue: 0,
+          conversionRate: 0,
+          bySource: {},
+          byMedium: {},
+          byCampaign: [],
+          topPerforming: null
+        },
+        message: 'No UTM tracking data yet'
+      };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) {
+      return {
+        success: true,
+        attribution: {
+          totalClicks: 0,
+          totalConversions: 0,
+          totalRevenue: 0,
+          conversionRate: 0,
+          bySource: {},
+          byMedium: {},
+          byCampaign: [],
+          topPerforming: null
+        },
+        message: 'No UTM tracking data yet'
+      };
+    }
+
+    const headers = data[0];
+    const dateCol = headers.indexOf('Date');
+    const sourceCol = headers.indexOf('UTM_Source');
+    const mediumCol = headers.indexOf('UTM_Medium');
+    const campaignCol = headers.indexOf('UTM_Campaign');
+    const contentCol = headers.indexOf('UTM_Content');
+    const postIdCol = headers.indexOf('Post_ID');
+    const clicksCol = headers.indexOf('Clicks');
+    const conversionsCol = headers.indexOf('Conversions');
+    const revenueCol = headers.indexOf('Revenue');
+
+    // Calculate date cutoff
+    const now = new Date();
+    let cutoffDate = new Date(0); // Default to beginning of time (all)
+
+    switch (period) {
+      case 'week':
+        cutoffDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case 'month':
+        cutoffDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case 'quarter':
+        cutoffDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+        break;
+      case 'year':
+        cutoffDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+        break;
+    }
+
+    // Aggregate data
+    let totalClicks = 0;
+    let totalConversions = 0;
+    let totalRevenue = 0;
+    const bySource = {};
+    const byMedium = {};
+    const campaignData = {};
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const rowDate = new Date(row[dateCol]);
+
+      // Apply date filter
+      if (rowDate < cutoffDate) continue;
+
+      // Apply source filter
+      if (filterSource && row[sourceCol] !== filterSource) continue;
+
+      // Apply campaign filter
+      if (filterCampaign && row[campaignCol] !== filterCampaign) continue;
+
+      const clicks = parseInt(row[clicksCol]) || 0;
+      const conversions = parseInt(row[conversionsCol]) || 0;
+      const revenue = parseFloat(row[revenueCol]) || 0;
+      const source = row[sourceCol] || 'unknown';
+      const medium = row[mediumCol] || 'unknown';
+      const campaign = row[campaignCol] || 'unknown';
+
+      totalClicks += clicks;
+      totalConversions += conversions;
+      totalRevenue += revenue;
+
+      // Aggregate by source
+      if (!bySource[source]) {
+        bySource[source] = { clicks: 0, conversions: 0, revenue: 0 };
+      }
+      bySource[source].clicks += clicks;
+      bySource[source].conversions += conversions;
+      bySource[source].revenue += revenue;
+
+      // Aggregate by medium
+      if (!byMedium[medium]) {
+        byMedium[medium] = { clicks: 0, conversions: 0, revenue: 0 };
+      }
+      byMedium[medium].clicks += clicks;
+      byMedium[medium].conversions += conversions;
+      byMedium[medium].revenue += revenue;
+
+      // Aggregate by campaign
+      if (!campaignData[campaign]) {
+        campaignData[campaign] = {
+          clicks: 0,
+          conversions: 0,
+          revenue: 0,
+          source: source,
+          medium: medium
+        };
+      }
+      campaignData[campaign].clicks += clicks;
+      campaignData[campaign].conversions += conversions;
+      campaignData[campaign].revenue += revenue;
+    }
+
+    // Convert campaign data to sorted array
+    const byCampaign = Object.entries(campaignData)
+      .map(([name, stats]) => ({
+        name: name,
+        ...stats,
+        conversionRate: stats.clicks > 0 ? ((stats.conversions / stats.clicks) * 100).toFixed(2) : 0
+      }))
+      .sort((a, b) => b.conversions - a.conversions)
+      .slice(0, 10); // Top 10 campaigns
+
+    // Find top performing campaign
+    const topPerforming = byCampaign.length > 0 ? byCampaign[0] : null;
+
+    // Calculate overall conversion rate
+    const conversionRate = totalClicks > 0 ? ((totalConversions / totalClicks) * 100).toFixed(2) : 0;
+
+    return {
+      success: true,
+      attribution: {
+        totalClicks: totalClicks,
+        totalConversions: totalConversions,
+        totalRevenue: totalRevenue,
+        conversionRate: parseFloat(conversionRate),
+        bySource: bySource,
+        byMedium: byMedium,
+        byCampaign: byCampaign,
+        topPerforming: topPerforming
+      },
+      period: period
+    };
+
+  } catch (error) {
+    Logger.log('Error getting UTM attribution: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get all UTM tracking data (for admin view)
+ * @param {Object} params - Query parameters
+ * @param {number} params.limit - Max rows to return (default 100)
+ */
+function getUTMTracking(params) {
+  try {
+    const limit = parseInt(params.limit) || 100;
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(UTM_TRACKING_SHEET);
+
+    if (!sheet) {
+      return { success: true, links: [], message: 'No UTM tracking data yet' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) {
+      return { success: true, links: [], message: 'No UTM tracking data yet' };
+    }
+
+    const headers = data[0];
+    const links = [];
+
+    // Convert to objects and reverse (newest first)
+    for (let i = Math.min(data.length - 1, limit); i >= 1; i--) {
+      const row = data[i];
+      const link = {};
+      headers.forEach((header, index) => {
+        link[header.toLowerCase().replace(/_/g, '')] = row[index];
+      });
+      links.push(link);
+    }
+
+    return {
+      success: true,
+      links: links.reverse(),
+      total: data.length - 1
+    };
+
+  } catch (error) {
+    Logger.log('Error getting UTM tracking data: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Create a new UTM campaign with pre-generated links
+ * @param {Object} params - Campaign data
+ * @param {string} params.name - Campaign name
+ * @param {string} params.url - Base URL
+ * @param {Array} params.platforms - Platforms to generate links for
+ */
+function createUTMCampaign(params) {
+  try {
+    const name = params.name || generateCampaignName();
+    const baseUrl = params.url || TINY_SEED_WEBSITE;
+    const platforms = params.platforms || ['instagram', 'facebook', 'tiktok'];
+
+    const links = {};
+
+    platforms.forEach(platform => {
+      const result = generateUTMLink({
+        url: baseUrl,
+        source: platform,
+        medium: 'social',
+        campaign: name,
+        saveToSheet: true
+      });
+
+      if (result.success) {
+        links[platform] = {
+          fullUrl: result.fullUrl,
+          shortCode: result.shortCode
+        };
+      }
+    });
+
+    return {
+      success: true,
+      campaignName: name,
+      baseUrl: baseUrl,
+      links: links
+    };
+
+  } catch (error) {
+    Logger.log('Error creating UTM campaign: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -57880,12 +58533,14 @@ function approveFarmPic(data) {
         const approvedByCol = headers.indexOf('Approved_By');
 
         for (let i = 1; i < dataRange.length; i++) {
-            if (dataRange[i][picIdCol] === data.picId) {
-                sheet.getRange(i + 1, statusCol + 1).setValue(data.approved ? 'approved' : 'rejected');
+            if (dataRange[i][picIdCol] == data.picId || dataRange[i][picIdCol] === data.picId) {
+                // Support explicit status or derive from approved flag
+                const newStatus = data.status || (data.approved ? 'approved' : 'rejected');
+                sheet.getRange(i + 1, statusCol + 1).setValue(newStatus);
                 sheet.getRange(i + 1, approvedAtCol + 1).setValue(new Date().toISOString());
                 sheet.getRange(i + 1, approvedByCol + 1).setValue(data.approvedBy || 'Admin');
 
-                return { success: true, message: data.approved ? 'Photo approved!' : 'Photo rejected' };
+                return { success: true, message: 'Photo status updated to ' + newStatus };
             }
         }
 
@@ -58420,17 +59075,137 @@ function logMarketingActivity(data) {
 // =============================================================================
 
 /**
- * Get marketing analytics
+ * Get marketing analytics - Enhanced for Analytics Dashboard
+ * Returns post history, engagement metrics, platform breakdown, and insights
  */
 function getMarketingAnalytics(params) {
     try {
-        // Calculate analytics from various sources
+        const period = params.period || 'all'; // 'week', 'month', 'all'
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+        // Calculate date filters
+        const now = new Date();
+        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+        // Get post history from MARKETING_InstagramPosts sheet
+        let postsSheet = ss.getSheetByName('MARKETING_InstagramPosts');
+        let posts = [];
+        let totalEngagements = 0;
+        let totalImpressions = 0;
+        let platformBreakdown = {};
+        let postsThisWeek = 0;
+        let postsThisMonth = 0;
+
+        if (postsSheet) {
+            const postsData = postsSheet.getDataRange().getValues();
+            const headers = postsData[0];
+
+            // Map headers to indices
+            const timestampIdx = headers.indexOf('Timestamp');
+            const accountIdx = headers.indexOf('Account');
+            const mediaTypeIdx = headers.indexOf('Media_Type');
+            const captionIdx = headers.indexOf('Caption');
+            const mediaIdIdx = headers.indexOf('Media_ID');
+            const impressionsIdx = headers.indexOf('Impressions');
+            const engagementIdx = headers.indexOf('Engagement');
+
+            for (let i = 1; i < postsData.length; i++) {
+                const row = postsData[i];
+                const timestamp = row[timestampIdx];
+                if (!timestamp) continue;
+
+                const postDate = new Date(timestamp);
+                const account = row[accountIdx] || 'Unknown';
+                const mediaType = row[mediaTypeIdx] || 'IMAGE';
+                const caption = row[captionIdx] || '';
+                const mediaId = row[mediaIdIdx] || '';
+                const impressions = parseInt(row[impressionsIdx]) || 0;
+                const engagement = parseInt(row[engagementIdx]) || 0;
+
+                // Count posts by time period
+                if (postDate >= weekAgo) postsThisWeek++;
+                if (postDate >= monthAgo) postsThisMonth++;
+
+                // Aggregate totals
+                totalEngagements += engagement;
+                totalImpressions += impressions;
+
+                // Platform breakdown
+                const platform = account.toLowerCase().includes('tiktok') ? 'TikTok' :
+                                 account.toLowerCase().includes('pinterest') ? 'Pinterest' :
+                                 account.toLowerCase().includes('facebook') ? 'Facebook' : 'Instagram';
+                platformBreakdown[platform] = (platformBreakdown[platform] || 0) + 1;
+
+                // Apply period filter for posts list
+                let includePost = true;
+                if (period === 'week' && postDate < weekAgo) includePost = false;
+                if (period === 'month' && postDate < monthAgo) includePost = false;
+
+                if (includePost) {
+                    posts.push({
+                        timestamp: timestamp,
+                        account: account,
+                        platform: platform,
+                        mediaType: mediaType,
+                        captionPreview: caption.substring(0, 100) + (caption.length > 100 ? '...' : ''),
+                        mediaId: mediaId,
+                        impressions: impressions,
+                        engagement: engagement
+                    });
+                }
+            }
+        }
+
+        // Sort posts by timestamp descending (most recent first)
+        posts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+        // Limit to most recent 20 posts
+        const recentPosts = posts.slice(0, 20);
+
+        // Try to get Instagram insights from API (reach, followers)
+        let instagramInsights = { reach: 0, followers: 0, followerGrowth: 0 };
+        try {
+            const props = PropertiesService.getScriptProperties();
+            const accounts = JSON.parse(props.getProperty('instagram_accounts') || '[]');
+            if (accounts.length > 0) {
+                const accessToken = props.getProperty('ig_token_0');
+                if (accessToken) {
+                    const result = JSON.parse(UrlFetchApp.fetch(
+                        `https://graph.facebook.com/v24.0/${accounts[0].igUserId}?fields=followers_count&access_token=${accessToken}`,
+                        { muteHttpExceptions: true }
+                    ).getContentText());
+                    if (result.followers_count) {
+                        instagramInsights.followers = result.followers_count;
+                    }
+                }
+            }
+        } catch (e) {
+            Logger.log('Error fetching Instagram insights: ' + e.toString());
+        }
+
+        // Get existing analytics (farm pics, campaigns, budget)
         const farmPics = getFarmPics({});
         const campaigns = getMarketingCampaigns({});
         const spend = getMarketingSpend({});
         const budget = getMarketingBudget({});
 
         const analytics = {
+            // New: Post analytics for dashboard
+            posts: {
+                total: posts.length,
+                thisWeek: postsThisWeek,
+                thisMonth: postsThisMonth,
+                recentPosts: recentPosts,
+                platformBreakdown: platformBreakdown
+            },
+            engagement: {
+                total: totalEngagements,
+                impressions: totalImpressions,
+                engagementRate: totalImpressions > 0 ? ((totalEngagements / totalImpressions) * 100).toFixed(2) : 0
+            },
+            instagram: instagramInsights,
+            // Existing analytics
             farmPics: {
                 total: farmPics.success ? farmPics.farmPics.length : 0,
                 new: farmPics.success ? farmPics.farmPics.filter(p => p.Status === 'new').length : 0,
@@ -58459,6 +59234,7 @@ function getMarketingAnalytics(params) {
 
         return { success: true, analytics: analytics };
     } catch (error) {
+        Logger.log('Error in getMarketingAnalytics: ' + error.toString());
         return { success: false, error: error.toString() };
     }
 }
@@ -62765,16 +63541,48 @@ function generateBriefingSummary(params) {
 
 /**
  * Get Social Action Queue - Priority-ordered actions for dashboard
+ *
+ * Updated 2026-02-11: Now uses unified task system as primary source
+ * Falls back to legacy briefing data if no unified tasks exist
+ *
+ * Parameters:
+ *   useUnified - 'true' to use unified task system (default: true)
+ *   syncFromBriefing - 'true' to sync briefing actions to unified (default: false)
  */
 function getSocialActionQueue(params) {
     try {
-        // Get latest briefing
+        const useUnified = params.useUnified !== 'false';
+        const syncFromBriefing = params.syncFromBriefing === 'true';
+
+        // Try to get marketing tasks from unified system first
+        if (useUnified) {
+            const unifiedResult = getMarketingTasksFromUnified(params);
+            if (unifiedResult.success && unifiedResult.stats.total > 0) {
+                return {
+                    success: true,
+                    source: 'unified',
+                    actionQueue: unifiedResult.actionQueue,
+                    stats: unifiedResult.stats,
+                    generatedAt: new Date().toISOString()
+                };
+            }
+        }
+
+        // Fall back to legacy briefing system
         const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
         const briefingSheet = ss.getSheetByName('SOCIAL_DailyBriefings');
 
         if (!briefingSheet) {
             // Generate new briefing
-            return generateDailyBriefing({});
+            const briefingResult = generateDailyBriefing({});
+
+            // Sync to unified tasks if requested
+            if (syncFromBriefing && briefingResult.success && briefingResult.briefing) {
+                syncMarketingActionsToUnifiedTasks(briefingResult.briefing.urgentActions || [], 'urgent');
+                syncMarketingActionsToUnifiedTasks(briefingResult.briefing.todayActions || [], 'today');
+            }
+
+            return briefingResult;
         }
 
         const data = briefingSheet.getDataRange().getValues();
@@ -62795,11 +63603,26 @@ function getSocialActionQueue(params) {
 
         if (!latestBriefing) {
             // Generate new briefing for today
-            return generateDailyBriefing({});
+            const briefingResult = generateDailyBriefing({});
+
+            // Sync to unified tasks
+            if (syncFromBriefing && briefingResult.success && briefingResult.briefing) {
+                syncMarketingActionsToUnifiedTasks(briefingResult.briefing.urgentActions || [], 'urgent');
+                syncMarketingActionsToUnifiedTasks(briefingResult.briefing.todayActions || [], 'today');
+            }
+
+            return briefingResult;
+        }
+
+        // Sync existing briefing actions to unified system if requested
+        if (syncFromBriefing) {
+            syncMarketingActionsToUnifiedTasks(latestBriefing.urgentActions || [], 'urgent');
+            syncMarketingActionsToUnifiedTasks(latestBriefing.todayActions || [], 'today');
         }
 
         return {
             success: true,
+            source: 'briefing',
             actionQueue: {
                 urgent: latestBriefing.urgentActions || [],
                 today: latestBriefing.todayActions || [],
@@ -63469,9 +64292,33 @@ Return as JSON array:
 
 /**
  * Mark Action Complete - Track completed actions
+ *
+ * Updated 2026-02-11: Now also updates unified task system
+ *
+ * Parameters:
+ *   taskId - Unified task ID (if action was synced to unified system)
+ *   actionType - Type of action (SALES_OPPORTUNITY, COMMENT_RESPONSE, etc.)
+ *   actionId - Legacy action ID or comment ID
+ *   details - Additional details
+ *   completedBy - Who completed it (default: 'owner')
+ *   result - Result of completion (default: 'completed')
  */
 function markSocialActionComplete(params) {
     try {
+        // If we have a unified taskId, update that first
+        if (params.taskId && params.taskId.startsWith('UTASK_')) {
+            const updateResult = updateUnifiedTask({
+                taskId: params.taskId,
+                status: 'completed',
+                completedBy: params.completedBy || 'owner'
+            });
+
+            if (!updateResult.success) {
+                Logger.log('Warning: Failed to update unified task: ' + updateResult.error);
+            }
+        }
+
+        // Also log to legacy completed actions sheet for backward compatibility
         const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
         let actionsSheet = ss.getSheetByName('SOCIAL_CompletedActions');
         if (!actionsSheet) {
@@ -63485,7 +64332,7 @@ function markSocialActionComplete(params) {
         actionsSheet.appendRow([
             new Date().toISOString(),
             params.actionType || '',
-            params.actionId || '',
+            params.taskId || params.actionId || '',
             params.details || '',
             params.completedBy || 'owner',
             params.result || 'completed'
@@ -97564,7 +98411,7 @@ function recordTaskAction(params) {
 
 const UNIFIED_TASKS_SHEET = 'UNIFIED_TASKS';
 const UNIFIED_TASKS_HEADERS = [
-  'Task_ID', 'Title', 'Description', 'Task_Type',
+  'Task_ID', 'Title', 'Description', 'Task_Type', 'Category',
   'Batch_ID', 'Field_ID', 'Bed_ID', 'Crop_ID', 'Source',
   'Assignee_ID', 'Assignee_Name', 'Assigned_By', 'Assigned_At', 'Team_ID', 'Role_Required',
   'Due_Date', 'Due_Time', 'Scheduled_Start', 'Scheduled_End', 'Flexibility', 'Weather_Dependent',
@@ -97576,6 +98423,9 @@ const UNIFIED_TASKS_HEADERS = [
   'SMS_Sent', 'Reminder_Sent', 'Acknowledged',
   'Created_At', 'Updated_At', 'Created_By', 'Tags', 'Notes'
 ];
+
+// Valid task categories for the unified system
+const UNIFIED_TASK_CATEGORIES = ['farm', 'marketing', 'admin', 'finance', 'compliance', 'sales', 'other'];
 
 // Cache durations
 const UNIFIED_TASK_CACHE = {
@@ -97604,6 +98454,13 @@ function getUnifiedTasksSheet() {
       .requireValueInList(['pending', 'assigned', 'in_progress', 'blocked', 'completed', 'cancelled'], true)
       .build();
     sheet.getRange(2, statusCol, 1000, 1).setDataValidation(statusRule);
+
+    // Add data validation for Category column (2026-02-11)
+    const categoryCol = UNIFIED_TASKS_HEADERS.indexOf('Category') + 1;
+    const categoryRule = SpreadsheetApp.newDataValidation()
+      .requireValueInList(['farm', 'marketing', 'admin', 'finance', 'compliance', 'sales', 'other'], true)
+      .build();
+    sheet.getRange(2, categoryCol, 1000, 1).setDataValidation(categoryRule);
   }
 
   return sheet;
@@ -97615,6 +98472,7 @@ function getUnifiedTasksSheet() {
  * Parameters:
  *   status - Filter by status (pending, assigned, in_progress, blocked, completed, cancelled)
  *   assigneeId - Filter by assignee
+ *   category - Filter by category (marketing, farm, admin, finance, compliance, sales, other) - Added 2026-02-11
  *   dueDate - Filter by due date (YYYY-MM-DD)
  *   dueBefore - Tasks due before this date
  *   dueAfter - Tasks due after this date
@@ -97637,6 +98495,7 @@ function getUnifiedTasks(params) {
     const dueBefore = params.dueBefore || null;
     const dueAfter = params.dueAfter || null;
     const taskType = params.taskType || null;
+    const category = params.category || null;  // NEW: Category filter (marketing, farm, admin, etc.)
     const limit = Math.min(parseInt(params.limit) || 50, 200);
     const offset = parseInt(params.offset) || 0;
     const sortBy = params.sortBy || 'Due_Date';
@@ -97644,11 +98503,11 @@ function getUnifiedTasks(params) {
     const includeCompleted = params.includeCompleted === 'true';
 
     // Build cache key from parameters
-    const cacheKey = `unified_tasks_${status || 'all'}_${assigneeId || 'all'}_${dueDate || 'all'}_${limit}_${offset}`;
+    const cacheKey = `unified_tasks_${status || 'all'}_${assigneeId || 'all'}_${dueDate || 'all'}_${category || 'all'}_${limit}_${offset}`;
     const cache = CacheService.getScriptCache();
 
     // Check cache first (only for simple queries)
-    if (!dueBefore && !dueAfter && !taskType) {
+    if (!dueBefore && !dueAfter && !taskType && !category) {
       const cached = cache.get(cacheKey);
       if (cached) {
         const result = JSON.parse(cached);
@@ -97700,6 +98559,7 @@ function getUnifiedTasks(params) {
       if (dueDate && task.Due_Date && !task.Due_Date.toString().startsWith(dueDate)) continue;
       if (!includeCompleted && (task.Status === 'completed' || task.Status === 'cancelled')) continue;
       if (taskType && task.Task_Type !== taskType) continue;
+      if (category && task.Category !== category) continue;  // NEW: Category filter
 
       // Date range filters
       if (dueBefore && task.Due_Date) {
@@ -97849,6 +98709,7 @@ function createUnifiedTask(data) {
         case 'Title': return data.title;
         case 'Description': return data.description || '';
         case 'Task_Type': return data.taskType || data.type || 'general';
+        case 'Category': return data.category || 'farm';
         case 'Batch_ID': return data.batchId || '';
         case 'Field_ID': return data.fieldId || '';
         case 'Bed_ID': return data.bedId || '';
@@ -97985,6 +98846,7 @@ function updateUnifiedTask(data) {
       title: 'Title',
       description: 'Description',
       taskType: 'Task_Type',
+      category: 'Category',
       assigneeId: 'Assignee_ID',
       assigneeName: 'Assignee_Name',
       assignedBy: 'Assigned_By',
@@ -98352,6 +99214,447 @@ function deleteUnifiedTask(taskId) {
       taskId: taskId,
       status: 'cancelled'
     });
+
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString(),
+      _timing: { total: Date.now() - startTime }
+    };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+// UNIFIED TASK SYSTEM - CATEGORY-BASED FILTERING AND MARKETING INTEGRATION
+// Added 2026-02-11: Integrates marketing tasks with the unified OS task system
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * GET TASKS BY CATEGORY - Convenience function for filtering by category
+ *
+ * Parameters:
+ *   category - 'marketing', 'farm', 'admin', 'finance', 'compliance', 'sales', 'all'
+ *   status - 'pending', 'in_progress', 'completed', 'all' (default: pending tasks only)
+ *   priority - 'urgent', 'high', 'medium', 'low', 'all'
+ *   dueToday - true to filter tasks due today
+ *   limit - Max items to return (default 50)
+ */
+function getTasksByCategory(params) {
+  const startTime = Date.now();
+
+  try {
+    const category = params.category || 'all';
+    const status = params.status || null;
+    const priority = params.priority || null;
+    const dueToday = params.dueToday === 'true' || params.dueToday === true;
+    const limit = Math.min(parseInt(params.limit) || 50, 200);
+
+    // Build query params for getUnifiedTasks
+    const queryParams = {
+      limit: limit,
+      sortBy: 'Priority_Score',
+      sortOrder: 'desc'
+    };
+
+    if (category !== 'all') {
+      queryParams.category = category;
+    }
+
+    if (status && status !== 'all') {
+      queryParams.status = status;
+    }
+
+    if (dueToday) {
+      queryParams.dueDate = new Date().toISOString().split('T')[0];
+    }
+
+    // Get tasks from unified system
+    const result = getUnifiedTasks(queryParams);
+
+    if (!result.success) {
+      return result;
+    }
+
+    let tasks = result.tasks;
+
+    // Apply priority filter if specified
+    if (priority && priority !== 'all') {
+      tasks = tasks.filter(t => t.Priority_Manual === priority);
+    }
+
+    // Group tasks by priority for better UI
+    const grouped = {
+      urgent: tasks.filter(t => t.Priority_Manual === 'urgent'),
+      high: tasks.filter(t => t.Priority_Manual === 'high'),
+      medium: tasks.filter(t => t.Priority_Manual === 'medium'),
+      low: tasks.filter(t => t.Priority_Manual === 'low')
+    };
+
+    // Calculate category stats
+    const stats = {
+      total: tasks.length,
+      byStatus: {},
+      byPriority: {}
+    };
+
+    tasks.forEach(t => {
+      stats.byStatus[t.Status] = (stats.byStatus[t.Status] || 0) + 1;
+      stats.byPriority[t.Priority_Manual] = (stats.byPriority[t.Priority_Manual] || 0) + 1;
+    });
+
+    return {
+      success: true,
+      category: category,
+      tasks: tasks,
+      grouped: grouped,
+      stats: stats,
+      _timing: { total: Date.now() - startTime }
+    };
+
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString(),
+      _timing: { total: Date.now() - startTime }
+    };
+  }
+}
+
+/**
+ * SYNC MARKETING ACTIONS TO UNIFIED TASKS
+ * Takes marketing briefing actions and ensures they exist in the unified task system
+ * Returns the synced task IDs for reference
+ */
+function syncMarketingActionsToUnifiedTasks(actions, urgencyLevel) {
+  const startTime = Date.now();
+  const syncedTaskIds = [];
+  const today = new Date().toISOString().split('T')[0];
+
+  try {
+    if (!actions || !Array.isArray(actions) || actions.length === 0) {
+      return { success: true, syncedTaskIds: [], message: 'No actions to sync' };
+    }
+
+    const priorityMap = {
+      'CRITICAL': 'urgent',
+      'HIGH': 'high',
+      'MEDIUM': 'medium',
+      'LOW': 'low'
+    };
+
+    for (const action of actions) {
+      // Generate a deterministic ID for deduplication
+      const actionHash = Utilities.base64Encode(
+        Utilities.computeDigest(Utilities.DigestAlgorithm.MD5,
+          `${action.type}_${action.action}_${today}`)
+      ).substring(0, 12);
+
+      // Check if this action already exists as a task today
+      const existingTasks = getUnifiedTasks({
+        category: 'marketing',
+        dueDate: today,
+        limit: 100
+      });
+
+      const alreadyExists = existingTasks.success && existingTasks.tasks.some(t =>
+        t.Notes && t.Notes.includes(actionHash)
+      );
+
+      if (alreadyExists) {
+        continue; // Skip duplicate
+      }
+
+      // Create the task
+      const taskData = {
+        title: action.action || `Marketing: ${action.type}`,
+        description: action.estimatedImpact || action.aiRecommendation || '',
+        taskType: action.type || 'marketing_action',
+        category: 'marketing',
+        source: 'marketing_briefing',
+        priority: priorityMap[action.priority] || (urgencyLevel === 'urgent' ? 'high' : 'medium'),
+        dueDate: today,
+        dueTime: action.responseTime ? extractTimeFromResponseTime(action.responseTime) : '',
+        tags: ['marketing', action.platform || 'social', urgencyLevel].filter(Boolean).join(','),
+        notes: JSON.stringify({
+          actionHash: actionHash,
+          originalAction: action,
+          draftReply: action.draftReply || null,
+          commentId: action.commentId || null,
+          platform: action.platform || null
+        })
+      };
+
+      const createResult = createUnifiedTask(taskData);
+
+      if (createResult.success) {
+        syncedTaskIds.push(createResult.taskId);
+      }
+    }
+
+    return {
+      success: true,
+      syncedTaskIds: syncedTaskIds,
+      syncedCount: syncedTaskIds.length,
+      _timing: { total: Date.now() - startTime }
+    };
+
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString(),
+      syncedTaskIds: syncedTaskIds,
+      _timing: { total: Date.now() - startTime }
+    };
+  }
+}
+
+/**
+ * Helper to extract time from response time strings like "1 hour", "2 hours"
+ */
+function extractTimeFromResponseTime(responseTime) {
+  if (!responseTime) return '';
+  const now = new Date();
+  const match = responseTime.match(/(\d+)\s*hour/i);
+  if (match) {
+    now.setHours(now.getHours() + parseInt(match[1]));
+    return now.toTimeString().slice(0, 5);
+  }
+  return '';
+}
+
+/**
+ * GET MARKETING TASKS FROM UNIFIED SYSTEM
+ * Returns marketing tasks in a format compatible with the Marketing Command Center UI
+ */
+function getMarketingTasksFromUnified(params) {
+  const startTime = Date.now();
+
+  try {
+    const today = new Date().toISOString().split('T')[0];
+
+    // Get all pending/in-progress marketing tasks
+    const tasksResult = getUnifiedTasks({
+      category: 'marketing',
+      limit: 100,
+      sortBy: 'Priority_Score',
+      sortOrder: 'desc'
+    });
+
+    if (!tasksResult.success) {
+      return tasksResult;
+    }
+
+    // Separate into urgent and today buckets
+    const urgent = [];
+    const todayTasks = [];
+    const thisWeek = [];
+
+    for (const task of tasksResult.tasks) {
+      // Parse original action data from notes if available
+      let originalAction = null;
+      try {
+        if (task.Notes) {
+          const notesData = JSON.parse(task.Notes);
+          originalAction = notesData.originalAction || null;
+        }
+      } catch (e) {
+        // Notes isn't JSON, that's OK
+      }
+
+      // Transform to action queue format for UI compatibility
+      const actionItem = {
+        taskId: task.Task_ID,
+        type: task.Task_Type || 'MARKETING_TASK',
+        action: task.Title,
+        priority: task.Priority_Manual ? task.Priority_Manual.toUpperCase() : 'MEDIUM',
+        estimatedImpact: task.Description,
+        platform: originalAction?.platform || null,
+        draftReply: originalAction?.draftReply || null,
+        commentId: originalAction?.commentId || null,
+        status: task.Status,
+        dueDate: task.Due_Date,
+        dueTime: task.Due_Time
+      };
+
+      // Categorize by urgency
+      if (task.Priority_Manual === 'urgent' || task.Priority_Manual === 'high') {
+        urgent.push(actionItem);
+      } else if (task.Due_Date === today) {
+        todayTasks.push(actionItem);
+      } else {
+        thisWeek.push(actionItem);
+      }
+    }
+
+    return {
+      success: true,
+      actionQueue: {
+        urgent: urgent,
+        today: todayTasks,
+        thisWeek: thisWeek
+      },
+      stats: {
+        total: tasksResult.tasks.length,
+        urgent: urgent.length,
+        today: todayTasks.length,
+        thisWeek: thisWeek.length
+      },
+      _timing: { total: Date.now() - startTime }
+    };
+
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString(),
+      _timing: { total: Date.now() - startTime }
+    };
+  }
+}
+
+/**
+ * COMPLETE MARKETING TASK - Updates unified task and maintains backward compatibility
+ */
+function completeMarketingTask(params) {
+  const startTime = Date.now();
+
+  try {
+    const taskId = params.taskId;
+    const completedBy = params.completedBy || 'owner';
+    const result = params.result || 'completed';
+
+    if (!taskId) {
+      // Fallback: use the old markSocialActionComplete for backward compatibility
+      return markSocialActionComplete(params);
+    }
+
+    // Update the unified task
+    const updateResult = updateUnifiedTask({
+      taskId: taskId,
+      status: 'completed',
+      completedBy: completedBy,
+      notes: result
+    });
+
+    if (!updateResult.success) {
+      return updateResult;
+    }
+
+    // Also log to the legacy completed actions sheet for historical tracking
+    try {
+      const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+      let actionsSheet = ss.getSheetByName('SOCIAL_CompletedActions');
+      if (actionsSheet) {
+        actionsSheet.appendRow([
+          new Date().toISOString(),
+          params.actionType || 'MARKETING_TASK',
+          taskId,
+          params.details || '',
+          completedBy,
+          result
+        ]);
+      }
+    } catch (e) {
+      // Non-critical, log and continue
+      Logger.log('Could not log to legacy actions sheet: ' + e.toString());
+    }
+
+    return {
+      success: true,
+      taskId: taskId,
+      message: 'Marketing task completed',
+      _timing: { total: Date.now() - startTime }
+    };
+
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString(),
+      _timing: { total: Date.now() - startTime }
+    };
+  }
+}
+
+/**
+ * GET UNIFIED TASK STATS BY CATEGORY
+ * Returns task counts by category for dashboard display
+ */
+function getUnifiedTaskStatsByCategory(params) {
+  const startTime = Date.now();
+
+  try {
+    const sheet = getUnifiedTasksSheet();
+    const data = sheet.getDataRange().getValues();
+
+    if (data.length < 2) {
+      return {
+        success: true,
+        categories: {},
+        total: 0,
+        _timing: { total: Date.now() - startTime }
+      };
+    }
+
+    const headers = data[0];
+    const categoryIdx = headers.indexOf('Category');
+    const statusIdx = headers.indexOf('Status');
+    const priorityIdx = headers.indexOf('Priority_Manual');
+    const dueDateIdx = headers.indexOf('Due_Date');
+
+    const today = new Date().toISOString().split('T')[0];
+
+    const stats = {
+      farm: { pending: 0, completed: 0, urgent: 0, dueToday: 0 },
+      marketing: { pending: 0, completed: 0, urgent: 0, dueToday: 0 },
+      admin: { pending: 0, completed: 0, urgent: 0, dueToday: 0 },
+      finance: { pending: 0, completed: 0, urgent: 0, dueToday: 0 },
+      compliance: { pending: 0, completed: 0, urgent: 0, dueToday: 0 },
+      sales: { pending: 0, completed: 0, urgent: 0, dueToday: 0 },
+      other: { pending: 0, completed: 0, urgent: 0, dueToday: 0 }
+    };
+
+    let totalTasks = 0;
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (!row[0]) continue;
+
+      const category = row[categoryIdx] || 'other';
+      const status = row[statusIdx] || 'pending';
+      const priority = row[priorityIdx] || 'medium';
+      const dueDate = row[dueDateIdx];
+
+      if (!stats[category]) {
+        stats[category] = { pending: 0, completed: 0, urgent: 0, dueToday: 0 };
+      }
+
+      totalTasks++;
+
+      if (status === 'completed' || status === 'cancelled') {
+        stats[category].completed++;
+      } else {
+        stats[category].pending++;
+
+        if (priority === 'urgent' || priority === 'high') {
+          stats[category].urgent++;
+        }
+
+        if (dueDate) {
+          const dueDateStr = dueDate instanceof Date ?
+            dueDate.toISOString().split('T')[0] :
+            String(dueDate).split('T')[0];
+          if (dueDateStr === today) {
+            stats[category].dueToday++;
+          }
+        }
+      }
+    }
+
+    return {
+      success: true,
+      categories: stats,
+      total: totalTasks,
+      _timing: { total: Date.now() - startTime }
+    };
 
   } catch (error) {
     return {
@@ -106659,6 +107962,25 @@ function getMarketingQueue(params) {
       queue = queue.filter(item => item.Platform === params.platform);
     }
 
+    // Filter by date range if provided (for Content Calendar week view)
+    if (params && params.startDate) {
+      const startDate = new Date(params.startDate);
+      startDate.setHours(0, 0, 0, 0);
+      queue = queue.filter(item => {
+        const itemDate = new Date(item.Scheduled_Date);
+        return itemDate >= startDate;
+      });
+    }
+
+    if (params && params.endDate) {
+      const endDate = new Date(params.endDate);
+      endDate.setHours(23, 59, 59, 999);
+      queue = queue.filter(item => {
+        const itemDate = new Date(item.Scheduled_Date);
+        return itemDate <= endDate;
+      });
+    }
+
     // Sort by scheduled date
     queue.sort((a, b) => new Date(a.Scheduled_Date) - new Date(b.Scheduled_Date));
 
@@ -106678,6 +108000,165 @@ function getMarketingQueue(params) {
     };
   } catch (error) {
     Logger.log('Error getting marketing queue: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Update a Marketing Queue Item
+ * API Route: updateMarketingQueueItem
+ * Used by Content Calendar for rescheduling posts
+ */
+function updateMarketingQueueItem(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(MARKETING_QUEUE_CONFIG.SHEET_NAME);
+
+    if (!sheet) {
+      return { success: false, error: 'Marketing Queue sheet not found' };
+    }
+
+    const queueId = params.queueId || params.queue_id;
+    if (!queueId) {
+      return { success: false, error: 'Queue ID is required' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    // Find the Queue_ID column index
+    const queueIdColIndex = headers.indexOf('Queue_ID');
+    if (queueIdColIndex === -1) {
+      return { success: false, error: 'Queue_ID column not found' };
+    }
+
+    // Find the row with matching Queue_ID
+    let targetRow = -1;
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][queueIdColIndex] === queueId) {
+        targetRow = i + 1; // +1 because sheet rows are 1-indexed
+        break;
+      }
+    }
+
+    if (targetRow === -1) {
+      return { success: false, error: 'Post not found with ID: ' + queueId };
+    }
+
+    // Update fields that were provided
+    const updates = {};
+
+    if (params.scheduled_date || params.scheduledDate) {
+      const scheduledDateColIndex = headers.indexOf('Scheduled_Date');
+      if (scheduledDateColIndex !== -1) {
+        const newDate = params.scheduled_date || params.scheduledDate;
+        sheet.getRange(targetRow, scheduledDateColIndex + 1).setValue(newDate);
+        updates.Scheduled_Date = newDate;
+      }
+    }
+
+    if (params.content) {
+      const contentColIndex = headers.indexOf('Content');
+      if (contentColIndex !== -1) {
+        sheet.getRange(targetRow, contentColIndex + 1).setValue(params.content);
+        updates.Content = params.content;
+      }
+    }
+
+    if (params.platform) {
+      const platformColIndex = headers.indexOf('Platform');
+      if (platformColIndex !== -1) {
+        sheet.getRange(targetRow, platformColIndex + 1).setValue(params.platform);
+        updates.Platform = params.platform;
+      }
+    }
+
+    if (params.status) {
+      const statusColIndex = headers.indexOf('Status');
+      if (statusColIndex !== -1) {
+        sheet.getRange(targetRow, statusColIndex + 1).setValue(params.status);
+        updates.Status = params.status;
+      }
+    }
+
+    if (params.media_url || params.mediaUrl) {
+      const mediaColIndex = headers.indexOf('Media_URL');
+      if (mediaColIndex !== -1) {
+        const mediaUrl = params.media_url || params.mediaUrl;
+        sheet.getRange(targetRow, mediaColIndex + 1).setValue(mediaUrl);
+        updates.Media_URL = mediaUrl;
+      }
+    }
+
+    Logger.log('Updated marketing queue item: ' + queueId + ' with: ' + JSON.stringify(updates));
+
+    return {
+      success: true,
+      queueId: queueId,
+      updates: updates,
+      message: 'Post updated successfully'
+    };
+
+  } catch (error) {
+    Logger.log('Error updating marketing queue item: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Delete a Marketing Queue Item
+ * API Route: deleteMarketingQueueItem
+ * Used by Content Calendar for removing scheduled posts
+ */
+function deleteMarketingQueueItem(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(MARKETING_QUEUE_CONFIG.SHEET_NAME);
+
+    if (!sheet) {
+      return { success: false, error: 'Marketing Queue sheet not found' };
+    }
+
+    const queueId = params.queueId || params.queue_id;
+    if (!queueId) {
+      return { success: false, error: 'Queue ID is required' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    // Find the Queue_ID column index
+    const queueIdColIndex = headers.indexOf('Queue_ID');
+    if (queueIdColIndex === -1) {
+      return { success: false, error: 'Queue_ID column not found' };
+    }
+
+    // Find the row with matching Queue_ID
+    let targetRow = -1;
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][queueIdColIndex] === queueId) {
+        targetRow = i + 1; // +1 because sheet rows are 1-indexed
+        break;
+      }
+    }
+
+    if (targetRow === -1) {
+      return { success: false, error: 'Post not found with ID: ' + queueId };
+    }
+
+    // Delete the row
+    sheet.deleteRow(targetRow);
+
+    Logger.log('Deleted marketing queue item: ' + queueId);
+
+    return {
+      success: true,
+      queueId: queueId,
+      message: 'Post deleted successfully'
+    };
+
+  } catch (error) {
+    Logger.log('Error deleting marketing queue item: ' + error.toString());
     return { success: false, error: error.toString() };
   }
 }
@@ -120386,5 +121867,133 @@ function getVarietiesFromPlanning(params) {
     });
   } catch (error) {
     return jsonResponse({ success: false, error: error.toString() }, 500);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// INSTAGRAM & FACEBOOK FOLLOWER COUNTS - DIRECT API ACCESS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Get Instagram follower counts for all configured accounts
+ * Uses Meta Graph API directly with stored tokens
+ */
+function getInstagramFollowerCounts() {
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const accounts = JSON.parse(props.getProperty('instagram_accounts') || '[]');
+
+    if (accounts.length === 0) {
+      return { success: false, error: 'No Instagram accounts configured' };
+    }
+
+    const results = [];
+    const errors = [];
+
+    for (let i = 0; i < accounts.length; i++) {
+      const account = accounts[i];
+      const accessToken = props.getProperty(`ig_token_${i}`);
+
+      if (!accessToken) {
+        errors.push({ account: account.name, error: 'No access token' });
+        continue;
+      }
+
+      if (!account.igUserId) {
+        errors.push({ account: account.name, error: 'No Instagram User ID' });
+        continue;
+      }
+
+      try {
+        // Use correct base URL based on token type (matches postToInstagram logic)
+        const baseUrl = accessToken.startsWith('IGAA') ? 'https://graph.instagram.com' : 'https://graph.facebook.com/v24.0';
+        const url = `${baseUrl}/${account.igUserId}?fields=id,username,followers_count,media_count,profile_picture_url&access_token=${accessToken}`;
+        const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+        const data = JSON.parse(response.getContentText());
+
+        if (data.error) {
+          errors.push({
+            account: account.name,
+            error: data.error.message,
+            code: data.error.code
+          });
+        } else {
+          results.push({
+            index: i,
+            name: account.name,
+            handle: data.username || account.name,
+            followers: data.followers_count || 0,
+            posts: data.media_count || 0,
+            profilePic: data.profile_picture_url || null
+          });
+        }
+      } catch (apiError) {
+        errors.push({ account: account.name, error: apiError.toString() });
+      }
+    }
+
+    return {
+      success: true,
+      accounts: results,
+      errors: errors.length > 0 ? errors : undefined,
+      totalAccounts: accounts.length,
+      fetchedAt: new Date().toISOString()
+    };
+  } catch (error) {
+    Logger.log('Error getting Instagram follower counts: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get Facebook Page stats including followers
+ * Uses Facebook Graph API
+ */
+function getFacebookPageStats() {
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const accounts = JSON.parse(props.getProperty('instagram_accounts') || '[]');
+
+    // Find account with Facebook page ID
+    const accountWithFB = accounts.find(a => a.fbPageId);
+    if (!accountWithFB) {
+      return { success: false, error: 'No Facebook page configured' };
+    }
+
+    const tokenIndex = accounts.indexOf(accountWithFB);
+    const accessToken = props.getProperty(`ig_token_${tokenIndex}`);
+
+    if (!accessToken) {
+      return { success: false, error: 'No access token for Facebook page' };
+    }
+
+    try {
+      // Get page info including follower count (use v24.0 to match posting API)
+      const url = `https://graph.facebook.com/v24.0/${accountWithFB.fbPageId}?fields=id,name,followers_count,fan_count,link&access_token=${accessToken}`;
+      const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+      const data = JSON.parse(response.getContentText());
+
+      if (data.error) {
+        return {
+          success: false,
+          error: data.error.message,
+          code: data.error.code
+        };
+      }
+
+      return {
+        success: true,
+        pageId: data.id,
+        name: data.name,
+        followers: data.followers_count || data.fan_count || 0,
+        link: data.link,
+        fetchedAt: new Date().toISOString()
+      };
+    } catch (apiError) {
+      return { success: false, error: apiError.toString() };
+    }
+  } catch (error) {
+    Logger.log('Error getting Facebook page stats: ' + error.toString());
+    return { success: false, error: error.toString() };
   }
 }

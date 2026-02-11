@@ -549,6 +549,138 @@ class EmployeeAPI extends TinySeedAPI {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// SOCIAL INTELLIGENCE API METHODS
+// ═══════════════════════════════════════════════════════════════════════════
+
+class SocialIntelligenceAPI extends TinySeedAPI {
+    // Dashboard & Briefing
+    async getDashboard() {
+        return this.get('getSocialIntelligenceDashboard');
+    }
+
+    async getActionQueue() {
+        return this.get('getSocialActionQueue');
+    }
+
+    async getBriefing() {
+        return this.get('getSocialBriefing');
+    }
+
+    // Content Generation & Management
+    async generateContent(prompt, platform = 'instagram') {
+        return this.post('generateContent', { prompt, platform });
+    }
+
+    async getNextBestPost() {
+        return this.get('getNextBestPost');
+    }
+
+    async generateCalendar(startDate) {
+        return this.post('generateContentCalendar', { startDate });
+    }
+
+    async getTrendingHashtags() {
+        return this.get('getTrendingHashtags');
+    }
+
+    async getContentIdeas() {
+        return this.get('getContentIdeas');
+    }
+
+    // Scheduling
+    async schedulePost(content, platform, scheduledTime, category) {
+        return this.post('schedulePost', { content, platform, scheduledTime, category });
+    }
+
+    async getScheduledPosts(status = 'all') {
+        return this.get('getScheduledPosts', { status });
+    }
+
+    async pauseAllPosts(reason) {
+        return this.post('pauseAllScheduledPosts', { reason });
+    }
+
+    async resumePosts() {
+        return this.post('resumeScheduledPosts');
+    }
+
+    // Brand Voice Training
+    async addTrainingPost(content, platform, category, engagementScore) {
+        return this.post('addTrainingPost', { content, platform, category, engagementScore });
+    }
+
+    async getTrainingPosts() {
+        return this.get('getTrainingPosts');
+    }
+
+    async analyzeVoiceMatch(content) {
+        return this.post('analyzeVoiceMatch', { content });
+    }
+
+    // Comments & Engagement
+    async getCommentsNeedingResponse() {
+        return this.get('getCommentsNeedingResponse');
+    }
+
+    async logComment(author, platform, text) {
+        return this.post('logComment', { author, platform, text });
+    }
+
+    async generateReply(comment, sentiment) {
+        return this.post('generateCommentReply', { comment, sentiment });
+    }
+
+    // Evergreen Library
+    async getEvergreen() {
+        return this.get('getEvergreenContent');
+    }
+
+    async addToEvergreen(content, category, platform, performanceScore) {
+        return this.post('addToEvergreen', { content, category, platform, performanceScore });
+    }
+
+    async recycleEvergreen(evergreenId) {
+        return this.post('recycleEvergreenPost', { evergreenId });
+    }
+
+    // Revenue Attribution
+    async getRevenueByPost() {
+        return this.get('getRevenueByPost');
+    }
+
+    async getRevenueByPlatform() {
+        return this.get('getRevenueByPlatform');
+    }
+
+    async trackAttribution(orderId, orderTotal, platform, utmCampaign) {
+        return this.post('trackAttribution', { orderId, orderTotal, platform, utmCampaign });
+    }
+
+    // Competitor Analysis
+    async getCompetitors() {
+        return this.get('getCompetitors');
+    }
+
+    async addCompetitor(name, handle, platform, followers, notes) {
+        return this.post('addCompetitor', { name, handle, platform, followers, notes });
+    }
+
+    // Crisis & Sentiment
+    async checkSentimentHealth() {
+        return this.get('checkSentimentHealth');
+    }
+
+    async analyzeSentiment(text) {
+        return this.post('analyzeSentiment', { text });
+    }
+
+    // Action Management
+    async markActionComplete(actionType, actionId, details) {
+        return this.post('markSocialActionComplete', { actionType, actionId, details });
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // UTILITY FUNCTIONS
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -917,6 +1049,7 @@ window.SalesAPI = SalesAPI;
 window.CustomerPortalAPI = CustomerPortalAPI;
 window.DriverAPI = DriverAPI;
 window.EmployeeAPI = EmployeeAPI;
+window.SocialIntelligenceAPI = SocialIntelligenceAPI;
 window.TinySeedUtils = TinySeedUtils;
 window.OfflineStorage = OfflineStorage;
 window.SyncManager = SyncManager;
