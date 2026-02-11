@@ -16348,7 +16348,17 @@ function doPost(e) {
         .setMimeType(ContentService.MimeType.XML);
     }
 
-    const data = JSON.parse(e.postData.contents);
+    // Safely parse POST body - handle text/plain and missing postData
+    let data = {};
+    if (e.postData && e.postData.contents) {
+      try {
+        data = JSON.parse(e.postData.contents);
+      } catch (parseError) {
+        Logger.log('POST body parse error: ' + parseError.toString());
+        Logger.log('Raw contents: ' + e.postData.contents.substring(0, 500));
+        return jsonResponse({ success: false, error: 'Invalid JSON in request body: ' + parseError.message }, 400);
+      }
+    }
 
     // ============ TELEGRAM WEBHOOK - REAL-TIME ============
     // Telegram sends updates with 'update_id' and 'message' fields
@@ -16467,6 +16477,9 @@ function doPost(e) {
 
       // ============ LEGACY POST ENDPOINTS ============
       case 'addPlanting':
+        if (!data.planting) {
+          return jsonResponse({ success: false, error: 'Missing planting data in request body' }, 400);
+        }
         return addPlanting(data.planting);
       case 'updatePlanting':
         return updatePlanting(data.planting);
