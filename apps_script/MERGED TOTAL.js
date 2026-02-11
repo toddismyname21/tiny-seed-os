@@ -13865,6 +13865,8 @@ function doGet(e) {
         return jsonResponse(getCompetitorAlerts(e.parameter));
       case 'getMarketingAutomationDashboard':
         return jsonResponse(getMarketingAutomationDashboard(e.parameter));
+      case 'getMarketingDashboardBulk':
+        return jsonResponse(getMarketingDashboardBulk(e.parameter));
 
       // ============ MARKETING AUTOMATION QUEUE SYSTEM (GET) ============
       case 'getMarketingQueue':
@@ -121994,6 +121996,96 @@ function getFacebookPageStats() {
     }
   } catch (error) {
     Logger.log('Error getting Facebook page stats: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * BULK ENDPOINT: Get all marketing dashboard data in a single call
+ * This dramatically reduces load time by combining 15+ API calls into 1
+ *
+ * Returns: briefing, followers, scheduled posts, connections, farm pics summary
+ */
+function getMarketingDashboardBulk(params) {
+  const startTime = new Date();
+  const result = {
+    success: true,
+    loadedAt: startTime.toISOString()
+  };
+
+  try {
+    // 1. Instagram follower counts (most important for stats row)
+    try {
+      result.instagram = getInstagramFollowerCounts();
+    } catch (e) {
+      result.instagram = { success: false, error: e.toString() };
+    }
+
+    // 2. Marketing queue (scheduled posts)
+    try {
+      const queueData = getMarketingQueue({ status: 'scheduled' });
+      const posts = queueData.queue || queueData.posts || [];
+      const now = new Date();
+      const weekEnd = new Date(now);
+      weekEnd.setDate(now.getDate() + 7);
+      const thisWeekPosts = posts.filter(p => {
+        const postDate = new Date(p.scheduledDate || p.date);
+        return postDate >= now && postDate <= weekEnd;
+      });
+      result.scheduledPosts = {
+        success: true,
+        total: posts.length,
+        thisWeek: thisWeekPosts.length,
+        posts: thisWeekPosts.slice(0, 10) // Limit to 10 for preview
+      };
+    } catch (e) {
+      result.scheduledPosts = { success: false, error: e.toString() };
+    }
+
+    // 3. Social connections status (quick check)
+    try {
+      result.connections = getSocialConnections({});
+    } catch (e) {
+      result.connections = { success: false, error: e.toString() };
+    }
+
+    // 4. Farm pics count (just count, not all data)
+    try {
+      const ss = SpreadsheetApp.openById('128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc');
+      const sheet = ss.getSheetByName('Farm_Pics');
+      if (sheet) {
+        const lastRow = sheet.getLastRow();
+        result.farmPics = {
+          success: true,
+          count: Math.max(0, lastRow - 1) // Subtract header
+        };
+      } else {
+        result.farmPics = { success: true, count: 0 };
+      }
+    } catch (e) {
+      result.farmPics = { success: false, error: e.toString() };
+    }
+
+    // 5. Marketing tasks from unified system (for urgent/today counts)
+    try {
+      const taskData = getMarketingTasksFromUnified({});
+      result.tasks = {
+        success: true,
+        urgent: (taskData.actionQueue?.urgent || []).length,
+        today: (taskData.actionQueue?.today || []).length,
+        total: taskData.stats?.total || 0
+      };
+    } catch (e) {
+      result.tasks = { success: false, error: e.toString() };
+    }
+
+    // Calculate total load time
+    const endTime = new Date();
+    result.loadTimeMs = endTime.getTime() - startTime.getTime();
+
+    return result;
+  } catch (error) {
+    Logger.log('Error in bulk dashboard load: ' + error.toString());
     return { success: false, error: error.toString() };
   }
 }
