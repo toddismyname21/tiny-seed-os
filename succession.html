@@ -427,6 +427,76 @@
             color: var(--text-primary);
         }
 
+        /* Date Shift Controls */
+        .date-shift-row {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-top: 1rem;
+            padding: 12px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+        }
+
+        .date-shift-row label {
+            white-space: nowrap;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .date-shift-row input[type="number"] {
+            width: 80px;
+        }
+
+        .date-shift-row .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+        }
+
+        /* Succession Detail Table */
+        .succession-table {
+            width: 100%;
+            margin-top: 1rem;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        .succession-table th,
+        .succession-table td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .succession-table th {
+            background: var(--bg-light);
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+        }
+
+        .succession-table td {
+            color: var(--text-primary);
+        }
+
+        .succession-table tr:hover td {
+            background: rgba(255,255,255,0.03);
+        }
+
+        .succession-table .succession-num {
+            color: var(--secondary);
+            font-weight: 600;
+        }
+
+        .succession-detail-wrapper {
+            max-height: 250px;
+            overflow-y: auto;
+            margin-top: 0.5rem;
+            border-radius: 10px;
+            background: var(--bg-dark);
+        }
+
         /* Quantity Calculations */
         .quantity-display {
             display: grid;
@@ -882,6 +952,36 @@
                 </div>
                 <div class="succession-preview" id="successionPreview">
                     <strong>4 plantings</strong> from Mar 15 - Apr 5, 2026
+                </div>
+
+                <!-- Date Shift Controls -->
+                <div class="date-shift-row">
+                    <label>Shift all dates by:</label>
+                    <input type="number" id="dateShiftInput" value="0" min="-365" max="365">
+                    <span style="color: var(--text-secondary);">days</span>
+                    <button class="btn btn-sm btn-secondary" onclick="applyDateShift()">
+                        <i class="fas fa-calendar-alt"></i> Apply Shift
+                    </button>
+                    <button class="btn btn-sm btn-secondary" onclick="resetDateShift()" title="Reset to original date">
+                        <i class="fas fa-undo"></i>
+                    </button>
+                </div>
+
+                <!-- Detailed Succession Preview Table -->
+                <div class="succession-detail-wrapper" id="successionDetailWrapper" style="display: none;">
+                    <table class="succession-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>GH Sow</th>
+                                <th>Transplant/Field Sow</th>
+                                <th>First Harvest</th>
+                            </tr>
+                        </thead>
+                        <tbody id="successionTableBody">
+                            <!-- Filled dynamically -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </section>
@@ -1723,16 +1823,32 @@
             updateSummary();
         }
 
+        // Store original target date for reset functionality
+        let originalTargetDate = null;
+
         function updateSuccessionPreview() {
             const enabled = document.getElementById('successionCheckbox').checked;
-            if (!enabled) return;
+            const detailWrapper = document.getElementById('successionDetailWrapper');
+
+            if (!enabled) {
+                if (detailWrapper) detailWrapper.style.display = 'none';
+                return;
+            }
 
             const interval = parseInt(document.getElementById('intervalInput').value) || 7;
             const unit = document.getElementById('intervalUnit').value;
             const successions = parseInt(document.getElementById('successionsInput').value) || 4;
             const targetDate = document.getElementById('targetDate').value;
 
-            if (!targetDate) return;
+            if (!targetDate) {
+                if (detailWrapper) detailWrapper.style.display = 'none';
+                return;
+            }
+
+            // Store original date on first load if not already stored
+            if (!originalTargetDate) {
+                originalTargetDate = targetDate;
+            }
 
             const intervalDays = unit === 'weeks' ? interval * 7 : interval;
             const startDate = new Date(targetDate);
@@ -1742,7 +1858,81 @@
                 <strong>${successions} plantings</strong> from ${formatDateShort(startDate)} - ${formatDateShort(endDate)}
             `;
 
+            // Build the detailed preview table
+            buildSuccessionDetailTable(startDate, intervalDays, successions);
+
             updateSummary();
+        }
+
+        function buildSuccessionDetailTable(startDate, intervalDays, successions) {
+            const tableBody = document.getElementById('successionTableBody');
+            const wrapper = document.getElementById('successionDetailWrapper');
+            const settings = getCurrentSettings();
+            const method = settings.method || document.getElementById('methodSelect').value;
+            const dtm = settings.dtm || parseInt(document.getElementById('dtmInput').value) || 45;
+            const nurseryDays = settings.nurseryDays || parseInt(document.getElementById('nurseryDaysInput').value) || 28;
+
+            if (!tableBody || !wrapper) return;
+
+            let html = '';
+
+            for (let i = 0; i < successions; i++) {
+                const offsetDays = i * intervalDays;
+                const plantingDate = addDays(startDate, offsetDays);
+
+                let ghSowDate = '-';
+                let transplantDate = formatDateShort(plantingDate);
+                let harvestDate = formatDateShort(addDays(plantingDate, dtm));
+
+                if (method === 'Direct Seed') {
+                    transplantDate = formatDateShort(plantingDate) + ' (field)';
+                } else {
+                    ghSowDate = formatDateShort(addDays(plantingDate, -nurseryDays));
+                }
+
+                html += `
+                    <tr>
+                        <td class="succession-num">${i + 1}</td>
+                        <td>${ghSowDate}</td>
+                        <td>${transplantDate}</td>
+                        <td>${harvestDate}</td>
+                    </tr>
+                `;
+            }
+
+            tableBody.innerHTML = html;
+            wrapper.style.display = 'block';
+        }
+
+        // Date Shift Functions
+        function applyDateShift() {
+            const shiftDays = parseInt(document.getElementById('dateShiftInput').value) || 0;
+            const currentDate = document.getElementById('targetDate').value;
+
+            if (!currentDate) {
+                showToast('Please set a target date first', 'error');
+                return;
+            }
+
+            const newDate = addDays(new Date(currentDate), shiftDays);
+            document.getElementById('targetDate').value = formatDateISO(newDate);
+
+            // Reset the shift input
+            document.getElementById('dateShiftInput').value = 0;
+
+            // Recalculate everything
+            onDateChange();
+
+            showToast(`Dates shifted by ${shiftDays} days`, 'success');
+        }
+
+        function resetDateShift() {
+            if (originalTargetDate) {
+                document.getElementById('targetDate').value = originalTargetDate;
+                document.getElementById('dateShiftInput').value = 0;
+                onDateChange();
+                showToast('Date reset to original', 'success');
+            }
         }
 
         // ========================================
@@ -2055,6 +2245,10 @@
             document.getElementById('successionCheckbox').checked = false;
             document.getElementById('successionOptions').classList.remove('visible');
 
+            // Reset date shift tracking
+            originalTargetDate = null;
+            document.getElementById('dateShiftInput').value = 0;
+
             // Reset date to today
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('targetDate').value = today;
@@ -2088,6 +2282,10 @@
             selectedCrop = null;
             selectedVariety = null;
             originalSettings = null;
+            originalTargetDate = null; // Reset date shift tracking
+
+            // Reset date shift input
+            document.getElementById('dateShiftInput').value = 0;
 
             // Reset date to today
             const today = new Date().toISOString().split('T')[0];
@@ -2130,8 +2328,8 @@
             if (e.target.matches('input, textarea, select')) return;
             const key = e.key.toLowerCase();
             switch (key) {
-                case 'c': if (typeof calculateSuccession === 'function') calculateSuccession(); break;
-                case 's': if (typeof savePlantings === 'function') savePlantings(); break;
+                case 'c': if (typeof calculateQuantities === 'function') calculateQuantities(); break;
+                case 's': if (typeof savePlanting === 'function') savePlanting(); break;
                 case 'r': if (typeof resetForm === 'function') resetForm(); break;
                 case 'p': window.print(); break;
                 case 'h': window.location.href = 'index.html'; break;

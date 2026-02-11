@@ -13922,6 +13922,19 @@ function doGet(e) {
           return updatePlanting(e.parameter);
       case 'deletePlanting':
           return deletePlantingById(e.parameter.id);
+      case 'clonePlanting':
+        // GET version for simpler calls
+        return jsonResponse(clonePlanting({
+          sourceBatchId: e.parameter.sourceBatchId || e.parameter.batchId,
+          overrides: e.parameter.overrides ? JSON.parse(e.parameter.overrides) : {}
+        }));
+      case 'bulkClonePlantings':
+        return jsonResponse(bulkClonePlantings({
+          sourceBatchId: e.parameter.sourceBatchId || e.parameter.batchId,
+          count: e.parameter.count,
+          dateIncrement: e.parameter.dateIncrement,
+          overrides: e.parameter.overrides ? JSON.parse(e.parameter.overrides) : {}
+        }));
       case 'getCrops':
         return getCrops();
         case 'getCropProfiles':
@@ -16487,6 +16500,10 @@ function doPost(e) {
         return deletePlanting(data.id);
       case 'bulkAddPlantings':
         return bulkAddPlantings(data.plantings);
+      case 'clonePlanting':
+        return jsonResponse(clonePlanting(data));
+      case 'bulkClonePlantings':
+        return jsonResponse(bulkClonePlantings(data));
       case 'addTask':
         return jsonResponse(addTask(data.task || data));
       case 'createTask':
@@ -24769,6 +24786,239 @@ function addPlanting(planting) {
   }
 
   return jsonResponse({success: true, message: 'Planting added', batchId: batchId});
+}
+
+/**
+ * Clone/Duplicate a planting with optional field overrides
+ * @param {Object} params - Clone parameters
+ * @param {string} params.sourceBatchId - The Batch_ID of the planting to clone
+ * @param {Object} params.overrides - Optional object of fields to override (Crop, Variety, dates, etc.)
+ * @returns {Object} Result with new planting data
+ *
+ * Example usage:
+ * clonePlanting({ sourceBatchId: 'ZIN-123-ABCD', overrides: { Variety: "Benary's Giant White" } })
+ * clonePlanting({ sourceBatchId: 'ZIN-123-ABCD', overrides: { Plan_GH_Sow: '2026-04-15', Plan_Transplant: '2026-05-15' } })
+ */
+function clonePlanting(params) {
+  try {
+    const sourceBatchId = params.sourceBatchId || params.batchId || params.source_batch_id;
+    const overrides = params.overrides || {};
+
+    if (!sourceBatchId) {
+      return { success: false, error: 'sourceBatchId is required' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('PLANNING_2026');
+
+    if (!sheet) {
+      return { success: false, error: 'PLANNING_2026 sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const batchIdCol = headers.indexOf('Batch_ID');
+
+    if (batchIdCol === -1) {
+      return { success: false, error: 'Batch_ID column not found in sheet' };
+    }
+
+    // Find the source planting
+    let sourcePlanting = null;
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][batchIdCol] === sourceBatchId) {
+        sourcePlanting = {};
+        headers.forEach((header, idx) => {
+          sourcePlanting[header] = data[i][idx];
+        });
+        break;
+      }
+    }
+
+    if (!sourcePlanting) {
+      return { success: false, error: 'Source planting not found with Batch_ID: ' + sourceBatchId };
+    }
+
+    // Create the new planting by copying all fields
+    const newPlanting = { ...sourcePlanting };
+
+    // Generate a new Batch_ID for the clone
+    const cropName = overrides.Crop || sourcePlanting.Crop || 'XXX';
+    const newBatchId = generateBatchId(cropName);
+    newPlanting.Batch_ID = newBatchId;
+
+    // Apply any overrides
+    const validFields = headers.filter(h => h); // Get valid column headers
+    Object.keys(overrides).forEach(key => {
+      if (validFields.includes(key)) {
+        newPlanting[key] = overrides[key];
+      }
+    });
+
+    // Clear any actual dates (Act_*) since this is a new planting
+    const actualDateFields = ['Act_GH_Sow', 'Act_Field_Sow', 'Act_Transplant', 'Act_First_Harvest', 'Act_Last_Harvest'];
+    actualDateFields.forEach(field => {
+      if (headers.includes(field)) {
+        newPlanting[field] = '';
+      }
+    });
+
+    // Reset status to Active if not overridden
+    if (!overrides.STATUS && headers.includes('STATUS')) {
+      newPlanting.STATUS = 'Active';
+    }
+
+    // Build the row to append
+    const newRow = headers.map(header => {
+      const value = newPlanting[header];
+      // Handle date objects
+      if (value instanceof Date) {
+        return value;
+      }
+      return value !== undefined ? value : '';
+    });
+
+    // Append the new planting row
+    sheet.appendRow(newRow);
+
+    // Auto-generate tasks for the new planting
+    try {
+      generatePlantingTasks({
+        batchId: newBatchId,
+        crop: newPlanting.Crop,
+        plantDate: newPlanting.Plan_Transplant || newPlanting.Plan_GH_Sow || newPlanting.Plan_Field_Sow,
+        bedId: newPlanting.Target_Bed_ID || ''
+      });
+    } catch (e) {
+      Logger.log('Task generation error for cloned planting: ' + e.message);
+    }
+
+    return {
+      success: true,
+      message: 'Planting cloned successfully',
+      sourceBatchId: sourceBatchId,
+      newBatchId: newBatchId,
+      newPlanting: newPlanting,
+      appliedOverrides: Object.keys(overrides)
+    };
+
+  } catch (error) {
+    Logger.log('clonePlanting error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Bulk clone plantings for succession planting
+ * Creates multiple clones with incremental date shifts
+ * @param {Object} params - Bulk clone parameters
+ * @param {string} params.sourceBatchId - The Batch_ID of the planting to clone
+ * @param {number} params.count - Number of clones to create
+ * @param {number} params.dateIncrement - Days between each successive planting
+ * @param {Object} params.baseOverrides - Optional overrides to apply to all clones
+ * @returns {Object} Result with array of new batch IDs
+ *
+ * Example usage:
+ * bulkClonePlantings({ sourceBatchId: 'ZIN-123-ABCD', count: 4, dateIncrement: 14 })
+ */
+function bulkClonePlantings(params) {
+  try {
+    const sourceBatchId = params.sourceBatchId || params.batchId || params.source_batch_id;
+    const count = parseInt(params.count) || 1;
+    const dateIncrement = parseInt(params.dateIncrement) || 7; // Default 7 days between plantings
+    const baseOverrides = params.baseOverrides || params.overrides || {};
+
+    if (!sourceBatchId) {
+      return { success: false, error: 'sourceBatchId is required' };
+    }
+
+    if (count < 1 || count > 52) {
+      return { success: false, error: 'count must be between 1 and 52' };
+    }
+
+    // Get the source planting to extract date fields
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('PLANNING_2026');
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const batchIdCol = headers.indexOf('Batch_ID');
+
+    let sourcePlanting = null;
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][batchIdCol] === sourceBatchId) {
+        sourcePlanting = {};
+        headers.forEach((header, idx) => {
+          sourcePlanting[header] = data[i][idx];
+        });
+        break;
+      }
+    }
+
+    if (!sourcePlanting) {
+      return { success: false, error: 'Source planting not found with Batch_ID: ' + sourceBatchId };
+    }
+
+    // Date fields to increment
+    const dateFields = ['Plan_GH_Sow', 'Plan_Field_Sow', 'Plan_Transplant', 'Plan_First_Harvest', 'Plan_Last_Harvest'];
+
+    // Helper function to add days to a date
+    const addDays = (dateStr, days) => {
+      if (!dateStr) return '';
+      let date;
+      if (dateStr instanceof Date) {
+        date = new Date(dateStr);
+      } else {
+        date = new Date(dateStr);
+      }
+      if (isNaN(date.getTime())) return dateStr; // Return original if not a valid date
+      date.setDate(date.getDate() + days);
+      return date.toISOString().split('T')[0]; // Return YYYY-MM-DD format
+    };
+
+    const results = [];
+    const newBatchIds = [];
+
+    for (let i = 0; i < count; i++) {
+      const daysToAdd = (i + 1) * dateIncrement; // First clone is +dateIncrement, second is +2*dateIncrement, etc.
+
+      // Build overrides with shifted dates
+      const cloneOverrides = { ...baseOverrides };
+
+      dateFields.forEach(field => {
+        if (sourcePlanting[field] && !baseOverrides[field]) {
+          cloneOverrides[field] = addDays(sourcePlanting[field], daysToAdd);
+        }
+      });
+
+      // Clone the planting with date-shifted overrides
+      const result = clonePlanting({
+        sourceBatchId: sourceBatchId,
+        overrides: cloneOverrides
+      });
+
+      results.push(result);
+      if (result.success) {
+        newBatchIds.push(result.newBatchId);
+      }
+    }
+
+    const successCount = results.filter(r => r.success).length;
+    const failureCount = results.filter(r => !r.success).length;
+
+    return {
+      success: failureCount === 0,
+      message: `Created ${successCount} succession planting(s)${failureCount > 0 ? `, ${failureCount} failed` : ''}`,
+      sourceBatchId: sourceBatchId,
+      count: count,
+      dateIncrement: dateIncrement,
+      newBatchIds: newBatchIds,
+      results: results
+    };
+
+  } catch (error) {
+    Logger.log('bulkClonePlantings error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
 }
 
 // Stubs

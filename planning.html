@@ -892,6 +892,42 @@
             cursor: not-allowed;
         }
 
+        /* Duplicate Mode Indicator */
+        .duplicate-mode-banner {
+            display: none;
+            background: linear-gradient(135deg, var(--success) 0%, #1e7b70 100%);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 0.9rem;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .duplicate-mode-banner.active {
+            display: flex;
+        }
+
+        .duplicate-mode-banner i {
+            font-size: 1.1rem;
+        }
+
+        .duplicate-mode-banner span {
+            flex: 1;
+        }
+
+        /* Crop/Variety dropdowns when editable */
+        .panel-field select.crop-variety-select {
+            background: var(--bg-card);
+            border: 1px solid var(--primary);
+            color: var(--text-primary);
+        }
+
+        .panel-field select.crop-variety-select:hover {
+            border-color: var(--primary-light);
+        }
+
         .panel-field-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -1267,6 +1303,12 @@
             </button>
         </div>
         <div class="panel-body">
+            <!-- Duplicate Mode Banner -->
+            <div class="duplicate-mode-banner" id="duplicateModeBanner">
+                <i class="fas fa-copy"></i>
+                <span><strong>Duplicate Mode</strong> - All fields editable including Crop & Variety</span>
+            </div>
+
             <div class="panel-section">
                 <div class="panel-section-title">Identification</div>
                 <div class="panel-field">
@@ -1276,11 +1318,15 @@
                 <div class="panel-field-row">
                     <div class="panel-field">
                         <label>Crop</label>
-                        <input type="text" id="panelCrop" disabled>
+                        <select id="panelCrop" class="crop-variety-select" disabled onchange="handleCropChange(this.value)">
+                            <option value="">-- Select Crop --</option>
+                        </select>
                     </div>
                     <div class="panel-field">
                         <label>Variety</label>
-                        <input type="text" id="panelVariety" disabled>
+                        <select id="panelVariety" class="crop-variety-select" disabled onchange="handleVarietyChange(this.value)">
+                            <option value="">-- Select Variety --</option>
+                        </select>
                     </div>
                 </div>
                 <div class="panel-field">
@@ -1428,6 +1474,7 @@
         let allPlantings = [];
         let filteredPlantings = [];
         let selectedIds = new Set();
+        let isDuplicatedPlanting = false; // Track if current edit is a duplicate
         let currentView = 'all';
         let pendingDeleteIds = [];
         let editingCell = null;
@@ -2207,10 +2254,31 @@
 
             currentEditId = batchId;
 
+            // Populate Crop dropdown with all unique crops
+            populateCropDropdown(planting.Crop || '');
+
+            // Populate Variety dropdown based on current crop
+            populateVarietyDropdown(planting.Crop || '', planting.Variety || '');
+
+            // Handle duplicate mode - enable Crop/Variety editing
+            const cropSelect = document.getElementById('panelCrop');
+            const varietySelect = document.getElementById('panelVariety');
+            const duplicateBanner = document.getElementById('duplicateModeBanner');
+
+            if (isDuplicatedPlanting) {
+                // Enable Crop and Variety editing for duplicates
+                cropSelect.disabled = false;
+                varietySelect.disabled = false;
+                duplicateBanner.classList.add('active');
+            } else {
+                // Normal edit mode - Crop/Variety are read-only
+                cropSelect.disabled = true;
+                varietySelect.disabled = true;
+                duplicateBanner.classList.remove('active');
+            }
+
             // Populate panel fields
             document.getElementById('panelBatchId').textContent = batchId;
-            document.getElementById('panelCrop').value = planting.Crop || '';
-            document.getElementById('panelVariety').value = planting.Variety || '';
             // Set category - use stored value or empty for auto-detect
             document.getElementById('panelCategory').value = planting.Category || '';
             document.getElementById('panelMethod').value = planting.Planting_Method || 'Transplant';
@@ -2239,11 +2307,89 @@
             document.body.style.overflow = 'hidden';
         }
 
+        // Populate crop dropdown with all unique crops from plantings
+        function populateCropDropdown(selectedCrop) {
+            const cropSelect = document.getElementById('panelCrop');
+            const crops = [...new Set(allPlantings.map(p => p.Crop))].filter(c => c).sort();
+
+            cropSelect.innerHTML = '<option value="">-- Select Crop --</option>' +
+                crops.map(c => `<option value="${c}" ${c === selectedCrop ? 'selected' : ''}>${c}</option>`).join('');
+        }
+
+        // Populate variety dropdown based on selected crop
+        function populateVarietyDropdown(cropName, selectedVariety) {
+            const varietySelect = document.getElementById('panelVariety');
+
+            if (!cropName) {
+                varietySelect.innerHTML = '<option value="">-- Select Crop First --</option>';
+                return;
+            }
+
+            // Get all varieties for the selected crop
+            const varieties = [...new Set(
+                allPlantings
+                    .filter(p => p.Crop === cropName)
+                    .map(p => p.Variety)
+            )].filter(v => v).sort();
+
+            varietySelect.innerHTML = '<option value="">-- Select Variety --</option>' +
+                varieties.map(v => `<option value="${v}" ${v === selectedVariety ? 'selected' : ''}>${v}</option>`).join('');
+
+            // If selected variety isn't in the list, add it
+            if (selectedVariety && !varieties.includes(selectedVariety)) {
+                const option = document.createElement('option');
+                option.value = selectedVariety;
+                option.textContent = selectedVariety;
+                option.selected = true;
+                varietySelect.appendChild(option);
+            }
+        }
+
+        // Handle crop change - update variety dropdown and save
+        async function handleCropChange(newCrop) {
+            if (!currentEditId || !isDuplicatedPlanting) return;
+
+            // Update variety dropdown for the new crop
+            populateVarietyDropdown(newCrop, '');
+
+            // Update local state
+            const planting = allPlantings.find(p => p.Batch_ID === currentEditId);
+            if (planting) {
+                planting.Crop = newCrop;
+                planting.Variety = ''; // Reset variety when crop changes
+            }
+
+            // Save to server
+            updatePanelSaveStatus('saving');
+            await autoSave(currentEditId, 'Crop', newCrop);
+            await autoSave(currentEditId, 'Variety', '');
+            updatePanelSaveStatus('saved');
+        }
+
+        // Handle variety change - save to server
+        async function handleVarietyChange(newVariety) {
+            if (!currentEditId || !isDuplicatedPlanting) return;
+
+            // Update local state
+            const planting = allPlantings.find(p => p.Batch_ID === currentEditId);
+            if (planting) {
+                planting.Variety = newVariety;
+            }
+
+            // Save to server
+            updatePanelSaveStatus('saving');
+            await autoSave(currentEditId, 'Variety', newVariety);
+            updatePanelSaveStatus('saved');
+        }
+
         function closeEditPanel() {
             document.getElementById('panelOverlay').classList.remove('active');
             document.getElementById('editPanel').classList.remove('active');
             document.body.style.overflow = '';
             currentEditId = null;
+
+            // Reset duplicate mode flag when closing panel
+            isDuplicatedPlanting = false;
 
             // Refresh table to show any changes
             filterPlantings();
@@ -2290,13 +2436,18 @@
                     allPlantings.push(duplicate);
                     filterPlantings();
 
-                    // Close current panel and open the duplicate for editing
-                    closeEditPanel();
+                    // Close current panel (this resets isDuplicatedPlanting to false)
+                    document.getElementById('panelOverlay').classList.remove('active');
+                    document.getElementById('editPanel').classList.remove('active');
+                    document.body.style.overflow = '';
+                    currentEditId = null;
 
-                    // Small delay to allow UI to update
+                    // Small delay to allow UI to update, then open in duplicate mode
                     setTimeout(() => {
+                        // Set duplicate mode BEFORE opening panel
+                        isDuplicatedPlanting = true;
                         openEditPanel(newBatchId);
-                        showSuccess(`Planting duplicated! New ID: ${newBatchId}`);
+                        showSuccess(`Planting duplicated! Crop & Variety are now editable.`);
                     }, 100);
                 } else {
                     showError(result.error || 'Failed to create duplicate');
@@ -2503,9 +2654,11 @@
                 if (result.success) {
                     allPlantings.push(duplicate);
                     filterPlantings();
-                    showSuccess(`Duplicated! Opening ${newBatchId} for editing...`);
+                    showSuccess(`Duplicated! Crop & Variety are now editable.`);
 
                     setTimeout(() => {
+                        // Set duplicate mode BEFORE opening panel
+                        isDuplicatedPlanting = true;
                         openEditPanel(newBatchId);
                     }, 300);
                 } else {
