@@ -2782,6 +2782,23 @@
                                         <i class="fas fa-film"></i> Reel <span style="font-size: 0.6rem; opacity: 0.7;">(video)</span>
                                     </label>
                                 </div>
+                                <!-- Instagram Account Selection -->
+                                <div class="instagram-account-options" id="instagramAccountOptions" style="display: flex; flex-direction: column; gap: 0.4rem; margin-left: 1.5rem; padding: 0.5rem 0; border-top: 1px solid rgba(225,48,108,0.2);">
+                                    <div style="font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 0.2rem;">Post to accounts:</div>
+                                    <label class="ig-account-option" style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.75rem; padding: 0.3rem 0.5rem; background: rgba(225,48,108,0.15); border-radius: 6px;">
+                                        <input type="checkbox" name="igAccount" value="0" checked style="accent-color: var(--instagram);">
+                                        <i class="fab fa-instagram" style="color: var(--instagram);"></i> Tiny Seed Farm
+                                    </label>
+                                    <label class="ig-account-option" style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.75rem; padding: 0.3rem 0.5rem; background: rgba(255,255,255,0.05); border-radius: 6px;">
+                                        <input type="checkbox" name="igAccount" value="1" checked style="accent-color: var(--instagram);">
+                                        <i class="fab fa-instagram" style="color: #E1306C;"></i> Tiny Seed Fleurs
+                                    </label>
+                                    <label class="ig-account-option" style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.75rem; padding: 0.3rem 0.5rem; background: rgba(255,255,255,0.05); border-radius: 6px;">
+                                        <input type="checkbox" name="igAccount" value="2" checked style="accent-color: var(--instagram);">
+                                        <i class="fab fa-instagram" style="color: #C13584;"></i> Tiny Seed Fungi
+                                    </label>
+                                    <button type="button" onclick="toggleAllIgAccounts()" style="font-size: 0.65rem; padding: 0.2rem 0.5rem; background: rgba(225,48,108,0.2); border: none; border-radius: 4px; color: var(--text-secondary); cursor: pointer; margin-top: 0.2rem; width: fit-content;">Toggle All</button>
+                                </div>
                                 <div class="platform-toggle active" onclick="togglePlatform(this, 'facebook')">
                                     <i class="fab fa-facebook" style="color: var(--facebook);"></i>
                                     <span>Facebook</span>
@@ -6131,11 +6148,16 @@
                 selectedPlatforms = selectedPlatforms.filter(p => p !== platform);
             }
 
-            // Show/hide Instagram post type options
+            // Show/hide Instagram post type and account options
             if (platform === 'instagram') {
-                const igOptions = document.getElementById('instagramTypeOptions');
-                if (igOptions) {
-                    igOptions.style.display = element.classList.contains('active') ? 'flex' : 'none';
+                const isActive = element.classList.contains('active');
+                const igTypeOptions = document.getElementById('instagramTypeOptions');
+                const igAccountOptions = document.getElementById('instagramAccountOptions');
+                if (igTypeOptions) {
+                    igTypeOptions.style.display = isActive ? 'flex' : 'none';
+                }
+                if (igAccountOptions) {
+                    igAccountOptions.style.display = isActive ? 'flex' : 'none';
                 }
             }
         }
@@ -6145,6 +6167,36 @@
             const selected = document.querySelector('input[name="igPostType"]:checked');
             return selected ? selected.value : 'FEED';
         }
+
+        // Get selected Instagram accounts (returns array of account indices)
+        function getSelectedInstagramAccounts() {
+            const checkboxes = document.querySelectorAll('input[name="igAccount"]:checked');
+            return Array.from(checkboxes).map(cb => parseInt(cb.value));
+        }
+
+        // Toggle all Instagram account checkboxes
+        function toggleAllIgAccounts() {
+            const checkboxes = document.querySelectorAll('input[name="igAccount"]');
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            checkboxes.forEach(cb => {
+                cb.checked = !allChecked;
+                // Update visual styling
+                const label = cb.closest('.ig-account-option');
+                if (label) {
+                    label.style.background = cb.checked ? 'rgba(225,48,108,0.15)' : 'rgba(255,255,255,0.05)';
+                }
+            });
+        }
+
+        // Style the selected Instagram account options
+        document.querySelectorAll('input[name="igAccount"]').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const label = this.closest('.ig-account-option');
+                if (label) {
+                    label.style.background = this.checked ? 'rgba(225,48,108,0.15)' : 'rgba(255,255,255,0.05)';
+                }
+            });
+        });
 
         // Style the selected Instagram type option
         document.querySelectorAll('input[name="igPostType"]').forEach(radio => {
@@ -6517,44 +6569,65 @@
                     }
                 }
 
-                // STEP 2: Post to Instagram via Meta Graph API
+                // STEP 2: Post to Instagram via Meta Graph API (multi-account support)
                 if (socialPlatforms.includes('instagram') || socialPlatforms.includes('facebook')) {
                     timer.innerHTML = '<i class="fab fa-instagram"></i> Posting to Instagram...';
 
-                    // Only post to the main account (index 0) for now
-                    const accountIndex = 0; // @tinyseedfarm
+                    // Get selected accounts from checkboxes
+                    const selectedAccountIndices = getSelectedInstagramAccounts();
+                    const accountNames = ['Tiny Seed Farm', 'Tiny Seed Fleurs', 'Tiny Seed Fungi'];
 
-                    if (uploadedImageUrl) {
+                    if (selectedAccountIndices.length === 0) {
+                        showToast('Please select at least one Instagram account', 'warning');
+                        postResults.push({ platform: 'instagram', success: false, error: 'No accounts selected' });
+                    } else if (uploadedImageUrl) {
                         const igPostType = getInstagramPostType();
-                        timer.innerHTML = `<i class="fab fa-instagram"></i> Posting to Instagram ${igPostType === 'STORY' ? 'Story' : igPostType === 'REEL' ? 'Reel' : 'Feed'}...`;
 
-                        const response = await fetch(APPS_SCRIPT_URL, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'text/plain' },
-                            body: JSON.stringify({
-                                action: 'postToInstagram',
-                                accountIndex: accountIndex,
-                                mediaType: 'IMAGE',
-                                postType: igPostType, // FEED, STORY, or REEL
-                                imageUrl: uploadedImageUrl,
-                                caption: caption
-                            })
-                        });
-                        const result = await response.json();
-                        console.log('Instagram post result:', result);
+                        // Post to each selected account
+                        for (let i = 0; i < selectedAccountIndices.length; i++) {
+                            const accountIndex = selectedAccountIndices[i];
+                            const accountName = accountNames[accountIndex] || `Account ${accountIndex}`;
 
-                        if (result.success) {
-                            postResults.push({ platform: 'instagram', success: true, mediaId: result.mediaId });
-                            showToast('Posted to Instagram successfully!', 'success');
-                        } else {
-                            postResults.push({ platform: 'instagram', success: false, error: result.error });
-                            // Show specific error message
-                            if (result.setup_required) {
-                                showToast('Instagram not configured. Please set up your Meta Developer App.', 'error');
-                            } else if (result.error && result.error.includes('token')) {
-                                showToast('Instagram token expired. Please re-authenticate.', 'error');
-                            } else {
-                                showToast('Instagram error: ' + (result.error || 'Unknown error'), 'error');
+                            timer.innerHTML = `<i class="fab fa-instagram"></i> Posting to ${accountName} (${i + 1}/${selectedAccountIndices.length})...`;
+
+                            try {
+                                const response = await fetch(APPS_SCRIPT_URL, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'text/plain' },
+                                    body: JSON.stringify({
+                                        action: 'postToInstagram',
+                                        accountIndex: accountIndex,
+                                        mediaType: 'IMAGE',
+                                        postType: igPostType, // FEED, STORY, or REEL
+                                        imageUrl: uploadedImageUrl,
+                                        caption: caption
+                                    })
+                                });
+                                const result = await response.json();
+                                console.log(`Instagram post result (${accountName}):`, result);
+
+                                if (result.success) {
+                                    postResults.push({ platform: `instagram_${accountIndex}`, accountName: accountName, success: true, mediaId: result.mediaId });
+                                    showToast(`Posted to ${accountName}!`, 'success');
+                                } else {
+                                    postResults.push({ platform: `instagram_${accountIndex}`, accountName: accountName, success: false, error: result.error });
+                                    // Show specific error message
+                                    if (result.setup_required) {
+                                        showToast(`${accountName}: Not configured`, 'error');
+                                    } else if (result.error && result.error.includes('token')) {
+                                        showToast(`${accountName}: Token expired`, 'error');
+                                    } else {
+                                        showToast(`${accountName}: ${result.error || 'Unknown error'}`, 'error');
+                                    }
+                                }
+                            } catch (igError) {
+                                console.error(`Error posting to ${accountName}:`, igError);
+                                postResults.push({ platform: `instagram_${accountIndex}`, accountName: accountName, success: false, error: igError.message });
+                            }
+
+                            // Small delay between account posts to avoid rate limits
+                            if (i < selectedAccountIndices.length - 1) {
+                                await new Promise(resolve => setTimeout(resolve, 1000));
                             }
                         }
                     } else if (!selectedFile) {
