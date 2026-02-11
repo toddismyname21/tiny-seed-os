@@ -9219,8 +9219,6 @@
             cursor: pointer;
         }
     </style>
-    <!-- UNIFIED API CONFIG - SINGLE SOURCE OF TRUTH -->
-    <script src="web_app/api-config.js"></script>
     <!-- OFFLINE TASK MANAGER - For background sync and offline task operations -->
     <script src="web_app/offline-task-manager.js"></script>
 </head>
@@ -14003,7 +14001,7 @@
                     // Use POST for inventory and complex actions
                     const response = await fetch(CONFIG.API_URL, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'text/plain' },
                         body: JSON.stringify({ action, ...data })
                     });
                     return await response.json();
@@ -14457,7 +14455,7 @@
             try {
                 const response = await fetch(`${CONFIG.API_URL}?action=registerEmployee`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         firstName,
                         lastName,
@@ -14494,7 +14492,7 @@
             try {
                 const response = await fetch(`${CONFIG.API_URL}?action=getPendingRegistrations`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({})
                 });
 
@@ -14558,7 +14556,7 @@
             try {
                 const response = await fetch(`${CONFIG.API_URL}?action=approveRegistration`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({ row })
                 });
 
@@ -14592,7 +14590,7 @@
             try {
                 const response = await fetch(`${CONFIG.API_URL}?action=rejectRegistration`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({ row })
                 });
 
@@ -16089,7 +16087,7 @@
 
                 const response = await fetch(CONFIG.API_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'parseInventoryLabel',
                         photo: compressedForAPI,
@@ -16278,7 +16276,7 @@
             try {
                 const response = await fetch(CONFIG.API_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'addInventoryLocation',
                         name: label,
@@ -16329,7 +16327,7 @@
             try {
                 const response = await fetch(CONFIG.API_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'addInventoryCategory',
                         name: label,
@@ -16384,12 +16382,12 @@
                 const [locResponse, catResponse] = await Promise.all([
                     fetch(CONFIG.API_URL, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'text/plain' },
                         body: JSON.stringify({ action: 'getInventoryLocations' })
                     }),
                     fetch(CONFIG.API_URL, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'text/plain' },
                         body: JSON.stringify({ action: 'getInventoryCategories' })
                     })
                 ]);
@@ -16578,7 +16576,7 @@
                     try {
                         const response = await fetch(CONFIG.API_URL, {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: { 'Content-Type': 'text/plain' },
                             body: JSON.stringify(transactionData)
                         });
                         const result = await response.json();
@@ -16699,7 +16697,7 @@
                     try {
                         const response = await fetch(CONFIG.API_URL, {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: { 'Content-Type': 'text/plain' },
                             body: JSON.stringify(transactionData)
                         });
                         const result = await response.json();
@@ -17357,7 +17355,7 @@
                 await fetch(FLEET_API_URL, {
                     method: 'POST',
                     mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         type: 'usage_start',
                         assetId: assetId,
@@ -17432,7 +17430,7 @@
                 await fetch(FLEET_API_URL, {
                     method: 'POST',
                     mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         type: 'usage_end',
                         assetId: assetId,
@@ -17630,7 +17628,7 @@
             try {
                 const response = await fetch(`${CONFIG.API_URL}?action=addFleetVehicle`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify(vehicle)
                 });
 
@@ -17734,7 +17732,7 @@
             try {
                 await fetch(`${CONFIG.API_URL}?action=updateFleetVehicle`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({ id: assetId, type, model, year, currentHours: hours, status })
                 });
             } catch (e) {
@@ -17757,7 +17755,7 @@
             // Save to backend
             fetch(`${CONFIG.API_URL}?action=updateFleetVehicle`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'text/plain' },
                 body: JSON.stringify({ id: assetId, currentHours: hours })
             }).catch(e => console.error('Hours update error:', e));
 
@@ -17861,7 +17859,7 @@
             try {
                 const response = await fetch(CONFIG.API_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'logFuelUsage',
                         assetId: assetId,
@@ -18079,7 +18077,7 @@
                 await fetch(FLEET_API_URL, {
                     method: 'POST',
                     mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify(payload)
                 });
                 showToast(`${serviceType} logged for ${assetId}`, 'success');
@@ -18123,7 +18121,7 @@
                 await fetch(FLEET_API_URL, {
                     method: 'POST',
                     mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify(payload)
                 });
                 showToast(`Breakdown reported for ${assetId}`, 'success');
@@ -18171,7 +18169,7 @@
                 await fetch(FLEET_API_URL, {
                     method: 'POST',
                     mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify(payload)
                 });
                 showToast(`Inspection complete for ${assetId}`, 'success');
@@ -19091,7 +19089,7 @@
 
                 const response = await fetch(CONFIG.API_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     signal: controller.signal,
                     body: JSON.stringify({
                         action: 'submitFarmPic',
@@ -19769,14 +19767,18 @@
             renderPestMapMarkers();
         }
 
-        // Initialize pest map when switching to scout tab
-        const originalShowTab = showTab;
-        showTab = function(tabName) {
-            originalShowTab(tabName);
-            if (tabName === 'scout' && !pestMap) {
-                setTimeout(initPestMap, 500);
+        // Initialize pest map when switching to scout tab - hook into switchTab
+        (function() {
+            const originalSwitchTab = typeof switchTab !== 'undefined' ? switchTab : null;
+            if (originalSwitchTab) {
+                window.switchTab = function(tabName) {
+                    originalSwitchTab(tabName);
+                    if (tabName === 'scout' && typeof pestMap !== 'undefined' && !pestMap) {
+                        setTimeout(initPestMap, 500);
+                    }
+                };
             }
-        };
+        })();
 
         // ============================================
         // AI PLANT DOCTOR
@@ -20474,7 +20476,7 @@
                     try {
                         await fetch(CONFIG.API_URL, {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: { 'Content-Type': 'text/plain' },
                             body: JSON.stringify({
                                 action: 'updateUnifiedTask',
                                 Task_ID: taskId,
@@ -20524,7 +20526,7 @@
                 try {
                     const response = await fetch(`${CONFIG.API_URL}?action=completeSharedTask`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'text/plain' },
                         body: JSON.stringify({
                             taskId: taskId,
                             employeeId: AppState.employee?.Employee_ID || '',
@@ -20578,7 +20580,7 @@
             try {
                 const response = await fetch(`${CONFIG.API_URL}?action=completeSubtask`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         taskId: taskId,
                         subtaskIndex: subtaskIndex,
@@ -22655,7 +22657,7 @@
 
                         const response = await fetch(CONFIG.API_URL, {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: { 'Content-Type': 'text/plain' },
                             signal: controller.signal,
                             body: JSON.stringify({
                                 action: 'submitFarmPic',
@@ -23649,7 +23651,7 @@
             try {
                 const response = await fetch(CONFIG.API_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'getFieldNotes',
                         employeeId: AppState.employee?.Employee_ID || ''
@@ -23755,7 +23757,7 @@
 
                 const response = await fetch(CONFIG.API_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'saveFieldNote',
                         text: note.text,
@@ -23831,7 +23833,7 @@
 
                 const response = await fetch(CONFIG.API_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify(taskData)
                 });
 
@@ -24032,7 +24034,7 @@
 
                 const response = await fetch(`${CONFIG.API_URL}?action=createTask`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify(taskData)
                 });
 
@@ -24059,7 +24061,7 @@
                 try {
                     await fetch(CONFIG.API_URL, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'text/plain' },
                         body: JSON.stringify({
                             action: 'deleteFieldNote',
                             noteId: noteId
@@ -24094,7 +24096,7 @@
                     if (!note.syncedToCloud) {
                         const noteResponse = await fetch(CONFIG.API_URL, {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: { 'Content-Type': 'text/plain' },
                             body: JSON.stringify({
                                 action: 'saveFieldNote',
                                 text: note.text,
@@ -24117,7 +24119,7 @@
                     if (note.convertedToTask && !note.taskId) {
                         const response = await fetch(CONFIG.API_URL, {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: { 'Content-Type': 'text/plain' },
                             body: JSON.stringify({
                                 action: 'createTask',
                                 title: note.text.substring(0, 100),
@@ -24431,7 +24433,7 @@
                 try {
                     const response = await fetch(CONFIG.API_URL, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'text/plain' },
                         body: JSON.stringify({
                             action: 'sendRouteSMS',
                             type: 'route_start',
@@ -24515,7 +24517,7 @@
                     try {
                         const response = await fetch(CONFIG.API_URL, {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: { 'Content-Type': 'text/plain' },
                             body: JSON.stringify({
                                 action: 'sendRouteSMS',
                                 type: 'running_behind',
