@@ -2762,10 +2762,25 @@
                                     <span style="font-size: 0.6rem; background: var(--success); padding: 0.1rem 0.3rem; border-radius: 4px; margin-left: 0.25rem;">2.8% eng</span>
                                     <div class="toggle-check"><i class="fas fa-check"></i></div>
                                 </div>
-                                <div class="platform-toggle active" onclick="togglePlatform(this, 'instagram')">
+                                <div class="platform-toggle active" onclick="togglePlatform(this, 'instagram')" id="instagramToggle">
                                     <i class="fab fa-instagram" style="color: var(--instagram);"></i>
                                     <span>Instagram</span>
                                     <div class="toggle-check"><i class="fas fa-check"></i></div>
+                                </div>
+                                <!-- Instagram Post Type Sub-Options -->
+                                <div class="instagram-type-options" id="instagramTypeOptions" style="display: flex; gap: 0.5rem; margin-left: 1.5rem; padding: 0.5rem 0;">
+                                    <label class="ig-type-option" style="display: flex; align-items: center; gap: 0.3rem; cursor: pointer; font-size: 0.75rem; padding: 0.4rem 0.6rem; background: rgba(225,48,108,0.2); border-radius: 6px; border: 1px solid transparent;">
+                                        <input type="radio" name="igPostType" value="FEED" checked style="accent-color: var(--instagram);">
+                                        <i class="fas fa-th"></i> Feed
+                                    </label>
+                                    <label class="ig-type-option" style="display: flex; align-items: center; gap: 0.3rem; cursor: pointer; font-size: 0.75rem; padding: 0.4rem 0.6rem; background: rgba(255,255,255,0.05); border-radius: 6px; border: 1px solid transparent;">
+                                        <input type="radio" name="igPostType" value="STORY" style="accent-color: var(--instagram);">
+                                        <i class="fas fa-clock"></i> Story <span style="font-size: 0.6rem; opacity: 0.7;">(24hr)</span>
+                                    </label>
+                                    <label class="ig-type-option" style="display: flex; align-items: center; gap: 0.3rem; cursor: pointer; font-size: 0.75rem; padding: 0.4rem 0.6rem; background: rgba(255,255,255,0.05); border-radius: 6px; border: 1px solid transparent;">
+                                        <input type="radio" name="igPostType" value="REEL" style="accent-color: var(--instagram);">
+                                        <i class="fas fa-film"></i> Reel <span style="font-size: 0.6rem; opacity: 0.7;">(video)</span>
+                                    </label>
                                 </div>
                                 <div class="platform-toggle active" onclick="togglePlatform(this, 'facebook')">
                                     <i class="fab fa-facebook" style="color: var(--facebook);"></i>
@@ -6115,7 +6130,35 @@
             } else {
                 selectedPlatforms = selectedPlatforms.filter(p => p !== platform);
             }
+
+            // Show/hide Instagram post type options
+            if (platform === 'instagram') {
+                const igOptions = document.getElementById('instagramTypeOptions');
+                if (igOptions) {
+                    igOptions.style.display = element.classList.contains('active') ? 'flex' : 'none';
+                }
+            }
         }
+
+        // Get selected Instagram post type
+        function getInstagramPostType() {
+            const selected = document.querySelector('input[name="igPostType"]:checked');
+            return selected ? selected.value : 'FEED';
+        }
+
+        // Style the selected Instagram type option
+        document.querySelectorAll('input[name="igPostType"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                document.querySelectorAll('.ig-type-option').forEach(opt => {
+                    opt.style.background = 'rgba(255,255,255,0.05)';
+                    opt.style.borderColor = 'transparent';
+                });
+                if (this.checked) {
+                    this.parentElement.style.background = 'rgba(225,48,108,0.2)';
+                    this.parentElement.style.borderColor = 'var(--instagram)';
+                }
+            });
+        });
 
         async function toggleVoiceRecording() {
             const btn = document.getElementById('voiceNoteBtn');
@@ -6482,6 +6525,9 @@
                     const accountIndex = 0; // @tinyseedfarm
 
                     if (uploadedImageUrl) {
+                        const igPostType = getInstagramPostType();
+                        timer.innerHTML = `<i class="fab fa-instagram"></i> Posting to Instagram ${igPostType === 'STORY' ? 'Story' : igPostType === 'REEL' ? 'Reel' : 'Feed'}...`;
+
                         const response = await fetch(APPS_SCRIPT_URL, {
                             method: 'POST',
                             headers: { 'Content-Type': 'text/plain' },
@@ -6489,6 +6535,7 @@
                                 action: 'postToInstagram',
                                 accountIndex: accountIndex,
                                 mediaType: 'IMAGE',
+                                postType: igPostType, // FEED, STORY, or REEL
                                 imageUrl: uploadedImageUrl,
                                 caption: caption
                             })

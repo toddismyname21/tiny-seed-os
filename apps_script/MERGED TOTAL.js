@@ -59389,7 +59389,7 @@ function logEngagement(params) {
 
 function postToInstagram(params) {
     try {
-        const { accountIndex, mediaType, imageUrl, videoUrl, caption } = params;
+        const { accountIndex, mediaType, postType, imageUrl, videoUrl, caption } = params;
         const props = PropertiesService.getScriptProperties();
         const accounts = JSON.parse(props.getProperty('instagram_accounts') || '[]');
         if (accounts.length === 0) return { success: false, error: 'Instagram not configured. Set up Meta Developer App first.', setup_required: true };
@@ -59401,22 +59401,77 @@ function postToInstagram(params) {
         // Use graph.instagram.com for Instagram API tokens (IGAA...), graph.facebook.com for FB tokens (EAA...)
         const baseUrl = accessToken.startsWith('IGAA') ? 'https://graph.instagram.com' : 'https://graph.facebook.com/v24.0';
 
-        let containerPayload = { access_token: accessToken, caption: caption || '' };
-        if (mediaType === 'IMAGE' || mediaType === 'STORIES') { containerPayload.image_url = imageUrl; if (mediaType === 'STORIES') containerPayload.media_type = 'STORIES'; }
-        else if (mediaType === 'REELS') { containerPayload.video_url = videoUrl; containerPayload.media_type = 'REELS'; }
+        // Determine the actual media type based on postType parameter
+        // postType: FEED (default), STORY, REEL
+        // mediaType: IMAGE (legacy), STORIES (legacy), REELS (legacy)
+        let actualMediaType = mediaType || 'IMAGE';
+        if (postType === 'STORY') actualMediaType = 'STORIES';
+        else if (postType === 'REEL') actualMediaType = 'REELS';
+        else if (postType === 'FEED') actualMediaType = 'IMAGE';
+
+        Logger.log('postToInstagram: postType=' + postType + ', actualMediaType=' + actualMediaType);
+
+        let containerPayload = { access_token: accessToken };
+
+        // Stories don't support captions via API - only mentions and hashtags in image
+        if (actualMediaType !== 'STORIES') {
+            containerPayload.caption = caption || '';
+        }
+
+        if (actualMediaType === 'IMAGE') {
+            // Regular feed post with image
+            containerPayload.image_url = imageUrl;
+        } else if (actualMediaType === 'STORIES') {
+            // Story post - image required, no caption
+            containerPayload.image_url = imageUrl;
+            containerPayload.media_type = 'STORIES';
+            Logger.log('Creating Instagram Story from image');
+        } else if (actualMediaType === 'REELS') {
+            // Reel - video required
+            if (!videoUrl && !imageUrl) {
+                return { success: false, error: 'Reel requires a video URL. For images, use Feed or Story.' };
+            }
+            containerPayload.video_url = videoUrl || imageUrl; // Try imageUrl as fallback for testing
+            containerPayload.media_type = 'REELS';
+            containerPayload.caption = caption || '';
+        }
+
+        Logger.log('Container payload: ' + JSON.stringify(containerPayload));
+
         const containerResponse = UrlFetchApp.fetch(`${baseUrl}/${account.igUserId}/media`, { method: 'POST', payload: containerPayload, muteHttpExceptions: true });
         const containerResult = JSON.parse(containerResponse.getContentText());
+        Logger.log('Container result: ' + JSON.stringify(containerResult));
+
         if (containerResult.error) return { success: false, error: containerResult.error.message, details: containerResult.error };
         const containerId = containerResult.id;
 
         // Wait for processing (required for Instagram API)
-        Utilities.sleep(10000);
+        // Stories and images need ~5-10 seconds, Reels need longer
+        const waitTime = actualMediaType === 'REELS' ? 15000 : 8000;
+        Utilities.sleep(waitTime);
 
-        if (mediaType === 'REELS') { let status = 'IN_PROGRESS', attempts = 0; while (status !== 'FINISHED' && attempts < 30) { Utilities.sleep(5000); const statusResult = JSON.parse(UrlFetchApp.fetch(`${baseUrl}/${containerId}?fields=status_code&access_token=${accessToken}`).getContentText()); status = statusResult.status_code; attempts++; if (status === 'ERROR') return { success: false, error: 'Video processing failed' }; } }
+        // For Reels, poll for processing completion
+        if (actualMediaType === 'REELS') {
+            let status = 'IN_PROGRESS', attempts = 0;
+            while (status !== 'FINISHED' && attempts < 30) {
+                Utilities.sleep(5000);
+                const statusResult = JSON.parse(UrlFetchApp.fetch(`${baseUrl}/${containerId}?fields=status_code&access_token=${accessToken}`).getContentText());
+                status = statusResult.status_code;
+                attempts++;
+                Logger.log('Reel processing status: ' + status + ' (attempt ' + attempts + ')');
+                if (status === 'ERROR') return { success: false, error: 'Video processing failed' };
+            }
+        }
+
         const publishResult = JSON.parse(UrlFetchApp.fetch(`${baseUrl}/${account.igUserId}/media_publish`, { method: 'POST', payload: { creation_id: containerId, access_token: accessToken }, muteHttpExceptions: true }).getContentText());
+        Logger.log('Publish result: ' + JSON.stringify(publishResult));
+
         if (publishResult.error) return { success: false, error: publishResult.error.message, details: publishResult.error };
-        logSocialPost({ account: account.name, mediaType: mediaType, caption: caption, mediaId: publishResult.id, timestamp: new Date().toISOString() });
-        return { success: true, mediaId: publishResult.id, account: account.name, mediaType: mediaType };
+
+        const postTypeName = postType === 'STORY' ? 'Story' : postType === 'REEL' ? 'Reel' : 'Feed Post';
+        logSocialPost({ account: account.name, mediaType: actualMediaType, postType: postTypeName, caption: caption, mediaId: publishResult.id, timestamp: new Date().toISOString() });
+
+        return { success: true, mediaId: publishResult.id, account: account.name, postType: postTypeName, mediaType: actualMediaType };
     } catch (error) { Logger.log('Error posting to Instagram: ' + error.toString()); return { success: false, error: error.toString() }; }
 }
 
