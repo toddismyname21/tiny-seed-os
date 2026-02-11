@@ -40,6 +40,57 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-02-11 - PM_Architect (Smart Farm Intelligence System Architecture Design)
+
+### Files Created
+- `docs/SMART_FARM_INTELLIGENCE_ARCHITECTURE.md` - Comprehensive architecture design for Smart Farm Intelligence system
+
+### Files Modified
+- None (documentation only)
+
+### Functions Added
+- None (design document only - no code created yet)
+
+### Design Deliverables
+1. **System Architecture Diagram** - Text-based diagram showing all modules and data flow
+2. **Data Model** - 8 new sheet specifications:
+   - YIELD_MODELS - Yield prediction storage
+   - VARIETY_PERFORMANCE - Aggregated variety metrics
+   - BED_CROP_RANKINGS - Optimal crop-bed pairings
+   - SUCCESSION_PATTERNS - Harvest gap detection
+   - RISK_HISTORY - Risk event tracking
+   - REVENUE_BENCHMARKS - Profit per sq ft tracking
+   - MODEL_METADATA - Model versioning
+   - INTELLIGENCE_FEEDBACK - User feedback loop
+3. **API Endpoint Specifications** - 12+ new endpoints designed:
+   - getYieldPrediction(), recordActualYield()
+   - getVarietyRankings(), submitVarietyReview()
+   - getBedRecommendations(), getCropRotationPlan()
+   - getSuccessionGaps(), getSuccessionCalendar()
+   - getRiskScore(), recordRiskEvent()
+   - getRevenueOptimization(), getProfitBySquareFoot()
+   - getIntelligenceDashboard()
+4. **Frontend Integration Plan** - Integration points for 8 HTML pages
+5. **Implementation Phases** - 8-phase, 16-week implementation roadmap
+
+### Reason
+User requested comprehensive architecture design for Smart Farm Intelligence system that learns from historical farm data to provide yield predictions, variety rankings, bed recommendations, succession gap analysis, risk scoring, and revenue optimization.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] Identified 10+ existing learning systems to LEVERAGE, not duplicate:
+  - SeasonalPatternDetection.js
+  - TimeTrackingFeedbackLoop.js
+  - SmartCSAIntelligence.js
+  - FarmIntelligence.js
+  - getHarvestPredictions()
+  - VARIETY_REVIEWS sheet (exists)
+  - TIME_LEARNING sheet (exists)
+- [x] No duplicates created - design document only
+
+---
+
 ## 2026-02-11 - Desktop_Claude (Category Override for Planning and Succession Pages)
 
 ### Files Modified
@@ -8316,3 +8367,42 @@ Chef ordering system and invitation workflow for wholesale customers.
 ---
 
 *This log is the single source of truth for all changes. Keep it updated.*
+
+## 2026-02-11 - PM_ARCHITECT / ORCHESTRATOR
+
+### Smart Farm Intelligence System - FULL IMPLEMENTATION
+**Agents Used:** 4 parallel teams
+
+#### Phase 1-2 (Team 1): Data Foundation + Yield Prediction
+- Created sheets: YIELD_MODELS, VARIETY_PERFORMANCE, BED_CROP_RANKINGS, MODEL_METADATA, INTELLIGENCE_FEEDBACK
+- Endpoints: `initializeIntelligenceSheets`, `migrateHistoricalData`, `getYieldPrediction`, `recordActualYield`
+- Migrated: 206 variety records, 400 bed-crop rankings
+
+#### Phase 3-4 (Team 2): Variety Performance + Bed Intelligence
+- Endpoints: `getVarietyRankings`, `submitVarietyReview`, `getBedRecommendations`, `getCropRotationPlan`
+- Implemented crop family rotation rules (3-year gaps for Nightshade, 2-year for Brassica)
+
+#### Phase 5-6 (Team 3): Succession Gap + Risk Scoring
+- Created sheets: SUCCESSION_PATTERNS, RISK_HISTORY
+- Endpoints: `getSuccessionGaps`, `getSuccessionCalendar`, `getRiskScore`, `recordRiskEvent`
+- Risk factors: Weather (25%), Disease (30%), Rotation (15%), Seasonal (10%)
+
+#### Phase 7-8 (Team 4): Revenue Optimizer + Dashboard
+- Created sheet: REVENUE_BENCHMARKS
+- Endpoints: `getRevenueOptimization`, `getProfitBySquareFoot`, `getIntelligenceDashboard`, `getIntelligenceAlerts`
+- Chief of Staff integration: Added intelligence context to `gatherChiefOfStaffContext()`
+
+### Bug Fixes
+- **Service Worker v4**: Changed `cache.addAll` to `Promise.allSettled` to prevent one failure breaking all caching
+- **Placeholder Images**: Replaced `via.placeholder.com` URLs with inline SVG data URIs (work offline)
+- **Planning.html**: ALL fields now ALWAYS editable (removed disabled state from Crop/Variety selects)
+- **Instagram Multi-Account**: Can now post to all 3 accounts (Tiny Seed Farm, Fleurs, Fungi)
+
+### Deployments
+- Apps Script: Deployment @595
+- GitHub: Pushed to main
+
+### Testing
+```
+curl -sL "https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec?action=getIntelligenceDashboard"
+```
