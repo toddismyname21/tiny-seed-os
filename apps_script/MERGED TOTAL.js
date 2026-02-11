@@ -17428,6 +17428,10 @@ function doPost(e) {
       case 'submitIntelligenceFeedback':
         return jsonResponse(submitIntelligenceFeedback(data));
 
+      // ============ FARM PICS MANAGEMENT ============
+      case 'deleteFarmPic':
+        return deleteFarmPic(data);
+
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
     }
@@ -120241,6 +120245,47 @@ function generateRotationRecommendations(conflicts, safeFamilies) {
   }
 
   return recommendations;
+}
+
+/**
+ * Delete a farm pic from Google Drive
+ * POST /api?action=deleteFarmPic
+ * Body: { fileId: "google_drive_file_id" }
+ */
+function deleteFarmPic(data) {
+  try {
+    if (!data.fileId) {
+      return jsonResponse({ success: false, error: 'Missing fileId parameter' }, 400);
+    }
+
+    const fileId = data.fileId;
+
+    // Get the file from Drive
+    try {
+      const file = DriveApp.getFileById(fileId);
+
+      // Move to trash (safer than permanent delete)
+      file.setTrashed(true);
+
+      Logger.log('Deleted farm pic: ' + fileId);
+
+      return jsonResponse({
+        success: true,
+        message: 'Photo moved to trash',
+        fileId: fileId
+      });
+    } catch (driveError) {
+      // File might not exist or already deleted
+      Logger.log('Drive delete error: ' + driveError.toString());
+      return jsonResponse({
+        success: false,
+        error: 'Could not find or delete file: ' + driveError.message
+      }, 404);
+    }
+  } catch (error) {
+    Logger.log('deleteFarmPic error: ' + error.toString());
+    return jsonResponse({ success: false, error: error.toString() }, 500);
+  }
 }
 
 /**

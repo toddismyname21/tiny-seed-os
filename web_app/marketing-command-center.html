@@ -6827,15 +6827,93 @@
             }
         }
 
-        function deletePic(id) {
-            if (confirm('Delete this photo?')) {
+        async function deletePic(id) {
+            if (!confirm('Delete this photo permanently?')) return;
+
+            const pic = farmPicsData.find(p => p.id === id);
+            if (!pic) {
+                showToast('Photo not found', 'error');
+                return;
+            }
+
+            // Extract file ID from the URL
+            // URLs look like: https://lh3.googleusercontent.com/d/FILE_ID or https://drive.google.com/uc?id=FILE_ID
+            let fileId = null;
+            if (pic.url) {
+                // Try lh3 format: /d/FILE_ID
+                const lh3Match = pic.url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                if (lh3Match) {
+                    fileId = lh3Match[1];
+                } else {
+                    // Try drive format: id=FILE_ID
+                    const driveMatch = pic.url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+                    if (driveMatch) {
+                        fileId = driveMatch[1];
+                    }
+                }
+            }
+
+            // Also check if pic has a direct fileId property
+            if (!fileId && pic.fileId) {
+                fileId = pic.fileId;
+            }
+
+            if (!fileId) {
+                // Can't delete from Drive, just remove locally
                 const index = farmPicsData.findIndex(p => p.id === id);
                 if (index > -1) {
                     farmPicsData.splice(index, 1);
                     renderFarmPics();
                     updateNewPicsBadge();
-                    showToast('Photo deleted', 'info');
+                    showToast('Photo removed from library', 'info');
                 }
+                return;
+            }
+
+            // Show loading state
+            showToast('Deleting photo...', 'info');
+
+            try {
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'deleteFarmPic',
+                        fileId: fileId
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Remove from local array
+                    const index = farmPicsData.findIndex(p => p.id === id);
+                    if (index > -1) {
+                        farmPicsData.splice(index, 1);
+                    }
+                    renderFarmPics();
+                    updateNewPicsBadge();
+                    showToast('Photo deleted permanently', 'success');
+                } else {
+                    // Still remove locally even if Drive delete failed
+                    const index = farmPicsData.findIndex(p => p.id === id);
+                    if (index > -1) {
+                        farmPicsData.splice(index, 1);
+                    }
+                    renderFarmPics();
+                    updateNewPicsBadge();
+                    showToast('Photo removed (Drive: ' + (result.error || 'error') + ')', 'warning');
+                }
+            } catch (error) {
+                console.error('Delete error:', error);
+                // Still remove locally on network error
+                const index = farmPicsData.findIndex(p => p.id === id);
+                if (index > -1) {
+                    farmPicsData.splice(index, 1);
+                }
+                renderFarmPics();
+                updateNewPicsBadge();
+                showToast('Photo removed locally (network error)', 'warning');
             }
         }
 
