@@ -22536,38 +22536,67 @@
                 // Convert image to base64
                 const reader = new FileReader();
                 reader.onload = async function(e) {
-                    const base64Image = e.target.result;
-                    const caption = document.getElementById('farmPicCaption').value;
+                    try {
+                        const base64Image = e.target.result;
+                        const caption = document.getElementById('farmPicCaption').value;
 
-                    const response = await fetch(CONFIG.API_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            action: 'submitFarmPic',
-                            employeeId: AppState.employee?.Employee_ID || 'unknown',
-                            employeeName: AppState.employee?.Name || 'Team Member',
-                            category: FarmPicsState.selectedCategory,
-                            caption: caption,
-                            imageData: base64Image,
-                            timestamp: new Date().toISOString()
-                        })
-                    });
+                        // Compress the image before sending
+                        console.log('Original image size: ' + (base64Image.length / 1024).toFixed(1) + 'KB');
+                        const compressedImage = await compressPhotoForUpload(base64Image, 1200, 0.8);
+                        console.log('Compressed image size: ' + (compressedImage.length / 1024).toFixed(1) + 'KB');
 
-                    const data = await response.json();
+                        // Add timeout
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 60000);
 
-                    if (data.success) {
-                        showToast('Photo submitted to marketing!', 'success');
-                        resetFarmPicsForm();
-                        loadRecentFarmPics();
-                    } else {
-                        showToast(data.error || 'Failed to submit', 'error');
+                        const response = await fetch(CONFIG.API_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            signal: controller.signal,
+                            body: JSON.stringify({
+                                action: 'submitFarmPic',
+                                employeeId: AppState.employee?.Employee_ID || 'unknown',
+                                employeeName: AppState.employee?.Name || 'Team Member',
+                                category: FarmPicsState.selectedCategory,
+                                caption: caption,
+                                imageData: compressedImage,
+                                timestamp: new Date().toISOString()
+                            })
+                        });
+
+                        clearTimeout(timeoutId);
+
+                        if (!response.ok) {
+                            throw new Error('Server error: ' + response.status);
+                        }
+
+                        const data = await response.json();
+
+                        if (data.success) {
+                            showToast('Photo submitted to marketing!', 'success');
+                            resetFarmPicsForm();
+                            loadRecentFarmPics();
+                        } else {
+                            showToast(data.error || 'Failed to submit', 'error');
+                        }
+                    } catch (innerError) {
+                        console.error('Submit error:', innerError);
+                        if (innerError.name === 'AbortError') {
+                            showToast('Request timed out - try a smaller photo', 'error');
+                        } else {
+                            showToast('Error: ' + (innerError.message || 'Failed to submit'), 'error');
+                        }
                     }
+                    hideLoading();
+                };
+                reader.onerror = function() {
+                    showToast('Error reading photo file', 'error');
                     hideLoading();
                 };
                 reader.readAsDataURL(FarmPicsState.selectedFile);
             } catch (error) {
                 console.error('Submit farm pic error:', error);
-                showToast('Error submitting photo', 'error');
+                showToast('Error: ' + (error.message || 'Failed to submit'), 'error');
                 hideLoading();
             }
         }
