@@ -13787,6 +13787,10 @@ function doGet(e) {
         return jsonResponse(getInstagramFollowerCounts());
       case 'getFacebookPageStats':
         return jsonResponse(getFacebookPageStats());
+      case 'getMetaCampaigns':
+        return jsonResponse(getMetaCampaigns(e.parameter));
+      case 'getAdCampaignPerformance':
+        return jsonResponse(getAdCampaignPerformance(e.parameter));
       case 'getNeighborSignups':
         return jsonResponse(getNeighborSignups(e.parameter));
       case 'getSocialStats':
@@ -13830,6 +13834,7 @@ function doGet(e) {
       case 'calculateOptimalTimes':
         return jsonResponse(calculateOptimalTimes(e.parameter));
       case 'checkSentimentHealth':
+      case 'getSentimentHealth':  // Alias for Marketing Command Center compatibility
         return jsonResponse(checkSentimentHealth(e.parameter));
 
       // ============ AUTONOMOUS SOCIAL BRAIN (GET) ============
@@ -61942,49 +61947,398 @@ function analyzeSentiment(params) {
     }
 }
 
+/**
+ * ============================================================================
+ * SENTIMENT HEALTH ANALYSIS FOR MARKETING COMMAND CENTER CRISIS TAB
+ * ============================================================================
+ * Analyzes recent social media comments/mentions and returns comprehensive
+ * sentiment health score with flagged items and trend analysis.
+ *
+ * Uses Claude API for advanced analysis if configured, otherwise falls back
+ * to keyword-based sentiment detection.
+ *
+ * Results are cached for 5 minutes to avoid repeated analysis.
+ * ============================================================================
+ */
 function checkSentimentHealth(params) {
     try {
-        const sheet = initCrisisLogSheet();
-        const data = sheet.getDataRange().getValues();
+        // Check cache first (5 minute cache)
+        const cache = CacheService.getScriptCache();
+        const cacheKey = 'sentiment_health_analysis';
+        const cached = cache.get(cacheKey);
 
-        // Get events from last 24 hours
-        const now = new Date();
-        const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-
-        let negativeCount = 0;
-        let totalEvents = 0;
-        let avgSentiment = 0;
-
-        for (let i = 1; i < data.length; i++) {
-            const timestamp = new Date(data[i][1]);
-            if (timestamp >= dayAgo) {
-                totalEvents++;
-                const sentiment = parseFloat(data[i][5]) || 0;
-                avgSentiment += sentiment;
-                if (sentiment < -0.3) negativeCount++;
+        if (cached && !params.forceRefresh) {
+            try {
+                return JSON.parse(cached);
+            } catch (e) {
+                // Cache corrupted, continue with fresh analysis
             }
         }
 
-        if (totalEvents > 0) avgSentiment /= totalEvents;
+        const now = new Date();
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
-        const status = negativeCount > 5 ? 'crisis' : negativeCount > 2 ? 'warning' : 'healthy';
+        // Initialize data collection
+        let allComments = [];
+        let positiveCount = 0;
+        let neutralCount = 0;
+        let negativeCount = 0;
+        let repliedCount = 0;
+        let totalComments = 0;
+        let flaggedItems = [];
 
-        // Auto-pause if crisis detected
-        if (status === 'crisis' && params.autoPause) {
-            pauseAllScheduledPosts({ reason: 'Auto-pause: Crisis detected' });
+        // Define time windows for trend analysis
+        const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const previousWeekStart = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+        // Keyword lists for fallback sentiment analysis
+        const POSITIVE_KEYWORDS = [
+            'love', 'amazing', 'beautiful', 'delicious', 'fresh', 'thank', 'recommend',
+            'wonderful', 'excellent', 'great', 'awesome', 'perfect', 'best', 'fantastic',
+            'incredible', 'gorgeous', 'yummy', 'tasty', 'happy', 'appreciate', 'favorite',
+            'loved', 'organic', 'healthy', 'quality', 'beautiful', 'stunning'
+        ];
+
+        const NEGATIVE_KEYWORDS = [
+            'disappointed', 'waiting', 'late', 'wrong', 'bad', 'complaint', 'refund',
+            'terrible', 'awful', 'horrible', 'never', 'worst', 'poor', 'damaged',
+            'missing', 'broken', 'cold', 'rotten', 'spoiled', 'wilted', 'dead',
+            'angry', 'upset', 'frustrated', 'issue', 'problem', 'fail', 'error'
+        ];
+
+        // Helper function for keyword-based sentiment
+        function analyzeWithKeywords(text) {
+            if (!text) return { score: 0, label: 'neutral' };
+            const lowerText = text.toLowerCase();
+
+            let positiveHits = 0;
+            let negativeHits = 0;
+
+            POSITIVE_KEYWORDS.forEach(keyword => {
+                if (lowerText.includes(keyword)) positiveHits++;
+            });
+
+            NEGATIVE_KEYWORDS.forEach(keyword => {
+                if (lowerText.includes(keyword)) negativeHits++;
+            });
+
+            if (positiveHits > negativeHits + 1) {
+                return { score: Math.min(1, 0.3 + (positiveHits * 0.15)), label: 'positive' };
+            } else if (negativeHits > positiveHits + 1) {
+                return { score: Math.max(-1, -0.3 - (negativeHits * 0.15)), label: 'negative' };
+            } else if (positiveHits > negativeHits) {
+                return { score: 0.2, label: 'positive' };
+            } else if (negativeHits > positiveHits) {
+                return { score: -0.2, label: 'negative' };
+            }
+            return { score: 0, label: 'neutral' };
         }
 
-        return {
+        // Helper function to determine priority
+        function determinePriority(sentiment, text) {
+            if (!text) return 'low';
+            const lowerText = text.toLowerCase();
+
+            // High priority triggers
+            const urgentKeywords = ['refund', 'complaint', 'urgent', 'immediately', 'asap', 'legal', 'health', 'sick', 'food poisoning'];
+            if (urgentKeywords.some(k => lowerText.includes(k))) return 'high';
+            if (sentiment < -0.5) return 'high';
+            if (sentiment < -0.2) return 'medium';
+            return 'low';
+        }
+
+        // Try to use Claude API for enhanced analysis if available
+        const props = PropertiesService.getScriptProperties();
+        const claudeKey = props.getProperty('ANTHROPIC_API_KEY') || props.getProperty('claude_api_key');
+        const useClaudeAPI = !!claudeKey && params.useAI !== false;
+
+        // ========== DATA SOURCE 1: SOCIAL_Comments Sheet ==========
+        let commentsSheet = ss.getSheetByName('SOCIAL_Comments');
+        if (commentsSheet) {
+            const commentsData = commentsSheet.getDataRange().getValues();
+            // Headers: ID, Post_ID, Platform, Comment_ID, Author, Text, Sentiment, Requires_Response, AI_Draft_Reply, Replied, Timestamp, Priority
+
+            for (let i = 1; i < commentsData.length; i++) {
+                const row = commentsData[i];
+                const timestamp = row[10] ? new Date(row[10]) : null;
+
+                // Only analyze comments from last 7 days for health score
+                if (timestamp && timestamp >= weekAgo) {
+                    totalComments++;
+                    const text = row[5] || '';
+                    const storedSentiment = parseFloat(row[6]) || null;
+                    const platform = row[2] || 'instagram';
+                    const replied = row[9] === true || row[9] === 'TRUE' || row[9] === 'true';
+
+                    if (replied) repliedCount++;
+
+                    // Use stored sentiment or analyze
+                    let sentimentScore = storedSentiment;
+                    let sentimentLabel = 'neutral';
+
+                    if (sentimentScore === null || sentimentScore === 0) {
+                        const analysis = analyzeWithKeywords(text);
+                        sentimentScore = analysis.score;
+                        sentimentLabel = analysis.label;
+                    } else {
+                        sentimentLabel = sentimentScore > 0.2 ? 'positive' : sentimentScore < -0.2 ? 'negative' : 'neutral';
+                    }
+
+                    // Count by sentiment
+                    if (sentimentLabel === 'positive') positiveCount++;
+                    else if (sentimentLabel === 'negative') negativeCount++;
+                    else neutralCount++;
+
+                    // Flag negative items for review
+                    if (sentimentLabel === 'negative' && timestamp >= dayAgo) {
+                        flaggedItems.push({
+                            type: 'comment',
+                            text: text.length > 100 ? text.substring(0, 100) + '...' : text,
+                            sentiment: sentimentLabel,
+                            platform: platform,
+                            date: timestamp.toISOString().split('T')[0],
+                            priority: determinePriority(sentimentScore, text),
+                            author: row[4] || 'Unknown',
+                            responded: replied
+                        });
+                    }
+
+                    // Store for trend analysis
+                    allComments.push({
+                        timestamp: timestamp,
+                        sentiment: sentimentScore
+                    });
+                }
+            }
+        }
+
+        // ========== DATA SOURCE 2: SOCIAL_CrisisLog Sheet ==========
+        let crisisSheet = ss.getSheetByName('SOCIAL_CrisisLog');
+        if (crisisSheet) {
+            const crisisData = crisisSheet.getDataRange().getValues();
+            // Headers: ID, Timestamp, Type, Severity, Description, Sentiment_Score, Action_Taken, Resolved
+
+            for (let i = 1; i < crisisData.length; i++) {
+                const row = crisisData[i];
+                const timestamp = row[1] ? new Date(row[1]) : null;
+
+                if (timestamp && timestamp >= weekAgo) {
+                    const severity = row[3] || 'low';
+                    const description = row[4] || '';
+                    const resolved = row[7] === true || row[7] === 'TRUE' || row[7] === 'true';
+
+                    // Add unresolved crisis events to flagged items
+                    if (!resolved && timestamp >= dayAgo) {
+                        flaggedItems.push({
+                            type: 'crisis_event',
+                            text: description.length > 100 ? description.substring(0, 100) + '...' : description,
+                            sentiment: 'negative',
+                            platform: 'system',
+                            date: timestamp.toISOString().split('T')[0],
+                            priority: severity === 'high' ? 'high' : severity === 'medium' ? 'medium' : 'low',
+                            eventType: row[2] || 'unknown',
+                            resolved: resolved
+                        });
+                    }
+                }
+            }
+        }
+
+        // ========== DATA SOURCE 3: META_WebhookLog (Instagram/Facebook) ==========
+        let metaLogSheet = ss.getSheetByName('META_WebhookLog');
+        if (metaLogSheet) {
+            const metaData = metaLogSheet.getDataRange().getValues();
+            // Headers: Timestamp, Platform, Event Type, From, Content, Raw Data
+
+            for (let i = 1; i < metaData.length; i++) {
+                const row = metaData[i];
+                const timestamp = row[0] ? new Date(row[0]) : null;
+
+                if (timestamp && timestamp >= weekAgo) {
+                    const platform = (row[1] || 'instagram').toLowerCase();
+                    const eventType = row[2] || '';
+                    const content = row[4] || '';
+
+                    // Analyze comments and mentions
+                    if (eventType === 'comments' || eventType === 'mentions' || eventType === 'message') {
+                        totalComments++;
+
+                        const analysis = analyzeWithKeywords(content);
+
+                        if (analysis.label === 'positive') positiveCount++;
+                        else if (analysis.label === 'negative') negativeCount++;
+                        else neutralCount++;
+
+                        if (analysis.label === 'negative' && timestamp >= dayAgo) {
+                            flaggedItems.push({
+                                type: eventType === 'message' ? 'dm' : 'comment',
+                                text: content.length > 100 ? content.substring(0, 100) + '...' : content,
+                                sentiment: 'negative',
+                                platform: platform,
+                                date: timestamp.toISOString().split('T')[0],
+                                priority: determinePriority(analysis.score, content),
+                                author: row[3] || 'Unknown'
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        // ========== CALCULATE HEALTH METRICS ==========
+
+        // Check if we have data to analyze
+        const hasData = totalComments > 0 || flaggedItems.length > 0;
+
+        if (!hasData) {
+            // Return setup needed response
+            const result = {
+                success: true,
+                needsSetup: true,
+                health: {
+                    score: 100,
+                    trend: 'stable',
+                    sentiment: {
+                        positive: 0,
+                        neutral: 0,
+                        negative: 0
+                    },
+                    flaggedItems: [],
+                    recentMentions: 0,
+                    responseRate: 0,
+                    message: 'No social media data found. Connect Instagram/Facebook or import comments to enable sentiment analysis.'
+                },
+                analyzedAt: now.toISOString()
+            };
+
+            return result;
+        }
+
+        // Calculate sentiment percentages
+        const total = positiveCount + neutralCount + negativeCount;
+        const positivePercent = total > 0 ? Math.round((positiveCount / total) * 100) : 0;
+        const neutralPercent = total > 0 ? Math.round((neutralCount / total) * 100) : 0;
+        const negativePercent = total > 0 ? Math.round((negativeCount / total) * 100) : 0;
+
+        // Calculate health score (0-100, higher is better)
+        // Formula: Start at 100, subtract points for negative sentiment ratio and unresolved issues
+        let healthScore = 100;
+        healthScore -= negativePercent * 0.8; // Negative sentiment impact
+        healthScore -= flaggedItems.filter(f => f.priority === 'high').length * 5; // High priority items
+        healthScore -= flaggedItems.filter(f => f.priority === 'medium').length * 2; // Medium priority items
+        healthScore = Math.max(0, Math.min(100, Math.round(healthScore)));
+
+        // Calculate response rate
+        const responseRate = totalComments > 0 ? Math.round((repliedCount / totalComments) * 100) : 0;
+
+        // Calculate trend by comparing recent week to previous week
+        let recentWeekNegative = 0;
+        let recentWeekTotal = 0;
+        let previousWeekNegative = 0;
+        let previousWeekTotal = 0;
+
+        allComments.forEach(c => {
+            if (c.timestamp >= weekAgo) {
+                recentWeekTotal++;
+                if (c.sentiment < -0.2) recentWeekNegative++;
+            } else if (c.timestamp >= previousWeekStart) {
+                previousWeekTotal++;
+                if (c.sentiment < -0.2) previousWeekNegative++;
+            }
+        });
+
+        const recentNegativeRate = recentWeekTotal > 0 ? recentWeekNegative / recentWeekTotal : 0;
+        const previousNegativeRate = previousWeekTotal > 0 ? previousWeekNegative / previousWeekTotal : 0;
+
+        let trend = 'stable';
+        if (previousWeekTotal >= 3 && recentWeekTotal >= 3) {
+            if (recentNegativeRate < previousNegativeRate - 0.1) {
+                trend = 'improving';
+            } else if (recentNegativeRate > previousNegativeRate + 0.1) {
+                trend = 'declining';
+            }
+        } else if (recentWeekTotal >= 3 && negativePercent < 15) {
+            trend = 'improving';
+        } else if (recentWeekTotal >= 3 && negativePercent > 30) {
+            trend = 'declining';
+        }
+
+        // Sort flagged items by priority and date
+        const priorityOrder = { high: 0, medium: 1, low: 2 };
+        flaggedItems.sort((a, b) => {
+            if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
+                return priorityOrder[a.priority] - priorityOrder[b.priority];
+            }
+            return new Date(b.date) - new Date(a.date);
+        });
+
+        // Limit flagged items to top 10
+        flaggedItems = flaggedItems.slice(0, 10);
+
+        // Auto-pause if crisis detected (optional)
+        const status = healthScore < 40 ? 'crisis' : healthScore < 70 ? 'warning' : 'healthy';
+        if (status === 'crisis' && params.autoPause) {
+            try {
+                pauseAllScheduledPosts({ reason: 'Auto-pause: Sentiment crisis detected (score: ' + healthScore + ')' });
+            } catch (e) {
+                // Log but don't fail
+                Logger.log('Could not auto-pause posts: ' + e.toString());
+            }
+        }
+
+        // Build the result
+        const result = {
             success: true,
+            health: {
+                score: healthScore,
+                trend: trend,
+                status: status,
+                sentiment: {
+                    positive: positivePercent,
+                    neutral: neutralPercent,
+                    negative: negativePercent
+                },
+                flaggedItems: flaggedItems,
+                recentMentions: totalComments,
+                responseRate: responseRate,
+                recommendation: status === 'crisis' ? 'Review flagged items immediately. Consider pausing scheduled posts.' :
+                               status === 'warning' ? 'Monitor sentiment closely. Respond to flagged items promptly.' :
+                               'Sentiment is healthy. Continue current engagement strategy.'
+            },
+            // Legacy fields for backward compatibility
             status: status,
             negativeCount: negativeCount,
-            totalEvents: totalEvents,
-            avgSentiment: avgSentiment,
-            recommendation: status === 'crisis' ? 'Posts paused. Review comments immediately.' :
-                           status === 'warning' ? 'Monitor closely. Consider pausing.' : 'All clear.'
+            totalEvents: totalComments,
+            avgSentiment: total > 0 ? (positiveCount - negativeCount) / total : 0,
+            analyzedAt: now.toISOString()
         };
+
+        // Cache the result for 5 minutes (300 seconds)
+        try {
+            cache.put(cacheKey, JSON.stringify(result), 300);
+        } catch (e) {
+            // Caching failed, continue without cache
+            Logger.log('Cache put failed: ' + e.toString());
+        }
+
+        return result;
+
     } catch (error) {
-        return { success: false, error: error.toString() };
+        Logger.log('checkSentimentHealth error: ' + error.toString());
+        return {
+            success: false,
+            error: error.toString(),
+            health: {
+                score: 0,
+                trend: 'unknown',
+                sentiment: { positive: 0, neutral: 0, negative: 0 },
+                flaggedItems: [],
+                recentMentions: 0,
+                responseRate: 0
+            },
+            analyzedAt: new Date().toISOString()
+        };
     }
 }
 
@@ -121997,6 +122351,268 @@ function getFacebookPageStats() {
   } catch (error) {
     Logger.log('Error getting Facebook page stats: ' + error.toString());
     return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * META ADS CAMPAIGN API - Marketing Command Center Integration
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+
+/**
+ * Get Meta/Facebook ad campaigns
+ * Returns list of campaigns with status, budget, and spend
+ *
+ * Requires ScriptProperties:
+ *   - meta_ad_account_id: Ad account ID (format: act_123456789)
+ *   - meta_access_token: Long-lived token with ads_read permission
+ */
+function getMetaCampaigns(params) {
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const adAccountId = props.getProperty('meta_ad_account_id');
+    const accessToken = props.getProperty('meta_access_token');
+
+    // Check for credentials
+    if (!adAccountId || !accessToken) {
+      return {
+        success: false,
+        error: 'Meta Ads credentials not configured',
+        needsSetup: true,
+        missingFields: {
+          adAccountId: !adAccountId,
+          accessToken: !accessToken
+        }
+      };
+    }
+
+    // Build Meta Marketing API URL (v24.0)
+    const fields = 'id,name,status,daily_budget,lifetime_budget,budget_remaining,objective,effective_status';
+    const url = `https://graph.facebook.com/v24.0/${adAccountId}/campaigns?fields=${fields}&access_token=${accessToken}`;
+
+    const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    const data = JSON.parse(response.getContentText());
+
+    // Handle API errors
+    if (data.error) {
+      Logger.log('Meta Ads API error: ' + JSON.stringify(data.error));
+      return {
+        success: false,
+        error: data.error.message || 'API request failed',
+        code: data.error.code,
+        type: data.error.type
+      };
+    }
+
+    // Transform campaigns to consistent format
+    const campaigns = (data.data || []).map(campaign => {
+      // Budget is in cents, convert to dollars
+      const dailyBudget = campaign.daily_budget ? parseFloat(campaign.daily_budget) / 100 : null;
+      const lifetimeBudget = campaign.lifetime_budget ? parseFloat(campaign.lifetime_budget) / 100 : null;
+      const budgetRemaining = campaign.budget_remaining ? parseFloat(campaign.budget_remaining) / 100 : null;
+
+      // Calculate spent (lifetime budget - remaining)
+      let spent = null;
+      if (lifetimeBudget !== null && budgetRemaining !== null) {
+        spent = lifetimeBudget - budgetRemaining;
+      }
+
+      return {
+        id: campaign.id,
+        name: campaign.name,
+        status: campaign.effective_status || campaign.status,
+        budget: lifetimeBudget || dailyBudget || 0,
+        budgetType: lifetimeBudget ? 'lifetime' : 'daily',
+        spent: spent,
+        budgetRemaining: budgetRemaining,
+        objective: campaign.objective
+      };
+    });
+
+    return {
+      success: true,
+      campaigns: campaigns,
+      count: campaigns.length,
+      fetchedAt: new Date().toISOString()
+    };
+
+  } catch (error) {
+    Logger.log('Error in getMetaCampaigns: ' + error.toString());
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+/**
+ * Get Meta Ads campaign performance metrics
+ * Returns aggregated performance data across all campaigns
+ *
+ * Optional params:
+ *   - datePreset: 'today', 'yesterday', 'this_week', 'last_7d', 'last_30d', 'this_month' (default: 'last_30d')
+ *   - campaignId: Specific campaign ID to get metrics for (optional)
+ *
+ * Requires ScriptProperties:
+ *   - meta_ad_account_id: Ad account ID (format: act_123456789)
+ *   - meta_access_token: Long-lived token with ads_read permission
+ */
+function getAdCampaignPerformance(params) {
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const adAccountId = props.getProperty('meta_ad_account_id');
+    const accessToken = props.getProperty('meta_access_token');
+
+    // Check for credentials
+    if (!adAccountId || !accessToken) {
+      return {
+        success: false,
+        error: 'Meta Ads credentials not configured',
+        needsSetup: true,
+        missingFields: {
+          adAccountId: !adAccountId,
+          accessToken: !accessToken
+        }
+      };
+    }
+
+    // Parse parameters
+    params = params || {};
+    const datePreset = params.datePreset || 'last_30d';
+    const campaignId = params.campaignId || null;
+
+    // Determine endpoint - either ad account level or specific campaign
+    let endpoint;
+    if (campaignId) {
+      endpoint = `${campaignId}/insights`;
+    } else {
+      endpoint = `${adAccountId}/insights`;
+    }
+
+    // Fields for performance metrics
+    const fields = [
+      'spend',
+      'impressions',
+      'clicks',
+      'ctr',
+      'cpc',
+      'cpm',
+      'reach',
+      'frequency',
+      'actions',
+      'cost_per_action_type',
+      'purchase_roas'
+    ].join(',');
+
+    // Build URL
+    const url = `https://graph.facebook.com/v24.0/${endpoint}?fields=${fields}&date_preset=${datePreset}&access_token=${accessToken}`;
+
+    const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    const data = JSON.parse(response.getContentText());
+
+    // Handle API errors
+    if (data.error) {
+      Logger.log('Meta Ads Insights API error: ' + JSON.stringify(data.error));
+      return {
+        success: false,
+        error: data.error.message || 'API request failed',
+        code: data.error.code,
+        type: data.error.type
+      };
+    }
+
+    // Extract insights (API returns array, we want first entry for aggregated data)
+    const insights = data.data && data.data.length > 0 ? data.data[0] : {};
+
+    // Parse spend (already in currency units from API)
+    const totalSpend = parseFloat(insights.spend || 0);
+    const impressions = parseInt(insights.impressions || 0);
+    const clicks = parseInt(insights.clicks || 0);
+    const reach = parseInt(insights.reach || 0);
+
+    // CTR comes as percentage string (e.g., "1.8") or number
+    const ctr = parseFloat(insights.ctr || 0);
+
+    // CPC and CPM
+    const cpc = parseFloat(insights.cpc || 0);
+    const cpm = parseFloat(insights.cpm || 0);
+
+    // Extract conversions from actions array
+    let conversions = 0;
+    let purchases = 0;
+    let leads = 0;
+
+    if (insights.actions && Array.isArray(insights.actions)) {
+      for (const action of insights.actions) {
+        if (action.action_type === 'purchase' || action.action_type === 'omni_purchase') {
+          purchases += parseInt(action.value || 0);
+          conversions += parseInt(action.value || 0);
+        } else if (action.action_type === 'lead') {
+          leads += parseInt(action.value || 0);
+          conversions += parseInt(action.value || 0);
+        } else if (action.action_type === 'complete_registration') {
+          conversions += parseInt(action.value || 0);
+        }
+      }
+    }
+
+    // Calculate cost per conversion
+    const costPerConversion = conversions > 0 ? totalSpend / conversions : 0;
+
+    // Extract ROAS from purchase_roas array
+    let roas = 0;
+    if (insights.purchase_roas && Array.isArray(insights.purchase_roas)) {
+      const roasEntry = insights.purchase_roas.find(r => r.action_type === 'omni_purchase' || r.action_type === 'purchase');
+      if (roasEntry) {
+        roas = parseFloat(roasEntry.value || 0);
+      }
+    }
+
+    // Extract cost per action types for more detail
+    let costPerPurchase = 0;
+    let costPerLead = 0;
+
+    if (insights.cost_per_action_type && Array.isArray(insights.cost_per_action_type)) {
+      for (const cpa of insights.cost_per_action_type) {
+        if (cpa.action_type === 'purchase' || cpa.action_type === 'omni_purchase') {
+          costPerPurchase = parseFloat(cpa.value || 0);
+        } else if (cpa.action_type === 'lead') {
+          costPerLead = parseFloat(cpa.value || 0);
+        }
+      }
+    }
+
+    return {
+      success: true,
+      performance: {
+        totalSpend: Math.round(totalSpend * 100) / 100,
+        impressions: impressions,
+        clicks: clicks,
+        ctr: Math.round(ctr * 100) / 100,
+        cpc: Math.round(cpc * 100) / 100,
+        cpm: Math.round(cpm * 100) / 100,
+        reach: reach,
+        frequency: parseFloat(insights.frequency || 0),
+        conversions: conversions,
+        purchases: purchases,
+        leads: leads,
+        costPerConversion: Math.round(costPerConversion * 100) / 100,
+        costPerPurchase: Math.round(costPerPurchase * 100) / 100,
+        costPerLead: Math.round(costPerLead * 100) / 100,
+        roas: Math.round(roas * 100) / 100
+      },
+      datePreset: datePreset,
+      campaignId: campaignId,
+      fetchedAt: new Date().toISOString()
+    };
+
+  } catch (error) {
+    Logger.log('Error in getAdCampaignPerformance: ' + error.toString());
+    return {
+      success: false,
+      error: error.toString()
+    };
   }
 }
 
