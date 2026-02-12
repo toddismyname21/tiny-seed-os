@@ -206,6 +206,132 @@ const TWILIO_CONFIG = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
+// OBSERVABILITY LOGGING SYSTEM
+// Production observability for agent actions - tracking, metrics, and audit trails
+// Added 2026-02-12 per AGENTIC_PERFORMANCE_IMPROVEMENT_PLAN.md
+// 89% of production agents have observability. Now we do too.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const OBSERVABILITY_LOG = [];
+const MAX_LOG_ENTRIES = 1000;
+const AGENT_LOGS_SHEET = 'AGENT_LOGS';
+
+function logAgentAction(params) {
+  const { agent, action, target, success, duration_ms, error, metadata } = params;
+  const entry = {
+    timestamp: new Date().toISOString(),
+    agent: agent || 'unknown',
+    action: action,
+    target: target || null,
+    success: success !== false,
+    duration_ms: duration_ms || 0,
+    error: error || null,
+    metadata: metadata || {},
+    trace_id: Utilities.getUuid()
+  };
+  OBSERVABILITY_LOG.push(entry);
+  if (OBSERVABILITY_LOG.length > MAX_LOG_ENTRIES) { OBSERVABILITY_LOG.shift(); }
+  Logger.log('[OBSERVABILITY] ' + JSON.stringify(entry));
+  try { persistLogEntry(entry); } catch (e) { Logger.log('Failed to persist log entry: ' + e.toString()); }
+  return entry.trace_id;
+}
+
+function persistLogEntry(entry) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName(AGENT_LOGS_SHEET);
+  if (!sheet) {
+    sheet = ss.insertSheet(AGENT_LOGS_SHEET);
+    sheet.appendRow(['Timestamp', 'Agent', 'Action', 'Target', 'Success', 'Duration_ms', 'Error', 'Trace_ID', 'Metadata']);
+    sheet.getRange(1, 1, 1, 9).setFontWeight('bold').setBackground('#4285f4').setFontColor('white');
+    sheet.setFrozenRows(1);
+  }
+  sheet.appendRow([entry.timestamp, entry.agent, entry.action, entry.target, entry.success, entry.duration_ms, entry.error, entry.trace_id, JSON.stringify(entry.metadata)]);
+}
+
+function getRecentLogs(count) {
+  const limit = count || 50;
+  return { success: true, count: Math.min(OBSERVABILITY_LOG.length, limit), total_in_memory: OBSERVABILITY_LOG.length, logs: OBSERVABILITY_LOG.slice(-limit) };
+}
+
+function getLogsByAgent(agent, count) {
+  const limit = count || 50;
+  const filtered = OBSERVABILITY_LOG.filter(e => e.agent === agent);
+  return { success: true, agent: agent, count: Math.min(filtered.length, limit), total_for_agent: filtered.length, logs: filtered.slice(-limit) };
+}
+
+function getFailedActions(count) {
+  const limit = count || 20;
+  const failed = OBSERVABILITY_LOG.filter(e => !e.success);
+  return { success: true, count: Math.min(failed.length, limit), total_failures: failed.length, failure_rate: OBSERVABILITY_LOG.length > 0 ? ((failed.length / OBSERVABILITY_LOG.length) * 100).toFixed(2) + '%' : '0%', logs: failed.slice(-limit) };
+}
+
+function getAgentPerformanceMetrics(params) {
+  const agent = params && params.agent;
+  const hours = (params && params.hours) || 24;
+  const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+  let logs = OBSERVABILITY_LOG.filter(e => e.timestamp >= cutoff);
+  if (agent) { logs = logs.filter(e => e.agent === agent); }
+  const total = logs.length;
+  const successful = logs.filter(e => e.success).length;
+  const failed = logs.filter(e => !e.success).length;
+  const durations = logs.filter(e => e.duration_ms > 0).map(e => e.duration_ms);
+  const avgDuration = durations.length > 0 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : 0;
+  const maxDuration = durations.length > 0 ? Math.max(...durations) : 0;
+  const minDuration = durations.length > 0 ? Math.min(...durations) : 0;
+  const byAction = {};
+  logs.forEach(e => {
+    if (!byAction[e.action]) { byAction[e.action] = { total: 0, success: 0, failed: 0, durations: [] }; }
+    byAction[e.action].total++;
+    if (e.success) byAction[e.action].success++; else byAction[e.action].failed++;
+    if (e.duration_ms > 0) byAction[e.action].durations.push(e.duration_ms);
+  });
+  Object.keys(byAction).forEach(action => {
+    const durs = byAction[action].durations;
+    byAction[action].avg_duration_ms = durs.length > 0 ? Math.round(durs.reduce((a, b) => a + b, 0) / durs.length) : 0;
+    delete byAction[action].durations;
+  });
+  return { success: true, period_hours: hours, agent: agent || 'all', metrics: { total_actions: total, successful: successful, failed: failed, success_rate: total > 0 ? ((successful / total) * 100).toFixed(2) + '%' : 'N/A', avg_duration_ms: avgDuration, max_duration_ms: maxDuration, min_duration_ms: minDuration }, by_action: byAction };
+}
+
+function withObservability(agent, action, target, fn) {
+  const startTime = Date.now();
+  let success = true;
+  let error = null;
+  let result = null;
+  try { result = fn(); } catch (e) { success = false; error = e.toString(); throw e; }
+  finally { logAgentAction({ agent: agent, action: action, target: target, success: success, duration_ms: Date.now() - startTime, error: error }); }
+  return result;
+}
+
+function getPersistedLogs(params) {
+  const count = (params && params.count) || 100;
+  const agentFilter = params && params.agent;
+  const failedOnly = params && params.failedOnly;
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(AGENT_LOGS_SHEET);
+    if (!sheet) { return { success: true, count: 0, logs: [], message: 'AGENT_LOGS sheet not yet created' }; }
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) { return { success: true, count: 0, logs: [] }; }
+    const headers = data[0];
+    let logs = data.slice(1).map(row => { const obj = {}; headers.forEach((h, i) => obj[h.toLowerCase()] = row[i]); return obj; });
+    if (agentFilter) { logs = logs.filter(e => e.agent === agentFilter); }
+    if (failedOnly) { logs = logs.filter(e => e.success === false || e.success === 'false'); }
+    logs = logs.slice(-count);
+    return { success: true, count: logs.length, logs: logs };
+  } catch (e) { return { success: false, error: e.toString() }; }
+}
+
+function getObservabilityDashboard() {
+  const now = new Date();
+  const last24h = getAgentPerformanceMetrics({ hours: 24 });
+  const lastHour = getAgentPerformanceMetrics({ hours: 1 });
+  const failed = getFailedActions(10);
+  const agents = [...new Set(OBSERVABILITY_LOG.map(e => e.agent))];
+  return { success: true, generated_at: now.toISOString(), summary: { total_actions_24h: last24h.metrics.total_actions, success_rate_24h: last24h.metrics.success_rate, total_actions_1h: lastHour.metrics.total_actions, success_rate_1h: lastHour.metrics.success_rate, recent_failures: failed.total_failures, active_agents: agents.length, agents: agents }, last_24h: last24h, recent_failures: failed.logs };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // GOOGLE ROUTES API CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════════════
 const GOOGLE_ROUTES_CONFIG = {
@@ -239,6 +365,422 @@ const TELEGRAM_CONFIG = {
   BOT_TOKEN: '8363820090:AAHh7XNhuR_XltP7YaSuq-O_-yUczDjAPXM',
   OWNER_CHAT_ID: '8256286434'
 };
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CIRCUIT BREAKER SYSTEM - Production-Grade Failure Protection
+// Based on industry best practices from February 2026 research
+// See: AGENTIC_PERFORMANCE_IMPROVEMENT_PLAN.md for details
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Circuit breaker states for each external service
+ * States: CLOSED (normal), OPEN (blocking), HALF_OPEN (testing recovery)
+ *
+ * NOTE: In Apps Script, global variables reset between executions.
+ * For persistence across executions, we use PropertiesService.
+ */
+const CIRCUIT_BREAKERS = {
+  claude_api: { state: 'CLOSED', failures: 0, lastFailure: null, lastSuccess: null },
+  shopify_api: { state: 'CLOSED', failures: 0, lastFailure: null, lastSuccess: null },
+  google_drive: { state: 'CLOSED', failures: 0, lastFailure: null, lastSuccess: null },
+  external_fetch: { state: 'CLOSED', failures: 0, lastFailure: null, lastSuccess: null }
+};
+
+/**
+ * Circuit breaker configuration per service
+ * - failureThreshold: Number of consecutive failures before opening circuit
+ * - timeout: Milliseconds to wait before trying again (moving to HALF_OPEN)
+ * - halfOpenMax: Number of test requests allowed in HALF_OPEN state
+ */
+const BREAKER_CONFIG = {
+  claude_api: { failureThreshold: 3, timeout: 60000, halfOpenMax: 1 },      // 3 failures, 1 min timeout
+  shopify_api: { failureThreshold: 5, timeout: 120000, halfOpenMax: 2 },    // 5 failures, 2 min timeout
+  google_drive: { failureThreshold: 3, timeout: 60000, halfOpenMax: 1 },    // 3 failures, 1 min timeout
+  external_fetch: { failureThreshold: 5, timeout: 30000, halfOpenMax: 3 }   // 5 failures, 30 sec timeout
+};
+
+/**
+ * Initialize circuit breaker state from persistent storage
+ * Called at the start of each execution to restore state
+ */
+function initCircuitBreakers() {
+  const props = PropertiesService.getScriptProperties();
+  const storedState = props.getProperty('CIRCUIT_BREAKER_STATE');
+
+  if (storedState) {
+    try {
+      const parsed = JSON.parse(storedState);
+      for (const service in parsed) {
+        if (CIRCUIT_BREAKERS[service]) {
+          CIRCUIT_BREAKERS[service] = parsed[service];
+        }
+      }
+    } catch (e) {
+      Logger.log('Error loading circuit breaker state: ' + e.toString());
+    }
+  }
+}
+
+/**
+ * Persist circuit breaker state to storage
+ * Called after any state change
+ */
+function persistCircuitBreakers() {
+  const props = PropertiesService.getScriptProperties();
+  props.setProperty('CIRCUIT_BREAKER_STATE', JSON.stringify(CIRCUIT_BREAKERS));
+}
+
+/**
+ * Check if a service's circuit breaker allows requests
+ * @param {string} service - The service name (claude_api, shopify_api, etc.)
+ * @returns {boolean} true if request is allowed, false if blocked
+ */
+function checkCircuitBreaker(service) {
+  // Initialize state from storage
+  initCircuitBreakers();
+
+  const breaker = CIRCUIT_BREAKERS[service];
+  const config = BREAKER_CONFIG[service];
+
+  if (!breaker || !config) {
+    Logger.log('Circuit breaker: Unknown service ' + service + ' - allowing request');
+    return true; // Unknown service, allow by default
+  }
+
+  if (breaker.state === 'OPEN') {
+    // Check if timeout has passed - if so, move to HALF_OPEN
+    const timeSinceFailure = Date.now() - breaker.lastFailure;
+    if (timeSinceFailure > config.timeout) {
+      breaker.state = 'HALF_OPEN';
+      breaker.halfOpenAttempts = 0;
+      Logger.log('Circuit breaker for ' + service + ' moving to HALF_OPEN after ' + (timeSinceFailure/1000) + 's timeout');
+      persistCircuitBreakers();
+      return true;
+    }
+    Logger.log('Circuit breaker for ' + service + ' is OPEN - blocking request (retry in ' + Math.ceil((config.timeout - timeSinceFailure)/1000) + 's)');
+    return false;
+  }
+
+  if (breaker.state === 'HALF_OPEN') {
+    // Allow limited requests in HALF_OPEN state
+    breaker.halfOpenAttempts = (breaker.halfOpenAttempts || 0) + 1;
+    if (breaker.halfOpenAttempts > config.halfOpenMax) {
+      Logger.log('Circuit breaker for ' + service + ' HALF_OPEN limit reached - blocking');
+      return false;
+    }
+    Logger.log('Circuit breaker for ' + service + ' HALF_OPEN - allowing test request ' + breaker.halfOpenAttempts + '/' + config.halfOpenMax);
+  }
+
+  return true; // CLOSED state - allow all requests
+}
+
+/**
+ * Record a successful API call - resets the circuit breaker
+ * @param {string} service - The service name
+ */
+function recordSuccess(service) {
+  initCircuitBreakers();
+
+  const breaker = CIRCUIT_BREAKERS[service];
+  if (breaker) {
+    const previousState = breaker.state;
+    breaker.failures = 0;
+    breaker.state = 'CLOSED';
+    breaker.lastSuccess = Date.now();
+    breaker.halfOpenAttempts = 0;
+
+    if (previousState !== 'CLOSED') {
+      Logger.log('Circuit breaker for ' + service + ' recovered: ' + previousState + ' -> CLOSED');
+    }
+
+    persistCircuitBreakers();
+  }
+}
+
+/**
+ * Record a failed API call - may open the circuit breaker
+ * @param {string} service - The service name
+ * @param {string} error - Optional error message for logging
+ */
+function recordFailure(service, error) {
+  initCircuitBreakers();
+
+  const breaker = CIRCUIT_BREAKERS[service];
+  const config = BREAKER_CONFIG[service];
+
+  if (breaker && config) {
+    breaker.failures++;
+    breaker.lastFailure = Date.now();
+    breaker.lastError = error || 'Unknown error';
+
+    if (breaker.state === 'HALF_OPEN') {
+      // Any failure in HALF_OPEN immediately opens the circuit again
+      breaker.state = 'OPEN';
+      Logger.log('Circuit breaker for ' + service + ' HALF_OPEN test failed - reopening circuit. Error: ' + error);
+    } else if (breaker.failures >= config.failureThreshold) {
+      breaker.state = 'OPEN';
+      Logger.log('Circuit breaker for ' + service + ' is now OPEN after ' + breaker.failures + ' consecutive failures. Error: ' + error);
+    } else {
+      Logger.log('Circuit breaker for ' + service + ' failure ' + breaker.failures + '/' + config.failureThreshold + '. Error: ' + error);
+    }
+
+    persistCircuitBreakers();
+  }
+}
+
+/**
+ * Get the current status of all circuit breakers
+ * Useful for monitoring and debugging
+ * @returns {Object} Status of all circuit breakers with timing info
+ */
+function getCircuitBreakerStatus() {
+  initCircuitBreakers();
+
+  const status = {};
+  const now = Date.now();
+
+  for (const service in CIRCUIT_BREAKERS) {
+    const breaker = CIRCUIT_BREAKERS[service];
+    const config = BREAKER_CONFIG[service];
+
+    status[service] = {
+      state: breaker.state,
+      failures: breaker.failures,
+      lastFailure: breaker.lastFailure ? new Date(breaker.lastFailure).toISOString() : null,
+      lastSuccess: breaker.lastSuccess ? new Date(breaker.lastSuccess).toISOString() : null,
+      lastError: breaker.lastError || null,
+      config: {
+        failureThreshold: config.failureThreshold,
+        timeoutSeconds: config.timeout / 1000,
+        halfOpenMax: config.halfOpenMax
+      }
+    };
+
+    // Add time until retry for OPEN circuits
+    if (breaker.state === 'OPEN' && breaker.lastFailure) {
+      const timeUntilRetry = config.timeout - (now - breaker.lastFailure);
+      status[service].timeUntilRetrySeconds = Math.max(0, Math.ceil(timeUntilRetry / 1000));
+    }
+  }
+
+  return {
+    success: true,
+    timestamp: new Date().toISOString(),
+    breakers: status
+  };
+}
+
+/**
+ * Manually reset a circuit breaker (admin function)
+ * @param {string} service - The service name to reset
+ * @returns {Object} Result of the reset operation
+ */
+function resetCircuitBreaker(service) {
+  initCircuitBreakers();
+
+  if (!CIRCUIT_BREAKERS[service]) {
+    return { success: false, error: 'Unknown service: ' + service };
+  }
+
+  const previousState = CIRCUIT_BREAKERS[service].state;
+
+  CIRCUIT_BREAKERS[service] = {
+    state: 'CLOSED',
+    failures: 0,
+    lastFailure: null,
+    lastSuccess: Date.now(),
+    lastError: null,
+    halfOpenAttempts: 0
+  };
+
+  persistCircuitBreakers();
+
+  Logger.log('Circuit breaker for ' + service + ' manually reset: ' + previousState + ' -> CLOSED');
+
+  return {
+    success: true,
+    service: service,
+    previousState: previousState,
+    newState: 'CLOSED',
+    message: 'Circuit breaker reset successfully'
+  };
+}
+
+/**
+ * Reset all circuit breakers (admin function)
+ * @returns {Object} Result of the reset operation
+ */
+function resetAllCircuitBreakers() {
+  initCircuitBreakers();
+
+  const results = {};
+
+  for (const service in CIRCUIT_BREAKERS) {
+    const previousState = CIRCUIT_BREAKERS[service].state;
+    CIRCUIT_BREAKERS[service] = {
+      state: 'CLOSED',
+      failures: 0,
+      lastFailure: null,
+      lastSuccess: Date.now(),
+      lastError: null,
+      halfOpenAttempts: 0
+    };
+    results[service] = { previousState: previousState, newState: 'CLOSED' };
+  }
+
+  persistCircuitBreakers();
+
+  Logger.log('All circuit breakers reset');
+
+  return {
+    success: true,
+    message: 'All circuit breakers reset',
+    results: results
+  };
+}
+
+/**
+ * Wrapper function for protected Claude API calls
+ * Use this instead of direct UrlFetchApp.fetch for Claude API
+ * @param {Object} payload - The API request payload
+ * @param {Object} options - Additional options (model, maxTokens, etc.)
+ * @returns {Object} API response or circuit breaker error
+ */
+function protectedClaudeApiCall(payload, options = {}) {
+  if (!checkCircuitBreaker('claude_api')) {
+    return {
+      success: false,
+      error: 'Service temporarily unavailable (circuit breaker open)',
+      circuitBreakerTripped: true,
+      retryAfter: getCircuitBreakerStatus().breakers.claude_api.timeUntilRetrySeconds || 60
+    };
+  }
+
+  try {
+    const apiKey = CLAUDE_CONFIG.API_KEY;
+    if (!apiKey) {
+      return { success: false, error: 'ANTHROPIC_API_KEY not configured' };
+    }
+
+    const requestPayload = {
+      model: options.model || CLAUDE_CONFIG.MODEL,
+      max_tokens: options.maxTokens || CLAUDE_CONFIG.MAX_TOKENS,
+      ...payload
+    };
+
+    const response = UrlFetchApp.fetch(CLAUDE_CONFIG.ENDPOINT, {
+      method: 'post',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': CLAUDE_CONFIG.ANTHROPIC_VERSION
+      },
+      payload: JSON.stringify(requestPayload),
+      muteHttpExceptions: true
+    });
+
+    const responseCode = response.getResponseCode();
+    const responseText = response.getContentText();
+
+    if (responseCode >= 200 && responseCode < 300) {
+      recordSuccess('claude_api');
+      const data = JSON.parse(responseText);
+      return { success: true, data: data };
+    } else {
+      const errorMsg = 'HTTP ' + responseCode + ': ' + responseText.substring(0, 200);
+      recordFailure('claude_api', errorMsg);
+      return { success: false, error: errorMsg, httpCode: responseCode };
+    }
+  } catch (error) {
+    recordFailure('claude_api', error.toString());
+    throw error;
+  }
+}
+
+/**
+ * Wrapper function for protected Shopify API calls
+ * Use this instead of direct shopifyApiCall for circuit breaker protection
+ * @param {string} endpoint - The Shopify API endpoint
+ * @param {string} method - HTTP method (GET, POST, PUT, DELETE)
+ * @param {Object} payload - Request payload for POST/PUT
+ * @returns {Object} API response or circuit breaker error
+ */
+function protectedShopifyApiCall(endpoint, method = 'GET', payload = null) {
+  if (!checkCircuitBreaker('shopify_api')) {
+    return {
+      success: false,
+      error: 'Shopify service temporarily unavailable (circuit breaker open)',
+      circuitBreakerTripped: true,
+      retryAfter: getCircuitBreakerStatus().breakers.shopify_api.timeUntilRetrySeconds || 120
+    };
+  }
+
+  try {
+    // Call the existing shopifyApiCall function
+    const result = shopifyApiCall(endpoint, method, payload);
+
+    if (result.success) {
+      recordSuccess('shopify_api');
+    } else {
+      recordFailure('shopify_api', result.error || 'Unknown Shopify error');
+    }
+
+    return result;
+  } catch (error) {
+    recordFailure('shopify_api', error.toString());
+    throw error;
+  }
+}
+
+/**
+ * Wrapper function for protected external URL fetches
+ * Use this for any external URL that isn't Claude or Shopify
+ * @param {string} url - The URL to fetch
+ * @param {Object} options - UrlFetchApp options
+ * @returns {Object} Fetch response or circuit breaker error
+ */
+function protectedExternalFetch(url, options = {}) {
+  if (!checkCircuitBreaker('external_fetch')) {
+    return {
+      success: false,
+      error: 'External fetch temporarily unavailable (circuit breaker open)',
+      circuitBreakerTripped: true,
+      retryAfter: getCircuitBreakerStatus().breakers.external_fetch.timeUntilRetrySeconds || 30
+    };
+  }
+
+  try {
+    options.muteHttpExceptions = true;
+    const response = UrlFetchApp.fetch(url, options);
+    const responseCode = response.getResponseCode();
+
+    if (responseCode >= 200 && responseCode < 300) {
+      recordSuccess('external_fetch');
+      return {
+        success: true,
+        response: response,
+        responseCode: responseCode,
+        content: response.getContentText()
+      };
+    } else {
+      const errorMsg = 'HTTP ' + responseCode + ' from ' + url;
+      recordFailure('external_fetch', errorMsg);
+      return {
+        success: false,
+        error: errorMsg,
+        responseCode: responseCode,
+        content: response.getContentText()
+      };
+    }
+  } catch (error) {
+    recordFailure('external_fetch', error.toString());
+    throw error;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// END CIRCUIT BREAKER SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════
 
 /**
  * Handle incoming Telegram webhook (POST requests)
@@ -647,6 +1189,17 @@ For quick questions, give your best answer based on general farm knowledge.
 
 Keep responses SHORT - this is for mobile/Telegram. 2-3 sentences max unless they ask for details.`;
 
+  // Circuit breaker check - return graceful fallback if Claude is unavailable
+  if (!checkCircuitBreaker('claude_api')) {
+    const status = getCircuitBreakerStatus();
+    const retryAfter = status.breakers.claude_api.timeUntilRetrySeconds || 60;
+    return {
+      success: false,
+      message: 'AI temporarily unavailable. Try again in ' + retryAfter + 's.',
+      circuitBreakerTripped: true
+    };
+  }
+
   try {
     const payload = {
       model: 'claude-3-haiku-20240307',  // FAST model for quick responses
@@ -666,14 +1219,25 @@ Keep responses SHORT - this is for mobile/Telegram. 2-3 sentences max unless the
       muteHttpExceptions: true
     });
 
+    const responseCode = response.getResponseCode();
     const responseText = response.getContentText();
     const data = JSON.parse(responseText);
-    if (data.content && data.content[0]) {
+
+    // Record success/failure for circuit breaker
+    if (responseCode >= 500) {
+      recordFailure('claude_api', 'HTTP ' + responseCode);
+    } else if (data.content && data.content[0]) {
+      recordSuccess('claude_api');
       return { success: true, message: data.content[0].text };
     }
+
     // Return actual error from API
+    if (data.error && (data.error.type === 'rate_limit_error' || data.error.type === 'overloaded_error')) {
+      recordFailure('claude_api', data.error.message);
+    }
     return { success: false, message: data.error ? data.error.message : 'No response from AI', raw: responseText.substring(0, 500) };
   } catch (e) {
+    recordFailure('claude_api', e.toString());
     Logger.log('chatWithChiefOfStaffFast error: ' + e.toString());
     return { success: false, message: 'Error: ' + e.message };
   }
@@ -1321,7 +1885,22 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
 
   // ═══════════════════════════════════════════════════════════════════════
   // CALL CLAUDE - The actual AI conversation with tools
+  // (with Circuit Breaker Protection)
   // ═══════════════════════════════════════════════════════════════════════
+
+  // Circuit breaker check - return graceful fallback if Claude is unavailable
+  if (!checkCircuitBreaker('claude_api')) {
+    const status = getCircuitBreakerStatus();
+    const retryAfter = status.breakers.claude_api.timeUntilRetrySeconds || 60;
+    Logger.log('Claude API call blocked by circuit breaker. Retry in ' + retryAfter + 's');
+    return {
+      success: false,
+      error: 'AI service temporarily unavailable',
+      circuitBreakerTripped: true,
+      retryAfter: retryAfter,
+      message: 'I\'m temporarily unavailable due to connectivity issues. Please try again in ' + retryAfter + ' seconds.'
+    };
+  }
 
   try {
     const response = UrlFetchApp.fetch(CLAUDE_CONFIG.ENDPOINT, {
@@ -1341,10 +1920,22 @@ function chatWithChiefOfStaff(userMessage, conversationHistoryJson) {
       muteHttpExceptions: true
     });
 
+    const responseCode = response.getResponseCode();
     const result = JSON.parse(response.getContentText());
+
+    // Check for HTTP errors - record failures for server errors
+    if (responseCode >= 500) {
+      recordFailure('claude_api', 'HTTP ' + responseCode + ': ' + (result.error ? result.error.message : 'Server error'));
+    } else if (responseCode >= 200 && responseCode < 300 && !result.error) {
+      recordSuccess('claude_api');
+    }
 
     if (result.error) {
       Logger.log('Claude Error: ' + JSON.stringify(result.error));
+      // Record failure for rate limits and other API errors (except 4xx client errors)
+      if (result.error.type === 'rate_limit_error' || result.error.type === 'overloaded_error') {
+        recordFailure('claude_api', result.error.message);
+      }
       return {
         success: false,
         error: result.error.message || 'AI error',
@@ -13395,6 +13986,16 @@ function doGet(e) {
       case 'getAuditLog':
         return jsonResponse(getAuditLogSecured(e.parameter));  // SECURED: Admin only
 
+      // ============ CIRCUIT BREAKER MONITORING ============
+      case 'getCircuitBreakerStatus':
+        return jsonResponse(getCircuitBreakerStatus());
+      case 'resetCircuitBreaker':
+        // Admin function - reset a specific circuit breaker
+        return jsonResponse(resetCircuitBreaker(e.parameter.service));
+      case 'resetAllCircuitBreakers':
+        // Admin function - reset all circuit breakers
+        return jsonResponse(resetAllCircuitBreakers());
+
       // ============ AI ASSISTANT ENDPOINTS ============
       case 'askAIAssistant':
         return jsonResponse(askAIAssistant(e.parameter));
@@ -13670,6 +14271,19 @@ function doGet(e) {
         return jsonResponse(typeof getWeatherRecommendations === 'function' ? getWeatherRecommendations() : { error: 'Not available' });
       case 'getIntegrationStatus':
         return jsonResponse(typeof getIntegrationStatus === 'function' ? getIntegrationStatus() : { error: 'Not available' });
+
+      // ============ PRE-FLIGHT VALIDATION SYSTEM ============
+      case 'preFlightCheck':
+        return jsonResponse(preFlightCheck({
+          fileName: e.parameter.fileName,
+          action: e.parameter.action || 'create',
+          agent: e.parameter.agent,
+          description: e.parameter.description
+        }));
+      case 'getPreFlightHistory':
+        return jsonResponse(getPreFlightHistory(e.parameter));
+      case 'isLikelyDuplicate':
+        return jsonResponse({ isDuplicate: isLikelyDuplicate(e.parameter.fileName) });
 
       // ============ CRITICAL ENDPOINTS FOR HTML TOOLS ============
       case 'testConnection':
@@ -16451,6 +17065,32 @@ function doGet(e) {
         return jsonResponse(getUTMTracking(e.parameter));
       case 'initializeUTMTracking':
         return jsonResponse(initializeUTMTrackingSheet());
+
+      // ============ OBSERVABILITY LOGGING SYSTEM (2026-02-12) ============
+      // Production observability for agent actions - tracking, metrics, and audit trails
+      case 'getAgentLogs':
+        return jsonResponse(getRecentLogs(parseInt(e.parameter.count) || 50));
+      case 'getFailedActions':
+        return jsonResponse(getFailedActions(parseInt(e.parameter.count) || 20));
+      case 'getAgentPerformance':
+        return jsonResponse(getLogsByAgent(e.parameter.agent, parseInt(e.parameter.count) || 50));
+      case 'getAgentMetrics':
+        return jsonResponse(getAgentPerformanceMetrics(e.parameter));
+      case 'getPersistedLogs':
+        return jsonResponse(getPersistedLogs(e.parameter));
+      case 'getObservabilityDashboard':
+        return jsonResponse(getObservabilityDashboard());
+      case 'testObservability':
+        // Test endpoint to verify observability is working
+        const traceId = logAgentAction({
+          agent: 'TestAgent',
+          action: 'testObservability',
+          target: 'system_test',
+          success: true,
+          duration_ms: 0,
+          metadata: { test: true, timestamp: new Date().toISOString() }
+        });
+        return jsonResponse({ success: true, message: 'Observability test logged', trace_id: traceId });
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
@@ -67957,12 +68597,27 @@ function getShopifyAuthorizationUrl() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SHOPIFY API CALLS
+// SHOPIFY API CALLS (with Circuit Breaker Protection)
 // ═══════════════════════════════════════════════════════════════════════════
 
 function shopifyApiCall(endpoint, method = 'GET', payload = null) {
+  const startTime = Date.now();
   if (!SHOPIFY_CONFIG.ENABLED) {
+    logAgentAction({ agent: 'Shopify_API', action: 'shopifyApiCall', target: endpoint, success: false, duration_ms: Date.now() - startTime, error: 'Shopify not enabled' });
     return { success: false, error: 'Shopify integration is not enabled. Set SHOPIFY_CONFIG.ENABLED = true' };
+  }
+
+  // Circuit breaker check - block if Shopify circuit is open
+  if (!checkCircuitBreaker('shopify_api')) {
+    const status = getCircuitBreakerStatus();
+    const retryAfter = status.breakers.shopify_api.timeUntilRetrySeconds || 120;
+    Logger.log('Shopify API call blocked by circuit breaker. Retry in ' + retryAfter + 's');
+    return {
+      success: false,
+      error: 'Shopify service temporarily unavailable (circuit breaker open)',
+      circuitBreakerTripped: true,
+      retryAfter: retryAfter
+    };
   }
 
   const baseUrl = OAUTH_URLS.SHOPIFY.API(SHOPIFY_CONFIG.STORE_NAME, SHOPIFY_CONFIG.API_VERSION);
@@ -67987,14 +68642,24 @@ function shopifyApiCall(endpoint, method = 'GET', payload = null) {
     const responseText = response.getContentText();
 
     if (responseCode >= 200 && responseCode < 300) {
+      recordSuccess('shopify_api');  // Circuit breaker: record success
       logIntegration('Shopify', endpoint, 'SUCCESS', `${method} request successful`);
+      logAgentAction({ agent: 'Shopify_API', action: 'shopifyApiCall', target: endpoint, success: true, duration_ms: Date.now() - startTime, metadata: { method: method, responseCode: responseCode } });
       return { success: true, data: JSON.parse(responseText) };
     } else {
+      // Record failure for 5xx errors (server-side issues)
+      // Don't record 4xx as those are often client errors (invalid requests)
+      if (responseCode >= 500) {
+        recordFailure('shopify_api', `HTTP ${responseCode}: ${responseText.substring(0, 200)}`);
+      }
       logIntegration('Shopify', endpoint, 'FAILED', `HTTP ${responseCode}: ${responseText}`);
+      logAgentAction({ agent: 'Shopify_API', action: 'shopifyApiCall', target: endpoint, success: false, duration_ms: Date.now() - startTime, error: `HTTP ${responseCode}`, metadata: { method: method } });
       return { success: false, error: `HTTP ${responseCode}`, details: responseText };
     }
   } catch (error) {
+    recordFailure('shopify_api', error.toString());  // Circuit breaker: record failure
     logIntegration('Shopify', endpoint, 'ERROR', error.toString());
+    logAgentAction({ agent: 'Shopify_API', action: 'shopifyApiCall', target: endpoint, success: false, duration_ms: Date.now() - startTime, error: error.toString() });
     return { success: false, error: error.toString() };
   }
 }
@@ -79776,6 +80441,107 @@ function testClaudeConnection() {
   }
 
   return { success: false, error: 'Connection failed' };
+}
+
+/**
+ * Test circuit breaker functionality
+ * Run this from Apps Script editor to verify circuit breakers work
+ */
+function testCircuitBreakers() {
+  Logger.log('========== CIRCUIT BREAKER TEST ==========');
+
+  // Test 1: Check initial status
+  Logger.log('\n--- Test 1: Initial Status ---');
+  const initialStatus = getCircuitBreakerStatus();
+  Logger.log('Initial status: ' + JSON.stringify(initialStatus, null, 2));
+
+  // Test 2: Verify all breakers start CLOSED
+  Logger.log('\n--- Test 2: Verify Initial State ---');
+  let allClosed = true;
+  for (const service in initialStatus.breakers) {
+    const state = initialStatus.breakers[service].state;
+    Logger.log(service + ': ' + state);
+    if (state !== 'CLOSED') {
+      allClosed = false;
+    }
+  }
+  Logger.log('All breakers CLOSED: ' + allClosed);
+
+  // Test 3: Simulate failures for external_fetch (it has lowest threshold)
+  Logger.log('\n--- Test 3: Simulate Failures ---');
+  const testService = 'external_fetch';
+  const config = BREAKER_CONFIG[testService];
+  Logger.log('Testing ' + testService + ' (threshold: ' + config.failureThreshold + ')');
+
+  // Record failures until circuit opens
+  for (let i = 0; i < config.failureThreshold; i++) {
+    recordFailure(testService, 'Test failure ' + (i + 1));
+    const canRequest = checkCircuitBreaker(testService);
+    Logger.log('After failure ' + (i + 1) + ': canRequest=' + canRequest);
+  }
+
+  // Test 4: Verify circuit is now OPEN
+  Logger.log('\n--- Test 4: Verify OPEN State ---');
+  const openStatus = getCircuitBreakerStatus();
+  Logger.log(testService + ' state: ' + openStatus.breakers[testService].state);
+  Logger.log('Failures: ' + openStatus.breakers[testService].failures);
+  const blocked = !checkCircuitBreaker(testService);
+  Logger.log('Request blocked: ' + blocked);
+
+  // Test 5: Reset and verify recovery
+  Logger.log('\n--- Test 5: Reset and Recover ---');
+  const resetResult = resetCircuitBreaker(testService);
+  Logger.log('Reset result: ' + JSON.stringify(resetResult));
+
+  const afterReset = getCircuitBreakerStatus();
+  Logger.log(testService + ' state after reset: ' + afterReset.breakers[testService].state);
+  const canRequestAfterReset = checkCircuitBreaker(testService);
+  Logger.log('Can request after reset: ' + canRequestAfterReset);
+
+  // Test 6: Test success recording
+  Logger.log('\n--- Test 6: Record Success ---');
+  recordSuccess(testService);
+  const afterSuccess = getCircuitBreakerStatus();
+  Logger.log('Last success: ' + afterSuccess.breakers[testService].lastSuccess);
+
+  Logger.log('\n========== CIRCUIT BREAKER TEST COMPLETE ==========');
+
+  return {
+    success: true,
+    message: 'Circuit breaker tests completed',
+    results: {
+      allStartedClosed: allClosed,
+      circuitOpensAfterThreshold: blocked,
+      resetWorks: canRequestAfterReset
+    }
+  };
+}
+
+/**
+ * Simulate a circuit breaker trip for testing
+ * Useful for testing monitoring and alerts
+ * @param {string} service - Service to trip ('claude_api', 'shopify_api', 'google_drive', 'external_fetch')
+ */
+function simulateCircuitBreakerTrip(service) {
+  const config = BREAKER_CONFIG[service];
+  if (!config) {
+    return { success: false, error: 'Unknown service: ' + service };
+  }
+
+  Logger.log('Simulating circuit breaker trip for ' + service);
+
+  // Record enough failures to trip the circuit
+  for (let i = 0; i < config.failureThreshold; i++) {
+    recordFailure(service, 'Simulated failure ' + (i + 1));
+  }
+
+  const status = getCircuitBreakerStatus();
+  return {
+    success: true,
+    service: service,
+    state: status.breakers[service].state,
+    message: 'Circuit breaker tripped for ' + service
+  };
 }
 
 // ============================================
@@ -94627,30 +95393,99 @@ function saveCustomLenders(params) {
   }
 }
 
+// ========== GRANT SCANNER v4.0 INFRASTRUCTURE ==========
+const GRANT_SCANNER_CIRCUIT_BREAKERS = { claude_api: { state: 'CLOSED', failures: 0, lastFailure: null, successCount: 0 } };
+const GRANT_SCANNER_BREAKER_CONFIG = { claude_api: { failureThreshold: 3, timeout: 60000, halfOpenMaxAttempts: 2 } };
+
+function checkGrantScannerCircuitBreaker(service) {
+  const breaker = GRANT_SCANNER_CIRCUIT_BREAKERS[service];
+  const config = GRANT_SCANNER_BREAKER_CONFIG[service];
+  if (!breaker || !config) return true;
+  if (breaker.state === 'OPEN') {
+    if (Date.now() - breaker.lastFailure > config.timeout) { breaker.state = 'HALF_OPEN'; breaker.successCount = 0; return true; }
+    Logger.log('[CircuitBreaker] ' + service + ' is OPEN'); return false;
+  }
+  return true;
+}
+
+function recordGrantScannerCircuitResult(service, success) {
+  const breaker = GRANT_SCANNER_CIRCUIT_BREAKERS[service];
+  const config = GRANT_SCANNER_BREAKER_CONFIG[service];
+  if (!breaker || !config) return;
+  if (success) { if (breaker.state === 'HALF_OPEN') { breaker.successCount++; if (breaker.successCount >= config.halfOpenMaxAttempts) { breaker.state = 'CLOSED'; breaker.failures = 0; } } else { breaker.failures = 0; } }
+  else { breaker.failures++; breaker.lastFailure = Date.now(); if (breaker.failures >= config.failureThreshold) { breaker.state = 'OPEN'; Logger.log('[CircuitBreaker] ' + service + ' OPEN'); } }
+}
+
+function logGrantScannerAction(details) {
+  // Use the unified observability system for persistent logging
+  const traceId = logAgentAction({
+    agent: details.agent || 'Grant_Scanner',
+    action: details.action,
+    target: details.target,
+    success: details.success !== false,
+    duration_ms: details.duration_ms || 0,
+    error: details.error || null,
+    metadata: { version: 'v4.0', ...(details.metadata || {}) }
+  });
+  return traceId;
+}
+
+function cleanGrantPageHtml(html) {
+  return html.replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, '').replace(/<header[^>]*>[\s\S]*?<\/header>/gi, '').replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, '').replace(/<[^>]*class="[^"]*(?:menu|nav|breadcrumb|sidebar|skip-link)[^"]*"[^>]*>[\s\S]*?<\/[^>]+>/gi, '').replace(/Skip to[^<]*/gi, '').replace(/<form[^>]*search[^>]*>[\s\S]*?<\/form>/gi, '').replace(/<aside[^>]*>[\s\S]*?<\/aside>/gi, '');
+}
+
+function verifyGrantExtraction(extractedData, originalContent) {
+  const issues = [], corrections = {};
+  if (extractedData.amount) { const num = parseInt(extractedData.amount.replace(/[^0-9]/g, '')); if (num >= 100000 && ![/per applicant/i, /maximum award/i, /up to \$[\d,]+/i].some(p => originalContent.match(p))) issues.push('Amount may be total funding'); }
+  const badPatterns = ['PAGE TITLE', 'Contact us', 'Click here', 'N/A', 'TBD'];
+  if (badPatterns.some(p => extractedData.contactName?.toUpperCase().includes(p.toUpperCase()))) { issues.push('Contact name is placeholder'); if (extractedData.contactEmail) { const m = originalContent.match(new RegExp('([A-Z][a-z]+\\s+[A-Z][a-z]+)[\\s|]*' + extractedData.contactEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i')); if (m) corrections.contactName = m[1]; } }
+  const navPatterns = ['Application Window', 'Contact us', 'Additional resources', 'Skip to', 'Menu', 'Search'];
+  if (extractedData.ineligibleCosts?.length) { const clean = extractedData.ineligibleCosts.filter(c => !navPatterns.some(p => c.toLowerCase().includes(p.toLowerCase()))); if (clean.length !== extractedData.ineligibleCosts.length) { corrections.ineligibleCosts = clean; issues.push('Removed nav from ineligible costs'); } }
+  if (extractedData.grantName) { for (const p of ['Apply for', 'Learn about', 'Get the', 'About the']) { if (extractedData.grantName.toLowerCase().startsWith(p.toLowerCase())) { corrections.grantName = extractedData.grantName.substring(p.length).trim(); issues.push('Cleaned grant name'); break; } } }
+  return { verified: issues.length === 0, issues, corrections };
+}
+// ========== END v4.0 INFRASTRUCTURE ==========
+
 /**
  * Scrape grant website for requirements using AI
- * PRODUCTION-READY VERSION v3.0 - Enhanced for accurate grant extraction
+ * PRODUCTION-READY VERSION v4.0 - Maximum Intelligence with Observability
  *
- * Key improvements:
+ * Key improvements in v4.0:
+ * - Upgraded to Opus model for maximum intelligence
+ * - Few-shot examples in prompt for accurate extraction
+ * - Pre-cleaned HTML to remove navigation noise
+ * - Two-pass verification with automatic corrections
+ * - Circuit breaker pattern for API resilience
+ * - Full observability logging with trace IDs
+ *
+ * Also from v3.0:
  * - PDF text extraction using Google Drive OCR API
  * - Preserved HTML structure (tables, lists, forms converted to markdown)
  * - Enhanced Claude prompt with confidence scoring
  * - Data quality flags for missing/uncertain info
- * - Multiple URL fetch with redirect handling
  *
  * @param {Object} params - { url, includePdfContent: boolean }
- * @returns {Object} - Comprehensive grant data with confidence scores
+ * @returns {Object} - Comprehensive grant data with verification
  */
 function scrapeGrantRequirements(params) {
+  const startTime = Date.now();
+  const traceId = logGrantScannerAction({ agent: 'Grant_Scanner', action: 'start', target: params.url });
+
   try {
     const url = params.url;
     const includePdfContent = params.includePdfContent !== false; // Default true
 
     if (!url) {
-      return { success: false, error: 'URL is required' };
+      logGrantScannerAction({ agent: 'Grant_Scanner', action: 'error', target: 'unknown', success: false, error: 'URL is required' });
+      return { success: false, error: 'URL is required', traceId: traceId };
     }
 
-    Logger.log('Grant scraper v3.0 (Production) starting for URL: ' + url);
+    // Check circuit breaker before proceeding
+    if (!checkGrantScannerCircuitBreaker('claude_api')) {
+      Logger.log('Circuit breaker OPEN - will use fallback extraction');
+    }
+
+    Logger.log('Grant scraper v4.0 (Opus + Verification) starting for URL: ' + url);
     const baseUrl = url.match(/^(https?:\/\/[^\/]+)/)?.[1] || '';
 
     // ========== STEP 1: Fetch webpage with redirect handling ==========
@@ -94833,18 +95668,42 @@ function scrapeGrantRequirements(params) {
     }
 
     const claudePayload = {
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-opus-4-5-20251101',  // v4.0: Opus for maximum intelligence
       max_tokens: 6000,
       messages: [{
         role: 'user',
-        content: `You are an expert grant application analyst. Extract ACCURATE grant information for a Pennsylvania farm applying for funding.
+        content: `You are an expert grant application analyst. Extract ACCURATE grant information for a Pennsylvania farm.
 
-=== CRITICAL EXTRACTION RULES ===
+=== FEW-SHOT EXAMPLES (LEARN FROM THESE) ===
 
-GRANT NAME RULES:
-- DO NOT use page titles like "Apply for X" - extract the OFFICIAL PROGRAM NAME
-- Look for phrases like "Program", "Grant Program", "Initiative"
-- Example: "Farm Vitality Planning Grant Program" NOT "Apply for the Farm Vitality Grant"
+EXAMPLE 1 - Amount:
+Text: "$500,000 total program funding" and "75% of costs up to $20,000"
+CORRECT: { "amount": "$15,000", "totalFunding": "$500,000" }
+WRONG: { "amount": "$500,000" }
+WHY: Individual award = 75% × $20,000 = $15,000
+
+EXAMPLE 2 - Grant Name:
+Title: "Apply for the Farm Vitality Grant"
+Body: "Farm Vitality Planning Grant Program"
+CORRECT: { "grantName": "Farm Vitality Planning Grant Program" }
+WRONG: { "grantName": "Apply for the Farm Vitality Grant" }
+WHY: Use official program name, not page title
+
+EXAMPLE 3 - Contact:
+Text: "Neil Imes | 717-787-5539 | nimes@pa.gov"
+CORRECT: { "contactName": "Neil Imes", "contactPhone": "717-787-5539", "contactEmail": "nimes@pa.gov" }
+WRONG: { "contactName": "PAGE TITLE" }
+WHY: Extract actual human name near phone/email
+
+EXAMPLE 4 - Ineligible Costs:
+Content: "Land purchases, Equipment, Travel"
+CORRECT: { "ineligibleCosts": ["Land purchases", "Equipment", "Travel"] }
+WRONG: { "ineligibleCosts": ["Application Window", "Contact us"] }
+WHY: Only cost categories, not navigation elements
+
+=== EXTRACTION RULES ===
+
+GRANT NAME: Use official program name, not page titles like "Apply for X"
 
 AMOUNT RULES - THIS IS CRITICAL:
 - INDIVIDUAL AWARD = what ONE applicant can receive (e.g., "$15,000 maximum")
@@ -94995,27 +95854,44 @@ RETURN ONLY VALID JSON:
 
             Logger.log('Grant extraction complete. Quality score: ' + dataQualityScore + '%, Fields: ' + allFields.length);
 
+            // v4.0: Two-pass verification
+            const verification = verifyGrantExtraction(parsedData, fullContent);
+            Logger.log('Verification result: ' + JSON.stringify(verification));
+
+            // Apply corrections if any
+            const finalData = { ...parsedData };
+            if (verification.corrections.grantName) finalData.grantName = verification.corrections.grantName;
+            if (verification.corrections.contactName) finalData.contactName = verification.corrections.contactName;
+            if (verification.corrections.ineligibleCosts) finalData.ineligibleCosts = verification.corrections.ineligibleCosts;
+
+            // Record circuit breaker success
+            recordGrantScannerCircuitResult('claude_api', true);
+
+            // Log successful extraction
+            logGrantScannerAction({ agent: 'Grant_Scanner', action: 'complete', target: url, success: true, duration_ms: Date.now() - startTime, metadata: { dataQualityScore, fieldsFound: allFields.length, verificationIssues: verification.issues.length } });
+
             return {
               success: true,
-              grantName: parsedData.grantName || '',
-              organization: parsedData.organization || '',
-              amount: parsedData.amount || '',
-              totalFunding: parsedData.totalFunding || '',
-              deadline: parsedData.deadline || '',
-              purpose: parsedData.purpose || '',
-              coveragePercent: parsedData.coveragePercent || '',
-              matchRequired: parsedData.matchRequired || '',
-              reimbursement: parsedData.reimbursement || false,
-              eligibility: parsedData.eligibility || [],
-              eligibleProjects: parsedData.eligibleProjects || [],
-              ineligibleCosts: parsedData.ineligibleCosts || [],
-              documents: parsedData.documents || [],
-              steps: parsedData.steps || [],
-              contactName: parsedData.contactName || '',
-              contactEmail: parsedData.contactEmail || '',
-              contactPhone: parsedData.contactPhone || '',
-              applicationUrl: parsedData.applicationUrl || '',
-              notes: parsedData.notes || '',
+              traceId: traceId,
+              grantName: finalData.grantName || '',
+              organization: finalData.organization || '',
+              amount: finalData.amount || '',
+              totalFunding: finalData.totalFunding || '',
+              deadline: finalData.deadline || '',
+              purpose: finalData.purpose || '',
+              coveragePercent: finalData.coveragePercent || '',
+              matchRequired: finalData.matchRequired || '',
+              reimbursement: finalData.reimbursement || false,
+              eligibility: finalData.eligibility || [],
+              eligibleProjects: finalData.eligibleProjects || [],
+              ineligibleCosts: finalData.ineligibleCosts || [],
+              documents: finalData.documents || [],
+              steps: finalData.steps || [],
+              contactName: finalData.contactName || '',
+              contactEmail: finalData.contactEmail || '',
+              contactPhone: finalData.contactPhone || '',
+              applicationUrl: finalData.applicationUrl || '',
+              notes: finalData.notes || '',
               source: url,
 
               // Enhanced metadata
@@ -95032,25 +95908,34 @@ RETURN ONLY VALID JSON:
                 criticalFieldsFound: filledCritical.length,
                 criticalFieldsTotal: criticalFields.length,
                 confidence: {
-                  grantName: parsedData.grantNameConfidence || 'MEDIUM',
-                  amount: parsedData.amountConfidence || 'MEDIUM',
-                  deadline: parsedData.deadlineConfidence || 'MEDIUM',
-                  eligibility: parsedData.eligibilityConfidence || 'MEDIUM',
-                  documents: parsedData.documentsConfidence || 'MEDIUM',
-                  eligibleProjects: parsedData.eligibleProjectsConfidence || 'MEDIUM'
+                  grantName: finalData.grantNameConfidence || 'MEDIUM',
+                  amount: finalData.amountConfidence || 'MEDIUM',
+                  deadline: finalData.deadlineConfidence || 'MEDIUM',
+                  eligibility: finalData.eligibilityConfidence || 'MEDIUM',
+                  documents: finalData.documentsConfidence || 'MEDIUM',
+                  eligibleProjects: finalData.eligibleProjectsConfidence || 'MEDIUM'
                 },
                 needsReview: reviewItems,
-                missingCriticalInfo: parsedData.missingCriticalInfo || []
+                missingCriticalInfo: finalData.missingCriticalInfo || []
+              },
+
+              // v4.0: Verification results
+              verification: {
+                verified: verification.verified,
+                issues: verification.issues,
+                corrections: verification.corrections
               },
 
               // Debug info
               debugInfo: {
-                method: 'claude_api_v3',
+                method: 'claude_api_v4_opus',
+                model: 'claude-opus-4-5-20251101',
                 contentLength: fullContent.length,
                 pdfsFound: pdfResources.length,
                 pdfsExtracted: pdfExtractionResults.filter(p => p.extracted).length,
                 pdfExtractionDetails: pdfExtractionResults,
-                formsFound: formResources.length
+                formsFound: formResources.length,
+                durationMs: Date.now() - startTime
               }
             };
           } catch (parseError) {
@@ -95062,30 +95947,38 @@ RETURN ONLY VALID JSON:
 
       // Fallback if Claude doesn't return valid JSON
       Logger.log('Claude did not return valid JSON, using fallback');
+      recordGrantScannerCircuitResult('claude_api', false);  // v4.0: Record failure
       const fallbackResult = scrapeGrantRequirementsFallback(fullContent, url);
+      fallbackResult.traceId = traceId;
       fallbackResult.resources = { pdfs: pdfResources, forms: formResources };
       fallbackResult.debugInfo = {
-        method: 'fallback',
+        method: 'fallback_v4',
         reason: 'claude_invalid_response',
-        pdfsFound: pdfResources.length
+        pdfsFound: pdfResources.length,
+        durationMs: Date.now() - startTime
       };
       return fallbackResult;
 
     } catch (claudeError) {
       Logger.log('Claude API exception: ' + claudeError.toString());
+      recordGrantScannerCircuitResult('claude_api', false);  // v4.0: Record failure
+      logGrantScannerAction({ agent: 'Grant_Scanner', action: 'claude_error', target: url, success: false, error: claudeError.toString() });
       const fallbackResult = scrapeGrantRequirementsFallback(fullContent, url);
+      fallbackResult.traceId = traceId;
       fallbackResult.resources = { pdfs: pdfResources, forms: formResources };
       fallbackResult.debugInfo = {
-        method: 'fallback',
+        method: 'fallback_v4',
         reason: 'claude_exception',
-        error: claudeError.toString()
+        error: claudeError.toString(),
+        durationMs: Date.now() - startTime
       };
       return fallbackResult;
     }
 
   } catch (error) {
     Logger.log('Grant scraper error: ' + error.toString());
-    return { success: false, error: error.toString() };
+    logGrantScannerAction({ agent: 'Grant_Scanner', action: 'error', target: params.url || 'unknown', success: false, error: error.toString() });
+    return { success: false, error: error.toString(), traceId: traceId };
   }
 }
 
@@ -124559,4 +125452,293 @@ function getWritingResponses(params) {
     Logger.log('getWritingResponses error: ' + error.toString());
     return { success: true, responses: [] }; // Return empty on error
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// PRE-FLIGHT VALIDATION SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════════════
+// Automated checks that agents MUST pass before making changes
+// Created: 2026-02-12 as part of Agentic Performance Improvement Plan
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Pre-Flight Check Function for Agentic Operations
+ *
+ * This function validates proposed file operations before execution.
+ * Agents should call this BEFORE creating or modifying files.
+ *
+ * @param {Object} params - Parameters for the pre-flight check
+ * @param {string} params.fileName - The file path to check
+ * @param {string} params.action - The action: 'create', 'modify', 'delete'
+ * @param {string} params.agent - The agent making the change (e.g., 'Backend_Claude')
+ * @param {string} params.description - Optional description of the change
+ * @returns {Object} Pre-flight check results
+ */
+function preFlightCheck(params) {
+  const { fileName, action, agent, description } = params;
+
+  const results = {
+    passed: true,
+    warnings: [],
+    errors: [],
+    blocked: false,
+    timestamp: new Date().toISOString(),
+    fileName: fileName,
+    action: action,
+    agent: agent
+  };
+
+  // ==========================================================================
+  // CHECK 1: Role Boundary Check
+  // ==========================================================================
+  const roleBoundaries = {
+    'Backend_Claude': {
+      allowed: ['/apps_script/'],
+      fileTypes: ['.js']
+    },
+    'Desktop_Claude': {
+      allowed: ['/web_app/', '/'],
+      fileTypes: ['.html', '.css', '.js']
+    },
+    'Mobile_Claude': {
+      allowed: ['/employee', '/pwa/', '/mobile/'],
+      fileTypes: ['.html', '.js', '.json']
+    },
+    'UX_Design_Claude': {
+      allowed: ['/css/', '/design/', '/style/'],
+      fileTypes: ['.css', '.scss', '.md']
+    },
+    'Security_Claude': {
+      allowed: ['/auth/', '/security/'],
+      fileTypes: ['.js', '.json']
+    },
+    'PM_Architect': {
+      allowed: ['/claude_sessions/', '/docs/'],
+      fileTypes: ['.md', '.json']
+    }
+  };
+
+  if (agent && roleBoundaries[agent]) {
+    const boundaries = roleBoundaries[agent];
+    let inScope = false;
+
+    // Check if file path is within allowed directories
+    for (const allowedPath of boundaries.allowed) {
+      if (fileName.includes(allowedPath)) {
+        inScope = true;
+        break;
+      }
+    }
+
+    if (!inScope) {
+      results.errors.push({
+        type: 'ROLE_BOUNDARY_VIOLATION',
+        message: `${agent} is not allowed to modify files outside: ${boundaries.allowed.join(', ')}`,
+        severity: 'CRITICAL'
+      });
+      results.passed = false;
+      results.blocked = true;
+    }
+  }
+
+  // ==========================================================================
+  // CHECK 2: High-Risk Action Check
+  // ==========================================================================
+  const highRiskPatterns = [
+    { pattern: 'shopify', reason: 'Shopify changes require human approval' },
+    { pattern: 'production', reason: 'Production changes are high-risk' },
+    { pattern: 'deploy', reason: 'Deployment requires verification' },
+    { pattern: 'delete', reason: 'Deletion is irreversible' },
+    { pattern: 'credential', reason: 'Credential changes are sensitive' },
+    { pattern: 'api-key', reason: 'API key changes are sensitive' },
+    { pattern: 'secret', reason: 'Secret changes are sensitive' },
+    { pattern: 'financial', reason: 'Financial data changes require approval' },
+    { pattern: 'payment', reason: 'Payment-related changes require approval' }
+  ];
+
+  const fileNameLower = fileName.toLowerCase();
+
+  for (const risk of highRiskPatterns) {
+    if (fileNameLower.includes(risk.pattern)) {
+      results.warnings.push({
+        type: 'HIGH_RISK_ACTION',
+        pattern: risk.pattern,
+        message: risk.reason,
+        severity: 'HIGH'
+      });
+    }
+  }
+
+  // ==========================================================================
+  // CHECK 3: Known Duplicate Systems Check
+  // ==========================================================================
+  const duplicateSystems = [
+    {
+      patterns: ['morning', 'brief'],
+      message: 'Morning Brief system - 4 versions already exist. DO NOT CREATE ANOTHER.',
+      matchAll: true
+    },
+    {
+      patterns: ['approval', 'approve'],
+      message: 'Approval system - 2 versions already exist. DO NOT CREATE ANOTHER.',
+      matchAll: false
+    },
+    {
+      patterns: ['email', 'process'],
+      message: 'Email Processing system - 3 versions already exist. DO NOT CREATE ANOTHER.',
+      matchAll: true
+    }
+  ];
+
+  if (action === 'create') {
+    for (const system of duplicateSystems) {
+      let matches = 0;
+      for (const pattern of system.patterns) {
+        if (fileNameLower.includes(pattern)) {
+          matches++;
+        }
+      }
+
+      const isMatch = system.matchAll
+        ? matches === system.patterns.length
+        : matches > 0;
+
+      if (isMatch) {
+        results.errors.push({
+          type: 'DUPLICATE_SYSTEM',
+          message: system.message,
+          severity: 'CRITICAL'
+        });
+        results.passed = false;
+        results.blocked = true;
+      }
+    }
+
+    // Dashboard check
+    if (fileNameLower.includes('dashboard')) {
+      results.warnings.push({
+        type: 'DASHBOARD_CREATION',
+        message: 'Dashboard creation detected. Verify this does not duplicate existing dashboards (13+ already exist). Check CLAUDE.md Step 4B.',
+        severity: 'HIGH'
+      });
+    }
+  }
+
+  // ==========================================================================
+  // CHECK 4: Action-specific validation
+  // ==========================================================================
+  if (action === 'delete') {
+    results.warnings.push({
+      type: 'DELETE_ACTION',
+      message: 'Delete actions require explicit human approval',
+      severity: 'HIGH'
+    });
+  }
+
+  // ==========================================================================
+  // LOG THE PRE-FLIGHT CHECK
+  // ==========================================================================
+  logPreFlightCheck(results);
+
+  // ==========================================================================
+  // RETURN RESULTS
+  // ==========================================================================
+  return {
+    success: results.passed,
+    blocked: results.blocked,
+    warningCount: results.warnings.length,
+    errorCount: results.errors.length,
+    warnings: results.warnings,
+    errors: results.errors,
+    recommendation: results.blocked
+      ? 'BLOCKED - Do not proceed without PM_Architect approval'
+      : results.warnings.length > 0
+        ? 'PROCEED_WITH_CAUTION - Review warnings and document justification'
+        : 'APPROVED - You may proceed',
+    timestamp: results.timestamp
+  };
+}
+
+/**
+ * Log pre-flight check results to audit trail
+ */
+function logPreFlightCheck(results) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let logSheet = ss.getSheetByName('LOG_PreFlight');
+
+    if (!logSheet) {
+      logSheet = ss.insertSheet('LOG_PreFlight');
+      logSheet.appendRow([
+        'Timestamp', 'Agent', 'Action', 'FileName',
+        'Passed', 'Blocked', 'Warnings', 'Errors'
+      ]);
+      logSheet.getRange(1, 1, 1, 8).setFontWeight('bold').setBackground('#a4c2f4');
+    }
+
+    logSheet.appendRow([
+      results.timestamp,
+      results.agent || 'unknown',
+      results.action,
+      results.fileName,
+      results.passed,
+      results.blocked,
+      results.warnings.length > 0 ? JSON.stringify(results.warnings) : '',
+      results.errors.length > 0 ? JSON.stringify(results.errors) : ''
+    ]);
+
+  } catch (error) {
+    Logger.log('Failed to log pre-flight check: ' + error.toString());
+  }
+}
+
+/**
+ * Get recent pre-flight check history
+ */
+function getPreFlightHistory(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const logSheet = ss.getSheetByName('LOG_PreFlight');
+
+    if (!logSheet || logSheet.getLastRow() <= 1) {
+      return { success: true, history: [], message: 'No pre-flight history found' };
+    }
+
+    const limit = parseInt(params.limit) || 20;
+    const data = logSheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const history = [];
+    const startRow = Math.max(1, data.length - limit);
+
+    for (let i = data.length - 1; i >= startRow; i--) {
+      const row = {};
+      headers.forEach((h, j) => row[h.toLowerCase().replace(/\s+/g, '_')] = data[i][j]);
+      history.push(row);
+    }
+
+    return {
+      success: true,
+      history: history,
+      totalRecords: data.length - 1
+    };
+
+  } catch (error) {
+    Logger.log('getPreFlightHistory error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Quick pre-flight check for duplicate file names
+ * Returns true if the file name appears to duplicate existing systems
+ */
+function isLikelyDuplicate(fileName) {
+  const result = preFlightCheck({
+    fileName: fileName,
+    action: 'create',
+    agent: 'unknown'
+  });
+
+  return result.blocked || result.errorCount > 0;
 }

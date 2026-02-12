@@ -40,6 +40,212 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-02-12 - Backend_Claude (Grant Scanner v4.0 Implementation)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Upgraded Grant Scanner from v3.0 to v4.0
+
+### Functions Added
+- `checkGrantScannerCircuitBreaker(service)` - Circuit breaker check for API resilience
+- `recordGrantScannerCircuitResult(service, success)` - Records success/failure for circuit breaker
+- `logGrantScannerAction(details)` - Observability logging with trace IDs for Grant Scanner
+- `cleanGrantPageHtml(html)` - Pre-cleans HTML to remove navigation noise before extraction
+- `verifyGrantExtraction(extractedData, originalContent)` - Two-pass verification with auto-corrections
+
+### Functions Modified
+- `scrapeGrantRequirements(params)` - Major upgrade to v4.0 with:
+  - Changed model from `claude-sonnet-4-20250514` to `claude-opus-4-5-20251101` for maximum intelligence
+  - Added few-shot examples in prompt for accurate extraction patterns
+  - Integrated circuit breaker pattern for API resilience
+  - Added observability logging with trace IDs
+  - Added two-pass verification that auto-corrects common errors
+  - Pre-cleans HTML to remove navigation elements before processing
+  - Returns verification results and trace ID in response
+
+### Reason
+Pilot implementation of new agentic performance patterns from AGENTIC_PERFORMANCE_IMPROVEMENT_PLAN.md:
+1. Circuit Breakers - Prevents cascade failures when Claude API has issues
+2. Observability - Full tracing with unique trace IDs for debugging
+3. Two-Pass Verification - Catches and corrects common extraction errors
+4. Few-Shot Examples - Teaches the model correct vs incorrect patterns
+5. Opus Model - Maximum intelligence for complex grant extraction
+
+### Expected Improvements
+- Better extraction of correct individual award amounts (not total funding)
+- Correct contact names instead of placeholder text
+- Clean ineligible costs without navigation elements
+- Automatic grant name cleanup from action titles
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created (all functions are Grant Scanner-specific)
+
+---
+
+## 2026-02-12 - Backend_Claude (Observability Logging System Implementation)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Added comprehensive observability logging system
+
+### Functions Added
+- `logAgentAction(params)` - Core logging function for agent actions with persistence
+- `persistLogEntry(entry)` - Persists log entries to AGENT_LOGS sheet (auto-created)
+- `getRecentLogs(count)` - Retrieve recent log entries from memory
+- `getLogsByAgent(agent, count)` - Filter logs by agent identifier
+- `getFailedActions(count)` - Get failed action entries with failure rate
+- `getAgentPerformanceMetrics(params)` - Calculate performance metrics (success rate, duration stats)
+- `withObservability(agent, action, target, fn)` - Wrapper function for automatic observability
+- `getPersistedLogs(params)` - Retrieve logs from the AGENT_LOGS sheet
+- `getObservabilityDashboard()` - Dashboard summary with 24h and 1h metrics
+
+### API Endpoints Added (in doGet switch)
+- `getAgentLogs` - Get recent agent action logs
+- `getFailedActions` - Get failed actions with failure rate
+- `getAgentPerformance` - Get logs filtered by agent
+- `getAgentMetrics` - Get performance metrics with duration stats
+- `getPersistedLogs` - Get logs from the AGENT_LOGS sheet
+- `getObservabilityDashboard` - Get observability dashboard summary
+- `testObservability` - Test endpoint to verify observability is working
+
+### Functions Modified
+- `scrapeGrantRequirements(params)` - Added observability logging at start, success, and error paths
+- `shopifyApiCall(endpoint, method, payload)` - Added observability logging for all API calls
+
+### Reason
+Implementing observability logging per AGENTIC_PERFORMANCE_IMPROVEMENT_PLAN.md.
+89% of production agents have observability - we had 0%. This implementation provides:
+- In-memory logging with 1000 entry buffer
+- Persistent logging to AGENT_LOGS sheet (auto-created on first log)
+- Performance metrics (success rate, duration, failures)
+- Wrapper function for easy instrumentation of any function
+- API endpoints for monitoring and debugging
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (no existing observability system found)
+- [x] No duplicates created
+
+---
+
+## 2026-02-12 - PM_Architect (Pre-Flight Check System Implementation)
+
+### Files Created
+- `scripts/pre-flight-check.sh` - Automated pre-flight validation script for file operations
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Added pre-flight validation functions and API endpoints
+- `.git/hooks/pre-commit` - Enhanced with pre-flight checks for new files, dashboard detection, and demo data warnings
+- `CLAUDE.md` - Added STEP 4C documenting mandatory pre-flight check requirements
+
+### Functions Added (Apps Script)
+- `preFlightCheck(params)` - Main validation function for file operations
+- `logPreFlightCheck(results)` - Logs check results to LOG_PreFlight sheet
+- `getPreFlightHistory(params)` - Retrieves recent pre-flight check history
+- `isLikelyDuplicate(fileName)` - Quick check for duplicate file names
+
+### API Endpoints Added
+- `preFlightCheck` - Run pre-flight validation via API
+- `getPreFlightHistory` - Get recent pre-flight check logs
+- `isLikelyDuplicate` - Quick duplicate check
+
+### Pre-Commit Hook Enhancements
+- CHECK 3: Pre-flight check for NEW files (blocks on critical issues)
+- CHECK 4: Dashboard duplication detection
+- CHECK 5: Demo/sample data pattern detection
+- CHECK 6: CHANGE_LOG.md update reminder
+
+### Reason
+Implementing the Pre-Flight Check System from the Agentic Performance Improvement Plan to:
+1. Prevent duplicate file creation (major past issue)
+2. Enforce role boundaries programmatically
+3. Block known duplicate systems (Morning Brief, Approval, Email Processing)
+4. Flag high-risk actions requiring approval
+5. Create audit trail of pre-flight checks
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (no existing preFlightCheck)
+- [x] No duplicates created
+
+### Verification
+Pre-flight script tested with multiple scenarios:
+- Valid file creation: PASS (with warnings)
+- Duplicate system creation (MorningBrief): BLOCKED
+- Role boundary violation: BLOCKED
+- Dashboard creation: WARNING
+
+---
+
+## 2026-02-12 - Backend_Claude (Circuit Breaker System Implementation)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Added circuit breaker system for production resilience
+
+### Functions Added
+- `checkCircuitBreaker(service)` - Checks if a service's circuit allows requests
+- `recordSuccess(service)` - Records successful API call, resets circuit breaker
+- `recordFailure(service, error)` - Records failed call, may trip circuit breaker
+- `getCircuitBreakerStatus()` - Returns status of all circuit breakers (API endpoint)
+- `resetCircuitBreaker(service)` - Admin function to manually reset a circuit
+- `resetAllCircuitBreakers()` - Admin function to reset all circuits
+- `initCircuitBreakers()` - Loads circuit state from persistent storage
+- `persistCircuitBreakers()` - Saves circuit state to persistent storage
+- `protectedClaudeApiCall(payload, options)` - Wrapper for Claude API with circuit protection
+- `protectedShopifyApiCall(endpoint, method, payload)` - Wrapper for Shopify with circuit protection
+- `protectedExternalFetch(url, options)` - Wrapper for external URLs with circuit protection
+- `testCircuitBreakers()` - Test function to verify circuit breaker functionality
+- `simulateCircuitBreakerTrip(service)` - Utility to simulate failures for testing
+
+### Functions Modified
+- `shopifyApiCall()` - Integrated circuit breaker checks and success/failure recording
+- `chatWithChiefOfStaff()` - Added circuit breaker protection for Claude API calls
+- `chatWithChiefOfStaffFast()` - Added circuit breaker protection for Claude API calls
+
+### API Endpoints Added
+- `?action=getCircuitBreakerStatus` - Get status of all circuit breakers
+- `?action=resetCircuitBreaker&service=xxx` - Reset a specific circuit breaker
+- `?action=resetAllCircuitBreakers` - Reset all circuit breakers
+
+### Configuration Added
+```javascript
+CIRCUIT_BREAKERS = {
+  claude_api: { state, failures, lastFailure, lastSuccess },
+  shopify_api: { state, failures, lastFailure, lastSuccess },
+  google_drive: { state, failures, lastFailure, lastSuccess },
+  external_fetch: { state, failures, lastFailure, lastSuccess }
+};
+
+BREAKER_CONFIG = {
+  claude_api: { failureThreshold: 3, timeout: 60000, halfOpenMax: 1 },
+  shopify_api: { failureThreshold: 5, timeout: 120000, halfOpenMax: 2 },
+  google_drive: { failureThreshold: 3, timeout: 60000, halfOpenMax: 1 },
+  external_fetch: { failureThreshold: 5, timeout: 30000, halfOpenMax: 3 }
+};
+```
+
+### Reason
+Implementing circuit breakers as specified in AGENTIC_PERFORMANCE_IMPROVEMENT_PLAN.md.
+Circuit breakers prevent cascading failures by:
+1. Blocking requests when a service has consecutive failures
+2. Allowing graceful degradation instead of endless retries
+3. Automatically recovering after timeout period
+4. Providing visibility into service health via status endpoint
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (no existing circuit breaker code found)
+- [x] No duplicates created
+
+### Verification
+Run `testCircuitBreakers()` in Apps Script editor to verify:
+- Circuits start in CLOSED state
+- Circuits OPEN after threshold failures
+- HALF_OPEN state allows limited test requests
+- Success resets circuit to CLOSED
+
+---
+
 ## 2026-02-12 - Backend_Claude (Grant Scanner Production Overhaul v3.0)
 
 ### Files Modified

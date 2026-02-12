@@ -134,6 +134,42 @@ Glob **/*dashboard*.html
 
 ---
 
+## STEP 4C: MANDATORY PRE-FLIGHT CHECK (ENFORCED)
+
+**BEFORE creating or modifying ANY file, you MUST run the pre-flight check:**
+
+```bash
+./scripts/pre-flight-check.sh <filename> <action> [agent]
+
+# Examples:
+./scripts/pre-flight-check.sh web_app/new-feature.html create Desktop_Claude
+./scripts/pre-flight-check.sh apps_script/NewModule.js modify Backend_Claude
+./scripts/pre-flight-check.sh old-file.html delete Desktop_Claude
+```
+
+**Pre-flight checks:**
+1. **Duplicate Detection** - Blocks creation of files similar to existing ones
+2. **Role Boundary Check** - Verifies you're operating within your agent scope
+3. **High-Risk Action Detection** - Flags shopify, production, financial, etc.
+4. **Known Duplicate Systems** - Blocks Morning Brief, Approval, Email Processing duplicates
+5. **Recent Changes Check** - Warns if file was recently modified
+
+**Exit Codes:**
+- `0` = All checks passed - proceed
+- `1` = Warnings found - proceed with caution, document justification
+- `2` = BLOCKED - Critical issues, do NOT proceed without PM_Architect approval
+
+**This is ENFORCED via pre-commit hook.** Commits adding new files will be blocked if pre-flight check returns critical errors.
+
+**API Alternative** (for Apps Script callers):
+```javascript
+// Call preFlightCheck via API
+const result = await fetch(API_URL + '?action=preFlightCheck&fileName=path/to/file.html&action=create&agent=Desktop_Claude');
+const { success, blocked, warnings, errors, recommendation } = await result.json();
+```
+
+---
+
 ## STEP 5: LOG YOUR CHANGES
 
 After completing ANY work, you MUST:
@@ -146,6 +182,39 @@ After completing ANY work, you MUST:
    - Why you made the change
 
 2. **Update your session's OUTBOX.md** with a full report
+
+3. **Log to Governor System** (recommended):
+   ```bash
+   node scripts/governor_helpers.js log [YourRole] task_completed success '{"task":"Description"}'
+   node scripts/governor_helpers.js increment tasks_completed [YourRole]
+   ```
+
+---
+
+## STEP 6: GOVERNOR SYSTEM TRACKING
+
+The Governor system tracks agent performance metrics and audit trails.
+
+### Check Error Budget Before High-Risk Actions
+```bash
+node scripts/governor_helpers.js check-budget [YourRole]
+```
+
+If budget exceeded, escalate to human before proceeding.
+
+### Log Key Events
+- `task_completed` / `task_failed` - Every task outcome
+- `escalation` - When confidence < 70%
+- `approval_requested` - For high-risk actions
+- `deployment_executed` - Any production deploy
+- `duplicate_prevented` - Pre-flight caught duplicate
+
+### Get Your Performance
+```bash
+node scripts/governor_helpers.js performance [YourRole]
+```
+
+See `tinypm/GOVERNOR_USAGE.md` for complete documentation.
 
 ---
 
@@ -488,6 +557,10 @@ The owner has explicitly stated they will stop all building until enforcement is
 | `claude_sessions/pm_architect/CLAUDE_ROLES.md` | Role definitions |
 | `claude_sessions/pm_architect/DEPLOYMENT_PROTOCOL.md` | How to deploy |
 | `claude_sessions/CLAUDE_INTEGRATION_STANDARDS.md` | Coding standards |
+| `tinypm/.governor_metrics.json` | Agent performance metrics |
+| `tinypm/.governor_audit.json` | Audit trail of agent actions |
+| `tinypm/GOVERNOR_USAGE.md` | Governor system documentation |
+| `scripts/governor_helpers.js` | Governor helper functions |
 
 ---
 
