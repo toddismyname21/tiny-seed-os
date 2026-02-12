@@ -3517,8 +3517,8 @@
                 </div>
             </div>
 
-            <!-- Brain Stats Row -->
-            <div class="stats-grid" style="margin-top: 1.5rem;">
+            <!-- Brain Stats Row - Simplified -->
+            <div class="stats-grid" style="margin-top: 1.5rem; display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
                 <div class="stat-card" style="border-left: 3px solid var(--primary);">
                     <div class="stat-label">Posts This Week</div>
                     <div class="stat-value" id="weekPostsCount" style="color: var(--primary);">0</div>
@@ -3533,40 +3533,12 @@
                         <i class="fas fa-calendar"></i> This week
                     </div>
                 </div>
-                <div class="stat-card" style="border-left: 3px solid var(--instagram);">
-                    <div class="stat-label">@tinyseedfarm</div>
-                    <div class="stat-value" id="igFarmFollowersCard" style="color: var(--instagram);">--</div>
-                    <div class="stat-change neutral" id="igFarmStatus">
-                        <i class="fab fa-instagram"></i> followers
-                    </div>
-                </div>
-                <div class="stat-card" style="border-left: 3px solid #E1306C;">
-                    <div class="stat-label">@tinyseedfleurs</div>
-                    <div class="stat-value" id="igFleursFollowersCard" style="color: #E1306C;">--</div>
-                    <div class="stat-change neutral" id="igFleursStatus">
-                        <i class="fab fa-instagram"></i> followers
-                    </div>
-                </div>
-                <div class="stat-card" style="border-left: 3px solid #833AB4;">
-                    <div class="stat-label">@tinyseedfungi</div>
-                    <div class="stat-value" id="igFungiFollowersCard" style="color: #833AB4;">--</div>
-                    <div class="stat-change neutral" id="igFungiStatus">
-                        <i class="fab fa-instagram"></i> followers
-                    </div>
-                </div>
-                <div class="stat-card" style="border-left: 3px solid var(--success);">
-                    <div class="stat-label">Total Followers</div>
-                    <div class="stat-value" id="totalFollowersCard" style="color: var(--success);">--</div>
-                    <div class="stat-change positive" id="totalFollowersStatus">
-                        <i class="fas fa-users"></i> all accounts
-                    </div>
-                </div>
             </div>
 
-            <!-- Urgent Actions - Full Width (AI Recommends REMOVED - use Create tab) -->
+            <!-- Needs Your Attention - Full Width -->
             <div class="card" style="margin-top: 1.5rem;">
                 <div class="card-header" style="border-left: 4px solid var(--danger);">
-                    <h3><i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i> Urgent Actions</h3>
+                    <h3><i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i> Needs Your Attention</h3>
                     <span class="badge" id="urgentBadge" style="background: var(--danger);">0</span>
                 </div>
                 <div class="card-body" id="urgentActions" style="max-height: 300px; overflow-y: auto;">
@@ -3577,55 +3549,44 @@
                 </div>
             </div>
 
-            <!-- Today's Tasks & Content Calendar Preview -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem;">
-                <!-- Today's Tasks -->
-                <div class="card">
-                    <div class="card-header" style="border-left: 4px solid var(--warning);">
-                        <h3><i class="fas fa-tasks" style="color: var(--warning);"></i> Today's Tasks</h3>
-                        <span class="badge" id="todayBadge" style="background: var(--warning); color: #000;">0</span>
-                    </div>
-                    <div class="card-body" id="todayActions" style="max-height: 300px; overflow-y: auto;">
-                        <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-                            <i class="fas fa-spinner fa-spin" style="font-size: 2rem;"></i>
-                            <p style="margin-top: 1rem;">Loading tasks...</p>
-                        </div>
-                    </div>
+            <!-- Today's Focus -->
+            <div class="card" style="margin-top: 1.5rem;">
+                <div class="card-header" style="border-left: 4px solid var(--warning);">
+                    <h3><i class="fas fa-tasks" style="color: var(--warning);"></i> Today's Focus</h3>
+                    <span class="badge" id="todayBadge" style="background: var(--warning); color: #000;">0</span>
                 </div>
-
-                <!-- 7-Day Calendar Preview -->
-                <div class="card">
-                    <div class="card-header">
-                        <h3><i class="fas fa-calendar-week" style="color: var(--info);"></i> This Week</h3>
-                        <button class="btn btn-sm btn-secondary" onclick="switchTab('contentcalendar')">
-                            <i class="fas fa-expand"></i> Full Calendar
-                        </button>
-                    </div>
-                    <div class="card-body">
-                        <div id="calendarPreview" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.5rem;">
-                            <!-- Calendar days will be populated by JS -->
-                        </div>
+                <div class="card-body" id="todayActions" style="max-height: 300px; overflow-y: auto;">
+                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 2rem;"></i>
+                        <p style="margin-top: 1rem;">Loading tasks...</p>
                     </div>
                 </div>
             </div>
 
-            <!-- 2026 Algorithm Intelligence Panel - SELF-UPDATING -->
+            <!-- Quick Link to Calendar -->
+            <div style="margin-top: 1rem; text-align: right;">
+                <a href="#" onclick="switchTab('contentcalendar'); return false;" style="color: var(--info); text-decoration: none; font-size: 0.9rem;">
+                    <i class="fas fa-calendar-week"></i> View Full Calendar <i class="fas fa-arrow-right" style="font-size: 0.8rem;"></i>
+                </a>
+            </div>
+
+            <!-- Algorithm Intelligence Panel - COLLAPSIBLE -->
             <div class="card" style="margin-top: 1.5rem; background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%); border: 1px solid rgba(139, 92, 246, 0.3);">
-                <div class="card-header" style="flex-wrap: wrap; gap: 0.5rem;">
-                    <h3 style="background: linear-gradient(135deg, #6366F1, #8B5CF6); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-                        <i class="fas fa-brain" style="-webkit-text-fill-color: #8B5CF6;"></i> 2026 Algorithm Intelligence
+                <div class="card-header" style="flex-wrap: wrap; gap: 0.5rem; cursor: pointer;" onclick="toggleAlgorithmPanel()">
+                    <h3 style="background: linear-gradient(135deg, #6366F1, #8B5CF6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-chart-bar" style="-webkit-text-fill-color: #8B5CF6;"></i> Algorithm Intelligence
+                        <i id="algorithmPanelArrow" class="fas fa-chevron-down" style="-webkit-text-fill-color: #8B5CF6; font-size: 0.8rem; transition: transform 0.3s;"></i>
                     </h3>
                     <div style="display: flex; gap: 0.5rem; align-items: center;">
                         <span id="researchLastUpdated" style="font-size: 0.7rem; color: var(--text-secondary);">
                             <i class="fas fa-clock"></i> Updated: This week
                         </span>
-                        <button class="btn btn-sm" onclick="runAlgorithmResearch()" style="background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white; font-size: 0.75rem;">
+                        <button class="btn btn-sm" onclick="event.stopPropagation(); runAlgorithmResearch()" style="background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white; font-size: 0.75rem;">
                             <i class="fas fa-sync-alt"></i> Research Update
                         </button>
-                        <span style="font-size: 0.75rem; background: rgba(139, 92, 246, 0.2); padding: 0.25rem 0.75rem; border-radius: 20px; color: #A78BFA;">STATE OF THE ART</span>
                     </div>
                 </div>
-                <div class="card-body">
+                <div id="algorithmPanelBody" class="card-body" style="display: none;">
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
                         <!-- DM Shares Signal -->
                         <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 12px; border-left: 4px solid var(--success);">
@@ -3688,102 +3649,7 @@
                         </div>
                     </div>
 
-                    <!-- 5-3-2 Content Mix - PER-ACCOUNT TRACKER -->
-                    <div style="margin-top: 1.5rem; background: rgba(0,0,0,0.3); padding: 1.25rem; border-radius: 12px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
-                            <h4 style="margin: 0;"><i class="fas fa-layer-group" style="color: var(--purple);"></i> 5-3-2 Content Mix Tracker</h4>
-                            <div style="display: flex; gap: 0.5rem; align-items: center;">
-                                <button class="btn btn-sm btn-secondary" onclick="resetContentMix()" title="Reset weekly counts for selected account">
-                                    <i class="fas fa-undo"></i> Reset
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Account Tabs for 5-3-2 Tracking -->
-                        <div id="mixTrackerAccountTabs" style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
-                            <button class="account-mix-tab active" data-mix-account="farm" onclick="selectMixTrackerAccount('farm')">
-                                <i class="fab fa-instagram" style="color: var(--instagram);"></i> @tinyseedfarm
-                                <span id="farmMixBadge" class="mix-tab-badge">0/10</span>
-                            </button>
-                            <button class="account-mix-tab" data-mix-account="fleurs" onclick="selectMixTrackerAccount('fleurs')">
-                                <i class="fab fa-instagram" style="color: #E1306C;"></i> @tinyseedfleurs
-                                <span id="fleursMixBadge" class="mix-tab-badge">0/10</span>
-                            </button>
-                            <button class="account-mix-tab" data-mix-account="fungi" onclick="selectMixTrackerAccount('fungi')">
-                                <i class="fab fa-instagram" style="color: #833AB4;"></i> @tinyseedfungi
-                                <span id="fungiMixBadge" class="mix-tab-badge">0/10</span>
-                            </button>
-                        </div>
-
-                        <!-- Weekly Progress Summary -->
-                        <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                                <span id="trackerAccountLabel" style="font-size: 0.85rem; color: var(--text-secondary);">@tinyseedfarm This Week</span>
-                                <span id="weeklyMixStatus" style="font-size: 0.85rem; font-weight: 600; color: var(--success);">On Track</span>
-                            </div>
-                            <div class="content-mix-progress" style="height: 12px; margin-bottom: 0.5rem;">
-                                <div class="curated-fill" id="trackerCuratedFill" style="width: 50%;"></div>
-                                <div class="original-fill" id="trackerOriginalFill" style="width: 30%;"></div>
-                                <div class="personal-fill" id="trackerPersonalFill" style="width: 20%;"></div>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-secondary);">
-                                <span>0 posts</span>
-                                <span id="totalWeeklyPosts">10 posts (goal)</span>
-                            </div>
-                        </div>
-
-                        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                            <!-- Curated -->
-                            <div id="trackerCurated" style="flex: 5; min-width: 150px; background: rgba(34, 197, 94, 0.2); padding: 1rem; border-radius: 8px; text-align: center; cursor: pointer; transition: all 0.2s; border: 2px solid transparent;" onclick="trackContentPost('curated')">
-                                <div style="font-size: 2rem; font-weight: 700; color: var(--success);"><span id="trackerCuratedCurrent">0</span>/5</div>
-                                <div style="font-size: 0.85rem; font-weight: 600;">Curated/Shared</div>
-                                <div style="font-size: 0.75rem; color: var(--text-secondary);">Industry content, reposts</div>
-                                <div id="curatedNeed" style="margin-top: 0.5rem; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.7rem; background: rgba(34, 197, 94, 0.3);">
-                                    Need 5 more
-                                </div>
-                                <button class="btn btn-sm" style="margin-top: 0.5rem; background: var(--success); color: white; font-size: 0.7rem;" onclick="event.stopPropagation(); trackContentPost('curated')">
-                                    <i class="fas fa-plus"></i> Track Post
-                                </button>
-                            </div>
-                            <!-- Original -->
-                            <div id="trackerOriginal" style="flex: 3; min-width: 150px; background: rgba(67, 97, 238, 0.2); padding: 1rem; border-radius: 8px; text-align: center; cursor: pointer; transition: all 0.2s; border: 2px solid transparent;" onclick="trackContentPost('original')">
-                                <div style="font-size: 2rem; font-weight: 700; color: var(--info);"><span id="trackerOriginalCurrent">0</span>/3</div>
-                                <div style="font-size: 0.85rem; font-weight: 600;">Original</div>
-                                <div style="font-size: 0.75rem; color: var(--text-secondary);">Your content, non-sales</div>
-                                <div id="originalNeed" style="margin-top: 0.5rem; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.7rem; background: rgba(67, 97, 238, 0.3);">
-                                    Need 3 more
-                                </div>
-                                <button class="btn btn-sm" style="margin-top: 0.5rem; background: var(--info); color: white; font-size: 0.7rem;" onclick="event.stopPropagation(); trackContentPost('original')">
-                                    <i class="fas fa-plus"></i> Track Post
-                                </button>
-                            </div>
-                            <!-- Personal -->
-                            <div id="trackerPersonal" style="flex: 2; min-width: 150px; background: rgba(225, 48, 108, 0.2); padding: 1rem; border-radius: 8px; text-align: center; cursor: pointer; transition: all 0.2s; border: 2px solid transparent;" onclick="trackContentPost('personal')">
-                                <div style="font-size: 2rem; font-weight: 700; color: var(--instagram);"><span id="trackerPersonalCurrent">0</span>/2</div>
-                                <div style="font-size: 0.85rem; font-weight: 600;">Personal/Fun</div>
-                                <div style="font-size: 0.75rem; color: var(--text-secondary);">Humanize brand</div>
-                                <div id="personalNeed" style="margin-top: 0.5rem; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.7rem; background: rgba(225, 48, 108, 0.3);">
-                                    Need 2 more
-                                </div>
-                                <button class="btn btn-sm" style="margin-top: 0.5rem; background: var(--instagram); color: white; font-size: 0.7rem;" onclick="event.stopPropagation(); trackContentPost('personal')">
-                                    <i class="fas fa-plus"></i> Track Post
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Quick Tips Based on Selection -->
-                        <div id="contentTypeTips" style="margin-top: 1rem; padding: 1rem; background: rgba(155, 89, 182, 0.1); border-radius: 8px; border-left: 3px solid var(--purple);">
-                            <div style="font-size: 0.8rem; font-weight: 600; color: var(--purple); margin-bottom: 0.5rem;">
-                                <i class="fas fa-lightbulb"></i> CURATED CONTENT IDEAS
-                            </div>
-                            <ul style="font-size: 0.8rem; color: var(--text-secondary); margin: 0; padding-left: 1.25rem;">
-                                <li>Share posts from local Pittsburgh food bloggers</li>
-                                <li>Repost customer photos (with credit)</li>
-                                <li>Share farming industry news or tips</li>
-                                <li>Feature local restaurant partners' posts</li>
-                            </ul>
-                        </div>
-                    </div>
+                    <!-- 5-3-2 Tracker moved to Calendar tab -->
                 </div>
             </div>
         </div>
@@ -9483,6 +9349,19 @@
                 loadAutoPilotStatus();
             } else if (tabId === 'campaigns') {
                 loadMarketSchedule();
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // ALGORITHM INTELLIGENCE PANEL TOGGLE
+        // ═══════════════════════════════════════════════════════════════════════════
+        function toggleAlgorithmPanel() {
+            const body = document.getElementById('algorithmPanelBody');
+            const arrow = document.getElementById('algorithmPanelArrow');
+            if (body && arrow) {
+                const isHidden = body.style.display === 'none';
+                body.style.display = isHidden ? 'block' : 'none';
+                arrow.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
             }
         }
 
@@ -15220,20 +15099,8 @@ Would you like to test posting to Threads?`;
                 const bulkData = await response.json();
 
                 if (bulkData.success) {
-                    // Update Instagram follower stats
-                    if (bulkData.instagram?.accounts) {
-                        let totalFollowers = 0;
-                        bulkData.instagram.accounts.forEach(account => {
-                            totalFollowers += account.followers || 0;
-                            const selectors = ['igFarmFollowersCard', 'igFleursFollowersCard', 'igFungiFollowersCard'];
-                            if (account.index < 3) {
-                                const el = document.getElementById(selectors[account.index]);
-                                if (el) el.textContent = formatNumber(account.followers);
-                            }
-                        });
-                        const totalEl = document.getElementById('totalFollowersCard');
-                        if (totalEl) totalEl.textContent = formatNumber(totalFollowers);
-                    }
+                    // Instagram follower stats - individual cards removed from Brain tab
+                    // Stats are still available on Dashboard tab
 
                     // Update scheduled posts count
                     if (bulkData.scheduledPosts?.thisWeek !== undefined) {
@@ -16132,56 +15999,9 @@ Would you like to test posting to Threads?`;
         }
 
         function updateContentTypeTips(type) {
-            const tips = {
-                curated: {
-                    title: 'CURATED CONTENT IDEAS',
-                    color: 'var(--success)',
-                    items: [
-                        'Share posts from local Pittsburgh food bloggers',
-                        'Repost customer photos (with credit)',
-                        'Share farming industry news or tips',
-                        'Feature local restaurant partners\' posts',
-                        'Share seasonal eating articles'
-                    ]
-                },
-                original: {
-                    title: 'ORIGINAL CONTENT IDEAS',
-                    color: 'var(--info)',
-                    items: [
-                        'Product of the Week highlight',
-                        'Behind-the-scenes farm operations',
-                        'Educational content about your crops',
-                        'Recipe using current harvest',
-                        'Time-lapse of crop growth',
-                        'Day in the Life montage'
-                    ]
-                },
-                personal: {
-                    title: 'PERSONAL/FUN CONTENT IDEAS',
-                    color: 'var(--instagram)',
-                    items: [
-                        'Meet the Farmer story',
-                        'Farm fails and bloopers',
-                        'Farm pets and animals',
-                        'Coffee break gratitude moment',
-                        'Celebrate small wins',
-                        'Hot takes (keep it fun!)'
-                    ]
-                }
-            };
-
-            const tipData = tips[type];
-            const container = document.getElementById('contentTypeTips');
-            if (container) {
-                container.innerHTML = `
-                    <div style="font-size: 0.8rem; font-weight: 600; color: ${tipData.color}; margin-bottom: 0.5rem;">
-                        <i class="fas fa-lightbulb"></i> ${tipData.title}
-                    </div>
-                    <ul style="font-size: 0.8rem; color: var(--text-secondary); margin: 0; padding-left: 1.25rem;">
-                        ${tipData.items.map(item => `<li>${item}</li>`).join('')}
-                    </ul>
-                `;
-            }
+            // Content type tips moved to Calendar tab with 5-3-2 tracker
+            // This function is kept for compatibility but is now a no-op
+            return;
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -16189,72 +16009,9 @@ Would you like to test posting to Threads?`;
         // ═══════════════════════════════════════════════════════════════════════════
 
         function updateContentMixUI() {
-            // Use the SELECTED MIX TRACKER ACCOUNT (not posting account)
-            const accountData = getAccountContentMix(selectedMixTrackerAccount);
-
-            // Update tracker account label
-            const trackerLabel = document.getElementById('trackerAccountLabel');
-            if (trackerLabel) {
-                trackerLabel.textContent = `${ACCOUNT_CONFIG[selectedMixTrackerAccount].name} This Week`;
-            }
-
-            // Update tracker section counts
-            const curatedCurrent = document.getElementById('trackerCuratedCurrent');
-            const originalCurrent = document.getElementById('trackerOriginalCurrent');
-            const personalCurrent = document.getElementById('trackerPersonalCurrent');
-
-            if (curatedCurrent) curatedCurrent.textContent = accountData.curated;
-            if (originalCurrent) originalCurrent.textContent = accountData.original;
-            if (personalCurrent) personalCurrent.textContent = accountData.personal;
-
-            // Calculate progress bar widths
-            const total = accountData.curated + accountData.original + accountData.personal;
-            const curatedPct = total > 0 ? (accountData.curated / total) * 100 : 50;
-            const originalPct = total > 0 ? (accountData.original / total) * 100 : 30;
-            const personalPct = total > 0 ? (accountData.personal / total) * 100 : 20;
-
-            // Update progress bars
-            const trackerCuratedFill = document.getElementById('trackerCuratedFill');
-            const trackerOriginalFill = document.getElementById('trackerOriginalFill');
-            const trackerPersonalFill = document.getElementById('trackerPersonalFill');
-
-            if (trackerCuratedFill) trackerCuratedFill.style.width = `${curatedPct}%`;
-            if (trackerOriginalFill) trackerOriginalFill.style.width = `${originalPct}%`;
-            if (trackerPersonalFill) trackerPersonalFill.style.width = `${personalPct}%`;
-
-            // Update need badges
-            const gaps = {
-                curated: Math.max(0, 5 - accountData.curated),
-                original: Math.max(0, 3 - accountData.original),
-                personal: Math.max(0, 2 - accountData.personal)
-            };
-
-            const curatedNeed = document.getElementById('curatedNeed');
-            const originalNeed = document.getElementById('originalNeed');
-            const personalNeed = document.getElementById('personalNeed');
-
-            if (curatedNeed) curatedNeed.textContent = gaps.curated > 0 ? `Need ${gaps.curated} more` : 'Complete!';
-            if (originalNeed) originalNeed.textContent = gaps.original > 0 ? `Need ${gaps.original} more` : 'Complete!';
-            if (personalNeed) personalNeed.textContent = gaps.personal > 0 ? `Need ${gaps.personal} more` : 'Complete!';
-
-            // Update status
-            const allComplete = gaps.curated === 0 && gaps.original === 0 && gaps.personal === 0;
-            const statusEl = document.getElementById('weeklyMixStatus');
-
-            if (allComplete) {
-                if (statusEl) statusEl.innerHTML = '<span style="color: var(--success);">Weekly goal complete!</span>';
-            } else {
-                const remaining = gaps.curated + gaps.original + gaps.personal;
-                if (statusEl) statusEl.innerHTML = `<span style="color: var(--warning);">${remaining} posts needed</span>`;
-            }
-
-            // Update total posts count
-            const totalPostsEl = document.getElementById('totalWeeklyPosts');
-            if (totalPostsEl) {
-                totalPostsEl.textContent = `${total}/10 posts this week`;
-            }
-
-            // Update all account badges
+            // 5-3-2 Tracker UI moved to Calendar tab - this function is now a no-op
+            // Keep the function signature for compatibility with other code
+            // The 5-3-2 data is still stored in localStorage for future Calendar tab use
             updateMixTrackerBadges();
         }
 
@@ -17408,72 +17165,9 @@ Would you like to test posting to Threads?`;
         }
 
         function populateCalendarPreview() {
-            const container = document.getElementById('calendarPreview');
-            if (!container) return;
-
-            const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-            const today = new Date();
-            let html = '';
-
-            // Get 5-3-2 recommendation
-            const recommendation = getWhatToPostNext();
-            const neededType = recommendation.type;
-
-            for (let i = 0; i < 7; i++) {
-                const date = new Date(today);
-                date.setDate(today.getDate() + i);
-                const dayNum = date.getDay();
-                const dayName = days[dayNum];
-                const isToday = i === 0;
-
-                // Use OPTIMAL_TIMES data for quality assessment
-                const dayQuality = OPTIMAL_TIMES[dayNum].quality;
-                const isOptimal = dayQuality === 'best';
-                const isGood = dayQuality === 'great' || dayQuality === 'good';
-                const isLow = dayQuality === 'low' || dayQuality === 'lowest';
-
-                // Determine border/style based on quality
-                let borderStyle = 'none';
-                let qualityLabel = '';
-                let qualityColor = 'var(--text-secondary)';
-
-                if (isOptimal) {
-                    borderStyle = '2px solid var(--success)';
-                    qualityLabel = '🔥 BEST';
-                    qualityColor = 'var(--success)';
-                } else if (isGood) {
-                    borderStyle = '1px solid var(--info)';
-                    qualityLabel = '✓ GOOD';
-                    qualityColor = 'var(--info)';
-                } else if (isLow) {
-                    borderStyle = '1px solid var(--danger)';
-                    qualityLabel = '↓ LOW';
-                    qualityColor = 'var(--danger)';
-                }
-
-                // Get best time for this day
-                const bestTime = OPTIMAL_TIMES[dayNum].times[0];
-                const [hour] = bestTime.split(':').map(Number);
-                const timeDisplay = hour > 12 ? `${hour - 12}PM` : `${hour}AM`;
-
-                html += `
-                    <div onclick="selectDayForPost(${i})" style="text-align: center; padding: 0.5rem; background: ${isToday ? 'rgba(225, 48, 108, 0.2)' : 'rgba(0,0,0,0.2)'}; border-radius: 8px; border: ${borderStyle}; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                        <div style="font-size: 0.6rem; color: var(--text-secondary);">${dayName}</div>
-                        <div style="font-size: 1rem; font-weight: 700; ${isToday ? 'color: var(--instagram);' : ''}">${date.getDate()}</div>
-                        <div style="font-size: 0.5rem; color: ${qualityColor};">${qualityLabel || timeDisplay}</div>
-                    </div>
-                `;
-            }
-
-            // Add legend
-            html += `
-                <div style="grid-column: 1 / -1; display: flex; justify-content: center; gap: 1rem; margin-top: 0.5rem; font-size: 0.65rem;">
-                    <span style="color: var(--success);">🔥 Best days</span>
-                    <span style="color: var(--text-secondary);">Click day to schedule</span>
-                </div>
-            `;
-
-            container.innerHTML = html;
+            // Calendar preview removed from Brain tab - use "View Full Calendar" link instead
+            // This function is kept for compatibility but is now a no-op
+            return;
         }
 
         function selectDayForPost(dayOffset) {

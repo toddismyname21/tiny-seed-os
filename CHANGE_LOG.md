@@ -40,6 +40,44 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-02-12 - Desktop_Claude (Brain Tab UI Cleanup)
+
+### Context
+User requested Brain tab cleanup to reduce visual clutter. Target: 5-8 visual elements max.
+
+### Files Modified
+- `web_app/marketing-command-center.html` - Brain tab UI cleanup
+
+### HTML Changes
+- RENAMED: "Urgent Actions" to "Needs Your Attention"
+- RENAMED: "Today's Tasks" to "Today's Focus"
+- REMOVED: 7-Day Calendar Preview section (replaced with simple "View Full Calendar" link)
+- REMOVED: Individual follower stats cards (@tinyseedfarm, @tinyseedfleurs, @tinyseedfungi) - kept only Posts This Week + Scheduled
+- REMOVED: 5-3-2 Content Mix Tracker (to be moved to Calendar tab later)
+- CHANGED: Algorithm Intelligence panel now collapsible (collapsed by default)
+- SIMPLIFIED: Stats row from 6 cards to 2 cards (Posts This Week, Posts Scheduled)
+
+### JavaScript Changes
+- ADDED: `toggleAlgorithmPanel()` - Toggle expand/collapse for Algorithm Intelligence accordion
+
+### Final Brain Tab Structure (7 elements)
+1. Header (greeting + season + optimal time)
+2. Account selector
+3. Stats row (Posts This Week + Scheduled)
+4. "Needs Your Attention" section
+5. "Today's Focus" section
+6. Quick link to Calendar
+7. Algorithm Intelligence (collapsible, collapsed by default)
+
+### Reason
+User wanted cleaner, more focused Brain tab with fewer visual elements. 5-3-2 tracker will move to Calendar tab.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] No duplicates created - streamlined existing functionality
+
+---
+
 ## 2026-02-12 - Desktop_Claude (Brain Tab Overhaul)
 
 ### Context
