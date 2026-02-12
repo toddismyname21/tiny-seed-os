@@ -14550,6 +14550,8 @@ function doGet(e) {
         return jsonResponse(getSEODominationDashboard());
       case 'getReviewMetrics':
         return jsonResponse(getReviewMetrics(e.parameter));
+      case 'fetchGoogleReviews':
+        return jsonResponse(fetchGoogleReviews(e.parameter));
       case 'getCitationStatus':
         return jsonResponse(getCitationStatus(e.parameter));
       case 'getSEOPages':
@@ -17860,6 +17862,8 @@ function doPost(e) {
         return jsonResponse(getSEORankings(data));
       case 'getReviewMetrics':
         return jsonResponse(getReviewMetrics(data));
+      case 'fetchGoogleReviews':
+        return jsonResponse(fetchGoogleReviews(data));
       case 'getCitationStatus':
         return jsonResponse(getCitationStatus(data));
       case 'updateSEOPage':
@@ -67379,6 +67383,184 @@ function initializeSEOAutomation() {
   } catch (error) {
     return { success: false, error: error.toString() };
   }
+}
+
+/**
+ * Fetch Google Reviews using SerpAPI Google Maps Reviews endpoint
+ * This syncs live review data from Google Business Profile
+ */
+function fetchGoogleReviews(params) {
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const apiKey = props.getProperty('SERPAPI_KEY');
+    const placeId = params?.placeId || props.getProperty('GOOGLE_PLACE_ID') || 'ChIJtdEVcwuSNIgRojepG9lq66U';
+
+    if (!apiKey) {
+      return { success: false, error: 'SerpAPI key not configured. Go to Settings to add your key.' };
+    }
+
+    // Use SerpAPI Google Maps Reviews endpoint
+    const serpParams = {
+      engine: 'google_maps_reviews',
+      place_id: placeId,
+      hl: 'en',
+      sort_by: 'newestFirst',
+      api_key: apiKey
+    };
+
+    const url = 'https://serpapi.com/search.json?' + Object.entries(serpParams)
+      .map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+
+    const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    const data = JSON.parse(response.getContentText());
+
+    if (data.error) {
+      return { success: false, error: data.error };
+    }
+
+    // Extract place info and reviews
+    const placeInfo = data.place_info || {};
+    const reviews = (data.reviews || []).map(r => ({
+      reviewId: r.review_id || '',
+      author: r.user?.name || 'Anonymous',
+      authorImage: r.user?.thumbnail || '',
+      rating: r.rating || 0,
+      date: r.date || r.iso_date || '',
+      relativeDate: r.snippet_highlighted_words?.[0] || r.date || '',
+      text: r.snippet || r.extracted_snippet?.original || '',
+      likes: r.likes || 0,
+      response: r.response?.snippet || null,
+      responseDate: r.response?.date || null
+    }));
+
+    // Calculate metrics
+    const totalReviews = placeInfo.reviews || reviews.length;
+    const averageRating = placeInfo.rating || (reviews.length > 0
+      ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
+      : 0);
+
+    // Count by rating
+    const byRating = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+    reviews.forEach(r => {
+      if (byRating[r.rating] !== undefined) byRating[r.rating]++;
+    });
+
+    // Sentiment analysis (simple based on rating)
+    const bySentiment = {
+      positive: reviews.filter(r => r.rating >= 4).length,
+      neutral: reviews.filter(r => r.rating === 3).length,
+      negative: reviews.filter(r => r.rating <= 2).length
+    };
+
+    // Identify reviews needing response
+    const needsResponse = reviews.filter(r => !r.response && r.rating <= 3).length;
+
+    // Sync to SEO_Reviews sheet for persistence
+    syncReviewsToSheet(reviews, 'Google');
+
+    return {
+      success: true,
+      source: 'google_live',
+      placeInfo: {
+        name: placeInfo.title || 'Tiny Seed Farm',
+        address: placeInfo.address || '',
+        totalReviews: totalReviews,
+        rating: averageRating
+      },
+      metrics: {
+        totalReviews: totalReviews,
+        averageRating: parseFloat(averageRating),
+        byPlatform: { Google: totalReviews },
+        byRating: byRating,
+        bySentiment: bySentiment,
+        needsResponse: needsResponse
+      },
+      reviews: reviews.slice(0, 20), // Return latest 20 reviews
+      lastSynced: new Date().toISOString()
+    };
+
+  } catch (error) {
+    Logger.log('fetchGoogleReviews error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Sync fetched reviews to SEO_Reviews sheet
+ */
+function syncReviewsToSheet(reviews, platform) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('SEO_Reviews');
+
+    if (!sheet) {
+      // Create the sheet with headers
+      sheet = ss.insertSheet('SEO_Reviews');
+      sheet.appendRow([
+        'Review_ID', 'Platform', 'Author', 'Rating', 'Review_Date',
+        'Review_Text', 'Sentiment', 'Response_Date', 'Response_Text',
+        'Keywords_Mentioned', 'Synced_At'
+      ]);
+    }
+
+    // Get existing review IDs to avoid duplicates
+    const existingData = sheet.getDataRange().getValues();
+    const existingIds = new Set(existingData.slice(1).map(row => row[0]));
+
+    // Add new reviews
+    const newReviews = [];
+    reviews.forEach(r => {
+      const reviewId = `${platform}_${r.reviewId || r.author}_${r.date}`;
+      if (!existingIds.has(reviewId)) {
+        // Determine sentiment
+        let sentiment = 'neutral';
+        if (r.rating >= 4) sentiment = 'positive';
+        else if (r.rating <= 2) sentiment = 'negative';
+
+        // Extract keywords mentioned
+        const keywords = extractKeywordsFromReview(r.text);
+
+        newReviews.push([
+          reviewId,
+          platform,
+          r.author,
+          r.rating,
+          r.date,
+          r.text,
+          sentiment,
+          r.responseDate || '',
+          r.response || '',
+          keywords.join(', '),
+          new Date().toISOString()
+        ]);
+      }
+    });
+
+    if (newReviews.length > 0) {
+      sheet.getRange(sheet.getLastRow() + 1, 1, newReviews.length, newReviews[0].length)
+        .setValues(newReviews);
+      Logger.log(`Synced ${newReviews.length} new reviews to sheet`);
+    }
+
+    return { success: true, synced: newReviews.length };
+  } catch (error) {
+    Logger.log('syncReviewsToSheet error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Extract SEO keywords mentioned in review text
+ */
+function extractKeywordsFromReview(text) {
+  if (!text) return [];
+  const textLower = text.toLowerCase();
+  const seoKeywords = [
+    'csa', 'organic', 'farm', 'local', 'fresh', 'vegetables', 'produce',
+    'delivery', 'pittsburgh', 'rochester', 'sustainable', 'quality',
+    'family', 'community', 'healthy', 'weekly', 'box', 'subscription'
+  ];
+  return seoKeywords.filter(kw => textLower.includes(kw));
 }
 
 function checkDailySEOTriggerExists() {

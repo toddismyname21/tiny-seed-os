@@ -1,0 +1,180 @@
+name: MCC Tab Smoke Tests
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'web_app/**'
+      - 'apps_script/**'
+      - 'e2e-tests/**'
+      - '.github/workflows/mcc-tab-smoke-tests.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'web_app/**'
+      - 'apps_script/**'
+      - 'e2e-tests/**'
+      - '.github/workflows/mcc-tab-smoke-tests.yml'
+
+jobs:
+  mcc-tab-smoke-tests:
+    name: MCC Tab Visibility Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
+
+      - name: Install dependencies
+        run: |
+          npm init -y
+          npm install -D @playwright/test playwright
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
+      - name: Start local server
+        run: |
+          npx serve web_app -l 3000 &
+          sleep 5
+        env:
+          CI: true
+
+      - name: Run MCC Tab Smoke Tests
+        id: tests
+        run: |
+          npx playwright test e2e-tests/mcc-tabs.spec.ts --reporter=list,json --output=test-results
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_NAME: test-results.json
+        continue-on-error: true
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 30
+
+      - name: Upload screenshots on failure
+        uses: actions/upload-artifact@v4
+        if: failure() || steps.tests.outcome == 'failure'
+        with:
+          name: failure-screenshots
+          path: test-results/**/*.png
+          retention-days: 30
+
+      - name: Generate failure summary
+        id: failure-summary
+        if: steps.tests.outcome == 'failure'
+        run: |
+          echo "## MCC Tab Smoke Test Failures" > failure-summary.md
+          echo "" >> failure-summary.md
+          echo "The following tabs failed visibility checks:" >> failure-summary.md
+          echo "" >> failure-summary.md
+
+          # Parse test results for failures
+          if [ -f test-results.json ]; then
+            node -e "
+              const fs = require('fs');
+              const results = JSON.parse(fs.readFileSync('test-results.json', 'utf8'));
+              const failures = [];
+
+              if (results.suites) {
+                const processSpecs = (specs) => {
+                  specs.forEach(spec => {
+                    if (spec.tests) {
+                      spec.tests.forEach(test => {
+                        if (test.status === 'failed' || test.status === 'timedOut') {
+                          failures.push({
+                            title: test.title || spec.title,
+                            error: test.results?.[0]?.error?.message || 'Unknown error'
+                          });
+                        }
+                      });
+                    }
+                    if (spec.specs) processSpecs(spec.specs);
+                  });
+                };
+                results.suites.forEach(suite => {
+                  if (suite.specs) processSpecs(suite.specs);
+                });
+              }
+
+              if (failures.length > 0) {
+                failures.forEach(f => {
+                  console.log('- **' + f.title + '**: ' + f.error.split('\n')[0]);
+                });
+              } else {
+                console.log('- Test results could not be parsed');
+              }
+            " >> failure-summary.md
+          else
+            echo "- Test results file not found" >> failure-summary.md
+          fi
+
+          echo "" >> failure-summary.md
+          echo "### What this means" >> failure-summary.md
+          echo "A 'black tab' bug was detected. One or more MCC tabs are rendering as empty/black instead of showing content." >> failure-summary.md
+          echo "" >> failure-summary.md
+          echo "### How to fix" >> failure-summary.md
+          echo "1. Check the tab's HTML content exists in \`web_app/marketing-command-center.html\`" >> failure-summary.md
+          echo "2. Verify the tab ID matches the expected format: \`#[tabname]Tab\`" >> failure-summary.md
+          echo "3. Check for CSS \`display: none\` or JavaScript errors preventing render" >> failure-summary.md
+          echo "4. Review the failure screenshots in the artifacts" >> failure-summary.md
+
+          cat failure-summary.md
+
+      - name: Comment on PR with failure details
+        if: github.event_name == 'pull_request' && steps.tests.outcome == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let body = '';
+
+            if (fs.existsSync('failure-summary.md')) {
+              body = fs.readFileSync('failure-summary.md', 'utf8');
+            } else {
+              body = `## MCC Tab Smoke Test Failures
+
+            One or more MCC tabs failed visibility checks. This indicates a potential "black tab" bug.
+
+            Please review the test artifacts for details.`;
+            }
+
+            body += '\n\n---\n*This comment was automatically generated by the MCC Tab Smoke Tests workflow.*';
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      - name: Fail workflow if tests failed
+        if: steps.tests.outcome == 'failure'
+        run: |
+          echo "::error::MCC Tab Smoke Tests failed. One or more tabs are not rendering correctly."
+          exit 1
+
+      - name: Success summary
+        if: steps.tests.outcome == 'success'
+        run: |
+          echo "## MCC Tab Smoke Tests Passed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "All 10 MCC tabs passed visibility checks:" >> $GITHUB_STEP_SUMMARY
+          echo "- brain, create, farmpics, contentcalendar, growth" >> $GITHUB_STEP_SUMMARY
+          echo "- campaigns, paidads, analytics, engage, settings" >> $GITHUB_STEP_SUMMARY

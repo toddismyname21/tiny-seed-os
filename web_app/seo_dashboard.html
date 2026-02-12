@@ -1108,6 +1108,12 @@
             .keyword-item, .competitor-item { background: #f9f9f9 !important; border: 1px solid #eee !important; }
             @page { margin: 0.5in; }
         }
+
+        /* Pulse animation for live indicator */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
     </style>
 </head>
 <body>
@@ -1316,9 +1322,14 @@
                 <div class="card">
                     <div class="card-header">
                         <h3><i class="fas fa-star"></i> Recent Reviews</h3>
-                        <button class="btn btn-secondary btn-sm" onclick="openAddReviewModal()">
-                            <i class="fas fa-plus"></i> Log Review
-                        </button>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="btn btn-primary btn-sm" onclick="syncGoogleReviews()" title="Sync from Google Business Profile">
+                                <i class="fas fa-sync"></i> Sync Google
+                            </button>
+                            <button class="btn btn-secondary btn-sm" onclick="openAddReviewModal()">
+                                <i class="fas fa-plus"></i> Log Review
+                            </button>
+                        </div>
                     </div>
                     <div class="card-body" id="reviews-container">
                         <div class="loading">
@@ -1902,20 +1913,37 @@
         }
 
         function transformReviewsData(raw) {
-            // API returns: { success, metrics: {totalReviews, averageRating, byPlatform, bySentiment, needsResponse} }
-            // Expected: { total, averageRating, recentReviews: [...] }
+            // Handles both formats:
+            // - fetchGoogleReviews: { success, source: 'google_live', placeInfo, metrics, reviews }
+            // - getReviewMetrics: { success, metrics: {totalReviews, averageRating, byPlatform, bySentiment, needsResponse} }
             const metrics = raw?.metrics || {};
 
-            // Note: The getReviewMetrics endpoint doesn't return actual reviews, just metrics
-            // If we need reviews, we should call a separate endpoint or enhance the backend
+            // Check if this is live Google data with placeInfo
+            if (raw?.source === 'google_live' && raw?.placeInfo) {
+                return {
+                    total: raw.placeInfo.totalReviews || metrics.totalReviews || 0,
+                    averageRating: parseFloat(raw.placeInfo.rating || metrics.averageRating) || 0,
+                    recentReviews: raw.reviews || [],
+                    byPlatform: metrics.byPlatform || { Google: raw.placeInfo.totalReviews },
+                    byRating: metrics.byRating || {},
+                    bySentiment: metrics.bySentiment || {},
+                    needsResponse: metrics.needsResponse || 0,
+                    keywordMentions: metrics.keywordMentions || {},
+                    lastSynced: raw.lastSynced,
+                    isLive: true
+                };
+            }
+
+            // Fallback to standard format from cached getReviewMetrics
             return {
                 total: metrics.totalReviews || 0,
                 averageRating: parseFloat(metrics.averageRating) || 0,
-                recentReviews: raw?.reviews || [], // May be empty from this endpoint
+                recentReviews: raw?.reviews || [],
                 byPlatform: metrics.byPlatform || {},
                 bySentiment: metrics.bySentiment || {},
                 needsResponse: metrics.needsResponse || 0,
-                keywordMentions: metrics.keywordMentions || {}
+                keywordMentions: metrics.keywordMentions || {},
+                isLive: false
             };
         }
 
@@ -1968,11 +1996,23 @@
         async function loadDashboard() {
             try {
                 // Load all data in parallel
-                const [rankingsRaw, reviewsRaw, citationsRaw] = await Promise.all([
+                const [rankingsRaw, citationsRaw] = await Promise.all([
                     callAPI('getSEORankings', { limit: 50 }),
-                    callAPI('getReviewMetrics', { platform: 'all', timeframe: 'all' }),
                     callAPI('getCitationStatus', {})
                 ]);
+
+                // Try to fetch live Google Reviews first, fallback to cached sheet data
+                let reviewsRaw;
+                try {
+                    reviewsRaw = await callAPI('fetchGoogleReviews', {});
+                    if (!reviewsRaw.success) {
+                        console.log('Live Google Reviews unavailable, using cached data:', reviewsRaw.error);
+                        reviewsRaw = await callAPI('getReviewMetrics', { platform: 'all', timeframe: 'all' });
+                    }
+                } catch (e) {
+                    console.log('fetchGoogleReviews failed, using cached data:', e.message);
+                    reviewsRaw = await callAPI('getReviewMetrics', { platform: 'all', timeframe: 'all' });
+                }
 
                 // Transform API responses to expected format
                 const rankings = transformRankingsData(rankingsRaw);
@@ -2017,6 +2057,32 @@
         function refreshDashboard() {
             loadDashboard();
             showToast('Dashboard refreshed');
+        }
+
+        async function syncGoogleReviews() {
+            const btn = event.target.closest('button');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
+            btn.disabled = true;
+
+            try {
+                const result = await callAPI('fetchGoogleReviews', {});
+                if (result.success) {
+                    // Update reviews in dashboardData
+                    dashboardData.reviews = transformReviewsData(result);
+                    renderScoreCards();
+                    renderReviews();
+                    showToast(`Synced ${result.placeInfo?.totalReviews || 0} reviews from Google!`);
+                } else {
+                    showToast('Sync failed: ' + (result.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                console.error('Google Reviews sync failed:', error);
+                showToast('Sync failed: ' + error.message, 'error');
+            } finally {
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+            }
         }
 
         // ============================================
@@ -2560,7 +2626,7 @@
             'getSEORankings', 'getReviewMetrics', 'getCitationStatus',
             'getSEOAPIStatus', 'getSEOMasterDashboard', 'getSEOCompetitors',
             'getAIShareOfVoiceMetrics', 'getVideoAnalytics', 'healthCheck',
-            'getSEOPages', 'getSEOPageById'
+            'getSEOPages', 'getSEOPageById', 'fetchGoogleReviews'
         ];
 
         async function callAPI(action, params) {
@@ -2815,8 +2881,17 @@
             const { reviews } = dashboardData;
             const container = document.getElementById('reviews-container');
 
+            // Show live data indicator if connected to Google
+            const liveIndicator = reviews?.isLive
+                ? `<div style="margin-bottom: 1rem; padding: 0.5rem 1rem; background: linear-gradient(135deg, rgba(34,197,94,0.2) 0%, rgba(34,197,94,0.1) 100%); border-radius: 8px; display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="width: 8px; height: 8px; background: var(--success); border-radius: 50%; animation: pulse 2s infinite;"></span>
+                    <span style="font-size: 0.8rem; color: var(--success);">Live from Google Business Profile</span>
+                    <span style="margin-left: auto; font-size: 0.75rem; color: var(--text-secondary);">Last synced: ${reviews.lastSynced ? new Date(reviews.lastSynced).toLocaleTimeString() : 'Just now'}</span>
+                </div>`
+                : '';
+
             // Show review summary stats
-            let html = `
+            let html = liveIndicator + `
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem;">
                     <div style="text-align: center; padding: 1rem; background: var(--bg-light); border-radius: 8px;">
                         <div style="font-size: 1.5rem; font-weight: 700; color: var(--success);">${reviews?.total || 0}</div>
@@ -2832,6 +2907,28 @@
                     </div>
                 </div>
             `;
+
+            // Show rating breakdown if available
+            const byRating = reviews?.byRating || {};
+            if (Object.values(byRating).some(v => v > 0)) {
+                html += `<div style="margin-bottom: 1rem; padding: 1rem; background: var(--bg-light); border-radius: 8px;">
+                    <h4 style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Rating Distribution</h4>
+                    <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                        ${[5,4,3,2,1].map(r => {
+                            const count = byRating[r] || 0;
+                            const maxCount = Math.max(...Object.values(byRating), 1);
+                            const pct = (count / maxCount) * 100;
+                            return `<div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="width: 20px; font-size: 0.75rem;">${r}<i class="fas fa-star" style="color: var(--gold); margin-left: 2px;"></i></span>
+                                <div style="flex: 1; height: 8px; background: var(--bg-card); border-radius: 4px; overflow: hidden;">
+                                    <div style="width: ${pct}%; height: 100%; background: ${r >= 4 ? 'var(--success)' : r === 3 ? 'var(--warning)' : 'var(--danger)'}; border-radius: 4px;"></div>
+                                </div>
+                                <span style="width: 30px; font-size: 0.75rem; text-align: right;">${count}</span>
+                            </div>`;
+                        }).join('')}
+                    </div>
+                </div>`;
+            }
 
             // Show platform breakdown
             const platforms = reviews?.byPlatform || {};
@@ -2857,6 +2954,31 @@
                         <span style="color: var(--success);"><i class="fas fa-smile"></i> ${sentiment.positive || 0} Positive</span>
                         <span style="color: var(--text-secondary);"><i class="fas fa-meh"></i> ${sentiment.neutral || 0} Neutral</span>
                         <span style="color: var(--danger);"><i class="fas fa-frown"></i> ${sentiment.negative || 0} Negative</span>
+                    </div>
+                </div>`;
+            }
+
+            // Show recent reviews if available (from live Google data)
+            const recentReviews = reviews?.recentReviews || [];
+            if (recentReviews.length > 0) {
+                html += `<div style="margin-bottom: 1rem;">
+                    <h4 style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Recent Reviews</h4>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 300px; overflow-y: auto;">
+                        ${recentReviews.slice(0, 5).map(r => `
+                            <div style="padding: 0.75rem; background: var(--bg-light); border-radius: 8px; border-left: 3px solid ${r.rating >= 4 ? 'var(--success)' : r.rating === 3 ? 'var(--warning)' : 'var(--danger)'};">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                                    <span style="font-weight: 600; font-size: 0.85rem;">${r.author}</span>
+                                    <span style="font-size: 0.75rem; color: var(--text-secondary);">${r.relativeDate || r.date}</span>
+                                </div>
+                                <div style="margin-bottom: 0.25rem;">
+                                    ${'<i class="fas fa-star" style="color: var(--gold);"></i>'.repeat(r.rating)}${'<i class="far fa-star" style="color: var(--text-secondary);"></i>'.repeat(5 - r.rating)}
+                                </div>
+                                <p style="margin: 0; font-size: 0.8rem; color: var(--text-primary); line-height: 1.4;">${(r.text || '').substring(0, 150)}${r.text?.length > 150 ? '...' : ''}</p>
+                                ${r.response ? `<div style="margin-top: 0.5rem; padding: 0.5rem; background: var(--bg-card); border-radius: 4px; font-size: 0.75rem; color: var(--text-secondary);">
+                                    <strong>Your reply:</strong> ${(r.response || '').substring(0, 100)}...
+                                </div>` : (!r.response && r.rating <= 3) ? `<button onclick="openReplyModal('${r.reviewId}')" style="margin-top: 0.5rem; padding: 4px 8px; background: var(--primary); color: white; border: none; border-radius: 4px; font-size: 0.7rem; cursor: pointer;"><i class="fas fa-reply"></i> Reply</button>` : ''}
+                            </div>
+                        `).join('')}
                     </div>
                 </div>`;
             }

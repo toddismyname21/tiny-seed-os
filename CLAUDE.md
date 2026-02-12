@@ -218,6 +218,55 @@ See `tinypm/GOVERNOR_USAGE.md` for complete documentation.
 
 ---
 
+## STEP 7: MANDATORY VERIFICATION BEFORE "DONE" DECLARATION
+
+**NO AGENT MAY DECLARE A TASK "DONE" WITHOUT PASSING VERIFICATION GATES**
+
+This rule exists because on 2026-02-12, PM_Architect trusted a sub-agent's claim that "tabs were fixed" but they weren't. NEVER AGAIN.
+
+### The Mantra
+- Research before implementing
+- Check before creating
+- Test before declaring done
+- Audit before deploying
+- Never assume - always confirm
+
+### Verification Gate Requirements by Task Type
+
+| Task Type | Required Verification |
+|-----------|----------------------|
+| Bug fix | Test execution + output captured |
+| UI change | Screenshot or DOM verification |
+| API change | curl response captured |
+| Deployment | Live endpoint verification |
+| File creation | File exists + parses correctly |
+
+### What IS Acceptable Evidence
+```bash
+$ ./scripts/validate-element-refs.sh index.html
+✓ All 47 element references validated
+VALIDATION PASSED
+```
+
+### What is NOT Acceptable Evidence
+```
+"I fixed it"
+"It's working now"
+"I tested it"
+```
+
+### Task Completion Flow
+1. IMPLEMENTED → Agent claims done
+2. AWAITING_VERIFICATION → Verification gate runs
+3. VERIFIED → Evidence confirms fix works
+4. AWAITING_USER_VERIFICATION → User tests live functionality
+5. User says "Verified working" → Task marked COMPLETE
+
+### IRON RULE #3: DEPLOYED ≠ DONE
+A deployment is NOT a completion. The USER must verify functionality works.
+
+---
+
 ## FORBIDDEN ACTIONS
 
 ### NEVER DO THESE THINGS:
