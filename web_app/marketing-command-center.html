@@ -15769,15 +15769,25 @@ Would you like to test posting to Threads?`;
                 });
 
                 const result = await response.json();
+                console.log('Instagram post history result:', result);
 
-                if (result.success && result.posts) {
+                if (result.success && result.posts && result.posts.length > 0) {
+                    console.log(`Analyzing ${result.posts.length} posts...`);
                     const voiceProfile = analyzePostsForVoice(result.posts);
                     localStorage.setItem(VOICE_PROFILE_KEY, JSON.stringify(voiceProfile));
 
-                    // Show modal with full results (no auto-dismissing toast)
+                    // Show modal with full results
                     displayVoiceProfile(voiceProfile);
+                } else if (result.error) {
+                    // API returned an error
+                    console.error('API error:', result.error);
+                    showToast(`Instagram API error: ${result.error}`, 'error');
+                } else if (result.posts && result.posts.length === 0) {
+                    // No posts found
+                    showToast('No posts with captions found. Try manual voice training in Settings.', 'info');
                 } else {
-                    // Try to fetch directly from Instagram API
+                    // Try fallback
+                    console.log('Trying fallback method...');
                     await learnVoiceDirectFromInstagram();
                 }
             } catch (error) {
