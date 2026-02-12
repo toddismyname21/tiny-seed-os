@@ -3280,9 +3280,6 @@
             </div>
         </div>
         <div class="nav-actions">
-            <a href="social-intelligence.html" class="nav-back">
-                <i class="fas fa-brain"></i> Social Intel
-            </a>
             <a href="seo_dashboard.html" class="nav-back">
                 <i class="fas fa-search"></i> SEO Dashboard
             </a>
@@ -9400,17 +9397,24 @@
         // ═══════════════════════════════════════════════════════════════════════════
 
         function switchTab(tabId) {
-            // Update tab buttons
+            // Update tab buttons - find by onclick attribute, not relying on event
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.classList.remove('active');
+                // Match button by its onclick containing the tabId
+                const onclick = btn.getAttribute('onclick') || '';
+                if (onclick.includes(`switchTab('${tabId}')`)) {
+                    btn.classList.add('active');
+                }
             });
-            event.target.closest('.tab-btn').classList.add('active');
 
             // Update tab content
             document.querySelectorAll('.tab-content').forEach(content => {
                 content.classList.remove('active');
             });
-            document.getElementById(tabId + 'Tab').classList.add('active');
+            const tabContent = document.getElementById(tabId + 'Tab');
+            if (tabContent) {
+                tabContent.classList.add('active');
+            }
 
             // Load tab-specific data
             if (tabId === 'paidads') {
@@ -9433,6 +9437,10 @@
                 if (typeof checkAllAPIs === 'function') checkAllAPIs();
                 if (typeof loadTrainingCount === 'function') loadTrainingCount();
                 if (typeof loadAutoPilotStatusForSettings === 'function') loadAutoPilotStatusForSettings();
+            } else if (tabId === 'autopilot') {
+                loadAutoPilotStatus();
+            } else if (tabId === 'campaigns') {
+                loadMarketSchedule();
             }
         }
 
@@ -19159,26 +19167,6 @@ Would you like to test posting to Threads?`;
                 showNotification('Error posting', 'error');
             }
         }
-
-        // Load tab-specific data when tab is shown
-        // FIXED: Now properly calls the original switchTab function to preserve all handlers
-        const originalSwitchTab = switchTab;
-        switchTab = function(tabId) {
-            // Call original function which handles UI updates and tab-specific loading
-            // for paidads, farmpics, contentcalendar, engage, analytics, growth, settings
-            originalSwitchTab(tabId);
-
-            // Additional handlers for tabs not covered by original
-            // Load data for auto-pilot tab
-            if (tabId === 'autopilot') {
-                loadAutoPilotStatus();
-            }
-
-            // Load data for campaigns tab
-            if (tabId === 'campaigns') {
-                loadMarketSchedule();
-            }
-        };
 
         // ============================================
         // FARMERS MARKET SCHEDULE MANAGER
