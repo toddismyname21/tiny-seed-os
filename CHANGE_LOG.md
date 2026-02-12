@@ -40,6 +40,759 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-02-12 - Desktop_Claude (Brain Tab Overhaul)
+
+### Context
+User requested major overhaul of Brain tab: kill redundant AI Recommends card, implement per-account 5-3-2 tracking, add season indicator.
+
+### Files Modified
+- `web_app/marketing-command-center.html` - Brain tab overhaul
+
+### HTML Changes
+- REMOVED: AI Recommends card (lines 3524-3632) - redundant with Create tab
+- ADDED: Season indicator in header (shows WINTER/SPRING/SUMMER/FALL with focus areas)
+- ADDED: Prominent optimal posting time display in header
+- ADDED: Account tabs for 5-3-2 tracker (@tinyseedfarm, @tinyseedfleurs, @tinyseedfungi)
+- ADDED: "Track Post" buttons on each content type box
+- ADDED: Per-account badge showing progress (e.g., "3/10")
+- ADDED: Optimal posting time panel in Algorithm Intelligence section
+- UPDATED: Urgent Actions card now full-width (no longer sharing row with AI Recommends)
+
+### CSS Changes
+- ADDED: `.account-mix-tab` styles for per-account tracking tabs
+- ADDED: `.mix-tab-badge` styles for progress badges
+
+### JavaScript Changes
+
+#### Functions Added
+- `getAccountContentMix(account)` - Get 5-3-2 data for specific account using new localStorage keys
+- `resetAccountContentMix(account)` - Reset data for specific account only
+- `getAllAccountsCombined()` - Sum totals across all accounts
+- `migrateContentMixIfNeeded()` - Migrate from old single-key to per-account keys
+- `selectMixTrackerAccount(account)` - Switch which account's 5-3-2 data is displayed
+- `trackContentPost(type)` - Manually track a post for selected account
+- `updateMixTrackerBadges()` - Update all account tab badges
+- `updateSeasonIndicator()` - Set season (WINTER/SPRING/SUMMER/FALL) with focus text
+- `hexToRgb(hex)` - Helper for dynamic color styling
+- `updateHeaderOptimalTime()` - Update optimal time displays in header and Algorithm panel
+
+#### Functions Modified
+- `getContentMixData()` - Now returns data from per-account localStorage keys
+- `resetContentMixData()` - Now resets all account-specific keys
+- `incrementContentMix(account, type)` - Now writes to per-account localStorage keys
+- `updateContentMixUI()` - Now uses `selectedMixTrackerAccount` instead of `selectedAccount`
+- `updateAINeedBadge()` - Gutted (AI Recommends card removed)
+- `updateAIRecommendation()` - Now just calls `updateHeaderOptimalTime()`
+- `selectAccount(account)` - Simplified, also updates mix tracker account
+- `resetContentMix()` - Now resets only the selected account
+- `loadBrainTab()` - Added season/time init, removed `updateAIRecommendation()` call
+- `generateSmartRecommendation()` - Made defensive for missing elements
+- `displayRecommendation()` - Made defensive for missing elements
+- `getNewRecommendation()` - Made defensive for missing elements
+- `editCaption()` - Made defensive for missing elements
+- `saveEditedCaption()` - Made defensive for missing elements
+- `regenerateCaption()` - Made defensive for missing elements
+
+### localStorage Structure Change
+- OLD: `tinyseed_content_mix` (single key with nested account data)
+- NEW: Separate keys per account:
+  - `tinyseed_content_mix_farm`
+  - `tinyseed_content_mix_fleurs`
+  - `tinyseed_content_mix_fungi`
+- Migration function handles existing data
+
+### Reason
+User wanted Brain tab to be cleaner and more focused. AI Recommends was redundant with Create tab. 5-3-2 tracker needed per-account tracking since each account has different content strategies. Season indicator helps with contextual content planning.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created - enhanced existing functionality
+
+---
+
+## 2026-02-12 - Backend_Claude (Fix AI Caption Generator)
+
+### Context
+User clicked "AI Caption" and received useless output: "Write a fresh, engaging social media post about our farm harvest today #TinySeedFarm #FarmFresh..." This was broken because:
+1. It ignored the uploaded photo entirely
+2. It generated a PROMPT instead of an actual caption
+3. It mentioned "harvest" in February (winter) - seasonally wrong
+4. It was generic garbage, not contextual to the farm
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Added new vision-capable caption generator and API route
+- `web_app/marketing-command-center.html` - Updated frontend to send image to new endpoint
+
+### Functions Added
+- `generateAICaptionFromImage(params)` in `MERGED TOTAL.js` - New vision-capable AI caption generator that:
+  - Uses Claude Vision (or GPT-4V fallback) to analyze uploaded photos
+  - Knows the current season (Winter in February, etc.)
+  - Uses farm's voice/training posts for style matching
+  - Returns a READY-TO-POST caption, not a prompt
+  - Has season-appropriate fallbacks when no API key configured
+
+### Functions Modified
+- `generateAICaption()` in `marketing-command-center.html` - Now:
+  - Extracts base64 image data from upload preview
+  - Sends image to new `generateAICaptionFromImage` endpoint
+  - Uses season-appropriate fallback captions (not summer harvest in winter)
+  - Updates character count after generation
+
+### API Routes Added
+- `case 'generateAICaptionFromImage':` - Routes to new vision caption function
+
+### Reason
+The AI Caption button was completely broken - it didn't look at photos and generated inappropriate seasonal content. This fix makes it actually useful by analyzing the uploaded image and generating contextual, season-appropriate captions.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (enhanceCaption exists but doesn't do vision)
+- [x] No duplicates created - this is new vision functionality
+
+---
+
+## 2026-02-12 - PM_Architect (Standardize Agent Folder Names)
+
+### Context
+VALID_AGENTS in governor_helpers.js (e.g., Backend_Claude, Desktop_Claude) didn't have a mapping to their actual folder names in claude_sessions/ (e.g., backend, desktop_web). This caused confusion when routing to agent folders.
+
+### Files Created
+- `config/agent_folder_mapping.json` - Maps VALID_AGENTS names to folder names and vice versa
+- `claude_sessions/critic_claude/INBOX.md` - Inbox for Critic_Claude agent (folder was missing)
+- `claude_sessions/critic_claude/OUTBOX.md` - Outbox for Critic_Claude agent
+
+### Files Modified
+- `scripts/governor_helpers.js` - Added agent folder mapping functions
+
+### Functions Added
+- `loadAgentFolderMapping()` - Load the agent folder mapping configuration
+- `getAgentFolderName(agentName)` - Get folder name for a given agent
+- `getAgentSessionPath(agentName)` - Get full path to agent's session folder
+- `getAgentNameFromFolder(folderName)` - Reverse lookup: folder name to agent name
+- `getAgentInboxOutboxPaths(agentName)` - Get INBOX and OUTBOX paths for an agent
+- `getAllAgentFolderMappings()` - Get complete mapping of all agents to folders
+
+### CLI Commands Added
+- `agent-folder <agent_name>` - Get folder path for an agent
+- `folder-to-agent <folder_name>` - Reverse lookup folder to agent
+- `agent-mappings` - List all agent-to-folder mappings
+- `agent-inbox <agent_name>` - Get INBOX/OUTBOX paths for agent
+
+### Agent Folder Mapping Reference
+| VALID_AGENT | Folder Name |
+|-------------|-------------|
+| PM_Architect | pm_architect |
+| Backend_Claude | backend |
+| Desktop_Claude | desktop_web |
+| Mobile_Claude | mobile_app |
+| UX_Design_Claude | ux_design |
+| Sales_Claude | sales_crm |
+| Security_Claude | security |
+| Verifier_Claude | verifier_claude |
+| Critic_Claude | critic_claude |
+
+### Reason
+To ensure consistent agent naming in code while supporting different folder naming conventions in claude_sessions/.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
+## 2026-02-12 - Backend_Claude (Wire Verifier_Claude Task Routing)
+
+### Context
+Tasks were transitioning to AWAITING_VERIFICATION but nothing was actually routing them to Verifier_Claude. This fix ensures automatic routing when tasks enter verification.
+
+### Files Modified
+- `scripts/governor_helpers.js` - Added automatic routing to Verifier_Claude on state transition
+
+### Functions Added
+- `routeToVerifier(taskId, requestedBy, details)` in `governor_helpers.js` - Routes tasks to Verifier_Claude by:
+  1. Writing an entry to `claude_sessions/verifier_claude/VERIFICATION_QUEUE.json`
+  2. Adding a request to `claude_sessions/verifier_claude/INBOX.md`
+  3. Logging the routing event to the governor audit trail
+
+### Functions Modified
+- `transitionTaskState()` in `governor_helpers.js` - Now calls `routeToVerifier()` when transitioning from IMPLEMENTED to AWAITING_VERIFICATION
+
+### New CLI Command
+- `node scripts/governor_helpers.js route-to-verifier <task_id> <agent> [details_json]`
+
+### New File Path Constants Added
+- `CLAUDE_SESSIONS_DIR` - Path to claude_sessions directory
+- `VERIFIER_DIR` - Path to verifier_claude subdirectory
+- `VERIFICATION_QUEUE_FILE` - Path to VERIFICATION_QUEUE.json
+- `VERIFIER_INBOX_FILE` - Path to INBOX.md
+
+### Verification Queue Entry Format
+```json
+{
+  "requestId": "VER-TASK-001-timestamp-uuid",
+  "taskId": "TASK-001",
+  "requestedAt": "ISO timestamp",
+  "requestedBy": "agent name",
+  "description": "task description",
+  "evidence": {},
+  "priority": "MEDIUM",
+  "status": "pending",
+  "verificationType": "general",
+  "assignedTo": "Verifier_Claude"
+}
+```
+
+### Test Verification
+Ran `node scripts/governor_helpers.js transition TEST-WIRE-001 IMPLEMENTED AWAITING_VERIFICATION Backend_Claude` and verified:
+- VERIFICATION_QUEUE.json received new entry with correct format
+- INBOX.md received formatted markdown request
+- Statistics updated (total_received: 1, total_pending: 1)
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (no existing routeToVerifier)
+- [x] No duplicates created
+
+---
+
+## 2026-02-12 - Backend_Claude (Wholesale Improvement Roadmap Implementation)
+
+### Context
+Implementing priority items from WHOLESALE_IMPROVEMENT_ROADMAP.md. Key insight from audit: "The primary work is INTEGRATION, not building." Most features already exist - they just need to be connected to the wholesale workflow.
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Backend wholesale improvements (~200 lines added)
+- `web_app/wholesale.html` - Frontend wholesale portal improvements (~400 lines added)
+
+### Backend Functions Added (apps_script/MERGED TOTAL.js)
+
+#### Priority 1.1/1.2/1.4: Enhanced submitWholesaleOrder()
+Complete rewrite from 1-line passthrough to full-featured order submission:
+- Invoice generation: Calls `createInvoiceFromOrder()` after successful order
+- SMS confirmation: Sends order confirmation SMS using `sendSMS()` with delivery day
+- Minimum order validation: Checks customer-specific minimum before processing
+- Enhanced response: Returns invoice status, SMS status, detailed success message
+
+#### Priority 1.4: Minimum Order Functions
+- `getCustomerMinimumOrder(customerId)` - Get customer-specific minimum (default $50)
+- `getCustomerPhone(customerId)` - Get customer phone from WHOLESALE_CUSTOMERS
+- API endpoint `getMinimumOrder` added to doGet()
+
+#### Priority 1.3: Delivery Tracking
+- `getWholesaleDeliveryStatus(customerId)` - Get delivery status for wholesale orders
+  - Queries SALES_Orders, DELIVERY_STOPS, DELIVERY_LOG
+  - Returns order progress: Pending -> Packed -> Out for Delivery -> Delivered
+  - Includes driver name, ETA, GPS-verified completion time
+- API endpoint `getWholesaleDeliveryStatus` added to doGet()
+
+### Frontend Changes (web_app/wholesale.html)
+
+#### AppState Extension
+- Added `minimumOrder` property (default $50)
+- Added `deliveries` array for tracking data
+
+#### Priority 1.4: Minimum Order Validation UI
+- Warning banner in cart footer showing shortfall amount
+- Submit button disabled when below minimum
+- Dynamic button text: "Add $X more to order"
+- CSS: `.minimum-order-warning` styling
+
+#### Priority 1.2: SMS Confirmation Support
+- Added `customerPhone` to order submission data
+- Enhanced success toast with invoice and SMS status
+
+#### Priority 1.3: Delivery Tracking Tab
+- New "Track Delivery" navigation tab
+- Tab content with deliveries list
+- Visual progress tracker: Received -> Packed -> Out for Delivery -> Delivered
+- Delivery cards showing:
+  - Order ID and date
+  - Status badge with color coding
+  - Progress steps with icons and animations
+  - Driver name, ETA, delivery time when available
+- CSS: Full delivery tracking styles (~150 lines)
+  - `.delivery-card`, `.delivery-progress`, `.progress-step`
+  - Status badges, animations for active step
+
+#### JavaScript Functions Added
+- `loadMinimumOrder()` - Fetch customer minimum on login
+- `updateMinimumOrderUI(subtotal)` - Update warning and button state
+- `loadDeliveryTracking()` - Fetch delivery status data
+- `renderDeliveryTracking()` - Render delivery cards
+- `normalizeDeliveryStatus(status)` - Normalize status strings
+- `getDeliveryProgress(status)` - Generate progress step data
+
+### API Integration Points
+| Endpoint | Action | Purpose |
+|----------|--------|---------|
+| GET | getMinimumOrder | Get customer minimum order amount |
+| GET | getWholesaleDeliveryStatus | Get delivery tracking data |
+| POST | submitWholesaleOrder | Enhanced with invoice/SMS/validation |
+
+### Roadmap Status After Implementation
+| Item | Status | Notes |
+|------|--------|-------|
+| 1.1 Connect Invoice Generation | DONE | Auto-creates QuickBooks invoice |
+| 1.2 Add SMS Confirmations | DONE | Sends to customer phone |
+| 1.3 Delivery Tracking | DONE | Full UI with progress tracker |
+| 1.4 Minimum Order Validation | DONE | Backend + frontend validation |
+
+### What Remains (Priority 2+)
+- 2.1 Offline-first ordering PWA (8-12 hours)
+- 2.2 Delivery ETA notifications to chefs (4-6 hours)
+- 2.3 Product availability alerts "Notify Me" (3-4 hours)
+- 2.4 Bulk CSV import for chef invitations (2-3 hours)
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md - all functions are wholesale-specific
+- [x] Searched for similar functions - no duplicates
+- [x] Leveraged existing infrastructure (sendSMS, createInvoiceFromOrder)
+- [x] No duplicates created
+
+### Testing Notes
+1. Order Submission: Create wholesale order, verify invoice created in QuickBooks
+2. SMS: Verify confirmation SMS sent to customer phone
+3. Minimum Order: Add items below $50, verify warning appears
+4. Delivery Tracking: View tracking tab, verify progress display
+
+---
+
+## 2026-02-12 - Desktop_Claude (Sales Dashboard UX Improvement - Field/Office Dual-Context)
+
+### Context
+Following the SALES_IMPROVEMENT_ROADMAP.md, implementing the Field Mode / Office Mode dual-context design patterns from the UX Master Plan. Key insight: "The current Sales system is optimized for neither Field Mode nor Office Mode."
+
+### Files Modified
+- `web_app/sales.html` - Major UX improvements for dual-context support
+
+### Features Added
+
+#### 1. Field Mode Quick Stats View (PRIORITY 1)
+- Field Mode toggle button in header
+- Full-screen Quick Stats panel with today's revenue, goal progress, channel breakdown
+- Auto-detection suggestion for mobile users during business hours
+- 60px minimum touch targets for field use
+
+#### 2. Real Charts in Reports Tab (PRIORITY 1)
+- Added Chart.js CDN (v4.4.1)
+- Revenue by Week line chart with gradient fill
+- Orders by Channel doughnut chart
+- Helper functions to generate chart data from stats
+
+#### 3. Keyboard Shortcuts (PRIORITY 2)
+- Full keyboard shortcut system
+- Shortcuts overlay modal (press `?`)
+- Tab navigation: `1-9`, `D/O/C/I/R`
+- Table navigation: `J/K`, `Enter`, `Space`
+- Command palette: `Ctrl/Cmd+K`
+
+#### 4. Goal Setting and Progress Tracking (PRIORITY 2)
+- Daily revenue goal modal and storage (localStorage)
+- Goal progress bar on Dashboard
+- Achievement celebration animation
+
+#### 5. Bulk Order Operations (PRIORITY 2)
+- Checkbox selection for orders
+- Bulk status update and delete
+- Bulk actions bar with count
+
+#### 6. Print Stylesheets (PRIORITY 2)
+- `@media print` CSS for Pick & Pack lists
+- Optimized black/white formatting
+
+### JavaScript Functions Added (~500 lines)
+- `toggleFieldMode()`, `updateFieldModeStats()`, `checkAutoFieldMode()`
+- `initKeyboardShortcuts()`, `navigateTable()`, `showShortcutsOverlay()`
+- `showCommandPalette()`, `filterCommands()`, `executeCommand()`
+- `loadDailyGoal()`, `saveDailyGoal()`, `updateGoalProgress()`
+- `initCharts()`, `updateCharts()`, `generateWeeklyRevenueFromStats()`
+- `toggleOrderSelection()`, `bulkUpdateStatus()`, `bulkDeleteOrders()`
+
+### CSS Added (~350 lines)
+- Field Mode styles (panel, stats, channels, actions)
+- Shortcuts overlay and command palette
+- Goal progress card and bulk selection
+- Print media queries
+
+### Roadmap Status
+
+**Completed:**
+- [x] Field Mode toggle and quick stats view (Priority 1)
+- [x] Real charts in Reports tab (Priority 1)
+- [x] Keyboard shortcuts with overlay (Priority 2)
+- [x] Command palette (Priority 2)
+- [x] Bulk order operations (Priority 2)
+- [x] Goal setting and progress (Priority 2)
+- [x] Print stylesheets (Priority 2)
+
+**Remaining (Future):**
+- [ ] Customer communication history
+- [ ] Real-time Shopify webhooks
+- [ ] Voice commands
+- [ ] Invoice PDF generation
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] No duplicates created
+
+---
+
+## 2026-02-12 - Mobile_Claude (Farmers Market Improvement Roadmap Implementation)
+
+### Context
+Implementing top priority items from FARMERS_MARKET_IMPROVEMENT_ROADMAP.md based on key insight: "Mobile-first + offline is baseline expectation" - industry research shows 63% of farmers use software, offline capability is competitive advantage.
+
+### Files Modified
+
+#### `web_app/market-sales.html` - Major offline/mobile improvements
+- Added `offline-task-manager.js` import
+- Added offline mode CSS (banner, sync indicator, cash-only notice)
+- Added offline banner, sync indicator, "Cash Only" notice UI elements
+- Added "Sync Now" manual sync button and "Last Sync" time display
+- Created `MarketSalesOfflineManager` class (full offline sales handling)
+- Implemented IndexedDB stores for products and pending sales
+- Updated `processCheckout()` to queue sales when offline
+- Added `loadProducts()` for API/cache fallback loading
+
+#### `web_app/farmers-market.html` - Modal system and UX improvements
+- Added modal CSS styles (overlay, settlement, analytics, cancel)
+- Added Settlement Modal, Analytics Modal, Cancel Market Modal HTML
+- Replaced `alert()` in `startSettlement()` with formatted modal
+- Replaced `alert()` in `viewAnalytics()` with formatted modal
+- Added cancel button to market items for cancellation workflow
+- Added `showNotification()` toast function
+
+#### `sw.js` - Service Worker v9
+- Added `sync-market-sales` background sync tag handler
+- Added `syncMarketSales()` function for background sync
+- Added IndexedDB helpers for market sales sync
+- Updated `syncAllPendingData()` to include market sales
+
+### Functions Added
+
+**market-sales.html:**
+- `MarketSalesOfflineManager` class with full offline capabilities
+- `updateOfflineUI()`, `showSyncStatus()`, `hideSyncStatus()`
+- `updateLastSyncDisplay()`, `manualSync()`, `loadProducts()`
+
+**farmers-market.html:**
+- `openModal()`, `closeModal()` - Modal control
+- `renderSettlementModal()`, `completeSettlement()`, `printSettlement()`
+- `renderAnalyticsModal()` - Analytics display
+- `showCancelModal()`, `selectCancelReason()`, `confirmCancelMarket()`
+- `showNotification()`, `showConfirmDialog()`
+
+**sw.js:**
+- `syncMarketSales()`, `getPendingMarketSalesFromIDB()`
+- `markMarketSaleSynced()`, `incrementMarketSaleRetry()`
+
+### Roadmap Items Implemented
+
+| Priority | Item | Status |
+|----------|------|--------|
+| P1.1 | Offline sales recording | DONE |
+| P1.2 | Offline product catalog | DONE |
+| P1.5 | Market cancellation workflow | DONE |
+| P2.3 | Replace alert() with modals | DONE |
+| - | Offline UI indicators | DONE |
+| - | Background sync for sales | DONE |
+
+### Roadmap Items Remaining
+
+| Priority | Item |
+|----------|------|
+| P1.3 | Dynamic product catalog (API endpoint) |
+| P1.4 | Staff assignment for markets |
+| P2.1 | Sell by weight |
+| P2.2 | Customer email capture |
+| P2.4 | Location management UI |
+| P2.5 | Customer purchase history |
+| P2.6 | Pre-market prep checklist |
+
+### Duplicate Check
+- [x] Extended existing offline-task-manager.js pattern
+- [x] Added to existing service worker sync handlers
+- [x] No duplicates created
+
+---
+
+## 2026-02-12 - Backend_Claude (CSA Harvie Gap Opportunity Implementation)
+
+### Context
+Following the CSA_IMPROVEMENT_ROADMAP.md, implementing the Harvie-style features to capture the market gap left by Harvie's closure at end of 2024. Key insight: "Tiny Seed Farm already has many building blocks for Harvie-level customization. The opportunity is to activate and enhance existing features."
+
+### Files Modified
+
+- `apps_script/MERGED TOTAL.js` - Multiple CSA intelligence enhancements
+- `web_app/csa.html` - Smart swap suggestions UI with personalized recommendations
+
+### Schema Changes
+
+- Added `Last_Portal_Login` column to CSA_Members sheet schema - Enables real engagement tracking for health scores instead of hardcoded value
+
+### Functions Added
+
+- `getSmartSwapSuggestions(params)` in `MERGED TOTAL.js` - Harvie-style personalized swap recommendations based on member preferences. Returns recommended items sorted by predicted preference score with explanations like "You've chosen this before" or "Based on similar items you've rated"
+
+### Functions Modified
+
+- `verifyCSAMagicLink()` - Now updates `Last_Portal_Login` timestamp when member authenticates via magic link
+- `verifyCSASMSCode()` - Now updates `Last_Portal_Login` timestamp when member authenticates via SMS code
+- `customizeCSABox(data)` - Now saves preferences when "remember" checkbox is checked:
+  - Sets swapped-out item to RARELY (rating 2)
+  - Sets chosen swap item to LIKE_IT (rating 4)
+  - Records SWAPPED_OUT implicit signal for preference learning
+
+### API Endpoints Added
+
+- `getSmartSwapSuggestions` - Returns personalized swap suggestions for a member based on their preference history
+
+### Frontend Changes
+
+- `openSwapModal()` in csa.html - Now async, fetches smart swap suggestions from API
+- `renderSwapSuggestions()` - Renders personalized recommendations with match badges and explanations
+- `renderFallbackSwapOptions()` - Graceful fallback when API unavailable
+- Added CSS for smart swap UI: `.swap-option.recommended`, `.swap-match-badge`, `.swap-note`, `.swap-loading`
+
+### How This Captures Harvie Gap
+
+1. **Portal Login Tracking** (P1 from roadmap) - Health scores now use REAL engagement data instead of hardcoded 70
+2. **Remember Swap to Preferences** (P1 from roadmap) - Checkbox now actually saves preferences for future boxes
+3. **Smart Swap Suggestions** (P1 from roadmap) - Replaces hardcoded popular swaps with personalized recommendations
+
+### Business Impact
+
+- Members see "Great match" or "Good match" badges on personalized swap recommendations
+- System learns from each swap when "Remember this swap" is checked
+- Health score engagement component now reflects actual portal usage
+- Foundation for future "auto-optimize my box" feature (Phase 3 of roadmap)
+
+### Remaining Roadmap Items (Not Implemented)
+
+- P1: Complete Twilio SMS integration (requires credentials)
+- P2: Weekly box satisfaction preview in portal
+- P2: Build waitlist system
+- P2: Preference rating UI during onboarding
+- P2: Automate renewal campaign triggers
+- P3: Recipe integration
+- P3: Auto-optimize box feature
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions - getSmartSwapSuggestions is new
+- [x] No duplicates created - enhanced existing preference system
+
+---
+
+## 2026-02-12 - Desktop_Claude (Marketing Command Center Mobile Nav Tab Fix)
+
+### Files Modified
+- `web_app/marketing-command-center.html` - Fixed mobile navigation tab switching bug
+
+### HTML Modified
+- Line 21166: Changed mobile Calendar button from `mobileNavSwitch('calendar')` to `mobileNavSwitch('contentcalendar')` - the correct tab ID
+
+### Functions Modified
+- `mobileNavSwitch(tabId)` - Refactored to:
+  1. Find and activate the correct mobile nav button by matching onclick attribute (same pattern as switchTab)
+  2. Delegate to main `switchTab(tabId)` function instead of duplicating tab switching logic
+  3. This ensures all tab data loading functions are called properly when switching tabs on mobile
+
+### Bug Fixed
+- **Root Cause:** Mobile Calendar button was calling `mobileNavSwitch('calendar')` but the actual tab content div ID is `contentcalendarTab`, not `calendarTab`
+- **Symptom:** Clicking Calendar on mobile navigation would show a blank/black area because no element with ID `calendarTab` exists
+- **Fix:** Corrected the tab ID to `contentcalendar` and refactored mobileNavSwitch to use the main switchTab function
+
+### Reason
+User reported 7 tabs blacked out in Marketing Command Center. Investigation revealed:
+1. The main `switchTab` function (line 9452) was already fixed in a previous commit (a4afe7b)
+2. Mobile navigation had a separate bug where the Calendar button used an incorrect tab ID
+3. The `mobileNavSwitch` function was also not calling the data loading functions (loadContentCalendar, loadSocialGrowthData, etc.)
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created - refactored to use existing switchTab function
+
+---
+
+## 2026-02-12 - Desktop_Claude (SEO Improvement Roadmap Implementation - AEO/AI Visibility)
+
+### Files Modified
+- `web_app/seo_dashboard.html` - Major enhancements for AEO/AI Visibility tracking (Critical 2026 priority)
+
+### HTML Added
+1. **#1 Priority This Week Hero Card** (UX Improvement)
+   - Dynamic hero card at top of dashboard showing the most important action
+   - Color-coded (red gradient) for urgency
+   - Includes "Start" button that opens relevant action guide
+   - Auto-updates based on data analysis
+
+2. **AI Visibility Score Card** (Critical Gap Fix)
+   - New score card between Overall Score and Google Reviews
+   - Shows AI appearance rate percentage
+   - Displays appearances/total checks count
+   - Color-coded trend indicator
+
+3. **AEO/AI Visibility Tracking Section** (Critical Gap Fix)
+   - Industry context banner explaining the 60% search shift to AI
+   - Platform grid for ChatGPT, Perplexity, Google Gemini, Google AI Overview
+   - Per-platform visibility rates with quick-check buttons
+   - Recent AI checks history display
+   - AEO tips section with how-to instructions
+
+4. **AI Visibility Check Modal**
+   - Form to log AI visibility checks
+   - Fields: Platform, Query, Appeared (yes/no), Position, Sentiment, Notes
+   - Supports: ChatGPT, Perplexity, Gemini, AI Overview, Claude, Copilot
+
+### Functions Added
+- `loadAIVisibility()` - Fetches AI visibility metrics from backend
+- `renderAIVisibilityScore()` - Updates the AI Visibility score card
+- `renderAIPlatformsGrid()` - Renders the platform-specific visibility cards
+- `renderRecentAIChecks()` - Displays recent AI check history
+- `renderAIVisibilityPlaceholder()` - Shows placeholder when no data exists
+- `openAICheckModal()` - Opens the AI check logging modal
+- `quickAICheck(platform)` - Pre-fills platform and opens modal
+- `saveAICheck()` - Saves AI visibility check to backend via `logAIVisibility` API
+- `refreshAIVisibility()` - Refreshes AI visibility data
+- `updatePriorityHero()` - Analyzes data and updates #1 priority hero card
+
+### Functions Modified
+- `loadDashboard()` - Added calls to `loadAIVisibility()` and `updatePriorityHero()`
+- `generateWizardInsights()` - Added AI visibility analysis to priority actions and opportunities
+- `GET_ENDPOINTS` array - Added `getAIVisibilityMetrics` for proper GET requests
+
+### CSS Added
+- Responsive grid styles for 5-column score cards layout
+- Media queries for 1400px, 1200px, 768px breakpoints
+
+### Action Guides Added
+- `improve_aeo` - New action guide for improving AI visibility with 6 steps:
+  1. Create FAQ Content
+  2. Add Structured Data (Schema)
+  3. Build Authoritative Backlinks
+  4. Create "Best Of" Content
+  5. Update Content Frequently
+  6. Monitor & Track
+
+### Backend Integration
+Connected to existing Apps Script functions that were built but not activated:
+- `logAIVisibility()` - Logs AI visibility checks to SEO_AI_Visibility sheet
+- `getAIVisibilityMetrics()` - Retrieves AI visibility metrics
+
+### Reason
+Implementing Priority 1 items from SEO_IMPROVEMENT_ROADMAP.md:
+- **AEO/AI Visibility Tracking** (CRITICAL GAP) - 60%+ of searches now end without a click as AI provides direct answers. This was identified as the #1 gap in the 2026 SEO landscape.
+- **#1 Priority Hero Card** (UX Improvement from audit) - High-impact, low-effort improvement to drive user engagement
+- **Connect existing backend functions** - AI visibility functions existed in MERGED TOTAL.js but weren't exposed in the dashboard
+
+### Reference Documents
+- `/docs/SEO_IMPROVEMENT_ROADMAP.md` - Priority 1: Critical Gaps section
+- `/docs/SEO_DASHBOARD_UX_AUDIT.md` - UX improvements section
+
+### Duplicate Check
+- [x] Checked existing SEO dashboard code
+- [x] Verified backend functions exist (logAIVisibility, getAIVisibilityMetrics)
+- [x] No duplicates created - extended existing dashboard
+
+---
+
+## 2026-02-12 - Desktop_Claude (AI Recommends Photo Upload Feature)
+
+### Files Modified
+- `web_app/marketing-command-center.html` - Added photo upload capability to AI Recommends card
+
+### HTML Added
+- Photo attachment section in AI Recommends card with:
+  - Preview container for selected photos
+  - "Farm Pics" button to select from existing photo library
+  - "Upload" button for new photo uploads
+  - Clear/remove photo functionality
+- New modal `aiRecommendPhotoPickerModal` for Farm Pics selection specific to AI Recommends
+
+### Functions Added
+- `openAIRecommendPhotoPicker()` - Opens the photo picker modal for AI Recommends
+- `closeAIRecommendPhotoPicker()` - Closes the photo picker modal
+- `loadAIRecommendPhotoPicker()` - Fetches and displays farm photos in the picker grid
+- `selectAIRecommendPhoto(imageUrl, element)` - Handles photo selection from Farm Pics
+- `handleAIRecommendPhotoUpload(event)` - Handles file upload from device
+- `updateAIRecommendPhotoPreview(imageUrl)` - Updates the preview display in the card
+- `clearAIRecommendPhoto()` - Clears selected photo and resets state
+- `fileToBase64(file)` - Helper to convert File objects to base64 for API submission
+
+### Functions Modified
+- `approveAndSchedule()` - Enhanced to include photo data (imageUrl or imageBase64) when scheduling posts, clears photo selection after successful scheduling
+
+### State Variables Added
+- `aiRecommendSelectedPhoto` - Object storing selected photo info: `{ url: string, isUpload: boolean, file?: File }`
+
+### Reason
+User requested ability to add photos to posts before approving and scheduling from the AI Recommends card. Previously, photo upload was only available in the Create tab. This feature:
+- Allows selecting from existing Farm Pics library (already hosted on Google Drive)
+- Supports uploading new photos directly
+- Shows preview before scheduling
+- Photos are optional - posts can still be scheduled without images
+- Mobile-friendly with min-height touch targets (44px+)
+
+### Backend Changes Needed
+The `schedulePost` action in Apps Script may need to handle:
+- `imageUrl` parameter - URL to existing hosted image
+- `imageBase64` parameter - Base64-encoded image data for uploads
+- `imageMimeType` parameter - MIME type of uploaded image
+
+### Testing Instructions
+1. Go to Marketing Command Center
+2. Navigate to the Brain tab (first tab)
+3. Find the AI Recommends card
+4. Click "Farm Pics" to select from existing library, or "Upload" to upload new photo
+5. Selected photo appears in preview with remove (X) button
+6. Click "Approve & Schedule" - photo data is included in the scheduled post
+7. Verify post scheduled with photo attachment
+
+### Duplicate Check
+- [x] Checked existing photo picker implementation in Create tab
+- [x] Reused `pickerFarmPicsCache` and API patterns from existing Farm Pics system
+- [x] No duplicates created - extended existing functionality
+
+---
+
+## 2026-02-12 - PM_Architect (Orchestrator Delegation Enforcement System)
+
+### Files Created
+- `scripts/enforce-orchestrator-delegation.sh` - PreToolUse hook script that blocks Bash/Edit/Write/MultiEdit/NotebookEdit tools when operating as PM_Architect and requires delegation to specialist agents
+
+### Files Modified
+- `.claude/settings.json` - Added defaultMode "delegate", updated permissions to deny execution tools while allowing Task/Read/Grep/Glob tools, added PreToolUse hook configuration
+
+### Configuration Changes
+- **defaultMode**: Set to "delegate" to enforce orchestration-first approach
+- **Permissions Allow**: Task(*), TaskCreate, TaskUpdate, TaskList, TaskGet, TaskOutput, Read, Grep, Glob, AskUserQuestion, WebSearch, WebFetch, mcp__claude-flow__*
+- **Permissions Deny**: Bash(*), Edit(*), Write(*), MultiEdit(*), NotebookEdit(*) (plus existing dangerous commands)
+- **PreToolUse Hook**: Matches Bash|Edit|Write|MultiEdit|NotebookEdit and runs enforcement script
+
+### Reason
+Implementing mandatory delegation enforcement for PM_Architect role to ensure:
+1. PM_Architect operates as orchestrator only, never directly executing code changes
+2. All implementation work is delegated to appropriate specialist agents (Backend_Claude, Desktop_Claude, Mobile_Claude, Security_Claude)
+3. Audit trail of all tool usage attempts via log file at tinypm/.orchestrator_enforcement.log
+4. Clear error messages when delegation is required
+
+### Important Notes
+- **REQUIRES JQ**: The enforcement script requires `jq` for JSON parsing. Install with: `brew install jq`
+- The hook script logs all attempts to `/Users/samanthapollack/Documents/TIny_Seed_OS/tinypm/.orchestrator_enforcement.log`
+- Preserved existing mcpServers configuration for tiny-seed MCP server
+- Preserved existing dangerous command denials (rm -rf, sudo, force push, hard reset)
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created (new enforcement infrastructure)
+
+---
+
 ## 2026-02-12 - Backend_Claude (Grant Scanner v4.0 Implementation)
 
 ### Files Modified

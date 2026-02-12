@@ -1948,6 +1948,48 @@
             color: white !important;
         }
 
+        /* Account Mix Tracker Tabs */
+        .account-mix-tab {
+            padding: 0.5rem 0.75rem;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .account-mix-tab:hover {
+            background: rgba(255,255,255,0.1);
+            color: var(--text-primary);
+        }
+
+        .account-mix-tab.active {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(99, 102, 241, 0.3));
+            border-color: #8B5CF6;
+            color: white;
+        }
+
+        .account-mix-tab.active i {
+            color: white !important;
+        }
+
+        .mix-tab-badge {
+            font-size: 0.7rem;
+            background: rgba(0,0,0,0.3);
+            padding: 0.15rem 0.4rem;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .account-mix-tab.active .mix-tab-badge {
+            background: rgba(255,255,255,0.2);
+        }
+
         /* Content Type Selector */
         .content-type-selector {
             display: flex;
@@ -3409,11 +3451,27 @@
                 <div class="card-body" style="padding: 2rem;">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
                         <div>
-                            <h2 style="font-size: 1.5rem; margin-bottom: 0.5rem;">
-                                <i class="fas fa-robot" style="color: var(--purple);"></i> Good <span id="timeOfDay">Morning</span>, Boss!
-                            </h2>
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
+                                <h2 style="font-size: 1.5rem; margin: 0;">
+                                    <i class="fas fa-robot" style="color: var(--purple);"></i> Good <span id="timeOfDay">Morning</span>, Boss!
+                                </h2>
+                                <!-- Season Indicator -->
+                                <div id="seasonIndicator" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(100, 181, 246, 0.2); padding: 0.4rem 0.8rem; border-radius: 20px; border: 1px solid rgba(100, 181, 246, 0.4);">
+                                    <i class="fas fa-snowflake" style="color: #64B5F6;"></i>
+                                    <span style="font-size: 0.85rem; font-weight: 600; color: #64B5F6;">WINTER</span>
+                                </div>
+                                <!-- Optimal Posting Time - PROMINENT -->
+                                <div id="optimalTimeDisplay" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(34, 197, 94, 0.2); padding: 0.4rem 0.8rem; border-radius: 20px; border: 1px solid rgba(34, 197, 94, 0.4);">
+                                    <i class="fas fa-clock" style="color: var(--success);"></i>
+                                    <span style="font-size: 0.85rem; color: var(--text-secondary);">Best time today:</span>
+                                    <span id="headerOptimalTime" style="font-weight: 700; color: var(--success);">--</span>
+                                </div>
+                            </div>
                             <p id="briefingSummary" style="color: var(--text-secondary); max-width: 600px; line-height: 1.6;">
                                 Loading your AI-powered daily briefing...
+                            </p>
+                            <p id="seasonContext" style="font-size: 0.8rem; color: #64B5F6; margin-top: 0.25rem; font-style: italic;">
+                                <i class="fas fa-leaf"></i> Winter Focus: Greenhouse planning, CSA signups, seed ordering
                             </p>
                             <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.5rem;">
                                 <i class="fas fa-clock"></i> Generated: <span id="briefingTime">--</span>
@@ -3505,100 +3563,16 @@
                 </div>
             </div>
 
-            <!-- Urgent Actions & AI Recommendations -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem;">
-                <!-- Urgent Actions -->
-                <div class="card">
-                    <div class="card-header" style="border-left: 4px solid var(--danger);">
-                        <h3><i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i> Urgent Actions</h3>
-                        <span class="badge" id="urgentBadge" style="background: var(--danger);">0</span>
-                    </div>
-                    <div class="card-body" id="urgentActions" style="max-height: 400px; overflow-y: auto;">
-                        <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-                            <i class="fas fa-spinner fa-spin" style="font-size: 2rem;"></i>
-                            <p style="margin-top: 1rem;">Loading urgent actions...</p>
-                        </div>
-                    </div>
+            <!-- Urgent Actions - Full Width (AI Recommends REMOVED - use Create tab) -->
+            <div class="card" style="margin-top: 1.5rem;">
+                <div class="card-header" style="border-left: 4px solid var(--danger);">
+                    <h3><i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i> Urgent Actions</h3>
+                    <span class="badge" id="urgentBadge" style="background: var(--danger);">0</span>
                 </div>
-
-                <!-- AI Post Recommendation - UPGRADED -->
-                <div class="card" style="background: linear-gradient(135deg, rgba(225, 48, 108, 0.1), rgba(155, 89, 182, 0.1)); border: 1px solid rgba(225, 48, 108, 0.3);">
-                    <div class="card-header">
-                        <h3><i class="fas fa-lightbulb" style="color: var(--instagram);"></i> AI Recommends</h3>
-                        <div id="aiNeedBadge" class="ai-need-badge curated">
-                            <i class="fas fa-arrow-up"></i> <span id="needBadgeText">Post CURATED content next</span>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <!-- Account Context Display -->
-                        <div id="recommendAccountContext" style="background: rgba(0,0,0,0.3); padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem;">
-                            <i class="fas fa-bullseye" style="color: var(--instagram);"></i>
-                            <span>Posting to: <strong id="recommendAccountName">ALL ACCOUNTS</strong></span>
-                        </div>
-
-                        <!-- Content Type Selector (5-3-2) -->
-                        <div style="margin-bottom: 1rem;">
-                            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.5rem; display: flex; justify-content: space-between;">
-                                <span><i class="fas fa-layer-group"></i> SELECT CONTENT TYPE (5-3-2 Rule)</span>
-                                <span id="contentMixStatus">On track ✓</span>
-                            </div>
-                            <div class="content-type-selector">
-                                <button class="content-type-btn active curated" data-type="curated" onclick="selectContentType('curated')">
-                                    <span class="type-count" id="curatedCount">0/5</span>
-                                    <span class="type-label">CURATED/SHARED</span>
-                                </button>
-                                <button class="content-type-btn original" data-type="original" onclick="selectContentType('original')">
-                                    <span class="type-count" id="originalCount">0/3</span>
-                                    <span class="type-label">ORIGINAL</span>
-                                </button>
-                                <button class="content-type-btn personal" data-type="personal" onclick="selectContentType('personal')">
-                                    <span class="type-count" id="personalCount">0/2</span>
-                                    <span class="type-label">PERSONAL/FUN</span>
-                                </button>
-                            </div>
-                            <div class="content-mix-progress">
-                                <div class="curated-fill" id="curatedFill" style="width: 0%;"></div>
-                                <div class="original-fill" id="originalFill" style="width: 0%;"></div>
-                                <div class="personal-fill" id="personalFill" style="width: 0%;"></div>
-                            </div>
-                        </div>
-
-                        <!-- Timing & Platform Info -->
-                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-bottom: 1rem;">
-                            <div style="text-align: center; padding: 0.75rem; background: rgba(0,0,0,0.2); border-radius: 8px;">
-                                <div style="font-size: 0.7rem; color: var(--text-secondary);">Best Time</div>
-                                <div style="font-weight: 700; color: var(--success); font-size: 0.95rem;" id="recommendedTime">4:00 PM</div>
-                            </div>
-                            <div style="text-align: center; padding: 0.75rem; background: rgba(0,0,0,0.2); border-radius: 8px;">
-                                <div style="font-size: 0.7rem; color: var(--text-secondary);">Platform</div>
-                                <div style="font-weight: 700; font-size: 0.95rem;" id="recommendedPlatform"><i class="fab fa-instagram"></i> Instagram</div>
-                            </div>
-                            <div style="text-align: center; padding: 0.75rem; background: rgba(0,0,0,0.2); border-radius: 8px;">
-                                <div style="font-size: 0.7rem; color: var(--text-secondary);">Expected</div>
-                                <div style="font-weight: 700; color: var(--gold); font-size: 0.95rem;" id="expectedEngagement">High</div>
-                            </div>
-                        </div>
-
-                        <!-- AI Generated Caption -->
-                        <div id="suggestedCaption" style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 1rem; min-height: 100px; white-space: pre-wrap; line-height: 1.6; font-size: 0.9rem;">
-                            Loading AI recommendation...
-                        </div>
-                        <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.5rem;" id="whyThisWorks">
-                            <i class="fas fa-info-circle"></i> AI analyzing your audience patterns...
-                        </p>
-
-                        <!-- Action Buttons -->
-                        <div style="display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap;">
-                            <button class="btn btn-primary" onclick="approveAndSchedule()" style="flex: 1;">
-                                <i class="fas fa-check"></i> Approve & Schedule
-                            </button>
-                            <button class="btn btn-secondary" onclick="editCaption()">
-                                <i class="fas fa-edit"></i> Edit
-                            </button>
-                            <button class="btn btn-secondary" onclick="getNewRecommendation()">
-                                <i class="fas fa-dice"></i> New Idea
-                            </button>
-                        </div>
+                <div class="card-body" id="urgentActions" style="max-height: 300px; overflow-y: auto;">
+                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 2rem;"></i>
+                        <p style="margin-top: 1rem;">Loading urgent actions...</p>
                     </div>
                 </div>
             </div>
@@ -3694,23 +3668,58 @@
                             </div>
                         </div>
                     </div>
-                    <!-- 5-3-2 Content Mix - INTERACTIVE TRACKER -->
+                    <!-- Optimal Posting Time - PROMINENT -->
+                    <div style="margin-top: 1.5rem; background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(67, 97, 238, 0.2)); padding: 1.25rem; border-radius: 12px; border: 1px solid rgba(34, 197, 94, 0.3);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                            <div>
+                                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.25rem;">
+                                    <i class="fas fa-clock"></i> BEST TIME TO POST TODAY
+                                </div>
+                                <div style="font-size: 2rem; font-weight: 700; color: var(--success);" id="algorithmOptimalTime">4:00 PM</div>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);" id="algorithmTimeQuality">
+                                    <i class="fas fa-fire"></i> PEAK engagement window - Based on 9.6M posts analyzed
+                                </div>
+                            </div>
+                            <div style="text-align: center;">
+                                <button class="btn btn-primary" onclick="switchTab('create')" style="background: linear-gradient(135deg, var(--success), var(--info));">
+                                    <i class="fas fa-edit"></i> Create Post Now
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 5-3-2 Content Mix - PER-ACCOUNT TRACKER -->
                     <div style="margin-top: 1.5rem; background: rgba(0,0,0,0.3); padding: 1.25rem; border-radius: 12px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
                             <h4 style="margin: 0;"><i class="fas fa-layer-group" style="color: var(--purple);"></i> 5-3-2 Content Mix Tracker</h4>
                             <div style="display: flex; gap: 0.5rem; align-items: center;">
-                                <span id="trackerAccountLabel" style="font-size: 0.8rem; color: var(--text-secondary);">Tracking: ALL ACCOUNTS</span>
-                                <button class="btn btn-sm btn-secondary" onclick="resetContentMix()" title="Reset weekly counts">
+                                <button class="btn btn-sm btn-secondary" onclick="resetContentMix()" title="Reset weekly counts for selected account">
                                     <i class="fas fa-undo"></i> Reset
                                 </button>
                             </div>
                         </div>
 
+                        <!-- Account Tabs for 5-3-2 Tracking -->
+                        <div id="mixTrackerAccountTabs" style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
+                            <button class="account-mix-tab active" data-mix-account="farm" onclick="selectMixTrackerAccount('farm')">
+                                <i class="fab fa-instagram" style="color: var(--instagram);"></i> @tinyseedfarm
+                                <span id="farmMixBadge" class="mix-tab-badge">0/10</span>
+                            </button>
+                            <button class="account-mix-tab" data-mix-account="fleurs" onclick="selectMixTrackerAccount('fleurs')">
+                                <i class="fab fa-instagram" style="color: #E1306C;"></i> @tinyseedfleurs
+                                <span id="fleursMixBadge" class="mix-tab-badge">0/10</span>
+                            </button>
+                            <button class="account-mix-tab" data-mix-account="fungi" onclick="selectMixTrackerAccount('fungi')">
+                                <i class="fab fa-instagram" style="color: #833AB4;"></i> @tinyseedfungi
+                                <span id="fungiMixBadge" class="mix-tab-badge">0/10</span>
+                            </button>
+                        </div>
+
                         <!-- Weekly Progress Summary -->
                         <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                                <span style="font-size: 0.85rem; color: var(--text-secondary);">This Week's Progress</span>
-                                <span id="weeklyMixStatus" style="font-size: 0.85rem; font-weight: 600; color: var(--success);">On Track ✓</span>
+                                <span id="trackerAccountLabel" style="font-size: 0.85rem; color: var(--text-secondary);">@tinyseedfarm This Week</span>
+                                <span id="weeklyMixStatus" style="font-size: 0.85rem; font-weight: 600; color: var(--success);">On Track</span>
                             </div>
                             <div class="content-mix-progress" style="height: 12px; margin-bottom: 0.5rem;">
                                 <div class="curated-fill" id="trackerCuratedFill" style="width: 50%;"></div>
@@ -3725,31 +3734,40 @@
 
                         <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
                             <!-- Curated -->
-                            <div id="trackerCurated" style="flex: 5; min-width: 150px; background: rgba(34, 197, 94, 0.2); padding: 1rem; border-radius: 8px; text-align: center; cursor: pointer; transition: all 0.2s; border: 2px solid transparent;" onclick="selectContentType('curated')">
+                            <div id="trackerCurated" style="flex: 5; min-width: 150px; background: rgba(34, 197, 94, 0.2); padding: 1rem; border-radius: 8px; text-align: center; cursor: pointer; transition: all 0.2s; border: 2px solid transparent;" onclick="trackContentPost('curated')">
                                 <div style="font-size: 2rem; font-weight: 700; color: var(--success);"><span id="trackerCuratedCurrent">0</span>/5</div>
                                 <div style="font-size: 0.85rem; font-weight: 600;">Curated/Shared</div>
                                 <div style="font-size: 0.75rem; color: var(--text-secondary);">Industry content, reposts</div>
                                 <div id="curatedNeed" style="margin-top: 0.5rem; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.7rem; background: rgba(34, 197, 94, 0.3);">
                                     Need 5 more
                                 </div>
+                                <button class="btn btn-sm" style="margin-top: 0.5rem; background: var(--success); color: white; font-size: 0.7rem;" onclick="event.stopPropagation(); trackContentPost('curated')">
+                                    <i class="fas fa-plus"></i> Track Post
+                                </button>
                             </div>
                             <!-- Original -->
-                            <div id="trackerOriginal" style="flex: 3; min-width: 150px; background: rgba(67, 97, 238, 0.2); padding: 1rem; border-radius: 8px; text-align: center; cursor: pointer; transition: all 0.2s; border: 2px solid transparent;" onclick="selectContentType('original')">
+                            <div id="trackerOriginal" style="flex: 3; min-width: 150px; background: rgba(67, 97, 238, 0.2); padding: 1rem; border-radius: 8px; text-align: center; cursor: pointer; transition: all 0.2s; border: 2px solid transparent;" onclick="trackContentPost('original')">
                                 <div style="font-size: 2rem; font-weight: 700; color: var(--info);"><span id="trackerOriginalCurrent">0</span>/3</div>
                                 <div style="font-size: 0.85rem; font-weight: 600;">Original</div>
                                 <div style="font-size: 0.75rem; color: var(--text-secondary);">Your content, non-sales</div>
                                 <div id="originalNeed" style="margin-top: 0.5rem; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.7rem; background: rgba(67, 97, 238, 0.3);">
                                     Need 3 more
                                 </div>
+                                <button class="btn btn-sm" style="margin-top: 0.5rem; background: var(--info); color: white; font-size: 0.7rem;" onclick="event.stopPropagation(); trackContentPost('original')">
+                                    <i class="fas fa-plus"></i> Track Post
+                                </button>
                             </div>
                             <!-- Personal -->
-                            <div id="trackerPersonal" style="flex: 2; min-width: 150px; background: rgba(225, 48, 108, 0.2); padding: 1rem; border-radius: 8px; text-align: center; cursor: pointer; transition: all 0.2s; border: 2px solid transparent;" onclick="selectContentType('personal')">
+                            <div id="trackerPersonal" style="flex: 2; min-width: 150px; background: rgba(225, 48, 108, 0.2); padding: 1rem; border-radius: 8px; text-align: center; cursor: pointer; transition: all 0.2s; border: 2px solid transparent;" onclick="trackContentPost('personal')">
                                 <div style="font-size: 2rem; font-weight: 700; color: var(--instagram);"><span id="trackerPersonalCurrent">0</span>/2</div>
                                 <div style="font-size: 0.85rem; font-weight: 600;">Personal/Fun</div>
                                 <div style="font-size: 0.75rem; color: var(--text-secondary);">Humanize brand</div>
                                 <div id="personalNeed" style="margin-top: 0.5rem; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.7rem; background: rgba(225, 48, 108, 0.3);">
                                     Need 2 more
                                 </div>
+                                <button class="btn btn-sm" style="margin-top: 0.5rem; background: var(--instagram); color: white; font-size: 0.7rem;" onclick="event.stopPropagation(); trackContentPost('personal')">
+                                    <i class="fas fa-plus"></i> Track Post
+                                </button>
                             </div>
                         </div>
 
@@ -4308,9 +4326,10 @@
                         <i class="fas fa-bell"></i> TRIGGER EMERGENCY ALERT
                     </button>
                 </div>
-            </div> <!-- End quickPostMode -->
+            </div>
+        </div> <!-- End quickPostMode -->
 
-            <!-- AI STUDIO MODE (Content Studio integrated) -->
+        <!-- AI STUDIO MODE (Content Studio integrated) -->
             <div id="aiStudioMode" class="create-mode-content" style="display: none;">
                 <div class="card" style="background: linear-gradient(135deg, rgba(225, 48, 108, 0.1), rgba(155, 89, 182, 0.1)); border: 1px solid rgba(225, 48, 108, 0.3);">
                     <div class="card-header">
@@ -7424,10 +7443,6 @@
             <!-- Redirects to Engage tab -->
         </div>
 
-
-            </div>
-        </div>
-
         <!-- REVENUE TAB - Social Media Revenue Attribution -->
         <div id="revenueTab" class="tab-content">
             <div class="stats-grid">
@@ -8696,6 +8711,33 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeFarmPicsPicker()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI RECOMMEND PHOTO PICKER MODAL -->
+    <div class="modal-overlay" id="aiRecommendPhotoPickerModal">
+        <div class="modal" style="max-width: 800px; max-height: 80vh;">
+            <div class="modal-header" style="background: linear-gradient(135deg, var(--instagram) 0%, var(--purple) 100%);">
+                <h2><i class="fas fa-images"></i> Attach Photo to Recommendation</h2>
+                <button class="modal-close" onclick="closeAIRecommendPhotoPicker()">&times;</button>
+            </div>
+            <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+                <p style="margin-bottom: 1rem; color: var(--text-secondary); font-size: 0.9rem;">
+                    <i class="fas fa-info-circle"></i> Select a photo to attach to your AI-recommended post. Instagram posts perform better with high-quality images!
+                </p>
+                <div id="aiRecommendPhotoPickerGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 1rem;">
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 2rem;">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--instagram);"></i>
+                        <p style="margin-top: 1rem;">Loading photos...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 0.8rem; color: var(--text-secondary);">
+                    <i class="fas fa-lightbulb"></i> Tip: Tap a photo to select it
+                </span>
+                <button class="btn btn-secondary" onclick="closeAIRecommendPhotoPicker()">Cancel</button>
             </div>
         </div>
     </div>
@@ -10623,34 +10665,92 @@ Example format:
             showToast('Generating AI caption...', 'info');
 
             // Get context for AI
-            const hasMedia = selectedFile !== null;
-            const platforms = selectedPlatforms.join(', ');
+            const hasMedia = selectedFile !== null || window.selectedFarmPicUrl;
+            const platform = selectedPlatforms[0] || 'instagram';
 
-            // Fallback captions if API call fails
-            const fallbackCaptions = [
-                "Fresh from the field! These gorgeous tomatoes are peak season perfection. Limited quantities available - order now before they're gone! 🍅",
-                "Nature's candy is here! Our heirloom tomatoes are bursting with flavor. Perfect for your weekend cooking adventures.",
-                "Straight from our hands to your table. These beauties were picked this morning and are ready to make your recipes shine!"
-            ];
+            // Season-appropriate fallback captions (February = Winter)
+            const month = new Date().getMonth();
+            let fallbackCaptions;
+            if (month >= 11 || month <= 1) {
+                // Winter
+                fallbackCaptions = [
+                    "Even in the cold months, there's always something growing in the greenhouse. Fresh greens coming your way! 🌱 #TinySeedFarm #WinterGrowing #Pittsburgh",
+                    "Planning season is in full swing! Getting ready to bring you the best produce this year. 📝 #TinySeedFarm #FarmPlanning #LocalFood",
+                    "Farmers market vibes with our winter storage crops. Root veggies and preserved goodies! 🥕 #TinySeedFarm #WinterMarket #FarmFresh"
+                ];
+            } else if (month >= 2 && month <= 4) {
+                // Spring
+                fallbackCaptions = [
+                    "Spring is finally here! Seedlings are sprouting and the farm is waking up. 🌱 #TinySeedFarm #SpringPlanting #Pittsburgh",
+                    "Fresh spring greens coming in hot! Who's ready for the new season? 🥬 #TinySeedFarm #FarmFresh #LocalFood",
+                    "The greenhouse is bursting with new life. Can't wait to share this season's bounty! 🌿 #TinySeedFarm #SpringGrowing"
+                ];
+            } else if (month >= 5 && month <= 7) {
+                // Summer
+                fallbackCaptions = [
+                    "Peak summer goodness right here! Farm fresh and ready for your table. 🍅 #TinySeedFarm #SummerHarvest #Pittsburgh",
+                    "This is what summer tastes like! Fresh from our hands to your table. ☀️ #TinySeedFarm #FarmFresh #LocalFood",
+                    "Another beautiful harvest day. We love what we do! 🌻 #TinySeedFarm #OrganicFarm #SummerVibes"
+                ];
+            } else {
+                // Fall
+                fallbackCaptions = [
+                    "Fall harvest in full swing! Pumpkins, squash, and all the autumn goodness. 🎃 #TinySeedFarm #FallHarvest #Pittsburgh",
+                    "These colors though! Fall on the farm never gets old. 🍂 #TinySeedFarm #FarmLife #AutumnVibes",
+                    "Root veggies and storage crops for the win. Stocking up for winter! 🥕 #TinySeedFarm #FallFarm #LocalFood"
+                ];
+            }
 
             try {
-                // Try to generate via AI backend
+                // Get image data if available
+                let imageBase64 = null;
+
+                // Check if we have an uploaded file
+                if (selectedFile) {
+                    const preview = document.getElementById('uploadPreview');
+                    if (preview && preview.src && preview.src.startsWith('data:')) {
+                        imageBase64 = preview.src;
+                    }
+                }
+                // Or if we have a Farm Pics URL selected (already hosted image)
+                else if (window.selectedFarmPicUrl) {
+                    // For hosted images, we'll pass the URL as context instead
+                    // Vision APIs need base64, so we note this in context
+                }
+
+                // Build request payload
+                const payload = {
+                    action: 'generateAICaptionFromImage',
+                    platform: platform
+                };
+
+                // Add image if we have base64 data
+                if (imageBase64) {
+                    payload.imageBase64 = imageBase64;
+                    showToast('Analyzing your photo with AI vision...', 'info');
+                } else {
+                    // No image - still generate seasonally appropriate caption
+                    showToast('Generating seasonal caption...', 'info');
+                }
+
+                // Try to generate via AI backend with vision
                 const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify({
-                        action: 'enhanceCaption',
-                        caption: 'Write a fresh, engaging social media post about our farm harvest today',
-                        platform: selectedPlatforms[0] || 'instagram',
-                        tone: 'authentic farm voice'
-                    })
+                    body: JSON.stringify(payload)
                 });
 
                 const result = await response.json();
 
-                if (result.success && result.enhancedCaption) {
-                    document.getElementById('captionInput').value = result.enhancedCaption;
-                    showToast(`Caption generated via ${result.method || 'AI'}!`, 'success');
+                if (result.success && result.caption) {
+                    document.getElementById('captionInput').value = result.caption;
+                    const methodLabel = result.hasImage ? 'AI Vision' : 'AI';
+                    showToast(`Caption generated via ${methodLabel}! (${result.season || 'seasonal'})`, 'success');
+                } else if (result.error) {
+                    console.error('AI Caption error:', result.error);
+                    // Use season-appropriate fallback
+                    document.getElementById('captionInput').value = fallbackCaptions[Math.floor(Math.random() * fallbackCaptions.length)];
+                    showToast('Caption generated (seasonal fallback)', 'success');
                 } else {
                     // Use fallback
                     document.getElementById('captionInput').value = fallbackCaptions[Math.floor(Math.random() * fallbackCaptions.length)];
@@ -10658,13 +10758,14 @@ Example format:
                 }
             } catch (error) {
                 console.error('AI Caption error:', error);
-                // Use fallback
+                // Use season-appropriate fallback
                 document.getElementById('captionInput').value = fallbackCaptions[Math.floor(Math.random() * fallbackCaptions.length)];
                 showToast('Caption generated (offline mode)', 'success');
             }
 
             updateBlastButton();
             updateEngagementPrediction();
+            updateCharCount();
         }
 
         function updateBlastButton() {
@@ -11515,6 +11616,137 @@ Example format:
                 console.error('Error selecting farm pic:', error);
                 showToast('Error loading image', 'error');
             }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // AI RECOMMENDS PHOTO SELECTION FUNCTIONS
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        // State for AI Recommends photo
+        let aiRecommendSelectedPhoto = null; // { url: string, isUpload: boolean, file?: File }
+
+        function openAIRecommendPhotoPicker() {
+            document.getElementById('aiRecommendPhotoPickerModal').classList.add('active');
+            loadAIRecommendPhotoPicker();
+        }
+
+        function closeAIRecommendPhotoPicker() {
+            document.getElementById('aiRecommendPhotoPickerModal').classList.remove('active');
+        }
+
+        async function loadAIRecommendPhotoPicker() {
+            const grid = document.getElementById('aiRecommendPhotoPickerGrid');
+
+            // Show loading state
+            grid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 2rem;">
+                <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--instagram);"></i>
+                <p style="margin-top: 1rem;">Loading photos...</p>
+            </div>`;
+
+            try {
+                // Use cached data if available, otherwise fetch
+                if (!pickerFarmPicsCache) {
+                    const response = await fetch(`${API_URL}?action=getFarmPics`);
+                    const data = await response.json();
+                    if (data.success) {
+                        pickerFarmPicsCache = data.farmPics.filter(p => p.Image_URL);
+                    }
+                }
+
+                if (pickerFarmPicsCache && pickerFarmPicsCache.length > 0) {
+                    grid.innerHTML = pickerFarmPicsCache.map(pic => `
+                        <div class="ai-recommend-photo-item" onclick="selectAIRecommendPhoto('${pic.Image_URL}', this)"
+                             style="cursor: pointer; border-radius: 12px; overflow: hidden; aspect-ratio: 1; position: relative; border: 3px solid transparent; transition: all 0.2s;">
+                            <img src="${pic.Thumbnail_URL || pic.Image_URL}" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy">
+                            ${pic.Caption ? `<div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.8)); padding: 0.5rem; font-size: 0.7rem; color: white;">${pic.Caption.substring(0, 40)}${pic.Caption.length > 40 ? '...' : ''}</div>` : ''}
+                            <div style="position: absolute; top: 0.5rem; right: 0.5rem; background: ${pic.Status === 'approved' ? 'var(--success)' : 'var(--warning)'}; padding: 0.2rem 0.4rem; border-radius: 4px; font-size: 0.6rem; text-transform: uppercase;">${pic.Status || 'new'}</div>
+                        </div>
+                    `).join('');
+                } else {
+                    grid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        <i class="fas fa-images" style="font-size: 3rem; opacity: 0.5;"></i>
+                        <p style="margin-top: 1rem;">No photos available</p>
+                        <p style="font-size: 0.8rem;">Use Field Mode to upload photos first</p>
+                    </div>`;
+                }
+            } catch (error) {
+                console.error('Error loading farm pics:', error);
+                grid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: var(--danger);">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 2rem;"></i>
+                    <p style="margin-top: 1rem;">Error loading photos</p>
+                    <button class="btn btn-sm btn-primary" style="margin-top: 1rem;" onclick="loadAIRecommendPhotoPicker()"><i class="fas fa-redo"></i> Retry</button>
+                </div>`;
+            }
+        }
+
+        function selectAIRecommendPhoto(imageUrl, element) {
+            // Visual feedback - highlight selected
+            document.querySelectorAll('.ai-recommend-photo-item').forEach(el => {
+                el.style.border = '3px solid transparent';
+            });
+            if (element) {
+                element.style.border = '3px solid var(--instagram)';
+            }
+
+            // Store selected photo
+            aiRecommendSelectedPhoto = {
+                url: imageUrl,
+                isUpload: false
+            };
+
+            // Update preview in AI Recommends card
+            updateAIRecommendPhotoPreview(imageUrl);
+
+            closeAIRecommendPhotoPicker();
+            showToast('Photo attached to recommendation!', 'success');
+        }
+
+        function handleAIRecommendPhotoUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                showToast('Please select an image file', 'error');
+                return;
+            }
+
+            // Validate file size (max 10MB)
+            if (file.size > 10 * 1024 * 1024) {
+                showToast('Image must be under 10MB', 'error');
+                return;
+            }
+
+            // Create preview URL
+            const previewUrl = URL.createObjectURL(file);
+
+            // Store selected photo
+            aiRecommendSelectedPhoto = {
+                url: previewUrl,
+                isUpload: true,
+                file: file
+            };
+
+            // Update preview in AI Recommends card
+            updateAIRecommendPhotoPreview(previewUrl);
+            showToast('Photo uploaded! Ready to schedule.', 'success');
+        }
+
+        // NOTE: AI Recommends photo section was removed in Brain tab overhaul (2026-02-12)
+        // These functions are kept for compatibility - they no-op if elements missing
+        function updateAIRecommendPhotoPreview(imageUrl) {
+            // All elements below were removed from Brain tab - early return
+            // The photo upload feature still exists in Create tab
+            return;
+        }
+
+        function clearAIRecommendPhoto() {
+            // Clean up object URL if it was an upload
+            if (aiRecommendSelectedPhoto && aiRecommendSelectedPhoto.isUpload) {
+                URL.revokeObjectURL(aiRecommendSelectedPhoto.url);
+            }
+            aiRecommendSelectedPhoto = null;
+            showToast('Photo removed', 'info');
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -15440,6 +15672,9 @@ Would you like to test posting to Threads?`;
         // Current selected account for posting
         let selectedAccount = 'all'; // 'all', 'farm', 'fleurs', 'fungi'
 
+        // Current selected account for 5-3-2 MIX TRACKER (independent from posting account)
+        let selectedMixTrackerAccount = 'farm'; // 'farm', 'fleurs', 'fungi' - NO 'all' option
+
         // Current selected content type for AI recommendations
         let selectedContentType = 'curated'; // 'curated', 'original', 'personal'
 
@@ -15451,35 +15686,19 @@ Would you like to test posting to Threads?`;
             fungi: { name: '@tinyseedfungi', index: 2, color: '#833AB4', audience: 'specialty', focus: 'mushrooms, specialty, gourmet' }
         };
 
-        // 5-3-2 Content Mix Tracker (per account, per week)
-        // Stored in localStorage for persistence
-        const CONTENT_MIX_KEY = 'tinyseed_content_mix';
+        // ═══════════════════════════════════════════════════════════════════════════
+        // 5-3-2 Content Mix Tracker - SEPARATE localStorage per account
+        // Keys: tinyseed_content_mix_farm, tinyseed_content_mix_fleurs, tinyseed_content_mix_fungi
+        // ═══════════════════════════════════════════════════════════════════════════
 
-        function getContentMixData() {
-            const stored = localStorage.getItem(CONTENT_MIX_KEY);
-            if (stored) {
-                const data = JSON.parse(stored);
-                // Check if it's a new week
-                const currentWeek = getWeekNumber(new Date());
-                if (data.week !== currentWeek) {
-                    return resetContentMixData();
-                }
-                return data;
-            }
-            return resetContentMixData();
-        }
+        const CONTENT_MIX_KEYS = {
+            farm: 'tinyseed_content_mix_farm',
+            fleurs: 'tinyseed_content_mix_fleurs',
+            fungi: 'tinyseed_content_mix_fungi'
+        };
 
-        function resetContentMixData() {
-            const data = {
-                week: getWeekNumber(new Date()),
-                all: { curated: 0, original: 0, personal: 0 },
-                farm: { curated: 0, original: 0, personal: 0 },
-                fleurs: { curated: 0, original: 0, personal: 0 },
-                fungi: { curated: 0, original: 0, personal: 0 }
-            };
-            localStorage.setItem(CONTENT_MIX_KEY, JSON.stringify(data));
-            return data;
-        }
+        // Legacy key for migration
+        const CONTENT_MIX_KEY_LEGACY = 'tinyseed_content_mix';
 
         function getWeekNumber(date) {
             const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
@@ -15489,19 +15708,152 @@ Would you like to test posting to Threads?`;
             return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
         }
 
+        // Get content mix data for a specific account
+        function getAccountContentMix(account) {
+            const key = CONTENT_MIX_KEYS[account];
+            if (!key) return { curated: 0, original: 0, personal: 0, week: getWeekNumber(new Date()) };
+
+            const stored = localStorage.getItem(key);
+            if (stored) {
+                const data = JSON.parse(stored);
+                // Check if it's a new week - reset if so
+                const currentWeek = getWeekNumber(new Date());
+                if (data.week !== currentWeek) {
+                    return resetAccountContentMix(account);
+                }
+                return data;
+            }
+            return resetAccountContentMix(account);
+        }
+
+        // Reset content mix for a specific account
+        function resetAccountContentMix(account) {
+            const key = CONTENT_MIX_KEYS[account];
+            if (!key) return { curated: 0, original: 0, personal: 0, week: getWeekNumber(new Date()) };
+
+            const data = {
+                week: getWeekNumber(new Date()),
+                curated: 0,
+                original: 0,
+                personal: 0
+            };
+            localStorage.setItem(key, JSON.stringify(data));
+            return data;
+        }
+
+        // Legacy compatibility - get combined data structure
+        function getContentMixData() {
+            // Migrate from old format if needed
+            migrateContentMixIfNeeded();
+
+            return {
+                week: getWeekNumber(new Date()),
+                farm: getAccountContentMix('farm'),
+                fleurs: getAccountContentMix('fleurs'),
+                fungi: getAccountContentMix('fungi'),
+                all: getAllAccountsCombined()
+            };
+        }
+
+        // Get combined totals for all accounts
+        function getAllAccountsCombined() {
+            const farm = getAccountContentMix('farm');
+            const fleurs = getAccountContentMix('fleurs');
+            const fungi = getAccountContentMix('fungi');
+            return {
+                curated: farm.curated + fleurs.curated + fungi.curated,
+                original: farm.original + fleurs.original + fungi.original,
+                personal: farm.personal + fleurs.personal + fungi.personal
+            };
+        }
+
+        // Migrate from old single-key format to per-account keys
+        function migrateContentMixIfNeeded() {
+            const legacy = localStorage.getItem(CONTENT_MIX_KEY_LEGACY);
+            if (legacy) {
+                try {
+                    const oldData = JSON.parse(legacy);
+                    const currentWeek = getWeekNumber(new Date());
+
+                    // Only migrate if same week
+                    if (oldData.week === currentWeek) {
+                        ['farm', 'fleurs', 'fungi'].forEach(account => {
+                            if (oldData[account]) {
+                                const newData = {
+                                    week: currentWeek,
+                                    curated: oldData[account].curated || 0,
+                                    original: oldData[account].original || 0,
+                                    personal: oldData[account].personal || 0
+                                };
+                                localStorage.setItem(CONTENT_MIX_KEYS[account], JSON.stringify(newData));
+                            }
+                        });
+                    }
+                    // Remove legacy key after migration
+                    localStorage.removeItem(CONTENT_MIX_KEY_LEGACY);
+                    console.log('Migrated 5-3-2 tracker to per-account storage');
+                } catch (e) {
+                    console.error('Error migrating content mix data:', e);
+                }
+            }
+        }
+
+        // Legacy compatibility wrapper
+        function resetContentMixData() {
+            ['farm', 'fleurs', 'fungi'].forEach(acc => resetAccountContentMix(acc));
+            return getContentMixData();
+        }
+
+        // Increment content mix for a specific account
         function incrementContentMix(account, type) {
-            const data = getContentMixData();
             if (account === 'all') {
-                // Increment all accounts
+                // When posting to all, increment all accounts
                 ['farm', 'fleurs', 'fungi'].forEach(acc => {
-                    data[acc][type]++;
+                    const data = getAccountContentMix(acc);
+                    data[type]++;
+                    localStorage.setItem(CONTENT_MIX_KEYS[acc], JSON.stringify(data));
                 });
             } else {
-                data[account][type]++;
+                const data = getAccountContentMix(account);
+                data[type]++;
+                localStorage.setItem(CONTENT_MIX_KEYS[account], JSON.stringify(data));
             }
-            data.all[type] = data.farm[type] + data.fleurs[type] + data.fungi[type];
-            localStorage.setItem(CONTENT_MIX_KEY, JSON.stringify(data));
             updateContentMixUI();
+            updateMixTrackerBadges();
+        }
+
+        // Select which account to view in the 5-3-2 tracker
+        function selectMixTrackerAccount(account) {
+            selectedMixTrackerAccount = account;
+
+            // Update tab UI
+            document.querySelectorAll('.account-mix-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`[data-mix-account="${account}"]`)?.classList.add('active');
+
+            // Update tracker display
+            updateContentMixUI();
+        }
+
+        // Track a post for the selected account
+        function trackContentPost(type) {
+            incrementContentMix(selectedMixTrackerAccount, type);
+            showToast(`Tracked ${type} post for ${ACCOUNT_CONFIG[selectedMixTrackerAccount].name}!`, 'success');
+        }
+
+        // Update the badges on all account tabs
+        function updateMixTrackerBadges() {
+            ['farm', 'fleurs', 'fungi'].forEach(account => {
+                const data = getAccountContentMix(account);
+                const total = data.curated + data.original + data.personal;
+                const badge = document.getElementById(`${account}MixBadge`);
+                if (badge) {
+                    badge.textContent = `${total}/10`;
+                    badge.style.background = total >= 10 ? 'rgba(34, 197, 94, 0.3)' : 'rgba(0,0,0,0.3)';
+                    badge.style.color = total >= 10 ? 'var(--success)' : 'inherit';
+                }
+            });
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -15732,24 +16084,17 @@ Would you like to test posting to Threads?`;
         function selectAccount(account) {
             selectedAccount = account;
 
-            // Update UI
+            // Update UI for posting account selector
             document.querySelectorAll('.account-toggle-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
-            document.querySelector(`[data-account="${account}"]`).classList.add('active');
+            const selectedBtn = document.querySelector(`[data-account="${account}"]`);
+            if (selectedBtn) selectedBtn.classList.add('active');
 
-            // Update recommendation context
-            document.getElementById('recommendAccountName').textContent = ACCOUNT_CONFIG[account].name;
-
-            // Update tracker label
-            const trackerLabel = document.getElementById('trackerAccountLabel');
-            if (trackerLabel) {
-                trackerLabel.textContent = `Tracking: ${ACCOUNT_CONFIG[account].name}`;
+            // Also update the mix tracker to show the same account if not 'all'
+            if (account !== 'all') {
+                selectMixTrackerAccount(account);
             }
-
-            // Refresh content mix display and recommendation
-            updateContentMixUI();
-            updateAIRecommendation();
 
             showToast(`Now posting to ${ACCOUNT_CONFIG[account].name}`, 'success');
         }
@@ -15844,18 +16189,23 @@ Would you like to test posting to Threads?`;
         // ═══════════════════════════════════════════════════════════════════════════
 
         function updateContentMixUI() {
-            const mixData = getContentMixData();
-            const accountData = selectedAccount === 'all' ? mixData.all : mixData[selectedAccount];
+            // Use the SELECTED MIX TRACKER ACCOUNT (not posting account)
+            const accountData = getAccountContentMix(selectedMixTrackerAccount);
 
-            // Update counts in AI Recommends section
-            document.getElementById('curatedCount').textContent = `${accountData.curated}/5`;
-            document.getElementById('originalCount').textContent = `${accountData.original}/3`;
-            document.getElementById('personalCount').textContent = `${accountData.personal}/2`;
+            // Update tracker account label
+            const trackerLabel = document.getElementById('trackerAccountLabel');
+            if (trackerLabel) {
+                trackerLabel.textContent = `${ACCOUNT_CONFIG[selectedMixTrackerAccount].name} This Week`;
+            }
 
-            // Update tracker section
-            document.getElementById('trackerCuratedCurrent').textContent = accountData.curated;
-            document.getElementById('trackerOriginalCurrent').textContent = accountData.original;
-            document.getElementById('trackerPersonalCurrent').textContent = accountData.personal;
+            // Update tracker section counts
+            const curatedCurrent = document.getElementById('trackerCuratedCurrent');
+            const originalCurrent = document.getElementById('trackerOriginalCurrent');
+            const personalCurrent = document.getElementById('trackerPersonalCurrent');
+
+            if (curatedCurrent) curatedCurrent.textContent = accountData.curated;
+            if (originalCurrent) originalCurrent.textContent = accountData.original;
+            if (personalCurrent) personalCurrent.textContent = accountData.personal;
 
             // Calculate progress bar widths
             const total = accountData.curated + accountData.original + accountData.personal;
@@ -15864,15 +16214,13 @@ Would you like to test posting to Threads?`;
             const personalPct = total > 0 ? (accountData.personal / total) * 100 : 20;
 
             // Update progress bars
-            ['', 'tracker'].forEach(prefix => {
-                const curatedFill = document.getElementById(`${prefix}CuratedFill`);
-                const originalFill = document.getElementById(`${prefix}OriginalFill`);
-                const personalFill = document.getElementById(`${prefix}PersonalFill`);
+            const trackerCuratedFill = document.getElementById('trackerCuratedFill');
+            const trackerOriginalFill = document.getElementById('trackerOriginalFill');
+            const trackerPersonalFill = document.getElementById('trackerPersonalFill');
 
-                if (curatedFill) curatedFill.style.width = `${curatedPct}%`;
-                if (originalFill) originalFill.style.width = `${originalPct}%`;
-                if (personalFill) personalFill.style.width = `${personalPct}%`;
-            });
+            if (trackerCuratedFill) trackerCuratedFill.style.width = `${curatedPct}%`;
+            if (trackerOriginalFill) trackerOriginalFill.style.width = `${originalPct}%`;
+            if (trackerPersonalFill) trackerPersonalFill.style.width = `${personalPct}%`;
 
             // Update need badges
             const gaps = {
@@ -15881,22 +16229,23 @@ Would you like to test posting to Threads?`;
                 personal: Math.max(0, 2 - accountData.personal)
             };
 
-            document.getElementById('curatedNeed').textContent = gaps.curated > 0 ? `Need ${gaps.curated} more` : '✓ Complete';
-            document.getElementById('originalNeed').textContent = gaps.original > 0 ? `Need ${gaps.original} more` : '✓ Complete';
-            document.getElementById('personalNeed').textContent = gaps.personal > 0 ? `Need ${gaps.personal} more` : '✓ Complete';
+            const curatedNeed = document.getElementById('curatedNeed');
+            const originalNeed = document.getElementById('originalNeed');
+            const personalNeed = document.getElementById('personalNeed');
+
+            if (curatedNeed) curatedNeed.textContent = gaps.curated > 0 ? `Need ${gaps.curated} more` : 'Complete!';
+            if (originalNeed) originalNeed.textContent = gaps.original > 0 ? `Need ${gaps.original} more` : 'Complete!';
+            if (personalNeed) personalNeed.textContent = gaps.personal > 0 ? `Need ${gaps.personal} more` : 'Complete!';
 
             // Update status
             const allComplete = gaps.curated === 0 && gaps.original === 0 && gaps.personal === 0;
             const statusEl = document.getElementById('weeklyMixStatus');
-            const contentMixStatus = document.getElementById('contentMixStatus');
 
             if (allComplete) {
-                if (statusEl) statusEl.innerHTML = '<span style="color: var(--success);">✓ Weekly goal complete!</span>';
-                if (contentMixStatus) contentMixStatus.innerHTML = '<span style="color: var(--success);">On track ✓</span>';
+                if (statusEl) statusEl.innerHTML = '<span style="color: var(--success);">Weekly goal complete!</span>';
             } else {
                 const remaining = gaps.curated + gaps.original + gaps.personal;
                 if (statusEl) statusEl.innerHTML = `<span style="color: var(--warning);">${remaining} posts needed</span>`;
-                if (contentMixStatus) contentMixStatus.innerHTML = `<span style="color: var(--warning);">${remaining} to go</span>`;
             }
 
             // Update total posts count
@@ -15905,14 +16254,14 @@ Would you like to test posting to Threads?`;
                 totalPostsEl.textContent = `${total}/10 posts this week`;
             }
 
-            // Update AI Need Badge
-            updateAINeedBadge();
+            // Update all account badges
+            updateMixTrackerBadges();
         }
 
         function updateAINeedBadge() {
-            const recommendation = getWhatToPostNext();
-            const badge = document.getElementById('aiNeedBadge');
-            const badgeText = document.getElementById('needBadgeText');
+            // AI need badge was in the removed AI Recommends section
+            // This function is kept for compatibility but the elements no longer exist
+            return;
 
             if (badge && badgeText) {
                 badge.className = `ai-need-badge ${recommendation.type}`;
@@ -15932,33 +16281,11 @@ Would you like to test posting to Threads?`;
             }
         }
 
+        // NOTE: AI Recommends card was removed in Brain tab overhaul (2026-02-12)
+        // These functions are kept for compatibility with other parts of the app
         function updateAIRecommendation() {
-            const optimalTime = getNextOptimalPostTime();
-            const recommendation = getWhatToPostNext();
-
-            // Update time display with quality indicator
-            const timeEl = document.getElementById('recommendedTime');
-            if (timeEl) {
-                const qualityColors = { best: 'var(--success)', great: 'var(--success)', good: 'var(--info)', medium: 'var(--warning)', low: 'var(--danger)', lowest: 'var(--danger)' };
-                timeEl.style.color = qualityColors[optimalTime.quality] || 'var(--success)';
-                timeEl.textContent = optimalTime.time;
-            }
-
-            // Update why this works
-            const whyEl = document.getElementById('whyThisWorks');
-            if (whyEl) {
-                const dayQuality = {
-                    best: '🔥 PEAK engagement day',
-                    great: '✨ High engagement day',
-                    good: '👍 Good engagement day',
-                    medium: '📊 Average engagement',
-                    low: '⚠️ Lower engagement day',
-                    lowest: '❌ Lowest engagement day'
-                };
-                whyEl.innerHTML = `<i class="fas fa-info-circle"></i> ${optimalTime.day}: ${dayQuality[optimalTime.quality]}. ${optimalTime.isToday ? 'Post today!' : `Best in ${optimalTime.daysUntil} day(s).`} Based on 9.6M posts analyzed.`;
-            }
-
-            generateSmartRecommendation();
+            // AI Recommends card removed - update header optimal time instead
+            updateHeaderOptimalTime();
         }
 
         async function generateSmartRecommendation() {
@@ -15974,23 +16301,23 @@ Would you like to test posting to Threads?`;
             let caption = '';
 
             if (selectedContentType === 'curated') {
-                caption = `💡 CURATED POST IDEA:\n\n${idea.idea}\n\n📝 Add your own commentary about why this resonates with your audience.\n\n${idea.hashtags}`;
+                caption = `CURATED POST IDEA:\n\n${idea.idea}\n\nAdd your own commentary about why this resonates with your audience.\n\n${idea.hashtags}`;
             } else if (selectedContentType === 'original') {
-                caption = `🌱 ORIGINAL POST IDEA:\n\n${idea.idea}\n\n💬 Suggested caption style: Keep it authentic, share the story behind it.\n\n${idea.hashtags}`;
+                caption = `ORIGINAL POST IDEA:\n\n${idea.idea}\n\nSuggested caption style: Keep it authentic, share the story behind it.\n\n${idea.hashtags}`;
             } else {
-                caption = `😊 PERSONAL POST IDEA:\n\n${idea.idea}\n\n💡 Tip: These posts humanize your brand. Be genuine!\n\n${idea.hashtags}`;
+                caption = `PERSONAL POST IDEA:\n\n${idea.idea}\n\nTip: These posts humanize your brand. Be genuine!\n\n${idea.hashtags}`;
             }
 
             // Add voice guidance if learned
             if (voiceGuidance && voiceGuidance.suggestedLength > 0) {
-                let voiceNotes = '\n\n🎯 YOUR VOICE PROFILE:';
-                voiceNotes += `\n• Target length: ~${voiceGuidance.suggestedLength} characters`;
-                voiceNotes += `\n• Emoji style: ${voiceGuidance.emojiStyle}`;
+                let voiceNotes = '\n\nYOUR VOICE PROFILE:';
+                voiceNotes += `\n- Target length: ~${voiceGuidance.suggestedLength} characters`;
+                voiceNotes += `\n- Emoji style: ${voiceGuidance.emojiStyle}`;
                 if (voiceGuidance.tone.length > 0) {
-                    voiceNotes += `\n• Tone: ${voiceGuidance.tone.join(', ')}`;
+                    voiceNotes += `\n- Tone: ${voiceGuidance.tone.join(', ')}`;
                 }
                 if (voiceGuidance.hashtags.length > 0) {
-                    voiceNotes += `\n• Your top hashtags: ${voiceGuidance.hashtags.slice(0, 5).join(' ')}`;
+                    voiceNotes += `\n- Your top hashtags: ${voiceGuidance.hashtags.slice(0, 5).join(' ')}`;
                 }
                 caption += voiceNotes;
             }
@@ -15998,16 +16325,17 @@ Would you like to test posting to Threads?`;
             // Add account-specific note if not posting to all
             if (selectedAccount !== 'all') {
                 const focus = ACCOUNT_CONFIG[selectedAccount].focus;
-                caption += `\n\n📍 Focus for ${ACCOUNT_CONFIG[selectedAccount].name}: ${focus}`;
+                caption += `\n\nFocus for ${ACCOUNT_CONFIG[selectedAccount].name}: ${focus}`;
             }
 
             // Add optimal timing note
-            caption += `\n\n⏰ OPTIMAL TIME: ${optimalTime.day} at ${optimalTime.time}`;
+            caption += `\n\nOPTIMAL TIME: ${optimalTime.day} at ${optimalTime.time}`;
             if (optimalTime.quality === 'best') {
-                caption += ' 🔥 PEAK engagement window!';
+                caption += ' - PEAK engagement window!';
             }
 
-            document.getElementById('suggestedCaption').innerHTML = `<p style="white-space: pre-wrap;">${caption}</p>`;
+            // Note: suggestedCaption element existed in AI Recommends card (removed)
+            // Caption is now stored in currentRecommendation for use by Create tab
 
             // Store current recommendation
             currentRecommendation = {
@@ -16021,10 +16349,11 @@ Would you like to test posting to Threads?`;
         }
 
         function resetContentMix() {
-            if (confirm('Reset all content tracking for this week? This cannot be undone.')) {
-                resetContentMixData();
+            const accountName = ACCOUNT_CONFIG[selectedMixTrackerAccount].name;
+            if (confirm(`Reset content tracking for ${accountName} this week? This cannot be undone.`)) {
+                resetAccountContentMix(selectedMixTrackerAccount);
                 updateContentMixUI();
-                showToast('Content mix tracker reset!', 'success');
+                showToast(`Content mix tracker reset for ${accountName}!`, 'success');
             }
         }
 
@@ -16037,22 +16366,143 @@ Would you like to test posting to Threads?`;
             if (el) el.textContent = greeting;
         }
 
+        // ═══════════════════════════════════════════════════════════════════════════
+        // SEASON INDICATOR - Show current season with relevant focus areas
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        function updateSeasonIndicator() {
+            const month = new Date().getMonth(); // 0-11
+            let season, icon, color, focus;
+
+            if (month >= 2 && month <= 4) {
+                // March, April, May = Spring
+                season = 'SPRING';
+                icon = 'fa-seedling';
+                color = '#4CAF50';
+                focus = 'Spring Focus: Seedlings, planting, early greens, CSA kickoff';
+            } else if (month >= 5 && month <= 7) {
+                // June, July, August = Summer
+                season = 'SUMMER';
+                icon = 'fa-sun';
+                color = '#FF9800';
+                focus = 'Summer Focus: Peak harvest, farmers markets, fresh produce, CSA shares';
+            } else if (month >= 8 && month <= 10) {
+                // September, October, November = Fall
+                season = 'FALL';
+                icon = 'fa-leaf';
+                color = '#E64A19';
+                focus = 'Fall Focus: Storage crops, pumpkins, CSA wrap-up, holiday planning';
+            } else {
+                // December, January, February = Winter
+                season = 'WINTER';
+                icon = 'fa-snowflake';
+                color = '#64B5F6';
+                focus = 'Winter Focus: Greenhouse planning, CSA signups, seed ordering';
+            }
+
+            // Update season indicator in header
+            const indicator = document.getElementById('seasonIndicator');
+            if (indicator) {
+                indicator.innerHTML = `
+                    <i class="fas ${icon}" style="color: ${color};"></i>
+                    <span style="font-size: 0.85rem; font-weight: 600; color: ${color};">${season}</span>
+                `;
+                indicator.style.background = `rgba(${hexToRgb(color)}, 0.2)`;
+                indicator.style.borderColor = `rgba(${hexToRgb(color)}, 0.4)`;
+            }
+
+            // Update season context text
+            const contextEl = document.getElementById('seasonContext');
+            if (contextEl) {
+                contextEl.innerHTML = `<i class="fas fa-leaf"></i> ${focus}`;
+                contextEl.style.color = color;
+            }
+        }
+
+        // Helper to convert hex to RGB
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            if (result) {
+                return `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}`;
+            }
+            return '100, 100, 100';
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // HEADER OPTIMAL TIME DISPLAY - Prominent in header
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        function updateHeaderOptimalTime() {
+            const optimalTime = getNextOptimalPostTime();
+
+            // Update header display
+            const headerTimeEl = document.getElementById('headerOptimalTime');
+            if (headerTimeEl) {
+                headerTimeEl.textContent = optimalTime.time;
+            }
+
+            // Update optimal time display visibility
+            const displayEl = document.getElementById('optimalTimeDisplay');
+            if (displayEl) {
+                const qualityColors = {
+                    best: 'var(--success)',
+                    great: 'var(--success)',
+                    good: 'var(--info)',
+                    medium: 'var(--warning)',
+                    low: 'var(--danger)',
+                    lowest: 'var(--danger)'
+                };
+                const color = qualityColors[optimalTime.quality] || 'var(--success)';
+
+                if (!optimalTime.isToday) {
+                    // Show that it's not today
+                    displayEl.querySelector('span:first-of-type').textContent = `Best time ${optimalTime.day}:`;
+                }
+
+                headerTimeEl.style.color = color;
+            }
+
+            // Also update the Algorithm Intelligence panel
+            const algoTimeEl = document.getElementById('algorithmOptimalTime');
+            const algoQualityEl = document.getElementById('algorithmTimeQuality');
+
+            if (algoTimeEl) {
+                algoTimeEl.textContent = optimalTime.isToday
+                    ? optimalTime.time
+                    : `${optimalTime.day} at ${optimalTime.time}`;
+            }
+
+            if (algoQualityEl) {
+                const qualityText = {
+                    best: '<i class="fas fa-fire"></i> PEAK engagement window',
+                    great: '<i class="fas fa-star"></i> High engagement expected',
+                    good: '<i class="fas fa-thumbs-up"></i> Good engagement time',
+                    medium: '<i class="fas fa-minus"></i> Average engagement',
+                    low: '<i class="fas fa-arrow-down"></i> Lower engagement time',
+                    lowest: '<i class="fas fa-exclamation-triangle"></i> Lowest engagement - consider waiting'
+                };
+                algoQualityEl.innerHTML = `${qualityText[optimalTime.quality] || ''} - Based on 9.6M posts analyzed`;
+            }
+        }
+
         async function loadBrainTab() {
             try {
                 // ═══════════════════════════════════════════════════════════════════════════
                 // INITIALIZE INTELLIGENT BRAIN FEATURES - OPTIMIZED FOR SPEED
-                // Updated 2026-02-11: Fixed slow loading with timeouts & parallel execution
+                // Updated 2026-02-12: Per-account 5-3-2 tracking, removed AI Recommends
                 // ═══════════════════════════════════════════════════════════════════════════
+
+                // IMMEDIATE: Initialize season indicator and optimal time display
+                updateSeasonIndicator();
+                updateHeaderOptimalTime();
 
                 // IMMEDIATE: Show local data first (no API calls)
                 updateContentMixUI();
-                updateAIRecommendation();
 
                 // Generate smart briefing from LOCAL data (instant)
                 const recommendation = getWhatToPostNext();
                 const optimalTime = getNextOptimalPostTime();
-                const mixData = getContentMixData();
-                const accountData = selectedAccount === 'all' ? mixData.all : mixData[selectedAccount];
+                const accountData = getAccountContentMix(selectedMixTrackerAccount);
                 const totalPosts = accountData.curated + accountData.original + accountData.personal;
 
                 let smartBriefing = '';
@@ -16781,27 +17231,22 @@ Would you like to test posting to Threads?`;
             return templates[Math.floor(Math.random() * templates.length)];
         }
 
+        // NOTE: Elements recommendedTime, recommendedPlatform, expectedEngagement, whyThisWorks
+        // were removed in Brain tab overhaul - they existed in the AI Recommends card.
+        // suggestedCaption still exists in Create tab, so we keep that code path.
         function displayRecommendation(rec) {
-            document.getElementById('recommendedTime').textContent = rec.bestTime || '4:00 PM';
-            document.getElementById('recommendedPlatform').innerHTML = `
-                <i class="fab fa-${rec.platform === 'facebook' ? 'facebook' : 'instagram'}"></i>
-                ${rec.platform?.charAt(0).toUpperCase() + rec.platform?.slice(1) || 'Instagram'}
-            `;
-            document.getElementById('expectedEngagement').textContent = rec.expectedEngagement || 'High';
-            document.getElementById('whyThisWorks').innerHTML = `<i class="fas fa-info-circle"></i> ${rec.whyThisWorks || 'Optimal timing based on 2026 algorithm research'}`;
-            document.getElementById('suggestedCaption').innerHTML = `<p style="white-space: pre-wrap;">${rec.suggestedCaption || 'Generate a caption with AI...'}</p>`;
+            // Most elements removed in Brain tab overhaul - this function now mainly
+            // stores the recommendation in currentRecommendation for other uses
+            currentRecommendation = rec;
         }
 
         async function getNewRecommendation() {
-            document.getElementById('suggestedCaption').innerHTML = '<p style="color: var(--text-secondary);"><i class="fas fa-spinner fa-spin"></i> Generating new idea...</p>';
             await loadPostRecommendation();
             showToast('New recommendation loaded!', 'success');
         }
 
         async function regenerateCaption() {
             try {
-                document.getElementById('suggestedCaption').innerHTML = '<p style="color: var(--text-secondary);"><i class="fas fa-spinner fa-spin"></i> AI generating caption...</p>';
-
                 const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain' },
@@ -16815,37 +17260,27 @@ Would you like to test posting to Threads?`;
 
                 if (data.success && data.content) {
                     currentRecommendation.suggestedCaption = data.content;
-                    document.getElementById('suggestedCaption').innerHTML = `<p style="white-space: pre-wrap;">${data.content}</p>`;
                     showToast('Caption regenerated!', 'success');
                 } else {
                     currentRecommendation.suggestedCaption = generateSmartCaption();
-                    document.getElementById('suggestedCaption').innerHTML = `<p style="white-space: pre-wrap;">${currentRecommendation.suggestedCaption}</p>`;
                 }
             } catch (error) {
                 console.error('Error regenerating caption:', error);
                 showToast('Using local template', 'info');
                 currentRecommendation.suggestedCaption = generateSmartCaption();
-                document.getElementById('suggestedCaption').innerHTML = `<p style="white-space: pre-wrap;">${currentRecommendation.suggestedCaption}</p>`;
             }
         }
 
         function editCaption() {
-            const container = document.getElementById('suggestedCaption');
-            const currentText = currentRecommendation?.suggestedCaption || container.textContent;
-            container.innerHTML = `
-                <textarea style="width: 100%; min-height: 150px; background: rgba(0,0,0,0.3); border: 1px solid var(--instagram); border-radius: 4px; padding: 0.75rem; color: var(--text-primary); font-family: inherit; resize: vertical;" id="editCaptionArea">${currentText}</textarea>
-                <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem;">
-                    <button class="btn btn-sm btn-success" onclick="saveEditedCaption()"><i class="fas fa-check"></i> Save</button>
-                    <button class="btn btn-sm btn-secondary" onclick="displayRecommendation(currentRecommendation)"><i class="fas fa-times"></i> Cancel</button>
-                </div>
-            `;
+            // This function used to edit in AI Recommends card which was removed
+            // Caption editing now happens in Create tab directly
+            showToast('Use Create tab for caption editing', 'info');
         }
 
         function saveEditedCaption() {
-            const newCaption = document.getElementById('editCaptionArea').value;
-            currentRecommendation.suggestedCaption = newCaption;
-            document.getElementById('suggestedCaption').innerHTML = `<p style="white-space: pre-wrap;">${newCaption}</p>`;
-            showToast('Caption saved!', 'success');
+            // This function used to save in AI Recommends card which was removed
+            // Caption saving now happens in Create tab directly
+            showToast('Use Create tab for caption editing', 'info');
         }
 
         async function approveAndSchedule() {
@@ -16860,18 +17295,49 @@ Would you like to test posting to Threads?`;
                 const contentType = currentRecommendation?.contentType || selectedContentType;
                 const account = currentRecommendation?.account || selectedAccount;
 
+                // Prepare photo data if attached
+                let imageUrl = null;
+                let imageBase64 = null;
+
+                if (aiRecommendSelectedPhoto) {
+                    if (aiRecommendSelectedPhoto.isUpload && aiRecommendSelectedPhoto.file) {
+                        // Convert uploaded file to base64 for the API
+                        showToast('Preparing image...', 'info');
+                        try {
+                            imageBase64 = await fileToBase64(aiRecommendSelectedPhoto.file);
+                        } catch (err) {
+                            console.error('Error converting image:', err);
+                            showToast('Error processing image. Post will be scheduled without photo.', 'warning');
+                        }
+                    } else {
+                        // Use existing Farm Pics URL (already hosted)
+                        imageUrl = aiRecommendSelectedPhoto.url;
+                    }
+                }
+
+                const postData = {
+                    action: 'schedulePost',
+                    content: caption,
+                    platform: currentRecommendation?.platform || 'instagram',
+                    scheduledTime: getScheduledTime(currentRecommendation?.optimalTime?.time || currentRecommendation?.bestTime),
+                    category: contentType,
+                    account: account,
+                    accountIndex: ACCOUNT_CONFIG[account]?.index
+                };
+
+                // Add photo data if available
+                if (imageUrl) {
+                    postData.imageUrl = imageUrl;
+                }
+                if (imageBase64) {
+                    postData.imageBase64 = imageBase64;
+                    postData.imageMimeType = aiRecommendSelectedPhoto.file.type;
+                }
+
                 const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify({
-                        action: 'schedulePost',
-                        content: caption,
-                        platform: currentRecommendation?.platform || 'instagram',
-                        scheduledTime: getScheduledTime(currentRecommendation?.optimalTime?.time || currentRecommendation?.bestTime),
-                        category: contentType,
-                        account: account,
-                        accountIndex: ACCOUNT_CONFIG[account]?.index
-                    })
+                    body: JSON.stringify(postData)
                 });
                 const result = await response.json();
 
@@ -16879,7 +17345,11 @@ Would you like to test posting to Threads?`;
                     // UPDATE 5-3-2 TRACKER - Increment the content mix
                     incrementContentMix(account, contentType);
 
-                    showToast(`✅ Post scheduled! ${contentType.toUpperCase()} content tracked.`, 'success');
+                    const photoMsg = (imageUrl || imageBase64) ? ' with photo' : '';
+                    showToast(`Post scheduled${photoMsg}! ${contentType.toUpperCase()} content tracked.`, 'success');
+
+                    // Clear the selected photo after successful scheduling
+                    clearAIRecommendPhoto();
 
                     // Refresh recommendation with next needed content type
                     await getNewRecommendation();
@@ -16896,6 +17366,20 @@ Would you like to test posting to Threads?`;
                 updateContentMixUI();
                 showToast('Post tracked locally (offline mode)', 'info');
             }
+        }
+
+        // Helper function to convert File to base64
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    // Remove the data URL prefix to get just the base64 string
+                    const base64 = reader.result.split(',')[1];
+                    resolve(base64);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
         }
 
         // Manual content tracking buttons for the 5-3-2 tracker
@@ -19632,22 +20116,19 @@ Would you like to test posting to Threads?`;
             // Update mobile nav active state
             document.querySelectorAll('.mobile-nav-btn').forEach(btn => {
                 btn.classList.remove('active');
+                // Match button by its onclick containing the tabId
+                const onclick = btn.getAttribute('onclick') || '';
+                if (onclick.includes(`mobileNavSwitch('${tabId}')`)) {
+                    btn.classList.add('active');
+                }
             });
-            event.target.closest('.mobile-nav-btn')?.classList.add('active');
 
-            // Switch to the tab
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            document.getElementById(tabId + 'Tab')?.classList.add('active');
+            // Use the main switchTab function to handle tab switching and data loading
+            switchTab(tabId);
 
             // Haptic feedback
             if (navigator.vibrate) {
                 navigator.vibrate(30);
-            }
-
-            // Load tab data if needed
-            if (tabId === 'calendar' || tabId === 'contentcalendar') {
-                loadContentCalendar();
             }
         }
 
@@ -20914,7 +21395,7 @@ Would you like to test posting to Threads?`;
             <i class="fas fa-edit"></i>
             <span>Create</span>
         </button>
-        <button class="mobile-nav-btn" onclick="mobileNavSwitch('calendar')">
+        <button class="mobile-nav-btn" onclick="mobileNavSwitch('contentcalendar')">
             <i class="fas fa-calendar-alt"></i>
             <span>Calendar</span>
         </button>
