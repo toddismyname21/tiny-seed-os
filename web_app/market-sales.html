@@ -11,6 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="api-config.js"></script>
     <script src="auth-guard.js" data-required-role="Employee"></script>
+    <script src="offline-task-manager.js"></script>
     <style>
         /* ========================================
            MOBILE MARKET SALES - CSS
@@ -591,16 +592,128 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+
+        /* Offline Mode Styles */
+        .offline-banner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            padding: 8px 16px;
+            z-index: 10000;
+            transform: translateY(-100%);
+            transition: transform 0.3s ease;
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .offline-banner.visible {
+            transform: translateY(0);
+        }
+
+        .offline-banner .pending-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+
+        body.has-offline-banner .header {
+            top: 40px;
+        }
+
+        .sync-indicator {
+            position: fixed;
+            bottom: 100px;
+            right: 16px;
+            background: #27ae60;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            z-index: 9999;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .sync-indicator.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .sync-indicator.syncing {
+            background: #3498db;
+        }
+
+        .sync-indicator.error {
+            background: #e74c3c;
+        }
+
+        .sync-indicator.pending {
+            background: #f39c12;
+        }
+
+        .last-sync-info {
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-left: 8px;
+        }
+
+        .cash-only-notice {
+            background: rgba(245, 158, 11, 0.2);
+            border: 1px solid var(--warning);
+            color: var(--warning);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            margin-bottom: 12px;
+            text-align: center;
+            display: none;
+        }
+
+        .cash-only-notice.visible {
+            display: block;
+        }
     </style>
 </head>
 <body>
+    <!-- Offline Banner -->
+    <div class="offline-banner" id="offline-banner">
+        <span>Offline Mode - Sales will sync when online</span>
+        <span class="pending-badge" id="pending-badge" style="display: none;">
+            <span id="pending-count">0</span> pending
+        </span>
+    </div>
+
+    <!-- Sync Status Indicator -->
+    <div class="sync-indicator" id="sync-indicator">
+        <span id="sync-icon">&#10003;</span>
+        <span id="sync-text">Synced</span>
+    </div>
+
     <!-- Header -->
     <header class="header">
         <div>
             <div class="header-title">Market Sales</div>
             <div class="header-session" id="session-info">Select a market session</div>
+            <div class="last-sync-info" id="last-sync-info" style="display: none;">Last sync: --</div>
         </div>
-        <button class="header-btn" onclick="syncShopify()" id="sync-btn" style="background: var(--success);">🔄 Sync Shopify</button>
+        <div style="display: flex; gap: 8px;">
+            <button class="header-btn" onclick="manualSync()" id="manual-sync-btn" style="display: none; background: var(--warning);">Sync Now</button>
+            <button class="header-btn" onclick="syncShopify()" id="sync-btn" style="background: var(--success);">🔄 Sync Shopify</button>
+        </div>
     </header>
 
     <!-- Session Selector View -->
@@ -673,6 +786,9 @@
 
         <!-- Checkout Section -->
         <div class="checkout-section">
+            <div class="cash-only-notice" id="cash-only-notice">
+                Offline Mode - Cash payments only. Card transactions will queue for processing.
+            </div>
             <div class="payment-methods" id="payment-methods">
                 <div class="payment-btn active" data-method="Cash">
                     <div class="payment-icon">💵</div>
@@ -721,7 +837,7 @@
     <!-- Success Overlay -->
     <div class="success-overlay" id="success-overlay">
         <div class="success-icon">✓</div>
-        <div class="success-text">Sale Complete!</div>
+        <div class="success-text" id="success-text">Sale Complete!</div>
         <div class="success-amount" id="success-amount">$0.00</div>
     </div>
 
@@ -737,6 +853,401 @@
         let currentQty = 1;
         let products = [];
         let sessionStats = { sales: 0, transactions: 0 };
+        let offlineManager = null;
+        let isOffline = !navigator.onLine;
+
+        // ========================================
+        // MARKET SALES OFFLINE MANAGER
+        // ========================================
+
+        class MarketSalesOfflineManager {
+            constructor() {
+                this.DB_NAME = 'TinySeedMarketSales';
+                this.DB_VERSION = 1;
+                this.db = null;
+                this.isInitialized = false;
+            }
+
+            async init() {
+                if (this.isInitialized) return this;
+
+                await this._initDatabase();
+                this._setupEventListeners();
+                this.isInitialized = true;
+                console.log('[MarketSalesOffline] Initialized');
+                return this;
+            }
+
+            async _initDatabase() {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(this.DB_NAME, this.DB_VERSION);
+
+                    request.onerror = () => reject(request.error);
+
+                    request.onsuccess = () => {
+                        this.db = request.result;
+                        resolve();
+                    };
+
+                    request.onupgradeneeded = (event) => {
+                        const db = event.target.result;
+
+                        // Products store - cached product catalog
+                        if (!db.objectStoreNames.contains('products')) {
+                            const productStore = db.createObjectStore('products', { keyPath: 'id' });
+                            productStore.createIndex('category', 'category');
+                        }
+
+                        // Pending sales store - sales queued for sync
+                        if (!db.objectStoreNames.contains('pendingSales')) {
+                            const salesStore = db.createObjectStore('pendingSales', {
+                                keyPath: 'id',
+                                autoIncrement: true
+                            });
+                            salesStore.createIndex('sessionId', 'sessionId');
+                            salesStore.createIndex('status', 'status');
+                            salesStore.createIndex('createdAt', 'createdAt');
+                        }
+
+                        // Sync metadata
+                        if (!db.objectStoreNames.contains('syncMeta')) {
+                            db.createObjectStore('syncMeta', { keyPath: 'key' });
+                        }
+                    };
+                });
+            }
+
+            _setupEventListeners() {
+                window.addEventListener('online', () => this._handleOnline());
+                window.addEventListener('offline', () => this._handleOffline());
+
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.addEventListener('message', (event) => {
+                        if (event.data.type === 'SYNC_AVAILABLE' || event.data.type === 'SYNC_COMPLETE') {
+                            this.syncPendingSales();
+                        }
+                    });
+                }
+            }
+
+            _handleOnline() {
+                console.log('[MarketSalesOffline] Online');
+                isOffline = false;
+                updateOfflineUI();
+                this.syncPendingSales();
+            }
+
+            _handleOffline() {
+                console.log('[MarketSalesOffline] Offline');
+                isOffline = true;
+                updateOfflineUI();
+            }
+
+            // Cache product catalog
+            async cacheProducts(productList) {
+                if (!this.db) return;
+
+                const tx = this.db.transaction('products', 'readwrite');
+                const store = tx.objectStore('products');
+
+                // Clear existing and add new
+                await new Promise(resolve => {
+                    store.clear().onsuccess = resolve;
+                });
+
+                for (const product of productList) {
+                    store.put(product);
+                }
+
+                // Save cache timestamp
+                await this._setMeta('lastProductCache', new Date().toISOString());
+                console.log(`[MarketSalesOffline] Cached ${productList.length} products`);
+            }
+
+            // Get cached products
+            async getCachedProducts() {
+                if (!this.db) return [];
+
+                return new Promise((resolve) => {
+                    const tx = this.db.transaction('products', 'readonly');
+                    const store = tx.objectStore('products');
+                    const request = store.getAll();
+
+                    request.onsuccess = () => resolve(request.result || []);
+                    request.onerror = () => resolve([]);
+                });
+            }
+
+            // Queue sale for sync
+            async queueSale(sessionId, items, paymentMethod, total) {
+                if (!this.db) return null;
+
+                const sale = {
+                    sessionId: sessionId,
+                    items: items,
+                    paymentMethod: paymentMethod,
+                    total: total,
+                    status: 'pending',
+                    createdAt: new Date().toISOString(),
+                    retryCount: 0
+                };
+
+                return new Promise((resolve, reject) => {
+                    const tx = this.db.transaction('pendingSales', 'readwrite');
+                    const store = tx.objectStore('pendingSales');
+                    const request = store.add(sale);
+
+                    request.onsuccess = () => {
+                        console.log(`[MarketSalesOffline] Queued sale #${request.result}`);
+                        this._registerBackgroundSync();
+                        this._updatePendingCount();
+                        resolve(request.result);
+                    };
+                    request.onerror = () => reject(request.error);
+                });
+            }
+
+            // Get pending sales count
+            async getPendingCount() {
+                if (!this.db) return 0;
+
+                return new Promise((resolve) => {
+                    const tx = this.db.transaction('pendingSales', 'readonly');
+                    const store = tx.objectStore('pendingSales');
+                    const index = store.index('status');
+                    const request = index.count('pending');
+
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => resolve(0);
+                });
+            }
+
+            // Get all pending sales
+            async getPendingSales() {
+                if (!this.db) return [];
+
+                return new Promise((resolve) => {
+                    const tx = this.db.transaction('pendingSales', 'readonly');
+                    const store = tx.objectStore('pendingSales');
+                    const index = store.index('status');
+                    const request = index.getAll('pending');
+
+                    request.onsuccess = () => {
+                        const sales = request.result || [];
+                        sales.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+                        resolve(sales);
+                    };
+                    request.onerror = () => resolve([]);
+                });
+            }
+
+            // Sync pending sales to server
+            async syncPendingSales() {
+                if (!navigator.onLine) return { synced: 0, failed: 0 };
+
+                const pendingSales = await this.getPendingSales();
+                if (pendingSales.length === 0) return { synced: 0, failed: 0 };
+
+                showSyncStatus('syncing', 'Syncing...');
+                let synced = 0, failed = 0;
+
+                for (const sale of pendingSales) {
+                    try {
+                        const result = await apiCall('recordMarketSale', {
+                            sessionId: sale.sessionId,
+                            items: JSON.stringify(sale.items),
+                            paymentMethod: sale.paymentMethod,
+                            offlineCreatedAt: sale.createdAt
+                        });
+
+                        if (result.success) {
+                            await this._markSaleSynced(sale.id);
+                            synced++;
+                        } else {
+                            await this._incrementRetry(sale.id);
+                            failed++;
+                        }
+                    } catch (e) {
+                        await this._incrementRetry(sale.id);
+                        failed++;
+                    }
+                }
+
+                await this._setMeta('lastSync', new Date().toISOString());
+                this._updatePendingCount();
+                updateLastSyncDisplay();
+
+                if (synced > 0) {
+                    showSyncStatus('success', `Synced ${synced} sales`, 3000);
+                    // Refresh stats
+                    loadSessionStats();
+                } else if (failed > 0) {
+                    showSyncStatus('error', `${failed} failed to sync`, 3000);
+                }
+
+                return { synced, failed };
+            }
+
+            async _markSaleSynced(saleId) {
+                return new Promise((resolve) => {
+                    const tx = this.db.transaction('pendingSales', 'readwrite');
+                    const store = tx.objectStore('pendingSales');
+                    const request = store.get(saleId);
+
+                    request.onsuccess = () => {
+                        const sale = request.result;
+                        if (sale) {
+                            sale.status = 'synced';
+                            sale.syncedAt = new Date().toISOString();
+                            store.put(sale);
+                        }
+                    };
+
+                    tx.oncomplete = () => resolve();
+                });
+            }
+
+            async _incrementRetry(saleId) {
+                return new Promise((resolve) => {
+                    const tx = this.db.transaction('pendingSales', 'readwrite');
+                    const store = tx.objectStore('pendingSales');
+                    const request = store.get(saleId);
+
+                    request.onsuccess = () => {
+                        const sale = request.result;
+                        if (sale) {
+                            sale.retryCount = (sale.retryCount || 0) + 1;
+                            if (sale.retryCount >= 5) {
+                                sale.status = 'failed';
+                            }
+                            store.put(sale);
+                        }
+                    };
+
+                    tx.oncomplete = () => resolve();
+                });
+            }
+
+            async _updatePendingCount() {
+                const count = await this.getPendingCount();
+                const badge = document.getElementById('pending-badge');
+                const countEl = document.getElementById('pending-count');
+
+                if (count > 0) {
+                    countEl.textContent = count;
+                    badge.style.display = 'inline';
+                    showSyncStatus('pending', `${count} pending`, 0);
+                } else {
+                    badge.style.display = 'none';
+                    hideSyncStatus();
+                }
+            }
+
+            async _setMeta(key, value) {
+                if (!this.db) return;
+                const tx = this.db.transaction('syncMeta', 'readwrite');
+                const store = tx.objectStore('syncMeta');
+                store.put({ key, value });
+            }
+
+            async getMeta(key) {
+                if (!this.db) return null;
+
+                return new Promise((resolve) => {
+                    const tx = this.db.transaction('syncMeta', 'readonly');
+                    const store = tx.objectStore('syncMeta');
+                    const request = store.get(key);
+
+                    request.onsuccess = () => resolve(request.result?.value || null);
+                    request.onerror = () => resolve(null);
+                });
+            }
+
+            async _registerBackgroundSync() {
+                if ('serviceWorker' in navigator && 'SyncManager' in window) {
+                    try {
+                        const reg = await navigator.serviceWorker.ready;
+                        await reg.sync.register('sync-market-sales');
+                    } catch (e) {
+                        console.log('[MarketSalesOffline] Background sync not available');
+                    }
+                }
+            }
+        }
+
+        // ========================================
+        // OFFLINE UI FUNCTIONS
+        // ========================================
+
+        function updateOfflineUI() {
+            const banner = document.getElementById('offline-banner');
+            const cashOnlyNotice = document.getElementById('cash-only-notice');
+            const syncBtn = document.getElementById('manual-sync-btn');
+
+            if (isOffline) {
+                banner.classList.add('visible');
+                document.body.classList.add('has-offline-banner');
+                cashOnlyNotice.classList.add('visible');
+                syncBtn.style.display = 'none';
+            } else {
+                banner.classList.remove('visible');
+                document.body.classList.remove('has-offline-banner');
+                cashOnlyNotice.classList.remove('visible');
+                // Show sync button if there are pending sales
+                if (offlineManager) {
+                    offlineManager.getPendingCount().then(count => {
+                        syncBtn.style.display = count > 0 ? 'block' : 'none';
+                    });
+                }
+            }
+        }
+
+        function showSyncStatus(type, text, duration = 0) {
+            const indicator = document.getElementById('sync-indicator');
+            const iconEl = document.getElementById('sync-icon');
+            const textEl = document.getElementById('sync-text');
+
+            indicator.className = 'sync-indicator visible ' + type;
+
+            if (type === 'syncing') {
+                iconEl.innerHTML = '&#8635;';
+            } else if (type === 'success') {
+                iconEl.innerHTML = '&#10003;';
+            } else if (type === 'error') {
+                iconEl.innerHTML = '&#10007;';
+            } else if (type === 'pending') {
+                iconEl.innerHTML = '&#8635;';
+            }
+
+            textEl.textContent = text;
+
+            if (duration > 0) {
+                setTimeout(hideSyncStatus, duration);
+            }
+        }
+
+        function hideSyncStatus() {
+            document.getElementById('sync-indicator').classList.remove('visible');
+        }
+
+        async function updateLastSyncDisplay() {
+            if (!offlineManager) return;
+
+            const lastSync = await offlineManager.getMeta('lastSync');
+            const lastSyncEl = document.getElementById('last-sync-info');
+
+            if (lastSync) {
+                const date = new Date(lastSync);
+                const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                lastSyncEl.textContent = `Last sync: ${timeStr}`;
+                lastSyncEl.style.display = 'block';
+            }
+        }
+
+        async function manualSync() {
+            if (!offlineManager) return;
+            await offlineManager.syncPendingSales();
+        }
 
         // Default products (will be replaced by API data)
         const defaultProducts = [
@@ -763,12 +1274,59 @@
         ];
 
         // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Initialize offline manager first
+            offlineManager = new MarketSalesOfflineManager();
+            await offlineManager.init();
+
+            // Check initial offline status
+            isOffline = !navigator.onLine;
+            updateOfflineUI();
+            updateLastSyncDisplay();
+
+            // Load products (from cache if offline)
+            await loadProducts();
+
             loadSessions();
             setupPaymentButtons();
             setupCategoryTabs();
-            products = defaultProducts;
+
+            // Update pending count on load
+            offlineManager._updatePendingCount();
         });
+
+        // Load products from API or cache
+        async function loadProducts() {
+            if (isOffline) {
+                // Load from cache
+                const cachedProducts = await offlineManager.getCachedProducts();
+                if (cachedProducts.length > 0) {
+                    products = cachedProducts;
+                    console.log('[MarketSales] Loaded', products.length, 'products from cache');
+                } else {
+                    products = defaultProducts;
+                    console.log('[MarketSales] No cached products, using defaults');
+                }
+            } else {
+                // Try to fetch from API, fall back to defaults
+                try {
+                    const result = await apiCall('getMarketProducts');
+                    if (result.success && result.products && result.products.length > 0) {
+                        products = result.products;
+                        // Cache for offline use
+                        await offlineManager.cacheProducts(products);
+                        console.log('[MarketSales] Loaded', products.length, 'products from API');
+                    } else {
+                        products = defaultProducts;
+                        // Cache defaults for offline
+                        await offlineManager.cacheProducts(defaultProducts);
+                    }
+                } catch (e) {
+                    products = defaultProducts;
+                    await offlineManager.cacheProducts(defaultProducts);
+                }
+            }
+        }
 
         // ========================================
         // SHOPIFY INTEGRATION
@@ -1090,6 +1648,38 @@ Time window: ${new Date(result.timeWindow?.start).toLocaleTimeString()} - ${new 
                 price: item.price
             }));
 
+            // Check if offline - queue sale for later sync
+            if (isOffline || !navigator.onLine) {
+                try {
+                    await offlineManager.queueSale(currentSession, items, selectedPayment, total);
+
+                    // Show success (queued)
+                    document.getElementById('success-amount').textContent = `$${total.toFixed(2)}`;
+                    document.getElementById('success-text').textContent = 'Sale Queued!';
+                    document.getElementById('success-overlay').classList.add('active');
+
+                    // Update local stats
+                    sessionStats.sales += total;
+                    sessionStats.transactions++;
+                    updateStatsDisplay();
+
+                    // Clear cart
+                    cart = [];
+                    renderCart();
+
+                    // Hide success after 1.5s
+                    setTimeout(() => {
+                        document.getElementById('success-overlay').classList.remove('active');
+                        document.getElementById('success-text').textContent = 'Sale Complete!';
+                    }, 1500);
+
+                } catch (e) {
+                    alert('Error queueing sale: ' + e.message);
+                }
+                return;
+            }
+
+            // Online - process normally
             const result = await apiCall('recordMarketSale', {
                 sessionId: currentSession,
                 items: JSON.stringify(items),
@@ -1118,7 +1708,29 @@ Time window: ${new Date(result.timeWindow?.start).toLocaleTimeString()} - ${new 
                 // Reload inventory alerts
                 loadInventoryAlerts();
             } else {
-                alert('Error processing sale: ' + result.error);
+                // If API call fails, queue for offline
+                if (result.error === 'offline' || result.error?.includes('network')) {
+                    isOffline = true;
+                    updateOfflineUI();
+                    await offlineManager.queueSale(currentSession, items, selectedPayment, total);
+
+                    document.getElementById('success-amount').textContent = `$${total.toFixed(2)}`;
+                    document.getElementById('success-text').textContent = 'Sale Queued!';
+                    document.getElementById('success-overlay').classList.add('active');
+
+                    sessionStats.sales += total;
+                    sessionStats.transactions++;
+                    updateStatsDisplay();
+                    cart = [];
+                    renderCart();
+
+                    setTimeout(() => {
+                        document.getElementById('success-overlay').classList.remove('active');
+                        document.getElementById('success-text').textContent = 'Sale Complete!';
+                    }, 1500);
+                } else {
+                    alert('Error processing sale: ' + result.error);
+                }
             }
         }
     </script>

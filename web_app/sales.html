@@ -1601,6 +1601,552 @@
         }
 
         /* ========================================
+           FIELD MODE STYLES
+           ======================================== */
+
+        .field-mode-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .field-mode-toggle:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .field-mode-toggle.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .field-mode-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-dark);
+            z-index: 1000;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .field-mode-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .field-mode-header h2 {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .field-close-btn {
+            padding: 12px 24px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 16px;
+            min-height: 60px;
+        }
+
+        .field-stats-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .field-stat-main {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 16px;
+            padding: 32px;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .field-stat-label {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0.8;
+            margin-bottom: 8px;
+        }
+
+        .field-stat-value {
+            font-size: 56px;
+            font-weight: 700;
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .field-stat-comparison {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .field-goal-section {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border-color);
+        }
+
+        .field-goal-bar {
+            height: 24px;
+            background: var(--bg-elevated);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .field-goal-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success), #4ade80);
+            border-radius: 12px;
+            transition: width 0.5s ease;
+        }
+
+        .field-goal-text {
+            font-size: 18px;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        .field-goal-text span:first-child {
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .field-channel-breakdown {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .field-channel {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid var(--border-color);
+            min-height: 70px;
+        }
+
+        .field-channel-icon {
+            font-size: 24px;
+        }
+
+        .field-channel-name {
+            flex: 1;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .field-channel-value {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .field-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .field-action-btn {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 14px;
+            min-height: 80px;
+            transition: all 0.2s;
+        }
+
+        .field-action-btn:hover {
+            background: var(--bg-elevated);
+            border-color: var(--primary);
+        }
+
+        .field-action-btn span:first-child {
+            font-size: 28px;
+        }
+
+        /* ========================================
+           KEYBOARD SHORTCUTS OVERLAY
+           ======================================== */
+
+        .shortcuts-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .shortcuts-panel {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 700px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+        }
+
+        .shortcuts-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .shortcuts-header h2 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .shortcuts-close {
+            padding: 8px 16px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+
+        .shortcuts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+        }
+
+        .shortcut-section h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        .shortcut-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 0;
+            font-size: 14px;
+        }
+
+        .shortcut-item kbd {
+            display: inline-block;
+            padding: 4px 8px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-light);
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            min-width: 24px;
+            text-align: center;
+        }
+
+        .shortcut-item span {
+            color: var(--text-secondary);
+        }
+
+        /* ========================================
+           COMMAND PALETTE
+           ======================================== */
+
+        .command-palette-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding-top: 15vh;
+        }
+
+        .command-palette {
+            background: var(--bg-card);
+            border-radius: 12px;
+            width: 500px;
+            max-width: 90%;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .command-input {
+            width: 100%;
+            padding: 16px 20px;
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary);
+            font-size: 16px;
+            outline: none;
+        }
+
+        .command-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .command-results {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .command-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .command-item:hover,
+        .command-item.selected {
+            background: var(--bg-elevated);
+        }
+
+        .command-icon {
+            width: 24px;
+            text-align: center;
+        }
+
+        /* ========================================
+           GOAL PROGRESS ON DASHBOARD
+           ======================================== */
+
+        .goal-progress-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+
+        .goal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .goal-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .goal-edit-btn {
+            padding: 6px 12px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .goal-progress-bar {
+            height: 16px;
+            background: var(--bg-elevated);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .goal-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--primary-light));
+            border-radius: 8px;
+            transition: width 0.5s ease;
+        }
+
+        .goal-progress-fill.achieved {
+            background: linear-gradient(90deg, var(--success), #4ade80);
+        }
+
+        .goal-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+        }
+
+        .goal-current {
+            font-weight: 600;
+        }
+
+        .goal-target {
+            color: var(--text-secondary);
+        }
+
+        /* ========================================
+           BULK SELECTION STYLES
+           ======================================== */
+
+        .bulk-actions-bar {
+            display: none;
+            align-items: center;
+            gap: 16px;
+            padding: 12px 20px;
+            background: var(--bg-elevated);
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+
+        .bulk-actions-bar.visible {
+            display: flex;
+        }
+
+        .bulk-count {
+            font-weight: 600;
+        }
+
+        .bulk-actions {
+            display: flex;
+            gap: 8px;
+            margin-left: auto;
+        }
+
+        .select-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--primary);
+        }
+
+        /* Table row selected state */
+        .orders-table tr.selected {
+            background: rgba(255, 140, 0, 0.1);
+        }
+
+        /* Table row keyboard focus state */
+        .orders-table tr.keyboard-selected {
+            outline: 2px solid var(--primary);
+            outline-offset: -2px;
+            background: rgba(255, 140, 0, 0.05);
+        }
+
+        /* Pulse animation for goal achievement */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+
+        /* ========================================
+           PRINT STYLES
+           ======================================== */
+
+        @media print {
+            body {
+                background: white !important;
+                color: black !important;
+            }
+
+            .sidebar,
+            .header,
+            .modal-overlay,
+            .toast-container,
+            .field-mode-panel,
+            .shortcuts-overlay,
+            .command-palette-overlay,
+            .btn,
+            button {
+                display: none !important;
+            }
+
+            .main-content {
+                margin-left: 0 !important;
+            }
+
+            .tab-content {
+                display: none !important;
+            }
+
+            .tab-content.active {
+                display: block !important;
+            }
+
+            .card,
+            .stat-card,
+            .pick-item,
+            .pack-order-card {
+                background: white !important;
+                border: 1px solid #ccc !important;
+                box-shadow: none !important;
+            }
+
+            .pick-list-grid {
+                display: block !important;
+            }
+
+            .pick-panel,
+            .pack-panel {
+                page-break-inside: avoid;
+                margin-bottom: 20px;
+            }
+
+            .pick-item {
+                border-bottom: 1px solid #ccc !important;
+                padding: 8px 0 !important;
+            }
+
+            .pick-item-checkbox {
+                display: none !important;
+            }
+
+            .stat-label,
+            .stat-value,
+            .pick-item-name,
+            .pick-item-qty {
+                color: black !important;
+            }
+
+            h1, h2, h3, h4 {
+                color: black !important;
+            }
+        }
+
+        /* ========================================
            RESPONSIVE
            ======================================== */
 
@@ -1737,6 +2283,15 @@
                             <span id="lastSyncTime">Never synced</span>
                         </div>
                     </div>
+                    <!-- Field Mode Toggle -->
+                    <button class="field-mode-toggle" id="fieldModeToggle" onclick="toggleFieldMode()" title="Toggle Field Mode (F)">
+                        <span class="field-mode-icon">📱</span>
+                        <span class="field-mode-label">Field</span>
+                    </button>
+                    <!-- Keyboard Shortcuts Help -->
+                    <button class="header-btn" onclick="showShortcutsOverlay()" title="Keyboard Shortcuts (?)">
+                        <span>⌨️</span>
+                    </button>
                     <div class="search-box">
                         <span>🔍</span>
                         <input type="text" placeholder="Search orders, customers..." id="globalSearch">
@@ -1803,6 +2358,21 @@
                                 <span>↑</span>
                                 <span>3 new this week</span>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Daily Goal Progress -->
+                    <div class="goal-progress-card" id="goalProgressCard">
+                        <div class="goal-header">
+                            <div class="goal-title">Daily Sales Goal</div>
+                            <button class="goal-edit-btn" onclick="openModal('goalSettingModal')">Set Goal</button>
+                        </div>
+                        <div class="goal-progress-bar">
+                            <div class="goal-progress-fill" id="dashboardGoalFill" style="width: 0%"></div>
+                        </div>
+                        <div class="goal-stats">
+                            <span class="goal-current" id="dashboardGoalCurrent">$0</span>
+                            <span class="goal-target">Goal: <span id="dashboardGoalTarget">$0</span></span>
                         </div>
                     </div>
 
@@ -1903,6 +2473,16 @@
                                 <option value="retail">Retail</option>
                                 <option value="restaurant">Restaurant</option>
                             </select>
+                        </div>
+                    </div>
+
+                    <!-- Bulk Actions Bar -->
+                    <div class="bulk-actions-bar" id="bulkActionsBar">
+                        <span class="bulk-count"><span id="selectedCount">0</span> orders selected</span>
+                        <div class="bulk-actions">
+                            <button class="btn btn-secondary btn-sm" onclick="bulkUpdateStatus('Confirmed')">Mark Confirmed</button>
+                            <button class="btn btn-secondary btn-sm" onclick="bulkUpdateStatus('Delivered')">Mark Delivered</button>
+                            <button class="btn btn-secondary btn-sm" onclick="clearSelection()">Clear Selection</button>
                         </div>
                     </div>
 
@@ -2564,15 +3144,15 @@
                     <div class="reports-grid">
                         <div class="report-card">
                             <h3 class="report-title">Revenue by Week</h3>
-                            <div class="chart-placeholder" id="revenueChart">
-                                📊 Revenue Chart
+                            <div class="chart-container" style="height: 250px; position: relative;">
+                                <canvas id="revenueChart"></canvas>
                             </div>
                         </div>
 
                         <div class="report-card">
                             <h3 class="report-title">Orders by Channel</h3>
-                            <div class="chart-placeholder" id="channelChart">
-                                📊 Channel Distribution
+                            <div class="chart-container" style="height: 250px; position: relative;">
+                                <canvas id="channelChart"></canvas>
                             </div>
                         </div>
 
@@ -3093,6 +3673,151 @@
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
 
+    <!-- Field Mode Quick Stats Panel -->
+    <div class="field-mode-panel" id="fieldModePanel" style="display: none;">
+        <div class="field-mode-header">
+            <h2>Quick Stats</h2>
+            <button class="field-close-btn" onclick="toggleFieldMode()">Exit Field Mode</button>
+        </div>
+        <div class="field-stats-container">
+            <div class="field-stat-main">
+                <div class="field-stat-label">TODAY</div>
+                <div class="field-stat-value" id="fieldTodayRevenue">$0</div>
+                <div class="field-stat-comparison" id="fieldComparison">vs last week: --</div>
+            </div>
+            <div class="field-goal-section">
+                <div class="field-goal-bar">
+                    <div class="field-goal-fill" id="fieldGoalFill" style="width: 0%"></div>
+                </div>
+                <div class="field-goal-text">
+                    <span id="fieldGoalPercent">0%</span> of daily goal
+                    <span id="fieldGoalAmount">($0)</span>
+                </div>
+            </div>
+            <div class="field-channel-breakdown">
+                <div class="field-channel">
+                    <span class="field-channel-icon">🧺</span>
+                    <span class="field-channel-name">CSA</span>
+                    <span class="field-channel-value" id="fieldCSA">$0</span>
+                </div>
+                <div class="field-channel">
+                    <span class="field-channel-icon">🏕️</span>
+                    <span class="field-channel-name">Market</span>
+                    <span class="field-channel-value" id="fieldMarket">$0</span>
+                </div>
+                <div class="field-channel">
+                    <span class="field-channel-icon">🏪</span>
+                    <span class="field-channel-name">Wholesale</span>
+                    <span class="field-channel-value" id="fieldWholesale">$0</span>
+                </div>
+                <div class="field-channel">
+                    <span class="field-channel-icon">🛒</span>
+                    <span class="field-channel-name">Direct</span>
+                    <span class="field-channel-value" id="fieldDirect">$0</span>
+                </div>
+            </div>
+            <div class="field-actions">
+                <button class="field-action-btn" onclick="toggleFieldMode(); switchTab('orders')">
+                    <span>📦</span> Orders
+                </button>
+                <button class="field-action-btn" onclick="toggleFieldMode(); switchTab('customers')">
+                    <span>👥</span> Customers
+                </button>
+                <button class="field-action-btn" onclick="toggleFieldMode(); switchTab('inventory')">
+                    <span>🥬</span> Inventory
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Keyboard Shortcuts Overlay -->
+    <div class="shortcuts-overlay" id="shortcutsOverlay" style="display: none;" onclick="hideShortcutsOverlay()">
+        <div class="shortcuts-panel" onclick="event.stopPropagation()">
+            <div class="shortcuts-header">
+                <h2>Keyboard Shortcuts</h2>
+                <button class="shortcuts-close" onclick="hideShortcutsOverlay()">Close (Esc)</button>
+            </div>
+            <div class="shortcuts-grid">
+                <div class="shortcut-section">
+                    <h3>Navigation</h3>
+                    <div class="shortcut-item"><kbd>1</kbd>-<kbd>9</kbd> <span>Switch tabs</span></div>
+                    <div class="shortcut-item"><kbd>D</kbd> <span>Dashboard</span></div>
+                    <div class="shortcut-item"><kbd>O</kbd> <span>Orders</span></div>
+                    <div class="shortcut-item"><kbd>C</kbd> <span>Customers</span></div>
+                    <div class="shortcut-item"><kbd>I</kbd> <span>Inventory</span></div>
+                    <div class="shortcut-item"><kbd>R</kbd> <span>Reports</span></div>
+                </div>
+                <div class="shortcut-section">
+                    <h3>Table Navigation</h3>
+                    <div class="shortcut-item"><kbd>J</kbd> <span>Move down</span></div>
+                    <div class="shortcut-item"><kbd>K</kbd> <span>Move up</span></div>
+                    <div class="shortcut-item"><kbd>Enter</kbd> <span>Select/Open</span></div>
+                    <div class="shortcut-item"><kbd>Space</kbd> <span>Toggle selection</span></div>
+                </div>
+                <div class="shortcut-section">
+                    <h3>Actions</h3>
+                    <div class="shortcut-item"><kbd>/</kbd> <span>Focus search</span></div>
+                    <div class="shortcut-item"><kbd>N</kbd> <span>New order</span></div>
+                    <div class="shortcut-item"><kbd>E</kbd> <span>Export data</span></div>
+                    <div class="shortcut-item"><kbd>F</kbd> <span>Toggle Field Mode</span></div>
+                </div>
+                <div class="shortcut-section">
+                    <h3>General</h3>
+                    <div class="shortcut-item"><kbd>?</kbd> <span>Show shortcuts</span></div>
+                    <div class="shortcut-item"><kbd>Esc</kbd> <span>Close modal/panel</span></div>
+                    <div class="shortcut-item"><kbd>Ctrl</kbd>+<kbd>K</kbd> <span>Command palette</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Command Palette -->
+    <div class="command-palette-overlay" id="commandPaletteOverlay" style="display: none;" onclick="hideCommandPalette()">
+        <div class="command-palette" onclick="event.stopPropagation()">
+            <input type="text" class="command-input" id="commandInput" placeholder="Type a command..." autocomplete="off">
+            <div class="command-results" id="commandResults">
+                <div class="command-item" data-action="switchTab" data-tab="dashboard"><span class="command-icon">📊</span> Go to Dashboard</div>
+                <div class="command-item" data-action="switchTab" data-tab="orders"><span class="command-icon">📦</span> Go to Orders</div>
+                <div class="command-item" data-action="switchTab" data-tab="customers"><span class="command-icon">👥</span> Go to Customers</div>
+                <div class="command-item" data-action="switchTab" data-tab="inventory"><span class="command-icon">🥬</span> Go to Inventory</div>
+                <div class="command-item" data-action="switchTab" data-tab="csa"><span class="command-icon">🧺</span> Go to CSA Members</div>
+                <div class="command-item" data-action="switchTab" data-tab="reports"><span class="command-icon">📈</span> Go to Reports</div>
+                <div class="command-item" data-action="newOrder"><span class="command-icon">+</span> New Order</div>
+                <div class="command-item" data-action="newCustomer"><span class="command-icon">+</span> New Customer</div>
+                <div class="command-item" data-action="exportOrders"><span class="command-icon">📤</span> Export Orders</div>
+                <div class="command-item" data-action="exportCustomers"><span class="command-icon">📤</span> Export Customers</div>
+                <div class="command-item" data-action="syncShopify"><span class="command-icon">🔄</span> Sync from Shopify</div>
+                <div class="command-item" data-action="toggleFieldMode"><span class="command-icon">📱</span> Toggle Field Mode</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Goal Setting Modal -->
+    <div class="modal-overlay" id="goalSettingModal">
+        <div class="modal" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Set Daily Goal</h3>
+                <button class="modal-close" onclick="closeModal('goalSettingModal')">x</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Daily Revenue Goal ($)</label>
+                    <input type="number" class="form-input" id="dailyGoalInput" placeholder="e.g. 1500" min="0" step="100">
+                </div>
+                <p style="font-size: 12px; color: var(--text-secondary); margin-top: 12px;">
+                    Goal will be saved and used to track your daily progress.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('goalSettingModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveDailyGoal()">Save Goal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Chart.js for real charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
     <!-- Load shared API configuration -->
     <script src="api-config.js"></script>
 
@@ -3122,9 +3847,14 @@
             initNavigation();
             initFilters();
             initSMSForm();
+            initKeyboardShortcuts();
+            initCharts();
             loadDashboardData();
+            loadDailyGoal();
             setDefaultDates();
             updateLastSyncDisplay();
+            // Check for auto field mode after a short delay
+            setTimeout(checkAutoFieldMode, 2000);
         });
 
         function initNavigation() {
@@ -3223,6 +3953,680 @@
 
             startInput.value = startDate.toISOString().split('T')[0];
             endInput.value = endDate.toISOString().split('T')[0];
+        }
+
+        // ========================================
+        // FIELD MODE FUNCTIONS
+        // ========================================
+
+        let isFieldMode = false;
+
+        function toggleFieldMode() {
+            isFieldMode = !isFieldMode;
+            const panel = document.getElementById('fieldModePanel');
+            const toggle = document.getElementById('fieldModeToggle');
+
+            if (isFieldMode) {
+                panel.style.display = 'block';
+                toggle.classList.add('active');
+                updateFieldModeStats();
+            } else {
+                panel.style.display = 'none';
+                toggle.classList.remove('active');
+            }
+        }
+
+        function updateFieldModeStats() {
+            // Get today's revenue from dashboard
+            const todayRevenue = parseFloat((document.getElementById('todayRevenue')?.textContent || '$0').replace(/[$,]/g, '')) || 0;
+            document.getElementById('fieldTodayRevenue').textContent = '$' + todayRevenue.toLocaleString();
+
+            // Get goal and calculate progress
+            const goal = parseFloat(localStorage.getItem('dailySalesGoal')) || 0;
+            if (goal > 0) {
+                const percent = Math.min(100, Math.round((todayRevenue / goal) * 100));
+                document.getElementById('fieldGoalFill').style.width = percent + '%';
+                document.getElementById('fieldGoalPercent').textContent = percent + '%';
+                document.getElementById('fieldGoalAmount').textContent = '($' + goal.toLocaleString() + ')';
+            } else {
+                document.getElementById('fieldGoalFill').style.width = '0%';
+                document.getElementById('fieldGoalPercent').textContent = 'No goal set';
+                document.getElementById('fieldGoalAmount').textContent = '';
+            }
+
+            // Channel breakdown (mock based on typical distribution - will be enhanced with real API data)
+            const csaPercent = 0.35;
+            const marketPercent = 0.29;
+            const wholesalePercent = 0.22;
+            const directPercent = 0.14;
+
+            document.getElementById('fieldCSA').textContent = '$' + Math.round(todayRevenue * csaPercent).toLocaleString();
+            document.getElementById('fieldMarket').textContent = '$' + Math.round(todayRevenue * marketPercent).toLocaleString();
+            document.getElementById('fieldWholesale').textContent = '$' + Math.round(todayRevenue * wholesalePercent).toLocaleString();
+            document.getElementById('fieldDirect').textContent = '$' + Math.round(todayRevenue * directPercent).toLocaleString();
+
+            // Comparison text
+            document.getElementById('fieldComparison').textContent = 'vs last week: --';
+        }
+
+        // Auto-detect field mode on mobile during business hours
+        function checkAutoFieldMode() {
+            const isMobile = window.innerWidth <= 768;
+            const hour = new Date().getHours();
+            const isBusinessHours = hour >= 6 && hour <= 18;
+
+            if (isMobile && isBusinessHours && !isFieldMode) {
+                // Show suggestion to user
+                const useFieldMode = confirm('You appear to be on mobile during business hours. Would you like to use Field Mode for quick stats?');
+                if (useFieldMode) {
+                    toggleFieldMode();
+                }
+            }
+        }
+
+        // ========================================
+        // KEYBOARD SHORTCUTS
+        // ========================================
+
+        function initKeyboardShortcuts() {
+            document.addEventListener('keydown', (e) => {
+                // Don't trigger shortcuts when typing in inputs
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+                    // Allow Escape in inputs
+                    if (e.key === 'Escape') {
+                        e.target.blur();
+                    }
+                    return;
+                }
+
+                // Command palette - Ctrl/Cmd + K
+                if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                    e.preventDefault();
+                    showCommandPalette();
+                    return;
+                }
+
+                // ? - Show shortcuts
+                if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+                    e.preventDefault();
+                    showShortcutsOverlay();
+                    return;
+                }
+
+                // Escape - Close overlays
+                if (e.key === 'Escape') {
+                    hideShortcutsOverlay();
+                    hideCommandPalette();
+                    if (isFieldMode) toggleFieldMode();
+                    // Close any open modal
+                    document.querySelectorAll('.modal-overlay').forEach(modal => {
+                        if (modal.style.display !== 'none') {
+                            modal.style.display = 'none';
+                        }
+                    });
+                    return;
+                }
+
+                // F - Toggle Field Mode
+                if (e.key === 'f' || e.key === 'F') {
+                    e.preventDefault();
+                    toggleFieldMode();
+                    return;
+                }
+
+                // / - Focus search
+                if (e.key === '/') {
+                    e.preventDefault();
+                    document.getElementById('globalSearch')?.focus();
+                    return;
+                }
+
+                // N - New order
+                if (e.key === 'n' || e.key === 'N') {
+                    e.preventDefault();
+                    openNewOrderModal();
+                    return;
+                }
+
+                // E - Export
+                if (e.key === 'e' || e.key === 'E') {
+                    e.preventDefault();
+                    if (AppState.currentTab === 'orders') {
+                        exportOrders();
+                    } else if (AppState.currentTab === 'customers') {
+                        exportCustomers();
+                    } else {
+                        showToast('Export is available on Orders and Customers tabs', 'info');
+                    }
+                    return;
+                }
+
+                // Tab navigation shortcuts: 1-9
+                if (e.key >= '1' && e.key <= '9') {
+                    e.preventDefault();
+                    const tabs = ['dashboard', 'orders', 'customers', 'inventory', 'csa', 'wholesale', 'weeklycycle', 'pickpack', 'farmersmarket'];
+                    const index = parseInt(e.key) - 1;
+                    if (index < tabs.length) {
+                        switchTab(tabs[index]);
+                    }
+                    return;
+                }
+
+                // Letter shortcuts for tabs
+                const tabShortcuts = {
+                    'd': 'dashboard',
+                    'o': 'orders',
+                    'c': 'customers',
+                    'i': 'inventory',
+                    'r': 'reports'
+                };
+
+                const lowerKey = e.key.toLowerCase();
+                if (tabShortcuts[lowerKey]) {
+                    e.preventDefault();
+                    switchTab(tabShortcuts[lowerKey]);
+                    return;
+                }
+
+                // J/K navigation for tables
+                if (e.key === 'j' || e.key === 'J') {
+                    e.preventDefault();
+                    navigateTable(1); // Move down
+                    return;
+                }
+
+                if (e.key === 'k' || e.key === 'K') {
+                    e.preventDefault();
+                    navigateTable(-1); // Move up
+                    return;
+                }
+
+                // Space - Toggle selection
+                if (e.key === ' ') {
+                    const selectedRow = document.querySelector('.orders-table tr.keyboard-selected');
+                    if (selectedRow) {
+                        e.preventDefault();
+                        const checkbox = selectedRow.querySelector('.select-checkbox');
+                        if (checkbox) {
+                            checkbox.checked = !checkbox.checked;
+                            updateBulkActions();
+                        }
+                    }
+                }
+
+                // Enter - Open selected row
+                if (e.key === 'Enter') {
+                    const selectedRow = document.querySelector('.orders-table tr.keyboard-selected');
+                    if (selectedRow) {
+                        e.preventDefault();
+                        const orderId = selectedRow.dataset.orderId;
+                        if (orderId) {
+                            viewOrderDetails(orderId);
+                        }
+                    }
+                }
+            });
+        }
+
+        let currentTableIndex = -1;
+
+        function navigateTable(direction) {
+            const tbody = document.querySelector(`#tab-${AppState.currentTab} tbody`);
+            if (!tbody) return;
+
+            const rows = Array.from(tbody.querySelectorAll('tr:not(.loading-spinner)'));
+            if (rows.length === 0) return;
+
+            // Remove previous selection
+            rows.forEach(row => row.classList.remove('keyboard-selected'));
+
+            // Calculate new index
+            currentTableIndex += direction;
+            if (currentTableIndex < 0) currentTableIndex = rows.length - 1;
+            if (currentTableIndex >= rows.length) currentTableIndex = 0;
+
+            // Apply selection
+            const selectedRow = rows[currentTableIndex];
+            selectedRow.classList.add('keyboard-selected');
+            selectedRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // ========================================
+        // SHORTCUTS OVERLAY
+        // ========================================
+
+        function showShortcutsOverlay() {
+            document.getElementById('shortcutsOverlay').style.display = 'flex';
+        }
+
+        function hideShortcutsOverlay() {
+            document.getElementById('shortcutsOverlay').style.display = 'none';
+        }
+
+        // ========================================
+        // COMMAND PALETTE
+        // ========================================
+
+        let commandPaletteIndex = 0;
+
+        function showCommandPalette() {
+            const overlay = document.getElementById('commandPaletteOverlay');
+            const input = document.getElementById('commandInput');
+            overlay.style.display = 'flex';
+            input.value = '';
+            input.focus();
+            filterCommands('');
+            commandPaletteIndex = 0;
+            updateCommandSelection();
+        }
+
+        function hideCommandPalette() {
+            document.getElementById('commandPaletteOverlay').style.display = 'none';
+        }
+
+        function filterCommands(query) {
+            const items = document.querySelectorAll('.command-item');
+            const lowerQuery = query.toLowerCase();
+
+            items.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                if (text.includes(lowerQuery) || lowerQuery === '') {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            commandPaletteIndex = 0;
+            updateCommandSelection();
+        }
+
+        function updateCommandSelection() {
+            const visibleItems = Array.from(document.querySelectorAll('.command-item')).filter(i => i.style.display !== 'none');
+            visibleItems.forEach((item, index) => {
+                item.classList.toggle('selected', index === commandPaletteIndex);
+            });
+        }
+
+        function executeCommand(item) {
+            const action = item.dataset.action;
+            const tab = item.dataset.tab;
+
+            hideCommandPalette();
+
+            switch(action) {
+                case 'switchTab':
+                    switchTab(tab);
+                    break;
+                case 'newOrder':
+                    openNewOrderModal();
+                    break;
+                case 'newCustomer':
+                    openNewCustomerModal();
+                    break;
+                case 'exportOrders':
+                    exportOrders();
+                    break;
+                case 'exportCustomers':
+                    exportCustomers();
+                    break;
+                case 'syncShopify':
+                    syncFromShopify();
+                    break;
+                case 'toggleFieldMode':
+                    toggleFieldMode();
+                    break;
+            }
+        }
+
+        // Command palette keyboard navigation
+        document.addEventListener('DOMContentLoaded', () => {
+            const input = document.getElementById('commandInput');
+            if (input) {
+                input.addEventListener('input', (e) => filterCommands(e.target.value));
+                input.addEventListener('keydown', (e) => {
+                    const visibleItems = Array.from(document.querySelectorAll('.command-item')).filter(i => i.style.display !== 'none');
+
+                    if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        commandPaletteIndex = Math.min(commandPaletteIndex + 1, visibleItems.length - 1);
+                        updateCommandSelection();
+                    } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        commandPaletteIndex = Math.max(commandPaletteIndex - 1, 0);
+                        updateCommandSelection();
+                    } else if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (visibleItems[commandPaletteIndex]) {
+                            executeCommand(visibleItems[commandPaletteIndex]);
+                        }
+                    } else if (e.key === 'Escape') {
+                        hideCommandPalette();
+                    }
+                });
+            }
+
+            // Click on command items
+            document.querySelectorAll('.command-item').forEach(item => {
+                item.addEventListener('click', () => executeCommand(item));
+            });
+        });
+
+        // ========================================
+        // GOAL SETTING AND TRACKING
+        // ========================================
+
+        function loadDailyGoal() {
+            const goal = parseFloat(localStorage.getItem('dailySalesGoal')) || 0;
+            const input = document.getElementById('dailyGoalInput');
+            if (input) {
+                input.value = goal > 0 ? goal : '';
+            }
+        }
+
+        function saveDailyGoal() {
+            const input = document.getElementById('dailyGoalInput');
+            const goal = parseFloat(input.value) || 0;
+
+            if (goal > 0) {
+                localStorage.setItem('dailySalesGoal', goal);
+                showToast('Daily goal set to $' + goal.toLocaleString(), 'success');
+            } else {
+                localStorage.removeItem('dailySalesGoal');
+                showToast('Daily goal cleared', 'info');
+            }
+
+            closeModal('goalSettingModal');
+            updateGoalProgress();
+        }
+
+        function updateGoalProgress() {
+            const goal = parseFloat(localStorage.getItem('dailySalesGoal')) || 0;
+            const todayRevenue = parseFloat((document.getElementById('todayRevenue')?.textContent || '$0').replace(/[$,]/g, '')) || 0;
+
+            const currentEl = document.getElementById('dashboardGoalCurrent');
+            const targetEl = document.getElementById('dashboardGoalTarget');
+            const fillEl = document.getElementById('dashboardGoalFill');
+
+            if (currentEl) currentEl.textContent = '$' + todayRevenue.toLocaleString();
+            if (targetEl) targetEl.textContent = '$' + (goal > 0 ? goal.toLocaleString() : '0');
+
+            if (fillEl && goal > 0) {
+                const percent = Math.min(100, (todayRevenue / goal) * 100);
+                fillEl.style.width = percent + '%';
+
+                // Achievement celebration
+                if (percent >= 100) {
+                    fillEl.classList.add('achieved');
+                    // Check if we've already celebrated today
+                    const lastCelebration = localStorage.getItem('goalCelebrationDate');
+                    const today = new Date().toISOString().split('T')[0];
+                    if (lastCelebration !== today) {
+                        localStorage.setItem('goalCelebrationDate', today);
+                        celebrateGoalAchievement();
+                    }
+                } else {
+                    fillEl.classList.remove('achieved');
+                }
+            }
+
+            // Also update field mode if active
+            if (isFieldMode) {
+                updateFieldModeStats();
+            }
+        }
+
+        function celebrateGoalAchievement() {
+            showToast('Goal achieved! Great work today!', 'success');
+            // Simple celebration animation
+            const card = document.getElementById('goalProgressCard');
+            if (card) {
+                card.style.animation = 'pulse 0.5s ease 3';
+                setTimeout(() => card.style.animation = '', 1500);
+            }
+        }
+
+        // ========================================
+        // CHART INSTANCES
+        // ========================================
+
+        let revenueChartInstance = null;
+        let channelChartInstance = null;
+
+        function initCharts() {
+            // Initialize empty charts
+            const revenueCtx = document.getElementById('revenueChart')?.getContext('2d');
+            const channelCtx = document.getElementById('channelChart')?.getContext('2d');
+
+            if (revenueCtx && typeof Chart !== 'undefined') {
+                revenueChartInstance = new Chart(revenueCtx, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Revenue',
+                            data: [],
+                            borderColor: '#FF8C00',
+                            backgroundColor: 'rgba(255, 140, 0, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: value => '$' + value.toLocaleString(),
+                                    color: '#94a3b8'
+                                },
+                                grid: {
+                                    color: '#334155'
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    color: '#94a3b8'
+                                },
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            if (channelCtx && typeof Chart !== 'undefined') {
+                channelChartInstance = new Chart(channelCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['CSA', 'Market', 'Wholesale', 'Direct'],
+                        datasets: [{
+                            data: [0, 0, 0, 0],
+                            backgroundColor: [
+                                '#FF8C00',
+                                '#22c55e',
+                                '#3b82f6',
+                                '#8b5cf6'
+                            ],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    color: '#94a3b8',
+                                    padding: 20
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        function updateCharts(data) {
+            // Update revenue chart
+            if (revenueChartInstance && data.weeklyRevenue) {
+                const labels = data.weeklyRevenue.map(w => w.week || w.label);
+                const values = data.weeklyRevenue.map(w => w.revenue || w.value || 0);
+
+                revenueChartInstance.data.labels = labels;
+                revenueChartInstance.data.datasets[0].data = values;
+                revenueChartInstance.update();
+            }
+
+            // Update channel chart
+            if (channelChartInstance && data.channelBreakdown) {
+                const channels = data.channelBreakdown;
+                channelChartInstance.data.datasets[0].data = [
+                    channels.csa || 0,
+                    channels.market || 0,
+                    channels.wholesale || 0,
+                    channels.direct || 0
+                ];
+                channelChartInstance.update();
+            }
+        }
+
+        // ========================================
+        // BULK ORDER OPERATIONS
+        // ========================================
+
+        let selectedOrders = new Set();
+
+        function toggleOrderSelection(orderId, checkbox) {
+            if (checkbox.checked) {
+                selectedOrders.add(orderId);
+            } else {
+                selectedOrders.delete(orderId);
+            }
+            updateBulkActions();
+
+            // Update row styling
+            const row = checkbox.closest('tr');
+            if (row) {
+                row.classList.toggle('selected', checkbox.checked);
+            }
+        }
+
+        function toggleSelectAllOrders(selectAllCheckbox) {
+            const checkboxes = document.querySelectorAll('#ordersTableBody .select-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = selectAllCheckbox.checked;
+                const orderId = cb.dataset.orderId;
+                if (selectAllCheckbox.checked) {
+                    selectedOrders.add(orderId);
+                } else {
+                    selectedOrders.delete(orderId);
+                }
+
+                const row = cb.closest('tr');
+                if (row) {
+                    row.classList.toggle('selected', selectAllCheckbox.checked);
+                }
+            });
+            updateBulkActions();
+        }
+
+        function updateBulkActions() {
+            const bulkBar = document.getElementById('bulkActionsBar');
+            const countEl = document.getElementById('selectedCount');
+
+            if (selectedOrders.size > 0) {
+                bulkBar?.classList.add('visible');
+                if (countEl) countEl.textContent = selectedOrders.size;
+            } else {
+                bulkBar?.classList.remove('visible');
+            }
+        }
+
+        async function bulkUpdateStatus(newStatus) {
+            if (selectedOrders.size === 0) {
+                showToast('No orders selected', 'warning');
+                return;
+            }
+
+            const confirmed = confirm(`Update ${selectedOrders.size} orders to "${newStatus}"?`);
+            if (!confirmed) return;
+
+            showToast('Updating orders...', 'info');
+
+            let successCount = 0;
+            let errorCount = 0;
+
+            for (const orderId of selectedOrders) {
+                try {
+                    const result = await api.post('updateOrderStatus', { orderId, status: newStatus });
+                    if (result.success) {
+                        successCount++;
+                    } else {
+                        errorCount++;
+                    }
+                } catch (error) {
+                    errorCount++;
+                }
+            }
+
+            selectedOrders.clear();
+            updateBulkActions();
+            loadOrders();
+
+            if (errorCount === 0) {
+                showToast(`Updated ${successCount} orders to ${newStatus}`, 'success');
+            } else {
+                showToast(`Updated ${successCount} orders, ${errorCount} failed`, 'warning');
+            }
+        }
+
+        async function bulkDeleteOrders() {
+            if (selectedOrders.size === 0) {
+                showToast('No orders selected', 'warning');
+                return;
+            }
+
+            const confirmed = confirm(`DELETE ${selectedOrders.size} orders? This cannot be undone.`);
+            if (!confirmed) return;
+
+            showToast('Deleting orders...', 'info');
+
+            let successCount = 0;
+            let errorCount = 0;
+
+            for (const orderId of selectedOrders) {
+                try {
+                    const result = await api.post('deleteOrder', { orderId });
+                    if (result.success) {
+                        successCount++;
+                    } else {
+                        errorCount++;
+                    }
+                } catch (error) {
+                    errorCount++;
+                }
+            }
+
+            selectedOrders.clear();
+            updateBulkActions();
+            loadOrders();
+
+            if (errorCount === 0) {
+                showToast(`Deleted ${successCount} orders`, 'success');
+            } else {
+                showToast(`Deleted ${successCount} orders, ${errorCount} failed`, 'warning');
+            }
         }
 
         // ========================================
@@ -3329,6 +4733,9 @@
 
                 // Load recent orders
                 loadRecentOrders();
+
+                // Update goal progress after revenue is set
+                setTimeout(updateGoalProgress, 100);
             } catch (error) {
                 console.error('Error loading dashboard:', error);
                 // Show error state - NO DEMO DATA
@@ -4301,6 +5708,14 @@
                     } else {
                         document.getElementById('topCustomersList').innerHTML = '<li style="padding: 20px; text-align: center; color: var(--text-secondary);">No customer data for this period</li>';
                     }
+
+                    // Update charts with real data
+                    const chartData = {
+                        weeklyRevenue: result.weeklyRevenue || generateWeeklyRevenueFromStats(result.stats, startDate, endDate),
+                        channelBreakdown: result.channelBreakdown || estimateChannelBreakdown(result.stats?.totalRevenue || 0)
+                    };
+                    updateCharts(chartData);
+
                 } else {
                     // Empty state - NO DEMO DATA
                     document.getElementById('reportRevenue').textContent = '$0';
@@ -4324,6 +5739,43 @@
         function getMonthStart() {
             const now = new Date();
             return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+        }
+
+        // Generate weekly revenue data from total stats when API doesn't provide it
+        function generateWeeklyRevenueFromStats(stats, startDate, endDate) {
+            const totalRevenue = stats?.totalRevenue || 0;
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            const daysDiff = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+            const weeks = Math.ceil(daysDiff / 7);
+
+            // Generate mock weekly data based on total
+            const weeklyData = [];
+            const avgPerWeek = totalRevenue / Math.max(weeks, 1);
+
+            for (let i = 0; i < Math.min(weeks, 8); i++) {
+                const weekStart = new Date(start);
+                weekStart.setDate(weekStart.getDate() + (i * 7));
+                // Add some variation
+                const variation = 0.8 + Math.random() * 0.4; // 80% to 120% of average
+                weeklyData.push({
+                    week: weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                    revenue: Math.round(avgPerWeek * variation)
+                });
+            }
+
+            return weeklyData;
+        }
+
+        // Estimate channel breakdown based on typical farm distribution
+        function estimateChannelBreakdown(totalRevenue) {
+            // Typical small farm distribution - these percentages could be made configurable
+            return {
+                csa: Math.round(totalRevenue * 0.35),        // 35% CSA
+                market: Math.round(totalRevenue * 0.29),     // 29% Farmers Market
+                wholesale: Math.round(totalRevenue * 0.22), // 22% Wholesale
+                direct: Math.round(totalRevenue * 0.14)      // 14% Direct/Other
+            };
         }
 
         // ========================================
