@@ -129026,3 +129026,308 @@ function setupDailyWeatherTrigger() {
     return { success: false, error: error.toString() };
   }
 }
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CROP-TO-CONTENT PIPELINE
+// AI-powered produce photo to social media content generation
+// For Tiny Seed Farm Marketing Command Center
+// Added 2026-02-12
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Analyze a produce photo using Claude Vision API
+ */
+function analyzeProducePhoto(imageBase64) {
+  try {
+    if (!imageBase64) return { success: false, error: "No image data provided" };
+
+    let base64Data = imageBase64;
+    if (imageBase64.startsWith("data:image")) base64Data = imageBase64.split(",")[1];
+
+    const ANTHROPIC_API_KEY = PropertiesService.getScriptProperties().getProperty("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) return { success: false, error: "Anthropic API key not configured" };
+
+    const payload = {
+      model: "claude-3-5-sonnet-20241022",
+      max_tokens: 1500,
+      messages: [{
+        role: "user",
+        content: [
+          { type: "image", source: { type: "base64", media_type: "image/jpeg", data: base64Data } },
+          { type: "text", text: "You are analyzing a photo from Tiny Seed Farm, a small organic farm in Pittsburgh, PA. Identify all produce visible.
+
+Return JSON only (no markdown):
+{
+  \"items\": [{ \"name\": \"produce name\", \"variety\": \"variety or null\", \"quantity\": \"estimated qty\", \"freshness\": \"fresh/ripe/overripe/unknown\", \"color\": \"primary color\", \"confidence\": 0.95 }],
+  \"setting\": \"context description\",
+  \"visualHighlights\": [\"notable aspects\"],
+  \"suggestedTone\": \"playful/informative/appetizing/rustic/cozy\",
+  \"seasonalContext\": \"season suggestion\",
+  \"primaryProduce\": \"main item\"
+}
+
+Be specific (Zucchini not squash, Sunflowers not flowers). Only include clearly identifiable items." }
+        ]
+      }]
+    };
+
+    const options = { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" }, payload: JSON.stringify(payload), muteHttpExceptions: true };
+    const response = UrlFetchApp.fetch("https://api.anthropic.com/v1/messages", options);
+    const responseData = JSON.parse(response.getContentText());
+
+    if (responseData.error) return { success: false, error: "Vision API error: " + responseData.error.message };
+
+    let jsonStr = responseData.content[0].text;
+    if (jsonStr.includes("```json")) jsonStr = jsonStr.split("```json")[1].split("```")[0].trim();
+    else if (jsonStr.includes("```")) jsonStr = jsonStr.split("```")[1].split("```")[0].trim();
+
+    return { success: true, identification: JSON.parse(jsonStr), tokensUsed: responseData.usage ? responseData.usage.input_tokens + responseData.usage.output_tokens : null };
+  } catch (error) {
+    Logger.log("analyzeProducePhoto error: " + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Generate social media content for identified produce
+ */
+function generateProduceContent(produceType, platform) {
+  try {
+    if (!produceType) return { success: false, error: "Produce type required" };
+    platform = platform || "instagram";
+
+    const ANTHROPIC_API_KEY = PropertiesService.getScriptProperties().getProperty("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) return { success: false, error: "Anthropic API key not configured" };
+
+    var guidelineMap = { instagram: { maxLength: 2200, hashtagCount: "4-6", style: "engaging, authentic farm voice" }, facebook: { maxLength: 500, hashtagCount: "1-2", style: "conversational, community-focused" }, tiktok: { maxLength: 2200, hashtagCount: "3-5", style: "trendy, fun, behind-the-scenes vibe" } };
+    var guidelines = guidelineMap[platform] || { maxLength: 2200, hashtagCount: "4-6", style: "engaging" };
+
+    var dayOfWeek = new Date().getDay();
+    var dayName = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][dayOfWeek];
+    var marketContext = "";
+    if (dayOfWeek === 5) marketContext = "Tomorrow is Saturday market at Sewickley!";
+    else if (dayOfWeek === 6) marketContext = "See us today at Sewickley Farmers Market!";
+    else if (dayOfWeek === 1) marketContext = "Tomorrow is Lawrenceville market!";
+    else if (dayOfWeek === 2) marketContext = "See us today at Lawrenceville Farmers Market!";
+
+    var payload = {
+      model: "claude-3-5-sonnet-20241022",
+      max_tokens: 1000,
+      messages: [{ role: "user", content: "You are the social media manager for Tiny Seed Farm (Pittsburgh organic farm, owner Todd). Generate a " + platform + " post about fresh " + produceType + ".
+
+Voice: Authentic, warm, passionate about organic farming, community-focused, occasionally humorous.
+Today: " + dayName + ". " + marketContext + "
+Max length: " + guidelines.maxLength + " chars. Include " + guidelines.hashtagCount + " hashtags. Style: " + guidelines.style + "
+
+Return JSON only:
+{ \"caption\": \"text with emojis\", \"hashtags\": [\"farmfresh\",\"pittsburghfarms\"], \"characterCount\": 150, \"callToAction\": \"Visit us...\", \"alternateVersions\": [\"shorter version\",\"question version\"], \"bestTimeToPost\": \"suggestion\", \"contentCategory\": \"harvest/market/educational/behind-scenes\" }" }]
+    };
+
+    var options = { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" }, payload: JSON.stringify(payload), muteHttpExceptions: true };
+    var response = UrlFetchApp.fetch("https://api.anthropic.com/v1/messages", options);
+    var responseData = JSON.parse(response.getContentText());
+
+    if (responseData.error) return { success: false, error: "AI error: " + responseData.error.message };
+
+    var jsonStr = responseData.content[0].text;
+    if (jsonStr.includes("```json")) jsonStr = jsonStr.split("```json")[1].split("```")[0].trim();
+    else if (jsonStr.includes("```")) jsonStr = jsonStr.split("```")[1].split("```")[0].trim();
+
+    return { success: true, content: JSON.parse(jsonStr), platform: platform, produceType: produceType };
+  } catch (error) {
+    Logger.log("generateProduceContent error: " + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get recipe suggestions for produce
+ */
+function getRecipeForProduce(produce) {
+  try {
+    if (!produce) return { success: false, error: "Produce name required" };
+
+    var SPOONACULAR_KEY = PropertiesService.getScriptProperties().getProperty("SPOONACULAR_API_KEY");
+    if (!SPOONACULAR_KEY) return getCropFallbackRecipes(produce);
+
+    var searchUrl = "https://api.spoonacular.com/recipes/findByIngredients?ingredients=" + encodeURIComponent(produce) + "&number=3&ranking=2&apiKey=" + SPOONACULAR_KEY;
+    var searchResponse = UrlFetchApp.fetch(searchUrl, { muteHttpExceptions: true });
+    var recipes = JSON.parse(searchResponse.getContentText());
+
+    if (!recipes || recipes.length === 0) return getCropFallbackRecipes(produce);
+
+    var results = recipes.map(function(r) { return { id: r.id, title: r.title, image: r.image, usedIngredients: r.usedIngredients ? r.usedIngredients.map(function(i) { return i.name; }) : [], missedIngredientCount: r.missedIngredientCount || 0 }; });
+
+    if (results.length > 0 && results[0].id) {
+      try {
+        var detailUrl = "https://api.spoonacular.com/recipes/" + results[0].id + "/information?apiKey=" + SPOONACULAR_KEY;
+        var detail = JSON.parse(UrlFetchApp.fetch(detailUrl, { muteHttpExceptions: true }).getContentText());
+        results[0].detail = { readyInMinutes: detail.readyInMinutes, servings: detail.servings, summary: detail.summary ? detail.summary.replace(/<[^>]*>/g, "").substring(0, 300) + "..." : "", sourceUrl: detail.sourceUrl };
+      } catch (e) { Logger.log("Recipe detail error: " + e.toString()); }
+    }
+
+    return { success: true, recipes: results, produce: produce, source: "spoonacular" };
+  } catch (error) {
+    Logger.log("getRecipeForProduce error: " + error.toString());
+    return getCropFallbackRecipes(produce);
+  }
+}
+
+function getCropFallbackRecipes(produce) {
+  var db = {
+    "tomato": [{ title: "Fresh Caprese Salad", description: "Layer tomatoes with mozzarella and basil. Drizzle with olive oil and balsamic.", readyInMinutes: 10 }, { title: "Simple Tomato Sauce", description: "Crush tomatoes with garlic, olive oil, basil. Simmer 20 min.", readyInMinutes: 25 }],
+    "tomatoes": [{ title: "Fresh Caprese Salad", description: "Layer tomatoes with mozzarella and basil.", readyInMinutes: 10 }, { title: "Gazpacho", description: "Blend tomatoes, cucumber, peppers for cold soup.", readyInMinutes: 15 }],
+    "zucchini": [{ title: "Grilled Zucchini", description: "Slice, brush with olive oil and herbs, grill.", readyInMinutes: 15 }, { title: "Zucchini Noodles", description: "Spiralize for healthy pasta alternative.", readyInMinutes: 10 }],
+    "cucumber": [{ title: "Quick Pickles", description: "Slice, soak in vinegar, sugar, dill.", readyInMinutes: 35 }, { title: "Greek Salad", description: "With tomatoes, olives, feta, red onion.", readyInMinutes: 10 }],
+    "kale": [{ title: "Kale Chips", description: "Tear, toss with oil and salt, bake until crispy.", readyInMinutes: 20 }],
+    "sunflowers": [{ title: "Beautiful Bouquet", description: "Stunning centerpieces lasting 7-12 days!", readyInMinutes: 5 }],
+    "flowers": [{ title: "Flower Arranging", description: "Cut stems at angle, clean water, enjoy!", readyInMinutes: 10 }]
+  };
+
+  var normalized = produce.toLowerCase().trim();
+  var recipes = db[normalized];
+  if (!recipes) { for (var key in db) { if (key.indexOf(normalized) >= 0 || normalized.indexOf(key) >= 0) { recipes = db[key]; break; } } }
+  if (!recipes) recipes = [{ title: "Fresh & Simple", description: "Enjoy " + produce + " raw with seasoning.", readyInMinutes: 5 }, { title: "Roasted", description: "Roast at 400F with olive oil, salt, pepper.", readyInMinutes: 25 }];
+
+  return { success: true, recipes: recipes.map(function(r, i) { return { id: i + 1, title: r.title, detail: { summary: r.description, readyInMinutes: r.readyInMinutes, servings: 4 }, usedIngredients: [produce] }; }), produce: produce, source: "curated" };
+}
+
+/**
+ * Get nutrition data for produce
+ */
+function getNutritionData(produce) {
+  try {
+    if (!produce) return { success: false, error: "Produce name required" };
+
+    var USDA_API_KEY = PropertiesService.getScriptProperties().getProperty("USDA_API_KEY");
+    if (!USDA_API_KEY) return getCropFallbackNutrition(produce);
+
+    var searchUrl = "https://api.nal.usda.gov/fdc/v1/foods/search?query=" + encodeURIComponent(produce + " raw") + "&pageSize=1&dataType=Foundation,SR%20Legacy&api_key=" + USDA_API_KEY;
+    var data = JSON.parse(UrlFetchApp.fetch(searchUrl, { muteHttpExceptions: true }).getContentText());
+
+    if (!data.foods || data.foods.length === 0) return getCropFallbackNutrition(produce);
+
+    var food = data.foods[0];
+    var nutrients = {};
+    var keyNutrients = ["Energy", "Protein", "Total lipid", "Carbohydrate", "Fiber", "Vitamin C", "Vitamin A", "Potassium", "Iron"];
+
+    if (food.foodNutrients) food.foodNutrients.forEach(function(n) {
+      for (var i = 0; i < keyNutrients.length; i++) {
+        if (n.nutrientName.indexOf(keyNutrients[i]) >= 0) {
+          var name = n.nutrientName.replace(", total ascorbic acid", "").replace(", total dietary", "").replace(", by difference", "");
+          nutrients[name] = { value: Math.round(n.value * 10) / 10, unit: n.unitName.toLowerCase() };
+          break;
+        }
+      }
+    });
+
+    var highlights = [];
+    if (nutrients["Vitamin C"] && nutrients["Vitamin C"].value > 10) highlights.push("Vitamin C: " + nutrients["Vitamin C"].value + "mg");
+    if (nutrients["Fiber"] && nutrients["Fiber"].value > 2) highlights.push("Fiber: " + nutrients["Fiber"].value + "g");
+    if (nutrients["Energy"] && nutrients["Energy"].value < 50) highlights.push("Low cal: " + nutrients["Energy"].value + " kcal");
+
+    return { success: true, nutrition: { foodName: food.description, nutrients: nutrients, servingSize: "100g", highlight: highlights.length > 0 ? highlights.join(" | ") : "Fresh " + produce + " - naturally nutritious!" }, produce: produce, source: "usda" };
+  } catch (error) {
+    Logger.log("getNutritionData error: " + error.toString());
+    return getCropFallbackNutrition(produce);
+  }
+}
+
+function getCropFallbackNutrition(produce) {
+  var db = {
+    "tomato": { calories: 18, vitaminC: 14, fiber: 1.2, highlight: "Rich in lycopene and Vitamin C | Low calorie" },
+    "tomatoes": { calories: 18, vitaminC: 14, fiber: 1.2, highlight: "Rich in lycopene and Vitamin C | Low calorie" },
+    "zucchini": { calories: 17, vitaminC: 18, fiber: 1, highlight: "Very low calorie | Good Vitamin C source" },
+    "cucumber": { calories: 15, vitaminC: 2.8, fiber: 0.5, highlight: "Ultra low calorie | 95% water | Hydrating" },
+    "kale": { calories: 49, vitaminC: 120, fiber: 3.6, highlight: "Superfood! Extremely high in Vitamin C" },
+    "sunflowers": { calories: 0, vitaminC: 0, fiber: 0, highlight: "Beautiful mood boosters | Symbol of happiness" },
+    "flowers": { calories: 0, vitaminC: 0, fiber: 0, highlight: "Bring joy and beauty to any space" }
+  };
+
+  var normalized = produce.toLowerCase().trim();
+  var nutrition = db[normalized];
+  if (!nutrition) { for (var key in db) { if (key.indexOf(normalized) >= 0 || normalized.indexOf(key) >= 0) { nutrition = db[key]; break; } } }
+  if (!nutrition) nutrition = { calories: 25, vitaminC: 10, fiber: 2, highlight: "Fresh " + produce + " - naturally delicious!" };
+
+  return { success: true, nutrition: { foodName: produce, nutrients: { "Energy": { value: nutrition.calories, unit: "kcal" }, "Vitamin C": { value: nutrition.vitaminC, unit: "mg" }, "Fiber": { value: nutrition.fiber, unit: "g" } }, servingSize: "100g", highlight: nutrition.highlight }, produce: produce, source: "curated" };
+}
+
+/**
+ * Get storage tips for produce
+ */
+function getStorageTips(produce) {
+  try {
+    if (!produce) return { success: false, error: "Produce name required" };
+
+    var db = {
+      "tomato": { refrigerator: "7-14 days (after ripe)", roomTemp: "3-5 days (to ripen)", tips: "Store stem-side up at room temperature until ripe.", freezing: "Yes - blanch first", proTip: "Keep away from bananas - ethylene speeds ripening." },
+      "tomatoes": { refrigerator: "7-14 days (after ripe)", roomTemp: "3-5 days (to ripen)", tips: "Store stem-side up at room temperature until ripe.", freezing: "Yes - blanch first", proTip: "Never store below 55F - damages texture." },
+      "zucchini": { refrigerator: "5-7 days", tips: "Store unwashed in plastic bag in crisper.", freezing: "Yes - slice and blanch first", proTip: "Smaller ones have better flavor." },
+      "cucumber": { refrigerator: "7-10 days", tips: "Keep in warmest part of fridge. Wrap in paper towel.", freezing: "Not recommended", proTip: "Store away from tomatoes and bananas." },
+      "kale": { refrigerator: "5-7 days", tips: "Store unwashed in plastic bag.", freezing: "Yes - blanch first, great for smoothies", proTip: "Kale gets sweeter after frost!" },
+      "carrots": { refrigerator: "3-4 weeks", tips: "Remove green tops before storing.", freezing: "Yes - blanch sliced", proTip: "Store in water for max crispness." },
+      "sunflowers": { vase: "7-12 days", tips: "Cut stems at 45 angle, change water every 2 days.", drying: "Yes - hang upside down", proTip: "Add sugar to water for longer blooms." },
+      "flowers": { vase: "5-10 days", tips: "Cut stems at angle, clean vase, change water every 2-3 days.", drying: "Many varieties dry beautifully", proTip: "Morning is best harvest time." }
+    };
+
+    var normalized = produce.toLowerCase().trim();
+    var storage = db[normalized];
+    if (!storage) { for (var key in db) { if (key.indexOf(normalized) >= 0 || normalized.indexOf(key) >= 0) { storage = db[key]; break; } } }
+    if (!storage) storage = { refrigerator: "5-7 days", tips: "Store in cool place. Most produce keeps best in crisper drawer.", proTip: "Use at peak freshness for best flavor!" };
+
+    storage.produceName = produce;
+    return { success: true, storage: storage, produce: produce };
+  } catch (error) {
+    Logger.log("getStorageTips error: " + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Process produce image through complete pipeline
+ */
+function processProduceImage(imageBase64, options) {
+  try {
+    options = options || {};
+    var result = { success: false, timestamp: new Date().toISOString(), identification: null, content: null, recipes: null, nutrition: null, storage: null, errors: [] };
+
+    var idResult = analyzeProducePhoto(imageBase64);
+    if (!idResult.success) { result.errors.push("Identification: " + idResult.error); return result; }
+    result.identification = idResult.identification;
+
+    var primaryProduce = result.identification.primaryProduce || (result.identification.items && result.identification.items[0] ? result.identification.items[0].name : null);
+    if (!primaryProduce) { result.errors.push("Could not identify primary produce"); return result; }
+
+    if (options.generateCaption !== false) {
+      var contentResult = generateProduceContent(primaryProduce, options.platform || "instagram");
+      if (contentResult.success) result.content = contentResult.content;
+      else result.errors.push("Content: " + contentResult.error);
+    }
+
+    if (options.getRecipes !== false) {
+      var recipeResult = getRecipeForProduce(primaryProduce);
+      if (recipeResult.success) result.recipes = recipeResult.recipes;
+      else result.errors.push("Recipes: " + recipeResult.error);
+    }
+
+    if (options.getNutrition !== false) {
+      var nutritionResult = getNutritionData(primaryProduce);
+      if (nutritionResult.success) result.nutrition = nutritionResult.nutrition;
+      else result.errors.push("Nutrition: " + nutritionResult.error);
+    }
+
+    if (options.getStorage !== false) {
+      var storageResult = getStorageTips(primaryProduce);
+      if (storageResult.success) result.storage = storageResult.storage;
+      else result.errors.push("Storage: " + storageResult.error);
+    }
+
+    result.success = true;
+    result.primaryProduce = primaryProduce;
+    return result;
+  } catch (error) {
+    Logger.log("processProduceImage error: " + error.toString());
+    return { success: false, error: error.toString(), timestamp: new Date().toISOString() };
+  }
+}

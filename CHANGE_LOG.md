@@ -40,6 +40,74 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-02-12 - Backend_Claude (Weather-Aware Templates System)
+
+### Context
+Built Weather-Aware Templates system based on completed research at docs/research/WEATHER_TEMPLATES_RESEARCH.md.
+Research shows 65-600% sales increases with weather-triggered marketing.
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Added Weather-Aware Templates backend system
+- `web_app/marketing-command-center.html` - Added Weather-Smart Content panel to BRAIN tab
+
+### Functions Added in MERGED TOTAL.js
+- `WEATHER_CONTENT_CONFIG` - Weather-to-content mapping configuration
+- `fetchWeatherForecastAPI()` - Calls WeatherAPI.com for Rochester, PA (with Open-Meteo fallback)
+- `fetchWeatherForecastOpenMeteo()` - Free fallback weather API
+- `getWeatherConditionFromCode()` - WMO weather code to text conversion
+- `formatDateNice()` - Date formatting helper
+- `getWeatherContentSuggestions()` - Maps weather to content themes
+- `categorizeWeatherDay()` - Categorize weather into content categories
+- `calculateWeatherConfidence()` - Forecast confidence based on days ahead
+- `getWeatherTriggeredTemplates()` - Returns ready-to-use templates based on weather
+- `generateWeatherHook()` - Generate weather-specific hook lines
+- `generateWeatherHashtags()` - Weather-appropriate hashtags
+- `generateEmailSubject()` - Weather-based email subjects
+- `getWeatherSmartDashboard()` - Combined endpoint for frontend
+- `dailyWeatherContentUpdate()` - Daily trigger function
+- `setupDailyWeatherTrigger()` - Set up daily trigger at 6 AM Eastern
+
+### API Endpoints Added
+- `fetchWeatherForecast` - GET weather forecast
+- `getWeatherContentSuggestions` - GET content suggestions based on weather
+- `getWeatherTriggeredTemplates` - GET ready-to-use templates
+- `getWeatherSmartDashboard` - GET combined dashboard data
+- `setupDailyWeatherTrigger` - Set up daily trigger
+- `runDailyWeatherUpdate` - Manually run daily update
+
+### Frontend Changes (marketing-command-center.html)
+- Added Weather-Smart Content panel to BRAIN tab
+- Current weather widget with temperature, conditions, humidity, wind
+- Today's forecast (high/low/rain chance)
+- Weather alerts section
+- Weather-Smart Suggestions grid (4 suggestions)
+- Ready-to-Use Templates section with copy/edit functionality
+- JavaScript functions: loadWeatherSmartContent(), refreshWeatherData(), renderWeatherDashboard(), renderWeatherAlerts(), renderWeatherSuggestions(), renderWeatherTemplates(), useWeatherTemplate(), editWeatherTemplate()
+
+### Weather-to-Content Mapping
+- Heatwave (>85F) -> Salads, refreshing produce, hydration
+- Hot & Sunny (75-84F) -> Farm visits, U-pick, grilling
+- Perfect (65-78F) -> Farm experience, behind-the-scenes
+- Rainy (>70% rain) -> Delivery, comfort food, indoor recipes
+- Cold Snap (<45F) -> Soups, root vegetables, storage crops
+- Frost Alert (<32F) -> Last harvest urgency, preservation
+
+### Storage
+- WeatherAPI key stored in Script Properties (WEATHERAPI_KEY)
+- Falls back to Open-Meteo if no API key configured (free, no key needed)
+- 3-hour cache on both backend and frontend
+
+### Reason
+Research-driven feature to improve marketing effectiveness through weather-triggered content.
+Per research, posting 3 days BEFORE weather events is most effective (Michaels case study).
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions - Found existing getWeather() using Open-Meteo, kept as compatible fallback
+- [x] No duplicates created - Integrated with existing weather system
+
+---
+
 ## 2026-02-12 - Backend_Claude (Self-Updating Algorithm Intelligence System)
 
 ### Context
