@@ -2883,6 +2883,10 @@
                         <h4 id="uploadText">Drop media here or tap to upload</h4>
                         <p id="uploadSubtext">Photos and videos up to 100MB</p>
                     </div>
+                    <!-- Pick from Farm Pics Button -->
+                    <button class="btn btn-secondary" onclick="event.stopPropagation(); openFarmPicsPicker()" style="margin-top: 0.75rem; width: 100%;">
+                        <i class="fas fa-images"></i> Pick from Farm Pics
+                    </button>
 
                     <!-- Post Form -->
                     <div class="post-form">
@@ -5891,6 +5895,27 @@
         </div>
     </div>
 
+    <!-- FARM PICS PICKER MODAL -->
+    <div class="modal-overlay" id="farmPicsPickerModal">
+        <div class="modal" style="max-width: 800px; max-height: 80vh;">
+            <div class="modal-header" style="background: linear-gradient(135deg, var(--instagram) 0%, var(--accent) 100%);">
+                <h2><i class="fas fa-images"></i> Select from Farm Pics</h2>
+                <button class="modal-close" onclick="closeFarmPicsPicker()">&times;</button>
+            </div>
+            <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+                <div id="farmPicsPickerGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem;">
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 2rem;">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--instagram);"></i>
+                        <p style="margin-top: 1rem;">Loading photos...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeFarmPicsPicker()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <!-- SMS MARKETING MODAL -->
     <div class="modal-overlay" id="smsModal">
         <div class="modal" style="max-width: 550px;">
@@ -7057,35 +7082,45 @@
             let uploadedImageUrl = null;
 
             try {
-                // STEP 1: Upload image to Google Drive if we have a file
-                if (selectedFile && (socialPlatforms.includes('instagram') || socialPlatforms.includes('facebook'))) {
-                    timer.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Uploading image...';
+                // STEP 1: Check for image - either from file upload or Farm Pics selection
+                if (socialPlatforms.includes('instagram') || socialPlatforms.includes('facebook')) {
 
-                    // Get the base64 data from the preview image
-                    const preview = document.getElementById('uploadPreview');
-                    const base64Data = preview.src;
+                    // Option A: Use Farm Pics URL if selected (already hosted on Drive)
+                    if (window.selectedFarmPicUrl) {
+                        uploadedImageUrl = window.selectedFarmPicUrl;
+                        console.log('Using Farm Pics image:', uploadedImageUrl);
+                        timer.innerHTML = '<i class="fas fa-images"></i> Using Farm Pics image...';
+                    }
+                    // Option B: Upload new file if provided
+                    else if (selectedFile) {
+                        timer.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Uploading image...';
 
-                    if (base64Data && base64Data.startsWith('data:')) {
-                        const uploadResponse = await fetch(APPS_SCRIPT_URL, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'text/plain' },
-                            body: JSON.stringify({
-                                action: 'uploadSocialMediaImage',
-                                base64: base64Data,
-                                fileName: 'social_' + Date.now() + '.jpg',
-                                mimeType: selectedFile.type || 'image/jpeg'
-                            })
-                        });
+                        // Get the base64 data from the preview image
+                        const preview = document.getElementById('uploadPreview');
+                        const base64Data = preview.src;
 
-                        const uploadResult = await uploadResponse.json();
-                        console.log('Upload result:', uploadResult);
+                        if (base64Data && base64Data.startsWith('data:')) {
+                            const uploadResponse = await fetch(APPS_SCRIPT_URL, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'text/plain' },
+                                body: JSON.stringify({
+                                    action: 'uploadSocialMediaImage',
+                                    base64: base64Data,
+                                    fileName: 'social_' + Date.now() + '.jpg',
+                                    mimeType: selectedFile.type || 'image/jpeg'
+                                })
+                            });
 
-                        if (uploadResult.success) {
-                            uploadedImageUrl = uploadResult.imageUrl;
-                            console.log('Image uploaded successfully:', uploadedImageUrl);
-                            timer.innerHTML = '<i class="fas fa-check"></i> Image uploaded!';
-                        } else {
-                            throw new Error('Failed to upload image: ' + (uploadResult.error || 'Unknown error'));
+                            const uploadResult = await uploadResponse.json();
+                            console.log('Upload result:', uploadResult);
+
+                            if (uploadResult.success) {
+                                uploadedImageUrl = uploadResult.imageUrl;
+                                console.log('Image uploaded successfully:', uploadedImageUrl);
+                                timer.innerHTML = '<i class="fas fa-check"></i> Image uploaded!';
+                            } else {
+                                throw new Error('Failed to upload image: ' + (uploadResult.error || 'Unknown error'));
+                            }
                         }
                     }
                 }
@@ -7151,9 +7186,9 @@
                                 await new Promise(resolve => setTimeout(resolve, 1000));
                             }
                         }
-                    } else if (!selectedFile) {
+                    } else if (!selectedFile && !window.selectedFarmPicUrl) {
                         // No image selected - Instagram requires an image
-                        showToast('Instagram requires an image. Please upload a photo.', 'warning');
+                        showToast('Instagram requires an image. Upload a photo or pick from Farm Pics.', 'warning');
                         postResults.push({ platform: 'instagram', success: false, error: 'No image provided' });
                     }
                 }
@@ -7239,6 +7274,7 @@
                 timer.innerHTML = '<i class="fas fa-stopwatch"></i> Ready';
                 timer.style.background = 'var(--success)';
                 selectedFile = null;
+                window.selectedFarmPicUrl = null; // Clear Farm Pics selection
                 document.getElementById('uploadPreview').classList.remove('visible');
                 document.getElementById('uploadIcon').style.display = 'block';
                 document.getElementById('uploadText').textContent = 'Drop media here or tap to upload';
@@ -7574,6 +7610,110 @@
         function createCampaign() {
             showToast('Campaign created!', 'success');
             closeCampaignModal();
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // FARM PICS PICKER FUNCTIONS
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        let pickerFarmPicsCache = null;
+
+        async function openFarmPicsPicker() {
+            document.getElementById('farmPicsPickerModal').classList.add('active');
+            const grid = document.getElementById('farmPicsPickerGrid');
+
+            // Show loading state
+            grid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 2rem;">
+                <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--instagram);"></i>
+                <p style="margin-top: 1rem;">Loading photos...</p>
+            </div>`;
+
+            try {
+                // Use cached data if available, otherwise fetch
+                if (!pickerFarmPicsCache) {
+                    const response = await fetch(`${API_URL}?action=getFarmPics`);
+                    const data = await response.json();
+                    if (data.success) {
+                        pickerFarmPicsCache = data.farmPics.filter(p => p.Image_URL); // Only pics with images
+                    }
+                }
+
+                if (pickerFarmPicsCache && pickerFarmPicsCache.length > 0) {
+                    grid.innerHTML = pickerFarmPicsCache.map(pic => `
+                        <div class="farm-pic-picker-item" onclick="selectFarmPic('${pic.Image_URL}', '${(pic.Caption || '').replace(/'/g, "\\'")}', this)"
+                             style="cursor: pointer; border-radius: 12px; overflow: hidden; aspect-ratio: 1; position: relative; border: 3px solid transparent; transition: all 0.2s;">
+                            <img src="${pic.Thumbnail_URL || pic.Image_URL}" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy">
+                            ${pic.Caption ? `<div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.8)); padding: 0.5rem; font-size: 0.7rem; color: white;">${pic.Caption.substring(0, 50)}${pic.Caption.length > 50 ? '...' : ''}</div>` : ''}
+                            <div style="position: absolute; top: 0.5rem; right: 0.5rem; background: ${pic.Status === 'approved' ? 'var(--success)' : 'var(--warning)'}; padding: 0.2rem 0.4rem; border-radius: 4px; font-size: 0.6rem; text-transform: uppercase;">${pic.Status || 'new'}</div>
+                        </div>
+                    `).join('');
+                } else {
+                    grid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        <i class="fas fa-images" style="font-size: 3rem; opacity: 0.5;"></i>
+                        <p style="margin-top: 1rem;">No photos available</p>
+                        <p style="font-size: 0.8rem;">Use Field Mode to upload photos first</p>
+                    </div>`;
+                }
+            } catch (error) {
+                console.error('Error loading farm pics:', error);
+                grid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: var(--danger);">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 2rem;"></i>
+                    <p style="margin-top: 1rem;">Error loading photos</p>
+                    <button class="btn btn-sm btn-primary" style="margin-top: 1rem;" onclick="openFarmPicsPicker()"><i class="fas fa-redo"></i> Retry</button>
+                </div>`;
+            }
+        }
+
+        function closeFarmPicsPicker() {
+            document.getElementById('farmPicsPickerModal').classList.remove('active');
+        }
+
+        async function selectFarmPic(imageUrl, caption, element) {
+            // Visual feedback - highlight selected
+            document.querySelectorAll('.farm-pic-picker-item').forEach(el => {
+                el.style.border = '3px solid transparent';
+            });
+            element.style.border = '3px solid var(--instagram)';
+
+            // Show loading toast
+            showToast('Loading image...', 'info');
+
+            try {
+                // Load the image into the upload preview
+                const preview = document.getElementById('uploadPreview');
+                const uploadIcon = document.getElementById('uploadIcon');
+                const uploadText = document.getElementById('uploadText');
+                const uploadSubtext = document.getElementById('uploadSubtext');
+
+                // Set the preview image
+                preview.src = imageUrl;
+                preview.classList.add('visible');
+                uploadIcon.style.display = 'none';
+                uploadText.textContent = 'Image selected from Farm Pics';
+                uploadSubtext.textContent = 'Click to change';
+
+                // Store the URL for posting (we'll use this instead of uploading)
+                window.selectedFarmPicUrl = imageUrl;
+
+                // If there's a caption and the caption input is empty, suggest it
+                if (caption && caption.trim()) {
+                    const captionInput = document.getElementById('captionInput');
+                    if (!captionInput.value.trim()) {
+                        captionInput.value = caption;
+                        updateCharCount();
+                    }
+                }
+
+                closeFarmPicsPicker();
+                showToast('Photo selected! Add your caption and publish.', 'success');
+
+                // Scroll to caption area
+                document.getElementById('captionInput').focus();
+
+            } catch (error) {
+                console.error('Error selecting farm pic:', error);
+                showToast('Error loading image', 'error');
+            }
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
