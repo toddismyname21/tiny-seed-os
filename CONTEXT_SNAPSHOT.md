@@ -2,20 +2,21 @@
 ## Auto-generated for Claude session context
 ## READ THIS FIRST before any work
 
-**Generated:** 2026-02-11 23:21:51
+**Generated:** 2026-02-11 23:26:19
 
 ---
 ## GIT STATUS
 ```
+ M CLAUDE.md
+ M CONTEXT_SNAPSHOT.md
+ M PM_ORCHESTRATOR_STARTUP.md
  M tinypm/.claude_intercom.json
  M tinypm/.safe_mode_state.json
-?? CONTEXT_SNAPSHOT.md
-?? scripts/com.tinyseed.context-snapshot.plist
-?? scripts/generate_context_snapshot.sh
 ```
 
 ## RECENT COMMITS (Last 10)
 ```
+e8134bd Add hourly context snapshot system for Claude memory preservation
 dce86da Update CHANGE_LOG with session work and add status document
 af81bfa Add Stability AI and Photoroom API settings to Marketing Command Center
 3cc5f6a Remove volatile browser cache files to fix GitHub Pages build
@@ -25,7 +26,6 @@ f0bbce0 Bump service worker to v8 to force cache clear for Voice Profile modal f
 d9732ac Add debug logging for Learn My Voice to diagnose popup issue
 a4b8856 Make Voice Profile modal require button click to close
 53cb0bd Implement Learn My Voice with Instagram Graph API
-e7b55f4 Add loading states to Brain tab buttons (Refresh, Plan Week, Learn Voice)
 ```
 
 ## GITHUB PAGES STATUS

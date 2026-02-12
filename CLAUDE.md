@@ -6,6 +6,26 @@ This file is automatically read by Claude Code at the start of every session. Th
 
 ---
 
+## STEP 0: READ CONTEXT SNAPSHOT (FIRST!)
+
+**MANDATORY:** Before doing ANYTHING, read the context snapshot for session continuity:
+
+```
+Read: /tmp/TINYSEED_CONTEXT_SNAPSHOT.md
+```
+
+(Backup location: /Users/samanthapollack/Documents/TIny_Seed_OS/CONTEXT_SNAPSHOT.md)
+
+This file is auto-generated hourly and contains:
+- Recent git commits and status
+- Latest CHANGE_LOG entries
+- Current session status and open issues
+- Key system info (API endpoints, owner)
+
+**This ensures you have full context from previous sessions.**
+
+---
+
 ## STEP 1: IDENTIFY YOUR ROLE
 
 You MUST identify which Claude role you are operating as:
