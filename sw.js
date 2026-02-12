@@ -1,15 +1,15 @@
 /**
- * Tiny Seed Farm - Service Worker v6
+ * Tiny Seed Farm - Service Worker v8
  * Optimized PWA with advanced caching strategies
  * - Cache-first for static assets
  * - Network-first for API calls
  * - Background sync for offline task completion
  * - Push notification support
  * - Fixed: Response clone race condition in staleWhileRevalidate
- * - v6: Force cache refresh for Brain tab fix
+ * - v8: Force cache refresh for Voice Profile modal fix
  */
 
-const CACHE_VERSION = 'v7';
+const CACHE_VERSION = 'v8';
 const CACHE_NAME = `tiny-seed-mobile-${CACHE_VERSION}`;
 const STATIC_CACHE_NAME = `tiny-seed-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE_NAME = `tiny-seed-dynamic-${CACHE_VERSION}`;
