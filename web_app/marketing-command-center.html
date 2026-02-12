@@ -4212,6 +4212,94 @@
                 </div>
             </div>
 
+            <!-- 5-3-2 INSTAGRAM SYNC - REAL POSTS FROM API (2026-02-12) -->
+            <div class="card" style="margin-top: 1.5rem; background: linear-gradient(135deg, rgba(225, 48, 108, 0.15) 0%, rgba(155, 89, 182, 0.1) 100%); border: 1px solid rgba(225, 48, 108, 0.4);">
+                <div class="card-header" style="flex-wrap: wrap; gap: 0.5rem;">
+                    <h3 style="display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fab fa-instagram" style="color: var(--instagram);"></i> 5-3-2 Real Posts Tracker
+                        <span id="igSyncBadge" class="badge" style="background: var(--instagram); font-size: 0.65rem; padding: 0.2rem 0.5rem; margin-left: 0.5rem;">REAL DATA</span>
+                    </h3>
+                    <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                        <span id="igLastSyncDisplay" style="font-size: 0.7rem; color: var(--text-secondary);">
+                            <i class="fas fa-clock"></i> Last sync: Never
+                        </span>
+                        <button class="btn btn-sm" id="btnSyncInstagram" onclick="syncInstagramPosts()" style="background: linear-gradient(135deg, var(--instagram), var(--purple)); color: white; font-size: 0.75rem;">
+                            <i class="fas fa-sync-alt" id="igSyncIcon"></i> Sync from Instagram
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Account Tabs for 5-3-2 tracker -->
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
+                        <button class="account-mix-tab active" data-mix-account="farm" onclick="selectMixTrackerAccount('farm')" style="padding: 0.5rem 1rem; background: rgba(225, 48, 108, 0.2); border: 1px solid var(--instagram); border-radius: 8px; color: var(--text-primary); font-size: 0.85rem; cursor: pointer;">
+                            <i class="fab fa-instagram"></i> @tinyseedfarm <span id="farmMixBadge" style="background: rgba(0,0,0,0.3); padding: 0.15rem 0.4rem; border-radius: 6px; font-size: 0.7rem; margin-left: 0.25rem;">0/10</span>
+                        </button>
+                        <button class="account-mix-tab" data-mix-account="fleurs" onclick="selectMixTrackerAccount('fleurs')" style="padding: 0.5rem 1rem; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--text-secondary); font-size: 0.85rem; cursor: pointer;">
+                            <i class="fab fa-instagram"></i> @tinyseedfleurs <span id="fleursMixBadge" style="background: rgba(0,0,0,0.3); padding: 0.15rem 0.4rem; border-radius: 6px; font-size: 0.7rem; margin-left: 0.25rem;">0/10</span>
+                        </button>
+                        <button class="account-mix-tab" data-mix-account="fungi" onclick="selectMixTrackerAccount('fungi')" style="padding: 0.5rem 1rem; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--text-secondary); font-size: 0.85rem; cursor: pointer;">
+                            <i class="fab fa-instagram"></i> @tinyseedfungi <span id="fungiMixBadge" style="background: rgba(0,0,0,0.3); padding: 0.15rem 0.4rem; border-radius: 6px; font-size: 0.7rem; margin-left: 0.25rem;">0/10</span>
+                        </button>
+                    </div>
+
+                    <!-- 5-3-2 Progress Display -->
+                    <div id="ig532Progress" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem;">
+                        <!-- Curated (50%) -->
+                        <div id="trackerCurated" style="background: rgba(42, 157, 143, 0.15); border: 2px solid transparent; border-radius: 12px; padding: 1rem; text-align: center;">
+                            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.25rem;">CURATED (50%)</div>
+                            <div id="igCuratedCount" style="font-size: 1.5rem; font-weight: 700; color: var(--success);">0</div>
+                            <div style="font-size: 0.7rem; color: var(--text-secondary);">of 5 goal</div>
+                            <div style="margin-top: 0.5rem; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
+                                <div id="igCuratedBar" style="height: 100%; width: 0%; background: var(--success); border-radius: 3px; transition: width 0.3s;"></div>
+                            </div>
+                        </div>
+                        <!-- Original (30%) -->
+                        <div id="trackerOriginal" style="background: rgba(67, 97, 238, 0.15); border: 2px solid transparent; border-radius: 12px; padding: 1rem; text-align: center;">
+                            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.25rem;">ORIGINAL (30%)</div>
+                            <div id="igOriginalCount" style="font-size: 1.5rem; font-weight: 700; color: var(--info);">0</div>
+                            <div style="font-size: 0.7rem; color: var(--text-secondary);">of 3 goal</div>
+                            <div style="margin-top: 0.5rem; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
+                                <div id="igOriginalBar" style="height: 100%; width: 0%; background: var(--info); border-radius: 3px; transition: width 0.3s;"></div>
+                            </div>
+                        </div>
+                        <!-- Personal (20%) -->
+                        <div id="trackerPersonal" style="background: rgba(225, 48, 108, 0.15); border: 2px solid transparent; border-radius: 12px; padding: 1rem; text-align: center;">
+                            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.25rem;">PERSONAL (20%)</div>
+                            <div id="igPersonalCount" style="font-size: 1.5rem; font-weight: 700; color: var(--instagram);">0</div>
+                            <div style="font-size: 0.7rem; color: var(--text-secondary);">of 2 goal</div>
+                            <div style="margin-top: 0.5rem; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
+                                <div id="igPersonalBar" style="height: 100%; width: 0%; background: var(--instagram); border-radius: 3px; transition: width 0.3s;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Posts from Instagram (scrollable) -->
+                    <div style="margin-top: 1rem;">
+                        <div style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-images" style="color: var(--instagram);"></i> Recent Posts from Instagram
+                            <span id="igPostsCount" style="font-size: 0.7rem; background: var(--instagram); padding: 0.15rem 0.5rem; border-radius: 10px; color: white;">0</span>
+                        </div>
+                        <div id="igRecentPostsList" style="max-height: 300px; overflow-y: auto; display: grid; gap: 0.75rem;">
+                            <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                <i class="fab fa-instagram" style="font-size: 2rem; opacity: 0.3;"></i>
+                                <p style="margin-top: 0.5rem;">Click "Sync from Instagram" to pull your real posts</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Manual Track Buttons (fallback) -->
+                    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Manual Track (if not on Instagram yet):</div>
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <button onclick="trackContentPost('curated')" style="padding: 0.4rem 0.75rem; background: rgba(42, 157, 143, 0.2); border: 1px solid var(--success); border-radius: 6px; color: var(--success); font-size: 0.75rem; cursor: pointer;">+ Curated</button>
+                            <button onclick="trackContentPost('original')" style="padding: 0.4rem 0.75rem; background: rgba(67, 97, 238, 0.2); border: 1px solid var(--info); border-radius: 6px; color: var(--info); font-size: 0.75rem; cursor: pointer;">+ Original</button>
+                            <button onclick="trackContentPost('personal')" style="padding: 0.4rem 0.75rem; background: rgba(225, 48, 108, 0.2); border: 1px solid var(--instagram); border-radius: 6px; color: var(--instagram); font-size: 0.75rem; cursor: pointer;">+ Personal</button>
+                            <button onclick="confirmResetMixTracker()" style="padding: 0.4rem 0.75rem; background: transparent; border: 1px solid var(--text-secondary); border-radius: 6px; color: var(--text-secondary); font-size: 0.75rem; cursor: pointer; margin-left: auto;"><i class="fas fa-undo"></i> Reset Week</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Needs Your Attention - Full Width -->
             <div class="card" style="margin-top: 1.5rem;">
                 <div class="card-header" style="border-left: 4px solid var(--danger);">
@@ -16756,6 +16844,9 @@ Would you like to test posting to Threads?`;
             // Load Brain tab with LOCAL data immediately (no blocking API calls)
             loadBrainTab();
 
+            // Load cached Instagram sync data (from localStorage, instant)
+            loadCachedIgSync();
+
             // PHASE 3: Initialize UI immediately (no API calls)
             renderScheduleCalendar();
             initCharts();
@@ -17814,6 +17905,278 @@ Would you like to test posting to Threads?`;
                 showToast(`Content mix tracker reset for ${accountName}!`, 'success');
             }
         }
+
+        function confirmResetMixTracker() {
+            resetContentMix();
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // INSTAGRAM SYNC - Pull REAL posts from Instagram Graph API (2026-02-12)
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        // Store synced Instagram posts
+        let igSyncedPosts = [];
+        let igLastSyncTime = null;
+
+        // Sync Instagram posts from API
+        async function syncInstagramPosts() {
+            const syncBtn = document.getElementById('btnSyncInstagram');
+            const syncIcon = document.getElementById('igSyncIcon');
+
+            try {
+                // Show loading state
+                syncBtn.disabled = true;
+                syncIcon.className = 'fas fa-spinner fa-spin';
+                showToast('Syncing posts from Instagram...', 'info');
+
+                const response = await fetch(`${API_URL}?action=syncInstagramPostsToTracker`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    igSyncedPosts = result.posts || [];
+                    igLastSyncTime = result.lastSync;
+
+                    // Store in localStorage for persistence
+                    localStorage.setItem('ig_synced_posts', JSON.stringify(igSyncedPosts));
+                    localStorage.setItem('ig_last_sync', igLastSyncTime);
+
+                    // Update the UI
+                    updateIgSyncUI(result);
+
+                    showToast(`Synced ${result.totalPosts} posts from Instagram!`, 'success');
+                } else {
+                    showToast(`Sync failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                console.error('Instagram sync error:', error);
+                showToast('Failed to sync from Instagram. Check console for details.', 'error');
+            } finally {
+                syncBtn.disabled = false;
+                syncIcon.className = 'fas fa-sync-alt';
+            }
+        }
+
+        // Update the UI with synced Instagram data
+        function updateIgSyncUI(syncResult) {
+            // Update last sync time
+            const lastSyncEl = document.getElementById('igLastSyncDisplay');
+            if (lastSyncEl && syncResult.lastSync) {
+                const syncDate = new Date(syncResult.lastSync);
+                lastSyncEl.innerHTML = `<i class="fas fa-check-circle" style="color: var(--success);"></i> Last sync: ${syncDate.toLocaleString()}`;
+            }
+
+            // Update 5-3-2 progress for selected account
+            updateIg532Progress(syncResult.weeklySummary);
+
+            // Update posts count
+            const postsCountEl = document.getElementById('igPostsCount');
+            if (postsCountEl) {
+                postsCountEl.textContent = syncResult.totalPosts || 0;
+            }
+
+            // Render recent posts list
+            renderIgRecentPosts(syncResult.posts || []);
+        }
+
+        // Update 5-3-2 progress bars and counts
+        function updateIg532Progress(weeklySummary) {
+            const account = selectedMixTrackerAccount;
+            const accountData = weeklySummary?.[account] || { curated: 0, original: 0, personal: 0, total: 0 };
+
+            // Update counts
+            const curatedEl = document.getElementById('igCuratedCount');
+            const originalEl = document.getElementById('igOriginalCount');
+            const personalEl = document.getElementById('igPersonalCount');
+
+            if (curatedEl) curatedEl.textContent = accountData.curated;
+            if (originalEl) originalEl.textContent = accountData.original;
+            if (personalEl) personalEl.textContent = accountData.personal;
+
+            // Update progress bars (5-3-2 goals)
+            const curatedBar = document.getElementById('igCuratedBar');
+            const originalBar = document.getElementById('igOriginalBar');
+            const personalBar = document.getElementById('igPersonalBar');
+
+            if (curatedBar) curatedBar.style.width = `${Math.min(100, (accountData.curated / 5) * 100)}%`;
+            if (originalBar) originalBar.style.width = `${Math.min(100, (accountData.original / 3) * 100)}%`;
+            if (personalBar) personalBar.style.width = `${Math.min(100, (accountData.personal / 2) * 100)}%`;
+
+            // Update badge totals
+            const total = accountData.curated + accountData.original + accountData.personal;
+            const badge = document.getElementById(`${account}MixBadge`);
+            if (badge) {
+                badge.textContent = `${total}/10`;
+                badge.style.background = total >= 10 ? 'rgba(34, 197, 94, 0.3)' : 'rgba(0,0,0,0.3)';
+                badge.style.color = total >= 10 ? 'var(--success)' : 'inherit';
+            }
+
+            // Also update the week posts count in stats
+            const weekPostsEl = document.getElementById('weekPostsCount');
+            if (weekPostsEl) {
+                weekPostsEl.textContent = total;
+            }
+        }
+
+        // Render recent posts from Instagram
+        function renderIgRecentPosts(posts) {
+            const container = document.getElementById('igRecentPostsList');
+            if (!container) return;
+
+            // Filter posts for selected account
+            const accountPosts = posts.filter(p => p.account === selectedMixTrackerAccount);
+
+            if (accountPosts.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        <i class="fab fa-instagram" style="font-size: 2rem; opacity: 0.3;"></i>
+                        <p style="margin-top: 0.5rem;">No posts found for @tinyseed${selectedMixTrackerAccount} this week</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = accountPosts.slice(0, 10).map(post => {
+                const categoryColors = {
+                    curated: 'var(--success)',
+                    original: 'var(--info)',
+                    personal: 'var(--instagram)'
+                };
+                const categoryIcons = {
+                    curated: 'fa-share-square',
+                    original: 'fa-edit',
+                    personal: 'fa-user'
+                };
+                const postDate = new Date(post.timestamp);
+                const truncatedCaption = post.caption ? (post.caption.length > 80 ? post.caption.substring(0, 80) + '...' : post.caption) : '(no caption)';
+
+                return `
+                    <div style="display: flex; gap: 0.75rem; padding: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid var(--border);">
+                        ${post.mediaUrl ? `<img src="${post.mediaUrl}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 6px;" onerror="this.style.display='none'">` : ''}
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                                <span style="background: ${categoryColors[post.category]}; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.65rem; font-weight: 600; text-transform: uppercase; display: flex; align-items: center; gap: 0.25rem;">
+                                    <i class="fas ${categoryIcons[post.category]}"></i> ${post.category}
+                                </span>
+                                <span style="font-size: 0.7rem; color: var(--text-secondary);">${postDate.toLocaleDateString()}</span>
+                            </div>
+                            <div style="font-size: 0.8rem; color: var(--text-primary); line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${truncatedCaption}</div>
+                            <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.25rem; display: flex; gap: 0.75rem;">
+                                <span><i class="fas fa-heart"></i> ${post.likes || 0}</span>
+                                <span><i class="fas fa-comment"></i> ${post.comments || 0}</span>
+                                <a href="${post.permalink}" target="_blank" style="color: var(--instagram); text-decoration: none;"><i class="fas fa-external-link-alt"></i> View</a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Load cached Instagram sync data on page load
+        function loadCachedIgSync() {
+            const cachedPosts = localStorage.getItem('ig_synced_posts');
+            const cachedTime = localStorage.getItem('ig_last_sync');
+
+            if (cachedPosts && cachedTime) {
+                try {
+                    igSyncedPosts = JSON.parse(cachedPosts);
+                    igLastSyncTime = cachedTime;
+
+                    // Rebuild weekly summary from cached posts
+                    const weeklySummary = {
+                        farm: { curated: 0, original: 0, personal: 0, total: 0 },
+                        fleurs: { curated: 0, original: 0, personal: 0, total: 0 },
+                        fungi: { curated: 0, original: 0, personal: 0, total: 0 }
+                    };
+
+                    // Calculate current week boundaries
+                    const now = new Date();
+                    const dayOfWeek = now.getDay();
+                    const weekStart = new Date(now);
+                    weekStart.setDate(now.getDate() - dayOfWeek);
+                    weekStart.setHours(0, 0, 0, 0);
+                    const weekEnd = new Date(weekStart);
+                    weekEnd.setDate(weekStart.getDate() + 7);
+
+                    igSyncedPosts.forEach(post => {
+                        const postDate = new Date(post.timestamp);
+                        if (postDate >= weekStart && postDate < weekEnd) {
+                            const account = post.account || 'farm';
+                            const category = post.category || 'original';
+                            if (weeklySummary[account]) {
+                                weeklySummary[account][category]++;
+                                weeklySummary[account].total++;
+                            }
+                        }
+                    });
+
+                    updateIgSyncUI({
+                        posts: igSyncedPosts,
+                        weeklySummary: weeklySummary,
+                        lastSync: igLastSyncTime,
+                        totalPosts: igSyncedPosts.length
+                    });
+
+                    console.log('Loaded cached Instagram sync data');
+                } catch (e) {
+                    console.error('Error loading cached Instagram data:', e);
+                }
+            }
+        }
+
+        // Override selectMixTrackerAccount to also update Instagram display
+        const originalSelectMixTrackerAccount = selectMixTrackerAccount;
+        selectMixTrackerAccount = function(account) {
+            originalSelectMixTrackerAccount(account);
+            // Re-render posts for new account
+            if (igSyncedPosts.length > 0) {
+                renderIgRecentPosts(igSyncedPosts);
+                // Recalculate weekly summary for display
+                const weeklySummary = {
+                    farm: { curated: 0, original: 0, personal: 0, total: 0 },
+                    fleurs: { curated: 0, original: 0, personal: 0, total: 0 },
+                    fungi: { curated: 0, original: 0, personal: 0, total: 0 }
+                };
+
+                const now = new Date();
+                const dayOfWeek = now.getDay();
+                const weekStart = new Date(now);
+                weekStart.setDate(now.getDate() - dayOfWeek);
+                weekStart.setHours(0, 0, 0, 0);
+                const weekEnd = new Date(weekStart);
+                weekEnd.setDate(weekStart.getDate() + 7);
+
+                igSyncedPosts.forEach(post => {
+                    const postDate = new Date(post.timestamp);
+                    if (postDate >= weekStart && postDate < weekEnd) {
+                        const acc = post.account || 'farm';
+                        const cat = post.category || 'original';
+                        if (weeklySummary[acc]) {
+                            weeklySummary[acc][cat]++;
+                            weeklySummary[acc].total++;
+                        }
+                    }
+                });
+
+                updateIg532Progress(weeklySummary);
+            }
+            // Update tab styling
+            document.querySelectorAll('.account-mix-tab').forEach(tab => {
+                if (tab.dataset.mixAccount === account) {
+                    tab.style.background = 'rgba(225, 48, 108, 0.2)';
+                    tab.style.borderColor = 'var(--instagram)';
+                    tab.style.color = 'var(--text-primary)';
+                } else {
+                    tab.style.background = 'transparent';
+                    tab.style.borderColor = 'var(--border)';
+                    tab.style.color = 'var(--text-secondary)';
+                }
+            });
+        };
 
         function updateTimeOfDay() {
             const hour = new Date().getHours();

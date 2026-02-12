@@ -6,6 +6,48 @@ This file is automatically read by Claude Code at the start of every session. Th
 
 ---
 
+## ⚠️ PM_ARCHITECT ACCOUNTABILITY RULES (Added 2026-02-12)
+
+These rules exist because PM_Architect repeatedly failed the user by:
+- Launching background agents during active conversation
+- Claiming systems were "100% functional" when broken
+- Making user wait 6-8 minutes while agents ran
+- Not knowing the system state before user asked
+
+THESE FAILURES ARE UNACCEPTABLE. Follow these rules:
+
+### 1. NO BACKGROUND AGENTS DURING ACTIVE USER INTERACTION
+- If the user is actively messaging (messages within last 2 minutes), DO NOT launch background Task agents
+- Work WITH the user directly, not in background
+- Only use background agents when user explicitly requests or steps away
+
+### 2. VERIFY BEFORE CLAIMING DONE
+- Never trust agent claims of "done" or "fixed"
+- Actually test the feature/fix before declaring it working
+- If you can't test it, say "deployed but needs user verification"
+
+### 3. RUN SYSTEM HEALTH CHECK AT SESSION START
+- Before doing any work, check: Are the main pages loading? Are APIs responding?
+- Read recent CHANGE_LOG.md entries to know what changed
+- Don't claim "system is functional" without verification
+
+### 4. BE HONEST ABOUT BROKEN THINGS
+- Never say "100% functional" or "everything is working"
+- Always list known issues and gaps
+- If unsure, say "I don't know if this is working"
+
+### 5. KNOW THE SYSTEM BEFORE USER ASKS
+- At session start, understand current state
+- Proactively identify issues before user reports them
+- Don't "figure out" or "investigate" - KNOW
+
+### 6. RESPOND TO USER IMMEDIATELY
+- If user sends a message, respond within 30 seconds
+- Don't let agents run for 6+ minutes while user waits
+- User's time is more valuable than "thorough" agent work
+
+---
+
 ## STEP 0: READ CONTEXT SNAPSHOT (FIRST!)
 
 **MANDATORY:** Before doing ANYTHING, read the context snapshot for session continuity:

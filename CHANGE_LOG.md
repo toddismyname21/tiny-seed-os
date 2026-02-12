@@ -40,6 +40,54 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-02-12 - Backend_Claude (Instagram Graph API Sync for 5-3-2 Tracker)
+
+### Context
+The 5-3-2 tracker in Marketing Command Center only counted manually logged posts. Added Instagram Graph API integration to pull REAL posts and automatically categorize them.
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Added Instagram sync functions for 5-3-2 tracking
+- `web_app/marketing-command-center.html` - Added "Sync from Instagram" button and real posts display in Brain tab
+
+### Functions Added (MERGED TOTAL.js)
+- `getInstagramRecentPosts(params)` - Pulls last 30 days of posts from Instagram Graph API
+- `syncInstagramPostsToTracker(params)` - Syncs real posts to 5-3-2 tracking with categorization
+- `categorizeInstagramPost(post)` - AI categorizes posts as curated/original/personal using Claude
+- `categorizePostByRules(post)` - Rule-based fallback categorization
+- `getInstagramLastSync()` - Returns last sync timestamp
+
+### API Routing Added
+- `syncInstagramPostsToTracker` - POST action for full sync
+- `getInstagramRecentPosts` - POST action for fetching posts
+- `categorizeInstagramPost` - POST action for single post categorization
+- `getInstagramLastSync` - POST action for sync status
+
+### Frontend Changes (marketing-command-center.html)
+- Added "5-3-2 Real Posts Tracker" card in Brain tab
+- "Sync from Instagram" button pulls real posts via API
+- Shows last sync timestamp
+- Displays recent posts with AI-detected categories (curated/original/personal)
+- Account tabs (@tinyseedfarm, @tinyseedfleurs, @tinyseedfungi)
+- Progress bars for 5-3-2 goals
+- Cached sync data in localStorage for instant load
+
+### Also Fixed
+- Fixed pre-existing syntax errors in MERGED TOTAL.js (multiline strings converted to template literals)
+
+### Reason
+User requested urgent fix - 5-3-2 tracker didn't know what was actually posted to Instagram. Now pulls REAL posts from Instagram Graph API and auto-categorizes them.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions - getInstagramPostHistory existed but was for voice learning, not 5-3-2 tracking
+- [x] No duplicates created - new functionality
+
+### Deployment
+- Deployed to production: AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm @614
+- Instagram tokens already configured (verified 3 accounts connected)
+
+---
+
 ## 2026-02-12 - Backend_Claude (Weather-Aware Templates System)
 
 ### Context

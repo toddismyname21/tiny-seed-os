@@ -14399,6 +14399,12 @@ function doGet(e) {
         return jsonResponse(debugInstagramTokens());
       case 'getInstagramFollowerCounts':
         return jsonResponse(getInstagramFollowerCounts());
+      case 'getInstagramRecentPosts':
+        return jsonResponse(getInstagramRecentPosts(e.parameter));
+      case 'syncInstagramPostsToTracker':
+        return jsonResponse(syncInstagramPostsToTracker(e.parameter));
+      case 'getInstagramLastSync':
+        return jsonResponse(getInstagramLastSync());
       case 'getFacebookPageStats':
         return jsonResponse(getFacebookPageStats());
       case 'getMetaCampaigns':
@@ -17751,6 +17757,14 @@ function doPost(e) {
         return jsonResponse(addTrainingPost(data));
       case 'getInstagramPostHistory':
         return jsonResponse(getInstagramPostHistory(data));
+      case 'getInstagramRecentPosts':
+        return jsonResponse(getInstagramRecentPosts(data));
+      case 'syncInstagramPostsToTracker':
+        return jsonResponse(syncInstagramPostsToTracker(data));
+      case 'categorizeInstagramPost':
+        return jsonResponse(categorizeInstagramPost(data));
+      case 'getInstagramLastSync':
+        return jsonResponse(getInstagramLastSync());
       case 'generateContent':
         return jsonResponse(generateContent(data));
       case 'analyzeVoiceMatch':
@@ -126418,6 +126432,311 @@ function getInstagramPostHistory(params) {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// INSTAGRAM 5-3-2 SYNC - Pull REAL posts and categorize for tracking
+// Added 2026-02-12 for Marketing Command Center
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Get Instagram posts from last 30 days for 5-3-2 tracking
+ * @param {Object} params - { accountIndex?: number } - Optional specific account
+ * @returns {Object} - Posts with metadata for categorization
+ */
+function getInstagramRecentPosts(params) {
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const accounts = JSON.parse(props.getProperty('instagram_accounts') || '[]');
+
+    if (accounts.length === 0) {
+      return { success: false, error: 'No Instagram accounts configured' };
+    }
+
+    // Calculate 30 days ago
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    // Map account index to normalized names
+    const accountNameMap = ['farm', 'fleurs', 'fungi'];
+
+    const allPosts = [];
+    const errors = [];
+
+    // If specific account requested, only fetch that one
+    const startIndex = params?.accountIndex !== undefined ? params.accountIndex : 0;
+    const endIndex = params?.accountIndex !== undefined ? params.accountIndex + 1 : accounts.length;
+
+    for (let i = startIndex; i < endIndex && i < accounts.length; i++) {
+      const account = accounts[i];
+      const accessToken = props.getProperty(`ig_token_${i}`);
+      const normalizedAccountName = accountNameMap[i] || 'farm';
+
+      if (!accessToken || !account.igUserId) {
+        errors.push({ account: account.name || normalizedAccountName, error: 'Missing token or user ID' });
+        continue;
+      }
+
+      try {
+        // Determine correct base URL based on token type
+        const baseUrl = accessToken.startsWith('IGAA') ? 'https://graph.instagram.com' : 'https://graph.facebook.com/v24.0';
+
+        // Fetch recent media with all fields needed for categorization
+        const url = `${baseUrl}/${account.igUserId}/media?fields=id,caption,timestamp,media_type,like_count,comments_count,permalink,media_url,thumbnail_url&limit=100&access_token=${accessToken}`;
+        const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+        const data = JSON.parse(response.getContentText());
+
+        if (data.error) {
+          errors.push({
+            account: account.name || normalizedAccountName,
+            error: data.error.message
+          });
+          continue;
+        }
+
+        if (data.data && Array.isArray(data.data)) {
+          data.data.forEach(post => {
+            const postDate = new Date(post.timestamp);
+            // Only include posts from last 30 days
+            if (postDate >= thirtyDaysAgo) {
+              allPosts.push({
+                id: post.id,
+                caption: post.caption || '',
+                timestamp: post.timestamp,
+                mediaType: post.media_type,
+                likes: post.like_count || 0,
+                comments: post.comments_count || 0,
+                permalink: post.permalink,
+                mediaUrl: post.media_url || post.thumbnail_url,
+                account: normalizedAccountName,
+                accountDisplayName: account.name || normalizedAccountName,
+                accountIndex: i
+              });
+            }
+          });
+        }
+      } catch (apiError) {
+        errors.push({ account: account.name || normalizedAccountName, error: apiError.toString() });
+      }
+    }
+
+    // Sort by timestamp (newest first)
+    allPosts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    return {
+      success: true,
+      posts: allPosts,
+      totalPosts: allPosts.length,
+      accountsFetched: accounts.length - errors.length,
+      errors: errors.length > 0 ? errors : undefined,
+      period: '30_days',
+      fetchedAt: new Date().toISOString()
+    };
+  } catch (error) {
+    Logger.log('Error getting Instagram recent posts: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * AI categorizes an Instagram post as curated, original, or personal
+ * Uses Claude API for intelligent categorization
+ * @param {Object} post - Post with caption and mediaType
+ * @returns {Object} - { category: 'curated'|'original'|'personal', confidence: number, reasoning: string }
+ */
+function categorizeInstagramPost(post) {
+  try {
+    const apiKey = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
+
+    if (!apiKey) {
+      // Fallback to rule-based categorization
+      return categorizePostByRules(post);
+    }
+
+    const prompt = `Categorize this Instagram post for a small organic farm (@tinyseedfarm, @tinyseedfleurs, @tinyseedfungi) into ONE of these 5-3-2 content marketing categories:
+
+CURATED (50%): Reposted/shared content from others - customer photos, partner features, shared articles, reposts with credit, industry news
+ORIGINAL (30%): Farm's own branded content - product features, harvest shots, how-tos, educational content about produce, recipes, farm process
+PERSONAL (20%): Behind-the-scenes, farmer personality, fails/bloopers, farm pets, gratitude posts, team moments, personal opinions
+
+Caption: "${post.caption || '(no caption)'}"
+Media Type: ${post.mediaType || 'IMAGE'}
+Account: ${post.account || 'farm'}
+
+Respond in JSON format only:
+{"category": "curated|original|personal", "confidence": 0.0-1.0, "reasoning": "brief explanation"}`;
+
+    const response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+      method: 'post',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      payload: JSON.stringify({
+        model: 'claude-3-haiku-20240307',
+        max_tokens: 200,
+        messages: [{ role: 'user', content: prompt }]
+      }),
+      muteHttpExceptions: true
+    });
+
+    const result = JSON.parse(response.getContentText());
+
+    if (result.content && result.content[0] && result.content[0].text) {
+      const text = result.content[0].text;
+      // Extract JSON from response
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      }
+    }
+
+    // Fallback to rule-based
+    return categorizePostByRules(post);
+
+  } catch (error) {
+    Logger.log('AI categorization error: ' + error.toString());
+    return categorizePostByRules(post);
+  }
+}
+
+/**
+ * Rule-based fallback categorization
+ */
+function categorizePostByRules(post) {
+  const caption = (post.caption || '').toLowerCase();
+
+  // Personal indicators
+  const personalKeywords = ['behind the scenes', 'bts', 'fail', 'blooper', 'grateful', 'thankful', 'meet the', 'our team', 'day in the life', 'real talk', 'confession', 'tired', 'excited', 'love this', 'my favorite', 'farm dog', 'farm cat', 'pet', 'morning coffee', 'rainy day', 'unpopular opinion', 'hot take'];
+
+  // Curated indicators
+  const curatedKeywords = ['repost', 'credit:', 'photo by', 'by @', 'via @', 'shared from', 'feature', 'customer', 'thank you @', 'shoutout', 'partner', 'collaboration', 'collab'];
+
+  // Check for personal content first (usually most distinctive)
+  for (const keyword of personalKeywords) {
+    if (caption.includes(keyword)) {
+      return { category: 'personal', confidence: 0.7, reasoning: `Contains "${keyword}" - personal/behind-the-scenes content` };
+    }
+  }
+
+  // Check for curated content
+  for (const keyword of curatedKeywords) {
+    if (caption.includes(keyword)) {
+      return { category: 'curated', confidence: 0.7, reasoning: `Contains "${keyword}" - shared/curated content` };
+    }
+  }
+
+  // Default to original (farm's own content about produce, harvest, etc.)
+  return { category: 'original', confidence: 0.5, reasoning: 'Default categorization - appears to be original farm content' };
+}
+
+/**
+ * Sync Instagram posts to 5-3-2 tracker
+ * Fetches recent posts, categorizes them, and returns data for frontend to store
+ * @param {Object} params - { accountIndex?: number, weekStartDate?: string }
+ * @returns {Object} - Categorized posts and weekly summary
+ */
+function syncInstagramPostsToTracker(params) {
+  try {
+    // Get recent posts
+    const postsResult = getInstagramRecentPosts(params);
+
+    if (!postsResult.success) {
+      return postsResult;
+    }
+
+    const posts = postsResult.posts;
+
+    if (posts.length === 0) {
+      return {
+        success: true,
+        message: 'No posts found in the last 30 days',
+        posts: [],
+        weeklySummary: {},
+        syncedAt: new Date().toISOString()
+      };
+    }
+
+    // Calculate current week boundaries
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - dayOfWeek); // Sunday
+    weekStart.setHours(0, 0, 0, 0);
+
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 7);
+
+    // Categorize each post
+    const categorizedPosts = [];
+    const weeklySummary = {
+      farm: { curated: 0, original: 0, personal: 0, total: 0 },
+      fleurs: { curated: 0, original: 0, personal: 0, total: 0 },
+      fungi: { curated: 0, original: 0, personal: 0, total: 0 }
+    };
+
+    for (const post of posts) {
+      // Categorize the post
+      const categorization = categorizeInstagramPost(post);
+
+      const categorizedPost = {
+        ...post,
+        category: categorization.category,
+        categoryConfidence: categorization.confidence,
+        categoryReasoning: categorization.reasoning
+      };
+
+      categorizedPosts.push(categorizedPost);
+
+      // Add to weekly summary if post is from this week
+      const postDate = new Date(post.timestamp);
+      if (postDate >= weekStart && postDate < weekEnd) {
+        const account = post.account || 'farm';
+        if (weeklySummary[account]) {
+          weeklySummary[account][categorization.category]++;
+          weeklySummary[account].total++;
+        }
+      }
+    }
+
+    // Store sync timestamp
+    const props = PropertiesService.getScriptProperties();
+    props.setProperty('instagram_last_sync', new Date().toISOString());
+
+    return {
+      success: true,
+      posts: categorizedPosts,
+      totalPosts: categorizedPosts.length,
+      weeklySummary: weeklySummary,
+      weekRange: {
+        start: weekStart.toISOString(),
+        end: weekEnd.toISOString()
+      },
+      lastSync: new Date().toISOString(),
+      message: `Synced ${categorizedPosts.length} posts. This week: Farm(${weeklySummary.farm.total}), Fleurs(${weeklySummary.fleurs.total}), Fungi(${weeklySummary.fungi.total})`
+    };
+  } catch (error) {
+    Logger.log('Error syncing Instagram posts to tracker: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get the last sync timestamp for Instagram
+ */
+function getInstagramLastSync() {
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const lastSync = props.getProperty('instagram_last_sync');
+    return {
+      success: true,
+      lastSync: lastSync || null,
+      message: lastSync ? `Last synced: ${lastSync}` : 'Never synced'
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
 /**
  * Get Facebook Page stats including followers
  * Uses Facebook Graph API
@@ -129068,19 +129387,19 @@ function analyzeProducePhoto(imageBase64) {
         role: "user",
         content: [
           { type: "image", source: { type: "base64", media_type: "image/jpeg", data: base64Data } },
-          { type: "text", text: "You are analyzing a photo from Tiny Seed Farm, a small organic farm in Pittsburgh, PA. Identify all produce visible.
+          { type: "text", text: `You are analyzing a photo from Tiny Seed Farm, a small organic farm in Pittsburgh, PA. Identify all produce visible.
 
 Return JSON only (no markdown):
 {
-  \"items\": [{ \"name\": \"produce name\", \"variety\": \"variety or null\", \"quantity\": \"estimated qty\", \"freshness\": \"fresh/ripe/overripe/unknown\", \"color\": \"primary color\", \"confidence\": 0.95 }],
-  \"setting\": \"context description\",
-  \"visualHighlights\": [\"notable aspects\"],
-  \"suggestedTone\": \"playful/informative/appetizing/rustic/cozy\",
-  \"seasonalContext\": \"season suggestion\",
-  \"primaryProduce\": \"main item\"
+  "items": [{ "name": "produce name", "variety": "variety or null", "quantity": "estimated qty", "freshness": "fresh/ripe/overripe/unknown", "color": "primary color", "confidence": 0.95 }],
+  "setting": "context description",
+  "visualHighlights": ["notable aspects"],
+  "suggestedTone": "playful/informative/appetizing/rustic/cozy",
+  "seasonalContext": "season suggestion",
+  "primaryProduce": "main item"
 }
 
-Be specific (Zucchini not squash, Sunflowers not flowers). Only include clearly identifiable items." }
+Be specific (Zucchini not squash, Sunflowers not flowers). Only include clearly identifiable items.` }
         ]
       }]
     };
@@ -129127,14 +129446,14 @@ function generateProduceContent(produceType, platform) {
     var payload = {
       model: "claude-3-5-sonnet-20241022",
       max_tokens: 1000,
-      messages: [{ role: "user", content: "You are the social media manager for Tiny Seed Farm (Pittsburgh organic farm, owner Todd). Generate a " + platform + " post about fresh " + produceType + ".
+      messages: [{ role: "user", content: `You are the social media manager for Tiny Seed Farm (Pittsburgh organic farm, owner Todd). Generate a ${platform} post about fresh ${produceType}.
 
 Voice: Authentic, warm, passionate about organic farming, community-focused, occasionally humorous.
-Today: " + dayName + ". " + marketContext + "
-Max length: " + guidelines.maxLength + " chars. Include " + guidelines.hashtagCount + " hashtags. Style: " + guidelines.style + "
+Today: ${dayName}. ${marketContext}
+Max length: ${guidelines.maxLength} chars. Include ${guidelines.hashtagCount} hashtags. Style: ${guidelines.style}
 
 Return JSON only:
-{ \"caption\": \"text with emojis\", \"hashtags\": [\"farmfresh\",\"pittsburghfarms\"], \"characterCount\": 150, \"callToAction\": \"Visit us...\", \"alternateVersions\": [\"shorter version\",\"question version\"], \"bestTimeToPost\": \"suggestion\", \"contentCategory\": \"harvest/market/educational/behind-scenes\" }" }]
+{ "caption": "text with emojis", "hashtags": ["farmfresh","pittsburghfarms"], "characterCount": 150, "callToAction": "Visit us...", "alternateVersions": ["shorter version","question version"], "bestTimeToPost": "suggestion", "contentCategory": "harvest/market/educational/behind-scenes" }` }]
     };
 
     var options = { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" }, payload: JSON.stringify(payload), muteHttpExceptions: true };
