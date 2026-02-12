@@ -15465,7 +15465,10 @@ Would you like to test posting to Threads?`;
                 // Populate calendar preview (LOCAL, instant)
                 populateCalendarPreview();
 
-                // Check for cached actions (show immediately if available)
+                // INSTANT: Show default actions immediately (no waiting!)
+                showInstantActions();
+
+                // Check for cached actions (override defaults if available)
                 const cachedActions = localStorage.getItem('brainCachedActions');
                 if (cachedActions) {
                     try {
@@ -15599,6 +15602,22 @@ Would you like to test posting to Threads?`;
                     <i class="fas fa-calendar-check" style="font-size: 2rem; color: var(--success);"></i>
                     <p style="margin-top: 1rem;">All tasks complete for today!</p>
                 </div>`;
+        }
+
+        // Show instant placeholder actions (no API wait) - INSTANT UI
+        function showInstantActions() {
+            const defaultUrgent = [
+                { title: 'Post to Instagram today', description: 'Best time window: 11 AM - 1 PM EST', priority: 'high', type: 'post' },
+                { title: 'Check comments & DMs', description: 'Engagement boosts algorithm ranking', priority: 'medium', type: 'engage' }
+            ];
+            const defaultToday = [
+                { title: 'Plan tomorrow\'s content', description: 'Use AI Studio to draft posts', priority: 'medium', type: 'plan' },
+                { title: 'Review weekly analytics', description: 'Check what\'s working', priority: 'low', type: 'analyze' },
+                { title: 'Update 5-3-2 content mix', description: 'Balance curated, original, personal', priority: 'low', type: 'plan' }
+            ];
+            renderActionList('urgentActions', defaultUrgent, 'urgent');
+            renderActionList('todayActions', defaultToday, 'today');
+            document.getElementById('urgentBadge').textContent = defaultUrgent.length;
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
