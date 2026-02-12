@@ -13883,6 +13883,16 @@ function doGet(e) {
       case 'getPendingApprovalPost':
         return jsonResponse(getPendingApprovalPost());
 
+      // ============ MARKETING COMMAND CENTER AUTOMATION (GET) (2026-02-11) ============
+      case 'getContentPool':
+        return jsonResponse(getContentPool(e.parameter.daysBack ? parseInt(e.parameter.daysBack) : 30));
+      case 'getDraftSchedule':
+        return jsonResponse(getDraftSchedule(e.parameter));
+      case 'getPhotoRequestStatus':
+        return jsonResponse(getPhotoRequestStatus(e.parameter.requestId));
+      case 'getSundayPlanningStatus':
+        return jsonResponse(getSundayPlanningStatus());
+
       // ============ SEO DOMINATION v3 ============
       case 'getSEOCompetitors':
         return jsonResponse(getSEOCompetitors(e.parameter));
@@ -17482,6 +17492,39 @@ function doPost(e) {
         return jsonResponse(updateUTMConversions(data));
       case 'createUTMCampaign':
         return jsonResponse(createUTMCampaign(data));
+
+      // ============ MARKETING COMMAND CENTER AUTOMATION (POST) (2026-02-11) ============
+      // Sunday Planning Trigger - Automates weekly content planning
+      case 'triggerSundayPlanning':
+        return jsonResponse(triggerSundayPlanning());
+      case 'setupSundayPlanningTrigger':
+        return jsonResponse(setupSundayPlanningTrigger());
+
+      // Organic Timing Engine - Natural post time variation
+      case 'calculateOrganicPostTime':
+        return jsonResponse(calculateOrganicPostTime(data.dayOfWeek, data.contentType));
+
+      // Employee Photo Requests
+      case 'sendPhotoRequest':
+        return jsonResponse(sendPhotoRequest(data.employeeIds, data.theme, data.deadline));
+
+      // Content Pool Aggregation
+      case 'getContentPool':
+        return jsonResponse(getContentPool(data.daysBack || 30));
+
+      // Batch Schedule Posts
+      case 'batchSchedulePosts':
+        return jsonResponse(batchSchedulePosts(data.posts || data));
+
+      // Field Mode Queue - Quick capture from field
+      case 'queueFieldCapture':
+        return jsonResponse(queueFieldCapture(data.imageUrl, data.autoCaption, data.source));
+
+      // Draft Schedule Management
+      case 'saveDraftSchedule':
+        return jsonResponse(saveDraftSchedule(data));
+      case 'approveDraftSchedule':
+        return jsonResponse(approveDraftSchedule(data.scheduleId));
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
@@ -122793,5 +122836,1200 @@ function getMarketingDashboardBulk(params) {
   } catch (error) {
     Logger.log('Error in bulk dashboard load: ' + error.toString());
     return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MARKETING COMMAND CENTER AUTOMATION SYSTEM
+// Added 2026-02-11 for Backend_Claude
+// ═══════════════════════════════════════════════════════════════════════════
+// Automates: Sunday planning, organic timing, employee photo requests,
+// content pool aggregation, batch scheduling, and field mode capture
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Sheet names for marketing automation
+const MCC_SHEETS = {
+  DRAFT_SCHEDULE: 'MCC_DraftSchedule',
+  PHOTO_REQUESTS: 'MCC_PhotoRequests',
+  FIELD_QUEUE: 'MCC_FieldQueue',
+  PLANNING_LOG: 'MCC_PlanningLog'
+};
+
+// SMS Templates for photo requests
+const PHOTO_REQUEST_SMS_TEMPLATES = {
+  'Harvest Action': "📸 Photo request from Tiny Seed Farm!\n\nTheme: Harvest Action\nWe need pics of: harvesting, picking, cutting, washing produce\n\nDeadline: {{deadline}}\n\nSubmit here: {{link}}\n\nThank you!",
+  'Field Beauty': "📸 Photo request from Tiny Seed Farm!\n\nTheme: Field Beauty\nWe need pics of: beautiful crops, field rows, morning dew, sunset shots\n\nDeadline: {{deadline}}\n\nSubmit here: {{link}}\n\nThank you!",
+  'Team Spirit': "📸 Photo request from Tiny Seed Farm!\n\nTheme: Team Spirit\nWe need pics of: team at work, smiling faces, collaboration\n\nDeadline: {{deadline}}\n\nSubmit here: {{link}}\n\nThank you!",
+  'Farm Life': "📸 Photo request from Tiny Seed Farm!\n\nTheme: Farm Life\nWe need pics of: daily activities, equipment, animals, farm moments\n\nDeadline: {{deadline}}\n\nSubmit here: {{link}}\n\nThank you!",
+  'Product Showcase': "📸 Photo request from Tiny Seed Farm!\n\nTheme: Product Showcase\nWe need pics of: fresh produce, CSA boxes, market setup, beautiful veggies\n\nDeadline: {{deadline}}\n\nSubmit here: {{link}}\n\nThank you!",
+  'default': "📸 Photo request from Tiny Seed Farm!\n\nTheme: {{theme}}\n\nDeadline: {{deadline}}\n\nSubmit here: {{link}}\n\nThank you!"
+};
+
+// Optimal posting times by day and content type (base times before variance)
+const OPTIMAL_POST_TIMES = {
+  'Sunday': { 'educational': '10:00', 'behind_scenes': '14:00', 'product': '11:00', 'default': '12:00' },
+  'Monday': { 'educational': '07:00', 'behind_scenes': '12:00', 'product': '17:00', 'default': '08:00' },
+  'Tuesday': { 'educational': '08:00', 'behind_scenes': '12:00', 'product': '18:00', 'default': '09:00' },
+  'Wednesday': { 'educational': '08:00', 'behind_scenes': '13:00', 'product': '17:00', 'default': '10:00' },
+  'Thursday': { 'educational': '09:00', 'behind_scenes': '14:00', 'product': '18:00', 'default': '11:00' },
+  'Friday': { 'educational': '08:00', 'behind_scenes': '15:00', 'product': '17:00', 'default': '12:00' },
+  'Saturday': { 'educational': '09:00', 'behind_scenes': '11:00', 'product': '10:00', 'default': '10:00' }
+};
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 1. SUNDAY PLANNING TRIGGER
+ * ═══════════════════════════════════════════════════════════════════════════
+ * Called Sunday 5pm automatically to prepare the week's content
+ */
+function triggerSundayPlanning() {
+  try {
+    Logger.log('triggerSundayPlanning: Starting Sunday weekly planning');
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const now = new Date();
+
+    // Step 1: Gather content pool (recent photos, evergreen, AI ideas)
+    Logger.log('Step 1: Gathering content pool...');
+    const contentPool = getContentPool(14); // Last 14 days
+
+    if (!contentPool.success) {
+      throw new Error('Failed to gather content pool: ' + contentPool.error);
+    }
+
+    Logger.log('Content pool gathered: ' + contentPool.totalItems + ' items');
+
+    // Step 2: AI selects best 6-7 items for the week
+    Logger.log('Step 2: AI selecting best content...');
+    const aiSelection = selectBestContentWithAI(contentPool);
+
+    if (!aiSelection.success) {
+      throw new Error('AI selection failed: ' + aiSelection.error);
+    }
+
+    Logger.log('AI selected ' + aiSelection.selectedPosts.length + ' posts');
+
+    // Step 3: Assign organic times for the week
+    Logger.log('Step 3: Assigning organic posting times...');
+    const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const scheduledPosts = [];
+
+    aiSelection.selectedPosts.forEach((post, index) => {
+      if (index >= 7) return; // Max 7 posts for the week
+
+      const dayOfWeek = weekDays[index % 7];
+      const postDate = getNextDayOfWeek(dayOfWeek, now);
+      const organicTime = calculateOrganicPostTime(dayOfWeek, post.contentType || 'default');
+
+      scheduledPosts.push({
+        ...post,
+        scheduledDate: postDate.toISOString().split('T')[0],
+        scheduledTime: organicTime.time,
+        dayOfWeek: dayOfWeek,
+        status: 'DRAFT'
+      });
+    });
+
+    // Step 4: Save as draft schedule
+    Logger.log('Step 4: Saving draft schedule...');
+    const scheduleId = 'WEEK-' + now.toISOString().split('T')[0].replace(/-/g, '');
+    const draftResult = saveDraftSchedule({
+      scheduleId: scheduleId,
+      weekStarting: getNextDayOfWeek('Monday', now).toISOString().split('T')[0],
+      posts: scheduledPosts,
+      createdAt: now.toISOString(),
+      status: 'PENDING_REVIEW'
+    });
+
+    if (!draftResult.success) {
+      throw new Error('Failed to save draft schedule: ' + draftResult.error);
+    }
+
+    // Step 5: Send SMS to owner
+    Logger.log('Step 5: Sending notification SMS...');
+    const ownerPhone = PropertiesService.getScriptProperties().getProperty('OWNER_PHONE') || '717-725-5177';
+    const reviewUrl = ScriptApp.getService().getUrl() + '?page=marketing';
+
+    const smsMessage = `🌱 Your week is ready to review!\n\n` +
+      `${scheduledPosts.length} posts scheduled for next week.\n\n` +
+      `Content mix:\n` +
+      scheduledPosts.map((p, i) => `${weekDays[i]}: ${p.contentType || 'post'}`).join('\n') +
+      `\n\nReview & approve in Marketing Command Center.`;
+
+    sendSMS({ to: ownerPhone, message: smsMessage });
+
+    // Log the planning run
+    logPlanningRun(scheduleId, scheduledPosts.length, 'SUCCESS');
+
+    return {
+      success: true,
+      scheduleId: scheduleId,
+      postsScheduled: scheduledPosts.length,
+      weekStarting: getNextDayOfWeek('Monday', now).toISOString().split('T')[0],
+      message: 'Weekly planning complete! SMS sent to owner for review.'
+    };
+
+  } catch (error) {
+    Logger.log('triggerSundayPlanning error: ' + error.toString());
+    logPlanningRun(null, 0, 'FAILED', error.toString());
+
+    // Still notify owner of failure
+    const ownerPhone = PropertiesService.getScriptProperties().getProperty('OWNER_PHONE') || '717-725-5177';
+    sendSMS({
+      to: ownerPhone,
+      message: `⚠️ Weekly planning failed: ${error.message}\n\nPlease manually schedule content in Marketing Command Center.`
+    });
+
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Setup Sunday Planning Trigger - Run once to enable automation
+ */
+function setupSundayPlanningTrigger() {
+  try {
+    // Remove existing triggers
+    const triggers = ScriptApp.getProjectTriggers();
+    triggers.forEach(t => {
+      if (t.getHandlerFunction() === 'triggerSundayPlanning') {
+        ScriptApp.deleteTrigger(t);
+      }
+    });
+
+    // Create new trigger for Sunday at 5pm Eastern
+    ScriptApp.newTrigger('triggerSundayPlanning')
+      .timeBased()
+      .onWeekDay(ScriptApp.WeekDay.SUNDAY)
+      .atHour(17) // 5 PM
+      .inTimezone('America/New_York')
+      .create();
+
+    Logger.log('Sunday planning trigger created for 5 PM Eastern every Sunday');
+
+    return {
+      success: true,
+      message: 'Sunday planning trigger set for 5 PM ET every Sunday',
+      nextRun: getNextSunday5pm().toISOString()
+    };
+  } catch (error) {
+    Logger.log('setupSundayPlanningTrigger error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get next Sunday at 5pm
+ */
+function getNextSunday5pm() {
+  const now = new Date();
+  const daysUntilSunday = (7 - now.getDay()) % 7;
+  const nextSunday = new Date(now);
+  nextSunday.setDate(now.getDate() + (daysUntilSunday === 0 ? 7 : daysUntilSunday));
+  nextSunday.setHours(17, 0, 0, 0);
+  return nextSunday;
+}
+
+/**
+ * Get Sunday Planning Status
+ */
+function getSundayPlanningStatus() {
+  try {
+    const triggers = ScriptApp.getProjectTriggers();
+    const sundayTrigger = triggers.find(t => t.getHandlerFunction() === 'triggerSundayPlanning');
+
+    // Get last planning run
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const logSheet = ss.getSheetByName(MCC_SHEETS.PLANNING_LOG);
+    let lastRun = null;
+
+    if (logSheet && logSheet.getLastRow() > 1) {
+      const lastRow = logSheet.getRange(logSheet.getLastRow(), 1, 1, 5).getValues()[0];
+      lastRun = {
+        scheduleId: lastRow[0],
+        runAt: lastRow[1],
+        postsCreated: lastRow[2],
+        status: lastRow[3],
+        error: lastRow[4]
+      };
+    }
+
+    return {
+      success: true,
+      triggerActive: !!sundayTrigger,
+      nextRun: sundayTrigger ? getNextSunday5pm().toISOString() : null,
+      lastRun: lastRun
+    };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Log planning run to sheet
+ */
+function logPlanningRun(scheduleId, postsCreated, status, errorMsg) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(MCC_SHEETS.PLANNING_LOG);
+
+    if (!sheet) {
+      sheet = ss.insertSheet(MCC_SHEETS.PLANNING_LOG);
+      sheet.getRange(1, 1, 1, 5).setValues([['Schedule_ID', 'Run_At', 'Posts_Created', 'Status', 'Error']]);
+      sheet.setFrozenRows(1);
+    }
+
+    sheet.appendRow([
+      scheduleId || '',
+      new Date().toISOString(),
+      postsCreated || 0,
+      status || 'UNKNOWN',
+      errorMsg || ''
+    ]);
+  } catch (error) {
+    Logger.log('logPlanningRun error: ' + error.toString());
+  }
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 2. ORGANIC TIMING ENGINE
+ * ═══════════════════════════════════════════════════════════════════════════
+ * Calculates natural posting times with variance to avoid robotic patterns
+ */
+function calculateOrganicPostTime(dayOfWeek, contentType) {
+  try {
+    // Get base optimal time for this day and content type
+    const dayConfig = OPTIMAL_POST_TIMES[dayOfWeek] || OPTIMAL_POST_TIMES['Monday'];
+    const baseTime = dayConfig[contentType] || dayConfig['default'];
+
+    // Parse base time
+    const [baseHour, baseMinute] = baseTime.split(':').map(Number);
+
+    // Add variance: ±15-30 minutes randomization
+    const varianceMinutes = Math.floor(Math.random() * 31) - 15; // -15 to +15 minutes
+
+    // Add slight day-of-week variance for more organic feel
+    const dayVariance = (dayOfWeek.length % 7) * 2 - 7; // Small variance based on day name
+
+    // Calculate final time
+    let finalMinute = baseMinute + varianceMinutes + dayVariance;
+    let finalHour = baseHour;
+
+    // Handle minute overflow/underflow
+    if (finalMinute >= 60) {
+      finalHour += 1;
+      finalMinute -= 60;
+    } else if (finalMinute < 0) {
+      finalHour -= 1;
+      finalMinute += 60;
+    }
+
+    // Clamp hours to reasonable posting times (6 AM - 10 PM)
+    finalHour = Math.max(6, Math.min(22, finalHour));
+
+    // Format time string
+    const timeString = String(finalHour).padStart(2, '0') + ':' + String(Math.abs(Math.round(finalMinute))).padStart(2, '0');
+
+    // Determine if this is a "prime time" (higher engagement window)
+    const isPrimeTime = (finalHour >= 7 && finalHour <= 9) || (finalHour >= 17 && finalHour <= 19);
+
+    return {
+      success: true,
+      time: timeString,
+      baseTime: baseTime,
+      varianceApplied: varianceMinutes + dayVariance,
+      isPrimeTime: isPrimeTime,
+      dayOfWeek: dayOfWeek,
+      contentType: contentType,
+      reasoning: `Base time ${baseTime} for ${contentType} content on ${dayOfWeek}, adjusted by ${varianceMinutes + dayVariance} minutes for organic feel.`
+    };
+
+  } catch (error) {
+    Logger.log('calculateOrganicPostTime error: ' + error.toString());
+    return {
+      success: false,
+      error: error.toString(),
+      time: '12:00', // Safe fallback
+      isPrimeTime: false
+    };
+  }
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 3. EMPLOYEE PHOTO REQUEST
+ * ═══════════════════════════════════════════════════════════════════════════
+ * Send SMS to employees requesting photos with specific themes
+ */
+function sendPhotoRequest(employeeIds, theme, deadline) {
+  try {
+    if (!employeeIds || !Array.isArray(employeeIds) || employeeIds.length === 0) {
+      return { success: false, error: 'Employee IDs array required' };
+    }
+
+    if (!theme) {
+      return { success: false, error: 'Theme is required' };
+    }
+
+    // Parse deadline
+    const deadlineDate = deadline ? new Date(deadline) : new Date(Date.now() + 3 * 24 * 60 * 60 * 1000); // Default: 3 days
+    const deadlineStr = deadlineDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+
+    // Create unique request ID
+    const requestId = 'PHOTO-' + Date.now();
+
+    // Get submission URL (link to farm pics upload)
+    const submissionLink = ScriptApp.getService().getUrl() + '?page=upload-farm-pics&requestId=' + requestId + '&theme=' + encodeURIComponent(theme);
+
+    // Get SMS template
+    const template = PHOTO_REQUEST_SMS_TEMPLATES[theme] || PHOTO_REQUEST_SMS_TEMPLATES['default'];
+
+    // Get employee phone numbers
+    const employees = getAllActiveEmployees();
+    if (!employees.success) {
+      return { success: false, error: 'Failed to get employees: ' + employees.error };
+    }
+
+    const sentTo = [];
+    const failed = [];
+
+    employeeIds.forEach(empId => {
+      const employee = employees.employees.find(e => e.id === empId);
+      if (!employee || !employee.phone) {
+        failed.push({ id: empId, reason: 'No phone number found' });
+        return;
+      }
+
+      // Personalize message
+      let message = template
+        .replace('{{deadline}}', deadlineStr)
+        .replace('{{link}}', submissionLink)
+        .replace('{{theme}}', theme);
+
+      // Send SMS
+      const result = sendSMS({ to: employee.phone, message: message });
+
+      if (result.success) {
+        sentTo.push({ id: empId, name: employee.name, phone: employee.phone });
+      } else {
+        failed.push({ id: empId, reason: result.error });
+      }
+    });
+
+    // Log the request
+    logPhotoRequest(requestId, theme, deadlineDate, sentTo, failed);
+
+    return {
+      success: true,
+      requestId: requestId,
+      theme: theme,
+      deadline: deadlineDate.toISOString(),
+      submissionLink: submissionLink,
+      sentTo: sentTo,
+      failed: failed,
+      message: `Photo request sent to ${sentTo.length} employees`
+    };
+
+  } catch (error) {
+    Logger.log('sendPhotoRequest error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Log photo request to sheet
+ */
+function logPhotoRequest(requestId, theme, deadline, sentTo, failed) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(MCC_SHEETS.PHOTO_REQUESTS);
+
+    if (!sheet) {
+      sheet = ss.insertSheet(MCC_SHEETS.PHOTO_REQUESTS);
+      sheet.getRange(1, 1, 1, 8).setValues([[
+        'Request_ID', 'Theme', 'Deadline', 'Created_At', 'Sent_To', 'Failed', 'Submissions_Count', 'Status'
+      ]]);
+      sheet.setFrozenRows(1);
+    }
+
+    sheet.appendRow([
+      requestId,
+      theme,
+      deadline.toISOString(),
+      new Date().toISOString(),
+      JSON.stringify(sentTo),
+      JSON.stringify(failed),
+      0,
+      'ACTIVE'
+    ]);
+  } catch (error) {
+    Logger.log('logPhotoRequest error: ' + error.toString());
+  }
+}
+
+/**
+ * Get photo request status
+ */
+function getPhotoRequestStatus(requestId) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(MCC_SHEETS.PHOTO_REQUESTS);
+
+    if (!sheet) {
+      return { success: false, error: 'No photo requests found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === requestId) {
+        const request = {};
+        headers.forEach((h, j) => request[h] = data[i][j]);
+
+        // Parse JSON fields
+        request.Sent_To = JSON.parse(request.Sent_To || '[]');
+        request.Failed = JSON.parse(request.Failed || '[]');
+
+        return { success: true, request: request };
+      }
+    }
+
+    return { success: false, error: 'Request not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 4. CONTENT POOL AGGREGATION
+ * ═══════════════════════════════════════════════════════════════════════════
+ * Aggregate all content sources into unified pool for planning
+ */
+function getContentPool(daysBack) {
+  try {
+    daysBack = daysBack || 30;
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - daysBack);
+
+    const pool = {
+      recentPics: [],
+      evergreen: [],
+      aiIdeas: [],
+      voiceNotes: [],
+      writingResponses: []
+    };
+
+    // 1. Recent farm pics
+    try {
+      const picsResult = getFarmPics({ status: 'APPROVED' });
+      if (picsResult.success && picsResult.farmPics) {
+        pool.recentPics = picsResult.farmPics
+          .filter(p => new Date(p.Submitted_At) >= cutoffDate)
+          .map(p => ({
+            id: p.Pic_ID || p.id,
+            type: 'farm_pic',
+            source: 'FARM_PICS',
+            imageUrl: p.Image_URL || p.url,
+            caption: p.Caption || p.description || '',
+            category: p.Category || 'general',
+            submittedBy: p.Submitted_By,
+            date: p.Submitted_At,
+            contentType: categorizeContent(p.Caption || p.Category),
+            score: calculateContentScore(p)
+          }));
+      }
+    } catch (e) {
+      Logger.log('Error getting farm pics: ' + e.toString());
+    }
+
+    // 2. Evergreen content library
+    try {
+      const evergreenResult = getEvergreenContent({});
+      if (evergreenResult.success && evergreenResult.content) {
+        pool.evergreen = evergreenResult.content.map(e => ({
+          id: e.id,
+          type: 'evergreen',
+          source: 'EVERGREEN',
+          content: e.content,
+          category: e.category,
+          platform: e.platform,
+          performanceScore: e.performanceScore,
+          daysSinceUsed: e.daysSinceUsed,
+          timesUsed: e.timesUsed,
+          contentType: e.category,
+          score: e.performanceScore * (1 + e.daysSinceUsed / 30) // Higher score if not used recently
+        }));
+      }
+    } catch (e) {
+      Logger.log('Error getting evergreen: ' + e.toString());
+    }
+
+    // 3. AI-generated content ideas (from MARKETING_Queue with AI_Generated = true)
+    try {
+      const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+      const queueSheet = ss.getSheetByName('MARKETING_Queue');
+      if (queueSheet && queueSheet.getLastRow() > 1) {
+        const data = queueSheet.getDataRange().getValues();
+        const headers = data[0];
+        const aiGenIdx = headers.indexOf('AI_Generated');
+        const statusIdx = headers.indexOf('Status');
+        const contentIdx = headers.indexOf('Content');
+        const dateIdx = headers.indexOf('Created_At');
+
+        for (let i = 1; i < data.length; i++) {
+          if (data[i][aiGenIdx] === true && data[i][statusIdx] !== 'POSTED') {
+            const createdAt = data[i][dateIdx] ? new Date(data[i][dateIdx]) : new Date();
+            if (createdAt >= cutoffDate) {
+              pool.aiIdeas.push({
+                id: data[i][0],
+                type: 'ai_idea',
+                source: 'AI_QUEUE',
+                content: data[i][contentIdx],
+                platform: data[i][headers.indexOf('Platform')],
+                contentType: data[i][headers.indexOf('Content_Type')] || 'general',
+                date: createdAt,
+                score: 70 // Default AI score
+              });
+            }
+          }
+        }
+      }
+    } catch (e) {
+      Logger.log('Error getting AI ideas: ' + e.toString());
+    }
+
+    // 4. Writing responses (Todd's writing prompt replies)
+    try {
+      const writingResult = getWritingResponses({ status: 'UNUSED' });
+      if (writingResult.success && writingResult.responses) {
+        pool.writingResponses = writingResult.responses.map(r => ({
+          id: r.id,
+          type: 'writing_response',
+          source: 'WRITING_PROMPTS',
+          content: r.response,
+          prompt: r.prompt,
+          date: r.respondedAt,
+          contentType: 'authentic_voice',
+          score: 90 // High score for authentic owner content
+        }));
+      }
+    } catch (e) {
+      Logger.log('Error getting writing responses: ' + e.toString());
+    }
+
+    // Combine all pools and sort by score
+    const allContent = [
+      ...pool.recentPics,
+      ...pool.evergreen,
+      ...pool.aiIdeas,
+      ...pool.writingResponses
+    ].sort((a, b) => (b.score || 0) - (a.score || 0));
+
+    return {
+      success: true,
+      totalItems: allContent.length,
+      bySource: {
+        recentPics: pool.recentPics.length,
+        evergreen: pool.evergreen.length,
+        aiIdeas: pool.aiIdeas.length,
+        writingResponses: pool.writingResponses.length
+      },
+      content: allContent,
+      daysBack: daysBack,
+      cutoffDate: cutoffDate.toISOString()
+    };
+
+  } catch (error) {
+    Logger.log('getContentPool error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Categorize content based on text/category
+ */
+function categorizeContent(text) {
+  if (!text) return 'general';
+  const lower = text.toLowerCase();
+
+  if (lower.includes('harvest') || lower.includes('pick') || lower.includes('fresh')) return 'product';
+  if (lower.includes('team') || lower.includes('staff') || lower.includes('work')) return 'behind_scenes';
+  if (lower.includes('tip') || lower.includes('how to') || lower.includes('learn')) return 'educational';
+  if (lower.includes('market') || lower.includes('csa') || lower.includes('order')) return 'promotional';
+  if (lower.includes('sunset') || lower.includes('morning') || lower.includes('beautiful')) return 'lifestyle';
+
+  return 'general';
+}
+
+/**
+ * Calculate content score based on various factors
+ */
+function calculateContentScore(item) {
+  let score = 50; // Base score
+
+  // Has image
+  if (item.Image_URL || item.url) score += 20;
+
+  // Has good caption
+  if (item.Caption && item.Caption.length > 50) score += 15;
+
+  // Recent content
+  const daysSinceCreated = (new Date() - new Date(item.Submitted_At)) / (1000 * 60 * 60 * 24);
+  if (daysSinceCreated < 3) score += 15;
+  else if (daysSinceCreated < 7) score += 10;
+
+  // From active employee
+  if (item.Submitted_By && item.Submitted_By !== 'system') score += 5;
+
+  return Math.min(100, score);
+}
+
+/**
+ * Use AI to select best content for the week
+ */
+function selectBestContentWithAI(contentPool) {
+  try {
+    if (!contentPool.content || contentPool.content.length === 0) {
+      return { success: false, error: 'No content in pool' };
+    }
+
+    // Prepare content summary for AI
+    const contentSummary = contentPool.content.slice(0, 20).map((c, i) => ({
+      index: i,
+      type: c.type,
+      contentType: c.contentType,
+      score: c.score,
+      preview: (c.content || c.caption || '').substring(0, 100),
+      hasImage: !!(c.imageUrl)
+    }));
+
+    const prompt = `You are a social media strategist for Tiny Seed Farm, an organic vegetable farm.
+
+Select the best 6-7 content items for next week's social media posts. Consider:
+1. Content variety (mix educational, behind_scenes, product, lifestyle)
+2. Balance between image posts and text posts
+3. Higher scores indicate better quality
+4. Authentic owner content (writing_response) should be prioritized
+5. Recent photos are timely and relevant
+
+Available content:
+${JSON.stringify(contentSummary, null, 2)}
+
+Return a JSON object with this exact structure:
+{
+  "selectedIndices": [0, 3, 5, 8, 12, 15],
+  "reasoning": "Brief explanation of selection strategy",
+  "weekPlan": [
+    {"day": "Monday", "index": 0, "suggestedCaption": "..."},
+    {"day": "Tuesday", "index": 3, "suggestedCaption": "..."},
+    ...
+  ]
+}
+
+Return ONLY valid JSON, no other text.`;
+
+    const aiResponse = callClaudeAPI(prompt, 0.3);
+
+    // Parse AI response
+    let selection;
+    try {
+      // Try to extract JSON from response
+      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        selection = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error('No JSON found in AI response');
+      }
+    } catch (parseError) {
+      Logger.log('AI response parse error: ' + parseError.toString());
+      Logger.log('Raw response: ' + aiResponse);
+
+      // Fallback: select top scored content
+      selection = {
+        selectedIndices: contentPool.content.slice(0, 7).map((_, i) => i),
+        reasoning: 'Fallback: selected top scored content',
+        weekPlan: []
+      };
+    }
+
+    // Map selected indices to actual content
+    const selectedPosts = selection.selectedIndices.map(idx => {
+      const content = contentPool.content[idx];
+      const dayPlan = selection.weekPlan?.find(p => p.index === idx);
+      return {
+        ...content,
+        suggestedCaption: dayPlan?.suggestedCaption || content.content || content.caption
+      };
+    });
+
+    return {
+      success: true,
+      selectedPosts: selectedPosts,
+      reasoning: selection.reasoning,
+      weekPlan: selection.weekPlan
+    };
+
+  } catch (error) {
+    Logger.log('selectBestContentWithAI error: ' + error.toString());
+
+    // Fallback: just use top content by score
+    return {
+      success: true,
+      selectedPosts: contentPool.content.slice(0, 7),
+      reasoning: 'Fallback selection due to AI error: ' + error.message
+    };
+  }
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 5. BATCH SCHEDULE POSTS
+ * ═══════════════════════════════════════════════════════════════════════════
+ * Schedule multiple posts at once with organic timing
+ */
+function batchSchedulePosts(posts) {
+  try {
+    if (!posts || !Array.isArray(posts)) {
+      return { success: false, error: 'Posts array required' };
+    }
+
+    const results = [];
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+    // Ensure CONTENT_CALENDAR exists
+    let calendarSheet = ss.getSheetByName('CONTENT_CALENDAR');
+    if (!calendarSheet) {
+      calendarSheet = ss.insertSheet('CONTENT_CALENDAR');
+      calendarSheet.getRange(1, 1, 1, 10).setValues([[
+        'Post_ID', 'Platform', 'Account', 'Content', 'Media_URL',
+        'Scheduled_Date', 'Scheduled_Time', 'Status', 'Posted_At', 'Source'
+      ]]);
+      calendarSheet.setFrozenRows(1);
+    }
+
+    posts.forEach((post, index) => {
+      try {
+        // Generate post ID
+        const postId = 'POST-' + Date.now() + '-' + index;
+
+        // Determine scheduled time
+        let scheduledDate = post.scheduledDate;
+        let scheduledTime = post.scheduledTime;
+
+        if (!scheduledTime && scheduledDate) {
+          // Calculate organic time if not specified
+          const dateObj = new Date(scheduledDate);
+          const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+          const dayOfWeek = dayNames[dateObj.getDay()];
+          const organicTime = calculateOrganicPostTime(dayOfWeek, post.contentType || 'default');
+          scheduledTime = organicTime.time;
+        }
+
+        // Determine platforms
+        const platforms = post.platforms || post.platform || ['instagram', 'facebook'];
+        const platformArray = Array.isArray(platforms) ? platforms : [platforms];
+
+        // Add row for each platform
+        platformArray.forEach(platform => {
+          calendarSheet.appendRow([
+            postId + '-' + platform.toLowerCase(),
+            platform.toUpperCase(),
+            'MAIN',
+            post.caption || post.content || '',
+            post.mediaUrl || post.imageUrl || '',
+            scheduledDate || '',
+            scheduledTime || '12:00',
+            'SCHEDULED',
+            '',
+            post.source || 'BATCH'
+          ]);
+        });
+
+        results.push({
+          success: true,
+          postId: postId,
+          platforms: platformArray,
+          scheduledDate: scheduledDate,
+          scheduledTime: scheduledTime
+        });
+
+      } catch (postError) {
+        results.push({
+          success: false,
+          error: postError.toString(),
+          post: post
+        });
+      }
+    });
+
+    const successCount = results.filter(r => r.success).length;
+
+    return {
+      success: true,
+      scheduled: successCount,
+      failed: results.length - successCount,
+      results: results,
+      message: `Scheduled ${successCount} of ${posts.length} posts`
+    };
+
+  } catch (error) {
+    Logger.log('batchSchedulePosts error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 6. FIELD MODE QUEUE
+ * ═══════════════════════════════════════════════════════════════════════════
+ * Quick capture from Field Mode - minimal input, maximum automation
+ */
+function queueFieldCapture(imageUrl, autoCaption, source) {
+  try {
+    if (!imageUrl) {
+      return { success: false, error: 'Image URL required' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+    // Ensure field queue sheet exists
+    let queueSheet = ss.getSheetByName(MCC_SHEETS.FIELD_QUEUE);
+    if (!queueSheet) {
+      queueSheet = ss.insertSheet(MCC_SHEETS.FIELD_QUEUE);
+      queueSheet.getRange(1, 1, 1, 10).setValues([[
+        'Queue_ID', 'Image_URL', 'Auto_Caption', 'AI_Caption', 'Source',
+        'Captured_At', 'Platforms', 'Optimal_Time', 'Status', 'Processed_At'
+      ]]);
+      queueSheet.setFrozenRows(1);
+    }
+
+    // Generate queue ID
+    const queueId = 'FLD-' + Date.now();
+
+    // Determine optimal posting time
+    const now = new Date();
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayOfWeek = dayNames[now.getDay()];
+    const organicTime = calculateOrganicPostTime(dayOfWeek, 'product');
+
+    // Calculate suggested post date (next day if after 3pm, same day otherwise)
+    let suggestedDate = new Date(now);
+    if (now.getHours() >= 15) {
+      suggestedDate.setDate(suggestedDate.getDate() + 1);
+    }
+
+    // Default platforms (all major ones)
+    const platforms = ['instagram', 'facebook'];
+
+    // Generate AI caption if not provided
+    let aiCaption = '';
+    if (!autoCaption) {
+      try {
+        aiCaption = generateQuickCaption(imageUrl);
+      } catch (e) {
+        Logger.log('AI caption generation failed: ' + e.toString());
+      }
+    }
+
+    // Add to queue
+    queueSheet.appendRow([
+      queueId,
+      imageUrl,
+      autoCaption || '',
+      aiCaption,
+      source || 'FIELD_MODE',
+      now.toISOString(),
+      JSON.stringify(platforms),
+      organicTime.time,
+      'QUEUED',
+      ''
+    ]);
+
+    // Also add to Farm_Pics for content pool
+    try {
+      const picsSheet = ss.getSheetByName('Farm_Pics');
+      if (picsSheet) {
+        picsSheet.appendRow([
+          'FP-' + Date.now(),
+          imageUrl,
+          autoCaption || aiCaption || '',
+          'Field Capture',
+          source || 'Field Mode',
+          now.toISOString(),
+          'PENDING',
+          ''
+        ]);
+      }
+    } catch (e) {
+      Logger.log('Failed to add to Farm_Pics: ' + e.toString());
+    }
+
+    return {
+      success: true,
+      queueId: queueId,
+      imageUrl: imageUrl,
+      caption: autoCaption || aiCaption,
+      platforms: platforms,
+      suggestedPostDate: suggestedDate.toISOString().split('T')[0],
+      suggestedPostTime: organicTime.time,
+      status: 'QUEUED',
+      message: 'Photo queued for posting! Review in Marketing Command Center.'
+    };
+
+  } catch (error) {
+    Logger.log('queueFieldCapture error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Generate a quick caption for field capture
+ */
+function generateQuickCaption(imageUrl) {
+  try {
+    const prompt = `Generate a short, authentic Instagram caption for a farm photo.
+Keep it casual, friendly, and under 100 characters.
+Include 1-2 relevant hashtags like #FarmFresh #OrganicFarm #LocalFood.
+Don't use emojis excessively.
+
+Just return the caption text, nothing else.`;
+
+    const response = callClaudeAPI(prompt, 0.7);
+    return response.trim();
+  } catch (error) {
+    // Return a generic caption if AI fails
+    const genericCaptions = [
+      "Fresh from the field! #FarmFresh #TinySeedFarm",
+      "Another beautiful day on the farm. #OrganicFarm",
+      "This is why we do what we do. #LocalFood",
+      "Farm fresh and ready for you! #FarmToTable"
+    ];
+    return genericCaptions[Math.floor(Math.random() * genericCaptions.length)];
+  }
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * DRAFT SCHEDULE MANAGEMENT
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+
+/**
+ * Save draft schedule for review
+ */
+function saveDraftSchedule(data) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+    // Ensure draft schedule sheet exists
+    let sheet = ss.getSheetByName(MCC_SHEETS.DRAFT_SCHEDULE);
+    if (!sheet) {
+      sheet = ss.insertSheet(MCC_SHEETS.DRAFT_SCHEDULE);
+      sheet.getRange(1, 1, 1, 7).setValues([[
+        'Schedule_ID', 'Week_Starting', 'Posts_JSON', 'Created_At', 'Status', 'Approved_At', 'Approved_By'
+      ]]);
+      sheet.setFrozenRows(1);
+    }
+
+    // Add draft
+    sheet.appendRow([
+      data.scheduleId,
+      data.weekStarting,
+      JSON.stringify(data.posts || []),
+      data.createdAt || new Date().toISOString(),
+      data.status || 'PENDING_REVIEW',
+      '',
+      ''
+    ]);
+
+    return {
+      success: true,
+      scheduleId: data.scheduleId,
+      postsCount: (data.posts || []).length,
+      message: 'Draft schedule saved for review'
+    };
+
+  } catch (error) {
+    Logger.log('saveDraftSchedule error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get draft schedule
+ */
+function getDraftSchedule(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(MCC_SHEETS.DRAFT_SCHEDULE);
+
+    if (!sheet) {
+      return { success: true, schedules: [] };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const schedules = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const schedule = {};
+      headers.forEach((h, j) => schedule[h] = data[i][j]);
+
+      // Parse posts JSON
+      try {
+        schedule.posts = JSON.parse(schedule.Posts_JSON || '[]');
+      } catch (e) {
+        schedule.posts = [];
+      }
+
+      // Filter by status if specified
+      if (!params.status || schedule.Status === params.status) {
+        schedules.push(schedule);
+      }
+    }
+
+    // Sort by created date descending
+    schedules.sort((a, b) => new Date(b.Created_At) - new Date(a.Created_At));
+
+    return { success: true, schedules: schedules };
+
+  } catch (error) {
+    Logger.log('getDraftSchedule error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Approve draft schedule and publish to content calendar
+ */
+function approveDraftSchedule(scheduleId) {
+  try {
+    if (!scheduleId) {
+      return { success: false, error: 'Schedule ID required' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(MCC_SHEETS.DRAFT_SCHEDULE);
+
+    if (!sheet) {
+      return { success: false, error: 'No draft schedules found' };
+    }
+
+    // Find the schedule
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const scheduleIdIdx = headers.indexOf('Schedule_ID');
+    const postsIdx = headers.indexOf('Posts_JSON');
+    const statusIdx = headers.indexOf('Status');
+    const approvedAtIdx = headers.indexOf('Approved_At');
+    const approvedByIdx = headers.indexOf('Approved_By');
+
+    let rowIndex = -1;
+    let posts = [];
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][scheduleIdIdx] === scheduleId) {
+        rowIndex = i + 1;
+        posts = JSON.parse(data[i][postsIdx] || '[]');
+        break;
+      }
+    }
+
+    if (rowIndex === -1) {
+      return { success: false, error: 'Schedule not found' };
+    }
+
+    // Batch schedule the posts
+    const scheduleResult = batchSchedulePosts(posts);
+
+    if (scheduleResult.success) {
+      // Update draft status
+      sheet.getRange(rowIndex, statusIdx + 1).setValue('APPROVED');
+      sheet.getRange(rowIndex, approvedAtIdx + 1).setValue(new Date().toISOString());
+      sheet.getRange(rowIndex, approvedByIdx + 1).setValue('OWNER');
+
+      // Notify owner
+      const ownerPhone = PropertiesService.getScriptProperties().getProperty('OWNER_PHONE') || '717-725-5177';
+      sendSMS({
+        to: ownerPhone,
+        message: `✅ Weekly schedule approved!\n\n${scheduleResult.scheduled} posts scheduled.\n\nThey'll publish automatically at optimal times.`
+      });
+    }
+
+    return {
+      success: true,
+      scheduleId: scheduleId,
+      postsScheduled: scheduleResult.scheduled,
+      message: 'Draft schedule approved and published to content calendar'
+    };
+
+  } catch (error) {
+    Logger.log('approveDraftSchedule error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Helper: Get next occurrence of a day of week
+ */
+function getNextDayOfWeek(dayName, fromDate) {
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const targetDay = days.indexOf(dayName);
+  const today = fromDate ? new Date(fromDate) : new Date();
+  const currentDay = today.getDay();
+
+  let daysUntilTarget = targetDay - currentDay;
+  if (daysUntilTarget <= 0) {
+    daysUntilTarget += 7;
+  }
+
+  const result = new Date(today);
+  result.setDate(today.getDate() + daysUntilTarget);
+  return result;
+}
+
+/**
+ * Get writing responses for content pool (stub if main function doesn't exist)
+ */
+function getWritingResponses(params) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('WRITING_RESPONSES') || ss.getSheetByName('MARKETING_WritingResponses');
+
+    if (!sheet) {
+      return { success: true, responses: [] };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) {
+      return { success: true, responses: [] };
+    }
+
+    const headers = data[0];
+    const responses = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const response = {};
+      headers.forEach((h, j) => response[h.toLowerCase().replace(/\s+/g, '_')] = data[i][j]);
+
+      // Filter by status if specified
+      if (!params.status || response.status === params.status) {
+        responses.push({
+          id: response.response_id || response.id || 'WR-' + i,
+          prompt: response.prompt,
+          response: response.response || response.content,
+          respondedAt: response.responded_at || response.created_at,
+          status: response.status || 'PENDING'
+        });
+      }
+    }
+
+    return { success: true, responses: responses };
+
+  } catch (error) {
+    Logger.log('getWritingResponses error: ' + error.toString());
+    return { success: true, responses: [] }; // Return empty on error
   }
 }
