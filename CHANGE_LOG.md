@@ -40,6 +40,83 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-02-12 - Desktop_Claude (Design Studio MVP)
+
+### Context
+User requested building a Social Media Design Center using Fabric.js for creating social media graphics.
+
+### Files Modified
+- `web_app/marketing-command-center.html` - Added complete Design Studio tab
+
+### External Dependencies Added
+- Fabric.js CDN (v5.3.1): `https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js`
+- Google Fonts: Montserrat, Poppins, Playfair Display, Pacifico (Inter already loaded)
+
+### HTML Changes
+- ADDED: "Design" tab button in tab navigation (11th tab with "NEW" badge)
+- ADDED: Complete Design Studio tab content (`#designstudioTab`)
+- ADDED: Farm Pics Selector Modal for selecting images from library
+
+### CSS Changes (800+ lines)
+- ADDED: `.design-studio-container` - Main 3-column layout
+- ADDED: `.design-sidebar`, `.design-sidebar-left`, `.design-sidebar-right` - Sidebars
+- ADDED: `.preset-btn`, `.tool-btn`, `.zoom-btn`, `.control-btn` - Tool buttons
+- ADDED: `.design-canvas-area`, `.canvas-wrapper` - Canvas container
+- ADDED: `.safe-zone-overlay`, `.safe-zone-top`, `.safe-zone-bottom` - Safe zone guides
+- ADDED: `.design-properties-panel`, `.design-layers-panel`, `.design-export-panel` - Property panels
+- ADDED: `.toggle-switch`, `.toggle-slider` - Toggle controls
+- ADDED: `.layer-item`, `.layer-actions` - Layer panel items
+- ADDED: `.recent-design-item` - Recent designs list
+- ADDED: `.farm-pic-item`, `.farm-pics-grid` - Farm pics selector
+- ADDED: Responsive styles for mobile/tablet
+
+### JavaScript Functions Added (700+ lines)
+- `initializeDesignStudio()` - Initialize Fabric.js canvas
+- `setCanvasPreset(preset)` - Set canvas size (square, feed, story, reel)
+- `handleObjectSelection(e)` / `handleSelectionCleared()` - Selection events
+- `showTextProperties()` / `showImageProperties()` / `showShapeProperties()` - Property panels
+- `updateTextProperty()` / `updateImageProperty()` / `updateShapeProperty()` - Update object props
+- `toggleTextStyle(style)` / `toggleTextShadow()` - Text styling
+- `addTextToCanvas()` - Add editable text
+- `addShapeToCanvas(type)` - Add rectangle/circle
+- `handleDesignImageUpload(event)` / `addImageToCanvas(url)` - Image handling
+- `fitImageToCanvas()` - Fit image to canvas bounds
+- `openFarmPicsSelector()` / `closeFarmPicsSelector()` / `loadFarmPicsForDesigner()` - Farm pics modal
+- `selectFarmPicForDesign(url)` - Add farm pic to canvas
+- `deleteSelectedObject()` / `duplicateSelectedObject()` - Object actions
+- `bringToFront()` / `sendToBack()` - Layer ordering
+- `zoomCanvas(delta)` / `resetZoom()` - Zoom controls
+- `toggleSafeZones()` / `updateSafeZones()` - Safe zone overlay
+- `saveCanvasState()` / `undoCanvas()` / `redoCanvas()` - History/undo
+- `updateLayersPanel()` / `selectLayerObject()` / `toggleLayerLock()` / `deleteLayerObject()` - Layers
+- `exportDesign(format)` - Export as PNG/JPG at full resolution
+- `saveDesign()` / `loadRecentDesigns()` / `loadDesign()` / `deleteDesign()` - Save/load to localStorage
+
+### Features Implemented
+1. Canvas Presets: Square (1080x1080), Feed (1080x1350), Story (1080x1920), Reel (1080x1920)
+2. Text Tool: Font family (5 fonts), size, color, alignment, bold/italic/underline, shadow
+3. Image Tool: Upload from device, select from Farm Pics library, opacity, fit to canvas
+4. Shape Tool: Rectangle, circle with fill/stroke/opacity controls
+5. Safe Zone Guides: Toggle-able overlay showing safe areas for Story/Reel
+6. Layer Panel: List all objects, select, reorder, lock/unlock, delete
+7. Zoom Controls: Zoom in/out, reset
+8. Undo/Redo: 50-state history
+9. Export: PNG (full quality), JPG (with quality slider), proper dimensions
+10. Save/Load: Save designs to localStorage, recent designs list
+
+### switchTab() Modified
+- ADDED: Case for `designstudio` tab to call `initializeDesignStudio()`
+
+### Reason
+Building a real social media design tool as MVP for creating Stories, Reels, Feed posts, and Square graphics directly in the Marketing Command Center.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] No duplicate design studio functionality exists
+- [x] Reuses existing `farmPicsData` and `convertDriveUrl()` for Farm Pics integration
+
+---
+
 ## 2026-02-12 - Desktop_Claude (Brain Tab UI Cleanup)
 
 ### Context

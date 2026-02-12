@@ -10,6 +10,10 @@
     <script src="auth-guard.js" data-required-role="Manager"></script>
     <script src="api-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Fabric.js for Design Studio -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+    <!-- Google Fonts for Design Studio -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Pacifico&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #22c55e;
@@ -3295,6 +3299,674 @@
             }
         }
 
+        /* ═══════════════════════════════════════════════════════════════════════════ */
+        /* DESIGN STUDIO STYLES */
+        /* ═══════════════════════════════════════════════════════════════════════════ */
+
+        .design-studio-container {
+            display: grid;
+            grid-template-columns: 280px 1fr 320px;
+            gap: 0;
+            height: calc(100vh - 180px);
+            min-height: 600px;
+        }
+
+        .design-sidebar {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        .design-sidebar-left {
+            border-radius: 12px 0 0 12px;
+        }
+
+        .design-sidebar-right {
+            border-radius: 0 12px 12px 0;
+        }
+
+        .design-tool-section {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .design-tool-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .design-tool-section h4 {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .design-tool-section h4 i {
+            color: var(--primary);
+        }
+
+        .preset-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+
+        .preset-btn {
+            background: var(--bg-light);
+            border: 2px solid transparent;
+            border-radius: 8px;
+            padding: 0.75rem 0.5rem;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .preset-btn i {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+        }
+
+        .preset-btn span {
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .preset-btn small {
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+        }
+
+        .preset-btn:hover {
+            background: rgba(34, 197, 94, 0.1);
+            border-color: var(--primary);
+        }
+
+        .preset-btn.active {
+            background: rgba(34, 197, 94, 0.2);
+            border-color: var(--primary);
+        }
+
+        .preset-btn.active i {
+            color: var(--primary);
+        }
+
+        .tool-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .tool-btn {
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.9rem;
+        }
+
+        .tool-btn i {
+            width: 20px;
+            text-align: center;
+            color: var(--primary);
+        }
+
+        .tool-btn:hover {
+            background: rgba(34, 197, 94, 0.1);
+            border-color: var(--primary);
+        }
+
+        .tool-hint {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+            line-height: 1.4;
+        }
+
+        .safe-zone-toggle, .shadow-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--bg-light);
+            transition: 0.3s;
+            border-radius: 24px;
+            border: 1px solid var(--border);
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 2px;
+            bottom: 2px;
+            background-color: var(--text-secondary);
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(20px);
+            background-color: white;
+        }
+
+        .zoom-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .zoom-btn {
+            width: 36px;
+            height: 36px;
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .zoom-btn:hover {
+            background: rgba(34, 197, 94, 0.1);
+            border-color: var(--primary);
+        }
+
+        #zoomLevel {
+            min-width: 50px;
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Canvas Area */
+        .design-canvas-area {
+            background: #1a1a1a;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            position: relative;
+            overflow: auto;
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            background: #2a2a2a;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        #designCanvas {
+            display: block;
+        }
+
+        .safe-zone-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .safe-zone-top, .safe-zone-bottom {
+            position: absolute;
+            left: 0;
+            right: 0;
+            background: rgba(255, 193, 7, 0.2);
+            border: 2px dashed rgba(255, 193, 7, 0.6);
+        }
+
+        .safe-zone-top {
+            top: 0;
+            height: 250px;
+        }
+
+        .safe-zone-bottom {
+            bottom: 0;
+            height: 250px;
+        }
+
+        .canvas-controls-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-card);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            gap: 1rem;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .control-btn {
+            width: 40px;
+            height: 40px;
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.25rem;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .control-btn:hover {
+            background: rgba(34, 197, 94, 0.1);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .control-group .divider {
+            width: 1px;
+            height: 24px;
+            background: var(--border);
+            margin: 0 0.5rem;
+        }
+
+        /* Right Sidebar Panels */
+        .design-properties-panel, .design-layers-panel, .design-export-panel {
+            background: var(--bg-light);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .design-properties-panel h4, .design-layers-panel h4, .design-export-panel h4 {
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .design-properties-panel h4 i, .design-layers-panel h4 i, .design-export-panel h4 i {
+            color: var(--primary);
+        }
+
+        .property-group {
+            margin-bottom: 1rem;
+        }
+
+        .property-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .property-group label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .property-group select, .property-group input[type="text"], .property-group input[type="number"] {
+            width: 100%;
+            padding: 0.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+        }
+
+        .property-group select:focus, .property-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .property-group input[type="range"] {
+            width: 100%;
+            accent-color: var(--primary);
+        }
+
+        .property-group input[type="color"] {
+            width: 100%;
+            height: 36px;
+            padding: 2px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .alignment-buttons, .style-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .align-btn, .style-btn {
+            flex: 1;
+            padding: 0.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .align-btn:hover, .style-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .align-btn.active, .style-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        /* Layers Panel */
+        .layers-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .layers-empty, .designs-empty {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            text-align: center;
+            padding: 1rem;
+        }
+
+        .layer-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem;
+            background: var(--bg-card);
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .layer-item:hover {
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        .layer-item.selected {
+            border: 1px solid var(--primary);
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        .layer-item i {
+            color: var(--text-secondary);
+            width: 20px;
+            text-align: center;
+        }
+
+        .layer-item .layer-name {
+            flex: 1;
+            font-size: 0.8rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .layer-item .layer-actions {
+            display: flex;
+            gap: 0.25rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .layer-item:hover .layer-actions {
+            opacity: 1;
+        }
+
+        .layer-action-btn {
+            width: 24px;
+            height: 24px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .layer-action-btn:hover {
+            background: var(--bg-light);
+            color: var(--primary);
+        }
+
+        .layer-action-btn.locked {
+            color: var(--warning);
+        }
+
+        /* Export Panel */
+        .export-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .jpg-export {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .quality-slider {
+            padding: 0.5rem;
+            background: var(--bg-card);
+            border-radius: 6px;
+        }
+
+        .quality-slider label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .quality-slider input {
+            width: 100%;
+            margin-top: 0.25rem;
+        }
+
+        .save-section {
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+            margin-bottom: 1rem;
+        }
+
+        .recent-designs h5 {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .recent-designs-list {
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .recent-design-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem;
+            background: var(--bg-card);
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .recent-design-item:hover {
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        .recent-design-item .design-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+        }
+
+        .recent-design-item .design-name {
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .recent-design-item .design-date {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+
+        .recent-design-item .delete-design {
+            padding: 0.25rem 0.5rem;
+            background: transparent;
+            border: none;
+            color: var(--danger);
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .recent-design-item:hover .delete-design {
+            opacity: 1;
+        }
+
+        /* Farm Pics Selector in Design Studio */
+        .farm-pics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+
+        .farm-pic-item {
+            position: relative;
+            aspect-ratio: 1;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .farm-pic-item:hover {
+            border-color: var(--primary);
+            transform: scale(1.02);
+        }
+
+        .farm-pic-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Design Studio Responsive */
+        @media (max-width: 1200px) {
+            .design-studio-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr auto;
+                height: auto;
+            }
+
+            .design-sidebar-left, .design-sidebar-right {
+                border-radius: 12px;
+            }
+
+            .design-sidebar-left {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 1rem;
+            }
+
+            .design-tool-section {
+                margin-bottom: 0;
+                padding-bottom: 0;
+                border-bottom: none;
+            }
+
+            .design-canvas-area {
+                min-height: 500px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .design-sidebar-left {
+                grid-template-columns: 1fr;
+            }
+
+            .preset-buttons {
+                grid-template-columns: repeat(4, 1fr);
+            }
+
+            .tool-buttons {
+                flex-direction: row;
+                flex-wrap: wrap;
+            }
+
+            .tool-btn {
+                flex: 1;
+                min-width: 120px;
+            }
+        }
+
     </style>
 </head>
 <body>
@@ -3382,6 +4054,11 @@
         <!-- 10. Settings -->
         <button class="tab-btn" onclick="switchTab('settings')">
             <i class="fas fa-cog"></i> Settings
+        </button>
+        <!-- 11. Design Studio - NEW -->
+        <button class="tab-btn" onclick="switchTab('designstudio')">
+            <i class="fas fa-paint-brush"></i> Design
+            <span class="badge new" style="background: linear-gradient(135deg, var(--purple), var(--instagram));">NEW</span>
         </button>
 
         <!-- ===== HIDDEN TABS (Merged into other tabs) ===== -->
@@ -8383,6 +9060,279 @@
         </div>
     </div>
 
+    <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+    <!-- DESIGN STUDIO TAB - Social Media Design Center -->
+    <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+    <div id="designstudioTab" class="tab-content">
+        <div class="design-studio-container">
+            <!-- Left Sidebar - Tools -->
+            <div class="design-sidebar design-sidebar-left">
+                <div class="design-tool-section">
+                    <h4><i class="fas fa-expand-arrows-alt"></i> Canvas Size</h4>
+                    <div class="preset-buttons">
+                        <button class="preset-btn active" onclick="setCanvasPreset('square')" data-preset="square">
+                            <i class="fas fa-square"></i>
+                            <span>Square</span>
+                            <small>1080x1080</small>
+                        </button>
+                        <button class="preset-btn" onclick="setCanvasPreset('feed')" data-preset="feed">
+                            <i class="fas fa-portrait"></i>
+                            <span>Feed</span>
+                            <small>1080x1350</small>
+                        </button>
+                        <button class="preset-btn" onclick="setCanvasPreset('story')" data-preset="story">
+                            <i class="fas fa-mobile-alt"></i>
+                            <span>Story</span>
+                            <small>1080x1920</small>
+                        </button>
+                        <button class="preset-btn" onclick="setCanvasPreset('reel')" data-preset="reel">
+                            <i class="fab fa-tiktok"></i>
+                            <span>Reel</span>
+                            <small>1080x1920</small>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="design-tool-section">
+                    <h4><i class="fas fa-plus-circle"></i> Add Elements</h4>
+                    <div class="tool-buttons">
+                        <button class="tool-btn" onclick="addTextToCanvas()">
+                            <i class="fas fa-font"></i> Add Text
+                        </button>
+                        <button class="tool-btn" onclick="document.getElementById('designImageUpload').click()">
+                            <i class="fas fa-upload"></i> Upload Image
+                        </button>
+                        <input type="file" id="designImageUpload" accept="image/*" style="display: none;" onchange="handleDesignImageUpload(event)">
+                        <button class="tool-btn" onclick="openFarmPicsSelector()">
+                            <i class="fas fa-images"></i> Farm Photos
+                        </button>
+                        <button class="tool-btn" onclick="addShapeToCanvas('rect')">
+                            <i class="fas fa-square"></i> Rectangle
+                        </button>
+                        <button class="tool-btn" onclick="addShapeToCanvas('circle')">
+                            <i class="fas fa-circle"></i> Circle
+                        </button>
+                    </div>
+                </div>
+
+                <div class="design-tool-section">
+                    <h4><i class="fas fa-eye"></i> Safe Zones</h4>
+                    <div class="safe-zone-toggle">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="safeZoneToggle" onchange="toggleSafeZones()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <span>Show Safe Zones</span>
+                    </div>
+                    <p class="tool-hint">Shows where text/content is safe from UI overlays</p>
+                </div>
+
+                <div class="design-tool-section">
+                    <h4><i class="fas fa-search-plus"></i> Zoom</h4>
+                    <div class="zoom-controls">
+                        <button class="zoom-btn" onclick="zoomCanvas(-0.1)"><i class="fas fa-minus"></i></button>
+                        <span id="zoomLevel">100%</span>
+                        <button class="zoom-btn" onclick="zoomCanvas(0.1)"><i class="fas fa-plus"></i></button>
+                        <button class="zoom-btn" onclick="resetZoom()"><i class="fas fa-compress-arrows-alt"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Canvas Area -->
+            <div class="design-canvas-area">
+                <div class="canvas-wrapper" id="canvasWrapper">
+                    <canvas id="designCanvas"></canvas>
+                    <!-- Safe Zone Overlay -->
+                    <div class="safe-zone-overlay" id="safeZoneOverlay" style="display: none;">
+                        <div class="safe-zone-top"></div>
+                        <div class="safe-zone-bottom"></div>
+                    </div>
+                </div>
+                <!-- Canvas Controls Bar -->
+                <div class="canvas-controls-bar">
+                    <div class="control-group">
+                        <button class="control-btn" onclick="deleteSelectedObject()" title="Delete Selected">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        <button class="control-btn" onclick="duplicateSelectedObject()" title="Duplicate">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                        <div class="divider"></div>
+                        <button class="control-btn" onclick="bringToFront()" title="Bring to Front">
+                            <i class="fas fa-layer-group"></i> <i class="fas fa-arrow-up"></i>
+                        </button>
+                        <button class="control-btn" onclick="sendToBack()" title="Send to Back">
+                            <i class="fas fa-layer-group"></i> <i class="fas fa-arrow-down"></i>
+                        </button>
+                    </div>
+                    <div class="control-group">
+                        <button class="control-btn" onclick="undoCanvas()" title="Undo">
+                            <i class="fas fa-undo"></i>
+                        </button>
+                        <button class="control-btn" onclick="redoCanvas()" title="Redo">
+                            <i class="fas fa-redo"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Sidebar - Properties & Layers -->
+            <div class="design-sidebar design-sidebar-right">
+                <!-- Text Properties Panel -->
+                <div class="design-properties-panel" id="textPropertiesPanel" style="display: none;">
+                    <h4><i class="fas fa-font"></i> Text Properties</h4>
+
+                    <div class="property-group">
+                        <label>Font Family</label>
+                        <select id="fontFamily" onchange="updateTextProperty('fontFamily', this.value)">
+                            <option value="Inter">Inter</option>
+                            <option value="Montserrat">Montserrat</option>
+                            <option value="Poppins">Poppins</option>
+                            <option value="Playfair Display">Playfair Display</option>
+                            <option value="Pacifico">Pacifico</option>
+                        </select>
+                    </div>
+
+                    <div class="property-group">
+                        <label>Font Size: <span id="fontSizeValue">32</span>px</label>
+                        <input type="range" id="fontSize" min="12" max="200" value="32" oninput="updateTextProperty('fontSize', this.value); document.getElementById('fontSizeValue').textContent = this.value;">
+                    </div>
+
+                    <div class="property-group">
+                        <label>Text Color</label>
+                        <input type="color" id="textColor" value="#ffffff" onchange="updateTextProperty('fill', this.value)">
+                    </div>
+
+                    <div class="property-group">
+                        <label>Text Alignment</label>
+                        <div class="alignment-buttons">
+                            <button class="align-btn" onclick="updateTextProperty('textAlign', 'left')"><i class="fas fa-align-left"></i></button>
+                            <button class="align-btn active" onclick="updateTextProperty('textAlign', 'center')"><i class="fas fa-align-center"></i></button>
+                            <button class="align-btn" onclick="updateTextProperty('textAlign', 'right')"><i class="fas fa-align-right"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="property-group">
+                        <label>Style</label>
+                        <div class="style-buttons">
+                            <button class="style-btn" id="boldBtn" onclick="toggleTextStyle('bold')"><i class="fas fa-bold"></i></button>
+                            <button class="style-btn" id="italicBtn" onclick="toggleTextStyle('italic')"><i class="fas fa-italic"></i></button>
+                            <button class="style-btn" id="underlineBtn" onclick="toggleTextStyle('underline')"><i class="fas fa-underline"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="property-group">
+                        <label>Text Shadow</label>
+                        <div class="shadow-toggle">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="textShadowToggle" onchange="toggleTextShadow()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span>Enable Shadow</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Image Properties Panel -->
+                <div class="design-properties-panel" id="imagePropertiesPanel" style="display: none;">
+                    <h4><i class="fas fa-image"></i> Image Properties</h4>
+                    <div class="property-group">
+                        <label>Opacity: <span id="imageOpacityValue">100</span>%</label>
+                        <input type="range" id="imageOpacity" min="0" max="100" value="100" oninput="updateImageProperty('opacity', this.value / 100); document.getElementById('imageOpacityValue').textContent = this.value;">
+                    </div>
+                    <div class="property-group">
+                        <button class="btn btn-sm btn-secondary" onclick="fitImageToCanvas()">
+                            <i class="fas fa-expand"></i> Fit to Canvas
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Shape Properties Panel -->
+                <div class="design-properties-panel" id="shapePropertiesPanel" style="display: none;">
+                    <h4><i class="fas fa-shapes"></i> Shape Properties</h4>
+                    <div class="property-group">
+                        <label>Fill Color</label>
+                        <input type="color" id="shapeFill" value="#22c55e" onchange="updateShapeProperty('fill', this.value)">
+                    </div>
+                    <div class="property-group">
+                        <label>Stroke Color</label>
+                        <input type="color" id="shapeStroke" value="#ffffff" onchange="updateShapeProperty('stroke', this.value)">
+                    </div>
+                    <div class="property-group">
+                        <label>Stroke Width: <span id="strokeWidthValue">0</span>px</label>
+                        <input type="range" id="strokeWidth" min="0" max="20" value="0" oninput="updateShapeProperty('strokeWidth', parseInt(this.value)); document.getElementById('strokeWidthValue').textContent = this.value;">
+                    </div>
+                    <div class="property-group">
+                        <label>Opacity: <span id="shapeOpacityValue">100</span>%</label>
+                        <input type="range" id="shapeOpacity" min="0" max="100" value="100" oninput="updateShapeProperty('opacity', this.value / 100); document.getElementById('shapeOpacityValue').textContent = this.value;">
+                    </div>
+                </div>
+
+                <!-- Layers Panel -->
+                <div class="design-layers-panel">
+                    <h4><i class="fas fa-layer-group"></i> Layers</h4>
+                    <div class="layers-list" id="layersList">
+                        <p class="layers-empty">No layers yet. Add elements to get started.</p>
+                    </div>
+                </div>
+
+                <!-- Export & Save Panel -->
+                <div class="design-export-panel">
+                    <h4><i class="fas fa-download"></i> Export & Save</h4>
+
+                    <div class="export-buttons">
+                        <button class="btn btn-primary" onclick="exportDesign('png')">
+                            <i class="fas fa-image"></i> Export PNG
+                        </button>
+                        <div class="jpg-export">
+                            <button class="btn btn-secondary" onclick="exportDesign('jpg')">
+                                <i class="fas fa-file-image"></i> Export JPG
+                            </button>
+                            <div class="quality-slider">
+                                <label>Quality: <span id="jpgQualityValue">90</span>%</label>
+                                <input type="range" id="jpgQuality" min="10" max="100" value="90" oninput="document.getElementById('jpgQualityValue').textContent = this.value;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="save-section">
+                        <div class="form-group">
+                            <label>Design Name</label>
+                            <input type="text" id="designName" class="form-input" placeholder="My Design">
+                        </div>
+                        <button class="btn btn-success" onclick="saveDesign()">
+                            <i class="fas fa-save"></i> Save Design
+                        </button>
+                    </div>
+
+                    <div class="recent-designs">
+                        <h5><i class="fas fa-history"></i> Recent Designs</h5>
+                        <div class="recent-designs-list" id="recentDesignsList">
+                            <p class="designs-empty">No saved designs yet.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Farm Pics Selector Modal for Design Studio -->
+    <div class="modal-overlay" id="farmPicsSelectorModal">
+        <div class="modal" style="max-width: 800px;">
+            <div class="modal-header" style="background: linear-gradient(135deg, var(--primary) 0%, var(--success) 100%);">
+                <h2><i class="fas fa-images"></i> Select Farm Photo</h2>
+                <button class="modal-close" onclick="closeFarmPicsSelector()">&times;</button>
+            </div>
+            <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+                <div class="farm-pics-grid" id="farmPicsGridSelector">
+                    <p style="text-align: center; color: var(--text-secondary); padding: 2rem;">
+                        <i class="fas fa-spinner fa-spin"></i> Loading photos...
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- TOAST CONTAINER --><!-- TOAST CONTAINER -->
     <div class="toast-container" id="toastContainer"></div>
 
@@ -9349,6 +10299,8 @@
                 loadAutoPilotStatus();
             } else if (tabId === 'campaigns') {
                 loadMarketSchedule();
+            } else if (tabId === 'designstudio') {
+                initializeDesignStudio();
             }
         }
 
@@ -20255,6 +21207,805 @@ Would you like to test posting to Threads?`;
                     uploadZone.click();
                 }
             }, 300);
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // DESIGN STUDIO - Social Media Design Center
+        // Fabric.js-powered canvas editor for creating social media graphics
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        let designCanvas = null;
+        let currentZoom = 1;
+        let canvasHistory = [];
+        let historyIndex = -1;
+        const MAX_HISTORY = 50;
+
+        // Canvas presets with dimensions
+        const CANVAS_PRESETS = {
+            square: { width: 1080, height: 1080, name: 'Square Post' },
+            feed: { width: 1080, height: 1350, name: 'Feed Post' },
+            story: { width: 1080, height: 1920, name: 'Story' },
+            reel: { width: 1080, height: 1920, name: 'Reel' }
+        };
+
+        let currentPreset = 'square';
+
+        // Initialize Design Studio when tab is opened
+        function initializeDesignStudio() {
+            if (designCanvas) return; // Already initialized
+
+            const canvasEl = document.getElementById('designCanvas');
+            if (!canvasEl) return;
+
+            // Initialize Fabric.js canvas
+            designCanvas = new fabric.Canvas('designCanvas', {
+                backgroundColor: '#1a1a1a',
+                preserveObjectStacking: true,
+                selection: true,
+                selectionBorderColor: '#22c55e',
+                selectionLineWidth: 2
+            });
+
+            // Set initial canvas size
+            setCanvasPreset('square');
+
+            // Listen for selection events to show/hide property panels
+            designCanvas.on('selection:created', handleObjectSelection);
+            designCanvas.on('selection:updated', handleObjectSelection);
+            designCanvas.on('selection:cleared', handleSelectionCleared);
+
+            // Save history on object modifications
+            designCanvas.on('object:modified', saveCanvasState);
+            designCanvas.on('object:added', () => {
+                saveCanvasState();
+                updateLayersPanel();
+            });
+            designCanvas.on('object:removed', updateLayersPanel);
+
+            // Load recent designs
+            loadRecentDesigns();
+
+            console.log('Design Studio initialized');
+        }
+
+        // Set canvas to a preset size
+        function setCanvasPreset(preset) {
+            if (!CANVAS_PRESETS[preset]) return;
+
+            currentPreset = preset;
+            const { width, height } = CANVAS_PRESETS[preset];
+
+            // Calculate scale to fit in viewport
+            const wrapper = document.getElementById('canvasWrapper');
+            const maxWidth = wrapper.parentElement.clientWidth - 60;
+            const maxHeight = wrapper.parentElement.clientHeight - 100;
+
+            const scaleX = maxWidth / width;
+            const scaleY = maxHeight / height;
+            const scale = Math.min(scaleX, scaleY, 0.5); // Max 50% of actual size
+
+            // Set canvas dimensions
+            designCanvas.setWidth(width * scale);
+            designCanvas.setHeight(height * scale);
+            designCanvas.setZoom(scale);
+
+            currentZoom = scale;
+            document.getElementById('zoomLevel').textContent = Math.round(scale * 100) + '%';
+
+            // Update wrapper size
+            wrapper.style.width = (width * scale) + 'px';
+            wrapper.style.height = (height * scale) + 'px';
+
+            // Update safe zone overlay
+            updateSafeZones();
+
+            // Update preset buttons
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.preset === preset);
+            });
+
+            designCanvas.renderAll();
+        }
+
+        // Handle object selection
+        function handleObjectSelection(e) {
+            const obj = e.selected[0];
+            if (!obj) return;
+
+            // Hide all property panels first
+            document.getElementById('textPropertiesPanel').style.display = 'none';
+            document.getElementById('imagePropertiesPanel').style.display = 'none';
+            document.getElementById('shapePropertiesPanel').style.display = 'none';
+
+            // Show appropriate panel
+            if (obj.type === 'i-text' || obj.type === 'text' || obj.type === 'textbox') {
+                showTextProperties(obj);
+            } else if (obj.type === 'image') {
+                showImageProperties(obj);
+            } else if (obj.type === 'rect' || obj.type === 'circle' || obj.type === 'triangle') {
+                showShapeProperties(obj);
+            }
+
+            updateLayersPanel();
+        }
+
+        // Handle selection cleared
+        function handleSelectionCleared() {
+            document.getElementById('textPropertiesPanel').style.display = 'none';
+            document.getElementById('imagePropertiesPanel').style.display = 'none';
+            document.getElementById('shapePropertiesPanel').style.display = 'none';
+            updateLayersPanel();
+        }
+
+        // Show text properties panel
+        function showTextProperties(textObj) {
+            const panel = document.getElementById('textPropertiesPanel');
+            panel.style.display = 'block';
+
+            // Populate values
+            document.getElementById('fontFamily').value = textObj.fontFamily || 'Inter';
+            document.getElementById('fontSize').value = textObj.fontSize || 32;
+            document.getElementById('fontSizeValue').textContent = textObj.fontSize || 32;
+            document.getElementById('textColor').value = textObj.fill || '#ffffff';
+
+            // Update style buttons
+            document.getElementById('boldBtn').classList.toggle('active', textObj.fontWeight === 'bold');
+            document.getElementById('italicBtn').classList.toggle('active', textObj.fontStyle === 'italic');
+            document.getElementById('underlineBtn').classList.toggle('active', textObj.underline);
+
+            // Update alignment buttons
+            document.querySelectorAll('.align-btn').forEach(btn => btn.classList.remove('active'));
+            const alignBtn = document.querySelector(`.align-btn i.fa-align-${textObj.textAlign || 'center'}`);
+            if (alignBtn) alignBtn.parentElement.classList.add('active');
+
+            // Shadow toggle
+            document.getElementById('textShadowToggle').checked = !!textObj.shadow;
+        }
+
+        // Show image properties panel
+        function showImageProperties(imgObj) {
+            const panel = document.getElementById('imagePropertiesPanel');
+            panel.style.display = 'block';
+
+            document.getElementById('imageOpacity').value = (imgObj.opacity || 1) * 100;
+            document.getElementById('imageOpacityValue').textContent = Math.round((imgObj.opacity || 1) * 100);
+        }
+
+        // Show shape properties panel
+        function showShapeProperties(shapeObj) {
+            const panel = document.getElementById('shapePropertiesPanel');
+            panel.style.display = 'block';
+
+            document.getElementById('shapeFill').value = shapeObj.fill || '#22c55e';
+            document.getElementById('shapeStroke').value = shapeObj.stroke || '#ffffff';
+            document.getElementById('strokeWidth').value = shapeObj.strokeWidth || 0;
+            document.getElementById('strokeWidthValue').textContent = shapeObj.strokeWidth || 0;
+            document.getElementById('shapeOpacity').value = (shapeObj.opacity || 1) * 100;
+            document.getElementById('shapeOpacityValue').textContent = Math.round((shapeObj.opacity || 1) * 100);
+        }
+
+        // Update text property
+        function updateTextProperty(property, value) {
+            const obj = designCanvas.getActiveObject();
+            if (!obj || (obj.type !== 'i-text' && obj.type !== 'text' && obj.type !== 'textbox')) return;
+
+            if (property === 'fontSize') {
+                obj.set(property, parseInt(value));
+            } else {
+                obj.set(property, value);
+            }
+
+            designCanvas.renderAll();
+            saveCanvasState();
+        }
+
+        // Toggle text style (bold, italic, underline)
+        function toggleTextStyle(style) {
+            const obj = designCanvas.getActiveObject();
+            if (!obj || (obj.type !== 'i-text' && obj.type !== 'text' && obj.type !== 'textbox')) return;
+
+            if (style === 'bold') {
+                const isBold = obj.fontWeight === 'bold';
+                obj.set('fontWeight', isBold ? 'normal' : 'bold');
+                document.getElementById('boldBtn').classList.toggle('active', !isBold);
+            } else if (style === 'italic') {
+                const isItalic = obj.fontStyle === 'italic';
+                obj.set('fontStyle', isItalic ? 'normal' : 'italic');
+                document.getElementById('italicBtn').classList.toggle('active', !isItalic);
+            } else if (style === 'underline') {
+                obj.set('underline', !obj.underline);
+                document.getElementById('underlineBtn').classList.toggle('active', obj.underline);
+            }
+
+            designCanvas.renderAll();
+            saveCanvasState();
+        }
+
+        // Toggle text shadow
+        function toggleTextShadow() {
+            const obj = designCanvas.getActiveObject();
+            if (!obj || (obj.type !== 'i-text' && obj.type !== 'text' && obj.type !== 'textbox')) return;
+
+            const hasShadow = document.getElementById('textShadowToggle').checked;
+            if (hasShadow) {
+                obj.set('shadow', new fabric.Shadow({
+                    color: 'rgba(0,0,0,0.5)',
+                    blur: 10,
+                    offsetX: 3,
+                    offsetY: 3
+                }));
+            } else {
+                obj.set('shadow', null);
+            }
+
+            designCanvas.renderAll();
+            saveCanvasState();
+        }
+
+        // Update image property
+        function updateImageProperty(property, value) {
+            const obj = designCanvas.getActiveObject();
+            if (!obj || obj.type !== 'image') return;
+
+            obj.set(property, parseFloat(value));
+            designCanvas.renderAll();
+            saveCanvasState();
+        }
+
+        // Update shape property
+        function updateShapeProperty(property, value) {
+            const obj = designCanvas.getActiveObject();
+            if (!obj || (obj.type !== 'rect' && obj.type !== 'circle' && obj.type !== 'triangle')) return;
+
+            if (property === 'strokeWidth') {
+                obj.set(property, parseInt(value));
+            } else if (property === 'opacity') {
+                obj.set(property, parseFloat(value));
+            } else {
+                obj.set(property, value);
+            }
+
+            designCanvas.renderAll();
+            saveCanvasState();
+        }
+
+        // Add text to canvas
+        function addTextToCanvas() {
+            if (!designCanvas) {
+                initializeDesignStudio();
+            }
+
+            const text = new fabric.IText('Your Text Here', {
+                left: designCanvas.width / currentZoom / 2,
+                top: designCanvas.height / currentZoom / 2,
+                fontFamily: 'Inter',
+                fontSize: 48,
+                fill: '#ffffff',
+                textAlign: 'center',
+                originX: 'center',
+                originY: 'center'
+            });
+
+            designCanvas.add(text);
+            designCanvas.setActiveObject(text);
+            text.enterEditing();
+            text.selectAll();
+            designCanvas.renderAll();
+        }
+
+        // Add shape to canvas
+        function addShapeToCanvas(shapeType) {
+            if (!designCanvas) {
+                initializeDesignStudio();
+            }
+
+            let shape;
+            const centerX = designCanvas.width / currentZoom / 2;
+            const centerY = designCanvas.height / currentZoom / 2;
+
+            if (shapeType === 'rect') {
+                shape = new fabric.Rect({
+                    left: centerX,
+                    top: centerY,
+                    width: 200,
+                    height: 150,
+                    fill: '#22c55e',
+                    originX: 'center',
+                    originY: 'center'
+                });
+            } else if (shapeType === 'circle') {
+                shape = new fabric.Circle({
+                    left: centerX,
+                    top: centerY,
+                    radius: 100,
+                    fill: '#22c55e',
+                    originX: 'center',
+                    originY: 'center'
+                });
+            }
+
+            if (shape) {
+                designCanvas.add(shape);
+                designCanvas.setActiveObject(shape);
+                designCanvas.renderAll();
+            }
+        }
+
+        // Handle image upload from device
+        function handleDesignImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                addImageToCanvas(e.target.result);
+            };
+            reader.readAsDataURL(file);
+
+            // Clear input for re-upload
+            event.target.value = '';
+        }
+
+        // Add image to canvas
+        function addImageToCanvas(imageUrl) {
+            if (!designCanvas) {
+                initializeDesignStudio();
+            }
+
+            fabric.Image.fromURL(imageUrl, function(img) {
+                // Scale image to fit canvas while maintaining aspect ratio
+                const canvasWidth = designCanvas.width / currentZoom;
+                const canvasHeight = designCanvas.height / currentZoom;
+
+                const scaleX = canvasWidth / img.width;
+                const scaleY = canvasHeight / img.height;
+                const scale = Math.min(scaleX, scaleY, 1);
+
+                img.set({
+                    left: canvasWidth / 2,
+                    top: canvasHeight / 2,
+                    originX: 'center',
+                    originY: 'center',
+                    scaleX: scale,
+                    scaleY: scale
+                });
+
+                designCanvas.add(img);
+                designCanvas.setActiveObject(img);
+                designCanvas.renderAll();
+            }, { crossOrigin: 'anonymous' });
+        }
+
+        // Fit selected image to canvas
+        function fitImageToCanvas() {
+            const obj = designCanvas.getActiveObject();
+            if (!obj || obj.type !== 'image') return;
+
+            const canvasWidth = designCanvas.width / currentZoom;
+            const canvasHeight = designCanvas.height / currentZoom;
+
+            const scaleX = canvasWidth / obj.width;
+            const scaleY = canvasHeight / obj.height;
+            const scale = Math.max(scaleX, scaleY);
+
+            obj.set({
+                left: canvasWidth / 2,
+                top: canvasHeight / 2,
+                originX: 'center',
+                originY: 'center',
+                scaleX: scale,
+                scaleY: scale
+            });
+
+            designCanvas.renderAll();
+            saveCanvasState();
+        }
+
+        // Open Farm Pics selector modal
+        function openFarmPicsSelector() {
+            document.getElementById('farmPicsSelectorModal').classList.add('active');
+            loadFarmPicsForDesigner();
+        }
+
+        // Close Farm Pics selector modal
+        function closeFarmPicsSelector() {
+            document.getElementById('farmPicsSelectorModal').classList.remove('active');
+        }
+
+        // Load Farm Pics for the designer selector
+        async function loadFarmPicsForDesigner() {
+            const grid = document.getElementById('farmPicsGridSelector');
+            grid.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 2rem;"><i class="fas fa-spinner fa-spin"></i> Loading photos...</p>';
+
+            try {
+                const response = await fetch(`${API_URL}?action=getFarmPics`);
+                const result = await response.json();
+
+                if (result.success && result.farmPics && result.farmPics.length > 0) {
+                    grid.innerHTML = result.farmPics.map(pic => {
+                        const url = pic.Image_URL || pic.url || '';
+                        const convertedUrl = convertDriveUrl(url);
+                        return `
+                            <div class="farm-pic-item" onclick="selectFarmPicForDesign('${convertedUrl}')">
+                                <img src="${convertedUrl}" alt="${pic.Caption || 'Farm photo'}" loading="lazy">
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    grid.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 2rem;">No photos available. Upload photos to your Farm Pics library first.</p>';
+                }
+            } catch (error) {
+                console.error('Error loading farm pics:', error);
+                grid.innerHTML = '<p style="text-align: center; color: var(--danger); padding: 2rem;"><i class="fas fa-exclamation-triangle"></i> Error loading photos</p>';
+            }
+        }
+
+        // Select a farm pic and add to canvas
+        function selectFarmPicForDesign(imageUrl) {
+            closeFarmPicsSelector();
+            addImageToCanvas(imageUrl);
+        }
+
+        // Delete selected object
+        function deleteSelectedObject() {
+            const obj = designCanvas.getActiveObject();
+            if (obj) {
+                designCanvas.remove(obj);
+                designCanvas.renderAll();
+                saveCanvasState();
+            }
+        }
+
+        // Duplicate selected object
+        function duplicateSelectedObject() {
+            const obj = designCanvas.getActiveObject();
+            if (!obj) return;
+
+            obj.clone(function(cloned) {
+                cloned.set({
+                    left: obj.left + 20,
+                    top: obj.top + 20
+                });
+                designCanvas.add(cloned);
+                designCanvas.setActiveObject(cloned);
+                designCanvas.renderAll();
+            });
+        }
+
+        // Bring selected object to front
+        function bringToFront() {
+            const obj = designCanvas.getActiveObject();
+            if (obj) {
+                obj.bringToFront();
+                designCanvas.renderAll();
+                updateLayersPanel();
+                saveCanvasState();
+            }
+        }
+
+        // Send selected object to back
+        function sendToBack() {
+            const obj = designCanvas.getActiveObject();
+            if (obj) {
+                obj.sendToBack();
+                designCanvas.renderAll();
+                updateLayersPanel();
+                saveCanvasState();
+            }
+        }
+
+        // Zoom controls
+        function zoomCanvas(delta) {
+            const newZoom = Math.max(0.1, Math.min(2, currentZoom + delta));
+            currentZoom = newZoom;
+
+            const { width, height } = CANVAS_PRESETS[currentPreset];
+            designCanvas.setWidth(width * newZoom);
+            designCanvas.setHeight(height * newZoom);
+            designCanvas.setZoom(newZoom);
+
+            document.getElementById('zoomLevel').textContent = Math.round(newZoom * 100) + '%';
+
+            const wrapper = document.getElementById('canvasWrapper');
+            wrapper.style.width = (width * newZoom) + 'px';
+            wrapper.style.height = (height * newZoom) + 'px';
+
+            updateSafeZones();
+            designCanvas.renderAll();
+        }
+
+        function resetZoom() {
+            setCanvasPreset(currentPreset);
+        }
+
+        // Safe zone toggle
+        function toggleSafeZones() {
+            const overlay = document.getElementById('safeZoneOverlay');
+            const isVisible = document.getElementById('safeZoneToggle').checked;
+            overlay.style.display = isVisible ? 'block' : 'none';
+            updateSafeZones();
+        }
+
+        function updateSafeZones() {
+            const overlay = document.getElementById('safeZoneOverlay');
+            const topZone = overlay.querySelector('.safe-zone-top');
+            const bottomZone = overlay.querySelector('.safe-zone-bottom');
+
+            // Safe zones differ by preset
+            if (currentPreset === 'story' || currentPreset === 'reel') {
+                const safeHeight = 250 * currentZoom;
+                topZone.style.height = safeHeight + 'px';
+                bottomZone.style.height = safeHeight + 'px';
+            } else {
+                // For square and feed, smaller safe zones
+                const safeHeight = 80 * currentZoom;
+                topZone.style.height = safeHeight + 'px';
+                bottomZone.style.height = safeHeight + 'px';
+            }
+        }
+
+        // History / Undo / Redo
+        function saveCanvasState() {
+            if (!designCanvas) return;
+
+            // Remove states after current index if we're not at the end
+            if (historyIndex < canvasHistory.length - 1) {
+                canvasHistory = canvasHistory.slice(0, historyIndex + 1);
+            }
+
+            // Save current state
+            const json = JSON.stringify(designCanvas.toJSON());
+            canvasHistory.push(json);
+
+            // Limit history size
+            if (canvasHistory.length > MAX_HISTORY) {
+                canvasHistory.shift();
+            }
+
+            historyIndex = canvasHistory.length - 1;
+        }
+
+        function undoCanvas() {
+            if (historyIndex <= 0) return;
+
+            historyIndex--;
+            const state = canvasHistory[historyIndex];
+            designCanvas.loadFromJSON(state, function() {
+                designCanvas.renderAll();
+                updateLayersPanel();
+            });
+        }
+
+        function redoCanvas() {
+            if (historyIndex >= canvasHistory.length - 1) return;
+
+            historyIndex++;
+            const state = canvasHistory[historyIndex];
+            designCanvas.loadFromJSON(state, function() {
+                designCanvas.renderAll();
+                updateLayersPanel();
+            });
+        }
+
+        // Update layers panel
+        function updateLayersPanel() {
+            const list = document.getElementById('layersList');
+            const objects = designCanvas.getObjects();
+            const activeObj = designCanvas.getActiveObject();
+
+            if (objects.length === 0) {
+                list.innerHTML = '<p class="layers-empty">No layers yet. Add elements to get started.</p>';
+                return;
+            }
+
+            // Render in reverse order (top layer first)
+            list.innerHTML = [...objects].reverse().map((obj, i) => {
+                const realIndex = objects.length - 1 - i;
+                const isSelected = obj === activeObj;
+                let icon = 'fa-question';
+                let name = 'Object';
+
+                if (obj.type === 'i-text' || obj.type === 'text' || obj.type === 'textbox') {
+                    icon = 'fa-font';
+                    name = (obj.text || 'Text').substring(0, 20) + (obj.text && obj.text.length > 20 ? '...' : '');
+                } else if (obj.type === 'image') {
+                    icon = 'fa-image';
+                    name = 'Image';
+                } else if (obj.type === 'rect') {
+                    icon = 'fa-square';
+                    name = 'Rectangle';
+                } else if (obj.type === 'circle') {
+                    icon = 'fa-circle';
+                    name = 'Circle';
+                }
+
+                return `
+                    <div class="layer-item ${isSelected ? 'selected' : ''}" onclick="selectLayerObject(${realIndex})">
+                        <i class="fas ${icon}"></i>
+                        <span class="layer-name">${name}</span>
+                        <div class="layer-actions">
+                            <button class="layer-action-btn ${obj.lockMovementX ? 'locked' : ''}" onclick="event.stopPropagation(); toggleLayerLock(${realIndex})" title="Lock/Unlock">
+                                <i class="fas fa-${obj.lockMovementX ? 'lock' : 'unlock'}"></i>
+                            </button>
+                            <button class="layer-action-btn" onclick="event.stopPropagation(); deleteLayerObject(${realIndex})" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function selectLayerObject(index) {
+            const objects = designCanvas.getObjects();
+            if (objects[index]) {
+                designCanvas.setActiveObject(objects[index]);
+                designCanvas.renderAll();
+            }
+        }
+
+        function toggleLayerLock(index) {
+            const objects = designCanvas.getObjects();
+            if (objects[index]) {
+                const obj = objects[index];
+                const isLocked = obj.lockMovementX;
+                obj.set({
+                    lockMovementX: !isLocked,
+                    lockMovementY: !isLocked,
+                    lockRotation: !isLocked,
+                    lockScalingX: !isLocked,
+                    lockScalingY: !isLocked,
+                    selectable: isLocked
+                });
+                designCanvas.renderAll();
+                updateLayersPanel();
+            }
+        }
+
+        function deleteLayerObject(index) {
+            const objects = designCanvas.getObjects();
+            if (objects[index]) {
+                designCanvas.remove(objects[index]);
+                designCanvas.renderAll();
+                saveCanvasState();
+            }
+        }
+
+        // Export design
+        function exportDesign(format) {
+            if (!designCanvas) return;
+
+            const { width, height } = CANVAS_PRESETS[currentPreset];
+
+            // Temporarily set canvas to full size for export
+            const originalZoom = currentZoom;
+            designCanvas.setZoom(1);
+            designCanvas.setWidth(width);
+            designCanvas.setHeight(height);
+
+            let dataURL;
+            if (format === 'png') {
+                dataURL = designCanvas.toDataURL({
+                    format: 'png',
+                    multiplier: 1,
+                    quality: 1
+                });
+            } else {
+                const quality = parseInt(document.getElementById('jpgQuality').value) / 100;
+                dataURL = designCanvas.toDataURL({
+                    format: 'jpeg',
+                    multiplier: 1,
+                    quality: quality
+                });
+            }
+
+            // Restore canvas size
+            designCanvas.setZoom(originalZoom);
+            designCanvas.setWidth(width * originalZoom);
+            designCanvas.setHeight(height * originalZoom);
+            designCanvas.renderAll();
+
+            // Download
+            const link = document.createElement('a');
+            const designName = document.getElementById('designName').value || 'design';
+            link.download = `${designName}_${currentPreset}_${width}x${height}.${format}`;
+            link.href = dataURL;
+            link.click();
+
+            showToast(`Exported as ${format.toUpperCase()} (${width}x${height})`, 'success');
+        }
+
+        // Save design to localStorage
+        function saveDesign() {
+            if (!designCanvas) return;
+
+            const designName = document.getElementById('designName').value.trim();
+            if (!designName) {
+                showToast('Please enter a design name', 'warning');
+                return;
+            }
+
+            const designData = {
+                name: designName,
+                preset: currentPreset,
+                canvas: designCanvas.toJSON(),
+                savedAt: new Date().toISOString()
+            };
+
+            // Get existing designs
+            let designs = JSON.parse(localStorage.getItem('designStudioDesigns') || '[]');
+
+            // Check for existing design with same name
+            const existingIndex = designs.findIndex(d => d.name === designName);
+            if (existingIndex >= 0) {
+                designs[existingIndex] = designData;
+            } else {
+                designs.unshift(designData);
+            }
+
+            // Limit to 20 designs
+            designs = designs.slice(0, 20);
+
+            localStorage.setItem('designStudioDesigns', JSON.stringify(designs));
+            loadRecentDesigns();
+            showToast(`Design "${designName}" saved!`, 'success');
+        }
+
+        // Load recent designs
+        function loadRecentDesigns() {
+            const list = document.getElementById('recentDesignsList');
+            const designs = JSON.parse(localStorage.getItem('designStudioDesigns') || '[]');
+
+            if (designs.length === 0) {
+                list.innerHTML = '<p class="designs-empty">No saved designs yet.</p>';
+                return;
+            }
+
+            list.innerHTML = designs.map((design, i) => {
+                const date = new Date(design.savedAt);
+                const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                return `
+                    <div class="recent-design-item" onclick="loadDesign(${i})">
+                        <div class="design-info">
+                            <span class="design-name">${design.name}</span>
+                            <span class="design-date">${design.preset} - ${dateStr}</span>
+                        </div>
+                        <button class="delete-design" onclick="event.stopPropagation(); deleteDesign(${i})" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Load a saved design
+        function loadDesign(index) {
+            const designs = JSON.parse(localStorage.getItem('designStudioDesigns') || '[]');
+            if (!designs[index]) return;
+
+            const design = designs[index];
+
+            // Set preset first
+            setCanvasPreset(design.preset);
+
+            // Load canvas data
+            designCanvas.loadFromJSON(design.canvas, function() {
+                designCanvas.renderAll();
+                updateLayersPanel();
+                document.getElementById('designName').value = design.name;
+                showToast(`Loaded "${design.name}"`, 'success');
+            });
+        }
+
+        // Delete a saved design
+        function deleteDesign(index) {
+            let designs = JSON.parse(localStorage.getItem('designStudioDesigns') || '[]');
+            const name = designs[index]?.name || 'Design';
+            designs.splice(index, 1);
+            localStorage.setItem('designStudioDesigns', JSON.stringify(designs));
+            loadRecentDesigns();
+            showToast(`Deleted "${name}"`, 'info');
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
