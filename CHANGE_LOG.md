@@ -108,6 +108,75 @@ Per research, posting 3 days BEFORE weather events is most effective (Michaels c
 
 ---
 
+## 2026-02-12 - Backend_Claude (Crop-to-Content Pipeline)
+
+### Context
+Built complete Crop-to-Content Pipeline based on research at docs/research/CROP_TO_CONTENT_RESEARCH.md.
+Allows farmers to snap a photo of produce and get instant marketing content, recipes, nutrition data, and storage tips.
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Added Crop-to-Content backend functions and API endpoints
+- `web_app/marketing-command-center.html` - Added UI in CREATE tab for photo upload and content generation
+
+### Functions Added in MERGED TOTAL.js
+- `analyzeProducePhoto(imageBase64)` - Uses Claude Vision API (claude-3-5-sonnet-20241022) to identify produce from photos
+- `generateProduceContent(produceType, platform)` - Generates marketing content (captions, hooks, CTAs) for identified produce
+- `getRecipeForProduce(produce)` - Calls Spoonacular API for recipe suggestions with fallback curated data
+- `getCropFallbackRecipes(produce)` - Curated farm-appropriate recipes when API unavailable
+- `getNutritionData(produce)` - Calls USDA FoodData Central API with fallback curated data
+- `getCropFallbackNutrition(produce)` - Curated nutrition facts when API unavailable
+- `getStorageTips(produce)` - Returns comprehensive storage recommendations for common produce
+- `processProduceImage(imageBase64, options)` - Combined endpoint for full pipeline processing
+
+### API Endpoints Added
+- `analyzeProducePhoto` - POST - Identify produce from base64 image
+- `generateProduceContent` - POST - Generate marketing content for produce type
+- `getRecipeForProduce` - POST - Get recipes for produce
+- `getNutritionData` - POST - Get nutrition data for produce
+- `getStorageTips` - POST - Get storage recommendations
+- `processProduceImage` - POST - Full pipeline (analyze + generate all content)
+
+### Frontend Changes (marketing-command-center.html)
+- Added Crop-to-Content section in CREATE tab (Quick Post Mode)
+- Photo upload with file input and drag-drop support
+- Camera capture button for mobile users
+- Image preview with compression before upload
+- "Analyze & Generate Content" button
+- Tabbed results display: Caption, Recipes, Nutrition, Storage
+- Copy-to-clipboard functionality for each section
+- Status indicators during processing
+
+### JavaScript Functions Added
+- `handleCropPhotoSelect(event)` - Handle file selection
+- `handleCropPhotoDrop(event)` - Handle drag-and-drop
+- `triggerCropCamera()` - Open camera on mobile
+- `previewCropImage(file)` - Show image preview with compression
+- `compressImage(file, maxWidth, quality)` - Compress images before upload
+- `analyzeCropAndGenerate()` - Main analysis function calling API
+- `displayCropResults(data)` - Render tabbed results
+- `showCropTab(tabName)` - Tab switching
+- `copyCropContent(elementId)` - Copy to clipboard
+
+### External APIs Integrated
+- Claude Vision API (Anthropic) - Produce identification
+- Spoonacular API - Recipe suggestions
+- USDA FoodData Central API - Nutrition data
+
+### Fallback Data
+Curated fallback data for 15+ common crops including:
+tomatoes, peppers, lettuce, kale, zucchini, squash, carrots, beets, cucumbers, onions, garlic, potatoes, corn, beans, herbs
+
+### Reason
+Research-driven feature to transform produce photos into complete marketing packages.
+Farmers can snap a photo in the field and get ready-to-post content in seconds.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions - No existing produce analysis found
+- [x] No duplicates created
+
+---
+
 ## 2026-02-12 - Backend_Claude (Self-Updating Algorithm Intelligence System)
 
 ### Context

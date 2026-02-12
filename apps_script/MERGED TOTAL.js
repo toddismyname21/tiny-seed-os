@@ -14468,6 +14468,19 @@ function doGet(e) {
         return jsonResponse(getNextBestPost(e.parameter));
       case 'getContentCalendar':
         return jsonResponse(generateContentCalendar(e.parameter));
+
+      // ============ SEASONAL AUTO-CALENDAR SYSTEM (GET) ============
+      case 'getSeasonalContentThemes':
+        return jsonResponse(getSeasonalContentThemes(e.parameter));
+      case 'generateSeasonalCalendar':
+        return jsonResponse(generateSeasonalCalendar(e.parameter));
+      case 'getCropLifecycleContent':
+        return jsonResponse(getCropLifecycleContent(e.parameter.crop, e.parameter.stage));
+      case 'getUpcomingSeasonalEvents':
+        return jsonResponse(getUpcomingSeasonalEvents(e.parameter));
+      case 'autoFillSeasonalContent':
+        return jsonResponse(autoFillSeasonalContent(e.parameter));
+
       case 'checkAllAPIStatus':
         return jsonResponse(checkAllAPIStatus());
       case 'getToddLatestInput':
@@ -129330,4 +129343,195 @@ function processProduceImage(imageBase64, options) {
     Logger.log("processProduceImage error: " + error.toString());
     return { success: false, error: error.toString(), timestamp: new Date().toISOString() };
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SEASONAL AUTO-CALENDAR SYSTEM
+// Generates content suggestions based on seasonal farm themes and crop lifecycle
+// Built per SEASONAL_CALENDAR_RESEARCH.md - February 2026
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * SEASONAL_THEME_MAP - Monthly content themes for farm marketing
+ */
+const SEASONAL_THEME_MAP = {
+  1: { name: 'January', primaryTheme: 'Planning & Seed Ordering', secondaryThemes: ['Fresh Start', 'New Year Goals', 'CSA Signups Open'], focus: 'CSA early bird signups, seed planning, farm goals', hashtags: ['#FarmPlanning', '#SeedStarting', '#CSA2026'], contentIdeas: ['Seed catalog browsing photos', 'Planning board with 2026 crop layout', 'CSA early bird signup', 'Greenhouse update', 'Farm goals for the year'], events: [{ name: 'New Year', date: '01-01', contentTheme: 'Fresh farm beginnings' }, { name: 'CSA Early Bird Opens', date: '01-15', contentTheme: 'Early bird pricing!' }], cropReminders: ['Order seeds', 'Plan succession planting', 'Review last year'] },
+  2: { name: 'February', primaryTheme: 'Growing Together / CSA Push', secondaryThemes: ['Love Local', 'Community', 'Greenhouse Life'], focus: 'Main CSA signup push, Valentine\'s Day, greenhouse starts', hashtags: ['#CSA2026', '#EatLocal', '#LoveLocalFood'], contentIdeas: ['Valentine\'s Day farm gift ideas', 'CSA signup countdown', 'Member spotlight', 'Greenhouse seedling progress', 'Why CSA content'], events: [{ name: 'Valentine\'s Day', date: '02-14', contentTheme: 'Love local food!' }], cropReminders: ['Start tomatoes/peppers indoors', 'Cold frame prep'] },
+  3: { name: 'March', primaryTheme: 'Spring Awakening', secondaryThemes: ['Renewal', 'Soil Prep', 'Final CSA Deadline'], focus: 'Final CSA deadline, spring planting prep', hashtags: ['#SpringPlanting', '#GrowYourOwn', '#FarmLife'], contentIdeas: ['CSA final deadline', 'Soil prep content', 'Seedling transplants', 'First greens', 'Spring equinox'], events: [{ name: 'Spring Equinox', date: '03-20', contentTheme: 'Spring is here!' }], cropReminders: ['Direct seed cool crops', 'Transplant cold-hardy'] },
+  4: { name: 'April', primaryTheme: 'Planting Season', secondaryThemes: ['Earth Day', 'New Life', 'First Shoots'], focus: 'Major planting, Earth Day, market prep', hashtags: ['#PlantingDay', '#EarthDay', '#FarmFresh'], contentIdeas: ['Earth Day practices', 'Planting day photos', 'First sprouts', 'Market opening prep', 'Behind-the-scenes'], events: [{ name: 'Earth Day', date: '04-22', contentTheme: 'Sustainable farming' }], cropReminders: ['Main planting push', 'Succession planting', 'Frost watch'] },
+  5: { name: 'May', primaryTheme: 'Growth & Blooms', secondaryThemes: ['Mother\'s Day', 'Flower Power', 'First Harvests'], focus: 'Mother\'s Day promotions, rapid growth, first harvests', hashtags: ['#FarmFresh', '#FarmFlowers', '#MothersDay'], contentIdeas: ['Mother\'s Day bouquets', 'Rapid growth photos', 'First lettuce harvest', 'CSA season kickoff', 'Meet the farmer'], events: [{ name: 'CSA Season Start', date: '05-20', contentTheme: 'First boxes!' }], cropReminders: ['Tender crop transplants', 'First harvests'] },
+  6: { name: 'June', primaryTheme: 'Peak Freshness', secondaryThemes: ['Summer Begins', 'Abundance Starting'], focus: 'Summer starts, farm stand prime time', hashtags: ['#FirstHarvest', '#SummerProduce', '#FarmStand'], contentIdeas: ['Summer solstice', 'Weekly harvest hauls', 'Recipe ideas', 'Farm stand hours', 'Harvest mornings'], events: [{ name: 'Summer Solstice', date: '06-21', contentTheme: 'Longest day!' }], cropReminders: ['Succession planting', 'Peak lettuce'] },
+  7: { name: 'July', primaryTheme: 'Summer Bounty', secondaryThemes: ['Independence', 'Peak Season', 'Abundance'], focus: 'Peak summer abundance, July 4th', hashtags: ['#FarmStand', '#LocalFood', '#SummerBounty'], contentIdeas: ['July 4th content', 'Abundance shots', 'Tomato/cucumber recipes', 'Farm tour invite', 'Peak season day in life'], events: [{ name: 'Independence Day', date: '07-04', contentTheme: 'Food independence!' }], cropReminders: ['Tomato season begins', 'Peak cucumber'] },
+  8: { name: 'August', primaryTheme: 'Abundance Overflow', secondaryThemes: ['Preservation', 'Tomato Festival', 'Peak Everything'], focus: 'Maximum abundance, preservation, tomato glory', hashtags: ['#PeakHarvest', '#TomatoSeason', '#PreserveTheBounty'], contentIdeas: ['Tomato abundance', 'Canning tutorials', 'Bulk deals', 'Peak harvest day', 'Surplus sales'], events: [], cropReminders: ['Peak tomatoes/peppers', 'Fall crop seeding'] },
+  9: { name: 'September', primaryTheme: 'Transition Season', secondaryThemes: ['Fall Preview', 'Labor Day', 'Last of Summer'], focus: 'Summer/fall transition, fall CSA extension', hashtags: ['#FallHarvest', '#FarmToTable', '#HarvestSeason'], contentIdeas: ['Labor Day content', 'Fall produce preview', 'Last tomatoes', 'Fall CSA signup', 'Season gratitude'], events: [{ name: 'Fall Equinox', date: '09-22', contentTheme: 'Hello fall!' }], cropReminders: ['Fall crop harvests', 'Cover crop seeding'] },
+  10: { name: 'October', primaryTheme: 'Fall Harvest Celebration', secondaryThemes: ['Pumpkins', 'Halloween', 'Harvest Festivals'], focus: 'Fall festivals, pumpkin/squash, Halloween', hashtags: ['#FallFarm', '#PumpkinPatch', '#HarvestFestival'], contentIdeas: ['Pumpkin patch', 'Winter squash harvest', 'Fall festival', 'Halloween content', 'Root vegetables'], events: [{ name: 'Halloween', date: '10-31', contentTheme: 'Pumpkins!' }], cropReminders: ['Winter squash harvest', 'Garlic planting'] },
+  11: { name: 'November', primaryTheme: 'Preservation & Gratitude', secondaryThemes: ['Thanksgiving', 'Holiday Gifts', 'Reflection'], focus: 'Thanksgiving, holiday gift boxes, gratitude', hashtags: ['#PreserveTheSeason', '#Thankful', '#FarmThanksgiving'], contentIdeas: ['Thanksgiving prep', 'Holiday gift boxes', 'Customer gratitude', 'Preservation tips', 'Year review teasers'], events: [], cropReminders: ['Final harvests', 'Season cleanup'] },
+  12: { name: 'December', primaryTheme: 'Rest & Reflection', secondaryThemes: ['Holiday Gifts', 'Year in Review', 'Planning Ahead'], focus: 'Holiday gifts, reflection, farm rest', hashtags: ['#FarmYear', '#LocalGifts', '#FarmLife'], contentIdeas: ['Holiday gift guide', 'Year in review', 'Farm rest', 'Customer thank you', 'Next year preview'], events: [{ name: 'Christmas', date: '12-25', contentTheme: 'Farm holiday warmth' }], cropReminders: ['Greenhouse maintenance', 'Equipment repair'] }
+};
+
+/**
+ * CROP_LIFECYCLE_CONTENT - Content templates for crop growth stages
+ */
+const CROP_LIFECYCLE_CONTENT = {
+  planting: { theme: 'Anticipation & New Beginnings', tone: 'Excited', templates: ['Just planted {crop}! Expected harvest: {harvestDate}', '{crop} in the ground today! About {weeksToHarvest} weeks until harvest', 'Another round of {crop} going in - succession planting!'], cta: 'Stay tuned!' },
+  germination: { theme: 'First Signs of Life', tone: 'Wonder', templates: ['First {crop} sprouts breaking through!', 'Tiny {crop} seedlings making their debut', 'The magic moment - {crop} germination!'], cta: 'Follow along!' },
+  growing: { theme: 'Progress & Behind-the-Scenes', tone: 'Educational', templates: ['Our {crop} is {stage} - looking healthy!', 'Growth update: {crop} is thriving', 'Halfway there! {crop} progress check'], cta: 'Follow our journey!' },
+  flowering: { theme: 'Transition & Promise', tone: 'Anticipatory', templates: ['{crop} flowers are here - fruit coming soon!', 'Beautiful {crop} blossoms today', 'Flowering stage: Nature at work'], cta: 'Harvest countdown!' },
+  preHarvest: { theme: 'Countdown & Excitement', tone: 'Urgent', templates: ['Almost time! {crop} will be ready in {daysToHarvest} days!', 'Countdown: {crop} harvest in {daysToHarvest} days', '{crop} is sizing up beautifully'], cta: 'Pre-order now!' },
+  harvest: { theme: 'Celebration & Abundance', tone: 'Triumphant', templates: ['FRESH {crop} NOW AVAILABLE!', '{crop} harvest day! Peak freshness', 'The moment we waited for - {crop} is HERE!'], cta: 'Visit us today!' },
+  postHarvest: { theme: 'Usage & Recipes', tone: 'Helpful', templates: ['What to do with this week\'s {crop}: {recipeSuggestion}', 'Storage tip: Keep your {crop} fresh longer', 'Customer favorite: {crop} recipe share!'], cta: 'Share your recipe!' }
+};
+
+/**
+ * getSeasonalContentThemes - Returns content themes for current or specified month
+ */
+function getSeasonalContentThemes(params) {
+  try {
+    const now = new Date();
+    const month = params && params.month ? parseInt(params.month) : now.getMonth() + 1;
+    if (month < 1 || month > 12) return { success: false, error: 'Invalid month. Use 1-12.' };
+    const themes = SEASONAL_THEME_MAP[month];
+    const prevMonth = month === 1 ? 12 : month - 1;
+    const nextMonth = month === 12 ? 1 : month + 1;
+    const upcomingEvents = getUpcomingSeasonalEvents({ month: month });
+    return { success: true, month: month, monthName: themes.name, currentDate: now.toISOString().split('T')[0], themes: { primary: themes.primaryTheme, secondary: themes.secondaryThemes, focus: themes.focus }, hashtags: themes.hashtags, contentIdeas: themes.contentIdeas, events: upcomingEvents.events || [], cropReminders: themes.cropReminders, transition: { from: SEASONAL_THEME_MAP[prevMonth].primaryTheme, to: SEASONAL_THEME_MAP[nextMonth].primaryTheme }, timestamp: now.toISOString() };
+  } catch (error) { Logger.log('getSeasonalContentThemes error: ' + error.toString()); return { success: false, error: error.toString() }; }
+}
+
+/**
+ * generateSeasonalCalendar - Pre-populates content calendar with seasonal suggestions
+ */
+function generateSeasonalCalendar(params) {
+  try {
+    const now = new Date();
+    const month = params && params.month ? parseInt(params.month) : now.getMonth() + 1;
+    const startDate = params && params.startDate ? new Date(params.startDate) : now;
+    const includeCropData = params && params.includeCropData !== false;
+    const themes = SEASONAL_THEME_MAP[month];
+    if (!themes) return { success: false, error: 'Invalid month' };
+    const weeklyPillars = [{ day: 0, pillar: 'reflection', name: 'Sunday farm views' }, { day: 1, pillar: 'education', name: 'Growing tip of the week' }, { day: 2, pillar: 'bts', name: 'Tuesday on the tractor' }, { day: 3, pillar: 'product', name: 'What\'s ready this week' }, { day: 4, pillar: 'community', name: 'Meet our CSA members' }, { day: 5, pillar: 'recipe', name: 'Farm Fresh Friday' }, { day: 6, pillar: 'market', name: 'We\'re at the market!' }];
+    const calendar = [];
+    const usedIdeas = [];
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(startDate);
+      date.setDate(date.getDate() + i);
+      const dayOfWeek = date.getDay();
+      const pillarInfo = weeklyPillars[dayOfWeek];
+      let contentIdea = themes.contentIdeas[i % themes.contentIdeas.length];
+      while (usedIdeas.includes(contentIdea) && usedIdeas.length < themes.contentIdeas.length) contentIdea = themes.contentIdeas[(usedIdeas.length + i) % themes.contentIdeas.length];
+      usedIdeas.push(contentIdea);
+      const dateStr = String(month).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+      const event = themes.events.find(e => e.date === dateStr);
+      const bestTime = dayOfWeek === 0 || dayOfWeek === 6 ? '9:00 AM' : '11:30 AM';
+      calendar.push({ date: date.toISOString().split('T')[0], dayName: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayOfWeek], pillar: pillarInfo.pillar, pillarName: pillarInfo.name, seasonalTheme: themes.primaryTheme, contentIdea: event ? event.contentTheme : contentIdea, isEvent: !!event, eventName: event ? event.name : null, hashtags: themes.hashtags.slice(0, 3), bestTime: bestTime, platform: 'instagram', status: 'suggested' });
+    }
+    let cropContent = includeCropData ? getCropLifecycleReminders(month) : [];
+    try {
+      const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+      let sheet = ss.getSheetByName('SEASONAL_Calendar');
+      if (!sheet) { sheet = ss.insertSheet('SEASONAL_Calendar'); sheet.getRange(1, 1, 1, 10).setValues([['Date', 'Day', 'Pillar', 'Theme', 'Content_Idea', 'Hashtags', 'Best_Time', 'Platform', 'Status', 'Generated']]); sheet.setFrozenRows(1); sheet.getRange(1, 1, 1, 10).setFontWeight('bold').setBackground('#22c55e').setFontColor('white'); }
+      calendar.forEach(day => sheet.appendRow([day.date, day.dayName, day.pillar, day.seasonalTheme, day.contentIdea, day.hashtags.join(' '), day.bestTime, day.platform, day.status, new Date().toISOString()]));
+    } catch (e) { Logger.log('Could not save seasonal calendar: ' + e.toString()); }
+    return { success: true, month: month, monthName: themes.name, theme: themes.primaryTheme, focus: themes.focus, calendar: calendar, cropReminders: cropContent, upcomingEvents: themes.events, generatedAt: now.toISOString() };
+  } catch (error) { Logger.log('generateSeasonalCalendar error: ' + error.toString()); return { success: false, error: error.toString() }; }
+}
+
+/**
+ * getCropLifecycleContent - Returns content templates for specific crop stage
+ */
+function getCropLifecycleContent(cropName, stage) {
+  try {
+    const validStages = ['planting', 'germination', 'growing', 'flowering', 'preHarvest', 'harvest', 'postHarvest'];
+    if (!cropName) return { success: false, error: 'Crop name is required' };
+    const normalizedStage = stage ? stage.toLowerCase() : 'growing';
+    if (!validStages.includes(normalizedStage)) return { success: false, error: 'Invalid stage. Use: ' + validStages.join(', ') };
+    const stageContent = CROP_LIFECYCLE_CONTENT[normalizedStage];
+    const crop = cropName.charAt(0).toUpperCase() + cropName.slice(1).toLowerCase();
+    const filledTemplates = stageContent.templates.map(t => t.replace(/{crop}/g, crop).replace(/{harvestDate}/g, 'in a few weeks').replace(/{weeksToHarvest}/g, '6-8').replace(/{daysToHarvest}/g, '7').replace(/{stage}/g, normalizedStage).replace(/{location}/g, 'the farm stand').replace(/{recipeSuggestion}/g, 'fresh salad, roasted, or grilled'));
+    const cropHashtags = getCropSpecificHashtags(crop);
+    return { success: true, crop: crop, stage: normalizedStage, theme: stageContent.theme, tone: stageContent.tone, templates: filledTemplates, callToAction: stageContent.cta, hashtags: cropHashtags, bestPlatforms: normalizedStage === 'harvest' ? ['instagram', 'facebook', 'sms'] : ['instagram', 'facebook'], timing: normalizedStage === 'harvest' ? 'morning of harvest' : 'anytime' };
+  } catch (error) { Logger.log('getCropLifecycleContent error: ' + error.toString()); return { success: false, error: error.toString() }; }
+}
+
+function getCropSpecificHashtags(crop) {
+  const cropHashtags = { 'Tomato': ['#TomatoSeason', '#HeirloomTomatoes', '#FreshTomatoes'], 'Lettuce': ['#FreshGreens', '#SaladSeason', '#LeafyGreens'], 'Pepper': ['#PepperSeason', '#SweetPeppers', '#FreshPeppers'], 'Cucumber': ['#CucumberSeason', '#FreshCucumbers', '#GardenCucumber'], 'Squash': ['#SquashSeason', '#SummerSquash', '#WinterSquash'], 'Carrot': ['#FreshCarrots', '#RootVegetables', '#GardenCarrots'], 'Bean': ['#BeanSeason', '#GreenBeans', '#FarmBeans'], 'Corn': ['#SweetCorn', '#CornSeason', '#FreshCorn'], 'Radish': ['#FreshRadish', '#SpringRadish', '#QuickCrop'], 'Flower': ['#FarmFlowers', '#FreshFlowers', '#LocalFlowers'] };
+  return cropHashtags[crop] || ['#FarmFresh', '#LocalProduce', '#TinySeedFarm', '#EatLocal'];
+}
+
+/**
+ * getUpcomingSeasonalEvents - Returns relevant dates for next 30 days
+ */
+function getUpcomingSeasonalEvents(params) {
+  try {
+    const now = new Date();
+    const month = params && params.month ? parseInt(params.month) : now.getMonth() + 1;
+    const daysAhead = params && params.daysAhead ? parseInt(params.daysAhead) : 30;
+    const events = [];
+    const fixedEvents = [{ month: 1, day: 1, name: 'New Year\'s Day', theme: 'Fresh farm beginnings' }, { month: 1, day: 15, name: 'CSA Early Bird', theme: 'Early bird signup!' }, { month: 2, day: 14, name: 'Valentine\'s Day', theme: 'Love local food!' }, { month: 3, day: 15, name: 'CSA Deadline', theme: 'Last chance to join!' }, { month: 3, day: 20, name: 'Spring Equinox', theme: 'Spring planting!' }, { month: 4, day: 22, name: 'Earth Day', theme: 'Sustainable farming' }, { month: 5, day: 20, name: 'CSA Season Start', theme: 'First boxes!' }, { month: 6, day: 21, name: 'Summer Solstice', theme: 'Longest day!' }, { month: 7, day: 4, name: 'Independence Day', theme: 'Food independence!' }, { month: 9, day: 22, name: 'Fall Equinox', theme: 'Hello fall!' }, { month: 10, day: 31, name: 'Halloween', theme: 'Pumpkins!' }, { month: 12, day: 25, name: 'Christmas', theme: 'Farm holiday warmth' }, { month: 12, day: 31, name: 'New Year\'s Eve', theme: 'Great farm year!' }];
+    const endDate = new Date(now);
+    endDate.setDate(endDate.getDate() + daysAhead);
+    fixedEvents.forEach(event => {
+      const eventDate = new Date(now.getFullYear(), event.month - 1, event.day);
+      if (eventDate < now && event.month < now.getMonth() + 1) eventDate.setFullYear(eventDate.getFullYear() + 1);
+      if (eventDate >= now && eventDate <= endDate) {
+        const daysUntil = Math.ceil((eventDate - now) / (1000 * 60 * 60 * 24));
+        events.push({ name: event.name, date: eventDate.toISOString().split('T')[0], daysUntil: daysUntil, theme: event.theme, urgency: daysUntil <= 3 ? 'high' : daysUntil <= 7 ? 'medium' : 'low' });
+      }
+    });
+    events.sort((a, b) => new Date(a.date) - new Date(b.date));
+    return { success: true, currentDate: now.toISOString().split('T')[0], daysAhead: daysAhead, events: events, count: events.length };
+  } catch (error) { Logger.log('getUpcomingSeasonalEvents error: ' + error.toString()); return { success: false, error: error.toString() }; }
+}
+
+function getCropLifecycleReminders(month) {
+  const reminders = [];
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const plantingSheet = ss.getSheetByName('PLANTINGS') || ss.getSheetByName('Plantings');
+    if (plantingSheet && plantingSheet.getLastRow() > 1) {
+      const data = plantingSheet.getDataRange().getValues();
+      const headers = data[0];
+      const now = new Date();
+      const cropIdx = headers.findIndex(h => /crop|variety|name/i.test(String(h)));
+      const harvestDateIdx = headers.findIndex(h => /harvest.*date|ready.*date/i.test(String(h)));
+      const statusIdx = headers.findIndex(h => /status/i.test(String(h)));
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        const crop = cropIdx >= 0 ? row[cropIdx] : null;
+        const harvestDate = harvestDateIdx >= 0 ? row[harvestDateIdx] : null;
+        const status = statusIdx >= 0 ? row[statusIdx] : '';
+        if (!crop) continue;
+        if (harvestDate && harvestDate instanceof Date) {
+          const daysToHarvest = Math.ceil((harvestDate - now) / (1000 * 60 * 60 * 24));
+          if (daysToHarvest > 0 && daysToHarvest <= 14) {
+            const content = getCropLifecycleContent(crop.toString(), 'preHarvest');
+            reminders.push({ crop: crop.toString(), stage: 'preHarvest', daysUntil: daysToHarvest, date: harvestDate.toISOString().split('T')[0], contentSuggestion: content.success ? content.templates[0] : null, urgency: daysToHarvest <= 3 ? 'high' : 'medium' });
+          }
+          if (daysToHarvest >= -3 && daysToHarvest <= 3 && status !== 'completed') {
+            const content = getCropLifecycleContent(crop.toString(), 'harvest');
+            reminders.push({ crop: crop.toString(), stage: 'harvest', daysUntil: daysToHarvest, date: harvestDate.toISOString().split('T')[0], contentSuggestion: content.success ? content.templates[0] : null, urgency: 'high' });
+          }
+        }
+      }
+    }
+  } catch (e) { Logger.log('Could not fetch planting data: ' + e.toString()); }
+  const seasonalReminders = SEASONAL_THEME_MAP[month]?.cropReminders || [];
+  seasonalReminders.forEach(reminder => reminders.push({ type: 'seasonal', reminder: reminder, month: month, urgency: 'info' }));
+  return reminders;
+}
+
+/**
+ * autoFillSeasonalContent - Auto-populates the calendar with seasonal suggestions
+ */
+function autoFillSeasonalContent(params) {
+  try {
+    const now = new Date();
+    const month = params && params.month ? parseInt(params.month) : now.getMonth() + 1;
+    const themes = getSeasonalContentThemes({ month: month });
+    if (!themes.success) return themes;
+    const calendar = generateSeasonalCalendar({ month: month, startDate: params && params.startDate ? params.startDate : now.toISOString().split('T')[0], includeCropData: true });
+    if (!calendar.success) return calendar;
+    const events = getUpcomingSeasonalEvents({ month: month, daysAhead: 30 });
+    return { success: true, message: 'Seasonal content generated successfully!', month: month, monthName: themes.monthName, themes: themes.themes, hashtags: themes.hashtags, calendar: calendar.calendar, cropReminders: calendar.cropReminders, upcomingEvents: events.events, timestamp: now.toISOString() };
+  } catch (error) { Logger.log('autoFillSeasonalContent error: ' + error.toString()); return { success: false, error: error.toString() }; }
 }

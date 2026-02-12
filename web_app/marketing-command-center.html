@@ -5010,6 +5010,121 @@
                 </div>
             </div>
 
+            <!-- CROP-TO-CONTENT PIPELINE - AI Photo Analysis -->
+            <div class="card" style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(42, 157, 143, 0.1) 100%); border: 2px solid rgba(34, 197, 94, 0.4);">
+                <div class="card-header" style="border-bottom: 1px solid rgba(34, 197, 94, 0.3);">
+                    <h3 style="background: linear-gradient(135deg, #22C55E, #2A9D8F); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                        <i class="fas fa-camera" style="-webkit-text-fill-color: #22C55E;"></i> Crop-to-Content Pipeline
+                    </h3>
+                    <span style="font-size: 0.75rem; background: linear-gradient(135deg, #22C55E, #2A9D8F); padding: 0.35rem 0.85rem; border-radius: 20px; color: white; font-weight: 600;">NEW - AI Vision</span>
+                </div>
+                <div class="card-body">
+                    <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.95rem;">
+                        <i class="fas fa-magic" style="color: var(--success);"></i>
+                        Upload a produce photo and get instant AI-generated captions, recipes, nutrition facts, and storage tips!
+                    </p>
+
+                    <!-- Photo Upload Zone -->
+                    <div id="cropToContentUploadZone" onclick="document.getElementById('cropToContentFileInput').click()"
+                         style="border: 2px dashed rgba(34, 197, 94, 0.5); border-radius: 16px; padding: 2rem; text-align: center; cursor: pointer; transition: all 0.3s; min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(34, 197, 94, 0.05);">
+                        <input type="file" id="cropToContentFileInput" accept="image/*" style="display: none" onchange="handleCropToContentFile(event)">
+                        <input type="file" id="cropToContentCameraInput" accept="image/*" capture="environment" style="display: none" onchange="handleCropToContentFile(event)">
+                        <img id="cropToContentPreview" src="" alt="Preview" style="display: none; max-width: 100%; max-height: 200px; border-radius: 12px; margin-bottom: 1rem;">
+                        <i id="cropToContentUploadIcon" class="fas fa-seedling" style="font-size: 3rem; color: var(--success); margin-bottom: 1rem;"></i>
+                        <h4 id="cropToContentUploadText" style="margin-bottom: 0.5rem; color: var(--text-primary);">Drop produce photo here</h4>
+                        <p id="cropToContentUploadSubtext" style="color: var(--text-secondary); font-size: 0.85rem;">or tap to upload from gallery</p>
+                        <div style="display: flex; gap: 0.75rem; margin-top: 1rem;">
+                            <button type="button" onclick="event.stopPropagation(); document.getElementById('cropToContentCameraInput').click()"
+                                    style="background: var(--success); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 10px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; min-height: 48px;">
+                                <i class="fas fa-camera"></i> Take Photo
+                            </button>
+                            <button type="button" onclick="event.stopPropagation(); document.getElementById('cropToContentFileInput').click()"
+                                    style="background: rgba(34, 197, 94, 0.2); color: var(--success); border: 1px solid var(--success); padding: 0.75rem 1.5rem; border-radius: 10px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; min-height: 48px;">
+                                <i class="fas fa-images"></i> Upload
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Analyze Button -->
+                    <button id="cropToContentAnalyzeBtn" onclick="analyzeCropToContent()" disabled
+                            style="width: 100%; margin-top: 1rem; padding: 1rem 1.5rem; background: linear-gradient(135deg, #22C55E 0%, #2A9D8F 100%); border: none; border-radius: 12px; color: white; font-size: 1.1rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.75rem; min-height: 56px; transition: all 0.3s; box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);">
+                        <i class="fas fa-magic"></i> Analyze & Generate Content
+                    </button>
+
+                    <!-- Processing Indicator -->
+                    <div id="cropToContentProcessing" style="display: none; text-align: center; padding: 2rem;">
+                        <div style="width: 50px; height: 50px; border: 4px solid rgba(34, 197, 94, 0.2); border-top-color: var(--success); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 1rem;"></div>
+                        <p id="cropToContentProcessingText" style="color: var(--text-secondary);">Identifying produce...</p>
+                    </div>
+
+                    <!-- Results Container -->
+                    <div id="cropToContentResults" style="display: none; margin-top: 1.5rem;">
+                        <!-- Identification Summary -->
+                        <div id="cropToContentIdentification" style="background: rgba(34, 197, 94, 0.1); padding: 1rem; border-radius: 12px; margin-bottom: 1rem;">
+                            <h4 style="margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-check-circle" style="color: var(--success);"></i> Identified Produce
+                            </h4>
+                            <div id="cropToContentIdentificationList"></div>
+                        </div>
+
+                        <!-- Results Tabs -->
+                        <div style="display: flex; gap: 0; margin-bottom: 1rem; background: var(--bg-light); border-radius: 12px; padding: 0.25rem;">
+                            <button class="crop-content-tab active" onclick="switchCropContentTab('caption')" data-tab="caption"
+                                    style="flex: 1; padding: 0.75rem; background: var(--success); border: none; border-radius: 10px; color: white; font-weight: 600; cursor: pointer; font-size: 0.85rem;">
+                                <i class="fas fa-comment"></i> Caption
+                            </button>
+                            <button class="crop-content-tab" onclick="switchCropContentTab('recipes')" data-tab="recipes"
+                                    style="flex: 1; padding: 0.75rem; background: transparent; border: none; border-radius: 10px; color: var(--text-secondary); font-weight: 500; cursor: pointer; font-size: 0.85rem;">
+                                <i class="fas fa-utensils"></i> Recipes
+                            </button>
+                            <button class="crop-content-tab" onclick="switchCropContentTab('nutrition')" data-tab="nutrition"
+                                    style="flex: 1; padding: 0.75rem; background: transparent; border: none; border-radius: 10px; color: var(--text-secondary); font-weight: 500; cursor: pointer; font-size: 0.85rem;">
+                                <i class="fas fa-apple-alt"></i> Nutrition
+                            </button>
+                            <button class="crop-content-tab" onclick="switchCropContentTab('storage')" data-tab="storage"
+                                    style="flex: 1; padding: 0.75rem; background: transparent; border: none; border-radius: 10px; color: var(--text-secondary); font-weight: 500; cursor: pointer; font-size: 0.85rem;">
+                                <i class="fas fa-box"></i> Storage
+                            </button>
+                        </div>
+
+                        <!-- Tab Content: Caption -->
+                        <div id="cropContentCaptionTab" class="crop-content-tab-content" style="background: rgba(0,0,0,0.2); padding: 1.25rem; border-radius: 12px;">
+                            <div id="cropContentCaptionBox" style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 10px; line-height: 1.6; margin-bottom: 1rem;"></div>
+                            <div id="cropContentHashtags" style="color: var(--success); margin-bottom: 1rem;"></div>
+                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                <button onclick="copyCropContentCaption()" style="flex: 1; min-width: 120px; background: var(--success); color: white; border: none; padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                                    <i class="fas fa-copy"></i> Copy Caption
+                                </button>
+                                <button onclick="useCropContentInQuickPost()" style="flex: 1; min-width: 120px; background: var(--instagram); color: white; border: none; padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                                    <i class="fas fa-paper-plane"></i> Use in Quick Post
+                                </button>
+                            </div>
+                            <div id="cropContentAlternates" style="margin-top: 1rem;"></div>
+                        </div>
+
+                        <!-- Tab Content: Recipes -->
+                        <div id="cropContentRecipesTab" class="crop-content-tab-content" style="display: none; background: rgba(0,0,0,0.2); padding: 1.25rem; border-radius: 12px;">
+                            <div id="cropContentRecipesList"></div>
+                        </div>
+
+                        <!-- Tab Content: Nutrition -->
+                        <div id="cropContentNutritionTab" class="crop-content-tab-content" style="display: none; background: rgba(0,0,0,0.2); padding: 1.25rem; border-radius: 12px;">
+                            <div id="cropContentNutritionBox"></div>
+                        </div>
+
+                        <!-- Tab Content: Storage -->
+                        <div id="cropContentStorageTab" class="crop-content-tab-content" style="display: none; background: rgba(0,0,0,0.2); padding: 1.25rem; border-radius: 12px;">
+                            <div id="cropContentStorageBox"></div>
+                        </div>
+
+                        <!-- New Photo Button -->
+                        <button onclick="resetCropToContent()" style="width: 100%; margin-top: 1rem; padding: 0.75rem; background: rgba(141, 153, 174, 0.2); border: 1px solid var(--text-secondary); border-radius: 10px; color: var(--text-secondary); font-weight: 600; cursor: pointer;">
+                            <i class="fas fa-redo"></i> Analyze Another Photo
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Emergency Harvest Button -->
             <div class="card" style="background: linear-gradient(135deg, var(--danger) 0%, var(--accent) 100%);">
                 <div class="card-body" style="text-align: center;">
@@ -5619,6 +5734,64 @@
 
         <!-- CONTENT CALENDAR TAB - 7-Day Visual Calendar -->
         <div id="contentcalendarTab" class="tab-content">
+            <!-- SEASONAL AUTO-CALENDAR PANEL -->
+            <div class="card" style="margin-bottom: 1.5rem; background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(139, 92, 246, 0.1)); border: 2px solid rgba(34, 197, 94, 0.4);">
+                <div class="card-header" style="border-bottom: 1px solid rgba(34, 197, 94, 0.3);">
+                    <h3><i class="fas fa-seedling" style="color: var(--success);"></i> Seasonal Auto-Calendar</h3>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <!-- Current Season Indicator -->
+                        <div id="seasonalThemeIndicator" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(34, 197, 94, 0.2); padding: 0.4rem 0.8rem; border-radius: 20px; border: 1px solid rgba(34, 197, 94, 0.4);">
+                            <i class="fas fa-snowflake" id="seasonalIcon" style="color: var(--success);"></i>
+                            <span id="seasonalThemeName" style="font-size: 0.85rem; font-weight: 600; color: var(--success);">Loading...</span>
+                        </div>
+                        <button class="btn btn-sm" onclick="autoFillSeasonalCalendar()" style="background: linear-gradient(135deg, var(--success), var(--purple)); color: white;">
+                            <i class="fas fa-magic"></i> Auto-Fill Seasonal Content
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem;">
+                        <!-- Monthly Theme Panel -->
+                        <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 12px;">
+                            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                                <i class="fas fa-calendar-alt"></i> This Month's Theme
+                            </div>
+                            <div id="monthlyThemePrimary" style="font-size: 1.1rem; font-weight: 700; color: var(--success); margin-bottom: 0.25rem;">Loading...</div>
+                            <div id="monthlyThemeFocus" style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4;"></div>
+                            <div id="monthlyHashtags" style="margin-top: 0.75rem; display: flex; gap: 0.25rem; flex-wrap: wrap;"></div>
+                        </div>
+
+                        <!-- Suggested Post Topics -->
+                        <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 12px;">
+                            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                                <i class="fas fa-lightbulb"></i> Suggested Post Topics
+                            </div>
+                            <div id="suggestedTopicsList" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 120px; overflow-y: auto;">
+                                <span style="color: var(--text-secondary); font-size: 0.85rem;">Loading suggestions...</span>
+                            </div>
+                        </div>
+
+                        <!-- Upcoming Events & Crop Reminders -->
+                        <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 12px;">
+                            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                                <i class="fas fa-bell"></i> Upcoming Events & Reminders
+                            </div>
+                            <div id="upcomingEventsList" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 120px; overflow-y: auto;">
+                                <span style="color: var(--text-secondary); font-size: 0.85rem;">Loading events...</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Crop Lifecycle Reminders (if planting data exists) -->
+                    <div id="cropLifecycleReminders" style="margin-top: 1rem; display: none;">
+                        <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                            <i class="fas fa-leaf"></i> Crop Content Opportunities
+                        </div>
+                        <div id="cropRemindersList" style="display: flex; gap: 0.75rem; flex-wrap: wrap;"></div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Content Gaps Alert Banner -->
             <div class="content-gaps-banner" id="contentGapsBanner">
                 <div class="gaps-text">
@@ -24117,6 +24290,369 @@ Would you like to test posting to Threads?`;
                 }
             }
         });
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // CROP-TO-CONTENT PIPELINE
+        // AI-powered produce photo to social media content generation
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        let cropToContentImageBase64 = null;
+        let cropToContentResult = null;
+
+        // Handle file selection for Crop-to-Content
+        function handleCropToContentFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                showToast('Please select an image file', 'error');
+                return;
+            }
+
+            // Compress and convert to base64
+            compressCropToContentImage(file).then(compressed => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    cropToContentImageBase64 = e.target.result;
+
+                    // Update UI
+                    const preview = document.getElementById('cropToContentPreview');
+                    const icon = document.getElementById('cropToContentUploadIcon');
+                    const text = document.getElementById('cropToContentUploadText');
+                    const subtext = document.getElementById('cropToContentUploadSubtext');
+                    const btn = document.getElementById('cropToContentAnalyzeBtn');
+
+                    preview.src = cropToContentImageBase64;
+                    preview.style.display = 'block';
+                    icon.style.display = 'none';
+                    text.textContent = 'Photo ready for analysis';
+                    subtext.textContent = 'Click below to identify produce and generate content';
+                    btn.disabled = false;
+                };
+                reader.readAsDataURL(compressed);
+            });
+        }
+
+        // Compress image for upload
+        async function compressCropToContentImage(file) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const maxWidth = 1280;
+                    const ratio = Math.min(maxWidth / img.width, 1);
+                    canvas.width = img.width * ratio;
+                    canvas.height = img.height * ratio;
+
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                    canvas.toBlob(resolve, 'image/jpeg', 0.85);
+                };
+                img.src = URL.createObjectURL(file);
+            });
+        }
+
+        // Analyze the uploaded image
+        async function analyzeCropToContent() {
+            if (!cropToContentImageBase64) {
+                showToast('Please upload a photo first', 'error');
+                return;
+            }
+
+            // Show processing state
+            document.getElementById('cropToContentAnalyzeBtn').style.display = 'none';
+            document.getElementById('cropToContentProcessing').style.display = 'block';
+            document.getElementById('cropToContentResults').style.display = 'none';
+
+            const stages = [
+                'Identifying produce...',
+                'Generating caption...',
+                'Finding recipes...',
+                'Looking up nutrition...',
+                'Getting storage tips...'
+            ];
+
+            let stageIndex = 0;
+            const stageInterval = setInterval(() => {
+                if (stageIndex < stages.length) {
+                    document.getElementById('cropToContentProcessingText').textContent = stages[stageIndex];
+                    stageIndex++;
+                }
+            }, 2000);
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'processProduceImage',
+                        image: cropToContentImageBase64,
+                        options: {
+                            generateCaption: true,
+                            getRecipes: true,
+                            getNutrition: true,
+                            getStorage: true,
+                            platform: 'instagram'
+                        }
+                    })
+                });
+
+                const data = await response.json();
+                clearInterval(stageInterval);
+
+                if (data.success) {
+                    cropToContentResult = data;
+                    displayCropToContentResults(data);
+                } else {
+                    throw new Error(data.errors?.join(', ') || data.error || 'Analysis failed');
+                }
+
+            } catch (error) {
+                clearInterval(stageInterval);
+                showToast('Error: ' + error.message, 'error');
+                document.getElementById('cropToContentProcessing').style.display = 'none';
+                document.getElementById('cropToContentAnalyzeBtn').style.display = 'flex';
+            }
+        }
+
+        // Display results
+        function displayCropToContentResults(data) {
+            document.getElementById('cropToContentProcessing').style.display = 'none';
+            document.getElementById('cropToContentResults').style.display = 'block';
+
+            // Identification
+            const idList = document.getElementById('cropToContentIdentificationList');
+            if (data.identification && data.identification.items) {
+                idList.innerHTML = data.identification.items.map(item => `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                        <div>
+                            <strong style="color: var(--text-primary);">${item.name}</strong>
+                            ${item.variety ? `<br><small style="color: var(--text-secondary);">${item.variety}</small>` : ''}
+                            ${item.quantity ? `<br><small style="color: var(--text-secondary);">Qty: ${item.quantity}</small>` : ''}
+                        </div>
+                        <span style="background: var(--success); color: white; padding: 0.2rem 0.5rem; border-radius: 10px; font-size: 0.75rem;">${Math.round(item.confidence * 100)}%</span>
+                    </div>
+                `).join('');
+            }
+
+            // Caption
+            if (data.content) {
+                document.getElementById('cropContentCaptionBox').textContent = data.content.caption || '';
+                document.getElementById('cropContentHashtags').textContent = data.content.hashtags ? data.content.hashtags.map(h => '#' + h).join(' ') : '';
+
+                if (data.content.alternateVersions && data.content.alternateVersions.length > 0) {
+                    document.getElementById('cropContentAlternates').innerHTML = `
+                        <h5 style="color: var(--text-secondary); margin-bottom: 0.5rem; font-size: 0.85rem;">Alternate Versions:</h5>
+                        ${data.content.alternateVersions.map(v => `
+                            <div style="background: rgba(255,255,255,0.03); padding: 0.75rem; border-radius: 8px; margin-bottom: 0.5rem; font-size: 0.9rem; cursor: pointer;" onclick="useCropAlternate(this.textContent)">
+                                ${v}
+                            </div>
+                        `).join('')}
+                    `;
+                }
+            }
+
+            // Recipes
+            const recipesList = document.getElementById('cropContentRecipesList');
+            if (data.recipes && data.recipes.length > 0) {
+                recipesList.innerHTML = data.recipes.map(recipe => `
+                    <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 10px; margin-bottom: 0.75rem;">
+                        <h4 style="color: var(--success); margin-bottom: 0.5rem;">${recipe.title}</h4>
+                        ${recipe.image ? `<img src="${recipe.image}" style="width: 100%; max-height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 0.5rem;">` : ''}
+                        ${recipe.detail ? `
+                            <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.5rem;">${recipe.detail.summary || ''}</p>
+                            <p style="font-size: 0.8rem; color: var(--text-secondary);">
+                                ${recipe.detail.readyInMinutes ? `<i class="fas fa-clock"></i> ${recipe.detail.readyInMinutes} min` : ''}
+                                ${recipe.detail.servings ? ` | <i class="fas fa-users"></i> ${recipe.detail.servings} servings` : ''}
+                            </p>
+                        ` : ''}
+                        <button onclick="copyRecipeToCaption('${recipe.title.replace(/'/g, "\\'")}')" style="margin-top: 0.5rem; background: rgba(34, 197, 94, 0.2); border: 1px solid var(--success); color: var(--success); padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.8rem; cursor: pointer;">
+                            <i class="fas fa-plus"></i> Add to Caption
+                        </button>
+                    </div>
+                `).join('');
+            } else {
+                recipesList.innerHTML = '<p style="color: var(--text-secondary);">No recipes found for this produce.</p>';
+            }
+
+            // Nutrition
+            const nutritionBox = document.getElementById('cropContentNutritionBox');
+            if (data.nutrition) {
+                const nutrients = data.nutrition.nutrients || {};
+                nutritionBox.innerHTML = `
+                    <h4 style="color: var(--success); margin-bottom: 0.75rem;">${data.nutrition.foodName || data.primaryProduce}</h4>
+                    <p style="color: var(--gold); margin-bottom: 1rem; font-size: 0.9rem;"><i class="fas fa-star"></i> ${data.nutrition.highlight || ''}</p>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        ${Object.entries(nutrients).map(([name, info]) => `
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 0.5rem 0; color: var(--text-secondary);">${name}</td>
+                                <td style="padding: 0.5rem 0; text-align: right; color: var(--success); font-weight: 600;">${info.value} ${info.unit}</td>
+                            </tr>
+                        `).join('')}
+                    </table>
+                    <p style="margin-top: 1rem; font-size: 0.75rem; color: var(--text-secondary);">Per ${data.nutrition.servingSize || '100g'} serving</p>
+                    <button onclick="copyNutritionToCaption()" style="margin-top: 0.75rem; background: rgba(34, 197, 94, 0.2); border: 1px solid var(--success); color: var(--success); padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.8rem; cursor: pointer; width: 100%;">
+                        <i class="fas fa-copy"></i> Copy Nutrition Facts
+                    </button>
+                `;
+            } else {
+                nutritionBox.innerHTML = '<p style="color: var(--text-secondary);">Nutrition data not available.</p>';
+            }
+
+            // Storage
+            const storageBox = document.getElementById('cropContentStorageBox');
+            if (data.storage) {
+                storageBox.innerHTML = `
+                    <div style="line-height: 1.8;">
+                        ${data.storage.refrigerator ? `<p><strong style="color: var(--info);"><i class="fas fa-snowflake"></i> Refrigerator:</strong> ${data.storage.refrigerator}</p>` : ''}
+                        ${data.storage.roomTemp ? `<p><strong style="color: var(--warning);"><i class="fas fa-temperature-high"></i> Room Temperature:</strong> ${data.storage.roomTemp}</p>` : ''}
+                        ${data.storage.vase ? `<p><strong style="color: var(--instagram);"><i class="fas fa-seedling"></i> Vase Life:</strong> ${data.storage.vase}</p>` : ''}
+                        ${data.storage.freezing ? `<p><strong style="color: var(--info);"><i class="fas fa-icicles"></i> Freezing:</strong> ${data.storage.freezing}</p>` : ''}
+                        ${data.storage.tips ? `<p style="margin-top: 1rem;"><strong style="color: var(--success);"><i class="fas fa-lightbulb"></i> Tips:</strong> ${data.storage.tips}</p>` : ''}
+                        ${data.storage.proTip ? `<p style="margin-top: 0.5rem; background: rgba(255, 215, 0, 0.1); padding: 0.75rem; border-radius: 8px; border-left: 3px solid var(--gold);"><strong style="color: var(--gold);"><i class="fas fa-star"></i> Pro Tip:</strong> ${data.storage.proTip}</p>` : ''}
+                    </div>
+                    <button onclick="copyStorageToCaption()" style="margin-top: 1rem; background: rgba(34, 197, 94, 0.2); border: 1px solid var(--success); color: var(--success); padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.8rem; cursor: pointer; width: 100%;">
+                        <i class="fas fa-copy"></i> Copy Storage Tips
+                    </button>
+                `;
+            } else {
+                storageBox.innerHTML = '<p style="color: var(--text-secondary);">Storage tips not available.</p>';
+            }
+        }
+
+        // Switch between result tabs
+        function switchCropContentTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.crop-content-tab').forEach(btn => {
+                btn.style.background = 'transparent';
+                btn.style.color = 'var(--text-secondary)';
+                btn.style.fontWeight = '500';
+            });
+            const activeBtn = document.querySelector(`.crop-content-tab[data-tab="${tabName}"]`);
+            if (activeBtn) {
+                activeBtn.style.background = 'var(--success)';
+                activeBtn.style.color = 'white';
+                activeBtn.style.fontWeight = '600';
+            }
+
+            // Update tab content
+            document.querySelectorAll('.crop-content-tab-content').forEach(content => {
+                content.style.display = 'none';
+            });
+            const tabContent = document.getElementById('cropContent' + tabName.charAt(0).toUpperCase() + tabName.slice(1) + 'Tab');
+            if (tabContent) tabContent.style.display = 'block';
+        }
+
+        // Copy caption to clipboard
+        function copyCropContentCaption() {
+            if (!cropToContentResult || !cropToContentResult.content) return;
+
+            const caption = cropToContentResult.content.caption + '\n\n' +
+                           (cropToContentResult.content.hashtags ? cropToContentResult.content.hashtags.map(h => '#' + h).join(' ') : '');
+
+            navigator.clipboard.writeText(caption).then(() => {
+                showToast('Caption copied to clipboard!', 'success');
+            }).catch(() => {
+                showToast('Failed to copy', 'error');
+            });
+        }
+
+        // Use caption in Quick Post
+        function useCropContentInQuickPost() {
+            if (!cropToContentResult || !cropToContentResult.content) return;
+
+            const caption = cropToContentResult.content.caption + '\n\n' +
+                           (cropToContentResult.content.hashtags ? cropToContentResult.content.hashtags.map(h => '#' + h).join(' ') : '');
+
+            document.getElementById('captionInput').value = caption;
+            updateCharCount();
+
+            // Copy image to Quick Post if preview is showing
+            const preview = document.getElementById('cropToContentPreview');
+            if (preview && preview.src && preview.style.display !== 'none') {
+                const quickPostPreview = document.getElementById('uploadPreview');
+                if (quickPostPreview) {
+                    quickPostPreview.src = preview.src;
+                    quickPostPreview.classList.add('visible');
+                    document.getElementById('uploadIcon').style.display = 'none';
+                    document.getElementById('uploadText').style.display = 'none';
+                    document.getElementById('uploadSubtext').style.display = 'none';
+                    document.getElementById('blastBtn').disabled = false;
+                }
+            }
+
+            // Scroll to Quick Post section
+            document.querySelector('.field-mode-container').scrollIntoView({ behavior: 'smooth' });
+            showToast('Content added to Quick Post!', 'success');
+        }
+
+        // Use alternate version
+        function useCropAlternate(text) {
+            document.getElementById('cropContentCaptionBox').textContent = text.trim();
+        }
+
+        // Copy recipe to caption
+        function copyRecipeToCaption(recipeTitle) {
+            const caption = document.getElementById('captionInput');
+            caption.value += `\n\nRecipe idea: ${recipeTitle}`;
+            updateCharCount();
+            showToast('Recipe added to caption!', 'success');
+        }
+
+        // Copy nutrition facts
+        function copyNutritionToCaption() {
+            if (!cropToContentResult || !cropToContentResult.nutrition) return;
+
+            const n = cropToContentResult.nutrition;
+            let text = `Nutrition facts for ${n.foodName || cropToContentResult.primaryProduce}:\n`;
+            text += n.highlight + '\n';
+
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('Nutrition facts copied!', 'success');
+            });
+        }
+
+        // Copy storage tips
+        function copyStorageToCaption() {
+            if (!cropToContentResult || !cropToContentResult.storage) return;
+
+            const s = cropToContentResult.storage;
+            let text = `Storage tips for ${s.produceName}:\n`;
+            if (s.refrigerator) text += `Refrigerator: ${s.refrigerator}\n`;
+            if (s.tips) text += s.tips + '\n';
+            if (s.proTip) text += `Pro tip: ${s.proTip}`;
+
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('Storage tips copied!', 'success');
+            });
+        }
+
+        // Reset for new photo
+        function resetCropToContent() {
+            cropToContentImageBase64 = null;
+            cropToContentResult = null;
+
+            const preview = document.getElementById('cropToContentPreview');
+            const icon = document.getElementById('cropToContentUploadIcon');
+            const text = document.getElementById('cropToContentUploadText');
+            const subtext = document.getElementById('cropToContentUploadSubtext');
+            const btn = document.getElementById('cropToContentAnalyzeBtn');
+            const results = document.getElementById('cropToContentResults');
+
+            preview.style.display = 'none';
+            preview.src = '';
+            icon.style.display = 'block';
+            text.textContent = 'Drop produce photo here';
+            subtext.textContent = 'or tap to upload from gallery';
+            btn.disabled = true;
+            btn.style.display = 'flex';
+            results.style.display = 'none';
+
+            document.getElementById('cropToContentFileInput').value = '';
+            document.getElementById('cropToContentCameraInput').value = '';
+        }
     </script>
 
     <!-- SUNDAY PLANNING DASHBOARD OVERLAY -->
