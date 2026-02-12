@@ -15970,15 +15970,16 @@ Would you like to test posting to Threads?`;
                 return;
             }
 
-            // Create and show modal - REQUIRES button click to close (no backdrop dismiss)
-            const modal = document.createElement('div');
-            modal.className = 'modal active';
-            modal.id = 'voiceProfileModal';
-            modal.style.cssText = 'z-index: 10000;'; // Ensure it's on top
-            modal.innerHTML = `
-                <div class="modal-content" style="max-width: 600px; max-height: 80vh; overflow-y: auto;" onclick="event.stopPropagation()">
-                    <div class="modal-header" style="position: sticky; top: 0; background: var(--bg-card); z-index: 1;">
-                        <h3><i class="fas fa-microphone-alt" style="color: var(--purple);"></i> Voice Profile Learned!</h3>
+            // Create and show modal using proper modal-overlay structure
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay active';
+            overlay.id = 'voiceProfileModal';
+            overlay.style.zIndex = '10000'; // Ensure it's on top
+            overlay.innerHTML = `
+                <div class="modal" style="max-width: 600px; max-height: 80vh; overflow-y: auto;">
+                    <div class="modal-header" style="background: linear-gradient(135deg, var(--purple), var(--instagram));">
+                        <h2><i class="fas fa-microphone-alt"></i> Voice Profile Learned!</h2>
+                        <button class="modal-close" onclick="document.getElementById('voiceProfileModal').remove()">&times;</button>
                     </div>
                     <div class="modal-body">
                         <div style="background: linear-gradient(135deg, rgba(46, 204, 113, 0.15), rgba(39, 174, 96, 0.1)); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid rgba(46, 204, 113, 0.3);">
@@ -15999,30 +16000,18 @@ Would you like to test posting to Threads?`;
                             </p>
                         </div>
                     </div>
-                    <div class="modal-footer" style="position: sticky; bottom: 0; background: var(--bg-card); border-top: 1px solid var(--border); padding: 1rem;">
-                        <button class="btn btn-primary" onclick="document.getElementById('voiceProfileModal').remove()" style="min-width: 120px;">
-                            <i class="fas fa-check"></i> Got it!
-                        </button>
+                    <div style="padding: 1rem; border-top: 1px solid var(--border); display: flex; gap: 0.5rem; justify-content: flex-end;">
                         <button class="btn btn-secondary" onclick="document.getElementById('voiceProfileModal').remove(); switchTab('settings');">
                             <i class="fas fa-cog"></i> Go to Settings
+                        </button>
+                        <button class="btn btn-primary" onclick="document.getElementById('voiceProfileModal').remove()" style="min-width: 120px;">
+                            <i class="fas fa-check"></i> Got it!
                         </button>
                     </div>
                 </div>
             `;
 
-            // Prevent backdrop click from closing - only buttons close
-            modal.onclick = function(e) {
-                if (e.target === modal) {
-                    e.stopPropagation();
-                    // Flash the modal to indicate it needs button click
-                    modal.querySelector('.modal-content').style.animation = 'none';
-                    setTimeout(() => {
-                        modal.querySelector('.modal-content').style.animation = 'shake 0.3s ease';
-                    }, 10);
-                }
-            };
-
-            document.body.appendChild(modal);
+            document.body.appendChild(overlay);
         }
 
         function getVoiceGuidance(account) {
