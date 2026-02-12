@@ -175,6 +175,6 @@ jobs:
         run: |
           echo "## MCC Tab Smoke Tests Passed" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "All 10 MCC tabs passed visibility checks:" >> $GITHUB_STEP_SUMMARY
+          echo "All 11 MCC tabs passed visibility checks:" >> $GITHUB_STEP_SUMMARY
           echo "- brain, create, farmpics, contentcalendar, growth" >> $GITHUB_STEP_SUMMARY
-          echo "- campaigns, paidads, analytics, engage, settings" >> $GITHUB_STEP_SUMMARY
+          echo "- campaigns, paidads, analytics, engage, settings, designstudio" >> $GITHUB_STEP_SUMMARY

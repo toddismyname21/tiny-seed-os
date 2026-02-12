@@ -40,7 +40,8 @@ const MCC_TABS = [
   'paidads',
   'analytics',
   'engage',
-  'settings'
+  'settings',
+  'designstudio'  // Added 2026-02-12: Design Studio with Fabric.js editor
 ] as const;
 
 type TabName = typeof MCC_TABS[number];
@@ -147,6 +148,10 @@ test.describe('MCC Tab Smoke Tests', () => {
 
   test('Settings tab displays content', async ({ page }) => {
     await verifyTabContent(page, 'settings');
+  });
+
+  test('Design Studio tab displays content', async ({ page }) => {
+    await verifyTabContent(page, 'designstudio');
   });
 
   // Comprehensive test that cycles through all tabs
