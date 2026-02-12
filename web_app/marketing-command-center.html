@@ -12133,22 +12133,10 @@ Would you like to test posting to Threads?`;
                 document.getElementById('briefingSummary').textContent = smartBriefing;
                 document.getElementById('briefingTime').textContent = new Date().toLocaleTimeString();
 
-                // Load social briefing from backend (if available)
+                // Load action queue FIRST (fast) - don't wait for slow briefing API
+                // Updated 2026-02-12: Reordered to show actions faster
                 try {
-                    const briefingResponse = await fetch(`${API_URL}?action=getSocialBriefing`);
-                    const briefingData = await briefingResponse.json();
-                    if (briefingData.success && briefingData.briefing && briefingData.briefing.summary) {
-                        // Append backend insights to smart briefing
-                        document.getElementById('briefingSummary').textContent = smartBriefing + ' ' + briefingData.briefing.summary;
-                    }
-                } catch (e) {
-                    console.log('Using local smart briefing');
-                }
-
-                // Load action queue from unified task system
-                // Updated 2026-02-11: Now uses unified OS task system with marketing category
-                try {
-                    // First try unified task system
+                    // First try unified task system (fast ~1 second)
                     const actionsResponse = await fetch(`${API_URL}?action=getMarketingTasksFromUnified`);
                     const actionsData = await actionsResponse.json();
 
@@ -12182,6 +12170,16 @@ Would you like to test posting to Threads?`;
                     console.error('Error loading action queue:', e);
                     showEmptyActionStates();
                 }
+
+                // Load social briefing in BACKGROUND (slow ~30 seconds, non-blocking)
+                fetch(`${API_URL}?action=getSocialBriefing`)
+                    .then(r => r.json())
+                    .then(briefingData => {
+                        if (briefingData.success && briefingData.briefing && briefingData.briefing.summary) {
+                            document.getElementById('briefingSummary').textContent = smartBriefing + ' ' + briefingData.briefing.summary;
+                        }
+                    })
+                    .catch(e => console.log('Using local smart briefing'));
 
                 // Populate calendar preview (coordinated with Schedule tab)
                 populateCalendarPreview();
