@@ -2157,6 +2157,14 @@
             to { transform: translateX(0); opacity: 1; }
         }
 
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-8px); }
+            40% { transform: translateX(8px); }
+            60% { transform: translateX(-5px); }
+            80% { transform: translateX(5px); }
+        }
+
         /* ============================================= */
         /* GROWTH TAB STYLES (formerly Social Growth) */
         /* ============================================= */
@@ -15766,7 +15774,7 @@ Would you like to test posting to Threads?`;
                     const voiceProfile = analyzePostsForVoice(result.posts);
                     localStorage.setItem(VOICE_PROFILE_KEY, JSON.stringify(voiceProfile));
 
-                    showToast(`✅ Voice learned from ${voiceProfile.totalPosts} posts across all accounts!`, 'success');
+                    // Show modal with full results (no auto-dismissing toast)
                     displayVoiceProfile(voiceProfile);
                 } else {
                     // Try to fetch directly from Instagram API
@@ -15952,32 +15960,38 @@ Would you like to test posting to Threads?`;
                 return;
             }
 
-            // Create and show modal
+            // Create and show modal - REQUIRES button click to close (no backdrop dismiss)
             const modal = document.createElement('div');
             modal.className = 'modal active';
             modal.id = 'voiceProfileModal';
+            modal.style.cssText = 'z-index: 10000;'; // Ensure it's on top
             modal.innerHTML = `
-                <div class="modal-content" style="max-width: 600px;">
-                    <div class="modal-header">
+                <div class="modal-content" style="max-width: 600px; max-height: 80vh; overflow-y: auto;" onclick="event.stopPropagation()">
+                    <div class="modal-header" style="position: sticky; top: 0; background: var(--bg-card); z-index: 1;">
                         <h3><i class="fas fa-microphone-alt" style="color: var(--purple);"></i> Voice Profile Learned!</h3>
-                        <button class="modal-close" onclick="document.getElementById('voiceProfileModal').remove()">×</button>
                     </div>
                     <div class="modal-body">
-                        <p style="margin-bottom: 1rem; color: var(--text-secondary);">
-                            Analyzed <strong>${profile.totalPosts}</strong> posts from your Instagram accounts.
-                            AI will now use this voice profile when generating captions.
-                        </p>
+                        <div style="background: linear-gradient(135deg, rgba(46, 204, 113, 0.15), rgba(39, 174, 96, 0.1)); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid rgba(46, 204, 113, 0.3);">
+                            <p style="margin: 0; font-size: 1.1rem; text-align: center;">
+                                <i class="fas fa-check-circle" style="color: var(--success); font-size: 1.5rem;"></i><br>
+                                <strong>Analyzed ${profile.totalPosts} posts</strong> from your Instagram accounts.<br>
+                                <span style="font-size: 0.9rem; color: var(--text-secondary);">AI will now use this voice profile when generating captions.</span>
+                            </p>
+                        </div>
+
+                        <h4 style="margin-bottom: 1rem; color: var(--text-primary);"><i class="fas fa-users"></i> Per-Account Insights</h4>
                         ${accountsHTML}
-                        <div style="background: linear-gradient(135deg, rgba(155, 89, 182, 0.1), rgba(52, 152, 219, 0.1)); padding: 1rem; border-radius: 8px; border-left: 3px solid var(--purple);">
+
+                        <div style="background: linear-gradient(135deg, rgba(155, 89, 182, 0.1), rgba(52, 152, 219, 0.1)); padding: 1rem; border-radius: 8px; border-left: 3px solid var(--purple); margin-top: 1rem;">
                             <p style="margin: 0; font-size: 0.9rem;">
                                 <i class="fas fa-lightbulb" style="color: var(--warning);"></i>
                                 <strong>Pro tip:</strong> Add more training posts manually in the Settings tab to further refine your voice profile.
                             </p>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-primary" onclick="document.getElementById('voiceProfileModal').remove()">
-                            Got it!
+                    <div class="modal-footer" style="position: sticky; bottom: 0; background: var(--bg-card); border-top: 1px solid var(--border); padding: 1rem;">
+                        <button class="btn btn-primary" onclick="document.getElementById('voiceProfileModal').remove()" style="min-width: 120px;">
+                            <i class="fas fa-check"></i> Got it!
                         </button>
                         <button class="btn btn-secondary" onclick="document.getElementById('voiceProfileModal').remove(); switchTab('settings');">
                             <i class="fas fa-cog"></i> Go to Settings
@@ -15985,6 +15999,19 @@ Would you like to test posting to Threads?`;
                     </div>
                 </div>
             `;
+
+            // Prevent backdrop click from closing - only buttons close
+            modal.onclick = function(e) {
+                if (e.target === modal) {
+                    e.stopPropagation();
+                    // Flash the modal to indicate it needs button click
+                    modal.querySelector('.modal-content').style.animation = 'none';
+                    setTimeout(() => {
+                        modal.querySelector('.modal-content').style.animation = 'shake 0.3s ease';
+                    }, 10);
+                }
+            };
+
             document.body.appendChild(modal);
         }
 
