@@ -94837,13 +94837,41 @@ function scrapeGrantRequirements(params) {
       max_tokens: 6000,
       messages: [{
         role: 'user',
-        content: `You are an expert grant application analyst extracting ACCURATE grant information for a Pennsylvania farm.
+        content: `You are an expert grant application analyst. Extract ACCURATE grant information for a Pennsylvania farm applying for funding.
 
-CRITICAL INSTRUCTIONS:
-1. Extract ONLY information that is EXPLICITLY stated in the content
-2. If information is not clearly stated, mark it as "NOT FOUND - needs manual review"
-3. For each major field, provide a confidence level: HIGH (explicitly stated), MEDIUM (inferred from context), LOW (uncertain)
-4. Flag any PDFs or documents that should be manually reviewed for missing details
+=== CRITICAL EXTRACTION RULES ===
+
+GRANT NAME RULES:
+- DO NOT use page titles like "Apply for X" - extract the OFFICIAL PROGRAM NAME
+- Look for phrases like "Program", "Grant Program", "Initiative"
+- Example: "Farm Vitality Planning Grant Program" NOT "Apply for the Farm Vitality Grant"
+
+AMOUNT RULES - THIS IS CRITICAL:
+- INDIVIDUAL AWARD = what ONE applicant can receive (e.g., "$15,000 maximum")
+- TOTAL PROGRAM FUNDING = entire budget for all awards (e.g., "$500,000")
+- The "amount" field should be INDIVIDUAL AWARD, not total program funding
+- If it says "75% of costs up to $20,000" → amount is "$15,000" (75% × $20,000)
+- If it says "up to $15,000 per applicant" → amount is "$15,000"
+
+CONTACT NAME RULES:
+- NEVER use "PAGE TITLE", "Contact us", or other placeholder text
+- Look for actual human names near phone numbers or emails
+- PA.gov contacts usually have format: "Name | Phone | Email"
+- Example: Neil Imes, not "PAGE TITLE"
+
+INELIGIBLE COSTS RULES:
+- ONLY include actual cost categories that cannot be funded
+- NEVER include: "Application Window", "Contact us", "Additional resources", navigation items
+- Valid ineligible costs: land purchases, equipment, capital improvements, travel, taxes, insurance
+
+ELIGIBILITY RULES:
+- List ALL criteria for who can apply
+- Include: farm type requirements, location requirements, size requirements, legal entity requirements
+
+FILTERING RULES:
+- IGNORE navigation elements: "Skip to", "Menu", "Search", "Contact us", "Application Window"
+- IGNORE footer content and site-wide links
+- FOCUS on the main content area about the grant program
 
 SOURCE URL: ${url}
 
@@ -94851,36 +94879,31 @@ SOURCE URL: ${url}
 ${fullContent}
 === END CONTENT ===
 
-Extract ALL fields below. This is for a REAL grant application - accuracy is critical.
+REQUIRED FIELDS:
 
-REQUIRED FIELDS (with confidence):
-
-1. grantName: Official program name
+1. grantName: Official program name (NOT page title)
 2. organization: Administering agency
-   - pa.gov/services/pda → "Pennsylvania Department of Agriculture"
-   - agriculture.pa.gov → "Pennsylvania Department of Agriculture"
-   - usda.gov → "USDA"
-3. amount: Maximum award (e.g., "$15,000")
-4. totalFunding: Total program budget
-5. deadline: Application deadline with year
-6. purpose: 1-2 sentence description
-7. coveragePercent: What % grant covers (e.g., "75%")
-8. matchRequired: Applicant's cost share (e.g., "25%")
-9. reimbursement: true/false - is this reimbursement-based?
+3. amount: INDIVIDUAL AWARD amount (what one applicant receives)
+4. totalFunding: Total program budget (for ALL awards combined)
+5. deadline: Application deadline
+6. purpose: What this grant funds
+7. coveragePercent: Grant covers what % of costs
+8. matchRequired: Applicant must pay what %
+9. reimbursement: true if applicant pays first then gets reimbursed
 
-10. eligibility: Array of WHO can apply
-11. eligibleProjects: Array of WHAT can be funded (be comprehensive)
-12. ineligibleCosts: Array of what CANNOT be funded
-13. documents: Array of required application documents
-14. steps: Array of application steps
+10. eligibility: Array of ALL criteria for who can apply
+11. eligibleProjects: Array of ALL services/items that CAN be funded
+12. ineligibleCosts: Array of items that CANNOT be funded (no nav elements!)
+13. documents: Required application documents
+14. steps: Application process steps
 
-15. contactName: Contact person
-16. contactEmail: Email (look for @pa.gov patterns)
-17. contactPhone: Phone (717-XXX-XXXX pattern)
-18. applicationUrl: Where to apply (grants.pa.gov, etc.)
+15. contactName: Actual person's name (not placeholder text)
+16. contactEmail: Email address
+17. contactPhone: Phone number
+18. applicationUrl: Where to submit application
 
-19. notes: Important warnings, tips, deadlines
-20. needsReview: Array of items that need manual PDF/document review
+19. notes: Important tips and warnings
+20. needsReview: Items needing manual verification
 
 RETURN ONLY VALID JSON:
 {
