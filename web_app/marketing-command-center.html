@@ -14315,67 +14315,14 @@ Would you like to test posting to Threads?`;
 
         document.addEventListener('DOMContentLoaded', async function() {
             // Show loading state
-            console.log('Loading Marketing Command Center v5.0 - FAST BULK LOADING...');
+            console.log('Loading Marketing Command Center v6.0 - INSTANT UI FIRST...');
 
-            // Update time of day greeting
+            // ═══════════════════════════════════════════════════════════════════════════
+            // PHASE 1: INSTANT - No API calls, show UI immediately
+            // ═══════════════════════════════════════════════════════════════════════════
             updateTimeOfDay();
 
-            // PHASE 1: Load critical data via BULK endpoint (1 API call instead of 15+)
-            // This makes the dashboard usable in <3 seconds instead of ~60 seconds
-            try {
-                console.time('Bulk Dashboard Load');
-                const bulkResponse = await fetch(`${API_URL}?action=getMarketingDashboardBulk`);
-                const bulkData = await bulkResponse.json();
-                console.timeEnd('Bulk Dashboard Load');
-                console.log('Bulk data loaded in', bulkData.loadTimeMs, 'ms');
-
-                if (bulkData.success) {
-                    // Update Instagram follower stats immediately
-                    if (bulkData.instagram?.success && bulkData.instagram?.accounts) {
-                        let totalFollowers = 0;
-                        bulkData.instagram.accounts.forEach(account => {
-                            totalFollowers += account.followers || 0;
-                            if (account.index === 0) {
-                                const el = document.getElementById('igFarmFollowersCard');
-                                if (el) el.textContent = formatNumber(account.followers);
-                            }
-                            if (account.index === 1) {
-                                const el = document.getElementById('igFleursFollowersCard');
-                                if (el) el.textContent = formatNumber(account.followers);
-                            }
-                            if (account.index === 2) {
-                                const el = document.getElementById('igFungiFollowersCard');
-                                if (el) el.textContent = formatNumber(account.followers);
-                            }
-                        });
-                        const totalEl = document.getElementById('totalFollowersCard');
-                        if (totalEl) totalEl.textContent = formatNumber(totalFollowers);
-                    }
-
-                    // Update scheduled posts count
-                    if (bulkData.scheduledPosts?.success) {
-                        const scheduledEl = document.getElementById('scheduledCount');
-                        if (scheduledEl) scheduledEl.textContent = bulkData.scheduledPosts.thisWeek;
-                    }
-
-                    // Update task counts for badges
-                    if (bulkData.tasks?.success) {
-                        const urgentBadge = document.getElementById('urgentBadge');
-                        const todayBadge = document.getElementById('todayBadge');
-                        const brainBadge = document.getElementById('brainBadge');
-                        if (urgentBadge) urgentBadge.textContent = bulkData.tasks.urgent;
-                        if (todayBadge) todayBadge.textContent = bulkData.tasks.today;
-                        if (brainBadge && bulkData.tasks.urgent > 0) {
-                            brainBadge.style.display = 'inline';
-                            brainBadge.textContent = bulkData.tasks.urgent;
-                        }
-                    }
-                }
-            } catch (e) {
-                console.error('Bulk load failed, falling back to individual loads:', e);
-            }
-
-            // PHASE 2: Load Brain tab (local calculations + 1-2 API calls)
+            // Load Brain tab with LOCAL data immediately (no blocking API calls)
             loadBrainTab();
 
             // PHASE 3: Initialize UI immediately (no API calls)
@@ -14389,22 +14336,86 @@ Would you like to test posting to Threads?`;
                 updateCalendarWeekDisplay();
             }
 
-            // PHASE 4: Background load remaining data (non-blocking)
-            // These load in background after the main UI is usable
-            Promise.all([
-                loadFarmPics(),
-                loadCampaigns(),
-                loadSocialConnections(),
-                loadIntelligenceDashboard(),
-                loadContentCalendar(),
-                loadSocialGrowthData()
-            ]).then(() => {
-                console.log('Background data loaded');
-            }).catch(e => {
-                console.warn('Some background data failed to load:', e);
-            });
+            // ═══════════════════════════════════════════════════════════════════════════
+            // PHASE 2: BACKGROUND - Load API data without blocking UI
+            // ═══════════════════════════════════════════════════════════════════════════
 
-            console.log('Marketing Command Center v5.0 - FAST LOAD - Active!');
+            // Load bulk dashboard data in background with 10s timeout
+            loadBulkDashboardData();
+
+            // Load other data in background (non-blocking, no await)
+            setTimeout(() => {
+                Promise.all([
+                    loadFarmPics(),
+                    loadCampaigns(),
+                    loadSocialConnections(),
+                    loadContentCalendar(),
+                    loadSocialGrowthData()
+                ]).then(() => {
+                    console.log('Background data loaded');
+                }).catch(e => {
+                    console.warn('Some background data failed to load:', e);
+                });
+            }, 500); // Delay 500ms to let UI render first
+
+            console.log('Marketing Command Center v6.0 - INSTANT UI - Active!');
+        });
+
+        // Background bulk load with timeout (doesn't block UI)
+        async function loadBulkDashboardData() {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+            try {
+                const response = await fetch(`${API_URL}?action=getMarketingDashboardBulk`, {
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                const bulkData = await response.json();
+
+                if (bulkData.success) {
+                    // Update Instagram follower stats
+                    if (bulkData.instagram?.accounts) {
+                        let totalFollowers = 0;
+                        bulkData.instagram.accounts.forEach(account => {
+                            totalFollowers += account.followers || 0;
+                            const selectors = ['igFarmFollowersCard', 'igFleursFollowersCard', 'igFungiFollowersCard'];
+                            if (account.index < 3) {
+                                const el = document.getElementById(selectors[account.index]);
+                                if (el) el.textContent = formatNumber(account.followers);
+                            }
+                        });
+                        const totalEl = document.getElementById('totalFollowersCard');
+                        if (totalEl) totalEl.textContent = formatNumber(totalFollowers);
+                    }
+
+                    // Update scheduled posts count
+                    if (bulkData.scheduledPosts?.thisWeek !== undefined) {
+                        const el = document.getElementById('scheduledCount');
+                        if (el) el.textContent = bulkData.scheduledPosts.thisWeek;
+                    }
+
+                    // Update badges
+                    if (bulkData.tasks) {
+                        const urgentBadge = document.getElementById('urgentBadge');
+                        const brainBadge = document.getElementById('brainBadge');
+                        if (urgentBadge) urgentBadge.textContent = bulkData.tasks.urgent || 0;
+                        if (brainBadge && bulkData.tasks.urgent > 0) {
+                            brainBadge.style.display = 'inline';
+                            brainBadge.textContent = bulkData.tasks.urgent;
+                        }
+                    }
+                    console.log('Bulk dashboard data loaded');
+                }
+            } catch (e) {
+                clearTimeout(timeoutId);
+                if (e.name === 'AbortError') {
+                    console.log('Bulk load timed out - using cached/local data');
+                } else {
+                    console.warn('Bulk load failed:', e.message);
+                }
+            }
+        }
         });
 
         // ═══════════════════════════════════════════════════════════════════════════
