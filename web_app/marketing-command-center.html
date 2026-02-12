@@ -15938,6 +15938,7 @@ Would you like to test posting to Threads?`;
 
         function displayVoiceProfile(profile) {
             console.log('Voice Profile Learned:', profile);
+            console.log('=== CREATING MODAL NOW ===');
 
             // Build detailed HTML for the modal
             let accountsHTML = '';
@@ -16012,6 +16013,9 @@ Would you like to test posting to Threads?`;
             `;
 
             document.body.appendChild(overlay);
+            console.log('=== MODAL APPENDED TO BODY ===');
+            console.log('Modal element:', document.getElementById('voiceProfileModal'));
+            alert('Voice Profile modal should now be visible! Total posts: ' + profile.totalPosts);
         }
 
         function getVoiceGuidance(account) {
