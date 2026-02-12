@@ -17272,16 +17272,32 @@ Would you like to test posting to Threads?`;
                 const accountData = getAccountContentMix(selectedMixTrackerAccount);
                 const totalPosts = accountData.curated + accountData.original + accountData.personal;
 
+                // Calculate accountability metrics
+                const targetPosts = 10;
+                const remaining = targetPosts - totalPosts;
+                const daysLeftInWeek = 7 - new Date().getDay();
+                const onTrack = remaining <= daysLeftInWeek;
+
                 let smartBriefing = '';
-                if (optimalTime.quality === 'best' && optimalTime.isToday) {
-                    smartBriefing = `🔥 TODAY IS PEAK POSTING DAY! ${optimalTime.day} at ${optimalTime.time} is optimal. `;
-                } else if (optimalTime.quality === 'lowest' || optimalTime.quality === 'low') {
-                    smartBriefing = `⚠️ Today has lower engagement. Consider waiting until ${optimalTime.day}. `;
-                } else {
-                    smartBriefing = `📊 Next optimal post time: ${optimalTime.day} at ${optimalTime.time}. `;
+
+                // ACCOUNTABILITY FIRST - are we on track?
+                if (totalPosts >= targetPosts) {
+                    smartBriefing = `✅ GOAL MET: ${totalPosts}/10 posts this week! `;
+                } else if (!onTrack) {
+                    smartBriefing = `🚨 BEHIND SCHEDULE: ${totalPosts}/10 posts, need ${remaining} more in ${daysLeftInWeek} days! `;
+                } else if (remaining > 0) {
+                    smartBriefing = `📊 ${totalPosts}/10 posts. Need ${remaining} more this week. `;
                 }
 
-                smartBriefing += `Your 5-3-2 tracker shows ${totalPosts}/10 posts this week. `;
+                // Then add timing context
+                if (optimalTime.quality === 'best' && optimalTime.isToday) {
+                    smartBriefing += `🔥 TODAY IS PEAK! Post at ${optimalTime.time}. `;
+                } else if (optimalTime.quality === 'lowest' || optimalTime.quality === 'low') {
+                    smartBriefing += `Best time: ${optimalTime.day} at ${optimalTime.time}. `;
+                } else {
+                    smartBriefing += `Next best: ${optimalTime.day} ${optimalTime.time}. `;
+                }
+
                 smartBriefing += recommendation.message + '.';
 
                 document.getElementById('briefingSummary').textContent = smartBriefing;
@@ -17409,20 +17425,107 @@ Would you like to test posting to Threads?`;
                 </div>`;
         }
 
-        // Show instant placeholder actions (no API wait) - INSTANT UI
+        // Show SMART actions based on ACTUAL 5-3-2 progress - ACCOUNTABILITY MODE
         function showInstantActions() {
-            const defaultUrgent = [
-                { title: 'Post to Instagram today', description: 'Best time window: 11 AM - 1 PM EST', priority: 'high', type: 'post' },
-                { title: 'Check comments & DMs', description: 'Engagement boosts algorithm ranking', priority: 'medium', type: 'engage' }
-            ];
-            const defaultToday = [
-                { title: 'Plan tomorrow\'s content', description: 'Use AI Studio to draft posts', priority: 'medium', type: 'plan' },
-                { title: 'Review weekly analytics', description: 'Check what\'s working', priority: 'low', type: 'analyze' },
-                { title: 'Update 5-3-2 content mix', description: 'Balance curated, original, personal', priority: 'low', type: 'plan' }
-            ];
-            renderActionList('urgentActions', defaultUrgent, 'urgent');
-            renderActionList('todayActions', defaultToday, 'today');
-            document.getElementById('urgentBadge').textContent = defaultUrgent.length;
+            const accountData = getAccountContentMix(selectedMixTrackerAccount);
+            const totalPosts = accountData.curated + accountData.original + accountData.personal;
+            const targetPosts = 10;
+            const remaining = targetPosts - totalPosts;
+
+            const optimalTime = getNextOptimalPostTime();
+            const dayOfWeek = new Date().getDay(); // 0=Sun, 3=Wed, 4=Thu
+            const isPeakDay = dayOfWeek === 3 || dayOfWeek === 4; // Wed or Thu
+            const daysLeftInWeek = 7 - dayOfWeek;
+
+            // Calculate 5-3-2 balance
+            const idealCurated = 5;
+            const idealOriginal = 3;
+            const idealPersonal = 2;
+            const needCurated = Math.max(0, idealCurated - accountData.curated);
+            const needOriginal = Math.max(0, idealOriginal - accountData.original);
+            const needPersonal = Math.max(0, idealPersonal - accountData.personal);
+
+            const urgentTasks = [];
+            const todayTasks = [];
+
+            // URGENT: Not enough posts this week
+            if (remaining > 0) {
+                if (remaining >= daysLeftInWeek) {
+                    urgentTasks.push({
+                        title: `⚠️ BEHIND SCHEDULE: Need ${remaining} posts in ${daysLeftInWeek} days`,
+                        description: `Only ${totalPosts}/10 posts logged. You need to post ${Math.ceil(remaining/daysLeftInWeek)}x per day to hit goal!`,
+                        priority: 'high',
+                        type: 'urgent'
+                    });
+                } else {
+                    todayTasks.push({
+                        title: `Post ${remaining} more this week to hit 10-post goal`,
+                        description: `Currently at ${totalPosts}/10. ${daysLeftInWeek} days remaining.`,
+                        priority: 'medium',
+                        type: 'post'
+                    });
+                }
+            }
+
+            // URGENT: Peak posting day with no post yet today
+            if (isPeakDay && totalPosts < targetPosts) {
+                urgentTasks.unshift({
+                    title: `🔥 ${dayOfWeek === 3 ? 'WEDNESDAY' : 'THURSDAY'} = PEAK DAY! Post now!`,
+                    description: `${optimalTime.time} is optimal. These days get 23% higher engagement.`,
+                    priority: 'high',
+                    type: 'post'
+                });
+            }
+
+            // 5-3-2 BALANCE tasks
+            if (needCurated > 0) {
+                todayTasks.push({
+                    title: `Share ${needCurated} curated post${needCurated > 1 ? 's' : ''} (industry news, tips)`,
+                    description: '5-3-2 Rule: 50% should be curated content. Currently behind.',
+                    priority: needCurated >= 3 ? 'high' : 'medium',
+                    type: 'curated'
+                });
+            }
+            if (needOriginal > 0) {
+                todayTasks.push({
+                    title: `Create ${needOriginal} original post${needOriginal > 1 ? 's' : ''} (farm content)`,
+                    description: '5-3-2 Rule: 30% should be original content about your farm.',
+                    priority: needOriginal >= 2 ? 'high' : 'medium',
+                    type: 'original'
+                });
+            }
+            if (needPersonal > 0) {
+                todayTasks.push({
+                    title: `Add ${needPersonal} personal post${needPersonal > 1 ? 's' : ''} (behind-the-scenes)`,
+                    description: '5-3-2 Rule: 20% should be personal/humanizing content.',
+                    priority: 'medium',
+                    type: 'personal'
+                });
+            }
+
+            // If ALL goals met, show success
+            if (urgentTasks.length === 0 && totalPosts >= targetPosts) {
+                urgentTasks.push({
+                    title: '✅ Weekly posting goal COMPLETE!',
+                    description: `${totalPosts}/10 posts logged. Great job maintaining consistency!`,
+                    priority: 'success',
+                    type: 'complete'
+                });
+            }
+
+            // Standard daily engagement task
+            todayTasks.push({
+                title: 'Engage: Reply to comments & DMs',
+                description: 'First-hour engagement boosts algorithm ranking by 40%',
+                priority: 'medium',
+                type: 'engage'
+            });
+
+            // Render the lists
+            renderActionList('urgentActions', urgentTasks, 'urgent');
+            renderActionList('todayActions', todayTasks, 'today');
+            document.getElementById('urgentBadge').textContent = urgentTasks.length;
+            document.getElementById('todayBadge').textContent = todayTasks.length;
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
