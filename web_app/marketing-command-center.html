@@ -7576,6 +7576,40 @@
                                 </div>
                             </div>
 
+                            <!-- Stability AI -->
+                            <div class="settings-group">
+                                <div class="settings-group-header">
+                                    <h4><i class="fas fa-image" style="color: var(--purple);"></i> Stability AI</h4>
+                                    <span id="stabilityStatus" class="api-status-badge optional">Optional</span>
+                                </div>
+                                <p class="settings-group-description">
+                                    Powers image outpainting (horizontal to vertical conversion).
+                                </p>
+                                <div class="form-group" style="margin-bottom: 0.5rem;">
+                                    <input type="password" class="form-input" id="stabilityKey" placeholder="sk-...">
+                                </div>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <button class="btn btn-sm btn-secondary" onclick="saveStability()">Save Key</button>
+                                </div>
+                            </div>
+
+                            <!-- Photoroom -->
+                            <div class="settings-group">
+                                <div class="settings-group-header">
+                                    <h4><i class="fas fa-cut" style="color: var(--info);"></i> Photoroom</h4>
+                                    <span id="photoroomStatus" class="api-status-badge optional">Optional</span>
+                                </div>
+                                <p class="settings-group-description">
+                                    Powers background removal for product photos.
+                                </p>
+                                <div class="form-group" style="margin-bottom: 0.5rem;">
+                                    <input type="password" class="form-input" id="photoroomKey" placeholder="API key...">
+                                </div>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <button class="btn btn-sm btn-secondary" onclick="savePhotoroom()">Save Key</button>
+                                </div>
+                            </div>
+
                             <!-- Twilio -->
                             <div class="settings-group">
                                 <div class="settings-group-header">
@@ -17628,6 +17662,40 @@ Would you like to test posting to Threads?`;
                 }
             } catch (error) {
                 showToast('Error saving API key', 'error');
+            }
+        }
+
+        async function saveStability() {
+            const key = document.getElementById('stabilityKey').value;
+            if (!key.trim()) {
+                showToast('Please enter API key', 'error');
+                return;
+            }
+            const data = await apiPost('configureStabilityAI', { apiKey: key });
+            if (data.success) {
+                showToast('Stability AI key saved!', 'success');
+                document.getElementById('stabilityStatus').textContent = 'Configured';
+                document.getElementById('stabilityStatus').className = 'api-status-badge connected';
+                document.getElementById('stabilityKey').value = '';
+            } else {
+                showToast('Error: ' + (data.error || 'Failed to save'), 'error');
+            }
+        }
+
+        async function savePhotoroom() {
+            const key = document.getElementById('photoroomKey').value;
+            if (!key.trim()) {
+                showToast('Please enter API key', 'error');
+                return;
+            }
+            const data = await apiPost('configurePhotoroom', { apiKey: key });
+            if (data.success) {
+                showToast('Photoroom key saved!', 'success');
+                document.getElementById('photoroomStatus').textContent = 'Configured';
+                document.getElementById('photoroomStatus').className = 'api-status-badge connected';
+                document.getElementById('photoroomKey').value = '';
+            } else {
+                showToast('Error: ' + (data.error || 'Failed to save'), 'error');
             }
         }
 
