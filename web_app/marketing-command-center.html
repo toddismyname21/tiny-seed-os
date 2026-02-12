@@ -15421,19 +15421,15 @@ Would you like to test posting to Threads?`;
         async function loadBrainTab() {
             try {
                 // ═══════════════════════════════════════════════════════════════════════════
-                // INITIALIZE INTELLIGENT BRAIN FEATURES
+                // INITIALIZE INTELLIGENT BRAIN FEATURES - OPTIMIZED FOR SPEED
+                // Updated 2026-02-11: Fixed slow loading with timeouts & parallel execution
                 // ═══════════════════════════════════════════════════════════════════════════
 
-                // 1. Initialize 5-3-2 Content Mix Tracking
+                // IMMEDIATE: Show local data first (no API calls)
                 updateContentMixUI();
-
-                // 2. Initialize AI Recommendations with smart defaults
                 updateAIRecommendation();
 
-                // 3. Check if algorithm research needs updating (weekly)
-                checkAlgorithmResearchUpdate();
-
-                // 4. Generate smart briefing based on current state
+                // Generate smart briefing from LOCAL data (instant)
                 const recommendation = getWhatToPostNext();
                 const optimalTime = getNextOptimalPostTime();
                 const mixData = getContentMixData();
@@ -15455,64 +15451,93 @@ Would you like to test posting to Threads?`;
                 document.getElementById('briefingSummary').textContent = smartBriefing;
                 document.getElementById('briefingTime').textContent = new Date().toLocaleTimeString();
 
-                // Load action queue FIRST (fast) - don't wait for slow briefing API
-                // Updated 2026-02-12: Reordered to show actions faster
-                try {
-                    // First try unified task system (fast ~1 second)
-                    const actionsResponse = await fetch(`${API_URL}?action=getMarketingTasksFromUnified`);
-                    const actionsData = await actionsResponse.json();
-
-                    if (actionsData.success && actionsData.stats && actionsData.stats.total > 0) {
-                        // Use unified task data
-                        brainData.actionQueue = actionsData.actionQueue;
-                        brainData.source = 'unified';
-                        updateBrainStats({ actionQueue: actionsData.actionQueue });
-                        renderActionList('urgentActions', actionsData.actionQueue.urgent || [], 'urgent');
-                        renderActionList('todayActions', actionsData.actionQueue.today || [], 'today');
-                    } else {
-                        // Fall back to legacy social action queue
-                        const legacyResponse = await fetch(`${API_URL}?action=getSocialActionQueue&syncFromBriefing=true`);
-                        const legacyData = await legacyResponse.json();
-
-                        if (legacyData.success) {
-                            // Handle both old format (actionQueue) and new format (briefing)
-                            const urgentActions = legacyData.briefing?.urgentActions || legacyData.actionQueue?.urgent || [];
-                            const todayActions = legacyData.briefing?.todayActions || legacyData.actionQueue?.today || [];
-
-                            brainData.actionQueue = { urgent: urgentActions, today: todayActions };
-                            brainData.source = 'briefing';
-                            updateBrainStats({ actionQueue: brainData.actionQueue });
-                            renderActionList('urgentActions', urgentActions, 'urgent');
-                            renderActionList('todayActions', todayActions, 'today');
-                        } else {
-                            showEmptyActionStates();
-                        }
-                    }
-                } catch (e) {
-                    console.error('Error loading action queue:', e);
-                    showEmptyActionStates();
-                }
-
-                // Load social briefing in BACKGROUND (slow ~30 seconds, non-blocking)
-                fetch(`${API_URL}?action=getSocialBriefing`)
-                    .then(r => r.json())
-                    .then(briefingData => {
-                        if (briefingData.success && briefingData.briefing && briefingData.briefing.summary) {
-                            document.getElementById('briefingSummary').textContent = smartBriefing + ' ' + briefingData.briefing.summary;
-                        }
-                    })
-                    .catch(e => console.log('Using local smart briefing'));
-
-                // Populate calendar preview (coordinated with Schedule tab)
+                // Populate calendar preview (LOCAL, instant)
                 populateCalendarPreview();
 
-                // Load Brain Tab Stats (sentiment, scheduled posts, followers)
-                await loadBrainTabStats();
+                // Check for cached actions (show immediately if available)
+                const cachedActions = localStorage.getItem('brainCachedActions');
+                if (cachedActions) {
+                    try {
+                        const cached = JSON.parse(cachedActions);
+                        if (cached.urgent || cached.today) {
+                            renderActionList('urgentActions', cached.urgent || [], 'urgent');
+                            renderActionList('todayActions', cached.today || [], 'today');
+                            updateBrainStats({ actionQueue: cached });
+                        }
+                    } catch (e) { /* ignore cache errors */ }
+                }
+
+                // BACKGROUND: Load fresh actions with 8-second timeout
+                loadActionsWithTimeout(8000).then(actionsData => {
+                    if (actionsData) {
+                        brainData.actionQueue = actionsData;
+                        updateBrainStats({ actionQueue: actionsData });
+                        renderActionList('urgentActions', actionsData.urgent || [], 'urgent');
+                        renderActionList('todayActions', actionsData.today || [], 'today');
+                        // Cache for next time
+                        localStorage.setItem('brainCachedActions', JSON.stringify(actionsData));
+                    } else if (!cachedActions) {
+                        showEmptyActionStates();
+                    }
+                });
+
+                // BACKGROUND: Load stats (non-blocking)
+                loadBrainTabStats();
+
+                // BACKGROUND: Check algorithm research (weekly, non-blocking)
+                setTimeout(() => checkAlgorithmResearchUpdate(), 2000);
 
             } catch (error) {
                 console.error('Error loading Brain tab:', error);
                 document.getElementById('briefingSummary').textContent =
                     'Ready to help you dominate social media. Use the AI tools below to get started!';
+                showEmptyActionStates();
+            }
+        }
+
+        // Helper: Load actions with timeout to prevent slow loading
+        async function loadActionsWithTimeout(timeoutMs) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+            try {
+                // Try unified task system first
+                const response = await fetch(`${API_URL}?action=getMarketingTasksFromUnified`, {
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                const data = await response.json();
+
+                if (data.success && data.actionQueue) {
+                    return data.actionQueue;
+                }
+
+                // Fallback to legacy with shorter timeout
+                const controller2 = new AbortController();
+                const timeoutId2 = setTimeout(() => controller2.abort(), 5000);
+
+                const legacyResponse = await fetch(`${API_URL}?action=getSocialActionQueue`, {
+                    signal: controller2.signal
+                });
+                clearTimeout(timeoutId2);
+                const legacyData = await legacyResponse.json();
+
+                if (legacyData.success) {
+                    return {
+                        urgent: legacyData.briefing?.urgentActions || legacyData.actionQueue?.urgent || [],
+                        today: legacyData.briefing?.todayActions || legacyData.actionQueue?.today || []
+                    };
+                }
+
+                return null;
+            } catch (e) {
+                clearTimeout(timeoutId);
+                if (e.name === 'AbortError') {
+                    console.log('Action queue fetch timed out - using cached data');
+                } else {
+                    console.error('Error fetching actions:', e);
+                }
+                return null;
             }
         }
 
