@@ -1058,6 +1058,55 @@ Good morning, neighbors! ☀️ Just pulled these gorgeous carrots - still cool 
                     </div>
                 </div>
             </div>
+
+            <!-- Trending Topics & Hashtags Section -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-hashtag" style="color: var(--info);"></i> Trending Hashtags</h3>
+                        <button class="btn btn-sm btn-secondary" onclick="refreshTrendingHashtags()">
+                            <i class="fas fa-sync"></i>
+                        </button>
+                    </div>
+                    <div class="card-content" id="trendingHashtagsContainer">
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;" id="hashtagsList">
+                            <span style="background: rgba(67, 97, 238, 0.2); padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.85rem;">#farmfresh</span>
+                            <span style="background: rgba(42, 157, 143, 0.2); padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.85rem;">#pittsburgh</span>
+                            <span style="background: rgba(225, 48, 108, 0.2); padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.85rem;">#organicfarming</span>
+                            <span style="background: rgba(155, 89, 182, 0.2); padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.85rem;">#csa</span>
+                            <span style="background: rgba(233, 196, 106, 0.2); padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.85rem;">#farmtotable</span>
+                            <span style="background: rgba(67, 97, 238, 0.2); padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.85rem;">#localgrown</span>
+                            <span style="background: rgba(42, 157, 143, 0.2); padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.85rem;">#supportlocal</span>
+                            <span style="background: rgba(225, 48, 108, 0.2); padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.85rem;">#freshveggies</span>
+                        </div>
+                        <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 1rem;">
+                            <i class="fas fa-lightbulb"></i> Click a hashtag to copy it
+                        </p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-fire" style="color: var(--secondary);"></i> Content Ideas</h3>
+                        <button class="btn btn-sm btn-secondary" onclick="getContentIdeas()">
+                            <i class="fas fa-dice"></i> New Ideas
+                        </button>
+                    </div>
+                    <div class="card-content" id="contentIdeasContainer">
+                        <div id="ideasList">
+                            <div style="padding: 0.75rem; background: var(--bg-light); border-radius: 8px; margin-bottom: 0.5rem; cursor: pointer;" onclick="useIdea(this)">
+                                <p style="font-size: 0.9rem;"><i class="fas fa-seedling" style="color: var(--success); margin-right: 0.5rem;"></i> Harvest update with behind-the-scenes picking</p>
+                            </div>
+                            <div style="padding: 0.75rem; background: var(--bg-light); border-radius: 8px; margin-bottom: 0.5rem; cursor: pointer;" onclick="useIdea(this)">
+                                <p style="font-size: 0.9rem;"><i class="fas fa-book-open" style="color: var(--info); margin-right: 0.5rem;"></i> Educational: How to store produce for longer</p>
+                            </div>
+                            <div style="padding: 0.75rem; background: var(--bg-light); border-radius: 8px; margin-bottom: 0.5rem; cursor: pointer;" onclick="useIdea(this)">
+                                <p style="font-size: 0.9rem;"><i class="fas fa-users" style="color: var(--purple); margin-right: 0.5rem;"></i> Customer spotlight or testimonial</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- BRAND VOICE TAB -->
@@ -2560,6 +2609,22 @@ Good morning, neighbors! ☀️ Just pulled these gorgeous carrots - still cool 
             }
         }
 
+        async function recycleSpecific(evergreenId) {
+            showToast('Recycling selected content...', 'info');
+            const data = await apiPost('recycleEvergreenPost', { evergreenId: evergreenId });
+
+            if (data.success) {
+                showToast('Content recycled with fresh hook!', 'success');
+                document.getElementById('contentPrompt').value = data.newContent;
+                currentGeneratedContent = data.newContent;
+                document.getElementById('generatedContent').textContent = data.newContent;
+                document.getElementById('generatedContentBox').style.display = 'block';
+                switchTab('content');
+            } else {
+                showToast('Error: ' + data.error, 'error');
+            }
+        }
+
         // Revenue
         async function loadRevenue() {
             const byPost = await apiGet('getRevenueByPost');
@@ -2797,6 +2862,90 @@ Good morning, neighbors! ☀️ Just pulled these gorgeous carrots - still cool 
 
         function exportData(type) {
             showToast(`Exporting ${type} data... Check your Google Sheet`, 'info');
+        }
+
+        // View comment details
+        function viewComment(commentId) {
+            showToast('Opening comment details...', 'info');
+            switchTab('comments');
+            // In a full implementation, this would scroll to or highlight the specific comment
+        }
+
+        // Trending hashtags functionality
+        async function refreshTrendingHashtags() {
+            showToast('Fetching trending hashtags...', 'info');
+            try {
+                const data = await apiGet('getTrendingHashtags');
+                if (data.success && data.hashtags) {
+                    const container = document.getElementById('hashtagsList');
+                    const colors = ['rgba(67, 97, 238, 0.2)', 'rgba(42, 157, 143, 0.2)', 'rgba(225, 48, 108, 0.2)', 'rgba(155, 89, 182, 0.2)', 'rgba(233, 196, 106, 0.2)'];
+                    container.innerHTML = data.hashtags.map((tag, i) =>
+                        `<span style="background: ${colors[i % colors.length]}; padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.85rem; cursor: pointer;" onclick="copyHashtag('${tag}')">#${tag}</span>`
+                    ).join('');
+                }
+            } catch (error) {
+                // Keep default hashtags on error
+                console.log('Using default hashtags');
+            }
+        }
+
+        function copyHashtag(tag) {
+            navigator.clipboard.writeText('#' + tag);
+            showToast(`Copied #${tag}`, 'success');
+        }
+
+        // Content ideas functionality
+        async function getContentIdeas() {
+            showToast('Generating content ideas...', 'info');
+            try {
+                const data = await apiGet('getContentIdeas');
+                if (data.success && data.ideas) {
+                    const container = document.getElementById('ideasList');
+                    const icons = ['fa-seedling', 'fa-book-open', 'fa-users', 'fa-camera', 'fa-utensils'];
+                    const colors = ['var(--success)', 'var(--info)', 'var(--purple)', 'var(--instagram)', 'var(--secondary)'];
+                    container.innerHTML = data.ideas.slice(0, 5).map((idea, i) =>
+                        `<div style="padding: 0.75rem; background: var(--bg-light); border-radius: 8px; margin-bottom: 0.5rem; cursor: pointer;" onclick="useIdea(this)">
+                            <p style="font-size: 0.9rem;"><i class="fas ${icons[i % icons.length]}" style="color: ${colors[i % colors.length]}; margin-right: 0.5rem;"></i> ${idea}</p>
+                        </div>`
+                    ).join('');
+                }
+            } catch (error) {
+                showToast('Using preset ideas', 'info');
+            }
+        }
+
+        function useIdea(element) {
+            const ideaText = element.querySelector('p').textContent;
+            document.getElementById('contentPrompt').value = ideaText;
+            switchTab('content');
+            showToast('Idea loaded - generate content!', 'success');
+        }
+
+        // Show day detail from calendar preview
+        function showDayDetail(dayIndex) {
+            switchTab('scheduler');
+            showToast(`Viewing day ${dayIndex + 1} details`, 'info');
+        }
+
+        // Add content to evergreen library
+        async function addToEvergreen() {
+            if (!currentGeneratedContent) {
+                showToast('No content to save', 'error');
+                return;
+            }
+
+            const data = await apiPost('addToEvergreen', {
+                content: currentGeneratedContent,
+                category: document.getElementById('contentCategory')?.value || 'general',
+                platform: document.getElementById('contentPlatform')?.value || 'instagram',
+                performanceScore: 75  // Default score for new content
+            });
+
+            if (data.success) {
+                showToast('Added to evergreen library!', 'success');
+            } else {
+                showToast('Error: ' + data.error, 'error');
+            }
         }
 
         // Initialize

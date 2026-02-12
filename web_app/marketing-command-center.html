@@ -15921,18 +15921,71 @@ Would you like to test posting to Threads?`;
         function displayVoiceProfile(profile) {
             console.log('Voice Profile Learned:', profile);
 
-            // Could display a summary in the UI
-            const summary = [];
+            // Build detailed HTML for the modal
+            let accountsHTML = '';
+            const accountNames = { farm: '🌱 Tiny Seed Farm', fleurs: '💐 Tiny Seed Fleurs', fungi: '🍄 Tiny Seed Fungi' };
+
             Object.keys(profile.accounts).forEach(account => {
                 const acc = profile.accounts[account];
                 if (acc.postsAnalyzed > 0) {
-                    summary.push(`${account}: ${acc.postsAnalyzed} posts, avg ${acc.avgLength} chars, ${acc.emojiStyle} emoji use`);
+                    const topHashtags = acc.hashtags.slice(0, 5).join(' ');
+                    const topPhrases = acc.phrases.slice(0, 3).map(p => `"${p}"`).join(', ');
+
+                    accountsHTML += `
+                        <div style="background: var(--bg-light); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                            <h4 style="margin: 0 0 0.5rem 0; color: var(--primary);">${accountNames[account] || account}</h4>
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; font-size: 0.85rem;">
+                                <div><strong>Posts Analyzed:</strong> ${acc.postsAnalyzed}</div>
+                                <div><strong>Avg Length:</strong> ${acc.avgLength} chars</div>
+                                <div><strong>Emoji Style:</strong> ${acc.emojiStyle}</div>
+                                <div><strong>Tone:</strong> ${acc.tone.slice(0,3).join(', ') || 'Authentic'}</div>
+                            </div>
+                            ${topHashtags ? `<div style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--primary);">${topHashtags}</div>` : ''}
+                            ${topPhrases ? `<div style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-secondary);">Key phrases: ${topPhrases}</div>` : ''}
+                        </div>
+                    `;
                 }
             });
 
-            if (summary.length > 0) {
-                showToast(`Voice Profile: ${summary.join(' | ')}`, 'info');
+            if (!accountsHTML) {
+                showToast('No posts found to analyze. Try manual voice training in Settings.', 'info');
+                return;
             }
+
+            // Create and show modal
+            const modal = document.createElement('div');
+            modal.className = 'modal active';
+            modal.id = 'voiceProfileModal';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 600px;">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-microphone-alt" style="color: var(--purple);"></i> Voice Profile Learned!</h3>
+                        <button class="modal-close" onclick="document.getElementById('voiceProfileModal').remove()">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <p style="margin-bottom: 1rem; color: var(--text-secondary);">
+                            Analyzed <strong>${profile.totalPosts}</strong> posts from your Instagram accounts.
+                            AI will now use this voice profile when generating captions.
+                        </p>
+                        ${accountsHTML}
+                        <div style="background: linear-gradient(135deg, rgba(155, 89, 182, 0.1), rgba(52, 152, 219, 0.1)); padding: 1rem; border-radius: 8px; border-left: 3px solid var(--purple);">
+                            <p style="margin: 0; font-size: 0.9rem;">
+                                <i class="fas fa-lightbulb" style="color: var(--warning);"></i>
+                                <strong>Pro tip:</strong> Add more training posts manually in the Settings tab to further refine your voice profile.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-primary" onclick="document.getElementById('voiceProfileModal').remove()">
+                            Got it!
+                        </button>
+                        <button class="btn btn-secondary" onclick="document.getElementById('voiceProfileModal').remove(); switchTab('settings');">
+                            <i class="fas fa-cog"></i> Go to Settings
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
         }
 
         function getVoiceGuidance(account) {

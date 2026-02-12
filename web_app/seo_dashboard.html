@@ -1236,6 +1236,19 @@
             </div>
         </div>
 
+        <!-- SEO Pages Inventory -->
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card-header">
+                <h3><i class="fas fa-file-alt"></i> SEO Pages Inventory</h3>
+                <button class="btn btn-secondary btn-sm" onclick="refreshSEOPages()">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+            <div class="card-body" id="seo-pages-container">
+                <div class="loading"><div class="spinner"></div></div>
+            </div>
+        </div>
+
         <!-- Keyword Category Grid -->
         <div class="card" style="margin-bottom: 1.5rem;">
             <div class="card-header">
@@ -1889,34 +1902,61 @@
         }
 
         function transformReviewsData(raw) {
-            // API returns: { success, metrics: {totalReviews, averageRating, ...} }
+            // API returns: { success, metrics: {totalReviews, averageRating, byPlatform, bySentiment, needsResponse} }
             // Expected: { total, averageRating, recentReviews: [...] }
             const metrics = raw?.metrics || {};
 
+            // Note: The getReviewMetrics endpoint doesn't return actual reviews, just metrics
+            // If we need reviews, we should call a separate endpoint or enhance the backend
             return {
                 total: metrics.totalReviews || 0,
-                averageRating: metrics.averageRating || 0,
-                recentReviews: raw?.reviews || [],
+                averageRating: parseFloat(metrics.averageRating) || 0,
+                recentReviews: raw?.reviews || [], // May be empty from this endpoint
                 byPlatform: metrics.byPlatform || {},
-                needsResponse: metrics.needsResponse || 0
+                bySentiment: metrics.bySentiment || {},
+                needsResponse: metrics.needsResponse || 0,
+                keywordMentions: metrics.keywordMentions || {}
             };
         }
 
         function transformCitationsData(raw) {
-            // API returns: { success, summary: {total, verified, ...}, citations: [...] }
+            // API returns: { success, summary: {total, verified, pending, withLinks, napIssues}, citations: [...] }
             // Expected: { submitted, total, byTier: {...} }
             const summary = raw?.summary || {};
             const citations = raw?.citations || [];
 
-            // Count citations by tier
-            const byTier = {};
+            // Define citation tiers and their target directories
+            const TIER_DIRECTORIES = {
+                'Tier 1 Essential': ['Google Business Profile', 'Bing Places', 'Apple Maps', 'Facebook', 'Yelp'],
+                'Tier 2 Farm': ['LocalHarvest', 'USDA CSA Directory', 'FindMyCSAFarm', 'EatWild', 'FarmersWeb', 'Farm Fresh Direct', 'Just Food'],
+                'Tier 3 Pittsburgh': ['Visit Pittsburgh', 'Good Food Pittsburgh', 'Pittsburgh Magazine', 'Table Magazine', 'NEXTpittsburgh', 'Pittsburgh City Paper', 'WESA', 'Pittsburgh Post-Gazette'],
+                'Tier 4 Business': ['BBB', 'Nextdoor', 'Yellow Pages', 'Foursquare', 'MapQuest', 'Manta', 'ChamberOfCommerce', 'Alignable', 'Hotfrog', 'CitySearch'],
+                'Tier 5 Social': ['Instagram', 'TikTok', 'Pinterest', 'LinkedIn', 'YouTube'],
+                'Tier 6 Review': ['TripAdvisor', 'Trustpilot']
+            };
+
+            // Count citations by tier based on platform/directory name
+            const byTier = {
+                'Tier 1 Essential': 0,
+                'Tier 2 Farm': 0,
+                'Tier 3 Pittsburgh': 0,
+                'Tier 4 Business': 0,
+                'Tier 5 Social': 0,
+                'Tier 6 Review': 0
+            };
+
             citations.forEach(c => {
-                const tier = c.Tier || c.tier || 'Tier 1 Essential';
-                byTier[tier] = (byTier[tier] || 0) + 1;
+                const platform = c.Platform || c.platform || c.Directory || '';
+                for (const [tier, directories] of Object.entries(TIER_DIRECTORIES)) {
+                    if (directories.some(d => platform.toLowerCase().includes(d.toLowerCase()))) {
+                        byTier[tier]++;
+                        break;
+                    }
+                }
             });
 
             return {
-                submitted: summary.verified || citations.length,
+                submitted: summary.total || citations.length,
                 total: 37, // Target total
                 verified: summary.verified || 0,
                 pending: summary.pending || 0,
@@ -1942,6 +1982,7 @@
                 dashboardData = { rankings, reviews, citations };
 
                 renderScoreCards();
+                renderSEOPages(); // Load SEO pages inventory
                 renderKeywordCategories();
                 generateWizardInsights();
                 renderRankingsTable();
@@ -2397,13 +2438,129 @@
         }
 
         // ============================================
+        // SEO PAGES INVENTORY
+        // ============================================
+        let seoPages = null;
+
+        async function renderSEOPages() {
+            const container = document.getElementById('seo-pages-container');
+
+            try {
+                const result = await callAPI('getSEOPages', {});
+
+                if (!result.success) {
+                    container.innerHTML = `
+                        <p style="text-align: center; color: var(--warning); padding: 1rem;">
+                            <i class="fas fa-info-circle"></i> Shopify not configured. SEO pages will show once Shopify is connected.
+                        </p>
+                    `;
+                    return;
+                }
+
+                seoPages = result;
+                const { neighborhoodPages, otherPages, totalPages } = result;
+
+                let html = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <div>
+                            <span style="font-size: 1.5rem; font-weight: 700; color: var(--primary);">${totalPages}</span>
+                            <span style="color: var(--text-secondary); margin-left: 0.5rem;">Total Pages</span>
+                        </div>
+                        <div style="display: flex; gap: 1rem;">
+                            <span style="background: var(--bg-light); padding: 4px 12px; border-radius: 20px; font-size: 0.85rem;">
+                                <i class="fas fa-map-marker-alt" style="color: var(--success);"></i> ${neighborhoodPages.length} Neighborhood
+                            </span>
+                            <span style="background: var(--bg-light); padding: 4px 12px; border-radius: 20px; font-size: 0.85rem;">
+                                <i class="fas fa-file-alt" style="color: var(--info);"></i> ${otherPages.length} Other
+                            </span>
+                        </div>
+                    </div>
+                `;
+
+                // Neighborhood pages section
+                if (neighborhoodPages.length > 0) {
+                    html += `
+                        <h4 style="color: var(--success); margin-bottom: 0.75rem; font-size: 0.9rem;">
+                            <i class="fas fa-map-marker-alt"></i> Neighborhood SEO Pages (${neighborhoodPages.length})
+                        </h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 0.75rem; margin-bottom: 1.5rem;">
+                    `;
+                    neighborhoodPages.forEach(page => {
+                        html += renderPageCard(page);
+                    });
+                    html += `</div>`;
+                }
+
+                // Other pages section
+                if (otherPages.length > 0) {
+                    html += `
+                        <h4 style="color: var(--info); margin-bottom: 0.75rem; font-size: 0.9rem;">
+                            <i class="fas fa-file-alt"></i> Other Pages (${otherPages.length})
+                        </h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 0.75rem;">
+                    `;
+                    otherPages.slice(0, 8).forEach(page => {
+                        html += renderPageCard(page);
+                    });
+                    if (otherPages.length > 8) {
+                        html += `<p style="grid-column: 1 / -1; text-align: center; color: var(--text-secondary); font-size: 0.85rem;">+ ${otherPages.length - 8} more pages</p>`;
+                    }
+                    html += `</div>`;
+                }
+
+                container.innerHTML = html;
+
+            } catch (error) {
+                console.error('Error loading SEO pages:', error);
+                container.innerHTML = `
+                    <p style="text-align: center; color: var(--text-secondary); padding: 1rem;">
+                        <i class="fas fa-store"></i> Connect Shopify to view SEO pages.
+                        <br><small>Go to Settings to configure Shopify integration.</small>
+                    </p>
+                `;
+            }
+        }
+
+        function renderPageCard(page) {
+            const statusColor = page.published ? 'var(--success)' : 'var(--warning)';
+            const statusText = page.published ? 'Live' : 'Draft';
+            const updatedDate = page.updatedAt ? new Date(page.updatedAt).toLocaleDateString() : 'Unknown';
+
+            return `
+                <div style="background: var(--bg-light); padding: 1rem; border-radius: 8px; border-left: 3px solid ${statusColor};">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                        <span style="font-weight: 600; font-size: 0.9rem; color: var(--text-primary);">${page.title}</span>
+                        <span style="font-size: 0.7rem; color: ${statusColor}; background: ${statusColor}20; padding: 2px 6px; border-radius: 4px;">${statusText}</span>
+                    </div>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                        /${page.handle}
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 0.7rem; color: var(--text-secondary);">Updated: ${updatedDate}</span>
+                        <a href="${page.url}" target="_blank" style="color: var(--primary); font-size: 0.75rem; text-decoration: none;">
+                            <i class="fas fa-external-link-alt"></i> View
+                        </a>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function refreshSEOPages() {
+            const container = document.getElementById('seo-pages-container');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+            await renderSEOPages();
+            showToast('SEO pages refreshed');
+        }
+
+        // ============================================
         // API CALLS
         // ============================================
         // Read-only endpoints that should use GET
         const GET_ENDPOINTS = [
             'getSEORankings', 'getReviewMetrics', 'getCitationStatus',
             'getSEOAPIStatus', 'getSEOMasterDashboard', 'getSEOCompetitors',
-            'getAIShareOfVoiceMetrics', 'getVideoAnalytics', 'healthCheck'
+            'getAIShareOfVoiceMetrics', 'getVideoAnalytics', 'healthCheck',
+            'getSEOPages', 'getSEOPageById'
         ];
 
         async function callAPI(action, params) {
@@ -2658,31 +2815,63 @@
             const { reviews } = dashboardData;
             const container = document.getElementById('reviews-container');
 
-            if (!reviews?.recentReviews?.length) {
-                container.innerHTML = `
-                    <p style="text-align: center; color: var(--text-secondary);">
-                        No reviews logged yet. Click "Log Review" to track your Google reviews.
-                    </p>
-                `;
-                return;
+            // Show review summary stats
+            let html = `
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem;">
+                    <div style="text-align: center; padding: 1rem; background: var(--bg-light); border-radius: 8px;">
+                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--success);">${reviews?.total || 0}</div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary);">Total Reviews</div>
+                    </div>
+                    <div style="text-align: center; padding: 1rem; background: var(--bg-light); border-radius: 8px;">
+                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--gold);">${(reviews?.averageRating || 0).toFixed(1)}⭐</div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary);">Average Rating</div>
+                    </div>
+                    <div style="text-align: center; padding: 1rem; background: var(--bg-light); border-radius: 8px;">
+                        <div style="font-size: 1.5rem; font-weight: 700; color: ${(reviews?.needsResponse || 0) > 0 ? 'var(--danger)' : 'var(--success)'};">${reviews?.needsResponse || 0}</div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary);">Need Response</div>
+                    </div>
+                </div>
+            `;
+
+            // Show platform breakdown
+            const platforms = reviews?.byPlatform || {};
+            if (Object.keys(platforms).length > 0) {
+                html += `<div style="margin-bottom: 1rem; padding: 1rem; background: var(--bg-light); border-radius: 8px;">
+                    <h4 style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">By Platform</h4>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                        ${Object.entries(platforms).map(([platform, count]) => `
+                            <span style="background: var(--bg-card); padding: 4px 12px; border-radius: 20px; font-size: 0.8rem;">
+                                ${platform}: <strong>${count}</strong>
+                            </span>
+                        `).join('')}
+                    </div>
+                </div>`;
             }
 
-            container.innerHTML = reviews.recentReviews.slice(0, 5).map(review => `
-                <div class="review-item">
-                    <div class="review-header">
-                        <div>
-                            <span class="review-stars">${'⭐'.repeat(review.rating)}</span>
-                            <strong style="margin-left: 0.5rem;">${review.reviewerName}</strong>
-                        </div>
-                        <span class="review-meta">${review.platform} • ${formatDate(review.date)}</span>
+            // Show sentiment breakdown
+            const sentiment = reviews?.bySentiment || {};
+            if (Object.values(sentiment).some(v => v > 0)) {
+                html += `<div style="margin-bottom: 1rem; padding: 1rem; background: var(--bg-light); border-radius: 8px;">
+                    <h4 style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Sentiment Analysis</h4>
+                    <div style="display: flex; gap: 1rem;">
+                        <span style="color: var(--success);"><i class="fas fa-smile"></i> ${sentiment.positive || 0} Positive</span>
+                        <span style="color: var(--text-secondary);"><i class="fas fa-meh"></i> ${sentiment.neutral || 0} Neutral</span>
+                        <span style="color: var(--danger);"><i class="fas fa-frown"></i> ${sentiment.negative || 0} Negative</span>
                     </div>
-                    <div class="review-text">"${review.text?.substring(0, 150) || 'No text'}${review.text?.length > 150 ? '...' : ''}"</div>
-                    <button class="respond-btn ${review.responded ? 'done' : ''}"
-                            onclick="${review.responded ? '' : 'markResponded(\"'+review.id+'\")'}">
-                        ${review.responded ? '✓ Responded' : 'Mark Responded'}
-                    </button>
-                </div>
-            `).join('');
+                </div>`;
+            }
+
+            // Show call to action if no reviews or low count
+            if (!reviews?.total || reviews.total < 10) {
+                html += `
+                    <div style="padding: 1rem; background: linear-gradient(135deg, rgba(255,215,0,0.1) 0%, rgba(34,197,94,0.1) 100%); border-radius: 8px; border: 1px dashed var(--gold); text-align: center;">
+                        <p style="margin: 0 0 0.5rem; color: var(--text-primary);"><i class="fas fa-star"></i> Reviews are the #1 local SEO factor!</p>
+                        <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">Target: 100+ reviews. Log reviews as they come in to track progress.</p>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
         }
 
         function renderCitations() {
@@ -2832,8 +3021,8 @@
                         const keyword = key.replace(/_/g, ' ');
                         await callAPI('logSEORanking', {
                             keyword: keyword,
-                            rank: parseInt(value),
-                            searchEngine: 'google'
+                            rankGoogle: parseInt(value),
+                            trackedBy: 'Manual Entry'
                         });
                     }
                 }
@@ -2855,10 +3044,10 @@
             try {
                 await callAPI('logReview', {
                     platform: formData.get('platform'),
-                    reviewerName: formData.get('reviewerName'),
+                    customerName: formData.get('reviewerName'),
                     rating: parseInt(formData.get('rating')),
                     reviewText: formData.get('reviewText'),
-                    source: 'manual'
+                    reviewDate: new Date().toISOString()
                 });
 
                 closeModal('review-modal');
@@ -2877,9 +3066,11 @@
 
             try {
                 await callAPI('logCitation', {
-                    directory: formData.get('directory'),
-                    status: formData.get('status'),
-                    url: formData.get('url')
+                    platform: formData.get('directory'),
+                    status: formData.get('status') === 'live' ? 'Verified' : 'Pending',
+                    url: formData.get('url'),
+                    hasLink: !!formData.get('url'),
+                    napAccurate: true
                 });
 
                 closeModal('citation-modal');

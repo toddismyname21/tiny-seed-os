@@ -1,7 +1,41 @@
 {
-  "time_patterns": {},
+  "time_patterns": {
+    "Wednesday_8": [
+      {
+        "input_type": "general",
+        "timestamp": "2026-02-11T08:48:24.161889"
+      },
+      {
+        "input_type": "question",
+        "timestamp": "2026-02-11T08:51:24.183224"
+      },
+      {
+        "input_type": "question",
+        "timestamp": "2026-02-11T08:51:34.296372"
+      }
+    ],
+    "Wednesday_11": [
+      {
+        "input_type": "question",
+        "timestamp": "2026-02-11T11:38:37.975059"
+      },
+      {
+        "input_type": "question",
+        "timestamp": "2026-02-11T11:40:33.758406"
+      }
+    ]
+  },
   "sequence_patterns": {},
-  "response_effectiveness": {},
+  "response_effectiveness": {
+    "general": {
+      "helpful": 1,
+      "total": 1
+    },
+    "question": {
+      "helpful": 3,
+      "total": 4
+    }
+  },
   "confidence_history": {},
   "accuracy_by_type": {}
 }

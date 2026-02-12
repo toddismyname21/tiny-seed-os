@@ -447,7 +447,9 @@
         circuitBreakers: {},
         auditLog: [],
         metrics: null,
-        pollingInterval: null
+        pollingInterval: null,
+        bannerDismissed: localStorage.getItem('governorBannerDismissed') === 'true',
+        lastDismissedLevel: localStorage.getItem('governorDismissedLevel') || null
     };
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -762,9 +764,24 @@
                 messageEl.textContent = messages[level];
             }
 
-            // Show banner if not GREEN
+            // Show banner if not GREEN (unless user dismissed it at this level)
             if (level !== 'green') {
-                banner.classList.remove('hidden');
+                // Only show if not dismissed, OR if level changed since dismissal
+                if (!state.bannerDismissed || state.lastDismissedLevel !== state.safeLevel) {
+                    banner.classList.remove('hidden');
+                    // Reset dismissed state if level changed
+                    if (state.lastDismissedLevel !== state.safeLevel) {
+                        state.bannerDismissed = false;
+                        localStorage.removeItem('governorBannerDismissed');
+                        localStorage.removeItem('governorDismissedLevel');
+                    }
+                }
+            } else {
+                // Level is green - hide banner and reset dismissed state
+                banner.classList.add('hidden');
+                state.bannerDismissed = false;
+                localStorage.removeItem('governorBannerDismissed');
+                localStorage.removeItem('governorDismissedLevel');
             }
         },
 
@@ -779,12 +796,17 @@
         },
 
         /**
-         * Hide the banner
+         * Hide the banner (and remember dismissal)
          */
         hideBanner() {
             const banner = document.getElementById('governor-banner');
             if (banner) {
                 banner.classList.add('hidden');
+                // Remember that user dismissed at this level
+                state.bannerDismissed = true;
+                state.lastDismissedLevel = state.safeLevel;
+                localStorage.setItem('governorBannerDismissed', 'true');
+                localStorage.setItem('governorDismissedLevel', state.safeLevel);
             }
         },
 

@@ -17031,6 +17031,8 @@ function doPost(e) {
       // ============ SOCIAL INTELLIGENCE ENGINE (POST) ============
       case 'addTrainingPost':
         return jsonResponse(addTrainingPost(data));
+      case 'getInstagramPostHistory':
+        return jsonResponse(getInstagramPostHistory(data));
       case 'generateContent':
         return jsonResponse(generateContent(data));
       case 'analyzeVoiceMatch':
@@ -122297,6 +122299,94 @@ function getInstagramFollowerCounts() {
     };
   } catch (error) {
     Logger.log('Error getting Instagram follower counts: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get Instagram post history for voice learning
+ * Fetches recent posts with captions from all configured accounts
+ * Used by the "Learn My Voice" feature in Marketing Command Center
+ */
+function getInstagramPostHistory(params) {
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const accounts = JSON.parse(props.getProperty('instagram_accounts') || '[]');
+    const limit = params.limit || 25; // Posts per account
+
+    if (accounts.length === 0) {
+      return { success: false, error: 'No Instagram accounts configured' };
+    }
+
+    // Map account index to normalized names expected by frontend
+    const accountNameMap = ['farm', 'fleurs', 'fungi'];
+
+    const allPosts = [];
+    const errors = [];
+
+    for (let i = 0; i < accounts.length; i++) {
+      const account = accounts[i];
+      const accessToken = props.getProperty(`ig_token_${i}`);
+      const normalizedAccountName = accountNameMap[i] || 'farm';
+
+      if (!accessToken || !account.igUserId) {
+        errors.push({ account: account.name || normalizedAccountName, error: 'Missing token or user ID' });
+        continue;
+      }
+
+      try {
+        // Determine correct base URL based on token type
+        const baseUrl = accessToken.startsWith('IGAA') ? 'https://graph.instagram.com' : 'https://graph.facebook.com/v24.0';
+
+        // Fetch recent media with captions, timestamps, and engagement
+        const url = `${baseUrl}/${account.igUserId}/media?fields=id,caption,timestamp,media_type,like_count,comments_count,permalink&limit=${limit}&access_token=${accessToken}`;
+        const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+        const data = JSON.parse(response.getContentText());
+
+        if (data.error) {
+          errors.push({
+            account: account.name || normalizedAccountName,
+            error: data.error.message
+          });
+          continue;
+        }
+
+        if (data.data && Array.isArray(data.data)) {
+          data.data.forEach(post => {
+            if (post.caption && post.caption.trim()) { // Only include posts with captions
+              allPosts.push({
+                id: post.id,
+                caption: post.caption,
+                timestamp: post.timestamp,
+                mediaType: post.media_type,
+                likes: post.like_count || 0,
+                comments: post.comments_count || 0,
+                permalink: post.permalink,
+                account: normalizedAccountName, // Use normalized name for frontend compatibility
+                accountDisplayName: account.name || normalizedAccountName,
+                accountIndex: i
+              });
+            }
+          });
+        }
+      } catch (apiError) {
+        errors.push({ account: account.name || normalizedAccountName, error: apiError.toString() });
+      }
+    }
+
+    // Sort by engagement (likes + comments) to prioritize high-performing content for voice learning
+    allPosts.sort((a, b) => (b.likes + b.comments) - (a.likes + a.comments));
+
+    return {
+      success: true,
+      posts: allPosts,
+      totalPosts: allPosts.length,
+      accountsFetched: accounts.length - errors.length,
+      errors: errors.length > 0 ? errors : undefined,
+      fetchedAt: new Date().toISOString()
+    };
+  } catch (error) {
+    Logger.log('Error getting Instagram post history: ' + error.toString());
     return { success: false, error: error.toString() };
   }
 }
