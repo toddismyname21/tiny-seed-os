@@ -12165,11 +12165,15 @@ Would you like to test posting to Threads?`;
                         const legacyData = await legacyResponse.json();
 
                         if (legacyData.success) {
-                            brainData.actionQueue = legacyData.actionQueue || legacyData;
-                            brainData.source = legacyData.source || 'briefing';
-                            updateBrainStats(legacyData);
-                            renderActionList('urgentActions', (legacyData.actionQueue || legacyData).urgent || [], 'urgent');
-                            renderActionList('todayActions', (legacyData.actionQueue || legacyData).today || [], 'today');
+                            // Handle both old format (actionQueue) and new format (briefing)
+                            const urgentActions = legacyData.briefing?.urgentActions || legacyData.actionQueue?.urgent || [];
+                            const todayActions = legacyData.briefing?.todayActions || legacyData.actionQueue?.today || [];
+
+                            brainData.actionQueue = { urgent: urgentActions, today: todayActions };
+                            brainData.source = 'briefing';
+                            updateBrainStats({ actionQueue: brainData.actionQueue });
+                            renderActionList('urgentActions', urgentActions, 'urgent');
+                            renderActionList('todayActions', todayActions, 'today');
                         } else {
                             showEmptyActionStates();
                         }
