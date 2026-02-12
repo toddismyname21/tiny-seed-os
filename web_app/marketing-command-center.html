@@ -2865,13 +2865,13 @@
                             </p>
                         </div>
                         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                            <button class="btn btn-primary" onclick="refreshBriefing()">
+                            <button id="btnRefreshBriefing" class="btn btn-primary" onclick="refreshBriefing()">
                                 <i class="fas fa-sync-alt"></i> Refresh
                             </button>
-                            <button class="btn btn-secondary" onclick="generateContentCalendar()">
+                            <button id="btnPlanWeek" class="btn btn-secondary" onclick="generateContentCalendar()">
                                 <i class="fas fa-calendar-plus"></i> Plan Week
                             </button>
-                            <button class="btn" onclick="learnVoiceFromPosts()" style="background: linear-gradient(135deg, var(--purple), var(--instagram)); color: white;">
+                            <button id="btnLearnVoice" class="btn" onclick="learnVoiceFromPosts()" style="background: linear-gradient(135deg, var(--purple), var(--instagram)); color: white;">
                                 <i class="fas fa-microphone-alt"></i> Learn My Voice
                             </button>
                         </div>
@@ -15740,6 +15740,12 @@ Would you like to test posting to Threads?`;
         }
 
         async function learnVoiceFromPosts() {
+            const btn = document.getElementById('btnLearnVoice');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Learning...';
+            btn.disabled = true;
+            btn.style.opacity = '0.7';
+
             showToast('🎯 Analyzing your post history to learn brand voice...', 'info');
 
             try {
@@ -15769,6 +15775,10 @@ Would you like to test posting to Threads?`;
             } catch (error) {
                 console.error('Voice learning error:', error);
                 showToast('Using manual voice training. Add posts in Brand Voice tab.', 'info');
+            } finally {
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+                btn.style.opacity = '1';
             }
         }
 
@@ -16300,13 +16310,35 @@ Would you like to test posting to Threads?`;
         }
 
         async function refreshBriefing() {
+            const btn = document.getElementById('btnRefreshBriefing');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+            btn.disabled = true;
+            btn.style.opacity = '0.7';
+
             showToast('Refreshing AI briefing...', 'info');
-            await loadBrainTab();
-            showToast('Briefing updated!', 'success');
+
+            try {
+                await loadBrainTab();
+                showToast('Briefing updated!', 'success');
+            } catch (error) {
+                showToast('Error refreshing briefing', 'error');
+            } finally {
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+                btn.style.opacity = '1';
+            }
         }
 
         async function generateContentCalendar() {
+            const btn = document.getElementById('btnPlanWeek');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Planning...';
+            btn.disabled = true;
+            btn.style.opacity = '0.7';
+
             showToast('Generating 7-day content calendar with AI...', 'info');
+
             try {
                 const response = await fetch(API_URL, {
                     method: 'POST',
@@ -16316,13 +16348,17 @@ Would you like to test posting to Threads?`;
                 const result = await response.json();
 
                 if (result.success) {
-                    showToast('Content calendar generated! Check Schedule tab.', 'success');
+                    showToast('Content calendar generated! Check Calendar tab.', 'success');
                     switchTab('contentcalendar');
                 } else {
                     showToast('Calendar generated locally. AI will enhance it.', 'info');
                 }
             } catch (error) {
                 showToast('Using smart templates for your calendar.', 'info');
+            } finally {
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+                btn.style.opacity = '1';
             }
         }
 
