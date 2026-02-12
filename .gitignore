@@ -56,3 +56,5 @@ business_docs/
 OAUTH_CREDENTIALS.md
 *.rtf
 Claude-Code-Remote/
+browser_agent/user_data/
+browser_agent/screenshot_*.png

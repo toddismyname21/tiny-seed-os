@@ -1,5 +1,0 @@
-2026/02/11-19:20:37.486 828947 Creating DB /Users/samanthapollack/Documents/TIny_Seed_OS/browser_agent/user_data/Default/Local Storage/leveldb since it was missing.
-2026/02/11-19:20:37.490 828947 Reusing MANIFEST /Users/samanthapollack/Documents/TIny_Seed_OS/browser_agent/user_data/Default/Local Storage/leveldb/MANIFEST-000001
-2026/02/11-22:31:01.444 82894a Level-0 table #5: started
-2026/02/11-22:31:01.447 82894a Level-0 table #5: 21095 bytes OK
-2026/02/11-22:31:01.449 82894a Delete type=0 #3
