@@ -9427,6 +9427,8 @@
                 loadEvergreenLibraryEngage();
             } else if (tabId === 'analytics') {
                 refreshAnalyticsHub();
+            } else if (tabId === 'growth') {
+                loadSocialGrowthData();
             } else if (tabId === 'settings') {
                 if (typeof checkAllAPIs === 'function') checkAllAPIs();
                 if (typeof loadTrainingCount === 'function') loadTrainingCount();
@@ -9695,7 +9697,20 @@
         function loadUnifiedInbox() {
             // In production, this would fetch from Meta Graph API
             console.log('Loading unified inbox...');
-            // Placeholder - would integrate with Meta Graph API for real comments/DMs
+            // Show placeholder state in the inbox container
+            const container = document.getElementById('unifiedInboxContainer');
+            if (container) {
+                // Check if container is empty or has no real data
+                // For now, display a helpful empty state message if API is not connected
+                // The static HTML messages will show by default; this adds a connection status notice
+                const existingNotice = container.querySelector('.inbox-api-notice');
+                if (!existingNotice) {
+                    const notice = document.createElement('div');
+                    notice.className = 'inbox-api-notice';
+                    notice.innerHTML = '<div style="text-align: center; padding: 1rem; background: rgba(255,193,7,0.1); border-radius: 8px; margin-bottom: 1rem; border: 1px dashed rgba(255,193,7,0.3);"><i class="fas fa-plug" style="color: #ffc107; margin-right: 0.5rem;"></i><span style="color: var(--text-secondary); font-size: 0.85rem;">Connect Meta API in Settings to load real messages</span></div>';
+                    container.insertBefore(notice, container.firstChild);
+                }
+            }
         }
 
         function expandInbox() {
@@ -11341,6 +11356,10 @@ Example format:
 
         function renderCampaigns() {
             const list = document.getElementById('campaignList');
+            if (!campaignsData || campaignsData.length === 0) {
+                list.innerHTML = '<div class="text-center py-4 text-muted"><i class="fas fa-bullhorn fa-2x mb-2 opacity-50"></i><p>No active campaigns. Create your first campaign!</p></div>';
+                return;
+            }
             list.innerHTML = campaignsData.map(campaign => `
                 <div class="campaign-item">
                     <div class="campaign-info">

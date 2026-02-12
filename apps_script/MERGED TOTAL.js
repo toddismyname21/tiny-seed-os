@@ -94629,23 +94629,34 @@ function saveCustomLenders(params) {
 
 /**
  * Scrape grant website for requirements using AI
- * Enhanced version that also detects and fetches PDF resources
- * @param {Object} params - { url }
- * @returns {Object} - { success, grantName, organization, amount, deadline, eligibility, documents, steps, resources }
+ * PRODUCTION-READY VERSION v3.0 - Enhanced for accurate grant extraction
+ *
+ * Key improvements:
+ * - PDF text extraction using Google Drive OCR API
+ * - Preserved HTML structure (tables, lists, forms converted to markdown)
+ * - Enhanced Claude prompt with confidence scoring
+ * - Data quality flags for missing/uncertain info
+ * - Multiple URL fetch with redirect handling
+ *
+ * @param {Object} params - { url, includePdfContent: boolean }
+ * @returns {Object} - Comprehensive grant data with confidence scores
  */
 function scrapeGrantRequirements(params) {
   try {
     const url = params.url;
+    const includePdfContent = params.includePdfContent !== false; // Default true
+
     if (!url) {
       return { success: false, error: 'URL is required' };
     }
 
-    Logger.log('Grant scraper v2 starting for URL: ' + url);
+    Logger.log('Grant scraper v3.0 (Production) starting for URL: ' + url);
     const baseUrl = url.match(/^(https?:\/\/[^\/]+)/)?.[1] || '';
 
-    // Fetch the webpage content with better headers to mimic a real browser
-    let pageContent;
-    let fetchAttempt = 0;
+    // ========== STEP 1: Fetch webpage with redirect handling ==========
+    let pageContent = '';
+    let finalUrl = url;
+
     try {
       const response = UrlFetchApp.fetch(url, {
         muteHttpExceptions: true,
@@ -94653,7 +94664,8 @@ function scrapeGrantRequirements(params) {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.5'
+          'Accept-Language': 'en-US,en;q=0.5',
+          'Accept-Encoding': 'gzip, deflate'
         }
       });
 
@@ -94661,7 +94673,12 @@ function scrapeGrantRequirements(params) {
       Logger.log('Fetch response code: ' + responseCode);
 
       if (responseCode !== 200) {
-        return { success: false, error: 'Failed to fetch page (HTTP ' + responseCode + ')', debugInfo: { url: url, httpCode: responseCode } };
+        return {
+          success: false,
+          error: 'Failed to fetch page (HTTP ' + responseCode + ')',
+          debugInfo: { url: url, httpCode: responseCode },
+          suggestion: 'Try visiting the URL directly and check if the page exists'
+        };
       }
 
       pageContent = response.getContentText();
@@ -94671,212 +94688,230 @@ function scrapeGrantRequirements(params) {
       return { success: false, error: 'Failed to fetch webpage: ' + e.message };
     }
 
-    // ========== STEP 1: Extract all resource links (PDFs, forms, guides) ==========
+    // ========== STEP 2: Extract all resource links with context ==========
     const resourceLinks = [];
-    const linkPatterns = [
-      /href=["']([^"']*\.pdf)["']/gi,
-      /href=["']([^"']*\.xlsx?)["']/gi,
-      /href=["']([^"']*(?:guide|form|template|application|instructions)[^"']*)["']/gi
-    ];
+    const pdfResources = [];
+    const formResources = [];
 
-    for (const pattern of linkPatterns) {
-      let match;
-      while ((match = pattern.exec(pageContent)) !== null) {
-        let linkUrl = match[1];
-        // Convert relative URLs to absolute
-        if (linkUrl.startsWith('/')) {
-          linkUrl = baseUrl + linkUrl;
-        } else if (!linkUrl.startsWith('http')) {
-          linkUrl = baseUrl + '/' + linkUrl;
-        }
-        if (!resourceLinks.includes(linkUrl)) {
-          resourceLinks.push(linkUrl);
-        }
+    // Enhanced link extraction with surrounding context
+    const linkRegex = /<a[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+    let linkMatch;
+    while ((linkMatch = linkRegex.exec(pageContent)) !== null) {
+      let linkUrl = linkMatch[1];
+      const linkText = linkMatch[2].replace(/<[^>]+>/g, '').trim();
+
+      // Convert relative URLs to absolute
+      if (linkUrl.startsWith('/')) {
+        linkUrl = baseUrl + linkUrl;
+      } else if (!linkUrl.startsWith('http') && !linkUrl.startsWith('mailto:') && !linkUrl.startsWith('#')) {
+        linkUrl = baseUrl + '/' + linkUrl;
+      }
+
+      const lowerUrl = linkUrl.toLowerCase();
+      const lowerText = linkText.toLowerCase();
+
+      if (lowerUrl.endsWith('.pdf')) {
+        pdfResources.push({ url: linkUrl, text: linkText, type: 'pdf' });
+      } else if (lowerUrl.endsWith('.xlsx') || lowerUrl.endsWith('.xls')) {
+        formResources.push({ url: linkUrl, text: linkText, type: 'excel' });
+      } else if (lowerUrl.endsWith('.docx') || lowerUrl.endsWith('.doc')) {
+        formResources.push({ url: linkUrl, text: linkText, type: 'word' });
+      } else if (lowerText.includes('guide') || lowerText.includes('application') ||
+                 lowerText.includes('form') || lowerText.includes('template') ||
+                 lowerText.includes('instructions') || lowerText.includes('apply')) {
+        formResources.push({ url: linkUrl, text: linkText, type: 'link' });
       }
     }
-    Logger.log('Found ' + resourceLinks.length + ' resource links: ' + resourceLinks.join(', '));
 
-    // ========== STEP 2: Try to fetch PDF content for additional context ==========
-    let pdfContent = '';
-    const pdfLinks = resourceLinks.filter(l => l.toLowerCase().endsWith('.pdf'));
+    Logger.log('Found ' + pdfResources.length + ' PDFs, ' + formResources.length + ' forms/guides');
 
-    for (const pdfUrl of pdfLinks.slice(0, 2)) { // Limit to first 2 PDFs
-      try {
-        Logger.log('Attempting to fetch PDF: ' + pdfUrl);
-        const pdfResponse = UrlFetchApp.fetch(pdfUrl, {
-          muteHttpExceptions: true,
-          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
-        });
+    // ========== STEP 3: PDF Text Extraction using Google Drive OCR ==========
+    let pdfExtractedContent = '';
+    const pdfExtractionResults = [];
 
-        if (pdfResponse.getResponseCode() === 200) {
-          // For now, just note that PDF exists - actual PDF parsing would require a library
-          pdfContent += '\n\n[PDF RESOURCE FOUND: ' + pdfUrl + ']\n';
-          // Try to get any text that might be extractable
-          const pdfText = pdfResponse.getContentText().substring(0, 2000);
-          // PDFs often have some readable text even when binary
-          const readableText = pdfText.replace(/[^\x20-\x7E\n]/g, ' ').replace(/\s+/g, ' ').trim();
-          if (readableText.length > 50) {
-            pdfContent += 'Partial content: ' + readableText.substring(0, 500) + '...';
+    if (includePdfContent && pdfResources.length > 0) {
+      for (const pdf of pdfResources.slice(0, 2)) { // Limit to first 2 PDFs
+        try {
+          Logger.log('Extracting PDF content from: ' + pdf.url);
+          const pdfText = extractPdfTextFromUrl(pdf.url);
+
+          if (pdfText && pdfText.length > 100) {
+            pdfExtractionResults.push({
+              url: pdf.url,
+              title: pdf.text,
+              extracted: true,
+              contentLength: pdfText.length
+            });
+            pdfExtractedContent += '\n\n=== PDF CONTENT: ' + pdf.text + ' ===\n';
+            pdfExtractedContent += pdfText.substring(0, 8000); // Limit per PDF
+            if (pdfText.length > 8000) {
+              pdfExtractedContent += '\n[...PDF content truncated, ' + (pdfText.length - 8000) + ' more chars...]';
+            }
+          } else {
+            pdfExtractionResults.push({
+              url: pdf.url,
+              title: pdf.text,
+              extracted: false,
+              reason: 'No readable text extracted'
+            });
           }
+        } catch (pdfError) {
+          Logger.log('PDF extraction error for ' + pdf.url + ': ' + pdfError.toString());
+          pdfExtractionResults.push({
+            url: pdf.url,
+            title: pdf.text,
+            extracted: false,
+            reason: pdfError.message || pdfError.toString()
+          });
         }
-      } catch (pdfError) {
-        Logger.log('Could not fetch PDF: ' + pdfError.toString());
       }
     }
 
-    // ========== STEP 3: Enhanced text extraction - preserve more structure ==========
-    // First, try to extract just the main content areas
-    let mainContent = '';
-    const mainPatterns = [
-      /<main[^>]*>([\s\S]*?)<\/main>/gi,
-      /<article[^>]*>([\s\S]*?)<\/article>/gi,
-      /<div[^>]*(?:content|main|body)[^>]*>([\s\S]*?)<\/div>/gi
-    ];
+    // ========== STEP 4: Enhanced HTML to Markdown conversion ==========
+    let structuredContent = convertHtmlToStructuredMarkdown(pageContent);
 
-    for (const pattern of mainPatterns) {
-      const matches = pageContent.match(pattern);
-      if (matches) {
-        mainContent += matches.join(' ');
-      }
-    }
-
-    // Use main content if found, otherwise use full page
-    let htmlToProcess = mainContent.length > 500 ? mainContent : pageContent;
-
-    // Better text extraction preserving key info
-    let textContent = htmlToProcess
-      // Remove scripts and styles
-      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-      .replace(/<noscript[^>]*>[\s\S]*?<\/noscript>/gi, '')
-      // Preserve list items with bullets
-      .replace(/<li[^>]*>/gi, '\n• ')
-      // Preserve headings with markers
-      .replace(/<h[1-3][^>]*>/gi, '\n## ')
-      .replace(/<\/h[1-3]>/gi, '\n')
-      // Preserve paragraphs
-      .replace(/<p[^>]*>/gi, '\n')
-      .replace(/<br\s*\/?>/gi, '\n')
-      // Remove remaining tags
-      .replace(/<[^>]+>/g, ' ')
-      // Clean up whitespace but keep newlines meaningful
-      .replace(/[ \t]+/g, ' ')
-      .replace(/\n\s*\n/g, '\n')
-      .trim();
-
-    // Also extract key metadata from the original HTML
+    // Extract metadata
     let metaInfo = '';
     const titleMatch = pageContent.match(/<title[^>]*>([^<]+)<\/title>/i);
-    if (titleMatch) metaInfo += 'Page Title: ' + titleMatch[1].trim() + '\n';
+    if (titleMatch) metaInfo += 'PAGE TITLE: ' + titleMatch[1].trim() + '\n';
 
-    const h1Match = pageContent.match(/<h1[^>]*>([^<]+)<\/h1>/i);
-    if (h1Match) metaInfo += 'Main Heading: ' + h1Match[1].trim() + '\n';
+    const h1Match = pageContent.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
+    if (h1Match) {
+      const h1Text = h1Match[1].replace(/<[^>]+>/g, '').trim();
+      metaInfo += 'MAIN HEADING: ' + h1Text + '\n';
+    }
 
-    // Combine metadata with content
-    textContent = metaInfo + '\n' + textContent;
+    // Extract meta description
+    const metaDescMatch = pageContent.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i);
+    if (metaDescMatch) metaInfo += 'DESCRIPTION: ' + metaDescMatch[1].trim() + '\n';
 
-    // Add resource links info
-    if (resourceLinks.length > 0) {
-      textContent += '\n\n=== DOWNLOADABLE RESOURCES FOUND ===\n';
-      resourceLinks.forEach(link => {
-        textContent += '• ' + link + '\n';
+    // Combine all content
+    let fullContent = metaInfo + '\n' + structuredContent;
+
+    // Add resource links section
+    if (pdfResources.length > 0 || formResources.length > 0) {
+      fullContent += '\n\n=== DOWNLOADABLE RESOURCES ===\n';
+      pdfResources.forEach(r => {
+        fullContent += '• [PDF] ' + r.text + ': ' + r.url + '\n';
+      });
+      formResources.forEach(r => {
+        fullContent += '• [' + r.type.toUpperCase() + '] ' + r.text + ': ' + r.url + '\n';
       });
     }
 
-    // Add any PDF content we could extract
-    if (pdfContent) {
-      textContent += pdfContent;
+    // Add extracted PDF content
+    if (pdfExtractedContent) {
+      fullContent += pdfExtractedContent;
     }
 
-    // Increase content limit for more context
-    const maxLength = 20000;
-    if (textContent.length > maxLength) {
-      textContent = textContent.substring(0, maxLength) + '\n...[content truncated]';
+    // Smart truncation - prioritize beginning and end (often has contact info)
+    const maxLength = 35000; // Increased limit
+    if (fullContent.length > maxLength) {
+      const keepStart = Math.floor(maxLength * 0.7);
+      const keepEnd = Math.floor(maxLength * 0.25);
+      fullContent = fullContent.substring(0, keepStart) +
+                    '\n\n[...CONTENT TRUNCATED...]\n\n' +
+                    fullContent.substring(fullContent.length - keepEnd);
     }
 
-    Logger.log('Processed text content length: ' + textContent.length);
-    Logger.log('Resource links found: ' + resourceLinks.length);
-    Logger.log('First 500 chars: ' + textContent.substring(0, 500));
+    Logger.log('Total processed content length: ' + fullContent.length);
+    Logger.log('PDF extraction results: ' + JSON.stringify(pdfExtractionResults));
 
-    // Use Claude to extract grant requirements
+    // ========== STEP 5: Use Claude for intelligent extraction ==========
     const CLAUDE_API_KEY = PropertiesService.getScriptProperties().getProperty('CLAUDE_API_KEY');
     if (!CLAUDE_API_KEY) {
-      Logger.log('No CLAUDE_API_KEY found, using fallback pattern matching');
-      const fallbackResult = scrapeGrantRequirementsFallback(textContent, url);
-      fallbackResult.debugInfo = { method: 'fallback', reason: 'no_api_key', textLength: textContent.length };
+      Logger.log('No CLAUDE_API_KEY found, using enhanced fallback');
+      const fallbackResult = scrapeGrantRequirementsFallback(fullContent, url);
+      fallbackResult.debugInfo = {
+        method: 'fallback',
+        reason: 'no_api_key',
+        textLength: fullContent.length,
+        pdfsFound: pdfResources.length,
+        pdfsExtracted: pdfExtractionResults.filter(p => p.extracted).length
+      };
       return fallbackResult;
     }
-    Logger.log('Using Claude API for grant scraping, text length: ' + textContent.length);
 
     const claudePayload = {
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 4000,
+      max_tokens: 6000,
       messages: [{
         role: 'user',
-        content: `You are an expert grant application analyst. Extract EVERY detail from this grant page for a Pennsylvania farm applying for funding.
+        content: `You are an expert grant application analyst extracting ACCURATE grant information for a Pennsylvania farm.
 
-URL: ${url}
+CRITICAL INSTRUCTIONS:
+1. Extract ONLY information that is EXPLICITLY stated in the content
+2. If information is not clearly stated, mark it as "NOT FOUND - needs manual review"
+3. For each major field, provide a confidence level: HIGH (explicitly stated), MEDIUM (inferred from context), LOW (uncertain)
+4. Flag any PDFs or documents that should be manually reviewed for missing details
 
-PAGE CONTENT:
-${textContent}
+SOURCE URL: ${url}
 
-EXTRACT ALL FIELDS BELOW. Be thorough - this data will be used to apply for funding.
+=== PAGE CONTENT ===
+${fullContent}
+=== END CONTENT ===
 
-REQUIRED FIELDS:
-1. grantName: Full official program name (look for title, h1, or program name)
-2. organization: The government agency or foundation (e.g., "Pennsylvania Department of Agriculture", "USDA NRCS", etc.)
-   - If URL contains "pa.gov/services/pda" → organization is "Pennsylvania Department of Agriculture"
-   - If URL contains "usda.gov" → organization is "USDA"
-3. amount: Maximum award amount (e.g., "$15,000 maximum" or "$50,000")
-4. totalFunding: Total program budget if mentioned
-5. deadline: When to apply (e.g., "May 19, 2025", "Rolling", "Until funds exhausted")
-6. purpose: What this grant funds (1-2 sentences)
-7. eligibility: Array of requirements. ALWAYS check for:
-   - State requirements (Pennsylvania-based, etc.)
-   - Business type (farm, nonprofit, etc.)
-   - Other criteria mentioned
-8. eligibleProjects: Array of what CAN be funded (services, equipment, etc.)
-9. ineligibleCosts: Array of what CANNOT be funded
-10. documents: Array of required docs (budgets, proposals, forms, etc.)
-11. steps: Array of application steps
-12. contactName: Contact person name (look for "Contact:", names near phone/email)
-13. contactEmail: Email address (find patterns like name@pa.gov)
-14. contactPhone: Phone number (find patterns like 717-xxx-xxxx)
-15. applicationUrl: Link to apply (often links to grants.pa.gov or similar)
-16. coveragePercent: Cost-share percentage (e.g., "75%")
-17. matchRequired: Applicant's share (e.g., "25% match required")
-18. reimbursement: true if "reimbursement" mentioned, false otherwise
-19. notes: Important tips, warnings, eligible service providers, etc.
+Extract ALL fields below. This is for a REAL grant application - accuracy is critical.
 
-SPECIFIC EXTRACTION RULES:
-- For pa.gov sites, organization = "Pennsylvania Department of Agriculture"
-- Look for phone numbers in format XXX-XXX-XXXX
-- Look for emails ending in @pa.gov
-- If "reimbursement" appears anywhere, set reimbursement: true
-- Include ALL eligible services/costs in eligibleProjects
-- Include ALL ineligible items in ineligibleCosts
+REQUIRED FIELDS (with confidence):
 
-Return ONLY valid JSON:
+1. grantName: Official program name
+2. organization: Administering agency
+   - pa.gov/services/pda → "Pennsylvania Department of Agriculture"
+   - agriculture.pa.gov → "Pennsylvania Department of Agriculture"
+   - usda.gov → "USDA"
+3. amount: Maximum award (e.g., "$15,000")
+4. totalFunding: Total program budget
+5. deadline: Application deadline with year
+6. purpose: 1-2 sentence description
+7. coveragePercent: What % grant covers (e.g., "75%")
+8. matchRequired: Applicant's cost share (e.g., "25%")
+9. reimbursement: true/false - is this reimbursement-based?
+
+10. eligibility: Array of WHO can apply
+11. eligibleProjects: Array of WHAT can be funded (be comprehensive)
+12. ineligibleCosts: Array of what CANNOT be funded
+13. documents: Array of required application documents
+14. steps: Array of application steps
+
+15. contactName: Contact person
+16. contactEmail: Email (look for @pa.gov patterns)
+17. contactPhone: Phone (717-XXX-XXXX pattern)
+18. applicationUrl: Where to apply (grants.pa.gov, etc.)
+
+19. notes: Important warnings, tips, deadlines
+20. needsReview: Array of items that need manual PDF/document review
+
+RETURN ONLY VALID JSON:
 {
   "grantName": "",
+  "grantNameConfidence": "HIGH|MEDIUM|LOW",
   "organization": "",
   "amount": "",
+  "amountConfidence": "HIGH|MEDIUM|LOW",
   "totalFunding": "",
   "deadline": "",
+  "deadlineConfidence": "HIGH|MEDIUM|LOW",
   "purpose": "",
+  "coveragePercent": "",
+  "matchRequired": "",
+  "reimbursement": false,
   "eligibility": [],
+  "eligibilityConfidence": "HIGH|MEDIUM|LOW",
   "eligibleProjects": [],
+  "eligibleProjectsConfidence": "HIGH|MEDIUM|LOW",
   "ineligibleCosts": [],
   "documents": [],
+  "documentsConfidence": "HIGH|MEDIUM|LOW",
   "steps": [],
   "contactName": "",
   "contactEmail": "",
   "contactPhone": "",
   "applicationUrl": "",
-  "coveragePercent": "",
-  "matchRequired": "",
-  "reimbursement": false,
-  "notes": ""
+  "notes": "",
+  "needsReview": [],
+  "dataQualityScore": 0,
+  "missingCriticalInfo": []
 }`
       }]
     };
@@ -94894,25 +94929,48 @@ Return ONLY valid JSON:
       });
 
       const claudeResult = JSON.parse(claudeResponse.getContentText());
-      Logger.log('Claude grant scrape response status: ' + (claudeResult.error ? 'ERROR: ' + claudeResult.error.message : 'OK'));
+
+      if (claudeResult.error) {
+        Logger.log('Claude API error: ' + JSON.stringify(claudeResult.error));
+        throw new Error(claudeResult.error.message || 'Claude API error');
+      }
 
       if (claudeResult.content && claudeResult.content[0] && claudeResult.content[0].text) {
         const aiText = claudeResult.content[0].text;
-        Logger.log('Claude returned text, length: ' + aiText.length);
-        Logger.log('Claude response preview: ' + aiText.substring(0, 500));
+        Logger.log('Claude response length: ' + aiText.length);
 
         const jsonMatch = aiText.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           try {
             const parsedData = JSON.parse(jsonMatch[0]);
-            const filledFields = Object.entries(parsedData).filter(([k, v]) =>
-              (typeof v === 'string' && v.length > 0) ||
-              (Array.isArray(v) && v.length > 0) ||
-              (typeof v === 'boolean' && v === true)
+
+            // Calculate data quality metrics
+            const criticalFields = ['grantName', 'amount', 'deadline', 'eligibility', 'documents'];
+            const filledCritical = criticalFields.filter(f => {
+              const val = parsedData[f];
+              return (typeof val === 'string' && val.length > 0 && !val.includes('NOT FOUND')) ||
+                     (Array.isArray(val) && val.length > 0);
+            });
+
+            const allFields = Object.entries(parsedData).filter(([k, v]) =>
+              !k.includes('Confidence') && k !== 'dataQualityScore' && k !== 'missingCriticalInfo' && k !== 'needsReview' &&
+              ((typeof v === 'string' && v.length > 0 && !v.includes('NOT FOUND')) ||
+               (Array.isArray(v) && v.length > 0) ||
+               (typeof v === 'boolean' && v === true))
             ).map(([k]) => k);
 
-            Logger.log('Parsed grant data - filled fields: ' + filledFields.join(', '));
-            Logger.log('Total fields filled: ' + filledFields.length + '/19');
+            const dataQualityScore = Math.round((filledCritical.length / criticalFields.length) * 100);
+
+            // Build review recommendations
+            const reviewItems = parsedData.needsReview || [];
+            if (pdfExtractionResults.some(p => !p.extracted)) {
+              reviewItems.push('Some PDFs could not be extracted - manual review recommended');
+              pdfExtractionResults.filter(p => !p.extracted).forEach(p => {
+                reviewItems.push('PDF needs manual review: ' + p.title + ' (' + p.url + ')');
+              });
+            }
+
+            Logger.log('Grant extraction complete. Quality score: ' + dataQualityScore + '%, Fields: ' + allFields.length);
 
             return {
               success: true,
@@ -94922,6 +94980,9 @@ Return ONLY valid JSON:
               totalFunding: parsedData.totalFunding || '',
               deadline: parsedData.deadline || '',
               purpose: parsedData.purpose || '',
+              coveragePercent: parsedData.coveragePercent || '',
+              matchRequired: parsedData.matchRequired || '',
+              reimbursement: parsedData.reimbursement || false,
               eligibility: parsedData.eligibility || [],
               eligibleProjects: parsedData.eligibleProjects || [],
               ineligibleCosts: parsedData.ineligibleCosts || [],
@@ -94931,217 +94992,660 @@ Return ONLY valid JSON:
               contactEmail: parsedData.contactEmail || '',
               contactPhone: parsedData.contactPhone || '',
               applicationUrl: parsedData.applicationUrl || '',
-              coveragePercent: parsedData.coveragePercent || '',
-              matchRequired: parsedData.matchRequired || '',
-              reimbursement: parsedData.reimbursement || false,
               notes: parsedData.notes || '',
               source: url,
-              resources: resourceLinks, // PDF and form download links
+
+              // Enhanced metadata
+              resources: {
+                pdfs: pdfResources,
+                forms: formResources,
+                all: [...pdfResources, ...formResources].map(r => r.url)
+              },
+
+              // Data quality indicators
+              dataQuality: {
+                score: dataQualityScore,
+                fieldsFound: allFields.length,
+                criticalFieldsFound: filledCritical.length,
+                criticalFieldsTotal: criticalFields.length,
+                confidence: {
+                  grantName: parsedData.grantNameConfidence || 'MEDIUM',
+                  amount: parsedData.amountConfidence || 'MEDIUM',
+                  deadline: parsedData.deadlineConfidence || 'MEDIUM',
+                  eligibility: parsedData.eligibilityConfidence || 'MEDIUM',
+                  documents: parsedData.documentsConfidence || 'MEDIUM',
+                  eligibleProjects: parsedData.eligibleProjectsConfidence || 'MEDIUM'
+                },
+                needsReview: reviewItems,
+                missingCriticalInfo: parsedData.missingCriticalInfo || []
+              },
+
+              // Debug info
               debugInfo: {
-                method: 'claude_api',
-                fieldsFound: filledFields.length,
-                filledFields: filledFields,
-                textLength: textContent.length,
-                resourcesFound: resourceLinks.length
+                method: 'claude_api_v3',
+                contentLength: fullContent.length,
+                pdfsFound: pdfResources.length,
+                pdfsExtracted: pdfExtractionResults.filter(p => p.extracted).length,
+                pdfExtractionDetails: pdfExtractionResults,
+                formsFound: formResources.length
               }
             };
           } catch (parseError) {
             Logger.log('JSON parse error: ' + parseError.toString());
-            Logger.log('Problematic JSON: ' + jsonMatch[0].substring(0, 200));
+            Logger.log('Raw response: ' + aiText.substring(0, 500));
           }
-        } else {
-          Logger.log('No JSON found in Claude response');
         }
-      } else if (claudeResult.error) {
-        Logger.log('Claude API error: ' + JSON.stringify(claudeResult.error));
       }
 
-      Logger.log('Falling back to pattern matching');
-      const fallbackResult = scrapeGrantRequirementsFallback(textContent, url);
-      fallbackResult.resources = resourceLinks;
-      fallbackResult.debugInfo = { method: 'fallback', reason: 'claude_no_json', textLength: textContent.length, resourcesFound: resourceLinks.length };
+      // Fallback if Claude doesn't return valid JSON
+      Logger.log('Claude did not return valid JSON, using fallback');
+      const fallbackResult = scrapeGrantRequirementsFallback(fullContent, url);
+      fallbackResult.resources = { pdfs: pdfResources, forms: formResources };
+      fallbackResult.debugInfo = {
+        method: 'fallback',
+        reason: 'claude_invalid_response',
+        pdfsFound: pdfResources.length
+      };
       return fallbackResult;
 
     } catch (claudeError) {
-      Logger.log('Claude API error for grant scraping: ' + claudeError.toString());
-      const fallbackResult = scrapeGrantRequirementsFallback(textContent, url);
-      fallbackResult.resources = resourceLinks;
-      fallbackResult.debugInfo = { method: 'fallback', reason: 'claude_exception', error: claudeError.toString(), resourcesFound: resourceLinks.length };
+      Logger.log('Claude API exception: ' + claudeError.toString());
+      const fallbackResult = scrapeGrantRequirementsFallback(fullContent, url);
+      fallbackResult.resources = { pdfs: pdfResources, forms: formResources };
+      fallbackResult.debugInfo = {
+        method: 'fallback',
+        reason: 'claude_exception',
+        error: claudeError.toString()
+      };
       return fallbackResult;
     }
 
   } catch (error) {
+    Logger.log('Grant scraper error: ' + error.toString());
     return { success: false, error: error.toString() };
   }
 }
 
 /**
- * Fallback function for grant requirement extraction using pattern matching
+ * Extract text from a PDF URL using Google Drive OCR
+ * Uses the Drive API to upload, convert via OCR, extract text, and cleanup
+ *
+ * @param {string} pdfUrl - URL of the PDF to extract
+ * @returns {string} - Extracted text content
+ */
+function extractPdfTextFromUrl(pdfUrl) {
+  try {
+    Logger.log('Starting PDF extraction for: ' + pdfUrl);
+
+    // Fetch the PDF content
+    const pdfResponse = UrlFetchApp.fetch(pdfUrl, {
+      muteHttpExceptions: true,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+
+    if (pdfResponse.getResponseCode() !== 200) {
+      throw new Error('Failed to fetch PDF: HTTP ' + pdfResponse.getResponseCode());
+    }
+
+    const pdfBlob = pdfResponse.getBlob();
+    const pdfName = pdfUrl.split('/').pop().replace('.pdf', '') || 'grant_document';
+
+    // Use Drive API to convert PDF to Google Doc with OCR
+    // This requires the Advanced Drive API to be enabled
+    try {
+      const resource = {
+        title: 'TEMP_PDF_EXTRACT_' + pdfName + '_' + Date.now(),
+        mimeType: 'application/pdf'
+      };
+
+      const file = Drive.Files.insert(resource, pdfBlob, {
+        ocr: true,
+        ocrLanguage: 'en'
+      });
+
+      // Get the text content from the created Google Doc
+      const doc = DocumentApp.openById(file.id);
+      const textContent = doc.getBody().getText();
+
+      // Clean up - delete the temporary file
+      DriveApp.getFileById(file.id).setTrashed(true);
+
+      Logger.log('PDF extraction successful, extracted ' + textContent.length + ' chars');
+      return textContent;
+
+    } catch (driveError) {
+      // Fallback: If Drive API fails, try basic text extraction from PDF binary
+      Logger.log('Drive API OCR failed: ' + driveError.toString() + ', trying basic extraction');
+      return extractBasicPdfText(pdfResponse.getContentText());
+    }
+
+  } catch (error) {
+    Logger.log('PDF extraction error: ' + error.toString());
+    throw error;
+  }
+}
+
+/**
+ * Basic text extraction from PDF binary (fallback method)
+ * Extracts readable ASCII text from PDF content
+ *
+ * @param {string} pdfContent - Raw PDF content
+ * @returns {string} - Extracted readable text
+ */
+function extractBasicPdfText(pdfContent) {
+  // Extract text between BT (begin text) and ET (end text) markers
+  const textMatches = pdfContent.match(/BT[\s\S]*?ET/g) || [];
+  let extractedText = '';
+
+  textMatches.forEach(block => {
+    // Extract text from Tj and TJ operators
+    const tjMatches = block.match(/\(([^)]+)\)\s*Tj/g) || [];
+    const tjArrayMatches = block.match(/\[([^\]]+)\]\s*TJ/g) || [];
+
+    tjMatches.forEach(m => {
+      const text = m.match(/\(([^)]+)\)/);
+      if (text) extractedText += text[1] + ' ';
+    });
+
+    tjArrayMatches.forEach(m => {
+      const parts = m.match(/\(([^)]+)\)/g) || [];
+      parts.forEach(p => {
+        const text = p.replace(/[()]/g, '');
+        if (text.length > 0) extractedText += text + ' ';
+      });
+    });
+  });
+
+  // Also try to extract any plain readable text
+  const readableText = pdfContent
+    .replace(/[^\x20-\x7E\n\r]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  // Combine and clean
+  let combinedText = extractedText + '\n' + readableText;
+  combinedText = combinedText
+    .replace(/\s+/g, ' ')
+    .replace(/([.!?])\s+/g, '$1\n')
+    .trim();
+
+  return combinedText.substring(0, 10000); // Limit output
+}
+
+/**
+ * Convert HTML to structured markdown preserving tables, lists, and forms
+ *
+ * @param {string} html - Raw HTML content
+ * @returns {string} - Markdown-formatted content
+ */
+function convertHtmlToStructuredMarkdown(html) {
+  let content = html;
+
+  // Remove script, style, and hidden elements
+  content = content.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+  content = content.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+  content = content.replace(/<noscript[^>]*>[\s\S]*?<\/noscript>/gi, '');
+  content = content.replace(/<svg[^>]*>[\s\S]*?<\/svg>/gi, '');
+  content = content.replace(/<!--[\s\S]*?-->/g, '');
+
+  // Try to extract main content area first
+  let mainContent = '';
+  const mainPatterns = [
+    /<main[^>]*>([\s\S]*?)<\/main>/i,
+    /<article[^>]*>([\s\S]*?)<\/article>/i,
+    /<div[^>]*class="[^"]*content[^"]*"[^>]*>([\s\S]*?)<\/div>/i,
+    /<div[^>]*id="[^"]*content[^"]*"[^>]*>([\s\S]*?)<\/div>/i
+  ];
+
+  for (const pattern of mainPatterns) {
+    const match = content.match(pattern);
+    if (match && match[1] && match[1].length > 500) {
+      mainContent = match[1];
+      break;
+    }
+  }
+
+  content = mainContent.length > 500 ? mainContent : content;
+
+  // Convert tables to markdown format
+  content = content.replace(/<table[^>]*>([\s\S]*?)<\/table>/gi, (match, tableContent) => {
+    let markdown = '\n\n| ';
+    const rows = tableContent.match(/<tr[^>]*>([\s\S]*?)<\/tr>/gi) || [];
+
+    rows.forEach((row, rowIndex) => {
+      const cells = row.match(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi) || [];
+      const cellTexts = cells.map(cell => {
+        return cell.replace(/<[^>]+>/g, '').trim().replace(/\|/g, '\\|');
+      });
+
+      if (cellTexts.length > 0) {
+        markdown += cellTexts.join(' | ') + ' |\n';
+        if (rowIndex === 0) {
+          markdown += '| ' + cellTexts.map(() => '---').join(' | ') + ' |\n';
+        }
+        markdown += '| ';
+      }
+    });
+
+    return markdown + '\n';
+  });
+
+  // Convert definition lists
+  content = content.replace(/<dl[^>]*>([\s\S]*?)<\/dl>/gi, (match, dlContent) => {
+    let result = '\n';
+    dlContent = dlContent.replace(/<dt[^>]*>([\s\S]*?)<\/dt>/gi, '\n**$1**: ');
+    dlContent = dlContent.replace(/<dd[^>]*>([\s\S]*?)<\/dd>/gi, '$1\n');
+    return dlContent;
+  });
+
+  // Convert headings with proper hierarchy
+  content = content.replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, '\n\n# $1\n');
+  content = content.replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, '\n\n## $1\n');
+  content = content.replace(/<h3[^>]*>([\s\S]*?)<\/h3>/gi, '\n\n### $1\n');
+  content = content.replace(/<h4[^>]*>([\s\S]*?)<\/h4>/gi, '\n\n#### $1\n');
+  content = content.replace(/<h5[^>]*>([\s\S]*?)<\/h5>/gi, '\n\n##### $1\n');
+  content = content.replace(/<h6[^>]*>([\s\S]*?)<\/h6>/gi, '\n\n###### $1\n');
+
+  // Convert nested lists properly
+  content = content.replace(/<ul[^>]*>/gi, '\n');
+  content = content.replace(/<\/ul>/gi, '\n');
+  content = content.replace(/<ol[^>]*>/gi, '\n');
+  content = content.replace(/<\/ol>/gi, '\n');
+  content = content.replace(/<li[^>]*>/gi, '\n• ');
+  content = content.replace(/<\/li>/gi, '');
+
+  // Convert paragraphs and line breaks
+  content = content.replace(/<p[^>]*>/gi, '\n\n');
+  content = content.replace(/<\/p>/gi, '\n');
+  content = content.replace(/<br\s*\/?>/gi, '\n');
+  content = content.replace(/<hr\s*\/?>/gi, '\n---\n');
+
+  // Convert emphasis
+  content = content.replace(/<strong[^>]*>([\s\S]*?)<\/strong>/gi, '**$1**');
+  content = content.replace(/<b[^>]*>([\s\S]*?)<\/b>/gi, '**$1**');
+  content = content.replace(/<em[^>]*>([\s\S]*?)<\/em>/gi, '*$1*');
+  content = content.replace(/<i[^>]*>([\s\S]*?)<\/i>/gi, '*$1*');
+
+  // Extract form labels (often contain important field requirements)
+  content = content.replace(/<label[^>]*>([\s\S]*?)<\/label>/gi, '[FORM FIELD: $1]');
+
+  // Remove remaining HTML tags
+  content = content.replace(/<[^>]+>/g, ' ');
+
+  // Decode HTML entities
+  content = content.replace(/&amp;/g, '&');
+  content = content.replace(/&lt;/g, '<');
+  content = content.replace(/&gt;/g, '>');
+  content = content.replace(/&quot;/g, '"');
+  content = content.replace(/&#39;/g, "'");
+  content = content.replace(/&nbsp;/g, ' ');
+  content = content.replace(/&mdash;/g, '—');
+  content = content.replace(/&ndash;/g, '–');
+  content = content.replace(/&bull;/g, '•');
+  content = content.replace(/&#\d+;/g, ' ');
+
+  // Clean up whitespace while preserving structure
+  content = content.replace(/[ \t]+/g, ' ');
+  content = content.replace(/\n\s*\n\s*\n/g, '\n\n');
+  content = content.replace(/^\s+|\s+$/g, '');
+
+  return content;
+}
+
+/**
+ * Enhanced fallback function for grant requirement extraction using pattern matching
+ * Used when Claude API is unavailable or fails
+ *
+ * @param {string} textContent - Processed text content from the page
+ * @param {string} url - Original URL for context
+ * @returns {Object} - Extracted grant data with quality indicators
  */
 function scrapeGrantRequirementsFallback(textContent, url) {
-  Logger.log('Using fallback pattern matching for grant scraping');
+  Logger.log('Using enhanced fallback pattern matching for grant scraping');
+
   const eligibility = [];
   const documents = [];
+  const eligibleProjects = [];
+  const ineligibleCosts = [];
+  const steps = [];
   const lowerContent = textContent.toLowerCase();
 
-  // Try to extract grant name from common patterns
+  // ========== GRANT NAME EXTRACTION ==========
   let grantName = '';
   const namePatterns = [
+    /PAGE TITLE:\s*([^\n]+)/i,
+    /MAIN HEADING:\s*([^\n]+)/i,
+    /# ([^\n]+)/,
     /(?:the\s+)?([A-Z][A-Za-z\s]+(?:Grant|Program|Fund|Award|Initiative))/,
-    /<title>([^<]+)<\/title>/i,
-    /<h1[^>]*>([^<]+)<\/h1>/i
   ];
   for (const np of namePatterns) {
     const match = textContent.match(np);
-    if (match && match[1] && match[1].length < 100) {
-      grantName = match[1].trim();
+    if (match && match[1] && match[1].length < 100 && match[1].length > 5) {
+      grantName = match[1].trim().replace(/\s*\|.*$/, ''); // Remove anything after pipe
       break;
     }
   }
 
-  // Try to extract organization
+  // ========== ORGANIZATION EXTRACTION ==========
   let organization = '';
-  const orgPatterns = [
-    /(?:Pennsylvania|PA)\s+Department\s+of\s+\w+/i,
-    /USDA\s+\w+/i,
-    /U\.?S\.?\s+Department\s+of\s+\w+/i,
-    /(?:funded|administered|offered)\s+by\s+([A-Z][A-Za-z\s]+)/i
-  ];
-  for (const op of orgPatterns) {
-    const match = textContent.match(op);
-    if (match) {
-      organization = match[0] || match[1];
-      break;
+
+  // First try URL-based inference (most reliable)
+  if (url.includes('pa.gov/services/pda') || url.includes('agriculture.pa.gov')) {
+    organization = 'Pennsylvania Department of Agriculture';
+  } else if (url.includes('nrcs.usda.gov')) {
+    organization = 'USDA Natural Resources Conservation Service';
+  } else if (url.includes('fsa.usda.gov')) {
+    organization = 'USDA Farm Service Agency';
+  } else if (url.includes('usda.gov')) {
+    organization = 'USDA';
+  } else if (url.includes('pa.gov')) {
+    organization = 'Commonwealth of Pennsylvania';
+  } else {
+    // Fallback to text patterns
+    const orgPatterns = [
+      /Pennsylvania Department of Agriculture/i,
+      /(?:Pennsylvania|PA)\s+Department\s+of\s+\w+/i,
+      /USDA\s+(?:NRCS|FSA|RD)?/i,
+      /U\.?S\.?\s+Department\s+of\s+Agriculture/i,
+      /(?:funded|administered|offered)\s+by\s+(?:the\s+)?([A-Z][A-Za-z\s]+)/i
+    ];
+    for (const op of orgPatterns) {
+      const match = textContent.match(op);
+      if (match) {
+        organization = match[0] || match[1];
+        break;
+      }
     }
   }
 
-  // Try to extract purpose
+  // ========== PURPOSE EXTRACTION ==========
   let purpose = '';
   const purposePatterns = [
-    /(?:purpose|designed to|program (?:helps?|supports?))[:\s]+([^.]+\.)/i,
-    /(?:this grant|the program)[:\s]+([^.]+\.)/i
+    /DESCRIPTION:\s*([^\n]+)/i,
+    /(?:purpose|designed to|program (?:helps?|supports?|provides?))[:\s]+([^.]+\.)/i,
+    /(?:this grant|the program|this program)[:\s]+([^.]+\.)/i,
+    /funds?\s+(?:planning|professional|services?)[^.]+\./i
   ];
   for (const pp of purposePatterns) {
     const match = textContent.match(pp);
-    if (match && match[1]) {
-      purpose = match[1].trim();
-      break;
+    if (match && (match[1] || match[0])) {
+      purpose = (match[1] || match[0]).trim();
+      if (purpose.length > 10) break;
     }
   }
 
-  // Common eligibility patterns
-  const eligibilityPatterns = [
-    { pattern: /pennsylvania/i, text: 'Pennsylvania resident/operation' },
-    { pattern: /beginning farmer/i, text: 'Beginning farmer (under 10 years)' },
-    { pattern: /must be.{0,50}farmer/i, text: 'Active farming operation required' },
-    { pattern: /501\(c\)|non-?profit/i, text: 'Non-profit organization eligible' },
-    { pattern: /small farm|small-scale/i, text: 'Small-scale farming operation' },
-    { pattern: /organic/i, text: 'Organic or sustainable practices preferred' },
-    { pattern: /women-?owned|minority/i, text: 'Women/minority-owned businesses' },
-    { pattern: /reimbursement/i, text: 'Reimbursement-based (you pay first)' }
-  ];
-
-  eligibilityPatterns.forEach(ep => {
-    if (ep.pattern.test(textContent)) eligibility.push(ep.text);
-  });
-
-  // Common document patterns
-  const documentPatterns = [
-    { pattern: /business plan/i, text: 'Business Plan' },
-    { pattern: /project proposal|project narrative/i, text: 'Project Proposal' },
-    { pattern: /budget/i, text: 'Project Budget' },
-    { pattern: /financial statement/i, text: 'Financial Statements' },
-    { pattern: /tax return/i, text: 'Tax Returns' },
-    { pattern: /schedule f/i, text: 'Schedule F' },
-    { pattern: /letter of support|recommendation/i, text: 'Letters of Support' },
-    { pattern: /resume|cv/i, text: 'Resume/CV' },
-    { pattern: /farm plan/i, text: 'Farm/Conservation Plan' },
-    { pattern: /map|aerial/i, text: 'Farm Map/Aerial Photo' }
-  ];
-
-  documentPatterns.forEach(dp => {
-    if (dp.pattern.test(textContent)) documents.push(dp.text);
-  });
-
-  // Extract amount - improved pattern
+  // ========== AMOUNT EXTRACTION ==========
   let amount = '';
+  let totalFunding = '';
   const amountPatterns = [
-    /\$[\d,]+(?:\s*(?:per applicant|maximum|max|up to))?/i,
-    /up to \$[\d,]+/i,
-    /maximum (?:of )?\$[\d,]+/i,
-    /(\d+)%\s+(?:of )?(?:project )?costs?/i
+    /\$(\d{1,3}(?:,\d{3})*)\s*(?:per applicant|maximum|max(?:imum)?|up to|award|grant)/i,
+    /(?:up to|maximum of?|award of?)\s*\$(\d{1,3}(?:,\d{3})*)/i,
+    /(\d{1,3}(?:,\d{3})*)\s*dollars?/i
   ];
   for (const ap of amountPatterns) {
     const match = textContent.match(ap);
     if (match) {
-      amount = match[0];
+      amount = '$' + (match[1] || match[0].match(/[\d,]+/)?.[0] || '');
       break;
     }
   }
 
-  // Extract coverage percentage
-  let coveragePercent = '';
-  const coverageMatch = textContent.match(/(\d+)%\s+(?:of )?(?:project |eligible )?costs?/i);
-  if (coverageMatch) coveragePercent = coverageMatch[1] + '%';
+  // Total funding pattern
+  const totalMatch = textContent.match(/(?:total|program)\s*(?:funding|budget)[:\s]*\$?(\d{1,3}(?:,\d{3})*)/i);
+  if (totalMatch) totalFunding = '$' + totalMatch[1];
 
-  // Extract deadline (look for date patterns)
+  // ========== COVERAGE PERCENTAGE ==========
+  let coveragePercent = '';
+  let matchRequired = '';
+  const coverageMatch = textContent.match(/(\d+)%\s+(?:of\s+)?(?:project\s+|eligible\s+)?costs?/i);
+  if (coverageMatch) {
+    coveragePercent = coverageMatch[1] + '%';
+    matchRequired = (100 - parseInt(coverageMatch[1])) + '%';
+  }
+
+  // Also look for "covers X%" pattern
+  const coversMatch = textContent.match(/covers?\s+(\d+)%/i);
+  if (coversMatch && !coveragePercent) {
+    coveragePercent = coversMatch[1] + '%';
+    matchRequired = (100 - parseInt(coversMatch[1])) + '%';
+  }
+
+  // ========== DEADLINE EXTRACTION ==========
   let deadline = '';
   const datePatterns = [
-    /deadline[:\s]+(\w+\s+\d+,?\s*\d*)/i,
-    /due[:\s]+(\w+\s+\d+,?\s*\d*)/i,
-    /applications? (?:accepted|due)[:\s]+(?:on or after\s+)?(\w+\s+\d+,?\s*\d*)/i,
+    /(?:deadline|due date)[:\s]+([A-Za-z]+\s+\d{1,2},?\s*\d{4})/i,
+    /(?:applications?\s+)?(?:accepted|open|due)\s+(?:on or after\s+)?([A-Za-z]+\s+\d{1,2},?\s*\d{4})/i,
+    /(?:submit by|apply by)[:\s]+([A-Za-z]+\s+\d{1,2},?\s*\d{4})/i,
+    /(\d{1,2}\/\d{1,2}\/\d{4})/,
+    /until\s+funds?\s+(?:are\s+)?exhausted/i,
     /rolling/i
   ];
   for (const dp of datePatterns) {
     const match = textContent.match(dp);
     if (match) {
-      deadline = match[1] || 'Rolling';
+      if (match[0].toLowerCase().includes('rolling')) {
+        deadline = 'Rolling';
+      } else if (match[0].toLowerCase().includes('exhausted')) {
+        deadline = 'Until funds exhausted';
+      } else {
+        deadline = match[1] || match[0];
+      }
       break;
     }
   }
 
-  // Extract contact info
+  // ========== ELIGIBILITY PATTERNS ==========
+  const eligibilityPatterns = [
+    { pattern: /pennsylvania\s+(?:farm|farmer|resident|based)/i, text: 'Pennsylvania-based farm or farmer' },
+    { pattern: /must\s+be\s+(?:a\s+)?pennsylvania/i, text: 'Must be Pennsylvania resident/operation' },
+    { pattern: /beginning farmer/i, text: 'Beginning farmer eligible' },
+    { pattern: /must\s+(?:be|have).{0,30}farmer/i, text: 'Active farming operation required' },
+    { pattern: /501\(c\)|non-?profit/i, text: 'Non-profit organizations eligible' },
+    { pattern: /small\s+(?:farm|scale)/i, text: 'Small-scale farming operation' },
+    { pattern: /organic/i, text: 'Organic operations included' },
+    { pattern: /women-?owned|minority|veteran/i, text: 'Women/minority/veteran-owned businesses' },
+    { pattern: /conservation\s+easement/i, text: 'Farms with conservation easements eligible' },
+    { pattern: /gross\s+(?:sales?|income)\s+(?:of\s+)?\$[\d,]+/i, text: 'Minimum gross sales requirement' }
+  ];
+
+  eligibilityPatterns.forEach(ep => {
+    if (ep.pattern.test(textContent) && !eligibility.includes(ep.text)) {
+      eligibility.push(ep.text);
+    }
+  });
+
+  // ========== ELIGIBLE PROJECT TYPES ==========
+  const projectPatterns = [
+    { pattern: /business\s+plan(?:ning)?/i, text: 'Business planning' },
+    { pattern: /succession\s+plan(?:ning)?/i, text: 'Succession planning' },
+    { pattern: /transition\s+plan(?:ning)?/i, text: 'Ownership transition planning' },
+    { pattern: /financial\s+plan(?:ning)?/i, text: 'Financial planning' },
+    { pattern: /marketing\s+(?:plan|strategy)/i, text: 'Marketing strategy development' },
+    { pattern: /feasibility\s+stud(?:y|ies)/i, text: 'Feasibility studies' },
+    { pattern: /profitability\s+(?:analysis|study)/i, text: 'Profitability analysis' },
+    { pattern: /accountant|cpa/i, text: 'Accountant/CPA services' },
+    { pattern: /business\s+consultant/i, text: 'Business consultant services' },
+    { pattern: /attorney|legal/i, text: 'Attorney/legal services' },
+    { pattern: /appraisal/i, text: 'Appraisals' },
+    { pattern: /financial\s+statement/i, text: 'Financial statements preparation' },
+    { pattern: /quickbooks|accounting\s+software/i, text: 'Accounting software' },
+    { pattern: /mediator|facilitat/i, text: 'Mediation/facilitation services' }
+  ];
+
+  projectPatterns.forEach(pp => {
+    if (pp.pattern.test(textContent) && !eligibleProjects.includes(pp.text)) {
+      eligibleProjects.push(pp.text);
+    }
+  });
+
+  // ========== INELIGIBLE COSTS ==========
+  const ineligiblePatterns = [
+    { pattern: /(?:not\s+(?:cover|eligible|allowed)|ineligible)[^.]*land/i, text: 'Land purchases' },
+    { pattern: /(?:not\s+(?:cover|eligible|allowed)|ineligible)[^.]*equipment/i, text: 'Equipment purchases' },
+    { pattern: /(?:not\s+(?:cover|eligible|allowed)|ineligible)[^.]*capital/i, text: 'Capital improvements' },
+    { pattern: /(?:not\s+(?:cover|eligible|allowed)|ineligible)[^.]*building/i, text: 'Building construction' },
+    { pattern: /(?:not\s+(?:cover|eligible|allowed)|ineligible)[^.]*conservation\s+plan/i, text: 'Conservation planning' },
+    { pattern: /(?:not\s+(?:cover|eligible|allowed)|ineligible)[^.]*survey/i, text: 'Surveying costs' },
+    { pattern: /(?:not\s+(?:cover|eligible|allowed)|ineligible)[^.]*travel/i, text: 'Travel expenses' },
+    { pattern: /(?:not\s+(?:cover|eligible|allowed)|ineligible)[^.]*meal/i, text: 'Meals' },
+    { pattern: /(?:not\s+(?:cover|eligible|allowed)|ineligible)[^.]*tax/i, text: 'Taxes' },
+    { pattern: /(?:not\s+(?:cover|eligible|allowed)|ineligible)[^.]*insurance/i, text: 'Insurance' }
+  ];
+
+  // Also check for "not eligible" sections
+  const notEligibleSection = textContent.match(/(?:not\s+eligible|ineligible|cannot\s+be\s+used)[^]*?(?=\n\n|$)/i);
+  if (notEligibleSection) {
+    const items = notEligibleSection[0].match(/•\s*([^\n•]+)/g) || [];
+    items.forEach(item => {
+      const text = item.replace(/•\s*/, '').trim();
+      if (text.length > 3 && text.length < 100 && !ineligibleCosts.includes(text)) {
+        ineligibleCosts.push(text);
+      }
+    });
+  }
+
+  ineligiblePatterns.forEach(ip => {
+    if (ip.pattern.test(textContent) && !ineligibleCosts.includes(ip.text)) {
+      ineligibleCosts.push(ip.text);
+    }
+  });
+
+  // ========== REQUIRED DOCUMENTS ==========
+  const documentPatterns = [
+    { pattern: /budget\s+(?:template|summary|form)/i, text: 'Budget Template/Summary' },
+    { pattern: /application\s+(?:form|guide)/i, text: 'Application Form/Guide' },
+    { pattern: /business\s+plan/i, text: 'Business Plan' },
+    { pattern: /project\s+(?:proposal|narrative|description)/i, text: 'Project Proposal/Narrative' },
+    { pattern: /financial\s+statement/i, text: 'Financial Statements' },
+    { pattern: /tax\s+return/i, text: 'Tax Returns' },
+    { pattern: /schedule\s+f/i, text: 'Schedule F' },
+    { pattern: /letter(?:s)?\s+of\s+(?:support|recommendation)/i, text: 'Letters of Support' },
+    { pattern: /resume|cv|curriculum\s+vitae/i, text: 'Resume/CV' },
+    { pattern: /farm\s+(?:plan|map)/i, text: 'Farm Plan/Map' },
+    { pattern: /w-?9/i, text: 'W-9 Form' },
+    { pattern: /work\s+plan/i, text: 'Work Plan' },
+    { pattern: /service\s+provider/i, text: 'Service Provider Information' }
+  ];
+
+  documentPatterns.forEach(dp => {
+    if (dp.pattern.test(textContent) && !documents.includes(dp.text)) {
+      documents.push(dp.text);
+    }
+  });
+
+  // ========== APPLICATION STEPS ==========
+  const stepPatterns = [
+    { pattern: /create\s+(?:a\s+)?(?:keystone\s+)?(?:login|account)/i, text: 'Create Keystone Login account' },
+    { pattern: /single\s+application\s+for\s+assistance/i, text: 'Submit through Single Application for Assistance' },
+    { pattern: /grants\.pa\.gov/i, text: 'Apply at grants.pa.gov' },
+    { pattern: /download\s+(?:the\s+)?(?:application|form|guide)/i, text: 'Download application materials' },
+    { pattern: /submit\s+(?:application|online)/i, text: 'Submit application' },
+    { pattern: /gather\s+(?:required\s+)?documents/i, text: 'Gather required documents' }
+  ];
+
+  stepPatterns.forEach(sp => {
+    if (sp.pattern.test(textContent) && !steps.includes(sp.text)) {
+      steps.push(sp.text);
+    }
+  });
+
+  // ========== CONTACT INFO ==========
   let contactName = '';
   let contactEmail = '';
   let contactPhone = '';
 
-  const emailMatch = textContent.match(/[\w.-]+@[\w.-]+\.\w+/);
-  if (emailMatch) contactEmail = emailMatch[0];
+  // Email extraction (prioritize .gov emails)
+  const govEmailMatch = textContent.match(/[\w.-]+@(?:pa\.)?gov/i);
+  const anyEmailMatch = textContent.match(/[\w.-]+@[\w.-]+\.\w{2,}/);
+  contactEmail = (govEmailMatch && govEmailMatch[0]) || (anyEmailMatch && anyEmailMatch[0]) || '';
 
-  const phoneMatch = textContent.match(/\d{3}[-.]?\d{3}[-.]?\d{4}/);
-  if (phoneMatch) contactPhone = phoneMatch[0];
-
-  // Check for reimbursement
-  const reimbursement = /reimbursement/i.test(textContent);
-
-  // Try to infer organization from URL
-  if (!organization) {
-    if (url.includes('pa.gov/services/pda') || url.includes('agriculture.pa.gov')) {
-      organization = 'Pennsylvania Department of Agriculture';
-    } else if (url.includes('usda.gov')) {
-      organization = 'USDA';
-    } else if (url.includes('pa.gov')) {
-      organization = 'Commonwealth of Pennsylvania';
+  // Phone extraction (PA format)
+  const phonePatterns = [
+    /717[-.\s]?\d{3}[-.\s]?\d{4}/,
+    /\(\d{3}\)\s*\d{3}[-.\s]?\d{4}/,
+    /\d{3}[-.\s]\d{3}[-.\s]\d{4}/
+  ];
+  for (const pp of phonePatterns) {
+    const match = textContent.match(pp);
+    if (match) {
+      contactPhone = match[0];
+      break;
     }
   }
+
+  // Contact name (look near email/phone)
+  if (contactEmail) {
+    const nameNearEmail = textContent.match(new RegExp('([A-Z][a-z]+\\s+[A-Z][a-z]+)[^@]*' + contactEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'));
+    if (nameNearEmail) contactName = nameNearEmail[1];
+  }
+
+  // Application URL
+  let applicationUrl = '';
+  const appUrlPatterns = [
+    /grants\.pa\.gov[^\s]*/i,
+    /https?:\/\/[^\s]*(?:apply|application|submit)[^\s]*/i
+  ];
+  for (const up of appUrlPatterns) {
+    const match = textContent.match(up);
+    if (match) {
+      applicationUrl = match[0].replace(/[,.\s]+$/, '');
+      break;
+    }
+  }
+
+  // ========== REIMBURSEMENT CHECK ==========
+  const reimbursement = /reimbursement|reimburse/i.test(textContent);
+
+  // ========== BUILD NOTES ==========
+  const notes = [];
+  if (reimbursement) {
+    notes.push('This is a REIMBURSEMENT grant - you must pay costs upfront');
+  }
+  if (textContent.includes('until funds exhausted') || textContent.includes('funds are exhausted')) {
+    notes.push('Funds awarded until exhausted - apply early');
+  }
+  if (textContent.includes('first-come') || textContent.includes('first come')) {
+    notes.push('First-come, first-served basis');
+  }
+
+  // ========== QUALITY INDICATORS ==========
+  const criticalFound = [grantName, amount, deadline].filter(f => f && f.length > 0).length;
+  const dataQualityScore = Math.round((criticalFound / 3) * 100);
 
   return {
     success: true,
     grantName: grantName,
     organization: organization,
     amount: amount,
+    totalFunding: totalFunding,
     coveragePercent: coveragePercent,
+    matchRequired: matchRequired,
     deadline: deadline,
     purpose: purpose,
     eligibility: eligibility,
+    eligibleProjects: eligibleProjects,
+    ineligibleCosts: ineligibleCosts,
     documents: documents,
-    steps: [],
+    steps: steps,
+    contactName: contactName,
     contactEmail: contactEmail,
     contactPhone: contactPhone,
+    applicationUrl: applicationUrl,
     reimbursement: reimbursement,
+    notes: notes.join('; '),
     source: url,
-    resources: [], // Will be populated from main function if available
-    method: 'pattern-matching'
+    resources: [], // Will be populated from main function
+    dataQuality: {
+      score: dataQualityScore,
+      method: 'pattern-matching',
+      confidence: 'LOW',
+      needsReview: ['All fields should be verified manually - extracted via pattern matching']
+    },
+    debugInfo: {
+      method: 'enhanced_fallback_v3'
+    }
   };
 }
 

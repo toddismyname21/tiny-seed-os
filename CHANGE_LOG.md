@@ -40,6 +40,96 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-02-12 - Backend_Claude (Grant Scanner Production Overhaul v3.0)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Complete rewrite of grant scraping system
+
+### Functions Modified
+- `scrapeGrantRequirements()` - COMPLETE REWRITE for production accuracy
+- `scrapeGrantRequirementsFallback()` - Enhanced with comprehensive pattern matching
+
+### Functions Added
+- `extractPdfTextFromUrl()` - PDF text extraction using Google Drive OCR API
+- `extractBasicPdfText()` - Fallback PDF text extraction from binary
+- `convertHtmlToStructuredMarkdown()` - Preserves tables, lists, forms as markdown
+
+### Key Improvements
+1. **PDF Extraction**: Uses Google Drive API OCR to extract text from linked PDFs
+2. **HTML Structure Preservation**: Tables converted to markdown, lists properly indented
+3. **Enhanced Claude Prompt**: Confidence scoring (HIGH/MEDIUM/LOW) for each field
+4. **Data Quality Scoring**: 0-100% score based on critical fields found
+5. **Needs Review Flags**: Explicit list of items requiring manual verification
+6. **Smart Truncation**: Preserves beginning (70%) and end (25%) of content
+7. **Resource Classification**: PDFs, Excel, Word, and links categorized separately
+8. **Comprehensive Fallback**: 50+ patterns for eligibility, projects, costs, docs
+
+### Reason
+Farm Vitality Grant application needed accurate, complete data. Previous version:
+- Did not parse PDF content (just noted they exist)
+- Lost HTML structure (tables, nested lists flattened)
+- Truncated at 20,000 chars without smart preservation
+- No confidence/quality indicators
+
+New version provides production-ready accuracy with clear data quality indicators.
+
+### Test URL
+https://www.pa.gov/services/pda/apply-for-the-farm-vitality-grant
+
+### Research Sources
+- Google Apps Script PDF extraction via Drive API OCR
+- Labnol.org PDF extraction tutorials
+- Penn State Extension Farm Vitality Grant documentation
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created (enhanced existing functions)
+
+---
+
+## 2026-02-12 - PM_Architect (Marketing Command Center Complete Overhaul)
+
+### Files Modified
+- `web_app/marketing-command-center.html` - Added Field Mode and Sunday Planning
+- `web_app/mobile-farm-ux-styles.css` - Added Field Mode styles
+- `apps_script/MERGED TOTAL.js` - Added automation endpoints
+
+### Files Created
+- `claude_sessions/social_media/DUAL_CONTEXT_UX_RESEARCH.md` - UX research
+- `claude_sessions/social_media/EMPLOYEE_PHOTO_REQUEST_SYSTEM.md` - System design
+
+### Functions Added (Frontend)
+- Field Mode capture system (openFieldCapture, queueFieldCapture, etc.)
+- Sunday Planning dashboard (openSundayPlanning, autoPlan, etc.)
+- Keyboard navigation (J/K/A/1-6/Enter)
+- Drag-drop scheduling
+
+### Functions Added (Backend)
+- `triggerSundayPlanning()` - Sunday 5pm automation
+- `calculateOrganicPostTime()` - Natural timing variance
+- `sendPhotoRequest()` - Employee photo SMS
+- `getContentPool()` - Content aggregation
+- `batchSchedulePosts()` - Batch scheduling
+- `queueFieldCapture()` - Field Mode queue
+
+### Reason
+Complete overhaul based on cutting-edge UX research. Two contexts: Field Mode (mobile, 2-tap, zero decisions) and Sunday Planning (desktop, keyboard-first, batch operations). Production-ready.
+
+### Agent Coordination
+- PM_Architect: Coordinated (did NOT code directly)
+- Research_Claude (a02d818): Deep UX research
+- Desktop_Claude (af95686): Field Mode implementation
+- Desktop_Claude (a1adef4): Sunday Planning implementation
+- Backend_Claude (a2e01c3): Automation endpoints
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Used existing functions where possible
+- [x] No duplicates created
+
+---
+
 ## 2026-02-12 - PM_Architect (GitHub Pages Fix + API Settings Migration)
 
 ### Files Created
