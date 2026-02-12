@@ -1,0 +1,437 @@
+/* ============================================= */
+/* FARM FIRST - MOBILE UX OPTIMIZATIONS */
+/* Marketing Command Center Mobile Styles */
+/* ============================================= */
+
+/* Field Mode Toggle Button (High Contrast Mode) */
+#fieldModeToggle {
+    position: fixed;
+    bottom: 150px;
+    right: 20px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--warning);
+    border: 3px solid rgba(0,0,0,0.3);
+    font-size: 1.5rem;
+    z-index: 1000;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    transition: transform 0.2s, background 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#fieldModeToggle:hover {
+    transform: scale(1.1);
+}
+
+#fieldModeToggle.active {
+    background: #FF6B35;
+    box-shadow: 0 0 20px rgba(255, 107, 53, 0.6);
+}
+
+/* Quick Post FAB */
+#quickPostFab {
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--instagram);
+    border: none;
+    font-size: 1.5rem;
+    z-index: 1000;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(225, 48, 108, 0.5);
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#quickPostFab:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(225, 48, 108, 0.6);
+}
+
+#quickPostFab i {
+    color: white;
+}
+
+/* Offline Indicator */
+#offlineIndicator {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(90deg, var(--danger), #ff6b6b);
+    color: white;
+    text-align: center;
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    z-index: 10001;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+#offlineIndicator.visible {
+    display: flex;
+}
+
+#offlineIndicator i {
+    animation: pulse-offline 2s infinite;
+}
+
+@keyframes pulse-offline {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* Pending Posts Queue Indicator */
+#pendingQueueIndicator {
+    position: fixed;
+    bottom: 220px;
+    right: 20px;
+    background: var(--info);
+    color: white;
+    padding: 0.5rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    z-index: 999;
+    display: none;
+    align-items: center;
+    gap: 0.4rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+#pendingQueueIndicator.visible {
+    display: flex;
+}
+
+/* Mobile Bottom Navigation */
+.mobile-bottom-nav {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(22, 33, 62, 0.98);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid var(--border);
+    padding: 0.5rem;
+    z-index: 999;
+    justify-content: space-around;
+    align-items: center;
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+}
+
+.mobile-nav-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    padding: 0.5rem 0.75rem;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 0.65rem;
+    cursor: pointer;
+    border-radius: 8px;
+    min-height: 60px;
+    min-width: 64px;
+    transition: all 0.2s;
+}
+
+.mobile-nav-btn i {
+    font-size: 1.25rem;
+}
+
+.mobile-nav-btn.active {
+    color: var(--instagram);
+    background: rgba(225, 48, 108, 0.15);
+}
+
+.mobile-nav-btn:hover {
+    background: rgba(255,255,255,0.05);
+}
+
+/* ============================================= */
+/* FIELD MODE - HIGH CONTRAST FOR SUNLIGHT */
+/* ============================================= */
+body.field-mode {
+    background: #FFFFFF !important;
+    color: #000000 !important;
+}
+
+body.field-mode .top-nav,
+body.field-mode .tab-nav,
+body.field-mode .access-banner {
+    background: #FFFFFF !important;
+    border-color: #000000 !important;
+}
+
+body.field-mode .nav-title,
+body.field-mode .tab-btn,
+body.field-mode .tab-btn.active {
+    color: #000000 !important;
+    -webkit-text-fill-color: #000000 !important;
+    background: transparent !important;
+}
+
+body.field-mode .tab-btn.active {
+    border-bottom-color: #1A5F2A !important;
+}
+
+body.field-mode .card,
+body.field-mode .stat-card,
+body.field-mode .field-mode-container {
+    background: #FFFFFF !important;
+    border: 2px solid #000000 !important;
+    color: #000000 !important;
+}
+
+body.field-mode .stat-value,
+body.field-mode .card-header h3,
+body.field-mode h2, body.field-mode h3, body.field-mode h4 {
+    color: #000000 !important;
+    -webkit-text-fill-color: #000000 !important;
+}
+
+body.field-mode .text-secondary,
+body.field-mode .stat-label,
+body.field-mode .nav-subtitle {
+    color: #374151 !important;
+}
+
+body.field-mode .btn-primary,
+body.field-mode .blast-btn,
+body.field-mode .voice-note-btn {
+    background: #1A5F2A !important;
+    color: #FFFFFF !important;
+    min-height: 72px !important;
+    font-size: 1.2rem !important;
+    font-weight: 700 !important;
+}
+
+body.field-mode .btn-secondary,
+body.field-mode .ai-caption-btn,
+body.field-mode .schedule-toggle,
+body.field-mode .draft-btn {
+    background: #FFFFFF !important;
+    color: #000000 !important;
+    border: 2px solid #000000 !important;
+    min-height: 56px !important;
+}
+
+body.field-mode .caption-input {
+    background: #FFFFFF !important;
+    color: #000000 !important;
+    border: 2px solid #000000 !important;
+    font-size: 18px !important;
+}
+
+body.field-mode .platform-toggle {
+    background: #FFFFFF !important;
+    border: 2px solid #374151 !important;
+    min-height: 56px !important;
+}
+
+body.field-mode .platform-toggle.active {
+    border-color: #1A5F2A !important;
+    background: rgba(26, 95, 42, 0.1) !important;
+}
+
+body.field-mode .upload-zone {
+    background: #FFFFFF !important;
+    border: 3px dashed #000000 !important;
+}
+
+body.field-mode .upload-zone i {
+    color: #1A5F2A !important;
+}
+
+body.field-mode #quickPostFab {
+    background: #1A5F2A !important;
+    width: 72px !important;
+    height: 72px !important;
+}
+
+body.field-mode .mobile-bottom-nav {
+    background: #FFFFFF !important;
+    border-top: 2px solid #000000 !important;
+}
+
+body.field-mode .mobile-nav-btn {
+    color: #000000 !important;
+    min-height: 64px !important;
+}
+
+body.field-mode .mobile-nav-btn.active {
+    background: rgba(26, 95, 42, 0.2) !important;
+    color: #1A5F2A !important;
+}
+
+/* ============================================= */
+/* MOBILE RESPONSIVE STYLES */
+/* ============================================= */
+@media (max-width: 768px) {
+    /* Hide desktop sidebar/top navigation elements */
+    .tab-nav {
+        display: none !important;
+    }
+
+    /* Show mobile bottom nav */
+    .mobile-bottom-nav {
+        display: flex !important;
+    }
+
+    /* Adjust main content for bottom nav */
+    .main-content {
+        padding: 1rem;
+        padding-bottom: 100px;
+    }
+
+    /* Larger buttons for gloved hands */
+    .btn, .btn-primary, .btn-secondary {
+        min-height: 56px;
+        font-size: 1rem;
+        padding: 1rem 1.5rem;
+    }
+
+    /* Larger caption input */
+    .caption-input {
+        font-size: 18px !important;
+        min-height: 120px;
+    }
+
+    /* Voice note button - even larger on mobile */
+    .voice-note-btn {
+        min-height: 72px;
+        font-size: 1.2rem;
+    }
+
+    /* Platform toggles larger */
+    .platform-toggle {
+        min-height: 56px;
+        padding: 1rem;
+    }
+
+    /* Upload zone larger target */
+    .upload-zone {
+        min-height: 200px;
+    }
+
+    /* Hide access banner on mobile */
+    .access-banner {
+        padding: 0.5rem 1rem;
+        font-size: 0.75rem;
+    }
+
+    /* Stack field mode content */
+    .field-mode-content {
+        grid-template-columns: 1fr;
+    }
+
+    /* Adjust FABs position for thumb zone */
+    #quickPostFab {
+        bottom: 90px;
+        right: 16px;
+    }
+
+    #fieldModeToggle {
+        bottom: 160px;
+        right: 16px;
+    }
+
+    #pendingQueueIndicator {
+        bottom: 230px;
+        right: 16px;
+    }
+
+    /* AI caption buttons stack */
+    .post-controls {
+        flex-direction: column;
+    }
+
+    .post-controls > * {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* Stats grid responsive */
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+
+    .stat-card {
+        padding: 1rem;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+    }
+
+    /* Gallery grid */
+    .gallery-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    /* Extra small screens */
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .gallery-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Even larger touch targets */
+    .btn, .btn-primary, .btn-secondary {
+        min-height: 64px;
+    }
+
+    .voice-note-btn {
+        min-height: 80px;
+    }
+
+    /* Top nav compact */
+    .top-nav {
+        padding: 0.5rem 1rem;
+    }
+
+    .nav-title {
+        font-size: 1rem;
+    }
+
+    .nav-actions {
+        display: none;
+    }
+}
+
+/* Landscape orientation adjustments */
+@media (max-width: 768px) and (orientation: landscape) {
+    .mobile-bottom-nav {
+        padding: 0.25rem;
+    }
+
+    .mobile-nav-btn {
+        min-height: 50px;
+        flex-direction: row;
+        gap: 0.5rem;
+    }
+
+    .mobile-nav-btn i {
+        font-size: 1rem;
+    }
+}
