@@ -1,0 +1,57 @@
+{
+  "tasks": [
+    {
+      "taskId": "TEST-PAUSE",
+      "agentId": "Builder",
+      "reason": "Need clarification",
+      "context": {
+        "question": "Which approach?"
+      },
+      "partialResult": null,
+      "pausedAt": "2026-02-12T21:11:53.364Z",
+      "status": "resumed",
+      "humanResponse": {
+        "answer": "Use approach A"
+      },
+      "resumedAt": "2026-02-12T21:11:53.373Z"
+    },
+    {
+      "taskId": "TEST-PAUSE-2",
+      "agentId": "PM_Architect",
+      "reason": "Review needed",
+      "context": {
+        "item": "Architecture decision"
+      },
+      "partialResult": null,
+      "pausedAt": "2026-02-12T21:12:00.305Z",
+      "status": "resumed",
+      "humanResponse": {
+        "decision": "Test completed"
+      },
+      "resumedAt": "2026-02-12T21:12:15.576Z"
+    },
+    {
+      "taskId": "FINAL-TEST",
+      "agentId": "Backend_Claude",
+      "reason": "Need approval for database migration",
+      "context": {
+        "migration": "add_user_column",
+        "risk": "medium"
+      },
+      "partialResult": {
+        "completed": "50%",
+        "tables_modified": [
+          "users",
+          "sessions"
+        ]
+      },
+      "pausedAt": "2026-02-12T21:12:25.709Z",
+      "status": "resumed",
+      "humanResponse": {
+        "approved": true,
+        "note": "Proceed with migration"
+      },
+      "resumedAt": "2026-02-12T21:12:25.712Z"
+    }
+  ]
+}

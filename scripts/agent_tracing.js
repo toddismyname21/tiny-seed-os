@@ -88,6 +88,16 @@ function generateSpanId() {
 }
 
 /**
+ * Generate a trace ID (32 hex characters like OpenTelemetry)
+ * @returns {string} Trace ID
+ */
+function generateTraceId() {
+  return Array.from({ length: 32 }, () =>
+    Math.floor(Math.random() * 16).toString(16)
+  ).join('');
+}
+
+/**
  * Get the trace file path for a task
  * @param {string} taskId - Task identifier
  * @returns {string} Full file path
@@ -664,6 +674,263 @@ function createChildSpan(parentSpanId, operationName, agentId) {
   return null;
 }
 
+// ============================================================================
+// OPENTELEMETRY-COMPATIBLE TRACE FORMAT
+// ============================================================================
+// Follows OTEL spec for interoperability with standard observability tools
+// These functions output traces in strict OpenTelemetry format with:
+// - Nanosecond timestamps
+// - Standard OTEL attribute naming
+// - W3C Trace Context compatible IDs
+// ============================================================================
+
+/**
+ * Create an OpenTelemetry-compatible span
+ *
+ * @param {string} operationName - Name of the operation being traced
+ * @param {object} attributes - Span attributes (agentId, taskId, etc.)
+ * @returns {object} OTEL-compatible span object
+ *
+ * @example
+ * const span = createOTELSpan('process_task', { agentId: 'Builder', taskId: 'TASK-001' });
+ */
+function createOTELSpan(operationName, attributes = {}) {
+  const traceId = generateTraceId();
+  const spanId = generateSpanId();
+
+  return {
+    traceId,
+    spanId,
+    parentSpanId: null,
+    operationName,
+    startTime: Date.now() * 1000000, // nanoseconds (OTEL standard)
+    endTime: null,
+    duration: null,
+    status: { code: 'UNSET' },
+    attributes: {
+      'service.name': 'tiny-seed-os',
+      'agent.id': attributes.agentId || 'unknown',
+      'task.id': attributes.taskId || 'unknown',
+      ...attributes
+    },
+    events: [],
+    links: []
+  };
+}
+
+/**
+ * End an OTEL span and save to traces directory
+ *
+ * @param {object} span - The span object to end
+ * @param {string} status - Status code ('OK', 'ERROR', 'UNSET')
+ * @returns {object} The completed span
+ *
+ * @example
+ * endOTELSpan(span, 'OK');
+ * endOTELSpan(span, 'ERROR');
+ */
+function endOTELSpan(span, status = 'OK') {
+  span.endTime = Date.now() * 1000000; // nanoseconds
+  span.duration = span.endTime - span.startTime;
+  span.status.code = status;
+
+  // Save to traces directory
+  if (!fs.existsSync(TRACES_DIR)) {
+    fs.mkdirSync(TRACES_DIR, { recursive: true });
+  }
+
+  const filename = `${span.operationName.replace(/\s/g, '_')}_${span.spanId}.trace.json`;
+  fs.writeFileSync(path.join(TRACES_DIR, filename), JSON.stringify(span, null, 2));
+
+  return span;
+}
+
+/**
+ * Add an event to an OTEL span
+ *
+ * @param {object} span - The span to add the event to
+ * @param {string} name - Event name
+ * @param {object} attributes - Event attributes
+ *
+ * @example
+ * addSpanEvent(span, 'task_started', { priority: 'high' });
+ * addSpanEvent(span, 'task_completed', { resultType: 'success' });
+ */
+function addSpanEvent(span, name, attributes = {}) {
+  span.events.push({
+    name,
+    timestamp: Date.now() * 1000000, // nanoseconds
+    attributes
+  });
+}
+
+/**
+ * Create a linked OTEL span (for distributed tracing)
+ *
+ * @param {string} operationName - Name of the operation
+ * @param {object} attributes - Span attributes
+ * @param {string} parentTraceId - Parent trace ID to link to
+ * @param {string} parentSpanId - Parent span ID to link to
+ * @returns {object} OTEL-compatible span with link
+ */
+function createLinkedOTELSpan(operationName, attributes = {}, parentTraceId, parentSpanId) {
+  const span = createOTELSpan(operationName, attributes);
+
+  if (parentTraceId && parentSpanId) {
+    span.links.push({
+      traceId: parentTraceId,
+      spanId: parentSpanId,
+      attributes: {}
+    });
+  }
+
+  return span;
+}
+
+/**
+ * Create a child OTEL span (inherits traceId from parent)
+ *
+ * @param {object} parentSpan - Parent span object
+ * @param {string} operationName - Name of the child operation
+ * @param {object} attributes - Additional attributes
+ * @returns {object} Child OTEL span
+ */
+function createChildOTELSpan(parentSpan, operationName, attributes = {}) {
+  const childSpan = createOTELSpan(operationName, attributes);
+
+  // Inherit traceId and set parentSpanId
+  childSpan.traceId = parentSpan.traceId;
+  childSpan.parentSpanId = parentSpan.spanId;
+
+  return childSpan;
+}
+
+/**
+ * Agent task tracing wrapper - wraps async functions with OTEL tracing
+ *
+ * @param {string} agentId - Agent performing the task
+ * @param {string} taskId - Task identifier
+ * @param {function} taskFn - Async function to trace
+ * @returns {function} Wrapped function with automatic tracing
+ *
+ * @example
+ * const tracedTask = traceAgentTask('Builder', 'TASK-001', async (data) => {
+ *   // Do work
+ *   return result;
+ * });
+ * const result = await tracedTask(inputData);
+ */
+function traceAgentTask(agentId, taskId, taskFn) {
+  return async function(...args) {
+    const span = createOTELSpan(`agent_task_${taskId}`, { agentId, taskId });
+    addSpanEvent(span, 'task_started');
+
+    try {
+      const result = await taskFn(...args);
+      addSpanEvent(span, 'task_completed', { resultType: typeof result });
+      endOTELSpan(span, 'OK');
+      return result;
+    } catch (error) {
+      addSpanEvent(span, 'task_error', { error: error.message });
+      endOTELSpan(span, 'ERROR');
+      throw error;
+    }
+  };
+}
+
+/**
+ * Export OTEL traces in OpenTelemetry Protocol (OTLP) JSON format
+ *
+ * @param {string} taskId - Task ID to export (optional, exports all if not specified)
+ * @returns {object} OTLP-compatible resource spans object
+ */
+function exportOTLPTraces(taskId = null) {
+  const traceFiles = fs.readdirSync(TRACES_DIR).filter(f => f.endsWith('.trace.json'));
+  const spans = [];
+
+  for (const file of traceFiles) {
+    try {
+      const data = JSON.parse(fs.readFileSync(path.join(TRACES_DIR, file), 'utf-8'));
+
+      // Check if this is an OTEL format (single span) or legacy format (task with spans array)
+      if (data.spans && Array.isArray(data.spans)) {
+        // Legacy format: task-grouped trace with spans array
+        for (const span of data.spans) {
+          // Filter by taskId if specified
+          if (taskId && span.taskId !== taskId) {
+            continue;
+          }
+          spans.push({
+            ...span,
+            // Normalize to OTEL format
+            startTime: typeof span.startTime === 'string' ? new Date(span.startTime).getTime() * 1000000 : span.startTime,
+            endTime: span.endTime ? (typeof span.endTime === 'string' ? new Date(span.endTime).getTime() * 1000000 : span.endTime) : null,
+            attributes: {
+              'service.name': 'tiny-seed-os',
+              'agent.id': span.agentId || 'unknown',
+              'task.id': span.taskId || 'unknown',
+              ...span.attributes
+            },
+            status: typeof span.status === 'string' ? { code: span.status } : span.status
+          });
+        }
+      } else if (data.traceId && data.spanId) {
+        // OTEL format: single span per file
+        // Filter by taskId if specified
+        if (taskId && data.attributes && data.attributes['task.id'] !== taskId) {
+          continue;
+        }
+        spans.push(data);
+      }
+    } catch (e) {
+      console.error(`Error reading trace file ${file}:`, e.message);
+    }
+  }
+
+  // Format as OTLP resource spans
+  return {
+    resourceSpans: [{
+      resource: {
+        attributes: [
+          { key: 'service.name', value: { stringValue: 'tiny-seed-os' } },
+          { key: 'service.version', value: { stringValue: '1.0.0' } }
+        ]
+      },
+      scopeSpans: [{
+        scope: {
+          name: 'agent-tracing',
+          version: '1.0.0'
+        },
+        spans: spans.map(span => ({
+          traceId: span.traceId,
+          spanId: span.spanId,
+          parentSpanId: span.parentSpanId || '',
+          name: span.operationName,
+          kind: 1, // SPAN_KIND_INTERNAL
+          startTimeUnixNano: String(span.startTime),
+          endTimeUnixNano: span.endTime ? String(span.endTime) : '',
+          attributes: Object.entries(span.attributes || {}).map(([key, value]) => ({
+            key,
+            value: { stringValue: String(value) }
+          })),
+          events: (span.events || []).map(event => ({
+            timeUnixNano: String(event.timestamp),
+            name: event.name,
+            attributes: Object.entries(event.attributes || {}).map(([key, value]) => ({
+              key,
+              value: { stringValue: String(value) }
+            }))
+          })),
+          status: {
+            code: (span.status?.code === 'OK' || span.status === 'OK') ? 1 :
+                  ((span.status?.code === 'ERROR' || span.status === 'ERROR') ? 2 : 0)
+          }
+        }))
+      }]
+    }]
+  };
+}
+
 // Export functions for use in other scripts
 module.exports = {
   // Core tracing functions
@@ -678,6 +945,17 @@ module.exports = {
   setSpanAttribute,
   linkToGovernorEvent,
   createChildSpan,
+  // OpenTelemetry-compatible functions
+  createOTELSpan,
+  endOTELSpan: endOTELSpan,
+  endSpan: endSpan,  // Keep original endSpan for backward compatibility
+  addSpanEvent,
+  createLinkedOTELSpan,
+  createChildOTELSpan,
+  traceAgentTask,
+  exportOTLPTraces,
+  generateTraceId,
+  generateSpanId,
   // Constants
   SPAN_STATUS,
   EVENT_TYPES,

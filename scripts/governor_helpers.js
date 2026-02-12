@@ -44,6 +44,7 @@ const AUDIT_FILE = path.join(TINYPM_DIR, '.governor_audit.json');
 const RISK_CONFIG_FILE = path.join(CONFIG_DIR, 'task_risk_classification.json');
 const VERIFICATION_QUEUE_FILE = path.join(VERIFIER_DIR, 'VERIFICATION_QUEUE.json');
 const VERIFIER_INBOX_FILE = path.join(VERIFIER_DIR, 'INBOX.md');
+const PAUSED_TASKS_FILE = path.join(TINYPM_DIR, '.paused_tasks.json');
 
 // Valid agent names
 const VALID_AGENTS = [
@@ -204,6 +205,56 @@ const ABSTENTION_REASONS = {
 
 // Default confidence threshold for abstention
 const DEFAULT_CONFIDENCE_THRESHOLD = 0.85;
+
+// CONFIDENCE THRESHOLDS - Added per MASTER_AGENTIC_IMPLEMENTATION_PLAN
+const CONFIDENCE_THRESHOLDS = {
+  PROCEED: 0.85,      // >=85% = proceed autonomously
+  ESCALATE: 0.70,     // 70-84% = escalate to human
+  ABSTAIN: 0.00       // <70% = STATUS_ABSTAIN
+};
+
+/**
+ * Evaluate confidence for a task based on context factors
+ * @param {Object} taskContext - Context information for the task
+ * @param {string} taskContext.taskType - Type of task being evaluated
+ * @param {boolean} taskContext.hasRequiredInputs - Whether all required inputs are present
+ * @param {string} taskContext.scopeClarity - 'high', 'medium', or 'low'
+ * @param {number} taskContext.historicalSuccessRate - Past success rate (0-1)
+ * @returns {Object} Confidence evaluation result with status and score
+ */
+function evaluateConfidence(taskContext) {
+  const { taskType, hasRequiredInputs, scopeClarity, historicalSuccessRate } = taskContext;
+
+  let score = 0.5; // Base score
+
+  // Factor 1: Required inputs present
+  if (hasRequiredInputs) score += 0.2;
+
+  // Factor 2: Scope clarity
+  if (scopeClarity === 'high') score += 0.15;
+  else if (scopeClarity === 'medium') score += 0.08;
+
+  // Factor 3: Historical success rate
+  if (historicalSuccessRate >= 0.9) score += 0.15;
+  else if (historicalSuccessRate >= 0.7) score += 0.1;
+  else if (historicalSuccessRate >= 0.5) score += 0.05;
+
+  // Cap at 1.0
+  score = Math.min(1.0, score);
+
+  if (score >= CONFIDENCE_THRESHOLDS.PROCEED) {
+    return { status: 'PROCEED', confidence: score };
+  } else if (score >= CONFIDENCE_THRESHOLDS.ESCALATE) {
+    return { status: 'ESCALATE', confidence: score, reason: 'Confidence below 85% threshold' };
+  } else {
+    return {
+      status: 'STATUS_ABSTAIN',
+      confidence: score,
+      response: "I don't know how to complete this task with sufficient confidence.",
+      suggestedAction: 'Request human guidance or more context'
+    };
+  }
+}
 
 // Proof types for verification
 const PROOF_TYPES = {
@@ -2387,6 +2438,216 @@ function getAllAgentFolderMappings() {
   return { mapping: config.mapping, reverse_mapping: config.reverse_mapping, source: 'config_file' };
 }
 
+// AGENT RESPONSE WRAPPER - MUST be used for all agent responses
+// Per MASTER_AGENTIC_IMPLEMENTATION_PLAN: Forces confidence check on every response
+function agentResponse(taskId, result, confidenceScore, agentId = 'unknown') {
+  const timestamp = new Date().toISOString();
+
+  // Log every response for audit trail
+  const responseRecord = {
+    taskId,
+    agentId,
+    confidence: confidenceScore,
+    timestamp,
+    status: null,
+    result: null
+  };
+
+  if (confidenceScore < 0.85) {
+    responseRecord.status = 'STATUS_ABSTAIN';
+    responseRecord.result = {
+      message: "I don't have enough confidence to complete this task.",
+      partialResult: result,
+      needsHumanInput: true,
+      confidence: confidenceScore
+    };
+
+    // Log abstention
+    console.warn(`[ABSTENTION] Agent ${agentId} abstained from ${taskId} (confidence: ${confidenceScore})`);
+  } else {
+    responseRecord.status = 'COMPLETE';
+    responseRecord.result = result;
+  }
+
+  return responseRecord;
+}
+
+// Wrapper that ENFORCES confidence check - agents MUST use this
+function createAgentTask(agentId, taskId, taskFn) {
+  return async function(...args) {
+    const startTime = Date.now();
+    let confidence = 0.5;
+    let result = null;
+
+    try {
+      // Execute the task
+      result = await taskFn(...args);
+      confidence = result?.confidence || 0.85; // Default to threshold if not specified
+    } catch (error) {
+      confidence = 0.0;
+      result = { error: error.message };
+    }
+
+    const duration = Date.now() - startTime;
+    return agentResponse(taskId, { ...result, duration }, confidence, agentId);
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HUMAN-ON-THE-LOOP PAUSE/RESUME SYSTEM
+// Tasks can pause for human input and resume later
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Get all paused tasks from storage
+ * @returns {object} Object with tasks array
+ */
+function getPausedTasks() {
+  if (fs.existsSync(PAUSED_TASKS_FILE)) {
+    return JSON.parse(fs.readFileSync(PAUSED_TASKS_FILE, 'utf8'));
+  }
+  return { tasks: [] };
+}
+
+/**
+ * Save paused tasks to storage
+ * @param {object} data - The paused tasks data
+ */
+function savePausedTasks(data) {
+  fs.writeFileSync(PAUSED_TASKS_FILE, JSON.stringify(data, null, 2));
+}
+
+/**
+ * Pause a task for human input
+ * @param {string} taskId - Unique task identifier
+ * @param {string} agentId - The agent pausing the task
+ * @param {string} reason - Why the task is being paused
+ * @param {object} context - Additional context for the human
+ * @param {any} partialResult - Any partial work completed (optional)
+ * @returns {object} The pause record
+ *
+ * @example
+ * const record = pauseTaskForHuman('TASK-123', 'Backend_Claude', 'Need clarification', {question: 'Which approach?'});
+ */
+function pauseTaskForHuman(taskId, agentId, reason, context, partialResult = null) {
+  const pausedTasks = getPausedTasks();
+
+  const pauseRecord = {
+    taskId,
+    agentId,
+    reason,
+    context,
+    partialResult,
+    pausedAt: new Date().toISOString(),
+    status: 'awaiting_human',
+    humanResponse: null,
+    resumedAt: null
+  };
+
+  // Check if already paused
+  const existingIndex = pausedTasks.tasks.findIndex(t => t.taskId === taskId);
+  if (existingIndex >= 0) {
+    pausedTasks.tasks[existingIndex] = pauseRecord;
+  } else {
+    pausedTasks.tasks.push(pauseRecord);
+  }
+
+  savePausedTasks(pausedTasks);
+
+  // Increment metrics
+  incrementMetric('tasks_paused', agentId);
+
+  // Log audit event
+  logGovernorEvent(agentId, 'task_paused', 'success', {
+    taskId,
+    reason,
+    context
+  });
+
+  console.log(`\n[TASK PAUSED] ${taskId}`);
+  console.log(`   Agent: ${agentId}`);
+  console.log(`   Reason: ${reason}`);
+  console.log(`   Context: ${JSON.stringify(context)}`);
+  console.log(`\n   To resume, call: resumeTask('${taskId}', humanResponse)`);
+
+  return pauseRecord;
+}
+
+/**
+ * Resume a paused task with human input
+ * @param {string} taskId - The task to resume
+ * @param {any} humanResponse - The human's response/decision
+ * @returns {object} Result with success status and task data
+ *
+ * @example
+ * const result = resumeTask('TASK-123', {answer: 'Use approach A'});
+ */
+function resumeTask(taskId, humanResponse) {
+  const pausedTasks = getPausedTasks();
+  const taskIndex = pausedTasks.tasks.findIndex(t => t.taskId === taskId);
+
+  if (taskIndex < 0) {
+    return { success: false, error: `Task ${taskId} not found in paused tasks` };
+  }
+
+  const task = pausedTasks.tasks[taskIndex];
+  task.humanResponse = humanResponse;
+  task.resumedAt = new Date().toISOString();
+  task.status = 'resumed';
+
+  savePausedTasks(pausedTasks);
+
+  // Increment metrics
+  incrementMetric('tasks_resumed', task.agentId);
+
+  // Log audit event
+  logGovernorEvent(task.agentId, 'task_resumed', 'success', {
+    taskId,
+    pausedAt: task.pausedAt,
+    resumedAt: task.resumedAt,
+    humanResponse: typeof humanResponse === 'object' ? JSON.stringify(humanResponse) : humanResponse
+  });
+
+  console.log(`\n[TASK RESUMED] ${taskId}`);
+  console.log(`   Human response received at: ${task.resumedAt}`);
+
+  return {
+    success: true,
+    task,
+    partialResult: task.partialResult,
+    humanResponse: humanResponse
+  };
+}
+
+/**
+ * List all paused tasks awaiting human input
+ * @returns {Array} Array of paused tasks with status 'awaiting_human'
+ *
+ * @example
+ * const awaiting = listPausedTasks();
+ * console.log(`${awaiting.length} tasks waiting for human input`);
+ */
+function listPausedTasks() {
+  const pausedTasks = getPausedTasks();
+  return pausedTasks.tasks.filter(t => t.status === 'awaiting_human');
+}
+
+/**
+ * Check if a specific task is paused
+ * @param {string} taskId - The task to check
+ * @returns {boolean} True if task is paused and awaiting human input
+ *
+ * @example
+ * if (isTaskPaused('TASK-123')) {
+ *   console.log('Task is waiting for human input');
+ * }
+ */
+function isTaskPaused(taskId) {
+  const pausedTasks = getPausedTasks();
+  const task = pausedTasks.tasks.find(t => t.taskId === taskId);
+  return !!(task && task.status === 'awaiting_human');
+}
+
 // Export functions for use in other scripts
 module.exports = {
   // Existing functions
@@ -2409,6 +2670,11 @@ module.exports = {
   handleAbstention,
   getAgentAbstentionStats,
   resolveAbstention,
+  // Confidence scoring functions (MASTER_AGENTIC_IMPLEMENTATION_PLAN)
+  evaluateConfidence,
+  // Agent response wrapper functions (MASTER_AGENTIC_IMPLEMENTATION_PLAN)
+  agentResponse,
+  createAgentTask,
   // Tracing integration functions
   tracedGovernorEvent,
   tracedOperation,
@@ -2427,6 +2693,13 @@ module.exports = {
   getAgentNameFromFolder,
   getAgentInboxOutboxPaths,
   getAllAgentFolderMappings,
+  // Human-on-the-Loop Pause/Resume functions
+  getPausedTasks,
+  savePausedTasks,
+  pauseTaskForHuman,
+  resumeTask,
+  listPausedTasks,
+  isTaskPaused,
   // Constants
   VALID_AGENTS,
   VALID_METRICS,
@@ -2439,6 +2712,8 @@ module.exports = {
   STATUS_ABSTAIN,
   ABSTENTION_REASONS,
   DEFAULT_CONFIDENCE_THRESHOLD,
+  // Confidence threshold constants (MASTER_AGENTIC_IMPLEMENTATION_PLAN)
+  CONFIDENCE_THRESHOLDS,
   // Risk Classification Constants
   RISK_LEVELS,
   RISK_LEVEL_VALUES
