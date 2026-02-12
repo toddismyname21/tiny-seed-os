@@ -1,5 +1,5 @@
 /**
- * Tiny Seed Farm - Service Worker v8
+ * Tiny Seed Farm - Service Worker v9
  * Optimized PWA with advanced caching strategies
  * - Cache-first for static assets
  * - Network-first for API calls
@@ -7,9 +7,10 @@
  * - Push notification support
  * - Fixed: Response clone race condition in staleWhileRevalidate
  * - v8: Force cache refresh for Voice Profile modal fix
+ * - v9: Added sync-market-sales for offline farmers market sales
  */
 
-const CACHE_VERSION = 'v8';
+const CACHE_VERSION = 'v9';
 const CACHE_NAME = `tiny-seed-mobile-${CACHE_VERSION}`;
 const STATIC_CACHE_NAME = `tiny-seed-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE_NAME = `tiny-seed-dynamic-${CACHE_VERSION}`;
@@ -356,6 +357,8 @@ self.addEventListener('sync', (event) => {
     event.waitUntil(syncTimeclockEntries());
   } else if (event.tag === 'sync-harvests') {
     event.waitUntil(syncHarvestData());
+  } else if (event.tag === 'sync-market-sales') {
+    event.waitUntil(syncMarketSales());
   } else if (event.tag === 'sync-all') {
     event.waitUntil(syncAllPendingData());
   }
@@ -664,6 +667,214 @@ async function incrementRetryCount(actionId) {
 }
 
 /**
+ * Sync market sales - Process pending sales from IndexedDB
+ */
+async function syncMarketSales() {
+  const clients = await self.clients.matchAll();
+
+  clients.forEach(client => {
+    client.postMessage({
+      type: 'SYNC_STARTED',
+      category: 'market-sales',
+      timestamp: Date.now()
+    });
+  });
+
+  try {
+    const pendingSales = await getPendingMarketSalesFromIDB();
+
+    if (pendingSales.length === 0) {
+      console.log('[SW] No pending market sales to sync');
+      clients.forEach(client => {
+        client.postMessage({
+          type: 'SYNC_COMPLETE',
+          category: 'market-sales',
+          synced: 0,
+          timestamp: Date.now()
+        });
+      });
+      return;
+    }
+
+    console.log(`[SW] Processing ${pendingSales.length} pending market sales`);
+
+    let synced = 0;
+    let failed = 0;
+    const API_URL = 'https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec';
+
+    for (const sale of pendingSales) {
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'recordMarketSale',
+            sessionId: sale.sessionId,
+            items: JSON.stringify(sale.items),
+            paymentMethod: sale.paymentMethod,
+            offlineCreatedAt: sale.createdAt
+          })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          await markMarketSaleSynced(sale.id);
+          synced++;
+        } else {
+          failed++;
+          await incrementMarketSaleRetry(sale.id);
+        }
+      } catch (error) {
+        console.error('[SW] Market sale sync error:', error);
+        failed++;
+        await incrementMarketSaleRetry(sale.id);
+      }
+    }
+
+    // Notify clients
+    clients.forEach(client => {
+      client.postMessage({
+        type: 'SYNC_COMPLETE',
+        category: 'market-sales',
+        synced,
+        failed,
+        timestamp: Date.now()
+      });
+    });
+
+  } catch (error) {
+    console.error('[SW] Market sales sync failed:', error);
+    clients.forEach(client => {
+      client.postMessage({
+        type: 'SYNC_FAILED',
+        category: 'market-sales',
+        error: error.message,
+        timestamp: Date.now()
+      });
+    });
+  }
+}
+
+/**
+ * Get pending market sales from IndexedDB
+ */
+async function getPendingMarketSalesFromIDB() {
+  return new Promise((resolve) => {
+    const request = indexedDB.open('TinySeedMarketSales', 1);
+
+    request.onerror = () => resolve([]);
+
+    request.onsuccess = (event) => {
+      const db = event.target.result;
+
+      if (!db.objectStoreNames.contains('pendingSales')) {
+        db.close();
+        resolve([]);
+        return;
+      }
+
+      const tx = db.transaction('pendingSales', 'readonly');
+      const store = tx.objectStore('pendingSales');
+      const index = store.index('status');
+      const getRequest = index.getAll('pending');
+
+      getRequest.onsuccess = () => {
+        db.close();
+        const sales = getRequest.result || [];
+        sales.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        resolve(sales);
+      };
+
+      getRequest.onerror = () => {
+        db.close();
+        resolve([]);
+      };
+    };
+  });
+}
+
+/**
+ * Mark market sale as synced
+ */
+async function markMarketSaleSynced(saleId) {
+  return new Promise((resolve) => {
+    const request = indexedDB.open('TinySeedMarketSales', 1);
+
+    request.onerror = () => resolve();
+
+    request.onsuccess = (event) => {
+      const db = event.target.result;
+
+      if (!db.objectStoreNames.contains('pendingSales')) {
+        db.close();
+        resolve();
+        return;
+      }
+
+      const tx = db.transaction('pendingSales', 'readwrite');
+      const store = tx.objectStore('pendingSales');
+      const getRequest = store.get(saleId);
+
+      getRequest.onsuccess = () => {
+        const sale = getRequest.result;
+        if (sale) {
+          sale.status = 'synced';
+          sale.syncedAt = new Date().toISOString();
+          store.put(sale);
+        }
+      };
+
+      tx.oncomplete = () => {
+        db.close();
+        resolve();
+      };
+    };
+  });
+}
+
+/**
+ * Increment retry count for failed market sale
+ */
+async function incrementMarketSaleRetry(saleId) {
+  return new Promise((resolve) => {
+    const request = indexedDB.open('TinySeedMarketSales', 1);
+
+    request.onerror = () => resolve();
+
+    request.onsuccess = (event) => {
+      const db = event.target.result;
+
+      if (!db.objectStoreNames.contains('pendingSales')) {
+        db.close();
+        resolve();
+        return;
+      }
+
+      const tx = db.transaction('pendingSales', 'readwrite');
+      const store = tx.objectStore('pendingSales');
+      const getRequest = store.get(saleId);
+
+      getRequest.onsuccess = () => {
+        const sale = getRequest.result;
+        if (sale) {
+          sale.retryCount = (sale.retryCount || 0) + 1;
+          if (sale.retryCount >= 5) {
+            sale.status = 'failed';
+          }
+          store.put(sale);
+        }
+      };
+
+      tx.oncomplete = () => {
+        db.close();
+        resolve();
+      };
+    };
+  });
+}
+
+/**
  * Sync timeclock entries
  */
 async function syncTimeclockEntries() {
@@ -698,7 +909,8 @@ async function syncAllPendingData() {
   await Promise.all([
     syncOfflineTasks(),
     syncTimeclockEntries(),
-    syncHarvestData()
+    syncHarvestData(),
+    syncMarketSales()
   ]);
 }
 

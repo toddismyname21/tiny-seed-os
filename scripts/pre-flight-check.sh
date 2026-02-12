@@ -64,6 +64,49 @@ if [ -z "$FILE_NAME" ]; then
 fi
 
 # =============================================================================
+# CHECK 0: CIRCUIT BREAKER CHECK
+# =============================================================================
+echo -e "${BLUE}[CHECK 0]${NC} Circuit Breaker Status..."
+
+if [ -n "$AGENT" ] && [ "$AGENT" != "unknown" ]; then
+    # Get circuit breaker status and flatten JSON to single line for easier parsing
+    BREAKER_STATUS=$(node "$SCRIPT_DIR/circuit_breaker.js" check "$AGENT" 2>/dev/null | tr '\n' ' ' | tr -s ' ' || echo '{"canProceed":true}')
+    CAN_PROCEED=$(echo "$BREAKER_STATUS" | grep -o '"canProceed": *[^,}]*' | sed 's/"canProceed": *//' | tr -d ' ')
+
+    if [ "$CAN_PROCEED" = "false" ]; then
+        # Extract message and details from flattened JSON
+        BREAKER_MESSAGE=$(echo "$BREAKER_STATUS" | sed 's/.*"message": *"//' | sed 's/".*//')
+        BREAKER_REASON=$(echo "$BREAKER_STATUS" | sed 's/.*"tripReason": *"//' | sed 's/".*//')
+        WAIT_TIME=$(echo "$BREAKER_STATUS" | sed 's/.*"waitTimeSeconds": *//' | sed 's/[,}].*//' | tr -d ' ')
+
+        echo -e "  ${RED}CRITICAL: Circuit breaker is OPEN for $AGENT${NC}"
+        if [ -n "$BREAKER_MESSAGE" ]; then
+            echo -e "  ${RED}$BREAKER_MESSAGE${NC}"
+        fi
+        if [ -n "$BREAKER_REASON" ]; then
+            echo -e "  ${RED}Trip reason: $BREAKER_REASON${NC}"
+        fi
+        if [ -n "$WAIT_TIME" ] && [ "$WAIT_TIME" != "null" ]; then
+            echo -e "  ${RED}Wait time: ${WAIT_TIME}s before retry${NC}"
+        fi
+        echo -e "  ${RED}Agent must wait for recovery timeout or human intervention${NC}"
+        echo -e "  ${YELLOW}To reset: node scripts/circuit_breaker.js reset $AGENT${NC}"
+        ((CRITICAL++))
+    else
+        BREAKER_STATE=$(echo "$BREAKER_STATUS" | sed 's/.*"state": *"//' | sed 's/".*//')
+        if [ "$BREAKER_STATE" = "HALF_OPEN" ]; then
+            echo -e "  ${YELLOW}INFO: Circuit is HALF_OPEN - testing recovery${NC}"
+        else
+            echo -e "  ${GREEN}PASS: Circuit breaker state: $BREAKER_STATE${NC}"
+        fi
+    fi
+else
+    echo -e "  ${YELLOW}SKIP: No agent specified${NC}"
+fi
+
+echo ""
+
+# =============================================================================
 # CHECK 1: DUPLICATE DETECTION (for new files)
 # =============================================================================
 echo -e "${BLUE}[CHECK 1]${NC} Duplicate Detection..."
@@ -305,6 +348,75 @@ if [ -n "$DUPLICATE_SYSTEM" ]; then
     ((CRITICAL++))
 else
     echo -e "  ${GREEN}PASS: Not a known duplicate system${NC}"
+fi
+
+# =============================================================================
+# CHECK 7: TASK RISK CLASSIFICATION
+# =============================================================================
+echo ""
+echo -e "${BLUE}[CHECK 7]${NC} Task Risk Classification..."
+
+# Check if node and governor_helpers.js are available
+GOVERNOR_HELPERS="$SCRIPT_DIR/governor_helpers.js"
+
+if [ -f "$GOVERNOR_HELPERS" ] && command -v node &> /dev/null; then
+    # Classify file risk using the governor system
+    RISK_RESULT=$(node "$GOVERNOR_HELPERS" classify-file-risk "$FILE_NAME" "$ACTION" 2>/dev/null)
+
+    if [ -z "$RISK_RESULT" ]; then
+        RISK_RESULT='{"level":"LOW","error":"Could not classify"}'
+    fi
+
+    # Extract risk level (handle multiline JSON by collapsing to single line)
+    RISK_RESULT_FLAT=$(echo "$RISK_RESULT" | tr -d '\n' | tr -s ' ')
+    RISK_LEVEL=$(echo "$RISK_RESULT_FLAT" | sed 's/.*"level"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+    RISK_DESCRIPTION=$(echo "$RISK_RESULT_FLAT" | sed 's/.*"description"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' | head -c 100)
+    MIN_TRUST=$(echo "$RISK_RESULT_FLAT" | sed 's/.*"minimumTrustLevel"[[:space:]]*:[[:space:]]*\([0-9]*\).*/\1/')
+    REQUIRES_APPROVAL=$(echo "$RISK_RESULT_FLAT" | sed 's/.*"requiresHumanApproval"[[:space:]]*:[[:space:]]*\([a-z]*\).*/\1/')
+    REQUIRES_EXPLICIT=$(echo "$RISK_RESULT_FLAT" | sed 's/.*"requiresExplicitCommand"[[:space:]]*:[[:space:]]*\([a-z]*\).*/\1/')
+
+    # Display risk level with appropriate color
+    case "$RISK_LEVEL" in
+        "LOW")
+            echo -e "  Risk Level: ${GREEN}LOW${NC}"
+            echo -e "  ${GREEN}Can proceed autonomously at Trust >= $MIN_TRUST%${NC}"
+            ;;
+        "MEDIUM")
+            echo -e "  Risk Level: ${YELLOW}MEDIUM${NC}"
+            echo -e "  ${YELLOW}Requires verification at Trust >= $MIN_TRUST%${NC}"
+            ((WARNINGS++))
+            ;;
+        "HIGH")
+            echo -e "  Risk Level: ${RED}HIGH${NC}"
+            echo -e "  ${RED}REQUIRES HUMAN APPROVAL${NC}"
+            echo -e "  Description: $RISK_DESCRIPTION"
+            if [ "$REQUIRES_APPROVAL" = "true" ]; then
+                echo -e "  ${RED}CRITICAL: HIGH risk tasks cannot proceed without explicit human approval${NC}"
+                echo -e "  ${RED}Request approval from PM_Architect or Owner before proceeding${NC}"
+                ((CRITICAL++))
+            fi
+            ;;
+        "CRITICAL")
+            echo -e "  Risk Level: ${RED}CRITICAL${NC}"
+            echo -e "  ${RED}REQUIRES EXPLICIT HUMAN COMMAND${NC}"
+            echo -e "  Description: $RISK_DESCRIPTION"
+            echo -e "  ${RED}CRITICAL: This operation cannot proceed without EXPLICIT human instruction${NC}"
+            echo -e "  ${RED}The human must directly command this action - DO NOT PROCEED AUTONOMOUSLY${NC}"
+            ((CRITICAL++))
+            ;;
+        *)
+            echo -e "  ${YELLOW}WARNING: Could not determine risk level${NC}"
+            ((WARNINGS++))
+            ;;
+    esac
+
+    # Show matched patterns if any
+    MATCHED_PATTERNS=$(echo "$RISK_RESULT" | grep -o '"matchedPatterns":\[[^]]*\]' | sed 's/"matchedPatterns":\[//;s/\]//;s/"//g')
+    if [ -n "$MATCHED_PATTERNS" ] && [ "$MATCHED_PATTERNS" != "" ]; then
+        echo -e "  Matched patterns: $MATCHED_PATTERNS"
+    fi
+else
+    echo -e "  ${YELLOW}SKIP: Risk classification not available (governor_helpers.js not found)${NC}"
 fi
 
 # =============================================================================

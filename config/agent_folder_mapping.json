@@ -1,0 +1,27 @@
+{
+  "description": "Maps VALID_AGENTS names to their corresponding folder names in claude_sessions/",
+  "version": "1.0.0",
+  "created": "2026-02-12",
+  "mapping": {
+    "PM_Architect": "pm_architect",
+    "Backend_Claude": "backend",
+    "Desktop_Claude": "desktop_web",
+    "Mobile_Claude": "mobile_app",
+    "UX_Design_Claude": "ux_design",
+    "Sales_Claude": "sales_crm",
+    "Security_Claude": "security",
+    "Verifier_Claude": "verifier_claude",
+    "Critic_Claude": "critic_claude"
+  },
+  "reverse_mapping": {
+    "pm_architect": "PM_Architect",
+    "backend": "Backend_Claude",
+    "desktop_web": "Desktop_Claude",
+    "mobile_app": "Mobile_Claude",
+    "ux_design": "UX_Design_Claude",
+    "sales_crm": "Sales_Claude",
+    "security": "Security_Claude",
+    "verifier_claude": "Verifier_Claude",
+    "critic_claude": "Critic_Claude"
+  }
+}

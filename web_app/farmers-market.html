@@ -581,6 +581,226 @@
                 gap: 16px;
             }
         }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.active .modal {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        /* Settlement Modal Specific */
+        .settlement-section {
+            margin-bottom: 20px;
+        }
+
+        .settlement-section-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        .settlement-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .settlement-row:last-child {
+            border-bottom: none;
+        }
+
+        .settlement-row.total {
+            font-weight: 600;
+            font-size: 18px;
+            border-top: 2px solid var(--border-color);
+            padding-top: 12px;
+            margin-top: 8px;
+        }
+
+        .settlement-row .label {
+            color: var(--text-secondary);
+        }
+
+        .settlement-row .value {
+            font-weight: 500;
+        }
+
+        .settlement-row .value.positive {
+            color: var(--success);
+        }
+
+        .settlement-row .value.negative {
+            color: var(--danger);
+        }
+
+        /* Analytics Modal Specific */
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .analytics-card {
+            background: var(--bg-elevated);
+            padding: 16px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .analytics-card .value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .analytics-card .label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .top-products-list {
+            background: var(--bg-elevated);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .top-product-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .top-product-item:last-child {
+            border-bottom: none;
+        }
+
+        .top-product-rank {
+            width: 24px;
+            height: 24px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 12px;
+        }
+
+        .top-product-name {
+            flex: 1;
+        }
+
+        .top-product-revenue {
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        /* Cancel Market Modal */
+        .cancel-reason-options {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .cancel-reason-btn {
+            padding: 12px 16px;
+            background: var(--bg-elevated);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
+        }
+
+        .cancel-reason-btn:hover {
+            border-color: var(--primary);
+        }
+
+        .cancel-reason-btn.selected {
+            border-color: var(--danger);
+            background: rgba(239, 68, 68, 0.1);
+        }
     </style>
 </head>
 <body>
@@ -810,6 +1030,92 @@
         </main>
     </div>
 
+    <!-- Settlement Modal -->
+    <div class="modal-overlay" id="settlement-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Settlement Summary</span>
+                <button class="modal-close" onclick="closeModal('settlement-modal')">&times;</button>
+            </div>
+            <div class="modal-body" id="settlement-modal-body">
+                <!-- Content populated by JS -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="printSettlement()">Print</button>
+                <button class="btn btn-primary" onclick="completeSettlement()">Complete Settlement</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics Modal -->
+    <div class="modal-overlay" id="analytics-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Performance Analytics</span>
+                <button class="modal-close" onclick="closeModal('analytics-modal')">&times;</button>
+            </div>
+            <div class="modal-body" id="analytics-modal-body">
+                <!-- Content populated by JS -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('analytics-modal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cancel Market Modal -->
+    <div class="modal-overlay" id="cancel-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Cancel Market Session</span>
+                <button class="modal-close" onclick="closeModal('cancel-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                    Select a reason for cancellation:
+                </p>
+                <div class="cancel-reason-options" id="cancel-reasons">
+                    <button class="cancel-reason-btn" data-reason="weather" onclick="selectCancelReason(this)">
+                        Weather (rain, extreme heat, etc.)
+                    </button>
+                    <button class="cancel-reason-btn" data-reason="holiday" onclick="selectCancelReason(this)">
+                        Holiday
+                    </button>
+                    <button class="cancel-reason-btn" data-reason="staffing" onclick="selectCancelReason(this)">
+                        Staffing issues
+                    </button>
+                    <button class="cancel-reason-btn" data-reason="other" onclick="selectCancelReason(this)">
+                        Other reason
+                    </button>
+                </div>
+                <input type="hidden" id="cancel-session-id">
+                <input type="hidden" id="selected-cancel-reason">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('cancel-modal')">Keep Market</button>
+                <button class="btn" style="background: var(--danger); color: white;" onclick="confirmCancelMarket()">
+                    Cancel Market
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Session Created Modal -->
+    <div class="modal-overlay" id="session-created-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Session Created</span>
+                <button class="modal-close" onclick="closeModal('session-created-modal')">&times;</button>
+            </div>
+            <div class="modal-body" id="session-created-body">
+                <!-- Content populated by JS -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="closeModal('session-created-modal')">OK</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // ========================================
         // FARMERS MARKET DASHBOARD - JAVASCRIPT
@@ -922,6 +1228,10 @@
                 const statusClass = 'status-' + (market.status || 'not-created').toLowerCase().replace(/\s+/g, '-');
                 const impactClass = (market.weatherImpact || 'unknown').toLowerCase();
 
+                // Show cancel button if session exists and not already cancelled/complete
+                const showCancelBtn = market.sessionId &&
+                    !['COMPLETE', 'CANCELLED'].includes(market.status?.toUpperCase());
+
                 return `
                     <div class="market-item" onclick="selectMarket('${market.sessionId || ''}', '${market.location?.id}', '${market.date}')">
                         <div class="market-date">
@@ -943,6 +1253,12 @@
                             </div>
                         </div>
                         <span class="market-status ${statusClass}">${market.status || 'Not Created'}</span>
+                        ${showCancelBtn ? `
+                            <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 11px; margin-left: 8px;"
+                                onclick="event.stopPropagation(); showCancelModal('${market.sessionId}', '${market.location?.id}', '${market.date}')">
+                                Cancel
+                            </button>
+                        ` : ''}
                     </div>
                 `;
             }).join('');
@@ -1053,8 +1369,9 @@
                 currentSession = sessionId;
                 await loadHarvestPlan(sessionId);
             } else {
-                // Create new session
-                if (confirm(`Create session for ${date}?`)) {
+                // Create new session - use confirmation modal approach
+                const confirmed = await showConfirmDialog(`Create market session for ${date}?`);
+                if (confirmed) {
                     const result = await apiCall('createMarketSession', {
                         locationId: locationId,
                         marketDate: date
@@ -1062,13 +1379,29 @@
 
                     if (result.success) {
                         currentSession = result.sessionId;
-                        alert('Session created: ' + result.sessionId);
+                        document.getElementById('session-created-body').innerHTML = `
+                            <div style="text-align: center;">
+                                <div style="font-size: 48px; margin-bottom: 16px;">&#10003;</div>
+                                <p>Session created successfully!</p>
+                                <p style="color: var(--text-secondary); font-size: 14px; margin-top: 8px;">
+                                    Session ID: ${result.sessionId}
+                                </p>
+                            </div>
+                        `;
+                        openModal('session-created-modal');
                         await refreshDashboard();
                     } else {
-                        alert('Error: ' + result.error);
+                        showNotification('Error: ' + result.error, 'error');
                     }
                 }
             }
+        }
+
+        function showConfirmDialog(message) {
+            return new Promise((resolve) => {
+                // Using native confirm for simplicity - can be enhanced to modal
+                resolve(confirm(message));
+            });
         }
 
         async function createNewSession() {
@@ -1156,34 +1489,49 @@
 
         async function startSettlement() {
             if (!currentSession) {
-                alert('Please select a market first');
+                showNotification('Please select a market first', 'warning');
                 return;
             }
 
             const result = await apiCall('initiateSettlement', { sessionId: currentSession });
 
             if (result.success) {
-                const summary = `
-Settlement Summary for ${currentSession}:
-
-Gross Sales: $${result.grossSales}
-Market Fee: $${result.fees.marketFee}
-Card Processing: $${result.fees.cardProcessing}
-Net Revenue: $${result.netRevenue}
-
-Inventory:
-- Brought: ${result.inventory.brought}
-- Sold: ${result.inventory.sold}
-- Returned: ${result.inventory.returned}
-- Sell-Through: ${result.inventory.sellThrough}
-
-Enter starting and ending cash to complete settlement.
-                `;
-
-                alert(summary);
+                renderSettlementModal(result);
             } else {
-                alert('Error: ' + result.error);
+                showNotification('Error: ' + result.error, 'error');
             }
+        }
+
+        function showNotification(message, type = 'info') {
+            // Simple notification - could be enhanced with toast
+            const colors = {
+                info: 'var(--info)',
+                warning: 'var(--warning)',
+                error: 'var(--danger)',
+                success: 'var(--success)'
+            };
+
+            const notif = document.createElement('div');
+            notif.style.cssText = `
+                position: fixed;
+                top: 80px;
+                right: 20px;
+                background: ${colors[type]};
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                z-index: 9999;
+                font-weight: 500;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                animation: slideIn 0.3s ease;
+            `;
+            notif.textContent = message;
+            document.body.appendChild(notif);
+
+            setTimeout(() => {
+                notif.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notif.remove(), 300);
+            }, 3000);
         }
 
         async function viewSession(sessionId) {
@@ -1195,20 +1543,9 @@ Enter starting and ending cash to complete settlement.
             const result = await apiCall('getMarketPerformanceAnalytics', { dateRange: 90 });
 
             if (result.success) {
-                const summary = `
-Performance Analytics (Last 90 Days):
-
-Sessions: ${result.summary.sessionCount}
-Total Revenue: $${result.summary.totalRevenue}
-Avg Revenue/Market: $${result.summary.avgRevenuePerMarket}
-Avg Sell-Through: ${result.summary.avgSellThroughRate}
-Prediction Accuracy: ${result.summary.predictionAccuracy}
-
-Top Products:
-${result.topProducts.slice(0, 5).map(p => `- ${p.name}: $${p.revenue}`).join('\n')}
-                `;
-
-                alert(summary);
+                renderAnalyticsModal(result);
+            } else {
+                showNotification('Error loading analytics', 'error');
             }
         }
 
@@ -1259,6 +1596,201 @@ Sales are pulled from your Shopify POS for the market time window.`);
             if (code >= 95) return '⛈️';
 
             return '☁️';
+        }
+
+        // ========================================
+        // MODAL FUNCTIONS
+        // ========================================
+
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        // Close modal on overlay click
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal-overlay')) {
+                e.target.classList.remove('active');
+            }
+        });
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active'));
+            }
+        });
+
+        let currentSettlementData = null;
+
+        function renderSettlementModal(data) {
+            currentSettlementData = data;
+
+            const body = document.getElementById('settlement-modal-body');
+            body.innerHTML = `
+                <div class="settlement-section">
+                    <div class="settlement-section-title">Sales Summary</div>
+                    <div class="settlement-row">
+                        <span class="label">Gross Sales</span>
+                        <span class="value positive">$${(data.grossSales || 0).toLocaleString()}</span>
+                    </div>
+                </div>
+
+                <div class="settlement-section">
+                    <div class="settlement-section-title">Fees & Deductions</div>
+                    <div class="settlement-row">
+                        <span class="label">Market Fee</span>
+                        <span class="value negative">-$${(data.fees?.marketFee || 0).toLocaleString()}</span>
+                    </div>
+                    <div class="settlement-row">
+                        <span class="label">Card Processing</span>
+                        <span class="value negative">-$${(data.fees?.cardProcessing || 0).toLocaleString()}</span>
+                    </div>
+                    <div class="settlement-row total">
+                        <span class="label">Net Revenue</span>
+                        <span class="value positive">$${(data.netRevenue || 0).toLocaleString()}</span>
+                    </div>
+                </div>
+
+                <div class="settlement-section">
+                    <div class="settlement-section-title">Inventory</div>
+                    <div class="settlement-row">
+                        <span class="label">Items Brought</span>
+                        <span class="value">${data.inventory?.brought || 0}</span>
+                    </div>
+                    <div class="settlement-row">
+                        <span class="label">Items Sold</span>
+                        <span class="value">${data.inventory?.sold || 0}</span>
+                    </div>
+                    <div class="settlement-row">
+                        <span class="label">Items Returned</span>
+                        <span class="value">${data.inventory?.returned || 0}</span>
+                    </div>
+                    <div class="settlement-row total">
+                        <span class="label">Sell-Through Rate</span>
+                        <span class="value">${data.inventory?.sellThrough || '0%'}</span>
+                    </div>
+                </div>
+            `;
+
+            openModal('settlement-modal');
+        }
+
+        async function completeSettlement() {
+            if (!currentSession || !currentSettlementData) return;
+
+            const result = await apiCall('completeSettlement', { sessionId: currentSession });
+
+            if (result.success) {
+                closeModal('settlement-modal');
+                await refreshDashboard();
+            } else {
+                const body = document.getElementById('settlement-modal-body');
+                body.innerHTML += `<div class="alert alert-urgent" style="margin-top: 16px;">Error: ${result.error}</div>`;
+            }
+        }
+
+        function printSettlement() {
+            window.print();
+        }
+
+        let currentAnalyticsData = null;
+
+        function renderAnalyticsModal(data) {
+            currentAnalyticsData = data;
+
+            const body = document.getElementById('analytics-modal-body');
+            body.innerHTML = `
+                <p style="color: var(--text-secondary); margin-bottom: 16px;">Last 90 Days Performance</p>
+
+                <div class="analytics-grid">
+                    <div class="analytics-card">
+                        <div class="value">${data.summary?.sessionCount || 0}</div>
+                        <div class="label">Market Sessions</div>
+                    </div>
+                    <div class="analytics-card">
+                        <div class="value">$${(data.summary?.totalRevenue || 0).toLocaleString()}</div>
+                        <div class="label">Total Revenue</div>
+                    </div>
+                    <div class="analytics-card">
+                        <div class="value">$${(data.summary?.avgRevenuePerMarket || 0).toLocaleString()}</div>
+                        <div class="label">Avg per Market</div>
+                    </div>
+                    <div class="analytics-card">
+                        <div class="value">${data.summary?.avgSellThroughRate || '0%'}</div>
+                        <div class="label">Avg Sell-Through</div>
+                    </div>
+                </div>
+
+                <div class="settlement-section-title">Top Products</div>
+                <div class="top-products-list">
+                    ${(data.topProducts || []).slice(0, 5).map((p, i) => `
+                        <div class="top-product-item">
+                            <span class="top-product-rank">${i + 1}</span>
+                            <span class="top-product-name">${p.name}</span>
+                            <span class="top-product-revenue">$${(p.revenue || 0).toLocaleString()}</span>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <div style="margin-top: 16px; text-align: center;">
+                    <span style="color: var(--text-secondary); font-size: 13px;">
+                        Prediction Accuracy: ${data.summary?.predictionAccuracy || 'N/A'}
+                    </span>
+                </div>
+            `;
+
+            openModal('analytics-modal');
+        }
+
+        // Cancel Market Functions
+        function showCancelModal(sessionId, locationId, date) {
+            document.getElementById('cancel-session-id').value = sessionId || '';
+            document.getElementById('selected-cancel-reason').value = '';
+
+            // Reset button states
+            document.querySelectorAll('.cancel-reason-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+
+            openModal('cancel-modal');
+        }
+
+        function selectCancelReason(btn) {
+            document.querySelectorAll('.cancel-reason-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            document.getElementById('selected-cancel-reason').value = btn.dataset.reason;
+        }
+
+        async function confirmCancelMarket() {
+            const sessionId = document.getElementById('cancel-session-id').value;
+            const reason = document.getElementById('selected-cancel-reason').value;
+
+            if (!reason) {
+                document.getElementById('cancel-reasons').style.border = '2px solid var(--danger)';
+                return;
+            }
+
+            if (!sessionId) {
+                closeModal('cancel-modal');
+                return;
+            }
+
+            const result = await apiCall('updateMarketSessionStatus', {
+                sessionId: sessionId,
+                status: 'CANCELLED',
+                cancelReason: reason
+            });
+
+            if (result.success) {
+                closeModal('cancel-modal');
+                await refreshDashboard();
+            } else {
+                alert('Error cancelling market: ' + result.error);
+            }
         }
     </script>
 

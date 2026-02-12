@@ -40,6 +40,104 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-02-12 - Backend_Claude (Self-Updating Algorithm Intelligence System)
+
+### Context
+User requested building a REAL, SMART, SELF-UPDATING algorithm intelligence system with:
+1. RSS Feed Aggregator for algorithm news
+2. Claude AI Article Summarizer
+3. Personal Optimal Time Calculator using Instagram Graph API
+4. Engagement Anomaly Detection (20%+ drops)
+5. Weekly Intelligence Brief Generator
+6. Frontend integration with REAL data
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Added complete Algorithm Intelligence System backend
+- `web_app/marketing-command-center.html` - Updated Brain tab to display REAL data
+
+### Backend Functions Added (MERGED TOTAL.js)
+- `initializeAlgorithmNewsSheet()` - Create/get AlgorithmNews sheet for RSS articles
+- `initializeEngagementHistorySheet()` - Track engagement over time
+- `initializeWeeklyBriefSheet()` - Store weekly intelligence briefs
+- `fetchAlgorithmNews()` - RSS aggregator pulling from Buffer, Later, Hootsuite, Social Media Examiner feeds
+- `parseRSSFeed(content, feedInfo)` - Parse RSS/Atom XML feeds
+- `getAtomLink(entry, ns)` - Helper for Atom feed links
+- `isAlgorithmRelevant(text)` - Filter articles by algorithm keywords
+- `summarizeAlgorithmArticle(content, title, source)` - Claude AI summarization extracting Platform, Change Type, Impact Level, Action Required, Summary
+- `processAlgorithmNews()` - Batch process unprocessed articles with AI
+- `getFollowerOnlineTimes(accountId)` - Instagram Graph API follower insights
+- `getGenericOptimalTimes()` - Fallback industry research times
+- `formatHour(hour)` - Helper to format hour to readable time
+- `calculateOptimalPostingTimes(accountId)` - Personalized recommendations from YOUR data + follower times
+- `getYourEngagementByTime(accountId)` - Analyze YOUR post engagement by hour
+- `getDaySpecificTips(dayOfWeek)` - Day-specific posting tips
+- `detectEngagementAnomalies(accountId)` - Alert when engagement drops 20%+ vs 30-day baseline
+- `generateWeeklyIntelligenceBrief()` - Combine algorithm updates + YOUR performance + recommendations
+- `getWeekNumber(date)` - Helper for week number
+- `setupAlgorithmIntelligenceTrigger()` - Weekly Monday triggers for auto-fetch/process/brief
+- `getLatestIntelligenceBrief()` - Get most recent brief
+- `getAlgorithmIntelligenceDashboard()` - Combined dashboard data for frontend
+
+### API Routes Added
+- `fetchAlgorithmNews` - Trigger RSS fetch
+- `processAlgorithmNews` - Process with AI
+- `getFollowerOnlineTimes` - Get Instagram follower insights
+- `calculateOptimalPostingTimes` - Get personalized times
+- `detectEngagementAnomalies` - Check for engagement drops
+- `generateWeeklyIntelligenceBrief` - Generate new brief
+- `getLatestIntelligenceBrief` - Get existing brief
+- `getAlgorithmIntelligenceDashboard` - Full dashboard data
+- `setupAlgorithmIntelligenceTrigger` - Set up auto-update triggers
+
+### Frontend Functions Added (marketing-command-center.html)
+- `fetchAlgorithmIntelligence(forceRefresh)` - Fetch dashboard data from backend with caching
+- `displayAlgorithmIntelligence(data)` - Render real data to UI elements
+- `updateChangeIndicator(elementId, changeValue)` - Display % changes with color coding
+- `getImpactColor(level)` - Map impact level to color
+- `getPlatformIcon(platform)` - Map platform to FontAwesome icon
+- `escapeHtml(text)` - XSS prevention
+- `showFallbackAlgorithmData()` - Graceful degradation when API fails
+- `generateNewBrief()` - Trigger new brief generation
+- `initAlgorithmIntelligence()` - Initialize on Brain tab load
+
+### UI Changes
+- Algorithm Intelligence panel now shows REAL engagement health status (HEALTHY/NEEDS ATTENTION)
+- Engagement change indicators for overall engagement, likes, comments
+- Algorithm updates list from RSS aggregation with impact level badges
+- Personalized optimal posting time (not hardcoded!)
+- Alternative posting times display
+- Weekly Intelligence Brief section with generation button
+- Health badge in panel header
+
+### Sheets Created (auto-initialized)
+- `AlgorithmNews` - Stores fetched RSS articles with AI analysis
+- `EngagementHistory` - Tracks engagement metrics over time
+- `WeeklyIntelligenceBriefs` - Stores generated weekly briefs
+
+### Weekly Auto-Update Schedule
+- Monday 7:00 AM - Fetch algorithm news from RSS feeds
+- Monday 7:30 AM - Process articles with Claude AI
+- Monday 8:00 AM - Generate weekly intelligence brief
+
+### RSS Sources Configured
+- Buffer Blog (Multiple platforms)
+- Later Blog (Instagram focus)
+- Hootsuite Blog (Multiple platforms)
+- Social Media Examiner (Algorithm changes)
+- Social Media Today (News)
+- Meta for Business (Official)
+- TikTok Newsroom (Official)
+
+### Reason
+Transform the Marketing Command Center Brain tab from showing hardcoded/generic data to displaying REAL, PERSONALIZED, SELF-UPDATING algorithm intelligence that actually helps the farm make smarter social media decisions.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (enhanced existing algorithm code, no duplicates)
+- [x] No duplicates created - built on top of existing Algorithm_Updates infrastructure
+
+---
+
 ## 2026-02-12 - Desktop_Claude (Design Studio MVP)
 
 ### Context

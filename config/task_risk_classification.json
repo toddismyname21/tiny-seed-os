@@ -1,0 +1,271 @@
+{
+  "version": "1.0",
+  "description": "Task Risk Classification System for Tiny Seed OS",
+  "created": "2026-02-12",
+  "updated": "2026-02-12",
+
+  "riskLevels": {
+    "LOW": {
+      "level": 1,
+      "displayName": "Low Risk",
+      "color": "#28a745",
+      "icon": "fa-check-circle",
+      "description": "Read-only operations, documentation, research tasks",
+      "requiresApproval": false,
+      "minimumTrustLevel": 25,
+      "autoApproveAtTrust": 25,
+      "examples": [
+        "Reading files",
+        "Generating documentation",
+        "Research and analysis",
+        "Code review (no changes)",
+        "Running read-only queries",
+        "Viewing logs"
+      ]
+    },
+    "MEDIUM": {
+      "level": 2,
+      "displayName": "Medium Risk",
+      "color": "#ffc107",
+      "icon": "fa-exclamation-triangle",
+      "description": "Code changes, non-production deployments, internal modifications",
+      "requiresApproval": false,
+      "minimumTrustLevel": 50,
+      "autoApproveAtTrust": 50,
+      "requiresVerification": true,
+      "examples": [
+        "Code modifications",
+        "Non-production deployments",
+        "Test environment changes",
+        "Internal tool updates",
+        "Configuration changes",
+        "Database schema updates (staging)"
+      ]
+    },
+    "HIGH": {
+      "level": 3,
+      "displayName": "High Risk",
+      "color": "#fd7e14",
+      "icon": "fa-exclamation-circle",
+      "description": "Production deployments, financial operations, external communications",
+      "requiresApproval": true,
+      "minimumTrustLevel": 75,
+      "autoApproveAtTrust": null,
+      "requiresVerification": true,
+      "requiresHumanApproval": true,
+      "examples": [
+        "Production deployments",
+        "Financial transactions",
+        "External API calls (paid services)",
+        "Email sending to customers",
+        "Order processing",
+        "Inventory adjustments"
+      ]
+    },
+    "CRITICAL": {
+      "level": 4,
+      "displayName": "Critical Risk",
+      "color": "#dc3545",
+      "icon": "fa-skull-crossbones",
+      "description": "Security changes, data deletion, customer-facing modifications",
+      "requiresApproval": true,
+      "minimumTrustLevel": 100,
+      "autoApproveAtTrust": null,
+      "requiresVerification": true,
+      "requiresHumanApproval": true,
+      "requiresExplicitCommand": true,
+      "examples": [
+        "Security configuration changes",
+        "Data deletion operations",
+        "Customer-facing content changes",
+        "Authentication/authorization changes",
+        "Payment system modifications",
+        "User data exports",
+        "Production database modifications"
+      ]
+    }
+  },
+
+  "taskTypeToRisk": {
+    "read": "LOW",
+    "documentation": "LOW",
+    "research": "LOW",
+    "analysis": "LOW",
+    "review": "LOW",
+    "query_readonly": "LOW",
+    "log_view": "LOW",
+
+    "code_change": "MEDIUM",
+    "config_change": "MEDIUM",
+    "deploy_staging": "MEDIUM",
+    "deploy_test": "MEDIUM",
+    "test_run": "MEDIUM",
+    "internal_tool": "MEDIUM",
+    "schema_staging": "MEDIUM",
+
+    "deploy_production": "HIGH",
+    "financial": "HIGH",
+    "external_api_paid": "HIGH",
+    "email_customer": "HIGH",
+    "order_process": "HIGH",
+    "inventory_adjust": "HIGH",
+    "shopify_update": "HIGH",
+
+    "security": "CRITICAL",
+    "auth_change": "CRITICAL",
+    "data_delete": "CRITICAL",
+    "customer_content": "CRITICAL",
+    "payment_system": "CRITICAL",
+    "user_data_export": "CRITICAL",
+    "production_database": "CRITICAL",
+    "credential_change": "CRITICAL"
+  },
+
+  "scopeModifiers": {
+    "test": -1,
+    "staging": -1,
+    "development": -1,
+    "local": -1,
+
+    "production": 1,
+    "live": 1,
+    "customer": 1,
+    "external": 1,
+    "financial": 1,
+    "security": 1
+  },
+
+  "keywordPatterns": {
+    "LOW": [
+      "read",
+      "view",
+      "list",
+      "get",
+      "fetch",
+      "query",
+      "analyze",
+      "research",
+      "document",
+      "review"
+    ],
+    "MEDIUM": [
+      "update",
+      "modify",
+      "change",
+      "edit",
+      "create",
+      "add",
+      "config",
+      "test",
+      "staging"
+    ],
+    "HIGH": [
+      "deploy",
+      "production",
+      "publish",
+      "send",
+      "email",
+      "financial",
+      "payment",
+      "order",
+      "shopify",
+      "inventory"
+    ],
+    "CRITICAL": [
+      "delete",
+      "remove",
+      "destroy",
+      "drop",
+      "security",
+      "auth",
+      "credential",
+      "password",
+      "token",
+      "secret",
+      "customer",
+      "user data",
+      "export"
+    ]
+  },
+
+  "filePatternRisks": {
+    "CRITICAL": [
+      ".*auth.*",
+      ".*security.*",
+      ".*credential.*",
+      ".*secret.*",
+      ".*password.*",
+      ".*token.*",
+      ".*payment.*",
+      "\\.env$",
+      ".*\\.pem$",
+      ".*\\.key$"
+    ],
+    "HIGH": [
+      ".*shopify.*",
+      ".*production.*",
+      ".*deploy.*",
+      ".*financial.*",
+      ".*order.*",
+      ".*customer.*"
+    ],
+    "MEDIUM": [
+      ".*\\.js$",
+      ".*\\.html$",
+      ".*\\.css$",
+      ".*config.*",
+      ".*\\.json$"
+    ],
+    "LOW": [
+      ".*\\.md$",
+      ".*\\.txt$",
+      ".*\\.log$",
+      ".*README.*"
+    ]
+  },
+
+  "autonomyLevelMapping": {
+    "LOW": {
+      "minTrust": 25,
+      "behavior": "autonomous",
+      "description": "Can proceed without approval when trust > 25%"
+    },
+    "MEDIUM": {
+      "minTrust": 50,
+      "behavior": "verify",
+      "description": "Requires verification at trust > 50%"
+    },
+    "HIGH": {
+      "minTrust": 75,
+      "behavior": "approval_required",
+      "description": "Always requires human approval"
+    },
+    "CRITICAL": {
+      "minTrust": 100,
+      "behavior": "explicit_command",
+      "description": "Always requires explicit human command"
+    }
+  },
+
+  "approvalWorkflow": {
+    "LOW": {
+      "autoApprove": true,
+      "conditions": ["trustLevel >= 25"]
+    },
+    "MEDIUM": {
+      "autoApprove": true,
+      "conditions": ["trustLevel >= 50", "verificationPassed"]
+    },
+    "HIGH": {
+      "autoApprove": false,
+      "conditions": ["humanApproval"],
+      "approvers": ["PM_Architect", "Owner"]
+    },
+    "CRITICAL": {
+      "autoApprove": false,
+      "conditions": ["explicitHumanCommand", "humanApproval"],
+      "approvers": ["Owner"],
+      "requiresDoubleConfirmation": true
+    }
+  }
+}

@@ -1805,6 +1805,87 @@
             font-weight: 600;
         }
 
+        /* Smart swap suggestion styles (Harvie-style personalization) */
+        .swap-option.recommended {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.08), rgba(34, 197, 94, 0.04));
+            border-color: rgba(34, 197, 94, 0.3);
+            position: relative;
+        }
+
+        .swap-option.recommended:hover {
+            border-color: var(--primary);
+        }
+
+        .swap-match-badge {
+            background: var(--primary);
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 12px;
+            white-space: nowrap;
+        }
+
+        .swap-recommended {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        .swap-recommended i {
+            color: var(--primary);
+        }
+
+        .swap-note {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            color: #92400e;
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
+
+        .swap-note i {
+            font-size: 18px;
+        }
+
+        .swap-empty-note {
+            padding: 16px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            text-align: center;
+            background: var(--bg-elevated);
+            border-radius: var(--radius-md);
+        }
+
+        .swap-empty-note i {
+            margin-right: 6px;
+            color: var(--text-muted);
+        }
+
+        .swap-loading {
+            padding: 24px;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        .swap-loading .loading-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border-color);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            display: inline-block;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
         .swap-remember {
             display: flex;
             align-items: center;
@@ -4611,32 +4692,114 @@
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
-        // SWAP FUNCTIONALITY (ENHANCED)
+        // SWAP FUNCTIONALITY (ENHANCED WITH SMART SUGGESTIONS - Harvie-style)
         // ═══════════════════════════════════════════════════════════════════════════
 
-        function openSwapModal(itemName, emoji = '🥬') {
+        async function openSwapModal(itemName, emoji = '🥬') {
             AppState.swappingItem = itemName;
             AppState.selectedSwap = null;
 
             document.getElementById('swapCurrentName').textContent = itemName;
             document.getElementById('swapCurrentEmoji').textContent = emoji;
             document.getElementById('confirmSwapBtn').disabled = true;
+            document.getElementById('swapModal').classList.add('open');
 
-            // Enhanced swap options with popularity
+            // Show loading state
+            document.getElementById('popularSwaps').innerHTML = `
+                <div class="swap-loading">
+                    <span class="loading-spinner"></span> Loading personalized suggestions...
+                </div>
+            `;
+            document.getElementById('otherSwaps').innerHTML = '';
+
+            try {
+                // Fetch smart swap suggestions based on member preferences
+                const memberId = AppState.membership?.Member_ID;
+                const response = await fetch(`${API_URL}?action=getSmartSwapSuggestions&memberId=${encodeURIComponent(memberId)}&swapOut=${encodeURIComponent(itemName)}`);
+                const result = await response.json();
+
+                if (result.success && result.suggestions) {
+                    renderSwapSuggestions(result);
+                } else {
+                    // Fallback to default options if API fails
+                    renderFallbackSwapOptions();
+                }
+            } catch (error) {
+                console.error('Failed to load smart suggestions:', error);
+                renderFallbackSwapOptions();
+            }
+        }
+
+        function renderSwapSuggestions(data) {
+            const { suggestions, swapOutNote, hasPreferences } = data;
+
+            // Show swap-out note if system detected a pattern
+            if (swapOutNote) {
+                const noteHtml = `
+                    <div class="swap-note">
+                        <i class="fas fa-lightbulb"></i>
+                        <span>${swapOutNote}</span>
+                    </div>
+                `;
+                document.getElementById('popularSwaps').insertAdjacentHTML('beforebegin', noteHtml);
+            }
+
+            // Render recommended swaps (personalized based on preferences)
+            if (suggestions.recommended && suggestions.recommended.length > 0) {
+                document.getElementById('popularSwaps').innerHTML = suggestions.recommended.map(opt => `
+                    <div class="swap-option recommended" onclick="selectSwap('${opt.name}', '${opt.emoji}')">
+                        <div class="swap-option-emoji">${opt.emoji}</div>
+                        <div class="swap-option-info">
+                            <div class="swap-option-name">${opt.name}</div>
+                            <div class="swap-option-meta">
+                                <span class="swap-recommended"><i class="fas fa-thumbs-up"></i> ${opt.reason}</span>
+                                ${opt.limited ? '<span class="swap-limited">Limited!</span>' : ''}
+                            </div>
+                        </div>
+                        <div class="swap-match-badge">${opt.confidence === 'high' ? 'Great match' : 'Good match'}</div>
+                    </div>
+                `).join('');
+            } else {
+                document.getElementById('popularSwaps').innerHTML = `
+                    <div class="swap-empty-note">
+                        <i class="fas fa-info-circle"></i>
+                        ${hasPreferences ? 'No strong preferences found for these options.' : 'Customize a few boxes and we\'ll learn your preferences!'}
+                    </div>
+                `;
+            }
+
+            // Render other available options
+            if (suggestions.other && suggestions.other.length > 0) {
+                document.getElementById('otherSwaps').innerHTML = suggestions.other.map(opt => `
+                    <div class="swap-option" onclick="selectSwap('${opt.name}', '${opt.emoji}')">
+                        <div class="swap-option-emoji">${opt.emoji}</div>
+                        <div class="swap-option-info">
+                            <div class="swap-option-name">${opt.name}</div>
+                            <div class="swap-option-meta">
+                                ${opt.limited ? '<span class="swap-limited">Limited!</span>' : '<span>Available</span>'}
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function renderFallbackSwapOptions() {
+            // Fallback options when API is unavailable
             const popularOptions = [
-                { name: 'Extra Salad Mix', emoji: '🥬', popularity: 75, available: true },
-                { name: 'Herb Sampler', emoji: '🌿', popularity: 15, available: true }
+                { name: 'Extra Salad Mix', emoji: '🥬', popularity: 75 },
+                { name: 'Herb Sampler', emoji: '🌿', popularity: 15 }
             ];
 
             const otherOptions = [
-                { name: 'Spinach Bundle', emoji: '🥬', available: true },
-                { name: 'Kale Bundle', emoji: '🥬', available: true },
-                { name: 'Root Veggie Mix', emoji: '🥕', available: true },
-                { name: 'Extra Tomatoes', emoji: '🍅', available: true, limited: true }
+                { name: 'Spinach Bundle', emoji: '🥬' },
+                { name: 'Kale Bundle', emoji: '🥬' },
+                { name: 'Root Veggie Mix', emoji: '🥕' },
+                { name: 'Extra Tomatoes', emoji: '🍅', limited: true }
             ];
 
             document.getElementById('popularSwaps').innerHTML = popularOptions.map(opt => `
-                <div class="swap-option ${!opt.available ? 'disabled' : ''}" onclick="${opt.available ? `selectSwap('${opt.name}', '${opt.emoji}')` : ''}">
+                <div class="swap-option" onclick="selectSwap('${opt.name}', '${opt.emoji}')">
                     <div class="swap-option-emoji">${opt.emoji}</div>
                     <div class="swap-option-info">
                         <div class="swap-option-name">${opt.name}</div>
@@ -4648,7 +4811,7 @@
             `).join('');
 
             document.getElementById('otherSwaps').innerHTML = otherOptions.map(opt => `
-                <div class="swap-option ${!opt.available ? 'disabled' : ''}" onclick="${opt.available ? `selectSwap('${opt.name}', '${opt.emoji}')` : ''}">
+                <div class="swap-option" onclick="selectSwap('${opt.name}', '${opt.emoji}')">
                     <div class="swap-option-emoji">${opt.emoji}</div>
                     <div class="swap-option-info">
                         <div class="swap-option-name">${opt.name}</div>
@@ -4658,8 +4821,6 @@
                     </div>
                 </div>
             `).join('');
-
-            document.getElementById('swapModal').classList.add('open');
         }
 
         function closeSwapModal() {

@@ -1,0 +1,54 @@
+{
+  "schema_version": "1.0",
+  "last_updated": "2026-02-12T18:25:29.850Z",
+  "queue_status": "ACTIVE",
+  "requests": [
+    {
+      "requestId": "VER-TEST-WIRE-001-1770920729850-fcf7baad",
+      "taskId": "TEST-WIRE-001",
+      "requestedAt": "2026-02-12T18:25:29.850Z",
+      "requestedBy": "Backend_Claude",
+      "description": "Task TEST-WIRE-001 transitioned to AWAITING_VERIFICATION",
+      "evidence": {},
+      "priority": "MEDIUM",
+      "status": "pending",
+      "verificationType": "general",
+      "acceptanceCriteria": [],
+      "assignedTo": "Verifier_Claude",
+      "verifiedAt": null,
+      "verifiedBy": null,
+      "verificationResult": null,
+      "verificationNotes": null
+    }
+  ],
+  "processed": [],
+  "statistics": {
+    "total_received": 1,
+    "total_verified": 0,
+    "total_rejected": 0,
+    "total_pending": 1,
+    "average_verification_time_minutes": 0
+  },
+  "verification_types": {
+    "file_creation": {
+      "count": 0,
+      "pass_rate": 0
+    },
+    "bug_fix": {
+      "count": 0,
+      "pass_rate": 0
+    },
+    "ui_change": {
+      "count": 0,
+      "pass_rate": 0
+    },
+    "api_change": {
+      "count": 0,
+      "pass_rate": 0
+    },
+    "deployment": {
+      "count": 0,
+      "pass_rate": 0
+    }
+  }
+}

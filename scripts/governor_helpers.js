@@ -20,10 +20,30 @@
 const fs = require('fs');
 const path = require('path');
 
+// Lazy-load checkpoint manager to avoid circular dependency
+let checkpointManager = null;
+function getCheckpointManager() {
+  if (!checkpointManager) {
+    try {
+      checkpointManager = require('./checkpoint_manager');
+    } catch (e) {
+      // Checkpoint manager may not be available yet
+      checkpointManager = null;
+    }
+  }
+  return checkpointManager;
+}
+
 // File paths
 const TINYPM_DIR = path.join(__dirname, '..', 'tinypm');
+const CONFIG_DIR = path.join(__dirname, '..', 'config');
+const CLAUDE_SESSIONS_DIR = path.join(__dirname, '..', 'claude_sessions');
+const VERIFIER_DIR = path.join(CLAUDE_SESSIONS_DIR, 'verifier_claude');
 const METRICS_FILE = path.join(TINYPM_DIR, '.governor_metrics.json');
 const AUDIT_FILE = path.join(TINYPM_DIR, '.governor_audit.json');
+const RISK_CONFIG_FILE = path.join(CONFIG_DIR, 'task_risk_classification.json');
+const VERIFICATION_QUEUE_FILE = path.join(VERIFIER_DIR, 'VERIFICATION_QUEUE.json');
+const VERIFIER_INBOX_FILE = path.join(VERIFIER_DIR, 'INBOX.md');
 
 // Valid agent names
 const VALID_AGENTS = [
@@ -55,7 +75,25 @@ const VALID_METRICS = [
   'proofs_submitted',
   'proofs_validated',
   'proofs_rejected',
-  'direct_done_attempts_blocked'
+  'direct_done_attempts_blocked',
+  // Abstention metrics (STATUS_ABSTAIN Protocol)
+  'abstentions_total',
+  'abstentions_low_confidence',
+  'abstentions_missing_context',
+  'abstentions_ethical_concern',
+  'abstentions_escalated',
+  // Human-on-the-Loop Pause/Resume metrics
+  'tasks_paused',
+  'tasks_resumed',
+  'human_notifications_created',
+  'human_notifications_acknowledged',
+  'pause_timeouts_expired',
+  'average_pause_duration_seconds',
+  // Circuit Breaker metrics
+  'circuit_breaker_trips',
+  'circuit_breaker_resets',
+  'circuit_breaker_recoveries',
+  'token_limit_warnings'
 ];
 
 // Valid action types for audit logging
@@ -91,7 +129,26 @@ const VALID_ACTIONS = [
   'automated_test_passed',
   'automated_test_failed',
   'screenshot_comparison_passed',
-  'screenshot_comparison_failed'
+  'screenshot_comparison_failed',
+  // Abstention Actions (STATUS_ABSTAIN Protocol)
+  'task_abstained',
+  'abstention_escalated',
+  'abstention_resolved',
+  'confidence_check_failed',
+  'confidence_check_passed',
+  // Human-on-the-Loop Pause/Resume Actions
+  'task_paused',
+  'task_resumed',
+  'human_notification_created',
+  'human_notification_acknowledged',
+  'pause_timeout_expired',
+  // Circuit Breaker Actions
+  'circuit_breaker_tripped',
+  'circuit_breaker_reset',
+  'circuit_breaker_reset_all',
+  'circuit_breaker_recovered',
+  'circuit_half_open',
+  'token_usage_warning'
 ];
 
 // Valid outcomes
@@ -102,30 +159,51 @@ const VALID_OUTCOMES = [
   'escalated',
   'rolled_back',
   'blocked',
-  'awaiting_verification'
+  'awaiting_verification',
+  'abstained'  // STATUS_ABSTAIN Protocol
 ];
 
 // Task states for verification gate state machine
 // KEY RULE: No direct path from IMPLEMENTED to DONE
+// STATUS_ABSTAIN: Agent can abstain when confidence is below threshold
 const TASK_STATES = {
   PENDING: 'PENDING',
   IN_PROGRESS: 'IN_PROGRESS',
   IMPLEMENTED: 'IMPLEMENTED',
   AWAITING_VERIFICATION: 'AWAITING_VERIFICATION',
   VERIFIED: 'VERIFIED',
-  DONE: 'DONE'
+  DONE: 'DONE',
+  ABSTAINED: 'ABSTAINED'  // STATUS_ABSTAIN Protocol - agent declined task
 };
+
+// STATUS_ABSTAIN constant for protocol identification
+const STATUS_ABSTAIN = 'STATUS_ABSTAIN';
 
 // Valid state transitions (state machine enforcement)
 // This prevents "declared done but not verified" failures
+// STATUS_ABSTAIN: IN_PROGRESS can transition to ABSTAINED when agent lacks confidence
 const VALID_STATE_TRANSITIONS = {
-  'PENDING': ['IN_PROGRESS'],
-  'IN_PROGRESS': ['IMPLEMENTED', 'PENDING'],  // Can go back to pending if blocked
-  'IMPLEMENTED': ['AWAITING_VERIFICATION'],   // CANNOT go directly to DONE!
+  'PENDING': ['IN_PROGRESS', 'ABSTAINED'],     // Can abstain before starting
+  'IN_PROGRESS': ['IMPLEMENTED', 'PENDING', 'ABSTAINED'],  // Can abstain during work
+  'IMPLEMENTED': ['AWAITING_VERIFICATION'],    // CANNOT go directly to DONE!
   'AWAITING_VERIFICATION': ['VERIFIED', 'IMPLEMENTED'],  // Can be sent back for fixes
   'VERIFIED': ['DONE'],
-  'DONE': []  // Terminal state
+  'DONE': [],      // Terminal state
+  'ABSTAINED': ['PENDING', 'IN_PROGRESS']      // Can be reassigned or resumed
 };
+
+// Abstention reason categories
+const ABSTENTION_REASONS = {
+  LOW_CONFIDENCE: 'low_confidence',           // Confidence below threshold
+  MISSING_CONTEXT: 'missing_context',         // Insufficient information
+  ETHICAL_CONCERN: 'ethical_concern',         // Potential harm or policy violation
+  OUT_OF_SCOPE: 'out_of_scope',               // Task outside agent's capabilities
+  CONFLICTING_INSTRUCTIONS: 'conflicting_instructions',  // Contradictory requirements
+  REQUIRES_HUMAN: 'requires_human'            // Human judgment required
+};
+
+// Default confidence threshold for abstention
+const DEFAULT_CONFIDENCE_THRESHOLD = 0.85;
 
 // Proof types for verification
 const PROOF_TYPES = {
@@ -767,6 +845,179 @@ function submitProofOfSuccess(agent, taskId, proof = {}) {
 }
 
 /**
+ * Route a task to Verifier_Claude for verification
+ *
+ * This function is called automatically when a task transitions to AWAITING_VERIFICATION.
+ * It writes to both VERIFICATION_QUEUE.json and INBOX.md to ensure Verifier_Claude
+ * receives the verification request.
+ *
+ * @param {string} taskId - Task identifier
+ * @param {string} requestedBy - Agent name requesting verification
+ * @param {object} details - Additional details about the verification request
+ * @param {string} details.description - Description of what needs verification
+ * @param {object} details.evidence - Evidence submitted with the request
+ * @param {string} details.priority - Priority level (HIGH, MEDIUM, LOW)
+ * @returns {object} Result with success status and request ID
+ *
+ * @example
+ * const result = routeToVerifier('TASK-001', 'Backend_Claude', {
+ *   description: 'API endpoint update completed',
+ *   evidence: { type: 'test_output', content: 'All tests pass' },
+ *   priority: 'HIGH'
+ * });
+ */
+function routeToVerifier(taskId, requestedBy, details = {}) {
+  const result = {
+    success: false,
+    requestId: null,
+    queuePosition: null,
+    error: null,
+    timestamp: null
+  };
+
+  const timestamp = new Date().toISOString();
+
+  // Generate request ID
+  const requestId = `VER-${taskId}-${Date.now()}-${generateUUID().slice(0, 8)}`;
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // STEP 1: Update VERIFICATION_QUEUE.json
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  let queue = readJsonFile(VERIFICATION_QUEUE_FILE);
+  if (!queue) {
+    // Initialize queue if it doesn't exist
+    queue = {
+      schema_version: '1.0',
+      last_updated: timestamp,
+      queue_status: 'ACTIVE',
+      requests: [],
+      processed: [],
+      statistics: {
+        total_received: 0,
+        total_verified: 0,
+        total_rejected: 0,
+        total_pending: 0,
+        average_verification_time_minutes: 0
+      },
+      verification_types: {
+        file_creation: { count: 0, pass_rate: 0 },
+        bug_fix: { count: 0, pass_rate: 0 },
+        ui_change: { count: 0, pass_rate: 0 },
+        api_change: { count: 0, pass_rate: 0 },
+        deployment: { count: 0, pass_rate: 0 }
+      }
+    };
+  }
+
+  // Create the verification request entry
+  const verificationRequest = {
+    requestId: requestId,
+    taskId: taskId,
+    requestedAt: timestamp,
+    requestedBy: requestedBy,
+    description: details.description || `Verification requested for task ${taskId}`,
+    evidence: details.evidence || {},
+    priority: details.priority || 'MEDIUM',
+    status: 'pending',
+    verificationType: details.verificationType || 'general',
+    acceptanceCriteria: details.acceptanceCriteria || [],
+    assignedTo: 'Verifier_Claude',
+    verifiedAt: null,
+    verifiedBy: null,
+    verificationResult: null,
+    verificationNotes: null
+  };
+
+  // Add to queue
+  queue.requests.push(verificationRequest);
+  queue.statistics.total_received++;
+  queue.statistics.total_pending = queue.requests.filter(r => r.status === 'pending').length;
+  queue.last_updated = timestamp;
+
+  // Save queue
+  const queueSaved = writeJsonFile(VERIFICATION_QUEUE_FILE, queue);
+  if (!queueSaved) {
+    result.error = 'Failed to write to VERIFICATION_QUEUE.json';
+    return result;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // STEP 2: Update INBOX.md
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  try {
+    // Read current INBOX.md
+    let inboxContent = '';
+    if (fs.existsSync(VERIFIER_INBOX_FILE)) {
+      inboxContent = fs.readFileSync(VERIFIER_INBOX_FILE, 'utf-8');
+    }
+
+    // Create the markdown entry for the request
+    const inboxEntry = `
+### ${requestId}
+**From:** ${requestedBy}
+**Task ID:** ${taskId}
+**Timestamp:** ${timestamp}
+**Priority:** ${verificationRequest.priority}
+**Claim:** ${verificationRequest.description}
+
+#### Evidence Submitted
+- Type: ${details.evidence?.type || 'not_provided'}
+- Content: ${details.evidence?.content || 'No evidence submitted yet'}
+
+#### Acceptance Criteria
+${(details.acceptanceCriteria || ['Verify task completion']).map(c => `- [ ] ${c}`).join('\n')}
+
+---
+`;
+
+    // Find the "Active Verification Requests" section and add the entry
+    const activeRequestsMarker = '## Active Verification Requests';
+    const noRequestsMarker = '*No pending verification requests.*';
+
+    if (inboxContent.includes(noRequestsMarker)) {
+      // Replace "no pending" message with the new request
+      inboxContent = inboxContent.replace(noRequestsMarker, inboxEntry);
+    } else if (inboxContent.includes(activeRequestsMarker)) {
+      // Add after the Active Verification Requests header
+      const insertPoint = inboxContent.indexOf(activeRequestsMarker) + activeRequestsMarker.length;
+      const beforeInsert = inboxContent.substring(0, insertPoint);
+      const afterInsert = inboxContent.substring(insertPoint);
+      inboxContent = beforeInsert + '\n' + inboxEntry + afterInsert;
+    } else {
+      // Fallback: append to end
+      inboxContent += '\n' + inboxEntry;
+    }
+
+    // Write back to INBOX.md
+    fs.writeFileSync(VERIFIER_INBOX_FILE, inboxContent);
+  } catch (error) {
+    // Non-fatal: Queue update succeeded, INBOX update failed
+    console.warn(`Warning: Failed to update INBOX.md: ${error.message}`);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // STEP 3: Log the routing event
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  logGovernorEvent(requestedBy, 'verification_awaiting_approval', 'pending', {
+    taskId: taskId,
+    requestId: requestId,
+    routedTo: 'Verifier_Claude',
+    priority: verificationRequest.priority,
+    queuePosition: queue.requests.length
+  });
+
+  result.success = true;
+  result.requestId = requestId;
+  result.queuePosition = queue.requests.length;
+  result.timestamp = timestamp;
+
+  return result;
+}
+
+/**
  * Transition a task from one state to another with state machine enforcement
  *
  * @param {string} taskId - Task identifier
@@ -833,6 +1084,15 @@ function transitionTaskState(taskId, currentState, newState, agent) {
       previousState: currentState,
       newState: newState
     });
+
+    // Route to Verifier_Claude
+    const routeResult = routeToVerifier(taskId, agent, {
+      description: `Task ${taskId} transitioned to AWAITING_VERIFICATION`,
+      previousState: currentState
+    });
+    if (!routeResult.success) {
+      console.warn(`Warning: Failed to route task ${taskId} to Verifier_Claude: ${routeResult.error}`);
+    }
   } else if (currentState === TASK_STATES.AWAITING_VERIFICATION && newState === TASK_STATES.VERIFIED) {
     // Task passed verification
     logGovernorEvent(agent, 'verification_gate_passed', 'success', {
@@ -889,6 +1149,27 @@ function transitionTaskState(taskId, currentState, newState, agent) {
   result.success = true;
   result.newState = newState;
   result.timestamp = timestamp;
+
+  // Auto-checkpoint on successful state transition
+  const cpManager = getCheckpointManager();
+  if (cpManager && cpManager.autoCheckpointOnTransition) {
+    try {
+      const checkpointResult = cpManager.autoCheckpointOnTransition(
+        taskId,
+        agent,
+        currentState,
+        newState,
+        {
+          title: taskId,
+          description: `State transition: ${currentState} -> ${newState}`
+        }
+      );
+      result.checkpointId = checkpointResult.checkpointId;
+    } catch (e) {
+      // Non-fatal: checkpointing is best-effort
+      console.warn(`Checkpoint creation failed: ${e.message}`);
+    }
+  }
 
   return result;
 }
@@ -1029,6 +1310,1083 @@ function getTaskVerificationStatus(taskId) {
   return result;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// STATUS_ABSTAIN PROTOCOL FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════
+// These functions implement the STATUS_ABSTAIN protocol for agents to properly
+// decline tasks when confidence is below threshold or other conditions apply.
+// KEY RULE: Abstaining is better than low-confidence execution
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Check if confidence level meets threshold for task execution
+ *
+ * @param {number} confidence - Confidence level (0.0 to 1.0)
+ * @param {number} threshold - Minimum required confidence (default 0.85)
+ * @returns {object} Result with passes flag and recommendation
+ *
+ * @example
+ * const check = checkConfidenceThreshold(0.72, 0.85);
+ * if (!check.passes) {
+ *   handleAbstention(agentId, taskId, 'low_confidence');
+ * }
+ */
+function checkConfidenceThreshold(confidence, threshold = DEFAULT_CONFIDENCE_THRESHOLD) {
+  const result = {
+    passes: false,
+    confidence: confidence,
+    threshold: threshold,
+    deficit: 0,
+    recommendation: null
+  };
+
+  // Validate input
+  if (typeof confidence !== 'number' || confidence < 0 || confidence > 1) {
+    result.error = 'Confidence must be a number between 0.0 and 1.0';
+    result.recommendation = 'ABSTAIN - invalid confidence value';
+    return result;
+  }
+
+  result.passes = confidence >= threshold;
+  result.deficit = result.passes ? 0 : Math.round((threshold - confidence) * 100);
+
+  if (result.passes) {
+    result.recommendation = 'PROCEED - confidence meets threshold';
+  } else if (confidence >= threshold - 0.15) {
+    result.recommendation = 'ABSTAIN_SOFT - confidence close, consider requesting clarification';
+  } else if (confidence >= threshold - 0.30) {
+    result.recommendation = 'ABSTAIN_HARD - significant confidence gap, escalate to human';
+  } else {
+    result.recommendation = 'ABSTAIN_CRITICAL - very low confidence, do not attempt';
+  }
+
+  return result;
+}
+
+/**
+ * Handle an agent abstention from a task
+ *
+ * @param {string} agentId - Agent ID that is abstaining
+ * @param {string} taskId - Task ID being abstained from
+ * @param {string} reason - Reason category for abstention
+ * @param {object} details - Additional details about the abstention
+ * @param {number} details.confidence - Agent's confidence level (0.0 to 1.0)
+ * @param {string} details.explanation - Human-readable explanation
+ * @param {array} details.missingInfo - List of missing information
+ * @param {string} details.suggestedAction - What the agent suggests instead
+ * @returns {object} Result with success status and abstention record
+ *
+ * @example
+ * const result = handleAbstention('Backend_Claude', 'TASK-001', 'low_confidence', {
+ *   confidence: 0.65,
+ *   explanation: 'Insufficient context about database schema',
+ *   missingInfo: ['table relationships', 'index requirements'],
+ *   suggestedAction: 'Request database documentation'
+ * });
+ */
+function handleAbstention(agentId, taskId, reason, details = {}) {
+  const result = {
+    success: false,
+    abstentionId: null,
+    timestamp: null,
+    escalated: false,
+    errors: []
+  };
+
+  // Validate agent
+  if (!VALID_AGENTS.includes(agentId)) {
+    result.errors.push(`Unknown agent: ${agentId}`);
+    return result;
+  }
+
+  // Validate reason
+  if (!reason || !Object.values(ABSTENTION_REASONS).includes(reason)) {
+    result.errors.push(`Invalid abstention reason: ${reason}. Valid reasons: ${Object.values(ABSTENTION_REASONS).join(', ')}`);
+    return result;
+  }
+
+  // Validate taskId
+  if (!taskId) {
+    result.errors.push('Task ID is required');
+    return result;
+  }
+
+  // Generate abstention ID
+  const abstentionId = `ABSTAIN-${taskId}-${Date.now()}-${generateUUID().slice(0, 8)}`;
+  const timestamp = new Date().toISOString();
+
+  // Determine if this should be escalated
+  const shouldEscalate = reason === ABSTENTION_REASONS.ETHICAL_CONCERN ||
+                         reason === ABSTENTION_REASONS.REQUIRES_HUMAN ||
+                         (details.confidence && details.confidence < 0.5);
+
+  // Read metrics file to store abstention
+  let metrics = readJsonFile(METRICS_FILE);
+  if (!metrics) {
+    result.errors.push('Could not read metrics file');
+    return result;
+  }
+
+  // Initialize abstention storage if not exists
+  if (!metrics.abstentions) {
+    metrics.abstentions = {
+      records: [],
+      by_agent: {},
+      by_reason: {}
+    };
+  }
+
+  // Create abstention record
+  const abstentionRecord = {
+    id: abstentionId,
+    taskId: taskId,
+    agentId: agentId,
+    reason: reason,
+    confidence: details.confidence || null,
+    explanation: details.explanation || '',
+    missingInfo: details.missingInfo || [],
+    suggestedAction: details.suggestedAction || '',
+    timestamp: timestamp,
+    escalated: shouldEscalate,
+    resolved: false,
+    resolvedBy: null,
+    resolvedAt: null
+  };
+
+  // Store abstention record
+  metrics.abstentions.records.push(abstentionRecord);
+
+  // Track by agent
+  if (!metrics.abstentions.by_agent[agentId]) {
+    metrics.abstentions.by_agent[agentId] = [];
+  }
+  metrics.abstentions.by_agent[agentId].push(abstentionId);
+
+  // Track by reason
+  if (!metrics.abstentions.by_reason[reason]) {
+    metrics.abstentions.by_reason[reason] = 0;
+  }
+  metrics.abstentions.by_reason[reason]++;
+
+  // Update task state if task_states exists
+  if (metrics.task_states && metrics.task_states[taskId]) {
+    metrics.task_states[taskId].history.push({
+      from: metrics.task_states[taskId].currentState,
+      to: TASK_STATES.ABSTAINED,
+      agent: agentId,
+      timestamp: timestamp,
+      reason: reason
+    });
+    metrics.task_states[taskId].currentState = TASK_STATES.ABSTAINED;
+  }
+
+  metrics.last_updated = timestamp;
+
+  // Keep last 500 abstention records to prevent file bloat
+  if (metrics.abstentions.records.length > 500) {
+    metrics.abstentions.records = metrics.abstentions.records.slice(-500);
+  }
+
+  // Save metrics
+  const saved = writeJsonFile(METRICS_FILE, metrics);
+  if (!saved) {
+    result.errors.push('Failed to save abstention to metrics file');
+    return result;
+  }
+
+  // Log the abstention event
+  logGovernorEvent(agentId, 'task_abstained', 'abstained', {
+    taskId: taskId,
+    abstentionId: abstentionId,
+    reason: reason,
+    confidence: details.confidence,
+    explanation: details.explanation,
+    escalated: shouldEscalate
+  });
+
+  // Increment appropriate metrics
+  incrementMetric('abstentions_total', agentId);
+
+  // Increment reason-specific metric
+  const reasonMetricMap = {
+    'low_confidence': 'abstentions_low_confidence',
+    'missing_context': 'abstentions_missing_context',
+    'ethical_concern': 'abstentions_ethical_concern'
+  };
+  if (reasonMetricMap[reason]) {
+    incrementMetric(reasonMetricMap[reason], agentId);
+  }
+
+  // Log escalation if needed
+  if (shouldEscalate) {
+    logGovernorEvent(agentId, 'abstention_escalated', 'escalated', {
+      taskId: taskId,
+      abstentionId: abstentionId,
+      reason: reason,
+      confidence: details.confidence,
+      message: 'Abstention requires human review'
+    });
+    incrementMetric('abstentions_escalated', agentId);
+  }
+
+  result.success = true;
+  result.abstentionId = abstentionId;
+  result.timestamp = timestamp;
+  result.escalated = shouldEscalate;
+
+  return result;
+}
+
+/**
+ * Get abstention statistics for an agent
+ *
+ * @param {string} agentId - Agent ID to get stats for
+ * @returns {object} Abstention statistics
+ *
+ * @example
+ * const stats = getAgentAbstentionStats('Backend_Claude');
+ * console.log(`Abstention rate: ${stats.abstentionRate}%`);
+ */
+function getAgentAbstentionStats(agentId) {
+  const result = {
+    agentId: agentId,
+    exists: false,
+    totalAbstentions: 0,
+    abstentionRate: 0,
+    byReason: {},
+    recentAbstentions: []
+  };
+
+  // Read metrics file
+  const metrics = readJsonFile(METRICS_FILE);
+  if (!metrics) {
+    result.error = 'Could not read metrics file';
+    return result;
+  }
+
+  // Check if agent has abstention data
+  if (!metrics.abstentions || !metrics.abstentions.by_agent[agentId]) {
+    result.message = `No abstention data for ${agentId}`;
+    return result;
+  }
+
+  result.exists = true;
+  const agentAbstentionIds = metrics.abstentions.by_agent[agentId];
+  result.totalAbstentions = agentAbstentionIds.length;
+
+  // Calculate abstention rate
+  const agentMetrics = metrics.by_agent[agentId];
+  if (agentMetrics) {
+    const totalTasks = (agentMetrics.tasks_completed || 0) +
+                       (agentMetrics.tasks_failed || 0) +
+                       result.totalAbstentions;
+    result.abstentionRate = totalTasks > 0
+      ? Math.round((result.totalAbstentions / totalTasks) * 100)
+      : 0;
+  }
+
+  // Get recent abstentions (last 10)
+  const agentRecords = metrics.abstentions.records.filter(r => r.agentId === agentId);
+  result.recentAbstentions = agentRecords.slice(-10).reverse();
+
+  // Count by reason
+  agentRecords.forEach(record => {
+    if (!result.byReason[record.reason]) {
+      result.byReason[record.reason] = 0;
+    }
+    result.byReason[record.reason]++;
+  });
+
+  return result;
+}
+
+/**
+ * Resolve an abstention (mark it as handled)
+ *
+ * @param {string} resolver - Agent or human resolving the abstention
+ * @param {string} abstentionId - Abstention ID to resolve
+ * @param {string} resolution - How it was resolved
+ * @returns {object} Result with success status
+ *
+ * @example
+ * const result = resolveAbstention('PM_Architect', 'ABSTAIN-TASK-001-123', 'Reassigned to Security_Claude with additional context');
+ */
+function resolveAbstention(resolver, abstentionId, resolution = '') {
+  const result = {
+    success: false,
+    error: null,
+    timestamp: null
+  };
+
+  // Read metrics file
+  let metrics = readJsonFile(METRICS_FILE);
+  if (!metrics) {
+    result.error = 'Could not read metrics file';
+    return result;
+  }
+
+  // Find the abstention
+  if (!metrics.abstentions || !metrics.abstentions.records) {
+    result.error = 'No abstention records found';
+    return result;
+  }
+
+  const abstentionIndex = metrics.abstentions.records.findIndex(r => r.id === abstentionId);
+  if (abstentionIndex === -1) {
+    result.error = `Abstention not found: ${abstentionId}`;
+    return result;
+  }
+
+  // Update the record
+  const timestamp = new Date().toISOString();
+  metrics.abstentions.records[abstentionIndex].resolved = true;
+  metrics.abstentions.records[abstentionIndex].resolvedBy = resolver;
+  metrics.abstentions.records[abstentionIndex].resolvedAt = timestamp;
+  metrics.abstentions.records[abstentionIndex].resolution = resolution;
+  metrics.last_updated = timestamp;
+
+  // Save metrics
+  const saved = writeJsonFile(METRICS_FILE, metrics);
+  if (!saved) {
+    result.error = 'Failed to save resolution';
+    return result;
+  }
+
+  // Log the resolution
+  const abstention = metrics.abstentions.records[abstentionIndex];
+  logGovernorEvent(resolver, 'abstention_resolved', 'success', {
+    abstentionId: abstentionId,
+    taskId: abstention.taskId,
+    originalAgent: abstention.agentId,
+    originalReason: abstention.reason,
+    resolution: resolution
+  });
+
+  result.success = true;
+  result.timestamp = timestamp;
+
+  return result;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TRACING INTEGRATION
+// ═══════════════════════════════════════════════════════════════════════════
+// Functions to integrate governor events with OpenTelemetry-style tracing
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Lazy-load tracing module to avoid circular dependencies
+let tracing = null;
+function getTracing() {
+  if (!tracing) {
+    try {
+      tracing = require('./agent_tracing');
+    } catch (e) {
+      console.warn('Tracing module not available:', e.message);
+      return null;
+    }
+  }
+  return tracing;
+}
+
+/**
+ * Log a governor event with automatic tracing
+ *
+ * This wraps logGovernorEvent to also create trace spans for observability.
+ *
+ * @param {string} agent - Agent name
+ * @param {string} action - Action type
+ * @param {string} outcome - Outcome
+ * @param {object} details - Event details
+ * @param {string} details.taskId - Task ID for tracing (if provided)
+ * @returns {object} Result with eventId and optional spanId
+ *
+ * @example
+ * const result = tracedGovernorEvent('Backend_Claude', 'task_completed', 'success', {
+ *   taskId: 'TASK-001',
+ *   task: 'API update',
+ *   confidence: 95
+ * });
+ */
+function tracedGovernorEvent(agent, action, outcome, details = {}) {
+  // Log to governor system first
+  const govResult = logGovernorEvent(agent, action, outcome, details);
+
+  // If taskId provided, also log to tracing
+  const t = getTracing();
+  if (t && details.taskId) {
+    // Create a span for significant events
+    const significantEvents = [
+      'task_started', 'task_completed', 'task_failed',
+      'verification_gate_initiated', 'verification_gate_passed', 'verification_gate_failed',
+      'proof_of_success_submitted', 'proof_of_success_validated'
+    ];
+
+    if (significantEvents.includes(action)) {
+      const spanId = t.startSpan(`governor.${action}`, agent, details.taskId, {
+        attributes: {
+          governorEventId: govResult.eventId,
+          outcome: outcome
+        }
+      });
+
+      // Log the event details
+      t.logEvent(spanId, 'governor_event', {
+        action: action,
+        outcome: outcome,
+        ...details
+      });
+
+      // Map outcome to span status
+      const statusMap = {
+        'success': 'OK',
+        'failure': 'ERROR',
+        'pending': 'UNSET',
+        'escalated': 'ABSTAINED',
+        'rolled_back': 'ERROR',
+        'blocked': 'ERROR',
+        'awaiting_verification': 'UNSET'
+      };
+
+      // End the span immediately for point-in-time events
+      t.endSpan(spanId, statusMap[outcome] || 'UNSET', {
+        governorEventId: govResult.eventId,
+        ...details
+      });
+
+      govResult.spanId = spanId;
+    }
+  }
+
+  return govResult;
+}
+
+/**
+ * Create a traced operation that automatically logs to both governor and tracing
+ *
+ * @param {string} operationName - Name of the operation
+ * @param {string} agent - Agent name
+ * @param {string} taskId - Task ID
+ * @param {function} operation - Async function to execute
+ * @returns {object} Result with operation output and tracing info
+ *
+ * @example
+ * const result = await tracedOperation('validateInput', 'Backend_Claude', 'TASK-001', async (span) => {
+ *   // Log progress
+ *   span.logEvent('info', { message: 'Starting validation' });
+ *
+ *   // Do work
+ *   const isValid = validateData(input);
+ *
+ *   // Return result
+ *   return { valid: isValid, confidence: 0.95 };
+ * });
+ */
+async function tracedOperation(operationName, agent, taskId, operation) {
+  const t = getTracing();
+  const startTime = new Date().toISOString();
+
+  // Log task started to governor
+  const startEvent = logGovernorEvent(agent, 'task_started', 'pending', {
+    taskId: taskId,
+    operation: operationName,
+    startTime: startTime
+  });
+
+  let spanId = null;
+  if (t) {
+    spanId = t.startSpan(operationName, agent, taskId, {
+      attributes: {
+        governorStartEventId: startEvent.eventId
+      }
+    });
+  }
+
+  // Create span helper for operation to use
+  const spanHelper = {
+    logEvent: (name, data) => {
+      if (t && spanId) {
+        t.logEvent(spanId, name, data);
+      }
+    },
+    setAttribute: (key, value) => {
+      if (t && spanId) {
+        t.setSpanAttribute(spanId, key, value);
+      }
+    },
+    spanId: spanId
+  };
+
+  try {
+    // Execute the operation
+    const result = await operation(spanHelper);
+
+    // Determine outcome based on result
+    const outcome = result.error ? 'failure' : 'success';
+    const confidence = result.confidence;
+
+    // Log completion to governor
+    const endEvent = logGovernorEvent(agent, outcome === 'success' ? 'task_completed' : 'task_failed', outcome, {
+      taskId: taskId,
+      operation: operationName,
+      confidence: confidence,
+      ...result
+    });
+
+    // End the span
+    if (t && spanId) {
+      t.endSpan(spanId, outcome === 'success' ? 'OK' : 'ERROR', {
+        governorEndEventId: endEvent.eventId,
+        ...result
+      });
+    }
+
+    // Increment appropriate metric
+    incrementMetric(outcome === 'success' ? 'tasks_completed' : 'tasks_failed', agent);
+
+    return {
+      success: outcome === 'success',
+      result: result,
+      spanId: spanId,
+      governorStartEventId: startEvent.eventId,
+      governorEndEventId: endEvent.eventId
+    };
+
+  } catch (error) {
+    // Log failure to governor
+    const failEvent = logGovernorEvent(agent, 'task_failed', 'failure', {
+      taskId: taskId,
+      operation: operationName,
+      error: error.message,
+      stack: error.stack
+    });
+
+    // End span with error
+    if (t && spanId) {
+      t.logEvent(spanId, 'error', { error: error.message, stack: error.stack });
+      t.endSpan(spanId, 'ERROR', { error: error.message });
+    }
+
+    // Increment failure metric
+    incrementMetric('tasks_failed', agent);
+
+    return {
+      success: false,
+      error: error.message,
+      spanId: spanId,
+      governorStartEventId: startEvent.eventId,
+      governorEndEventId: failEvent.eventId
+    };
+  }
+}
+
+/**
+ * Get combined governor and trace data for a task
+ *
+ * @param {string} taskId - Task ID
+ * @returns {object} Combined observability data
+ */
+function getTaskObservability(taskId) {
+  const result = {
+    taskId: taskId,
+    verificationStatus: null,
+    trace: null,
+    recentEvents: [],
+    summary: {}
+  };
+
+  // Get verification status from governor
+  result.verificationStatus = getTaskVerificationStatus(taskId);
+
+  // Get trace if available
+  const t = getTracing();
+  if (t) {
+    result.trace = t.getTrace(taskId);
+
+    if (result.trace) {
+      // Calculate summary stats
+      const spans = result.trace.spans;
+      result.summary = {
+        spanCount: spans.length,
+        okCount: spans.filter(s => s.status === 'OK').length,
+        errorCount: spans.filter(s => s.status === 'ERROR').length,
+        abstainedCount: spans.filter(s => s.status === 'ABSTAINED').length,
+        totalDurationMs: spans.reduce((sum, s) => sum + (s.durationMs || 0), 0),
+        agents: [...new Set(spans.map(s => s.agentId))],
+        eventCount: spans.reduce((sum, s) => sum + (s.events ? s.events.length : 0), 0)
+      };
+    }
+  }
+
+  // Get recent governor events for this task
+  const allEvents = getRecentEvents({ limit: 100 });
+  result.recentEvents = allEvents.filter(e =>
+    e.details && e.details.taskId === taskId
+  );
+
+  return result;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TASK RISK CLASSIFICATION FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════
+// These functions classify tasks by risk level and determine required
+// approval levels based on the risk classification configuration.
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Risk levels (from lowest to highest)
+const RISK_LEVELS = {
+  LOW: 'LOW',
+  MEDIUM: 'MEDIUM',
+  HIGH: 'HIGH',
+  CRITICAL: 'CRITICAL'
+};
+
+// Risk level numeric values for comparison
+const RISK_LEVEL_VALUES = {
+  LOW: 1,
+  MEDIUM: 2,
+  HIGH: 3,
+  CRITICAL: 4
+};
+
+/**
+ * Load the risk classification configuration
+ * @returns {object|null} Risk configuration or null if not found
+ */
+function loadRiskConfig() {
+  return readJsonFile(RISK_CONFIG_FILE);
+}
+
+/**
+ * Classify the risk level of a task based on task type and scope
+ * @param {string} taskType - Type of task
+ * @param {string} scope - Scope of the task
+ * @returns {object} Risk classification result
+ */
+function classifyTaskRisk(taskType, scope = '') {
+  const result = {
+    taskType: taskType,
+    scope: scope,
+    level: RISK_LEVELS.LOW,
+    levelValue: 1,
+    requiresApproval: false,
+    requiresVerification: false,
+    requiresHumanApproval: false,
+    requiresExplicitCommand: false,
+    minimumTrustLevel: 25,
+    reasons: [],
+    matchedPatterns: [],
+    scopeModifier: 0
+  };
+
+  const config = loadRiskConfig();
+  if (!config) {
+    result.reasons.push('Risk configuration not found, defaulting to LOW');
+    return result;
+  }
+
+  const normalizedTaskType = taskType.toLowerCase().trim();
+  const normalizedScope = scope.toLowerCase().trim();
+
+  // Check explicit task type mapping
+  if (config.taskTypeToRisk && config.taskTypeToRisk[normalizedTaskType]) {
+    const mappedLevel = config.taskTypeToRisk[normalizedTaskType];
+    result.level = mappedLevel;
+    result.levelValue = RISK_LEVEL_VALUES[mappedLevel] || 1;
+    result.reasons.push(`Task type '${normalizedTaskType}' maps to ${mappedLevel}`);
+    result.matchedPatterns.push(`taskType:${normalizedTaskType}`);
+  }
+
+  // Check keyword patterns
+  if (config.keywordPatterns) {
+    for (const [level, patterns] of Object.entries(config.keywordPatterns)) {
+      for (const pattern of patterns) {
+        if (normalizedTaskType.includes(pattern.toLowerCase())) {
+          const patternLevel = RISK_LEVEL_VALUES[level] || 1;
+          if (patternLevel > result.levelValue) {
+            result.level = level;
+            result.levelValue = patternLevel;
+            result.reasons.push(`Keyword '${pattern}' matches ${level} risk pattern`);
+            result.matchedPatterns.push(`keyword:${pattern}`);
+          }
+        }
+      }
+    }
+  }
+
+  // Apply scope modifiers
+  if (config.scopeModifiers && normalizedScope) {
+    for (const [scopeKey, modifier] of Object.entries(config.scopeModifiers)) {
+      if (normalizedScope.includes(scopeKey.toLowerCase())) {
+        result.scopeModifier += modifier;
+        result.reasons.push(`Scope '${scopeKey}' modifier: ${modifier > 0 ? '+' : ''}${modifier}`);
+        result.matchedPatterns.push(`scope:${scopeKey}`);
+      }
+    }
+
+    if (result.scopeModifier !== 0) {
+      const adjustedValue = Math.max(1, Math.min(4, result.levelValue + result.scopeModifier));
+      const levelNames = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+      const newLevel = levelNames[adjustedValue - 1];
+      if (newLevel !== result.level) {
+        result.reasons.push(`Risk level adjusted from ${result.level} to ${newLevel} due to scope modifiers`);
+        result.level = newLevel;
+        result.levelValue = adjustedValue;
+      }
+    }
+  }
+
+  // Get risk level configuration details
+  if (config.riskLevels && config.riskLevels[result.level]) {
+    const levelConfig = config.riskLevels[result.level];
+    result.requiresApproval = levelConfig.requiresApproval || false;
+    result.requiresVerification = levelConfig.requiresVerification || false;
+    result.requiresHumanApproval = levelConfig.requiresHumanApproval || false;
+    result.requiresExplicitCommand = levelConfig.requiresExplicitCommand || false;
+    result.minimumTrustLevel = levelConfig.minimumTrustLevel || 25;
+    result.description = levelConfig.description || '';
+    result.displayName = levelConfig.displayName || result.level;
+    result.color = levelConfig.color || '#6c757d';
+    result.icon = levelConfig.icon || 'fa-question-circle';
+    result.examples = levelConfig.examples || [];
+  }
+
+  return result;
+}
+
+/**
+ * Get the required approval level for a given risk level
+ * @param {string} riskLevel - Risk level (LOW, MEDIUM, HIGH, CRITICAL)
+ * @returns {object} Approval requirements
+ */
+function getRequiredApprovalLevel(riskLevel) {
+  const result = {
+    riskLevel: riskLevel,
+    autoApprove: true,
+    requiresHumanApproval: false,
+    requiresExplicitCommand: false,
+    requiresDoubleConfirmation: false,
+    approvers: [],
+    conditions: [],
+    behavior: 'autonomous',
+    minTrust: 25,
+    description: ''
+  };
+
+  const config = loadRiskConfig();
+  if (!config) {
+    result.error = 'Risk configuration not found';
+    return result;
+  }
+
+  if (config.approvalWorkflow && config.approvalWorkflow[riskLevel]) {
+    const workflow = config.approvalWorkflow[riskLevel];
+    result.autoApprove = workflow.autoApprove || false;
+    result.conditions = workflow.conditions || [];
+    result.approvers = workflow.approvers || [];
+    result.requiresDoubleConfirmation = workflow.requiresDoubleConfirmation || false;
+    result.requiresHumanApproval = !workflow.autoApprove || workflow.conditions.includes('humanApproval');
+    result.requiresExplicitCommand = workflow.conditions.includes('explicitHumanCommand');
+  }
+
+  if (config.autonomyLevelMapping && config.autonomyLevelMapping[riskLevel]) {
+    const autonomy = config.autonomyLevelMapping[riskLevel];
+    result.behavior = autonomy.behavior || 'autonomous';
+    result.minTrust = autonomy.minTrust || 25;
+    result.description = autonomy.description || '';
+  }
+
+  return result;
+}
+
+/**
+ * Check if a task can proceed based on risk level and trust level
+ * @param {string} taskType - Type of task
+ * @param {string} scope - Scope
+ * @param {number} trustLevel - Current trust level (0-100)
+ * @param {boolean} hasHumanApproval - Has human approved
+ * @param {boolean} hasExplicitCommand - Has explicit command
+ * @returns {object} Result with canProceed flag
+ */
+function canProceedWithRisk(taskType, scope, trustLevel = 50, hasHumanApproval = false, hasExplicitCommand = false) {
+  const result = {
+    canProceed: false,
+    taskType: taskType,
+    scope: scope,
+    trustLevel: trustLevel,
+    hasHumanApproval: hasHumanApproval,
+    hasExplicitCommand: hasExplicitCommand,
+    riskClassification: null,
+    approvalRequirements: null,
+    reason: '',
+    recommendation: ''
+  };
+
+  const riskClassification = classifyTaskRisk(taskType, scope);
+  result.riskClassification = riskClassification;
+
+  const approvalRequirements = getRequiredApprovalLevel(riskClassification.level);
+  result.approvalRequirements = approvalRequirements;
+
+  switch (riskClassification.level) {
+    case RISK_LEVELS.LOW:
+      if (trustLevel >= riskClassification.minimumTrustLevel) {
+        result.canProceed = true;
+        result.reason = `LOW risk task can proceed autonomously (trust ${trustLevel}% >= ${riskClassification.minimumTrustLevel}%)`;
+      } else {
+        result.canProceed = false;
+        result.reason = `LOW risk requires trust level >= ${riskClassification.minimumTrustLevel}% (current: ${trustLevel}%)`;
+        result.recommendation = 'Build trust through successful task completions';
+      }
+      break;
+
+    case RISK_LEVELS.MEDIUM:
+      if (trustLevel >= riskClassification.minimumTrustLevel) {
+        result.canProceed = true;
+        result.reason = `MEDIUM risk task can proceed with verification (trust ${trustLevel}% >= ${riskClassification.minimumTrustLevel}%)`;
+        result.recommendation = 'Ensure verification step is completed before marking done';
+      } else {
+        result.canProceed = false;
+        result.reason = `MEDIUM risk requires trust level >= ${riskClassification.minimumTrustLevel}% (current: ${trustLevel}%)`;
+        result.recommendation = 'Build trust or request human approval';
+      }
+      break;
+
+    case RISK_LEVELS.HIGH:
+      if (hasHumanApproval) {
+        result.canProceed = true;
+        result.reason = 'HIGH risk task approved by human';
+      } else {
+        result.canProceed = false;
+        result.reason = 'HIGH risk tasks ALWAYS require human approval';
+        result.recommendation = `Request approval from: ${approvalRequirements.approvers.join(', ') || 'PM_Architect or Owner'}`;
+      }
+      break;
+
+    case RISK_LEVELS.CRITICAL:
+      if (hasExplicitCommand && hasHumanApproval) {
+        result.canProceed = true;
+        result.reason = 'CRITICAL risk task has explicit human command and approval';
+      } else if (hasExplicitCommand && !hasHumanApproval) {
+        result.canProceed = false;
+        result.reason = 'CRITICAL risk tasks require both explicit command AND approval';
+        result.recommendation = 'Await explicit approval confirmation';
+      } else {
+        result.canProceed = false;
+        result.reason = 'CRITICAL risk tasks require EXPLICIT human command';
+        result.recommendation = 'Do NOT proceed without explicit human instruction';
+      }
+      break;
+
+    default:
+      result.canProceed = false;
+      result.reason = `Unknown risk level: ${riskClassification.level}`;
+      result.recommendation = 'Escalate to PM_Architect';
+  }
+
+  return result;
+}
+
+/**
+ * Classify risk from a file path
+ * @param {string} filePath - File path or filename
+ * @param {string} action - Action (create, modify, delete)
+ * @returns {object} Risk classification
+ */
+function classifyFileRisk(filePath, action = 'modify') {
+  const result = {
+    filePath: filePath,
+    action: action,
+    level: RISK_LEVELS.LOW,
+    levelValue: 1,
+    matchedPatterns: [],
+    reasons: []
+  };
+
+  const config = loadRiskConfig();
+  if (!config || !config.filePatternRisks) {
+    result.reasons.push('File pattern risks not configured, defaulting to LOW');
+    return classifyTaskRisk(action, '');
+  }
+
+  const normalizedPath = filePath.toLowerCase();
+
+  const levelsToCheck = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
+  for (const level of levelsToCheck) {
+    const patterns = config.filePatternRisks[level] || [];
+    for (const pattern of patterns) {
+      try {
+        const regex = new RegExp(pattern, 'i');
+        if (regex.test(normalizedPath)) {
+          result.level = level;
+          result.levelValue = RISK_LEVEL_VALUES[level];
+          result.matchedPatterns.push(`${level}:${pattern}`);
+          result.reasons.push(`File path matches ${level} risk pattern: ${pattern}`);
+          break;
+        }
+      } catch (e) {
+        // Invalid regex, skip
+      }
+    }
+    if (result.matchedPatterns.length > 0) break;
+  }
+
+  if (action === 'delete') {
+    const newLevel = Math.min(4, result.levelValue + 1);
+    const levelNames = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+    if (newLevel > result.levelValue) {
+      result.reasons.push(`Delete action increases risk from ${result.level} to ${levelNames[newLevel - 1]}`);
+      result.level = levelNames[newLevel - 1];
+      result.levelValue = newLevel;
+    }
+  }
+
+  const fullClassification = classifyTaskRisk(`file_${action}`, '');
+
+  if (result.levelValue > (fullClassification.levelValue || 1)) {
+    return { ...fullClassification, ...result, level: result.level, levelValue: result.levelValue };
+  }
+
+  return { ...fullClassification, filePath: filePath, action: action, matchedPatterns: result.matchedPatterns, fileReasons: result.reasons };
+}
+
+/**
+ * Get a summary of all risk levels and their requirements
+ * @returns {object} Summary of all risk levels
+ */
+function getRiskLevelsSummary() {
+  const config = loadRiskConfig();
+  if (!config) return { error: 'Risk configuration not found' };
+
+  const summary = { version: config.version, levels: {} };
+
+  if (config.riskLevels) {
+    for (const [level, details] of Object.entries(config.riskLevels)) {
+      summary.levels[level] = {
+        displayName: details.displayName,
+        description: details.description,
+        color: details.color,
+        minimumTrustLevel: details.minimumTrustLevel,
+        requiresApproval: details.requiresApproval,
+        requiresHumanApproval: details.requiresHumanApproval,
+        requiresExplicitCommand: details.requiresExplicitCommand,
+        examples: details.examples
+      };
+    }
+  }
+
+  if (config.autonomyLevelMapping) summary.autonomyMapping = config.autonomyLevelMapping;
+
+  return summary;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AGENT FOLDER MAPPING FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════
+// These functions map VALID_AGENTS names to their actual folder names in
+// claude_sessions/ directory. This allows consistent agent naming while
+// supporting different folder naming conventions.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const AGENT_FOLDER_MAPPING_FILE = path.join(CONFIG_DIR, 'agent_folder_mapping.json');
+
+/**
+ * Load the agent folder mapping configuration
+ * @returns {object|null} Agent folder mapping or null if not found
+ */
+function loadAgentFolderMapping() {
+  return readJsonFile(AGENT_FOLDER_MAPPING_FILE);
+}
+
+/**
+ * Get the folder name for a given agent
+ * @param {string} agentName - The VALID_AGENTS name (e.g., 'Backend_Claude')
+ * @returns {string} The folder name (e.g., 'backend')
+ *
+ * @example
+ * const folder = getAgentFolderName('Backend_Claude'); // returns 'backend'
+ * const folder = getAgentFolderName('PM_Architect');   // returns 'pm_architect'
+ */
+function getAgentFolderName(agentName) {
+  const config = loadAgentFolderMapping();
+  if (config && config.mapping && config.mapping[agentName]) {
+    return config.mapping[agentName];
+  }
+  // Fallback: convert agent name to lowercase and replace spaces/special chars
+  return agentName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+}
+
+/**
+ * Get the full path to an agent's session folder
+ * @param {string} agentName - The VALID_AGENTS name (e.g., 'Backend_Claude')
+ * @returns {string} Full path to the agent's session folder
+ *
+ * @example
+ * const path = getAgentSessionPath('Backend_Claude');
+ * // returns '/path/to/TIny_Seed_OS/claude_sessions/backend'
+ */
+function getAgentSessionPath(agentName) {
+  const folderName = getAgentFolderName(agentName);
+  return path.join(CLAUDE_SESSIONS_DIR, folderName);
+}
+
+/**
+ * Get the agent name from a folder name (reverse lookup)
+ * @param {string} folderName - The folder name (e.g., 'backend')
+ * @returns {string|null} The VALID_AGENTS name or null if not found
+ *
+ * @example
+ * const agent = getAgentNameFromFolder('backend'); // returns 'Backend_Claude'
+ */
+function getAgentNameFromFolder(folderName) {
+  const config = loadAgentFolderMapping();
+  if (config && config.reverse_mapping && config.reverse_mapping[folderName]) {
+    return config.reverse_mapping[folderName];
+  }
+  // Check if folderName matches a VALID_AGENT directly
+  const normalizedFolder = folderName.toLowerCase();
+  for (const agent of VALID_AGENTS) {
+    if (agent.toLowerCase().replace(/[^a-z0-9]/g, '_') === normalizedFolder) {
+      return agent;
+    }
+  }
+  return null;
+}
+
+/**
+ * Get paths to an agent's INBOX and OUTBOX files
+ * @param {string} agentName - The VALID_AGENTS name
+ * @returns {object} Object with inboxPath and outboxPath
+ *
+ * @example
+ * const paths = getAgentInboxOutboxPaths('Backend_Claude');
+ * // returns { inboxPath: '...claude_sessions/backend/INBOX.md', outboxPath: '...claude_sessions/backend/OUTBOX.md' }
+ */
+function getAgentInboxOutboxPaths(agentName) {
+  const sessionPath = getAgentSessionPath(agentName);
+  return {
+    inboxPath: path.join(sessionPath, 'INBOX.md'),
+    outboxPath: path.join(sessionPath, 'OUTBOX.md')
+  };
+}
+
+/**
+ * Get all agent folder mappings
+ * @returns {object} Complete mapping of all agents to their folders
+ */
+function getAllAgentFolderMappings() {
+  const config = loadAgentFolderMapping();
+  if (!config) {
+    // Generate default mapping from VALID_AGENTS
+    const mapping = {};
+    for (const agent of VALID_AGENTS) {
+      mapping[agent] = agent.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    }
+    return { mapping, source: 'generated_default' };
+  }
+  return { mapping: config.mapping, reverse_mapping: config.reverse_mapping, source: 'config_file' };
+}
+
 // Export functions for use in other scripts
 module.exports = {
   // Existing functions
@@ -1045,6 +2403,30 @@ module.exports = {
   transitionTaskState,
   validateProof,
   getTaskVerificationStatus,
+  routeToVerifier,
+  // STATUS_ABSTAIN Protocol functions
+  checkConfidenceThreshold,
+  handleAbstention,
+  getAgentAbstentionStats,
+  resolveAbstention,
+  // Tracing integration functions
+  tracedGovernorEvent,
+  tracedOperation,
+  getTaskObservability,
+  // Risk classification functions
+  classifyTaskRisk,
+  getRequiredApprovalLevel,
+  canProceedWithRisk,
+  classifyFileRisk,
+  getRiskLevelsSummary,
+  loadRiskConfig,
+  // Agent folder mapping functions
+  loadAgentFolderMapping,
+  getAgentFolderName,
+  getAgentSessionPath,
+  getAgentNameFromFolder,
+  getAgentInboxOutboxPaths,
+  getAllAgentFolderMappings,
   // Constants
   VALID_AGENTS,
   VALID_METRICS,
@@ -1052,7 +2434,14 @@ module.exports = {
   VALID_OUTCOMES,
   TASK_STATES,
   VALID_STATE_TRANSITIONS,
-  PROOF_TYPES
+  PROOF_TYPES,
+  // STATUS_ABSTAIN Constants
+  STATUS_ABSTAIN,
+  ABSTENTION_REASONS,
+  DEFAULT_CONFIDENCE_THRESHOLD,
+  // Risk Classification Constants
+  RISK_LEVELS,
+  RISK_LEVEL_VALUES
 };
 
 // CLI usage support
@@ -1152,6 +2541,137 @@ if (require.main === module) {
       }
       break;
 
+    case 'route-to-verifier':
+      // node governor_helpers.js route-to-verifier TASK-001 Backend_Claude '{"description":"API update completed","evidence":{"type":"test_output","content":"All tests pass"}}'
+      const [, rtvTaskId, rtvAgent, rtvDetailsJson] = args;
+      const rtvDetails = rtvDetailsJson ? JSON.parse(rtvDetailsJson) : {};
+      console.log(JSON.stringify(routeToVerifier(rtvTaskId, rtvAgent, rtvDetails), null, 2));
+      break;
+
+    // ═══════════════════════════════════════════════════════════════════
+    // STATUS_ABSTAIN PROTOCOL CLI COMMANDS
+    // ═══════════════════════════════════════════════════════════════════
+
+    case 'check-confidence':
+      // node governor_helpers.js check-confidence 0.72 0.85
+      const [, ccConfidence, ccThreshold] = args;
+      const confValue = parseFloat(ccConfidence);
+      const threshValue = ccThreshold ? parseFloat(ccThreshold) : DEFAULT_CONFIDENCE_THRESHOLD;
+      console.log(JSON.stringify(checkConfidenceThreshold(confValue, threshValue), null, 2));
+      break;
+
+    case 'abstain':
+      // node governor_helpers.js abstain Backend_Claude TASK-001 low_confidence '{"confidence":0.65,"explanation":"Missing context"}'
+      const [, abAgent, abTaskId, abReason, abDetailsJson] = args;
+      const abDetails = abDetailsJson ? JSON.parse(abDetailsJson) : {};
+      console.log(JSON.stringify(handleAbstention(abAgent, abTaskId, abReason, abDetails), null, 2));
+      break;
+
+    case 'abstention-stats':
+      // node governor_helpers.js abstention-stats Backend_Claude
+      const [, asAgent] = args;
+      console.log(JSON.stringify(getAgentAbstentionStats(asAgent), null, 2));
+      break;
+
+    case 'resolve-abstention':
+      // node governor_helpers.js resolve-abstention PM_Architect ABSTAIN-TASK-001-123 "Reassigned with more context"
+      const [, raResolver, raAbstentionId, raResolution] = args;
+      console.log(JSON.stringify(resolveAbstention(raResolver, raAbstentionId, raResolution || ''), null, 2));
+      break;
+
+    case 'abstention-reasons':
+      // node governor_helpers.js abstention-reasons
+      console.log('Valid Abstention Reasons:', ABSTENTION_REASONS);
+      console.log('\nDefault Confidence Threshold:', DEFAULT_CONFIDENCE_THRESHOLD);
+      break;
+
+    // ═══════════════════════════════════════════════════════════════════
+    // RISK CLASSIFICATION CLI COMMANDS
+    // ═══════════════════════════════════════════════════════════════════
+
+    case 'classify-risk':
+      // node governor_helpers.js classify-risk deploy_production production
+      const [, crTaskType, crScope] = args;
+      console.log(JSON.stringify(classifyTaskRisk(crTaskType, crScope || ''), null, 2));
+      break;
+
+    case 'classify-file-risk':
+      // node governor_helpers.js classify-file-risk /config/credentials.json modify
+      const [, cfrFilePath, cfrAction] = args;
+      console.log(JSON.stringify(classifyFileRisk(cfrFilePath, cfrAction || 'modify'), null, 2));
+      break;
+
+    case 'can-proceed':
+      // node governor_helpers.js can-proceed deploy production 80 false false
+      const [, cpTaskType, cpScope, cpTrust, cpApproval, cpExplicit] = args;
+      const trustLvl = parseFloat(cpTrust) || 50;
+      const hasApproval = cpApproval === 'true';
+      const hasExplicit = cpExplicit === 'true';
+      console.log(JSON.stringify(canProceedWithRisk(cpTaskType, cpScope || '', trustLvl, hasApproval, hasExplicit), null, 2));
+      break;
+
+    case 'approval-level':
+      // node governor_helpers.js approval-level HIGH
+      const [, alRiskLevel] = args;
+      console.log(JSON.stringify(getRequiredApprovalLevel(alRiskLevel), null, 2));
+      break;
+
+    case 'risk-levels':
+      // node governor_helpers.js risk-levels
+      console.log(JSON.stringify(getRiskLevelsSummary(), null, 2));
+      break;
+
+    case 'risk-config':
+      // node governor_helpers.js risk-config
+      const riskConfig = loadRiskConfig();
+      if (riskConfig) {
+        console.log(JSON.stringify(riskConfig, null, 2));
+      } else {
+        console.log('Error: Risk configuration not found');
+      }
+      break;
+
+    // ═══════════════════════════════════════════════════════════════════
+    // AGENT FOLDER MAPPING CLI COMMANDS
+    // ═══════════════════════════════════════════════════════════════════
+
+    case 'agent-folder':
+      // node governor_helpers.js agent-folder Backend_Claude
+      const [, afAgent] = args;
+      console.log(JSON.stringify({
+        agent: afAgent,
+        folderName: getAgentFolderName(afAgent),
+        fullPath: getAgentSessionPath(afAgent),
+        ...getAgentInboxOutboxPaths(afAgent)
+      }, null, 2));
+      break;
+
+    case 'folder-to-agent':
+      // node governor_helpers.js folder-to-agent backend
+      const [, ftaFolder] = args;
+      const foundAgent = getAgentNameFromFolder(ftaFolder);
+      console.log(JSON.stringify({
+        folderName: ftaFolder,
+        agentName: foundAgent,
+        found: foundAgent !== null
+      }, null, 2));
+      break;
+
+    case 'agent-mappings':
+      // node governor_helpers.js agent-mappings
+      console.log(JSON.stringify(getAllAgentFolderMappings(), null, 2));
+      break;
+
+    case 'agent-inbox':
+      // node governor_helpers.js agent-inbox Backend_Claude
+      const [, aiAgent] = args;
+      const aiPaths = getAgentInboxOutboxPaths(aiAgent);
+      console.log(JSON.stringify({
+        agent: aiAgent,
+        ...aiPaths
+      }, null, 2));
+      break;
+
     default:
       console.log(`
 Governor Helper Functions CLI
@@ -1222,15 +2742,124 @@ VERIFICATION GATE COMMANDS
     Display valid task states and transitions
     Example: node governor_helpers.js states
 
+  route-to-verifier <task_id> <agent> [details_json]
+    Route a task to Verifier_Claude for verification
+    Automatically called when transitioning to AWAITING_VERIFICATION
+    Example: node governor_helpers.js route-to-verifier TASK-001 Backend_Claude '{"description":"API update completed","evidence":{"type":"test_output","content":"All tests pass"}}'
+
 ═══════════════════════════════════════════════════════════════════════════
-TASK STATE FLOW (KEY RULE: No direct IMPLEMENTED -> DONE)
+STATUS_ABSTAIN PROTOCOL COMMANDS
+═══════════════════════════════════════════════════════════════════════════
+
+  check-confidence <confidence> [threshold]
+    Check if confidence meets threshold (default 0.85)
+    KEY RULE: Abstaining is better than low-confidence execution
+    Example: node governor_helpers.js check-confidence 0.72 0.85
+
+  abstain <agent> <task_id> <reason> [details_json]
+    Handle an agent abstention from a task
+    Reasons: low_confidence, missing_context, ethical_concern, out_of_scope, conflicting_instructions, requires_human
+    Example: node governor_helpers.js abstain Backend_Claude TASK-001 low_confidence '{"confidence":0.65,"explanation":"Missing context"}'
+
+  abstention-stats <agent>
+    Get abstention statistics for an agent
+    Example: node governor_helpers.js abstention-stats Backend_Claude
+
+  resolve-abstention <resolver> <abstention_id> [resolution]
+    Resolve an abstention (mark as handled)
+    Example: node governor_helpers.js resolve-abstention PM_Architect ABSTAIN-TASK-001-123 "Reassigned"
+
+  abstention-reasons
+    Display valid abstention reasons and default threshold
+    Example: node governor_helpers.js abstention-reasons
+
+═══════════════════════════════════════════════════════════════════════════
+RISK CLASSIFICATION COMMANDS
+═══════════════════════════════════════════════════════════════════════════
+
+  classify-risk <task_type> [scope]
+    Classify the risk level of a task
+    Example: node governor_helpers.js classify-risk deploy_production production
+
+  classify-file-risk <file_path> [action]
+    Classify risk from a file path (action: create, modify, delete)
+    Example: node governor_helpers.js classify-file-risk /config/credentials.json modify
+
+  can-proceed <task_type> <scope> <trust_level> <has_approval> <has_explicit>
+    Check if a task can proceed based on risk and trust
+    Example: node governor_helpers.js can-proceed deploy production 80 false false
+
+  approval-level <risk_level>
+    Get approval requirements for a risk level
+    Example: node governor_helpers.js approval-level HIGH
+
+  risk-levels
+    Display summary of all risk levels and their requirements
+    Example: node governor_helpers.js risk-levels
+
+  risk-config
+    Display the full risk classification configuration
+    Example: node governor_helpers.js risk-config
+
+═══════════════════════════════════════════════════════════════════════════
+AGENT FOLDER MAPPING COMMANDS
+═══════════════════════════════════════════════════════════════════════════
+
+  agent-folder <agent_name>
+    Get the folder path for an agent
+    Example: node governor_helpers.js agent-folder Backend_Claude
+    Returns: { agent, folderName, fullPath, inboxPath, outboxPath }
+
+  folder-to-agent <folder_name>
+    Get the agent name from a folder name (reverse lookup)
+    Example: node governor_helpers.js folder-to-agent backend
+    Returns: { folderName, agentName, found }
+
+  agent-mappings
+    Get all agent-to-folder mappings
+    Example: node governor_helpers.js agent-mappings
+    Returns: { mapping, reverse_mapping, source }
+
+  agent-inbox <agent_name>
+    Get INBOX and OUTBOX paths for an agent
+    Example: node governor_helpers.js agent-inbox Backend_Claude
+    Returns: { agent, inboxPath, outboxPath }
+
+═══════════════════════════════════════════════════════════════════════════
+AGENT FOLDER MAPPING REFERENCE
+═══════════════════════════════════════════════════════════════════════════
+
+  PM_Architect     → pm_architect
+  Backend_Claude   → backend
+  Desktop_Claude   → desktop_web
+  Mobile_Claude    → mobile_app
+  UX_Design_Claude → ux_design
+  Sales_Claude     → sales_crm
+  Security_Claude  → security
+  Verifier_Claude  → verifier_claude
+  Critic_Claude    → critic_claude
+
+═══════════════════════════════════════════════════════════════════════════
+RISK LEVEL ROUTING
+═══════════════════════════════════════════════════════════════════════════
+
+  LOW      → Can proceed autonomously at Trust >= 25%
+  MEDIUM   → Requires verification at Trust >= 50%
+  HIGH     → ALWAYS requires human approval
+  CRITICAL → ALWAYS requires explicit human command
+
+═══════════════════════════════════════════════════════════════════════════
+TASK STATE FLOW (with ABSTAINED state)
 ═══════════════════════════════════════════════════════════════════════════
 
   PENDING → IN_PROGRESS → IMPLEMENTED → AWAITING_VERIFICATION → VERIFIED → DONE
+     ↓          ↓
+  ABSTAINED ← ←←  (Agent can abstain from PENDING or IN_PROGRESS)
 
   - IMPLEMENTED cannot skip to DONE (must go through verification)
   - AWAITING_VERIFICATION can go back to IMPLEMENTED (if fixes needed)
   - Only VERIFIED can transition to DONE
+  - ABSTAINED can return to PENDING (reassign) or IN_PROGRESS (resume)
       `);
   }
 }

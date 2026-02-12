@@ -671,9 +671,15 @@
         }
 
         /* Responsive */
+        @media (max-width: 1400px) {
+            .score-cards {
+                grid-template-columns: repeat(3, 1fr) !important;
+            }
+        }
+
         @media (max-width: 1200px) {
             .score-cards {
-                grid-template-columns: repeat(2, 1fr);
+                grid-template-columns: repeat(2, 1fr) !important;
             }
 
             .dashboard-grid {
@@ -683,7 +689,7 @@
 
         @media (max-width: 768px) {
             .score-cards {
-                grid-template-columns: 1fr;
+                grid-template-columns: 1fr !important;
             }
 
             .top-nav {
@@ -1157,13 +1163,38 @@
 
     <!-- Main Content -->
     <div class="main-content">
+        <!-- #1 PRIORITY THIS WEEK - Hero Card -->
+        <div class="card" id="priority-hero" style="margin-bottom: 1.5rem; background: linear-gradient(135deg, var(--danger) 0%, var(--accent) 100%); border: none;">
+            <div class="card-body" style="padding: 1.5rem;">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <div style="font-size: 3rem;">🎯</div>
+                    <div style="flex: 1;">
+                        <div style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.9;">This Week's #1 Priority</div>
+                        <div style="font-size: 1.5rem; font-weight: 700; margin: 0.25rem 0;" id="priority-hero-title">Loading...</div>
+                        <div style="font-size: 0.9rem; opacity: 0.9;" id="priority-hero-description">Analyzing your SEO data...</div>
+                    </div>
+                    <button class="btn btn-secondary" onclick="openActionGuide(document.getElementById('priority-hero').dataset.actionType || 'general', document.getElementById('priority-hero-title').textContent, '')" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3);">
+                        <i class="fas fa-play"></i> Start
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Score Cards -->
-        <div class="score-cards">
+        <div class="score-cards" style="grid-template-columns: repeat(5, 1fr);">
             <div class="score-card gold">
                 <div class="icon">🏆</div>
                 <div class="label">Overall Score</div>
                 <div class="value" id="overall-score">--</div>
                 <div class="trend neutral" id="overall-trend">Loading...</div>
+            </div>
+
+            <!-- AI VISIBILITY SCORE - Critical 2026 Metric -->
+            <div class="score-card" style="border-left: 4px solid var(--teal);">
+                <div class="icon">🤖</div>
+                <div class="label">AI Visibility</div>
+                <div class="value" id="ai-visibility-score">--</div>
+                <div class="trend neutral" id="ai-visibility-trend">Loading...</div>
             </div>
 
             <div class="score-card green">
@@ -1236,6 +1267,69 @@
                         </div>
                         <div id="weekly-focus-list">
                             <div class="loading"><div class="spinner"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AEO / AI VISIBILITY TRACKING - Critical for 2026 -->
+        <div class="card" style="margin-bottom: 1.5rem; border: 2px solid var(--teal); background: linear-gradient(135deg, var(--bg-card) 0%, rgba(26,188,156,0.1) 100%);">
+            <div class="card-header" style="background: linear-gradient(135deg, rgba(26,188,156,0.2) 0%, transparent 100%);">
+                <h3><i class="fas fa-robot"></i> AI Answer Engine Optimization (AEO) - 2026 Critical</h3>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn-secondary btn-sm" onclick="openAICheckModal()">
+                        <i class="fas fa-search"></i> Log AI Check
+                    </button>
+                    <button class="btn btn-primary btn-sm" onclick="refreshAIVisibility()">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Industry Context Banner -->
+                <div style="background: linear-gradient(135deg, rgba(230,57,70,0.1) 0%, rgba(255,215,0,0.1) 100%); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid var(--danger);">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <i class="fas fa-exclamation-triangle" style="color: var(--danger); font-size: 1.25rem;"></i>
+                        <div>
+                            <strong style="color: var(--danger);">Critical Shift:</strong>
+                            <span style="color: var(--text-secondary);">60%+ of searches now end without a click as AI provides direct answers. Track how Tiny Seed Farm appears in ChatGPT, Gemini, Perplexity, and Google AI Overviews.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Platform Grid -->
+                <div id="ai-platforms-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                    <div class="loading"><div class="spinner"></div></div>
+                </div>
+
+                <!-- Recent AI Checks -->
+                <div style="margin-top: 1rem;">
+                    <h4 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+                        <i class="fas fa-history"></i> Recent AI Visibility Checks
+                    </h4>
+                    <div id="ai-recent-checks" style="max-height: 200px; overflow-y: auto;">
+                        <p style="color: var(--text-secondary); font-size: 0.85rem;">No checks logged yet. Start by checking how your farm appears in ChatGPT!</p>
+                    </div>
+                </div>
+
+                <!-- AEO Tips -->
+                <div style="margin-top: 1.5rem; padding: 1rem; background: var(--bg-light); border-radius: 8px;">
+                    <h4 style="font-size: 0.9rem; color: var(--gold); margin-bottom: 0.5rem;">
+                        <i class="fas fa-lightbulb"></i> How to Check AI Visibility
+                    </h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; font-size: 0.85rem; color: var(--text-secondary);">
+                        <div>
+                            <strong>1. ChatGPT:</strong> Ask "What are the best CSA farms in Pittsburgh?" and note if Tiny Seed Farm appears.
+                        </div>
+                        <div>
+                            <strong>2. Perplexity:</strong> Search "organic farm delivery Pittsburgh" - check for mentions.
+                        </div>
+                        <div>
+                            <strong>3. Google AI Overview:</strong> Search your keywords and check the AI summary at the top.
+                        </div>
+                        <div>
+                            <strong>4. Gemini:</strong> Ask about CSA options in Pittsburgh area.
                         </div>
                     </div>
                 </div>
@@ -1612,6 +1706,73 @@
                 </button>
                 <button class="btn btn-primary" onclick="saveSettings()">
                     <i class="fas fa-save"></i> Save Settings
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Visibility Check Modal -->
+    <div class="modal-overlay" id="ai-check-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2><i class="fas fa-robot"></i> Log AI Visibility Check</h2>
+                <button class="modal-close" onclick="closeModal('ai-check-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 1rem; color: var(--text-secondary); font-size: 0.9rem;">
+                    Track how Tiny Seed Farm appears in AI answer engines. This data helps measure your AEO performance.
+                </p>
+                <form id="ai-check-form">
+                    <div class="form-group">
+                        <label>AI Platform</label>
+                        <select name="platform" required>
+                            <option value="chatgpt">ChatGPT</option>
+                            <option value="perplexity">Perplexity</option>
+                            <option value="gemini">Google Gemini</option>
+                            <option value="ai_overview">Google AI Overview</option>
+                            <option value="claude">Claude</option>
+                            <option value="copilot">Microsoft Copilot</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Query/Prompt Used</label>
+                        <input type="text" name="query" placeholder='e.g., "Best CSA farms in Pittsburgh"' required>
+                    </div>
+                    <div class="form-group">
+                        <label>Did Tiny Seed Farm Appear?</label>
+                        <select name="appeared" required>
+                            <option value="true">Yes - Appeared in response</option>
+                            <option value="false">No - Not mentioned</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Position/Prominence</label>
+                        <select name="position">
+                            <option value="featured">Featured (top mention, recommended)</option>
+                            <option value="mentioned">Mentioned (listed among others)</option>
+                            <option value="brief">Brief (passing mention)</option>
+                            <option value="not_found">Not Found</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Sentiment (how was the farm described?)</label>
+                        <select name="sentiment">
+                            <option value="positive">Positive (recommended, praised)</option>
+                            <option value="neutral">Neutral (just listed)</option>
+                            <option value="negative">Negative (criticism/concerns)</option>
+                            <option value="na">N/A - Not mentioned</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Notes (optional)</label>
+                        <textarea name="notes" rows="2" style="width: 100%; padding: 0.75rem; background: var(--bg-light); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-family: inherit; resize: vertical;" placeholder="Copy the relevant part of the AI response..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('ai-check-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveAICheck()">
+                    <i class="fas fa-save"></i> Log Check
                 </button>
             </div>
         </div>
@@ -2030,6 +2191,8 @@
                 renderReviews();
                 renderCitations();
                 renderActionItems();
+                loadAIVisibility(); // Load AI visibility data
+                updatePriorityHero(); // Update #1 priority card
 
             } catch (error) {
                 console.error('Error loading dashboard:', error);
@@ -2187,6 +2350,30 @@
                 }
             }
 
+            // AI Visibility analysis (2026 critical)
+            if (!aiVisibilityData || aiVisibilityData.totalChecks < 5) {
+                priorityActions.push({
+                    icon: 'fa-robot',
+                    text: 'CRITICAL: Start tracking AI visibility (60% of searches)',
+                    urgent: true,
+                    actionType: 'improve_aeo'
+                });
+            } else if (aiVisibilityData.appearanceRate < 25) {
+                priorityActions.push({
+                    icon: 'fa-robot',
+                    text: `AI visibility only ${aiVisibilityData.appearanceRate}% - improve AEO strategy`,
+                    urgent: true,
+                    actionType: 'improve_aeo'
+                });
+            } else if (aiVisibilityData.appearanceRate < 50) {
+                opportunities.push({
+                    icon: 'fa-robot',
+                    text: `AI visibility at ${aiVisibilityData.appearanceRate}% - room to grow!`,
+                    opportunity: true,
+                    actionType: 'improve_aeo'
+                });
+            }
+
             // Competitor intelligence (proactive insights)
             competitorAlerts.push({
                 icon: 'fa-eye',
@@ -2197,6 +2384,11 @@
                 icon: 'fa-chart-bar',
                 text: 'Monitor "CSA pittsburgh" and "best CSA pittsburgh" daily',
                 actionType: 'general'
+            });
+            competitorAlerts.push({
+                icon: 'fa-robot',
+                text: 'Check competitor AI visibility in ChatGPT weekly',
+                actionType: 'improve_aeo'
             });
 
             // Seasonal opportunities
@@ -2379,6 +2571,20 @@
                     { title: 'Post Fresh Content', desc: 'Create a new GBP post with a photo. Share what\'s happening at the farm this week.' },
                     { title: 'Review Your Website', desc: 'Is content up to date? Are there broken links? Is it mobile-friendly? Test on your phone.' },
                     { title: 'Track Your Progress', desc: 'Check rankings weekly. Note what you changed. Celebrate improvements!' }
+                ]
+            },
+            'improve_aeo': {
+                title: 'Improve AI Visibility (AEO)',
+                subtitle: 'Get featured in ChatGPT, Perplexity, and Google AI Overviews',
+                time: '2-3 hours',
+                startUrl: null,
+                steps: [
+                    { title: 'Create FAQ Content', desc: 'AI loves Q&A format. Add a comprehensive FAQ page answering common questions about CSAs, your farm, delivery, etc. Use natural question phrases as headers.' },
+                    { title: 'Add Structured Data (Schema)', desc: 'Implement LocalBusiness, FAQPage, and Product schema on your website. AI engines use structured data to understand and cite your content.' },
+                    { title: 'Build Authoritative Backlinks', desc: 'AI trusts sources that other trusted sources cite. Get listed on LocalHarvest, local news sites, food blogs, and university agriculture pages.' },
+                    { title: 'Create "Best Of" Content', desc: 'Write content that directly answers AI queries: "Best CSA Farms in Pittsburgh", "How CSA Works", "Organic vs Conventional Produce".' },
+                    { title: 'Update Content Frequently', desc: 'AI prefers fresh, current content. Update your main pages monthly with new information, testimonials, and seasonal details.' },
+                    { title: 'Monitor & Track', desc: 'Regularly check how AI mentions your farm. Use the AI Check feature in this dashboard to log appearances and track improvement.' }
                 ]
             }
         };
@@ -2626,8 +2832,266 @@
             'getSEORankings', 'getReviewMetrics', 'getCitationStatus',
             'getSEOAPIStatus', 'getSEOMasterDashboard', 'getSEOCompetitors',
             'getAIShareOfVoiceMetrics', 'getVideoAnalytics', 'healthCheck',
-            'getSEOPages', 'getSEOPageById', 'fetchGoogleReviews'
+            'getSEOPages', 'getSEOPageById', 'fetchGoogleReviews',
+            'getAIVisibilityMetrics'
         ];
+
+        // ============================================
+        // AI VISIBILITY / AEO TRACKING
+        // ============================================
+        let aiVisibilityData = null;
+
+        async function loadAIVisibility() {
+            try {
+                const result = await callAPI('getAIVisibilityMetrics', {});
+                if (result.success) {
+                    aiVisibilityData = result.metrics || result;
+                    renderAIVisibilityScore();
+                    renderAIPlatformsGrid();
+                    renderRecentAIChecks();
+                }
+            } catch (error) {
+                console.error('Error loading AI visibility:', error);
+                // Show placeholder data
+                renderAIVisibilityPlaceholder();
+            }
+        }
+
+        function renderAIVisibilityScore() {
+            const scoreEl = document.getElementById('ai-visibility-score');
+            const trendEl = document.getElementById('ai-visibility-trend');
+
+            if (aiVisibilityData && aiVisibilityData.totalChecks > 0) {
+                const rate = aiVisibilityData.appearanceRate || 0;
+                scoreEl.textContent = `${rate}%`;
+                trendEl.innerHTML = `<i class="fas fa-eye"></i> ${aiVisibilityData.appearances}/${aiVisibilityData.totalChecks} checks`;
+                trendEl.className = rate >= 50 ? 'trend up' : rate >= 25 ? 'trend neutral' : 'trend down';
+            } else {
+                scoreEl.textContent = '0%';
+                trendEl.innerHTML = '<i class="fas fa-info-circle"></i> No data yet';
+                trendEl.className = 'trend neutral';
+            }
+        }
+
+        function renderAIPlatformsGrid() {
+            const container = document.getElementById('ai-platforms-grid');
+            const platforms = [
+                { id: 'chatgpt', name: 'ChatGPT', icon: 'fa-robot', color: '#10a37f' },
+                { id: 'perplexity', name: 'Perplexity', icon: 'fa-search', color: '#1fb8cd' },
+                { id: 'gemini', name: 'Google Gemini', icon: 'fa-google', color: '#4285f4' },
+                { id: 'ai_overview', name: 'Google AI Overview', icon: 'fa-search-plus', color: '#ea4335' }
+            ];
+
+            const byPlatform = aiVisibilityData?.byPlatform || {};
+
+            container.innerHTML = platforms.map(p => {
+                const data = byPlatform[p.id] || { checks: 0, appearances: 0 };
+                const rate = data.checks > 0 ? Math.round((data.appearances / data.checks) * 100) : 0;
+                const statusColor = rate >= 50 ? 'var(--success)' : rate >= 25 ? 'var(--warning)' : 'var(--danger)';
+
+                return `
+                    <div style="background: var(--bg-light); padding: 1rem; border-radius: 12px; border-left: 4px solid ${p.color};">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                            <i class="fas ${p.icon}" style="color: ${p.color};"></i>
+                            <span style="font-weight: 600;">${p.name}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-size: 1.75rem; font-weight: 700; color: ${data.checks > 0 ? statusColor : 'var(--text-secondary)'};">
+                                    ${data.checks > 0 ? rate + '%' : '--'}
+                                </div>
+                                <div style="font-size: 0.75rem; color: var(--text-secondary);">
+                                    ${data.appearances}/${data.checks} appearances
+                                </div>
+                            </div>
+                            <button onclick="quickAICheck('${p.id}')" style="padding: 8px 12px; background: ${p.color}20; border: 1px solid ${p.color}; border-radius: 6px; color: ${p.color}; cursor: pointer; font-size: 0.75rem;">
+                                <i class="fas fa-plus"></i> Check
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderRecentAIChecks() {
+            const container = document.getElementById('ai-recent-checks');
+            const recentChecks = aiVisibilityData?.recentChecks || [];
+
+            if (recentChecks.length === 0) {
+                container.innerHTML = `
+                    <p style="color: var(--text-secondary); font-size: 0.85rem; text-align: center; padding: 1rem;">
+                        <i class="fas fa-info-circle"></i> No checks logged yet. Start tracking your AI visibility!
+                    </p>
+                `;
+                return;
+            }
+
+            container.innerHTML = recentChecks.slice(0, 10).map(check => {
+                const platformIcons = {
+                    chatgpt: 'fa-robot',
+                    perplexity: 'fa-search',
+                    gemini: 'fa-google',
+                    ai_overview: 'fa-search-plus',
+                    claude: 'fa-comment',
+                    copilot: 'fa-microsoft'
+                };
+                const statusColor = check.appeared ? 'var(--success)' : 'var(--danger)';
+                const statusIcon = check.appeared ? 'fa-check-circle' : 'fa-times-circle';
+
+                return `
+                    <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: var(--bg-light); border-radius: 8px; margin-bottom: 0.5rem; border-left: 3px solid ${statusColor};">
+                        <i class="fas ${platformIcons[check.platform] || 'fa-robot'}" style="color: var(--text-secondary);"></i>
+                        <div style="flex: 1;">
+                            <div style="font-size: 0.85rem; font-weight: 500;">"${check.query}"</div>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary);">${check.platform} - ${check.position || 'N/A'}</div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.25rem; color: ${statusColor};">
+                            <i class="fas ${statusIcon}"></i>
+                            <span style="font-size: 0.75rem;">${check.appeared ? 'Found' : 'Missing'}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderAIVisibilityPlaceholder() {
+            const container = document.getElementById('ai-platforms-grid');
+            container.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: var(--text-secondary);">
+                    <i class="fas fa-robot" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                    <p>Start tracking your AI visibility by clicking "Log AI Check"</p>
+                    <p style="font-size: 0.85rem; margin-top: 0.5rem;">This is critical for 2026 SEO - 60%+ of searches now go to AI answer engines.</p>
+                </div>
+            `;
+
+            // Also update score card
+            document.getElementById('ai-visibility-score').textContent = '--';
+            document.getElementById('ai-visibility-trend').innerHTML = '<i class="fas fa-info-circle"></i> Start tracking';
+        }
+
+        function openAICheckModal() {
+            document.getElementById('ai-check-modal').classList.add('active');
+        }
+
+        function quickAICheck(platform) {
+            // Pre-fill platform and open modal
+            document.getElementById('ai-check-modal').classList.add('active');
+            const select = document.querySelector('#ai-check-form select[name="platform"]');
+            if (select) select.value = platform;
+        }
+
+        async function saveAICheck() {
+            const form = document.getElementById('ai-check-form');
+            const formData = new FormData(form);
+
+            try {
+                const result = await callAPI('logAIVisibility', {
+                    platform: formData.get('platform'),
+                    query: formData.get('query'),
+                    appeared: formData.get('appeared') === 'true',
+                    position: formData.get('position'),
+                    sentiment: formData.get('sentiment'),
+                    notes: formData.get('notes')
+                });
+
+                if (result.success) {
+                    closeModal('ai-check-modal');
+                    form.reset();
+                    showToast('AI visibility check logged!');
+                    loadAIVisibility();
+                } else {
+                    showToast('Error: ' + (result.error || 'Failed to save'));
+                }
+            } catch (error) {
+                console.error('Error saving AI check:', error);
+                showToast('Error saving AI check');
+            }
+        }
+
+        async function refreshAIVisibility() {
+            const container = document.getElementById('ai-platforms-grid');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+            await loadAIVisibility();
+            showToast('AI visibility data refreshed');
+        }
+
+        // ============================================
+        // #1 PRIORITY HERO CARD
+        // ============================================
+        function updatePriorityHero() {
+            const { rankings, reviews, citations } = dashboardData || {};
+            const heroCard = document.getElementById('priority-hero');
+            const titleEl = document.getElementById('priority-hero-title');
+            const descEl = document.getElementById('priority-hero-description');
+
+            // Determine the #1 priority based on data analysis
+            let priority = { title: 'Set up tracking', desc: 'Start by logging your keyword rankings', actionType: 'general' };
+
+            // Check for urgent issues in order of importance
+            // 1. Reviews needing response
+            if (reviews?.needsResponse > 0) {
+                priority = {
+                    title: `Respond to ${reviews.needsResponse} review${reviews.needsResponse > 1 ? 's' : ''}`,
+                    desc: 'Reviews need response within 24 hours for best SEO impact',
+                    actionType: 'respond_reviews'
+                };
+            }
+            // 2. Ranking drops
+            else if (rankings?.keywords?.some(k => k.change && k.change <= -3)) {
+                const dropped = rankings.keywords.find(k => k.change && k.change <= -3);
+                priority = {
+                    title: `Fix "${dropped.keyword}" ranking drop`,
+                    desc: `Dropped ${Math.abs(dropped.change)} positions - investigate immediately`,
+                    actionType: 'keyword_drop'
+                };
+            }
+            // 3. Missing Tier 1 citations
+            else if ((citations?.byTier?.['Tier 1 Essential'] || 0) < 5) {
+                const remaining = 5 - (citations?.byTier?.['Tier 1 Essential'] || 0);
+                priority = {
+                    title: `Complete ${remaining} Tier 1 citation${remaining > 1 ? 's' : ''}`,
+                    desc: 'Tier 1 citations are essential for local SEO foundation',
+                    actionType: 'build_citations'
+                };
+            }
+            // 4. Keywords close to #1
+            else if (rankings?.keywords?.some(k => k.currentRank > 1 && k.currentRank <= 3)) {
+                const close = rankings.keywords.find(k => k.currentRank > 1 && k.currentRank <= 3);
+                priority = {
+                    title: `Push "${close.keyword}" to #1`,
+                    desc: `Currently at #${close.currentRank} - you're so close!`,
+                    actionType: 'push_for_top'
+                };
+            }
+            // 5. Low review count
+            else if ((reviews?.total || 0) < 50) {
+                priority = {
+                    title: 'Get 5 new reviews this week',
+                    desc: `Only ${reviews?.total || 0} reviews - target is 100+ for local dominance`,
+                    actionType: 'get_reviews'
+                };
+            }
+            // 6. AI Visibility (new!)
+            else if (!aiVisibilityData || aiVisibilityData.totalChecks < 5) {
+                priority = {
+                    title: 'Track AI Visibility',
+                    desc: '60% of searches go to AI - start monitoring your presence in ChatGPT & Perplexity',
+                    actionType: 'general'
+                };
+            }
+            // 7. Default - content creation
+            else {
+                priority = {
+                    title: 'Create SEO content',
+                    desc: 'Write a blog post targeting your key keywords',
+                    actionType: 'write_blog'
+                };
+            }
+
+            titleEl.textContent = priority.title;
+            descEl.textContent = priority.desc;
+            heroCard.dataset.actionType = priority.actionType;
+        }
 
         async function callAPI(action, params) {
             let response;

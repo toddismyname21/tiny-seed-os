@@ -23,6 +23,8 @@ CREDENTIALS_PRIVATE.txt
 SOCIAL_CREDENTIALS.md  # Social media passwords - NEVER commit
 .secrets/              # Secure credentials folder - NEVER commit
 apps_script/   # Contains Twilio credentials - never commit to public repo
+# Local API keys config - NEVER commit (use config.template.js)
+web_app/config.js
 
 # Claude Code
 .claude/
@@ -58,3 +60,4 @@ OAUTH_CREDENTIALS.md
 Claude-Code-Remote/
 browser_agent/user_data/
 browser_agent/screenshot_*.png
+

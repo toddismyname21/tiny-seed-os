@@ -1,0 +1,56 @@
+{
+  "schema_version": "1.0",
+  "description": "Historical record of all verification requests and their outcomes",
+  "created": "2026-02-12T00:00:00Z",
+  "history": [],
+  "agents_tracked": {
+    "Backend_Claude": {
+      "total_submissions": 0,
+      "verified": 0,
+      "rejected": 0,
+      "pass_rate": 0
+    },
+    "Desktop_Claude": {
+      "total_submissions": 0,
+      "verified": 0,
+      "rejected": 0,
+      "pass_rate": 0
+    },
+    "Mobile_Claude": {
+      "total_submissions": 0,
+      "verified": 0,
+      "rejected": 0,
+      "pass_rate": 0
+    },
+    "UX_Design_Claude": {
+      "total_submissions": 0,
+      "verified": 0,
+      "rejected": 0,
+      "pass_rate": 0
+    },
+    "Sales_Claude": {
+      "total_submissions": 0,
+      "verified": 0,
+      "rejected": 0,
+      "pass_rate": 0
+    },
+    "Security_Claude": {
+      "total_submissions": 0,
+      "verified": 0,
+      "rejected": 0,
+      "pass_rate": 0
+    },
+    "Research_Claude": {
+      "total_submissions": 0,
+      "verified": 0,
+      "rejected": 0,
+      "pass_rate": 0
+    }
+  },
+  "common_rejection_reasons": [],
+  "patterns": {
+    "most_verified_type": null,
+    "most_rejected_type": null,
+    "peak_verification_hours": []
+  }
+}

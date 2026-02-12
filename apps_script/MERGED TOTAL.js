@@ -14829,6 +14829,10 @@ function doGet(e) {
         return jsonResponse(getWholesaleCustomers(e.parameter));
       case 'getWholesaleCustomer':
         return jsonResponse({ success: true, customer: getWholesaleCustomer(e.parameter.customerId) });
+      case 'getMinimumOrder':
+        return jsonResponse({ success: true, minimumOrder: getCustomerMinimumOrder(e.parameter.customerId) });
+      case 'getWholesaleDeliveryStatus':
+        return jsonResponse(getWholesaleDeliveryStatus(e.parameter.customerId));
 
       case 'getCSAProducts':
         return jsonResponse(getCSAProducts(e.parameter));
@@ -14890,6 +14894,12 @@ function doGet(e) {
         return jsonResponse(getCSARetentionDashboard());
       case 'getCSAMemberPreferences':
         return jsonResponse(getCSAMemberPreferences(e.parameter.memberId));
+      case 'getSmartSwapSuggestions':
+        return jsonResponse(getSmartSwapSuggestions({
+          memberId: e.parameter.memberId,
+          swapOut: e.parameter.swapOut,
+          availableOptions: e.parameter.options ? JSON.parse(e.parameter.options) : null
+        }));
       case 'getCSABoxSatisfaction':
         return jsonResponse(calculateCSABoxSatisfaction(
           e.parameter.memberId,
@@ -16872,6 +16882,26 @@ function doGet(e) {
       case 'getContentRecommendations':
         return jsonResponse(getContentRecommendations(e.parameter));
 
+      // ============ SELF-UPDATING ALGORITHM INTELLIGENCE SYSTEM (2026-02-12) ============
+      case 'fetchAlgorithmNews':
+        return jsonResponse(fetchAlgorithmNews());
+      case 'processAlgorithmNews':
+        return jsonResponse(processAlgorithmNews());
+      case 'getFollowerOnlineTimes':
+        return jsonResponse(getFollowerOnlineTimes(e.parameter.accountId));
+      case 'calculateOptimalPostingTimes':
+        return jsonResponse(calculateOptimalPostingTimes(e.parameter.accountId));
+      case 'detectEngagementAnomalies':
+        return jsonResponse(detectEngagementAnomalies(e.parameter.accountId));
+      case 'generateWeeklyIntelligenceBrief':
+        return jsonResponse(generateWeeklyIntelligenceBrief());
+      case 'getLatestIntelligenceBrief':
+        return jsonResponse(getLatestIntelligenceBrief());
+      case 'getAlgorithmIntelligenceDashboard':
+        return jsonResponse(getAlgorithmIntelligenceDashboard());
+      case 'setupAlgorithmIntelligenceTrigger':
+        return jsonResponse(setupAlgorithmIntelligenceTrigger());
+
       // ============ TRAFFIC OPTIMIZATION ENGINE (GET) (2026-02-04) ============
       case 'validatePostSEO':
         return jsonResponse(validatePostSEO({
@@ -17736,6 +17766,8 @@ function doPost(e) {
         return jsonResponse(generateContentForGaps(data));
       case 'enhanceCaption':
         return jsonResponse(enhanceCaption(data));
+      case 'generateAICaptionFromImage':
+        return jsonResponse(generateAICaptionFromImage(data));
       case 'generateFromToddInput':
         return jsonResponse(generateFromToddInput(data));
       case 'markSocialActionComplete':
@@ -19518,6 +19550,1217 @@ function incrementAudioUseCount(audioName) {
     return { success: false, error: `Audio "${audioName}" not found` };
 
   } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SELF-UPDATING ALGORITHM INTELLIGENCE SYSTEM
+// Built 2026-02-12 - RSS aggregation, AI summarization, personalized insights
+// ═══════════════════════════════════════════════════════════════════════════
+
+const ALGORITHM_NEWS_SHEET = 'AlgorithmNews';
+const ALGORITHM_NEWS_HEADERS = ['ID', 'Date_Fetched', 'Source', 'Title', 'URL', 'Platform', 'Change_Type', 'Impact_Level', 'Action_Required', 'Summary', 'Raw_Content', 'Processed'];
+
+const ENGAGEMENT_HISTORY_SHEET = 'EngagementHistory';
+const ENGAGEMENT_HISTORY_HEADERS = ['Date', 'Account', 'Followers', 'Avg_Likes', 'Avg_Comments', 'Avg_Shares', 'Avg_Saves', 'Posts_Count', 'Engagement_Rate'];
+
+const WEEKLY_BRIEF_SHEET = 'WeeklyIntelligenceBriefs';
+const WEEKLY_BRIEF_HEADERS = ['ID', 'Date_Generated', 'Week_Number', 'Algorithm_Updates_Count', 'Performance_Summary', 'Recommendations', 'Alerts', 'Full_Brief'];
+
+// RSS feed sources for algorithm news
+const ALGORITHM_RSS_FEEDS = [
+  { name: 'Buffer Blog', url: 'https://buffer.com/resources/feed/', platform: 'Multiple', focus: 'social_strategy' },
+  { name: 'Later Blog', url: 'https://later.com/blog/feed/', platform: 'Instagram', focus: 'instagram' },
+  { name: 'Hootsuite Blog', url: 'https://blog.hootsuite.com/feed/', platform: 'Multiple', focus: 'social_strategy' },
+  { name: 'Social Media Examiner', url: 'https://www.socialmediaexaminer.com/feed/', platform: 'Multiple', focus: 'algorithm_changes' },
+  { name: 'Social Media Today', url: 'https://www.socialmediatoday.com/feed/', platform: 'Multiple', focus: 'news' },
+  { name: 'Meta for Business', url: 'https://www.facebook.com/business/news/feed/', platform: 'Meta', focus: 'official' },
+  { name: 'TikTok Newsroom', url: 'https://newsroom.tiktok.com/feed/', platform: 'TikTok', focus: 'official' }
+];
+
+// Keywords that indicate algorithm-relevant content
+const ALGORITHM_KEYWORDS = [
+  'algorithm', 'ranking', 'reach', 'engagement', 'visibility', 'feed',
+  'reels', 'stories', 'explore', 'discover', 'shadowban', 'boost',
+  'viral', 'trending', 'hashtag', 'best time', 'optimal', 'update',
+  'change', 'new feature', 'instagram update', 'tiktok update',
+  'facebook update', 'meta update', 'content strategy', 'growth',
+  '2026', 'latest', 'breaking'
+];
+
+/**
+ * Initialize AlgorithmNews sheet
+ */
+function initializeAlgorithmNewsSheet() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName(ALGORITHM_NEWS_SHEET);
+
+  if (!sheet) {
+    sheet = ss.insertSheet(ALGORITHM_NEWS_SHEET);
+    sheet.getRange(1, 1, 1, ALGORITHM_NEWS_HEADERS.length).setValues([ALGORITHM_NEWS_HEADERS]);
+    sheet.getRange(1, 1, 1, ALGORITHM_NEWS_HEADERS.length)
+      .setBackground('#6366F1')
+      .setFontColor('#ffffff')
+      .setFontWeight('bold');
+    sheet.setFrozenRows(1);
+
+    // Set column widths
+    sheet.setColumnWidth(1, 100);   // ID
+    sheet.setColumnWidth(2, 120);   // Date_Fetched
+    sheet.setColumnWidth(3, 150);   // Source
+    sheet.setColumnWidth(4, 300);   // Title
+    sheet.setColumnWidth(5, 200);   // URL
+    sheet.setColumnWidth(6, 100);   // Platform
+    sheet.setColumnWidth(7, 120);   // Change_Type
+    sheet.setColumnWidth(8, 100);   // Impact_Level
+    sheet.setColumnWidth(9, 200);   // Action_Required
+    sheet.setColumnWidth(10, 400);  // Summary
+    sheet.setColumnWidth(11, 100);  // Raw_Content
+    sheet.setColumnWidth(12, 80);   // Processed
+  }
+
+  return sheet;
+}
+
+/**
+ * Initialize EngagementHistory sheet
+ */
+function initializeEngagementHistorySheet() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName(ENGAGEMENT_HISTORY_SHEET);
+
+  if (!sheet) {
+    sheet = ss.insertSheet(ENGAGEMENT_HISTORY_SHEET);
+    sheet.getRange(1, 1, 1, ENGAGEMENT_HISTORY_HEADERS.length).setValues([ENGAGEMENT_HISTORY_HEADERS]);
+    sheet.getRange(1, 1, 1, ENGAGEMENT_HISTORY_HEADERS.length)
+      .setBackground('#22c55e')
+      .setFontColor('#ffffff')
+      .setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+
+  return sheet;
+}
+
+/**
+ * Initialize WeeklyIntelligenceBriefs sheet
+ */
+function initializeWeeklyBriefSheet() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName(WEEKLY_BRIEF_SHEET);
+
+  if (!sheet) {
+    sheet = ss.insertSheet(WEEKLY_BRIEF_SHEET);
+    sheet.getRange(1, 1, 1, WEEKLY_BRIEF_HEADERS.length).setValues([WEEKLY_BRIEF_HEADERS]);
+    sheet.getRange(1, 1, 1, WEEKLY_BRIEF_HEADERS.length)
+      .setBackground('#8B5CF6')
+      .setFontColor('#ffffff')
+      .setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+
+  return sheet;
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 1. RSS FEED AGGREGATOR - Fetch algorithm news from multiple sources
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+function fetchAlgorithmNews() {
+  try {
+    const sheet = initializeAlgorithmNewsSheet();
+    const today = Utilities.formatDate(new Date(), FARM_CONFIG.TIMEZONE, 'yyyy-MM-dd');
+    const newArticles = [];
+    const errors = [];
+
+    // Get existing URLs to avoid duplicates
+    const existingData = sheet.getLastRow() > 1 ? sheet.getRange(2, 5, sheet.getLastRow() - 1, 1).getValues() : [];
+    const existingUrls = new Set(existingData.map(row => row[0]));
+
+    for (const feed of ALGORITHM_RSS_FEEDS) {
+      try {
+        const response = UrlFetchApp.fetch(feed.url, {
+          muteHttpExceptions: true,
+          followRedirects: true,
+          headers: { 'User-Agent': 'TinySeedOS/1.0 AlgorithmIntelligence' }
+        });
+
+        if (response.getResponseCode() !== 200) {
+          errors.push({ source: feed.name, error: `HTTP ${response.getResponseCode()}` });
+          continue;
+        }
+
+        const content = response.getContentText();
+        const articles = parseRSSFeed(content, feed);
+
+        // Filter for algorithm-relevant articles and check for duplicates
+        for (const article of articles) {
+          if (existingUrls.has(article.url)) continue;
+
+          const isRelevant = isAlgorithmRelevant(article.title + ' ' + (article.description || ''));
+          if (isRelevant) {
+            article.id = 'ALG-' + Utilities.getUuid().substring(0, 8);
+            article.dateFetched = today;
+            article.processed = false;
+            newArticles.push(article);
+            existingUrls.add(article.url);
+          }
+        }
+      } catch (feedError) {
+        errors.push({ source: feed.name, error: feedError.toString() });
+      }
+    }
+
+    // Write new articles to sheet
+    if (newArticles.length > 0) {
+      const rows = newArticles.map(a => [
+        a.id, a.dateFetched, a.source, a.title, a.url, a.platform,
+        '', '', '', '', a.description || '', false
+      ]);
+      sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, ALGORITHM_NEWS_HEADERS.length).setValues(rows);
+    }
+
+    // Log the fetch action
+    logAgentAction({
+      agent: 'AlgorithmIntelligence',
+      action: 'fetchAlgorithmNews',
+      target: 'RSS_Feeds',
+      success: true,
+      metadata: { articlesFound: newArticles.length, feedsChecked: ALGORITHM_RSS_FEEDS.length, errors: errors.length }
+    });
+
+    return {
+      success: true,
+      message: `Fetched ${newArticles.length} new algorithm-related articles`,
+      articlesFound: newArticles.length,
+      feedsChecked: ALGORITHM_RSS_FEEDS.length,
+      errors: errors.length > 0 ? errors : undefined
+    };
+
+  } catch (error) {
+    Logger.log('fetchAlgorithmNews error: ' + error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Parse RSS/XML feed content
+ */
+function parseRSSFeed(content, feedInfo) {
+  const articles = [];
+
+  try {
+    const document = XmlService.parse(content);
+    const root = document.getRootElement();
+
+    // Handle both RSS and Atom feeds
+    const isAtom = root.getName() === 'feed';
+
+    if (isAtom) {
+      // Atom feed
+      const entries = root.getChildren('entry', root.getNamespace());
+      for (const entry of entries.slice(0, 20)) { // Limit to 20 most recent
+        const ns = entry.getNamespace();
+        articles.push({
+          title: entry.getChildText('title', ns) || '',
+          url: getAtomLink(entry, ns),
+          description: entry.getChildText('summary', ns) || entry.getChildText('content', ns) || '',
+          pubDate: entry.getChildText('published', ns) || entry.getChildText('updated', ns) || '',
+          source: feedInfo.name,
+          platform: feedInfo.platform
+        });
+      }
+    } else {
+      // RSS feed
+      const channel = root.getChild('channel');
+      if (channel) {
+        const items = channel.getChildren('item');
+        for (const item of items.slice(0, 20)) { // Limit to 20 most recent
+          articles.push({
+            title: item.getChildText('title') || '',
+            url: item.getChildText('link') || '',
+            description: item.getChildText('description') || '',
+            pubDate: item.getChildText('pubDate') || '',
+            source: feedInfo.name,
+            platform: feedInfo.platform
+          });
+        }
+      }
+    }
+  } catch (parseError) {
+    Logger.log('RSS parse error for ' + feedInfo.name + ': ' + parseError.message);
+  }
+
+  return articles;
+}
+
+/**
+ * Helper to get link from Atom entry
+ */
+function getAtomLink(entry, ns) {
+  const links = entry.getChildren('link', ns);
+  for (const link of links) {
+    const rel = link.getAttribute('rel');
+    if (!rel || rel.getValue() === 'alternate') {
+      return link.getAttribute('href').getValue();
+    }
+  }
+  return '';
+}
+
+/**
+ * Check if content is algorithm-relevant
+ */
+function isAlgorithmRelevant(text) {
+  const lowerText = text.toLowerCase();
+  return ALGORITHM_KEYWORDS.some(keyword => lowerText.includes(keyword.toLowerCase()));
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 2. CLAUDE AI ARTICLE SUMMARIZER - Extract insights from algorithm articles
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+function summarizeAlgorithmArticle(content, title, source) {
+  try {
+    if (!checkCircuitBreaker('claude_api')) {
+      return { success: false, error: 'Claude API circuit breaker is open' };
+    }
+
+    const apiKey = CLAUDE_CONFIG.API_KEY;
+    if (!apiKey) {
+      return { success: false, error: 'Claude API key not configured' };
+    }
+
+    const prompt = `You are analyzing a social media industry article for a small farm business (Tiny Seed Farm) that uses Instagram, Facebook, and TikTok.
+
+Article Title: ${title}
+Source: ${source}
+Content: ${content}
+
+Extract the following information in JSON format:
+{
+  "platform": "[Instagram/Facebook/TikTok/Multiple/General]",
+  "changeType": "[Algorithm Change/Best Practice/New Feature/Strategy Update/Research Finding]",
+  "impactLevel": "[HIGH/MEDIUM/LOW]",
+  "actionRequired": "[Specific action the farm should take, or 'No action needed']",
+  "summary": "[2-3 sentence summary focused on what this means for a small farm's social media strategy]",
+  "keyTakeaway": "[One sentence key point]"
+}
+
+Focus on:
+- How this affects reach and engagement for small business accounts
+- Whether this requires any immediate action
+- Practical implications for content creation
+
+Return ONLY the JSON object, no additional text.`;
+
+    const response = UrlFetchApp.fetch(CLAUDE_CONFIG.ENDPOINT, {
+      method: 'post',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': CLAUDE_CONFIG.ANTHROPIC_VERSION
+      },
+      payload: JSON.stringify({
+        model: CLAUDE_CONFIG.MODEL,
+        max_tokens: 500,
+        messages: [{ role: 'user', content: prompt }]
+      }),
+      muteHttpExceptions: true
+    });
+
+    if (response.getResponseCode() !== 200) {
+      recordFailure('claude_api');
+      return { success: false, error: `Claude API error: ${response.getResponseCode()}` };
+    }
+
+    recordSuccess('claude_api');
+    const result = JSON.parse(response.getContentText());
+    const responseText = result.content[0].text;
+
+    // Parse the JSON response
+    const parsed = JSON.parse(responseText);
+
+    return {
+      success: true,
+      platform: parsed.platform || 'General',
+      changeType: parsed.changeType || 'General Update',
+      impactLevel: parsed.impactLevel || 'MEDIUM',
+      actionRequired: parsed.actionRequired || 'Review and assess',
+      summary: parsed.summary || 'No summary available',
+      keyTakeaway: parsed.keyTakeaway || ''
+    };
+
+  } catch (error) {
+    Logger.log('summarizeAlgorithmArticle error: ' + error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Process unprocessed algorithm news articles with AI summarization
+ */
+function processAlgorithmNews() {
+  try {
+    const sheet = initializeAlgorithmNewsSheet();
+    if (sheet.getLastRow() <= 1) {
+      return { success: true, message: 'No articles to process', processed: 0 };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const processedIdx = headers.indexOf('Processed');
+    const summaryIdx = headers.indexOf('Summary');
+    const changeTypeIdx = headers.indexOf('Change_Type');
+    const impactIdx = headers.indexOf('Impact_Level');
+    const actionIdx = headers.indexOf('Action_Required');
+    const platformIdx = headers.indexOf('Platform');
+    const rawIdx = headers.indexOf('Raw_Content');
+    const titleIdx = headers.indexOf('Title');
+    const sourceIdx = headers.indexOf('Source');
+
+    let processedCount = 0;
+    const maxToProcess = 5; // Process max 5 per run to avoid timeout
+
+    for (let i = 1; i < data.length && processedCount < maxToProcess; i++) {
+      const isProcessed = data[i][processedIdx];
+      if (isProcessed === true || isProcessed === 'TRUE' || isProcessed === 'true') continue;
+
+      const rawContent = data[i][rawIdx] || '';
+      const title = data[i][titleIdx] || '';
+      const source = data[i][sourceIdx] || '';
+
+      if (!rawContent && !title) {
+        sheet.getRange(i + 1, processedIdx + 1).setValue(true);
+        continue;
+      }
+
+      const analysis = summarizeAlgorithmArticle(rawContent || title, title, source);
+
+      if (analysis.success) {
+        sheet.getRange(i + 1, platformIdx + 1).setValue(analysis.platform);
+        sheet.getRange(i + 1, changeTypeIdx + 1).setValue(analysis.changeType);
+        sheet.getRange(i + 1, impactIdx + 1).setValue(analysis.impactLevel);
+        sheet.getRange(i + 1, actionIdx + 1).setValue(analysis.actionRequired);
+        sheet.getRange(i + 1, summaryIdx + 1).setValue(analysis.summary);
+        sheet.getRange(i + 1, processedIdx + 1).setValue(true);
+        processedCount++;
+      }
+
+      // Small delay to avoid rate limits
+      Utilities.sleep(1000);
+    }
+
+    return {
+      success: true,
+      message: `Processed ${processedCount} articles with AI`,
+      processed: processedCount
+    };
+
+  } catch (error) {
+    Logger.log('processAlgorithmNews error: ' + error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 3. PERSONAL OPTIMAL TIME CALCULATOR - Using Instagram Graph API insights
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+function getFollowerOnlineTimes(accountId) {
+  try {
+    // Get Instagram Graph API token
+    const props = PropertiesService.getScriptProperties();
+    const accessToken = props.getProperty('INSTAGRAM_ACCESS_TOKEN') || props.getProperty('META_ACCESS_TOKEN');
+
+    if (!accessToken) {
+      return {
+        success: false,
+        error: 'Instagram access token not configured',
+        fallback: getGenericOptimalTimes()
+      };
+    }
+
+    // Default to primary account if not specified
+    const igAccountId = accountId || props.getProperty('INSTAGRAM_BUSINESS_ACCOUNT_ID');
+
+    if (!igAccountId) {
+      return {
+        success: false,
+        error: 'Instagram Business Account ID not configured',
+        fallback: getGenericOptimalTimes()
+      };
+    }
+
+    // Fetch audience insights from Instagram Graph API
+    const insightsUrl = `https://graph.facebook.com/v18.0/${igAccountId}/insights?metric=online_followers&period=lifetime&access_token=${accessToken}`;
+
+    const response = UrlFetchApp.fetch(insightsUrl, { muteHttpExceptions: true });
+
+    if (response.getResponseCode() !== 200) {
+      Logger.log('Instagram insights error: ' + response.getContentText());
+      return {
+        success: false,
+        error: 'Could not fetch Instagram insights',
+        fallback: getGenericOptimalTimes()
+      };
+    }
+
+    const result = JSON.parse(response.getContentText());
+
+    if (result.data && result.data.length > 0) {
+      const onlineFollowers = result.data.find(d => d.name === 'online_followers');
+
+      if (onlineFollowers && onlineFollowers.values && onlineFollowers.values[0]) {
+        const hourlyData = onlineFollowers.values[0].value;
+
+        // hourlyData is an object with hours (0-23) as keys and follower counts as values
+        // Find top 3 hours
+        const sortedHours = Object.entries(hourlyData)
+          .map(([hour, count]) => ({ hour: parseInt(hour), count }))
+          .sort((a, b) => b.count - a.count);
+
+        return {
+          success: true,
+          source: 'Instagram Graph API',
+          data: hourlyData,
+          topHours: sortedHours.slice(0, 3).map(h => ({
+            hour: h.hour,
+            formatted: formatHour(h.hour),
+            followers: h.count
+          })),
+          recommendation: `Best times: ${sortedHours.slice(0, 3).map(h => formatHour(h.hour)).join(', ')}`
+        };
+      }
+    }
+
+    return {
+      success: false,
+      error: 'No online followers data available',
+      fallback: getGenericOptimalTimes()
+    };
+
+  } catch (error) {
+    Logger.log('getFollowerOnlineTimes error: ' + error.message);
+    return {
+      success: false,
+      error: error.message,
+      fallback: getGenericOptimalTimes()
+    };
+  }
+}
+
+/**
+ * Get generic optimal times based on industry research
+ */
+function getGenericOptimalTimes() {
+  return {
+    source: 'Industry Research (Buffer 9.6M posts, Later 6M posts)',
+    byDay: {
+      0: { day: 'Sunday', times: ['10:00 AM', '7:00 PM'] },
+      1: { day: 'Monday', times: ['6:00 AM', '10:00 AM', '10:00 PM'] },
+      2: { day: 'Tuesday', times: ['2:00 AM', '4:00 AM', '9:00 AM'] },
+      3: { day: 'Wednesday', times: ['7:00 AM', '11:00 AM', '3:00 PM'] },
+      4: { day: 'Thursday', times: ['9:00 AM', '12:00 PM', '7:00 PM'] },
+      5: { day: 'Friday', times: ['5:00 AM', '1:00 PM', '3:00 PM'] },
+      6: { day: 'Saturday', times: ['11:00 AM', '7:00 PM', '8:00 PM'] }
+    },
+    bestOverall: ['Wednesday 11:00 AM', 'Thursday 12:00 PM', 'Thursday 7:00 PM'],
+    worstTimes: ['Saturday 6:00 AM - 9:00 AM']
+  };
+}
+
+/**
+ * Format hour number to readable time
+ */
+function formatHour(hour) {
+  const h = hour % 12 || 12;
+  const ampm = hour < 12 ? 'AM' : 'PM';
+  return `${h}:00 ${ampm}`;
+}
+
+/**
+ * Calculate personalized optimal posting times
+ * Cross-references follower online times with YOUR engagement data
+ */
+function calculateOptimalPostingTimes(accountId) {
+  try {
+    // Get follower online times
+    const followerTimes = getFollowerOnlineTimes(accountId);
+
+    // Get YOUR engagement history
+    const engagementData = getYourEngagementByTime(accountId);
+
+    if (!followerTimes.success && !engagementData.success) {
+      // Both failed - return generic recommendations
+      return {
+        success: true,
+        source: 'Industry Research',
+        personalized: false,
+        recommendations: getGenericOptimalTimes().bestOverall.map((time, i) => ({
+          rank: i + 1,
+          time: time,
+          reason: 'Based on 9.6M post analysis'
+        })),
+        note: 'Connect Instagram Graph API for personalized recommendations'
+      };
+    }
+
+    const recommendations = [];
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const currentHour = today.getHours();
+
+    // If we have follower data, use it
+    if (followerTimes.success && followerTimes.topHours) {
+      for (const hourData of followerTimes.topHours) {
+        let score = hourData.followers || 100;
+        let reason = `${hourData.followers || 'Many'} followers online`;
+
+        // Boost score if we have engagement data for this hour
+        if (engagementData.success && engagementData.byHour && engagementData.byHour[hourData.hour]) {
+          const engRate = engagementData.byHour[hourData.hour].engagementRate || 0;
+          if (engRate > engagementData.averageRate) {
+            score *= 1.5;
+            reason += ` + ${(engRate * 100).toFixed(1)}% engagement rate`;
+          }
+        }
+
+        recommendations.push({
+          hour: hourData.hour,
+          time: hourData.formatted,
+          score: score,
+          reason: reason
+        });
+      }
+    }
+
+    // If we only have engagement data
+    if (!followerTimes.success && engagementData.success && engagementData.topHours) {
+      for (const hourData of engagementData.topHours) {
+        recommendations.push({
+          hour: hourData.hour,
+          time: formatHour(hourData.hour),
+          score: hourData.engagementRate * 1000,
+          reason: `${(hourData.engagementRate * 100).toFixed(1)}% engagement rate historically`
+        });
+      }
+    }
+
+    // Sort by score and take top 3
+    recommendations.sort((a, b) => b.score - a.score);
+    const topRecommendations = recommendations.slice(0, 3);
+
+    // Find the next best time to post today
+    let nextBestTime = null;
+    for (const rec of topRecommendations) {
+      if (rec.hour > currentHour) {
+        nextBestTime = rec;
+        break;
+      }
+    }
+    if (!nextBestTime && topRecommendations.length > 0) {
+      nextBestTime = topRecommendations[0]; // Tomorrow's first best time
+    }
+
+    return {
+      success: true,
+      source: followerTimes.success ? 'Instagram Graph API + Your Data' : 'Your Engagement History',
+      personalized: true,
+      recommendations: topRecommendations.map((rec, i) => ({
+        rank: i + 1,
+        time: rec.time,
+        reason: rec.reason
+      })),
+      nextBestTime: nextBestTime ? {
+        time: nextBestTime.time,
+        reason: nextBestTime.reason,
+        isToday: nextBestTime.hour > currentHour
+      } : null,
+      daySpecific: getDaySpecificTips(dayOfWeek)
+    };
+
+  } catch (error) {
+    Logger.log('calculateOptimalPostingTimes error: ' + error.message);
+    return {
+      success: false,
+      error: error.message,
+      fallback: getGenericOptimalTimes()
+    };
+  }
+}
+
+/**
+ * Get YOUR engagement data by time from history
+ */
+function getYourEngagementByTime(accountId) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const postsSheet = ss.getSheetByName('Social_Posts');
+
+    if (!postsSheet || postsSheet.getLastRow() <= 1) {
+      return { success: false, error: 'No post history found' };
+    }
+
+    const data = postsSheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const dateIdx = headers.indexOf('Posted_Date') !== -1 ? headers.indexOf('Posted_Date') : headers.indexOf('Created_Date');
+    const likesIdx = headers.indexOf('Likes');
+    const commentsIdx = headers.indexOf('Comments');
+    const accountIdx = headers.indexOf('Account');
+
+    const byHour = {};
+    let totalEngagement = 0;
+    let postCount = 0;
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (accountId && row[accountIdx] !== accountId) continue;
+
+      const postedDate = row[dateIdx];
+      if (!postedDate) continue;
+
+      const date = new Date(postedDate);
+      const hour = date.getHours();
+      const likes = parseInt(row[likesIdx]) || 0;
+      const comments = parseInt(row[commentsIdx]) || 0;
+      const engagement = likes + comments * 2; // Weight comments more
+
+      if (!byHour[hour]) {
+        byHour[hour] = { totalEngagement: 0, posts: 0 };
+      }
+      byHour[hour].totalEngagement += engagement;
+      byHour[hour].posts++;
+      totalEngagement += engagement;
+      postCount++;
+    }
+
+    if (postCount === 0) {
+      return { success: false, error: 'No posts with engagement data' };
+    }
+
+    const averageRate = totalEngagement / postCount;
+
+    // Calculate engagement rate per hour
+    const hourlyRates = Object.entries(byHour).map(([hour, data]) => ({
+      hour: parseInt(hour),
+      engagementRate: data.posts > 0 ? data.totalEngagement / data.posts : 0,
+      posts: data.posts
+    }));
+
+    // Sort by engagement rate
+    hourlyRates.sort((a, b) => b.engagementRate - a.engagementRate);
+
+    return {
+      success: true,
+      byHour: byHour,
+      topHours: hourlyRates.slice(0, 5),
+      averageRate: averageRate,
+      totalPosts: postCount
+    };
+
+  } catch (error) {
+    Logger.log('getYourEngagementByTime error: ' + error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Get day-specific posting tips
+ */
+function getDaySpecificTips(dayOfWeek) {
+  const tips = {
+    0: { day: 'Sunday', tip: 'Lifestyle and inspiration content performs well. People are relaxed and browsing.' },
+    1: { day: 'Monday', tip: 'Motivational content and week-ahead planning. Early morning and late evening posts work well.' },
+    2: { day: 'Tuesday', tip: 'Strong engagement day. Educational and how-to content performs well.' },
+    3: { day: 'Wednesday', tip: 'PEAK day for engagement. Best day to post your most important content.' },
+    4: { day: 'Thursday', tip: 'Second best day. Great for mid-week promotions and engaging content.' },
+    5: { day: 'Friday', tip: 'Fun and casual content. People are winding down and looking for entertainment.' },
+    6: { day: 'Saturday', tip: 'AVOID early morning (6-9 AM). Best times are late morning and evening.' }
+  };
+  return tips[dayOfWeek] || tips[3];
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 4. ENGAGEMENT ANOMALY DETECTION - Alert when engagement drops
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+function detectEngagementAnomalies(accountId) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const historySheet = initializeEngagementHistorySheet();
+    const postsSheet = ss.getSheetByName('Social_Posts');
+
+    // Calculate recent 7 days vs 30-day baseline
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    // Get post data
+    let recent7 = { likes: 0, comments: 0, posts: 0 };
+    let baseline30 = { likes: 0, comments: 0, posts: 0 };
+
+    if (postsSheet && postsSheet.getLastRow() > 1) {
+      const data = postsSheet.getDataRange().getValues();
+      const headers = data[0];
+      const dateIdx = headers.indexOf('Posted_Date') !== -1 ? headers.indexOf('Posted_Date') : headers.indexOf('Created_Date');
+      const likesIdx = headers.indexOf('Likes');
+      const commentsIdx = headers.indexOf('Comments');
+      const accountIdx = headers.indexOf('Account');
+
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        if (accountId && row[accountIdx] !== accountId) continue;
+
+        const postDate = new Date(row[dateIdx]);
+        if (isNaN(postDate.getTime())) continue;
+
+        const likes = parseInt(row[likesIdx]) || 0;
+        const comments = parseInt(row[commentsIdx]) || 0;
+
+        if (postDate >= sevenDaysAgo) {
+          recent7.likes += likes;
+          recent7.comments += comments;
+          recent7.posts++;
+        }
+
+        if (postDate >= thirtyDaysAgo) {
+          baseline30.likes += likes;
+          baseline30.comments += comments;
+          baseline30.posts++;
+        }
+      }
+    }
+
+    // Calculate averages
+    const recent7Avg = recent7.posts > 0 ? {
+      avgLikes: recent7.likes / recent7.posts,
+      avgComments: recent7.comments / recent7.posts,
+      avgEngagement: (recent7.likes + recent7.comments) / recent7.posts
+    } : { avgLikes: 0, avgComments: 0, avgEngagement: 0 };
+
+    const baseline30Avg = baseline30.posts > 0 ? {
+      avgLikes: baseline30.likes / baseline30.posts,
+      avgComments: baseline30.comments / baseline30.posts,
+      avgEngagement: (baseline30.likes + baseline30.comments) / baseline30.posts
+    } : { avgLikes: 0, avgComments: 0, avgEngagement: 0 };
+
+    // Calculate percentage change
+    const engagementChange = baseline30Avg.avgEngagement > 0
+      ? ((recent7Avg.avgEngagement - baseline30Avg.avgEngagement) / baseline30Avg.avgEngagement) * 100
+      : 0;
+
+    const likesChange = baseline30Avg.avgLikes > 0
+      ? ((recent7Avg.avgLikes - baseline30Avg.avgLikes) / baseline30Avg.avgLikes) * 100
+      : 0;
+
+    const commentsChange = baseline30Avg.avgComments > 0
+      ? ((recent7Avg.avgComments - baseline30Avg.avgComments) / baseline30Avg.avgComments) * 100
+      : 0;
+
+    // Detect anomalies
+    const anomalies = [];
+    const alerts = [];
+
+    if (engagementChange <= -20) {
+      anomalies.push({
+        type: 'ENGAGEMENT_DROP',
+        severity: engagementChange <= -40 ? 'HIGH' : 'MEDIUM',
+        metric: 'Overall Engagement',
+        change: engagementChange.toFixed(1) + '%',
+        baseline: baseline30Avg.avgEngagement.toFixed(1),
+        current: recent7Avg.avgEngagement.toFixed(1)
+      });
+
+      alerts.push({
+        title: 'Engagement Drop Detected',
+        message: `Overall engagement is down ${Math.abs(engagementChange).toFixed(0)}% compared to your 30-day baseline.`,
+        severity: engagementChange <= -40 ? 'high' : 'medium'
+      });
+    }
+
+    if (likesChange <= -25) {
+      anomalies.push({
+        type: 'LIKES_DROP',
+        severity: 'MEDIUM',
+        metric: 'Likes',
+        change: likesChange.toFixed(1) + '%',
+        baseline: baseline30Avg.avgLikes.toFixed(1),
+        current: recent7Avg.avgLikes.toFixed(1)
+      });
+    }
+
+    if (commentsChange <= -30) {
+      anomalies.push({
+        type: 'COMMENTS_DROP',
+        severity: 'MEDIUM',
+        metric: 'Comments',
+        change: commentsChange.toFixed(1) + '%',
+        baseline: baseline30Avg.avgComments.toFixed(1),
+        current: recent7Avg.avgComments.toFixed(1)
+      });
+    }
+
+    // Generate possible causes and actions
+    const possibleCauses = [];
+    const recommendedActions = [];
+
+    if (anomalies.length > 0) {
+      // Check for recent algorithm updates
+      const recentUpdates = getAlgorithmUpdates({ days_back: 7 });
+      if (recentUpdates.success && recentUpdates.updates && recentUpdates.updates.length > 0) {
+        possibleCauses.push('Recent algorithm update detected: ' + recentUpdates.updates[0].description);
+        recommendedActions.push('Review recent algorithm changes and adapt content strategy');
+      }
+
+      // Check posting frequency
+      if (recent7.posts < 3) {
+        possibleCauses.push('Low posting frequency (only ' + recent7.posts + ' posts in last 7 days)');
+        recommendedActions.push('Increase posting frequency to at least 3-5 times per week');
+      }
+
+      // Generic recommendations
+      possibleCauses.push('Content may not be resonating with current algorithm preferences');
+      possibleCauses.push('Posting times may no longer align with when followers are online');
+
+      recommendedActions.push('Test different content formats (more Reels, carousels)');
+      recommendedActions.push('Engage more with comments within first hour of posting');
+      recommendedActions.push('Check optimal posting times and adjust schedule');
+    }
+
+    // Record to history sheet for trend tracking
+    if (recent7.posts > 0) {
+      historySheet.appendRow([
+        Utilities.formatDate(now, FARM_CONFIG.TIMEZONE, 'yyyy-MM-dd'),
+        accountId || 'all',
+        '', // Followers (would need API call)
+        recent7Avg.avgLikes.toFixed(1),
+        recent7Avg.avgComments.toFixed(1),
+        '', // Shares
+        '', // Saves
+        recent7.posts,
+        recent7Avg.avgEngagement.toFixed(2)
+      ]);
+    }
+
+    return {
+      success: true,
+      hasAnomalies: anomalies.length > 0,
+      anomalies: anomalies,
+      alerts: alerts,
+      comparison: {
+        recent7Days: recent7Avg,
+        baseline30Days: baseline30Avg,
+        changes: {
+          engagement: engagementChange.toFixed(1) + '%',
+          likes: likesChange.toFixed(1) + '%',
+          comments: commentsChange.toFixed(1) + '%'
+        }
+      },
+      possibleCauses: possibleCauses,
+      recommendedActions: recommendedActions,
+      dataPoints: {
+        recent7Posts: recent7.posts,
+        baseline30Posts: baseline30.posts
+      }
+    };
+
+  } catch (error) {
+    Logger.log('detectEngagementAnomalies error: ' + error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 5. WEEKLY INTELLIGENCE BRIEF GENERATOR
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+function generateWeeklyIntelligenceBrief() {
+  try {
+    const now = new Date();
+    const weekNumber = getWeekNumber(now);
+    const briefSheet = initializeWeeklyBriefSheet();
+
+    // 1. Gather algorithm updates from the past week
+    const algorithmUpdates = getAlgorithmUpdates({ days_back: 7 });
+
+    // 2. Get your performance metrics
+    const anomalyCheck = detectEngagementAnomalies();
+
+    // 3. Get optimal posting time recommendations
+    const optimalTimes = calculateOptimalPostingTimes();
+
+    // 4. Get content recommendations
+    const contentRecs = getContentRecommendations({});
+
+    // 5. Generate the brief
+    let briefSections = [];
+
+    // Algorithm Updates Section
+    briefSections.push({
+      title: 'Algorithm Updates This Week',
+      content: algorithmUpdates.success && algorithmUpdates.updates.length > 0
+        ? algorithmUpdates.updates.map(u => `- [${u.platform}] ${u.description} (Impact: ${u.impact_level})`).join('\n')
+        : 'No major algorithm updates detected this week.'
+    });
+
+    // Your Performance Section
+    const perfStatus = anomalyCheck.hasAnomalies ? 'NEEDS ATTENTION' : 'HEALTHY';
+    briefSections.push({
+      title: 'Your Performance',
+      status: perfStatus,
+      content: anomalyCheck.success ? [
+        `Engagement Change: ${anomalyCheck.comparison.changes.engagement}`,
+        `Likes Change: ${anomalyCheck.comparison.changes.likes}`,
+        `Comments Change: ${anomalyCheck.comparison.changes.comments}`,
+        `Posts This Week: ${anomalyCheck.dataPoints.recent7Posts}`
+      ].join('\n') : 'Unable to calculate performance metrics.'
+    });
+
+    // Alerts Section
+    let alerts = [];
+    if (anomalyCheck.hasAnomalies) {
+      alerts = anomalyCheck.alerts.map(a => `${a.severity.toUpperCase()}: ${a.message}`);
+    }
+    if (algorithmUpdates.success) {
+      const highImpact = algorithmUpdates.updates.filter(u => u.impact_level === 'HIGH' || u.impact_level === 'CRITICAL');
+      if (highImpact.length > 0) {
+        alerts.push(...highImpact.map(u => `ALGORITHM: ${u.platform} - ${u.action_required}`));
+      }
+    }
+
+    briefSections.push({
+      title: 'Alerts',
+      content: alerts.length > 0 ? alerts.join('\n') : 'No alerts this week.'
+    });
+
+    // Recommendations Section
+    const recommendations = [];
+    if (optimalTimes.success && optimalTimes.recommendations) {
+      recommendations.push('Best Times to Post: ' + optimalTimes.recommendations.map(r => r.time).join(', '));
+    }
+    if (contentRecs.success && contentRecs.recommendations) {
+      recommendations.push(...contentRecs.recommendations.slice(0, 3).map(r => r.action));
+    }
+    if (anomalyCheck.recommendedActions) {
+      recommendations.push(...anomalyCheck.recommendedActions.slice(0, 2));
+    }
+
+    briefSections.push({
+      title: 'This Week\'s Recommendations',
+      content: recommendations.length > 0 ? recommendations.map((r, i) => `${i + 1}. ${r}`).join('\n') : 'Keep up the good work!'
+    });
+
+    // Format the full brief
+    const fullBrief = briefSections.map(s =>
+      `## ${s.title}${s.status ? ' [' + s.status + ']' : ''}\n${s.content}`
+    ).join('\n\n');
+
+    // Summary for quick view
+    const summary = {
+      algorithmUpdatesCount: algorithmUpdates.success ? algorithmUpdates.updates.length : 0,
+      performanceStatus: perfStatus,
+      alertsCount: alerts.length,
+      topRecommendation: recommendations[0] || 'No specific recommendations'
+    };
+
+    // Save to sheet
+    const briefId = 'WB-' + Utilities.getUuid().substring(0, 8);
+    briefSheet.appendRow([
+      briefId,
+      Utilities.formatDate(now, FARM_CONFIG.TIMEZONE, 'yyyy-MM-dd HH:mm:ss'),
+      weekNumber,
+      summary.algorithmUpdatesCount,
+      JSON.stringify(anomalyCheck.comparison || {}),
+      JSON.stringify(recommendations),
+      JSON.stringify(alerts),
+      fullBrief
+    ]);
+
+    // Log the action
+    logAgentAction({
+      agent: 'AlgorithmIntelligence',
+      action: 'generateWeeklyBrief',
+      target: 'WeeklyIntelligenceBriefs',
+      success: true,
+      metadata: summary
+    });
+
+    return {
+      success: true,
+      briefId: briefId,
+      weekNumber: weekNumber,
+      summary: summary,
+      sections: briefSections,
+      fullBrief: fullBrief
+    };
+
+  } catch (error) {
+    Logger.log('generateWeeklyIntelligenceBrief error: ' + error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Get week number of the year
+ */
+function getWeekNumber(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+}
+
+/**
+ * Setup weekly trigger for algorithm intelligence
+ * Runs every Monday at 7 AM Eastern
+ */
+function setupAlgorithmIntelligenceTrigger() {
+  try {
+    // Remove existing triggers for these functions
+    const triggers = ScriptApp.getProjectTriggers();
+    const functionsToRemove = ['fetchAlgorithmNews', 'processAlgorithmNews', 'generateWeeklyIntelligenceBrief'];
+
+    for (const trigger of triggers) {
+      if (functionsToRemove.includes(trigger.getHandlerFunction())) {
+        ScriptApp.deleteTrigger(trigger);
+      }
+    }
+
+    // Create weekly fetch trigger - Mondays at 7 AM
+    ScriptApp.newTrigger('fetchAlgorithmNews')
+      .timeBased()
+      .onWeekDay(ScriptApp.WeekDay.MONDAY)
+      .atHour(7)
+      .inTimezone(FARM_CONFIG.TIMEZONE)
+      .create();
+
+    // Create processing trigger - Mondays at 7:30 AM (after fetch completes)
+    ScriptApp.newTrigger('processAlgorithmNews')
+      .timeBased()
+      .onWeekDay(ScriptApp.WeekDay.MONDAY)
+      .atHour(7)
+      .nearMinute(30)
+      .inTimezone(FARM_CONFIG.TIMEZONE)
+      .create();
+
+    // Create brief generation trigger - Mondays at 8 AM
+    ScriptApp.newTrigger('generateWeeklyIntelligenceBrief')
+      .timeBased()
+      .onWeekDay(ScriptApp.WeekDay.MONDAY)
+      .atHour(8)
+      .inTimezone(FARM_CONFIG.TIMEZONE)
+      .create();
+
+    // Initialize sheets
+    initializeAlgorithmNewsSheet();
+    initializeEngagementHistorySheet();
+    initializeWeeklyBriefSheet();
+
+    return {
+      success: true,
+      message: 'Algorithm Intelligence triggers set up successfully',
+      schedule: {
+        fetchNews: 'Monday 7:00 AM',
+        processNews: 'Monday 7:30 AM',
+        generateBrief: 'Monday 8:00 AM'
+      },
+      sheetsInitialized: [ALGORITHM_NEWS_SHEET, ENGAGEMENT_HISTORY_SHEET, WEEKLY_BRIEF_SHEET]
+    };
+
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Get the latest weekly intelligence brief
+ */
+function getLatestIntelligenceBrief() {
+  try {
+    const sheet = initializeWeeklyBriefSheet();
+
+    if (sheet.getLastRow() <= 1) {
+      // No briefs yet - generate one
+      return generateWeeklyIntelligenceBrief();
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const lastRow = data[data.length - 1];
+    const headers = data[0];
+
+    return {
+      success: true,
+      briefId: lastRow[0],
+      dateGenerated: lastRow[1],
+      weekNumber: lastRow[2],
+      algorithmUpdatesCount: lastRow[3],
+      performanceSummary: JSON.parse(lastRow[4] || '{}'),
+      recommendations: JSON.parse(lastRow[5] || '[]'),
+      alerts: JSON.parse(lastRow[6] || '[]'),
+      fullBrief: lastRow[7]
+    };
+
+  } catch (error) {
+    Logger.log('getLatestIntelligenceBrief error: ' + error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Get algorithm intelligence dashboard data
+ */
+function getAlgorithmIntelligenceDashboard() {
+  try {
+    // Get latest brief
+    const brief = getLatestIntelligenceBrief();
+
+    // Get recent algorithm updates
+    const recentUpdates = getAlgorithmUpdates({ days_back: 30 });
+
+    // Get anomaly status
+    const anomalies = detectEngagementAnomalies();
+
+    // Get optimal times
+    const optimalTimes = calculateOptimalPostingTimes();
+
+    return {
+      success: true,
+      timestamp: new Date().toISOString(),
+      latestBrief: brief.success ? {
+        briefId: brief.briefId,
+        date: brief.dateGenerated,
+        weekNumber: brief.weekNumber,
+        alertsCount: Array.isArray(brief.alerts) ? brief.alerts.length : 0
+      } : null,
+      algorithmUpdates: recentUpdates.success ? {
+        count: recentUpdates.count,
+        highImpact: recentUpdates.updates.filter(u => u.impact_level === 'HIGH' || u.impact_level === 'CRITICAL').length,
+        latest: recentUpdates.updates.slice(0, 3)
+      } : { count: 0, highImpact: 0, latest: [] },
+      engagementHealth: anomalies.success ? {
+        status: anomalies.hasAnomalies ? 'NEEDS_ATTENTION' : 'HEALTHY',
+        change: anomalies.comparison.changes.engagement,
+        alerts: anomalies.alerts
+      } : { status: 'UNKNOWN' },
+      optimalTimes: optimalTimes.success ? {
+        personalized: optimalTimes.personalized,
+        source: optimalTimes.source,
+        recommendations: optimalTimes.recommendations,
+        nextBest: optimalTimes.nextBestTime
+      } : getGenericOptimalTimes()
+    };
+
+  } catch (error) {
+    Logger.log('getAlgorithmIntelligenceDashboard error: ' + error.message);
     return { success: false, error: error.message };
   }
 }
@@ -30544,7 +31787,7 @@ function storeAllCredentials() {
   props.setProperty('TWILIO_PHONE_NUMBER', '+14128662259');
 
   // Google Maps
-  props.setProperty('GOOGLE_MAPS_API_KEY', 'AIzaSyDkAfsMpi7Arqb43gBAitN0WEUs4V13N8Y');
+  props.setProperty('GOOGLE_MAPS_API_KEY', 'AIzaSyAL2-2Y_LmMrKuDLIlTkkPZkH9e-FV3ZF0');
 
   // Plaid Banking (PRODUCTION)
   props.setProperty('PLAID_CLIENT_ID', '69690f5d01c8e8001d439007');
@@ -34871,7 +36114,7 @@ function initializeSalesAndFleetModule() {
     'Participation_Confirmed', 'Confirmed_At',
     'Flex_Opted_In', 'Flex_Opted_In_Date',
     'Last_Pickup_Date', 'Next_Pickup_Date', 'Shopify_Order_ID',
-    'Created_Date', 'Last_Modified', 'Notes'
+    'Created_Date', 'Last_Modified', 'Last_Portal_Login', 'Notes'
   ], '#8b5cf6');
 
   createSheetIfNotExists(ss, SALES_SHEETS.CSA_BOX_CONTENTS, [
@@ -35372,10 +36615,12 @@ function verifyCSAMagicLink(params) {
     const getCol = (name) => csaHeaders.indexOf(name);
 
     let membership = null;
+    let memberRow = -1;
     for (let i = 1; i < csaData.length; i++) {
       if (csaData[i][getCol('Customer_ID')] === customerId) {
         const status = csaData[i][getCol('Status')];
         if (status === 'Active' || status === 'Pending' || !status) {
+          memberRow = i;
           membership = {
             Member_ID: csaData[i][getCol('Member_ID')],
             Share_Type: csaData[i][getCol('Share_Type')],
@@ -35402,6 +36647,12 @@ function verifyCSAMagicLink(params) {
 
     if (!membership) {
       return { success: false, error: 'No active CSA membership found' };
+    }
+
+    // Update last portal login timestamp (for health score engagement tracking)
+    const loginCol = getCol('Last_Portal_Login');
+    if (loginCol >= 0 && memberRow > 0) {
+      csaSheet.getRange(memberRow + 1, loginCol + 1).setValue(now.toISOString());
     }
 
     // Get preferences if they exist
@@ -35722,10 +36973,12 @@ function verifyCSASMSCode(params) {
     const getCol = (name) => csaHeaders.indexOf(name);
 
     let membership = null;
+    let memberRow = -1;
     for (let i = 1; i < csaData.length; i++) {
       if (csaData[i][getCol('Customer_ID')] === customerId) {
         const status = csaData[i][getCol('Status')];
         if (status === 'Active' || status === 'Pending' || !status) {
+          memberRow = i;
           membership = {
             memberId: csaData[i][getCol('Member_ID')],
             shareType: csaData[i][getCol('Share_Type')],
@@ -35751,6 +37004,12 @@ function verifyCSASMSCode(params) {
 
     if (!membership) {
       return { success: false, error: 'No active CSA membership found' };
+    }
+
+    // Update last portal login timestamp (for health score engagement tracking)
+    const loginCol = getCol('Last_Portal_Login');
+    if (loginCol >= 0 && memberRow > 0) {
+      csaSheet.getRange(memberRow + 1, loginCol + 1).setValue(now.toISOString());
     }
 
     // Get preferences
@@ -36552,12 +37811,300 @@ function createSalesOrder(data) {
   }
 }
 
+/**
+ * Submit a wholesale order with integrated invoice generation and SMS confirmation
+ * Priority 1 items from WHOLESALE_IMPROVEMENT_ROADMAP.md:
+ * - 1.1 Connect Invoice Generation
+ * - 1.2 Add SMS Order Confirmations
+ * - 1.4 Minimum Order Validation
+ */
 function submitWholesaleOrder(data) {
-  return createSalesOrder({ ...data, customerType: 'Wholesale', source: 'Wholesale Portal' });
+  try {
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PRIORITY 1.4: MINIMUM ORDER VALIDATION
+    // ═══════════════════════════════════════════════════════════════════════════
+    const minimumOrderAmount = getCustomerMinimumOrder(data.customerId);
+
+    // Calculate order total
+    let orderTotal = 0;
+    (data.items || []).forEach(item => {
+      orderTotal += (item.quantity * item.unitPrice);
+    });
+
+    if (orderTotal < minimumOrderAmount) {
+      return {
+        success: false,
+        error: `Minimum order is $${minimumOrderAmount.toFixed(2)}. Your current total is $${orderTotal.toFixed(2)}. Please add $${(minimumOrderAmount - orderTotal).toFixed(2)} more.`,
+        minimumOrder: minimumOrderAmount,
+        currentTotal: orderTotal,
+        shortfall: minimumOrderAmount - orderTotal
+      };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CREATE THE ORDER
+    // ═══════════════════════════════════════════════════════════════════════════
+    const orderResult = createSalesOrder({
+      ...data,
+      customerType: 'Wholesale',
+      source: 'Wholesale Portal'
+    });
+
+    if (!orderResult.success) {
+      return orderResult;
+    }
+
+    const orderId = orderResult.orderId;
+    const total = orderResult.total;
+
+    // Initialize integration results
+    let invoiceResult = null;
+    let smsResult = null;
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PRIORITY 1.1: CONNECT INVOICE GENERATION
+    // ═══════════════════════════════════════════════════════════════════════════
+    try {
+      invoiceResult = createInvoiceFromOrder(orderId, 'Wholesale');
+      if (invoiceResult.success) {
+        Logger.log('QuickBooks invoice created for wholesale order ' + orderId + ': ' + JSON.stringify(invoiceResult));
+      } else {
+        Logger.log('QuickBooks invoice creation failed for ' + orderId + ': ' + JSON.stringify(invoiceResult));
+      }
+    } catch (invoiceError) {
+      Logger.log('QuickBooks invoice error for ' + orderId + ': ' + invoiceError.toString());
+      invoiceResult = { success: false, error: invoiceError.toString() };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // PRIORITY 1.2: SMS ORDER CONFIRMATION
+    // ═══════════════════════════════════════════════════════════════════════════
+    const customerPhone = data.customerPhone || getCustomerPhone(data.customerId);
+    if (customerPhone) {
+      try {
+        // Get delivery day from delivery date or next scheduled delivery
+        const deliveryDay = data.deliveryDate
+          ? new Date(data.deliveryDate).toLocaleDateString('en-US', { weekday: 'long' })
+          : 'your next scheduled';
+
+        const smsMessage = `Tiny Seed Farm: Order #${orderId} confirmed for ${deliveryDay} delivery. Total: $${total.toFixed(2)}. Questions? Reply to this text.`;
+
+        smsResult = sendSMS({ to: customerPhone, message: smsMessage });
+        if (smsResult.success) {
+          Logger.log('Order confirmation SMS sent for ' + orderId + ' to ' + customerPhone);
+        }
+      } catch (smsError) {
+        Logger.log('SMS confirmation error for ' + orderId + ': ' + smsError.toString());
+        smsResult = { success: false, error: smsError.toString() };
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // RETURN ENHANCED RESPONSE
+    // ═══════════════════════════════════════════════════════════════════════════
+    return {
+      success: true,
+      orderId: orderId,
+      total: total,
+      invoiceCreated: invoiceResult?.success || false,
+      invoiceDetails: invoiceResult?.success ? {
+        invoiceId: invoiceResult.data?.Invoice?.Id,
+        invoiceNumber: invoiceResult.data?.Invoice?.DocNumber
+      } : null,
+      smsConfirmationSent: smsResult?.success || false,
+      message: `Order ${orderId} submitted successfully!${invoiceResult?.success ? ' Invoice generated.' : ''}${smsResult?.success ? ' Confirmation SMS sent.' : ''}`
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get customer's minimum order amount from WHOLESALE_CUSTOMERS sheet
+ * Default minimum: $50 if not specified
+ */
+function getCustomerMinimumOrder(customerId) {
+  try {
+    if (!customerId) return 50; // Default minimum
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('WHOLESALE_CUSTOMERS');
+    if (!sheet) return 50;
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const idCol = headers.indexOf('Customer_ID');
+    const minOrderCol = headers.indexOf('Minimum_Order');
+
+    if (idCol === -1) return 50;
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][idCol] === customerId) {
+        const minOrder = minOrderCol !== -1 ? data[i][minOrderCol] : null;
+        return (minOrder && !isNaN(minOrder) && minOrder > 0) ? parseFloat(minOrder) : 50;
+      }
+    }
+
+    return 50; // Default minimum
+  } catch (error) {
+    Logger.log('Error getting minimum order: ' + error.toString());
+    return 50;
+  }
+}
+
+/**
+ * Get customer phone number from WHOLESALE_CUSTOMERS sheet
+ */
+function getCustomerPhone(customerId) {
+  try {
+    if (!customerId) return null;
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('WHOLESALE_CUSTOMERS');
+    if (!sheet) return null;
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const idCol = headers.indexOf('Customer_ID');
+    const phoneCol = headers.indexOf('Phone');
+
+    if (idCol === -1 || phoneCol === -1) return null;
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][idCol] === customerId) {
+        const phone = data[i][phoneCol];
+        return phone && phone.toString().trim() ? phone.toString().trim() : null;
+      }
+    }
+
+    return null;
+  } catch (error) {
+    Logger.log('Error getting customer phone: ' + error.toString());
+    return null;
+  }
 }
 
 function submitCSAOrder(data) {
   return createSalesOrder({ ...data, customerType: 'CSA', source: 'CSA Portal' });
+}
+
+/**
+ * PRIORITY 1.3: Get delivery status for wholesale customer orders
+ * Shows order progress: Pending -> Packed -> Out for Delivery -> Delivered
+ */
+function getWholesaleDeliveryStatus(customerId) {
+  try {
+    if (!customerId) {
+      return { success: false, error: 'Customer ID required' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const ordersSheet = ss.getSheetByName(SALES_SHEETS.ORDERS);
+    const stopsSheet = ss.getSheetByName('DELIVERY_STOPS');
+    const logSheet = ss.getSheetByName('DELIVERY_LOG');
+
+    if (!ordersSheet) {
+      return { success: false, error: 'Orders sheet not found' };
+    }
+
+    // Get recent orders for this customer (last 30 days)
+    const ordersData = ordersSheet.getDataRange().getValues();
+    const ordersHeaders = ordersData[0];
+    const orders = [];
+
+    const idCol = ordersHeaders.indexOf('Order_ID');
+    const custCol = ordersHeaders.indexOf('Customer_ID');
+    const dateCol = ordersHeaders.indexOf('Order_Date');
+    const statusCol = ordersHeaders.indexOf('Status');
+    const deliveryDateCol = ordersHeaders.indexOf('Delivery_Date');
+    const totalCol = ordersHeaders.indexOf('Total');
+    const custTypeCol = ordersHeaders.indexOf('Customer_Type');
+
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    for (let i = 1; i < ordersData.length; i++) {
+      const row = ordersData[i];
+
+      // Only wholesale orders for this customer
+      if (row[custCol] !== customerId) continue;
+      if (custTypeCol !== -1 && row[custTypeCol] !== 'Wholesale') continue;
+
+      const orderDate = row[dateCol] ? new Date(row[dateCol]) : null;
+      if (!orderDate || orderDate < thirtyDaysAgo) continue;
+
+      orders.push({
+        orderId: row[idCol],
+        orderDate: row[dateCol],
+        status: row[statusCol] || 'Pending',
+        deliveryDate: row[deliveryDateCol] || null,
+        total: row[totalCol] || 0
+      });
+    }
+
+    // Enrich with delivery tracking info if available
+    if (stopsSheet) {
+      const stopsData = stopsSheet.getDataRange().getValues();
+      const stopsHeaders = stopsData[0];
+
+      const stopOrderCol = stopsHeaders.indexOf('Order_ID');
+      const stopStatusCol = stopsHeaders.indexOf('Status');
+      const stopDriverCol = stopsHeaders.indexOf('Driver_Name') !== -1 ? stopsHeaders.indexOf('Driver_Name') : stopsHeaders.indexOf('Driver_ID');
+      const stopEtaCol = stopsHeaders.indexOf('ETA');
+      const stopCompletedCol = stopsHeaders.indexOf('Completed_At');
+
+      for (const order of orders) {
+        for (let j = 1; j < stopsData.length; j++) {
+          if (stopsData[j][stopOrderCol] === order.orderId) {
+            order.deliveryStatus = stopsData[j][stopStatusCol] || order.status;
+            order.driverName = stopDriverCol !== -1 ? stopsData[j][stopDriverCol] : null;
+            order.eta = stopEtaCol !== -1 ? stopsData[j][stopEtaCol] : null;
+            order.completedAt = stopCompletedCol !== -1 ? stopsData[j][stopCompletedCol] : null;
+            break;
+          }
+        }
+      }
+    }
+
+    // Enrich with delivery log info (GPS verified time)
+    if (logSheet) {
+      const logData = logSheet.getDataRange().getValues();
+      const logHeaders = logData[0];
+
+      const logDeliveryIdCol = logHeaders.indexOf('Delivery_ID');
+      const logCustomerCol = logHeaders.indexOf('Customer');
+      const logCompletedCol = logHeaders.indexOf('Completed_At');
+      const logStatusCol = logHeaders.indexOf('Status');
+      const logPhotoCol = logHeaders.indexOf('Photo_URL');
+
+      for (const order of orders) {
+        for (let j = 1; j < logData.length; j++) {
+          // Match by delivery ID or customer name
+          if (logData[j][logDeliveryIdCol] === order.orderId ||
+              logData[j][logCustomerCol]?.toString().includes(order.orderId)) {
+            order.deliveryVerified = true;
+            order.deliveryCompletedAt = logData[j][logCompletedCol];
+            order.deliveryStatus = logData[j][logStatusCol] || 'Delivered';
+            order.proofPhotoUrl = logData[j][logPhotoCol] || null;
+            break;
+          }
+        }
+      }
+    }
+
+    // Sort by date descending
+    orders.sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate));
+
+    return {
+      success: true,
+      deliveries: orders,
+      count: orders.length
+    };
+
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
 }
 
 function updateSalesOrder(data) {
@@ -42184,8 +43731,39 @@ function customizeCSABox(data) {
     Logger.log('CSA Box customization: ' + JSON.stringify({
       memberId: data.memberId,
       weekDate: data.weekDate,
-      swaps: data.swaps
+      swaps: data.swaps,
+      remember: data.remember
     }));
+
+    // If "remember" is checked, save preferences for each swap (Harvie-style learning)
+    // This connects the swap UI to the preference learning system
+    if (data.remember && data.swaps && data.swaps.length > 0) {
+      for (const swap of data.swaps) {
+        // Set the original item to RARELY (rating 2) - they don't want this
+        saveCSAMemberPreference({
+          memberId: data.memberId,
+          itemId: swap.from,
+          rating: 2,  // RARELY
+          source: 'swap'
+        });
+
+        // Set the chosen swap item to LIKE_IT (rating 4) - they prefer this
+        saveCSAMemberPreference({
+          memberId: data.memberId,
+          itemId: swap.to,
+          rating: 4,  // LIKE_IT
+          source: 'swap'
+        });
+
+        // Record implicit signal for the swapped-out item
+        recordCSAImplicitSignal({
+          memberId: data.memberId,
+          itemId: swap.from,
+          signalType: 'SWAPPED_OUT'
+        });
+      }
+      Logger.log('Preferences saved for member ' + data.memberId + ': ' + data.swaps.length + ' swap preferences recorded');
+    }
 
     // Deduct swap credits
     updateCSAMember({
@@ -65052,6 +66630,308 @@ Return ONLY the enhanced caption, nothing else.`;
 }
 
 /**
+ * Generate AI Caption From Image
+ * Uses Claude Vision to analyze an uploaded photo and generate a contextual caption
+ *
+ * @param {Object} params - { imageBase64: string, platform: string, context?: string }
+ * @returns {Object} - { success: boolean, caption: string, imageDescription?: string }
+ */
+function generateAICaptionFromImage(params) {
+    try {
+        const imageBase64 = params.imageBase64 || params.image || '';
+        const platform = params.platform || 'instagram';
+        const additionalContext = params.context || '';
+
+        // Get current date and season info
+        const now = new Date();
+        const month = now.getMonth(); // 0-11
+        const day = now.getDate();
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                           'July', 'August', 'September', 'October', 'November', 'December'];
+        const currentMonth = monthNames[month];
+        const year = now.getFullYear();
+
+        // Determine season for Pittsburgh (USDA Zone 6b)
+        let season, seasonContext;
+        if (month >= 11 || month <= 1) {
+            season = 'Winter';
+            seasonContext = 'Winter on the farm: greenhouse growing, planning for spring, CSA signups, seed ordering, farmers markets with storage crops and preserved goods, holiday preparations';
+        } else if (month >= 2 && month <= 4) {
+            season = 'Spring';
+            seasonContext = 'Spring on the farm: seed starting, transplanting, soil prep, early greens (spinach, lettuce, radishes), CSA season kickoff, flowers starting';
+        } else if (month >= 5 && month <= 7) {
+            season = 'Summer';
+            seasonContext = 'Summer on the farm: peak harvest season, tomatoes, peppers, zucchini, cucumbers, flowers in full bloom, farmers markets busy, CSA boxes overflowing';
+        } else {
+            season = 'Fall';
+            seasonContext = 'Fall on the farm: pumpkins, squash, late tomatoes, fall flowers, root vegetables, storage crops, end of season reflections, CSA winding down';
+        }
+
+        // Get API key
+        const props = PropertiesService.getScriptProperties();
+        const claudeKey = props.getProperty('ANTHROPIC_API_KEY') || props.getProperty('CLAUDE_API_KEY');
+        const openaiKey = props.getProperty('OPENAI_API_KEY');
+
+        if (!claudeKey && !openaiKey) {
+            // Fallback when no API keys - generate season-appropriate generic caption
+            const fallbackCaptions = {
+                'Winter': [
+                    "Even in February, there's always something growing in the greenhouse. Fresh greens coming your way! #TinySeedFarm #WinterGrowing #Pittsburgh",
+                    "Planning season is in full swing! Getting ready to bring you the best produce this year. #TinySeedFarm #FarmPlanning #LocalFood",
+                    "Farmers market vibes with our winter storage crops. Root veggies and preserved goodies! #TinySeedFarm #WinterMarket #FarmFresh"
+                ],
+                'Spring': [
+                    "Spring is finally here! Seedlings are sprouting and the farm is waking up. #TinySeedFarm #SpringPlanting #Pittsburgh",
+                    "Fresh spring greens coming in hot! Who's ready for the new season? #TinySeedFarm #FarmFresh #LocalFood",
+                    "The greenhouse is bursting with new life. Can't wait to share this season's bounty with you! #TinySeedFarm #SpringGrowing"
+                ],
+                'Summer': [
+                    "Peak summer goodness right here! Farm fresh and ready for your table. #TinySeedFarm #SummerHarvest #Pittsburgh",
+                    "This is what summer tastes like! Fresh from our hands to your table. #TinySeedFarm #FarmFresh #LocalFood",
+                    "Another beautiful harvest day. We love what we do! #TinySeedFarm #OrganicFarm #SummerVibes"
+                ],
+                'Fall': [
+                    "Fall harvest in full swing! Pumpkins, squash, and all the autumn goodness. #TinySeedFarm #FallHarvest #Pittsburgh",
+                    "These colors though! Fall on the farm never gets old. #TinySeedFarm #FarmLife #AutumnVibes",
+                    "Root veggies and storage crops for the win. Stocking up for winter! #TinySeedFarm #FallFarm #LocalFood"
+                ]
+            };
+            const captions = fallbackCaptions[season];
+            return {
+                success: true,
+                caption: captions[Math.floor(Math.random() * captions.length)],
+                method: 'fallback_seasonal',
+                season: season
+            };
+        }
+
+        // Get training posts for voice context
+        let voiceExamples = '';
+        try {
+            const trainingResult = getTrainingPosts({});
+            const topPosts = trainingResult.posts ? trainingResult.posts.slice(0, 10) : [];
+            voiceExamples = topPosts.map(p => p.content).join('\n---\n');
+        } catch (e) {
+            Logger.log('Could not get training posts: ' + e.toString());
+        }
+
+        // Build the prompt
+        const prompt = `You are generating a social media caption for Tiny Seed Farm, a small organic farm in Pittsburgh, PA.
+
+CURRENT CONTEXT:
+- Today is ${currentMonth} ${day}, ${year}
+- Season: ${season}
+- ${seasonContext}
+- Platform: ${platform}
+
+FARM INFO:
+- Tiny Seed Farm grows organic vegetables, cut flowers, and mushrooms (via partner)
+- Located in Rochester, PA (Pittsburgh area)
+- Sells through CSA subscriptions, farmers markets, and direct sales
+- Known for fresh, high-quality produce and beautiful flowers
+
+${voiceExamples ? `VOICE EXAMPLES (match this authentic, warm style):
+${voiceExamples}
+
+` : ''}TASK:
+1. Look at the uploaded photo carefully
+2. Describe what you see (crops, flowers, farm activity, etc.)
+3. Write a ready-to-post caption that:
+   - Mentions what's actually IN the photo
+   - Is appropriate for ${season} (it's ${currentMonth}!)
+   - Sounds authentic and warm, not corporate
+   - Is 1-3 sentences max
+   - Includes 2-4 relevant hashtags
+   - Includes 1-2 appropriate emojis
+   - Has a soft call-to-action if appropriate
+
+${additionalContext ? `ADDITIONAL CONTEXT: ${additionalContext}
+
+` : ''}IMPORTANT:
+- Return ONLY the caption text, ready to copy and paste
+- Do NOT say "Write a post about..." - give me the ACTUAL caption
+- Make it specific to what you see in the photo
+- Be seasonally appropriate (no "harvest" talk in February unless it's greenhouse greens)`;
+
+        let caption, imageDescription;
+
+        if (claudeKey && imageBase64) {
+            // Use Claude Vision for image analysis
+            let base64Content = imageBase64;
+            if (imageBase64.includes(',')) {
+                base64Content = imageBase64.split(',')[1];
+            }
+
+            // Detect media type
+            let mediaType = 'image/jpeg';
+            if (imageBase64.startsWith('data:image/png')) {
+                mediaType = 'image/png';
+            } else if (imageBase64.startsWith('data:image/gif')) {
+                mediaType = 'image/gif';
+            } else if (imageBase64.startsWith('data:image/webp')) {
+                mediaType = 'image/webp';
+            }
+
+            const response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': claudeKey,
+                    'anthropic-version': '2023-06-01'
+                },
+                payload: JSON.stringify({
+                    model: 'claude-sonnet-4-20250514',
+                    max_tokens: 500,
+                    messages: [{
+                        role: 'user',
+                        content: [
+                            {
+                                type: 'image',
+                                source: {
+                                    type: 'base64',
+                                    media_type: mediaType,
+                                    data: base64Content
+                                }
+                            },
+                            {
+                                type: 'text',
+                                text: prompt
+                            }
+                        ]
+                    }]
+                }),
+                muteHttpExceptions: true
+            });
+
+            const result = JSON.parse(response.getContentText());
+            if (result.content && result.content[0]) {
+                caption = result.content[0].text.trim();
+            } else if (result.error) {
+                Logger.log('Claude Vision error: ' + JSON.stringify(result.error));
+                throw new Error(result.error.message || 'Claude Vision API error');
+            }
+        } else if (openaiKey && imageBase64) {
+            // Use GPT-4 Vision as fallback
+            let imageUrl = imageBase64;
+            if (!imageBase64.startsWith('data:')) {
+                imageUrl = 'data:image/jpeg;base64,' + imageBase64;
+            }
+
+            const response = UrlFetchApp.fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + openaiKey
+                },
+                payload: JSON.stringify({
+                    model: 'gpt-4o',
+                    messages: [{
+                        role: 'user',
+                        content: [
+                            {
+                                type: 'image_url',
+                                image_url: { url: imageUrl }
+                            },
+                            {
+                                type: 'text',
+                                text: prompt
+                            }
+                        ]
+                    }],
+                    max_tokens: 500
+                }),
+                muteHttpExceptions: true
+            });
+
+            const result = JSON.parse(response.getContentText());
+            if (result.choices && result.choices[0]) {
+                caption = result.choices[0].message.content.trim();
+            } else if (result.error) {
+                Logger.log('OpenAI Vision error: ' + JSON.stringify(result.error));
+                throw new Error(result.error.message || 'OpenAI Vision API error');
+            }
+        } else if (!imageBase64) {
+            // No image provided - generate text-only caption based on season
+            const textOnlyPrompt = `You are generating a social media caption for Tiny Seed Farm, a small organic farm in Pittsburgh, PA.
+
+CURRENT CONTEXT:
+- Today is ${currentMonth} ${day}, ${year}
+- Season: ${season}
+- ${seasonContext}
+- Platform: ${platform}
+
+Write a ready-to-post ${platform} caption that:
+- Is appropriate for ${season} (it's ${currentMonth}!)
+- Sounds authentic and warm, not corporate
+- Is 1-3 sentences max
+- Includes 2-4 relevant hashtags
+- Includes 1-2 appropriate emojis
+
+${additionalContext ? `TOPIC: ${additionalContext}
+
+` : ''}Return ONLY the caption text, ready to copy and paste.`;
+
+            if (claudeKey) {
+                const response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': claudeKey,
+                        'anthropic-version': '2023-06-01'
+                    },
+                    payload: JSON.stringify({
+                        model: 'claude-3-haiku-20240307',
+                        max_tokens: 300,
+                        messages: [{ role: 'user', content: textOnlyPrompt }]
+                    }),
+                    muteHttpExceptions: true
+                });
+
+                const result = JSON.parse(response.getContentText());
+                if (result.content && result.content[0]) {
+                    caption = result.content[0].text.trim();
+                }
+            } else if (openaiKey) {
+                const response = UrlFetchApp.fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + openaiKey
+                    },
+                    payload: JSON.stringify({
+                        model: 'gpt-4o-mini',
+                        messages: [{ role: 'user', content: textOnlyPrompt }],
+                        max_tokens: 300
+                    }),
+                    muteHttpExceptions: true
+                });
+
+                const result = JSON.parse(response.getContentText());
+                if (result.choices && result.choices[0]) {
+                    caption = result.choices[0].message.content.trim();
+                }
+            }
+        }
+
+        if (caption) {
+            return {
+                success: true,
+                caption: caption,
+                method: claudeKey ? 'claude_vision' : 'openai_vision',
+                season: season,
+                hasImage: !!imageBase64
+            };
+        } else {
+            throw new Error('Failed to generate caption');
+        }
+
+    } catch (error) {
+        Logger.log('Error in generateAICaptionFromImage: ' + error.toString());
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
  * Check All API Status
  * Returns status of all integrated APIs
  */
@@ -87789,6 +89669,143 @@ function calculateCSABoxSatisfaction(memberId, boxItems) {
       itemCount: boxItems.length
     };
   } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * GET SMART SWAP SUGGESTIONS - Harvie-style personalized swap recommendations
+ * Returns swap options sorted by predicted member preference with explanation
+ *
+ * This is the key feature for the Harvie gap opportunity - AI-style personalization
+ * without requiring member effort
+ *
+ * @param {Object} params - { memberId: string, swapOut: string (item being swapped), availableOptions?: array }
+ */
+function getSmartSwapSuggestions(params) {
+  try {
+    const { memberId, swapOut, availableOptions } = params;
+
+    if (!memberId) {
+      return { success: false, error: 'memberId is required' };
+    }
+
+    // Get member preferences
+    const prefsResult = getCSAMemberPreferences(memberId);
+    const prefMap = {};
+    if (prefsResult.success && prefsResult.preferences) {
+      prefsResult.preferences.forEach(p => {
+        prefMap[p.itemId.toLowerCase()] = {
+          rating: p.rating,
+          label: p.ratingLabel,
+          source: p.source
+        };
+      });
+    }
+
+    // Default available swap options if none provided
+    // In production, this would come from CSA_Box_Contents or inventory
+    const defaultOptions = [
+      { id: 'salad-mix', name: 'Extra Salad Mix', emoji: '🥬', category: 'greens', value: 3 },
+      { id: 'herb-sampler', name: 'Herb Sampler', emoji: '🌿', category: 'herbs', value: 2 },
+      { id: 'spinach-bundle', name: 'Spinach Bundle', emoji: '🥬', category: 'greens', value: 3 },
+      { id: 'kale-bundle', name: 'Kale Bundle', emoji: '🥬', category: 'greens', value: 3 },
+      { id: 'root-veggie-mix', name: 'Root Veggie Mix', emoji: '🥕', category: 'roots', value: 4 },
+      { id: 'extra-tomatoes', name: 'Extra Tomatoes', emoji: '🍅', category: 'fruit', value: 4, limited: true },
+      { id: 'zucchini-squash', name: 'Zucchini/Squash Mix', emoji: '🥒', category: 'squash', value: 3 },
+      { id: 'pepper-mix', name: 'Sweet Pepper Mix', emoji: '🫑', category: 'peppers', value: 3 },
+      { id: 'carrot-bundle', name: 'Carrot Bundle', emoji: '🥕', category: 'roots', value: 3 },
+      { id: 'beet-bundle', name: 'Beet Bundle', emoji: '🥬', category: 'roots', value: 3 }
+    ];
+
+    const options = availableOptions || defaultOptions;
+
+    // Score each option based on preferences
+    const scoredOptions = options.map(opt => {
+      const itemKey = (opt.id || opt.name).toLowerCase();
+      const pref = prefMap[itemKey];
+
+      let score = PREFERENCE_RATING_WEIGHTS.SOMETIMES; // Default to 3 (SOMETIMES)
+      let reason = 'Available option';
+      let confidence = 'low';
+
+      if (pref) {
+        score = pref.rating;
+        confidence = 'high';
+
+        if (pref.rating >= PREFERENCE_RATING_WEIGHTS.LIKE_IT) {
+          reason = pref.source === 'swap' ? 'You\'ve chosen this before' : 'Based on your preferences';
+        } else if (pref.rating <= PREFERENCE_RATING_WEIGHTS.RARELY) {
+          reason = 'You typically skip this';
+        } else {
+          reason = 'Neutral - you\'ve had this before';
+        }
+      } else {
+        // Check for category preferences (implicit learning from similar items)
+        const categoryItems = Object.keys(prefMap).filter(k => {
+          const option = options.find(o => (o.id || o.name).toLowerCase() === k);
+          return option && option.category === opt.category;
+        });
+
+        if (categoryItems.length > 0) {
+          const avgCategoryRating = categoryItems.reduce((sum, k) => sum + prefMap[k].rating, 0) / categoryItems.length;
+          score = Math.round(avgCategoryRating);
+          confidence = 'medium';
+          reason = `Based on similar ${opt.category} items you've rated`;
+        }
+      }
+
+      return {
+        ...opt,
+        score,
+        confidence,
+        reason,
+        isRecommended: score >= PREFERENCE_RATING_WEIGHTS.LIKE_IT,
+        isNotRecommended: score <= PREFERENCE_RATING_WEIGHTS.RARELY
+      };
+    });
+
+    // Sort by score (highest first), then by availability
+    scoredOptions.sort((a, b) => {
+      // Put recommended items first
+      if (a.isRecommended !== b.isRecommended) return b.isRecommended ? 1 : -1;
+      // Then by score
+      if (b.score !== a.score) return b.score - a.score;
+      // Then by limited status (non-limited first)
+      if (a.limited !== b.limited) return a.limited ? 1 : -1;
+      return 0;
+    });
+
+    // Separate into recommended and other
+    const recommended = scoredOptions.filter(opt => opt.isRecommended && !opt.isNotRecommended);
+    const other = scoredOptions.filter(opt => !opt.isRecommended && !opt.isNotRecommended);
+    const notRecommended = scoredOptions.filter(opt => opt.isNotRecommended);
+
+    // Check if the item being swapped out is something they commonly swap
+    const swapOutKey = (swapOut || '').toLowerCase();
+    const swapOutPref = prefMap[swapOutKey];
+    let swapOutNote = null;
+    if (swapOutPref && swapOutPref.rating <= PREFERENCE_RATING_WEIGHTS.RARELY) {
+      swapOutNote = 'We noticed you often swap this out. Would you like to exclude it from future boxes?';
+    }
+
+    return {
+      success: true,
+      memberId,
+      swapOut,
+      swapOutNote,
+      suggestions: {
+        recommended: recommended.slice(0, 3),  // Top 3 recommended
+        other: other,
+        notRecommended: notRecommended.slice(0, 2)  // Show 2 they might want to avoid
+      },
+      totalOptions: scoredOptions.length,
+      hasPreferences: Object.keys(prefMap).length > 0,
+      preferencesCount: Object.keys(prefMap).length,
+      generatedAt: new Date().toISOString()
+    };
+  } catch (e) {
+    Logger.log('getSmartSwapSuggestions error: ' + e.toString());
     return { success: false, error: e.message };
   }
 }

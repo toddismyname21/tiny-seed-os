@@ -1,8 +1,9 @@
-# SOVEREIGN PRODUCTION BLUEPRINT v5.1
+# SOVEREIGN PRODUCTION BLUEPRINT v5.2
 ## Claude Code as HEAD OF AGENTIC AI TEAM
 ## Tiny Seed Farm OS Configuration
 
 **Generated:** 2026-02-11
+**Updated:** 2026-02-12 (Infrastructure Update)
 **Purpose:** Configure Claude as orchestrator of an agentic AI team with production-grade safety, memory, and coordination patterns.
 
 ---
@@ -14,9 +15,13 @@ This document configures Claude Code as the **Supreme Orchestrator** of a multi-
 - **8 Specialized Agent Roles** - Each with defined scopes and guardrails
 - **Three-Tier Memory Architecture** - Working, Episodic, Semantic
 - **Governor/Circuit Breaker Patterns** - Safety-first execution
-- **Human-in-the-Loop Checkpoints** - Confidence-gated autonomy
-- **A2A + MCP Protocol Support** - Agent interoperability
-- **Abstain Protocol** - Automatic escalation when confidence <85%
+- **Human-on-the-Loop Checkpoints** - Confidence-gated autonomy with pause/resume
+- **A2A-Lite Protocol** - Structured JSON inter-agent communication
+- **STATUS_ABSTAIN Protocol** - Agents must return "I don't know" at <70% confidence
+- **Task Risk Classification** - LOW/MEDIUM/HIGH/CRITICAL routing with autonomy levels
+- **Durable Checkpointing** - Save state after each step, resume on failure
+- **Tracing & Observability** - Full audit trail of all agent decisions
+- **Financial Circuit Breakers** - Impact-based gating of financial operations
 
 ---
 
@@ -300,7 +305,20 @@ agent:
 
 ### VERIFIER_CLAUDE ("Karen" - Quality Control Enforcer)
 
+**Status:** IMPLEMENTED (2026-02-12)
+**Session Folder:** `claude_sessions/verifier_claude/`
+
 **Purpose:** Independent verification that sub-agent claims of task completion are ACTUALLY complete. This agent does NOT perform tasks - it ONLY verifies that claimed work is done.
+
+**Session Folder Contents:**
+```
+claude_sessions/verifier_claude/
+    INBOX.md                    # Incoming verification requests
+    OUTBOX.md                   # Verification results/reports
+    VERIFICATION_QUEUE.json     # Active verification queue
+    VERIFICATION_HISTORY.json   # Historical verification records
+    README.md                   # Agent documentation
+```
 
 **Trigger Conditions:**
 - Any agent claims "done" or "complete"
@@ -359,6 +377,8 @@ agent:
   alias: "Karen"
   type: "quality_control"
   domain: "verification"
+  status: "IMPLEMENTED"
+  session_folder: "claude_sessions/verifier_claude/"
 
   trigger_conditions:
     - agent_claims_done
@@ -385,6 +405,12 @@ agent:
   output:
     verification_reports_to: "PM_Architect"
     rejection_notices_to: "implementing_agent"
+
+  files:
+    inbox: "claude_sessions/verifier_claude/INBOX.md"
+    outbox: "claude_sessions/verifier_claude/OUTBOX.md"
+    queue: "claude_sessions/verifier_claude/VERIFICATION_QUEUE.json"
+    history: "claude_sessions/verifier_claude/VERIFICATION_HISTORY.json"
 ```
 
 ---
@@ -673,7 +699,140 @@ policies:
 
 ---
 
-# PART 5: ABSTAIN PROTOCOL
+# PART 5: STATUS_ABSTAIN PROTOCOL
+
+**Status:** IMPLEMENTED (2026-02-12)
+**Implementation:** `scripts/governor_helpers.js`
+
+## 5.0 What is STATUS_ABSTAIN?
+
+**STATUS_ABSTAIN** is a formal protocol that allows agents to explicitly decline tasks when they lack sufficient confidence to proceed safely. This prevents hallucinations, guessing, and cascading failures.
+
+**Core Principle:** Agents must acknowledge uncertainty rather than guess.
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    STATUS_ABSTAIN PROTOCOL                              │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│   When confidence is below threshold, agent MUST:                        │
+│                                                                          │
+│   1. STOP work immediately                                               │
+│   2. Return STATUS_ABSTAIN with detailed reason                          │
+│   3. Provide partial work if any exists                                  │
+│   4. Request human clarification                                         │
+│   5. DO NOT GUESS or make assumptions                                    │
+│                                                                          │
+│   The agent response becomes:                                            │
+│   "I don't have enough confidence to complete this task."                │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+## 5.0.1 When Agents Must Use STATUS_ABSTAIN
+
+```yaml
+status_abstain:
+  # Confidence thresholds
+  thresholds:
+    proceed: 0.85           # >=85% = proceed autonomously
+    escalate: 0.70          # 70-84% = escalate to human
+    abstain: 0.70           # <70% = STATUS_ABSTAIN required
+
+  # Mandatory abstention triggers
+  triggers:
+    - confidence_below_70: "Core confidence check failed"
+    - ambiguous_requirements: "Task requirements unclear or contradictory"
+    - missing_critical_info: "Required information not provided"
+    - no_historical_precedent: "No similar task in memory"
+    - conflicting_instructions: "Instructions conflict with existing rules"
+    - out_of_scope: "Task outside agent's defined scope"
+    - ethical_concern: "Potential harm or policy violation detected"
+    - requires_human_judgment: "Decision requires human values/preferences"
+
+  # Abstention reason categories (from governor_helpers.js)
+  reason_categories:
+    LOW_CONFIDENCE: "low_confidence"
+    MISSING_CONTEXT: "missing_context"
+    ETHICAL_CONCERN: "ethical_concern"
+    OUT_OF_SCOPE: "out_of_scope"
+    CONFLICTING_INSTRUCTIONS: "conflicting_instructions"
+    REQUIRES_HUMAN: "requires_human"
+```
+
+## 5.0.2 Governor Integration
+
+STATUS_ABSTAIN is integrated into the Governor system via `scripts/governor_helpers.js`:
+
+```yaml
+governor_integration:
+  # STATUS_ABSTAIN is a valid task state
+  valid_states:
+    - PENDING
+    - IN_PROGRESS
+    - IMPLEMENTED
+    - AWAITING_VERIFICATION
+    - VERIFIED
+    - DONE
+    - ABSTAINED              # STATUS_ABSTAIN Protocol
+
+  # Valid transitions for ABSTAINED state
+  abstain_transitions:
+    from_pending: "PENDING -> ABSTAINED"
+    from_in_progress: "IN_PROGRESS -> ABSTAINED"
+    resume_to_pending: "ABSTAINED -> PENDING"
+    resume_to_in_progress: "ABSTAINED -> IN_PROGRESS"
+
+  # Metrics tracked
+  abstention_metrics:
+    - abstentions_total
+    - abstentions_low_confidence
+    - abstentions_missing_context
+    - abstentions_ethical_concern
+    - abstentions_escalated
+
+  # CLI commands
+  cli_usage:
+    log_abstention: |
+      node governor_helpers.js log [Agent] task_abstained abstained '{"reason":"..."}'
+    check_abstentions: |
+      node governor_helpers.js events --action task_abstained
+```
+
+## 5.0.3 STATUS_ABSTAIN Response Format
+
+When an agent abstains, it must return this structured response:
+
+```yaml
+abstain_response:
+  format:
+    taskId: "{task_identifier}"
+    status: "STATUS_ABSTAIN"
+    confidence: "{0.0-0.69}"
+    reason: "{reason_category}"
+    message: "I don't have enough confidence to complete this task."
+    details:
+      what_i_understood: "{parsed_understanding}"
+      what_is_unclear: "{specific_uncertainties}"
+      what_i_need: "{required_clarifications}"
+    partialResult: "{any_partial_work_completed}"
+    suggestedAction: "{what_human_should_do}"
+    needsHumanInput: true
+
+  example:
+    taskId: "TASK-001"
+    status: "STATUS_ABSTAIN"
+    confidence: 0.45
+    reason: "missing_context"
+    message: "I don't have enough confidence to complete this task."
+    details:
+      what_i_understood: "User wants to update Shopify product pricing"
+      what_is_unclear: "Which products? What new prices? Effective when?"
+      what_i_need: "Product IDs, new price values, and effective date"
+    partialResult: null
+    suggestedAction: "Please specify which products and their new prices"
+    needsHumanInput: true
+```
 
 ## 5.1 Confidence-Based Escalation
 
@@ -764,6 +923,194 @@ abstain_protocol:
 
 ---
 
+# PART 5B: TASK RISK CLASSIFICATION
+
+**Status:** IMPLEMENTED (2026-02-12)
+**Configuration:** `config/task_risk_classification.json`
+
+## 5B.1 Risk Levels Defined
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    TASK RISK CLASSIFICATION SYSTEM                       │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│   LOW RISK (Level 1)                                   [Auto-Approve]   │
+│   ├── Read-only operations                                               │
+│   ├── Documentation updates                                              │
+│   ├── Research and analysis                                              │
+│   ├── Code review (no changes)                                           │
+│   ├── Running read-only queries                                          │
+│   └── Viewing logs                                                       │
+│   Requirements: Trust >= 25%                                             │
+│                                                                          │
+│   MEDIUM RISK (Level 2)                         [Auto + Verification]   │
+│   ├── Code modifications                                                 │
+│   ├── Non-production deployments                                         │
+│   ├── Test environment changes                                           │
+│   ├── Internal tool updates                                              │
+│   ├── Configuration changes                                              │
+│   └── Database schema updates (staging)                                  │
+│   Requirements: Trust >= 50%, Verification required                      │
+│                                                                          │
+│   HIGH RISK (Level 3)                            [Human Approval Required]│
+│   ├── Production deployments                                             │
+│   ├── Financial transactions                                             │
+│   ├── External API calls (paid services)                                 │
+│   ├── Email sending to customers                                         │
+│   ├── Order processing                                                   │
+│   └── Inventory adjustments                                              │
+│   Requirements: Trust >= 75%, Human approval REQUIRED                    │
+│                                                                          │
+│   CRITICAL RISK (Level 4)                [Explicit Human Command Required]│
+│   ├── Security configuration changes                                     │
+│   ├── Data deletion operations                                           │
+│   ├── Customer-facing content changes                                    │
+│   ├── Authentication/authorization changes                               │
+│   ├── Payment system modifications                                       │
+│   └── Production database modifications                                  │
+│   Requirements: Trust = 100%, Double confirmation required               │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+## 5B.2 Risk Classification Rules
+
+```yaml
+task_risk_classification:
+  # Task type to risk level mapping
+  task_type_mapping:
+    LOW:
+      - read
+      - documentation
+      - research
+      - analysis
+      - review
+      - query_readonly
+      - log_view
+
+    MEDIUM:
+      - code_change
+      - config_change
+      - deploy_staging
+      - deploy_test
+      - test_run
+      - internal_tool
+      - schema_staging
+
+    HIGH:
+      - deploy_production
+      - financial
+      - external_api_paid
+      - email_customer
+      - order_process
+      - inventory_adjust
+      - shopify_update
+
+    CRITICAL:
+      - security
+      - auth_change
+      - data_delete
+      - customer_content
+      - payment_system
+      - user_data_export
+      - production_database
+      - credential_change
+
+  # Scope modifiers (adjust risk up or down)
+  scope_modifiers:
+    decrease_risk:
+      - test: -1
+      - staging: -1
+      - development: -1
+      - local: -1
+    increase_risk:
+      - production: +1
+      - live: +1
+      - customer: +1
+      - external: +1
+      - financial: +1
+      - security: +1
+```
+
+## 5B.3 Routing Rules by Risk Level
+
+```yaml
+routing_rules:
+  LOW:
+    autonomy_level: "autonomous"
+    auto_approve: true
+    conditions: ["trustLevel >= 25"]
+    monitoring: "async"
+    rollback_time: "N/A"
+
+  MEDIUM:
+    autonomy_level: "verify"
+    auto_approve: true
+    conditions: ["trustLevel >= 50", "verificationPassed"]
+    monitoring: "real-time"
+    rollback_time: "<5 min"
+
+  HIGH:
+    autonomy_level: "approval_required"
+    auto_approve: false
+    conditions: ["humanApproval"]
+    approvers: ["PM_Architect", "Owner"]
+    monitoring: "real-time"
+    rollback_time: "<1 min"
+    requires_rollback_plan: true
+
+  CRITICAL:
+    autonomy_level: "explicit_command"
+    auto_approve: false
+    conditions: ["explicitHumanCommand", "humanApproval"]
+    approvers: ["Owner"]
+    monitoring: "real-time"
+    rollback_time: "<30 sec"
+    requires_rollback_plan: true
+    requires_double_confirmation: true
+```
+
+## 5B.4 File Pattern Risk Detection
+
+```yaml
+file_pattern_risks:
+  CRITICAL:
+    - ".*auth.*"
+    - ".*security.*"
+    - ".*credential.*"
+    - ".*secret.*"
+    - ".*password.*"
+    - ".*token.*"
+    - ".*payment.*"
+    - "\\.env$"
+    - ".*\\.pem$"
+    - ".*\\.key$"
+
+  HIGH:
+    - ".*shopify.*"
+    - ".*production.*"
+    - ".*deploy.*"
+    - ".*financial.*"
+    - ".*order.*"
+    - ".*customer.*"
+
+  MEDIUM:
+    - ".*\\.js$"
+    - ".*\\.html$"
+    - ".*\\.css$"
+    - ".*config.*"
+    - ".*\\.json$"
+
+  LOW:
+    - ".*\\.md$"
+    - ".*\\.txt$"
+    - ".*\\.log$"
+    - ".*README.*"
+```
+
+---
+
 # PART 6: HUMAN-IN-THE-LOOP CHECKPOINTS
 
 ## 6.1 Checkpoint Configuration
@@ -846,6 +1193,208 @@ progressive_autonomy:
     api_deployment:
       level: 4  # Propose, await approval
       history: "98% approval rate"
+```
+
+---
+
+# PART 6B: HUMAN-ON-THE-LOOP (HOTL)
+
+**Status:** IMPLEMENTED (2026-02-12)
+**Concept:** Human monitors but doesn't block; tasks can pause and resume
+
+## 6B.1 Human-on-the-Loop vs Human-in-the-Loop
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│            HUMAN-ON-THE-LOOP (HOTL) MODEL                               │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│   HUMAN-IN-THE-LOOP (Traditional):                                      │
+│   ├── Human approval REQUIRED for every step                            │
+│   ├── Agent BLOCKS waiting for input                                    │
+│   └── Slow, requires constant attention                                 │
+│                                                                          │
+│   HUMAN-ON-THE-LOOP (HOTL - Our Model):                                 │
+│   ├── Agent proceeds autonomously within trust bounds                   │
+│   ├── Human is NOTIFIED but not blocking                                │
+│   ├── Agent can PAUSE for human input when needed                       │
+│   ├── Human can INTERVENE at any time                                   │
+│   └── Faster, allows parallel work                                      │
+│                                                                          │
+│   Key Difference: Agent has autonomy but human retains VETO POWER       │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+## 6B.2 Pause Triggers
+
+```yaml
+pause_triggers:
+  # Conditions that cause automatic pause
+  automatic_pause:
+    - confidence_below_threshold: "Confidence < 70%"
+    - high_risk_detected: "Task classified as HIGH or CRITICAL risk"
+    - error_budget_exceeded: "Agent has exceeded error budget"
+    - conflicting_state: "Detected conflict with another agent"
+    - external_dependency_failed: "Required external service unavailable"
+    - user_requested_pause: "Human explicitly paused agent"
+
+  # How to signal pause
+  pause_signal:
+    status: "PAUSED"
+    reason: "{trigger_reason}"
+    context: "{current_task_state}"
+    resume_conditions: "{what_needs_to_happen}"
+    timeout: "24h"  # Auto-escalate if not resumed
+
+  # Pause notification
+  notification:
+    method: "OUTBOX.md + terminal notification"
+    content: |
+      ## TASK PAUSED
+      **Task:** {task_description}
+      **Reason:** {pause_reason}
+      **Current State:** {work_completed}
+      **Awaiting:** {what_is_needed}
+      **To Resume:** Provide missing input or type 'resume'
+```
+
+## 6B.3 Resume Procedures
+
+```yaml
+resume_procedures:
+  # Human provides missing input
+  resume_with_input:
+    1: "Human provides missing information"
+    2: "Agent validates input is sufficient"
+    3: "Agent re-evaluates confidence"
+    4: "If confidence >= threshold, resume work"
+    5: "If confidence still low, request more info"
+
+  # Human overrides pause
+  force_resume:
+    1: "Human types 'resume' or 'proceed'"
+    2: "Agent logs human override decision"
+    3: "Agent resumes with documented human approval"
+    4: "Any failures are attributed to human decision"
+
+  # Timeout escalation
+  timeout_handling:
+    after_1h: "Send reminder notification"
+    after_4h: "Escalate to PM_Architect"
+    after_24h: "Mark task as BLOCKED, notify owner"
+
+  # State recovery
+  state_recovery:
+    - "Load checkpoint from last successful step"
+    - "Restore working memory context"
+    - "Re-verify all assumptions"
+    - "Resume from checkpoint"
+```
+
+---
+
+# PART 6C: DURABLE CHECKPOINTING
+
+**Status:** PLANNED (Infrastructure exists in pm_orchestrator.py)
+**Purpose:** Save state after each step; resume on failure
+
+## 6C.1 How Checkpoints Work
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    DURABLE CHECKPOINTING SYSTEM                          │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│   CHECKPOINT LIFECYCLE:                                                  │
+│                                                                          │
+│   Step 1           Step 2           Step 3           Step 4             │
+│      │                │                │                │               │
+│      ▼                ▼                ▼                ▼               │
+│   [Checkpoint 1]  [Checkpoint 2]  [Checkpoint 3]  [Checkpoint 4]        │
+│      │                │                │                │               │
+│      │                │                X (failure)      │               │
+│      │                │                │                │               │
+│      │                │       Resume from CP-2 ────────►│               │
+│                                                                          │
+│   WHAT'S SAVED:                                                          │
+│   ├── Current task state                                                 │
+│   ├── Working memory snapshot                                            │
+│   ├── Files modified (before/after)                                      │
+│   ├── Decisions made with rationale                                      │
+│   ├── Confidence scores                                                  │
+│   └── Timestamp and agent ID                                             │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+## 6C.2 Checkpoint Storage
+
+```yaml
+checkpoint_storage:
+  # Primary storage location
+  location: "tinypm/.checkpoints/"
+  format: "JSON"
+
+  # Checkpoint structure
+  checkpoint_schema:
+    checkpoint_id: "UUID"
+    task_id: "string"
+    agent_id: "string"
+    step_number: "integer"
+    timestamp: "ISO8601"
+    state:
+      status: "string"
+      progress_percent: "float"
+      current_action: "string"
+    context:
+      working_memory_hash: "string"
+      files_modified: "array"
+      decisions: "array"
+    recovery:
+      can_resume: "boolean"
+      resume_instructions: "string"
+      rollback_available: "boolean"
+
+  # Retention policy
+  retention:
+    active_tasks: "until_task_complete"
+    completed_tasks: "7_days"
+    failed_tasks: "30_days"
+```
+
+## 6C.3 Resume Procedures
+
+```yaml
+resume_procedures:
+  # Automatic resume on failure
+  auto_resume:
+    triggers:
+      - "agent_crash"
+      - "timeout"
+      - "connection_lost"
+    process:
+      1: "Detect failure condition"
+      2: "Load most recent checkpoint"
+      3: "Validate checkpoint integrity"
+      4: "Restore agent state"
+      5: "Re-evaluate current step"
+      6: "Resume execution"
+
+  # Manual resume
+  manual_resume:
+    command: "node pm_orchestrator.js resume --task {TASK_ID}"
+    options:
+      - "--from-checkpoint {CHECKPOINT_ID}"
+      - "--skip-step {STEP_NUMBER}"
+      - "--force-retry"
+
+  # Checkpoint validation
+  validation:
+    - "Verify file states match checkpoint"
+    - "Check external system states"
+    - "Validate no conflicting changes"
+    - "Confirm human approvals still valid"
 ```
 
 ---
@@ -939,6 +1488,175 @@ agent_communication:
 
       ### Issues Encountered
       {any_issues}
+```
+
+---
+
+# PART 7B: A2A-LITE COMMUNICATION PROTOCOL
+
+**Status:** IMPLEMENTED (2026-02-12)
+**Schema:** `config/a2a_message_schema.json`
+
+## 7B.1 What is A2A-Lite?
+
+A2A-Lite (Agent-to-Agent Lite) is a simplified inter-agent communication protocol for structured message passing between agents in the Tiny Seed OS multi-agent system.
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    A2A-LITE COMMUNICATION FLOW                           │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│   PM_Architect ──────────► Backend_Claude                               │
+│        │                         │                                       │
+│        │   REQUEST               │   RESPONSE                           │
+│        │   {                     │   {                                  │
+│        │     "from": "PM_...",   │     "from": "Backend_...",           │
+│        │     "to": "Backend_...",│     "to": "PM_...",                  │
+│        │     "type": "request",  │     "type": "response",              │
+│        │     "action": "review", │     "status": "completed",           │
+│        │     "confidence": 0.95  │     "confidence": 0.88               │
+│        │   }                     │   }                                  │
+│        │                         │                                       │
+│        └────────────────────────►│                                       │
+│                                                                          │
+│   MESSAGE TYPES:                                                         │
+│   ├── request   - Ask another agent to do something                     │
+│   ├── response  - Reply to a request                                    │
+│   ├── notification - Broadcast information to one or more agents        │
+│   └── handoff   - Transfer task ownership to another agent              │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+## 7B.2 Message Format
+
+```yaml
+a2a_message_format:
+  # Required fields
+  required:
+    messageId: "UUID v4 - unique identifier"
+    timestamp: "ISO 8601 datetime"
+    from: "Sender agent ID (e.g., PM_Architect)"
+    to: "Recipient agent ID or 'BROADCAST'"
+    type: "request | response | notification | handoff"
+    contextId: "Thread identifier for grouping related messages"
+    payload: "Message content object"
+    status: "pending | acknowledged | completed | abstained | failed"
+
+  # Optional fields
+  optional:
+    taskId: "Reference to related task"
+    priority: "low | medium | high | critical (default: medium)"
+    confidence: "0.0-1.0 - Agent confidence level"
+    parentMessageId: "UUID of parent message (for threading)"
+    expiresAt: "ISO 8601 - expiration for time-sensitive messages"
+    retryCount: "Number of delivery retry attempts"
+
+  # Payload structure
+  payload:
+    subject: "Brief subject line"
+    body: "Full message content (markdown supported)"
+    action: "Requested action (for request type)"
+    result: "Action result (for response type)"
+    attachments: "Array of file references"
+    metadata: "Additional key-value data"
+```
+
+## 7B.3 Valid Agent IDs
+
+```yaml
+valid_agents:
+  core_team:
+    - PM_Architect
+    - Backend_Claude
+    - Desktop_Claude
+    - Mobile_Claude
+    - UX_Design_Claude
+    - Sales_Claude
+    - Security_Claude
+
+  extended_team:
+    - Coordination_Claude
+    - Field_Operations_Claude
+    - Financial_Claude
+    - Grants_Claude
+    - Inventory_Claude
+    - Social_Media_Claude
+
+  special:
+    - Human_User          # Messages to/from human
+    - BROADCAST           # Send to all agents
+```
+
+## 7B.4 Example Messages
+
+```json
+// REQUEST: PM_Architect asks Backend_Claude to review code
+{
+  "messageId": "550e8400-e29b-41d4-a716-446655440000",
+  "timestamp": "2026-02-12T10:30:00Z",
+  "from": "PM_Architect",
+  "to": "Backend_Claude",
+  "type": "request",
+  "contextId": "ctx-api-refactor-2026-02",
+  "taskId": "TASK-1234",
+  "priority": "high",
+  "payload": {
+    "subject": "API Endpoint Review",
+    "body": "Please review the new authentication endpoints.",
+    "action": "review_code",
+    "metadata": {
+      "files": ["apps_script/Auth.js"],
+      "deadline": "2026-02-13T17:00:00Z"
+    }
+  },
+  "confidence": 0.95,
+  "status": "pending"
+}
+
+// NOTIFICATION: Security_Claude broadcasts an alert
+{
+  "messageId": "550e8400-e29b-41d4-a716-446655440002",
+  "timestamp": "2026-02-12T12:00:00Z",
+  "from": "Security_Claude",
+  "to": "BROADCAST",
+  "type": "notification",
+  "contextId": "ctx-security-alert-2026-02-12",
+  "priority": "critical",
+  "payload": {
+    "subject": "Security Advisory: Rate Limit Detected",
+    "body": "Unusual API activity detected. Implementing temporary rate limiting.",
+    "metadata": {
+      "alertType": "rate_limit",
+      "affectedEndpoints": ["auth", "data"]
+    }
+  },
+  "confidence": 0.99,
+  "status": "pending"
+}
+
+// HANDOFF: Backend_Claude transfers task to UX_Design_Claude
+{
+  "messageId": "550e8400-e29b-41d4-a716-446655440003",
+  "timestamp": "2026-02-12T14:00:00Z",
+  "from": "Backend_Claude",
+  "to": "UX_Design_Claude",
+  "type": "handoff",
+  "contextId": "ctx-feature-dashboard-2026-02",
+  "taskId": "TASK-5678",
+  "priority": "medium",
+  "payload": {
+    "subject": "Dashboard API Ready for UI Implementation",
+    "body": "Backend APIs complete and tested. Handing off for UI.",
+    "action": "implement_ui",
+    "metadata": {
+      "endpoints": ["getDashboardData", "updateWidgets"],
+      "documentation": "docs/dashboard-api.md"
+    }
+  },
+  "confidence": 0.92,
+  "status": "pending"
+}
 ```
 
 ---
@@ -1181,6 +1899,262 @@ audit:
 
 ---
 
+# PART 10B: TRACING & OBSERVABILITY
+
+**Status:** IMPLEMENTED (2026-02-12)
+**Components:** `scripts/governor_helpers.js`, `tinypm/.governor_audit.json`
+
+## 10B.1 What's Traced
+
+```yaml
+tracing_system:
+  # Every agent action is traced
+  traced_events:
+    task_lifecycle:
+      - task_started
+      - task_completed
+      - task_failed
+      - task_abstained
+
+    verification_gates:
+      - verification_gate_required
+      - verification_gate_initiated
+      - verification_gate_passed
+      - verification_gate_failed
+      - verification_gate_blocked
+      - verification_awaiting_approval
+
+    proof_of_success:
+      - proof_of_success_submitted
+      - proof_of_success_validated
+      - proof_of_success_rejected
+
+    testing:
+      - automated_test_passed
+      - automated_test_failed
+      - screenshot_comparison_passed
+      - screenshot_comparison_failed
+
+    confidence:
+      - confidence_check_failed
+      - confidence_check_passed
+
+    abstention:
+      - task_abstained
+      - abstention_escalated
+      - abstention_resolved
+
+    approvals:
+      - approval_requested
+      - approval_granted
+      - approval_denied
+
+    deployments:
+      - deployment_executed
+      - rollback_executed
+
+    errors:
+      - error_budget_warning
+      - error_budget_exceeded
+
+  # Trace data structure
+  trace_format:
+    id: "UUID"
+    timestamp: "ISO8601"
+    agent: "agent_id"
+    action: "action_type"
+    outcome: "success | failure | pending | escalated | rolled_back | blocked | abstained"
+    details: "action-specific metadata"
+    rollbackAvailable: "boolean"
+```
+
+## 10B.2 How to View Traces
+
+```bash
+# View all recent events (last 7 days, max 50)
+node scripts/governor_helpers.js events
+
+# View events for specific agent
+node scripts/governor_helpers.js events --agent Backend_Claude
+
+# View specific action types
+node scripts/governor_helpers.js events --action task_completed
+
+# Limit results
+node scripts/governor_helpers.js events --limit 10 --days 3
+
+# View agent performance summary
+node scripts/governor_helpers.js performance Backend_Claude
+
+# View all agents summary
+node scripts/governor_helpers.js summary
+
+# View task verification status
+node scripts/governor_helpers.js task-status TASK-001
+
+# View valid task states and transitions
+node scripts/governor_helpers.js states
+```
+
+## 10B.3 Trace Storage
+
+```yaml
+trace_storage:
+  # Primary audit log
+  audit_file: "tinypm/.governor_audit.json"
+  format: "JSON"
+  max_events: 1000  # Rolling window
+  retention: "1 year"
+
+  # Metrics file
+  metrics_file: "tinypm/.governor_metrics.json"
+  includes:
+    - global_counters
+    - per_agent_metrics
+    - error_budgets
+    - task_states
+    - verification_proofs
+
+  # Circuit breaker logs
+  circuit_breaker:
+    assessments: "tinypm/.circuit_breaker_assessments.json"
+    audit: "tinypm/.circuit_breaker_audit.json"
+```
+
+---
+
+# PART 10C: CIRCUIT BREAKERS (FINANCIAL)
+
+**Status:** IMPLEMENTED (2026-02-04)
+**UI:** `tinypm/static/js/circuit-breaker-ui.js`
+**Data:** `tinypm/.circuit_breaker_assessments.json`
+
+## 10C.1 What is the Financial Circuit Breaker?
+
+The Financial Circuit Breaker prevents high-impact financial actions from executing automatically. It assesses the dollar impact of actions and gates them based on configurable thresholds.
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    FINANCIAL CIRCUIT BREAKER                             │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│   IMPACT ZONES (configurable thresholds):                               │
+│                                                                          │
+│   $0 ────────── $500 ────────── $2000 ───────── $5000 ──────────►       │
+│        SAFE          CAUTION         WARNING        DANGER              │
+│     (auto-exec)   (one-click)     (pre-prepare)  (human req)           │
+│                                                                          │
+│   ASSESSMENT FACTORS:                                                    │
+│   ├── Direct cost (actual expense amount)                               │
+│   ├── Revenue risk (potential lost revenue)                             │
+│   ├── Penalty risk (late fees, compliance)                              │
+│   ├── Opportunity cost (missed opportunities)                           │
+│   ├── Reputation impact (brand damage)                                  │
+│   ├── Resource cost (time, compute)                                     │
+│   └── Commitment (contractual obligations)                              │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+## 10C.2 Trip Conditions
+
+```yaml
+circuit_breaker_trips:
+  # States
+  CLOSED:   # Normal operation
+    description: "All systems operational"
+    behavior: "Process requests normally"
+
+  OPEN:     # Tripped - blocking requests
+    description: "Circuit breaker tripped"
+    behavior: "Block all requests, use fallback"
+    triggers:
+      - "3 consecutive failures for same service"
+      - "Impact exceeds human_required threshold"
+      - "Manual trip by human/PM_Architect"
+
+  HALF_OPEN:  # Testing recovery
+    description: "Testing if service recovered"
+    behavior: "Allow one test request"
+    timeout: "60 seconds"
+
+  # Specific trip conditions
+  trip_conditions:
+    - name: "High dollar impact"
+      condition: "total_impact >= $5000"
+      action: "Block and require human approval"
+
+    - name: "Repeated failures"
+      condition: "3 failures within 5 minutes"
+      action: "Open circuit, exponential backoff"
+
+    - name: "External API errors"
+      condition: "Shopify/Apps Script returns 5xx"
+      action: "Open circuit for that service"
+
+    - name: "Error budget exceeded"
+      condition: "Agent error count >= allowed"
+      action: "Block agent, escalate to human"
+```
+
+## 10C.3 Recovery Procedures
+
+```yaml
+circuit_breaker_recovery:
+  # Automatic recovery
+  auto_recovery:
+    half_open_after: "60 seconds"
+    test_requests: 1
+    success_required: 1
+    full_recovery: "After 1 successful request"
+
+  # Manual recovery
+  manual_recovery:
+    command: "Reset circuit breaker for [service]"
+    requires: "Human or PM_Architect approval"
+    actions:
+      - "Acknowledge the failure"
+      - "Verify root cause addressed"
+      - "Reset circuit state to CLOSED"
+      - "Monitor for recurrence"
+
+  # Fallback behaviors
+  fallbacks:
+    shopify_api:
+      fallback: "Queue operation for later retry"
+      notify: "Human of delayed operation"
+
+    apps_script_api:
+      fallback: "Return cached data if available"
+      notify: "Human of stale data"
+
+    external_email:
+      fallback: "Queue email in outbox"
+      notify: "Human of pending sends"
+
+  # Backoff strategy
+  backoff:
+    strategy: "exponential"
+    base_delay: 1    # second
+    max_delay: 60    # seconds
+    jitter: true     # Add randomization
+```
+
+## 10C.4 Viewing Circuit Breaker State
+
+```bash
+# View recent assessments
+cat tinypm/.circuit_breaker_assessments.json | jq '.assessments[-5:]'
+
+# View audit trail
+cat tinypm/.circuit_breaker_audit.json | jq '.entries'
+
+# Check current state via API
+curl http://localhost:5000/api/impact/stats
+```
+
+---
+
 # PART 11: QUICK START COMMANDS
 
 ## 11.1 For Claude Code (Orchestrator)
@@ -1248,6 +2222,54 @@ When approval needed:
 
 ---
 
+# APPENDIX C: IMPLEMENTATION STATUS
+
+**Last Updated:** 2026-02-12
+
+| Component | Status | Location | Notes |
+|-----------|--------|----------|-------|
+| **STATUS_ABSTAIN Protocol** | IMPLEMENTED | `scripts/governor_helpers.js` | Full state machine with ABSTAINED state, reason categories, metrics tracking |
+| **Task Risk Classification** | IMPLEMENTED | `config/task_risk_classification.json` | LOW/MEDIUM/HIGH/CRITICAL levels with file patterns and autonomy mapping |
+| **A2A-Lite Communication** | IMPLEMENTED | `config/a2a_message_schema.json` | JSON schema for inter-agent messaging with all message types |
+| **Governor System** | IMPLEMENTED | `scripts/governor_helpers.js` | Event logging, metrics, error budgets, verification gates |
+| **Verification Gates** | IMPLEMENTED | `scripts/governor_helpers.js` | Task state machine, proof submission, validation workflow |
+| **Verifier_Claude Session** | IMPLEMENTED | `claude_sessions/verifier_claude/` | Folder structure with INBOX, OUTBOX, queue, history |
+| **Financial Circuit Breaker** | IMPLEMENTED | `tinypm/static/js/circuit-breaker-ui.js` | Impact assessment UI, threshold zones, blocking logic |
+| **Circuit Breaker Data** | IMPLEMENTED | `tinypm/.circuit_breaker_*.json` | Assessments and audit trail storage |
+| **Tracing & Observability** | IMPLEMENTED | `tinypm/.governor_audit.json` | All agent actions logged with outcomes |
+| **Metrics Storage** | IMPLEMENTED | `tinypm/.governor_metrics.json` | Per-agent metrics, error budgets, task states |
+| **Human-on-the-Loop** | IMPLEMENTED | CLAUDE.md + Governor | Pause/resume via task states, timeout escalation |
+| **Durable Checkpointing** | PLANNED | `tinypm/pm_orchestrator.py` | Infrastructure exists, needs activation |
+| **Pre-flight Check Script** | IMPLEMENTED | `scripts/pre-flight-check.sh` | Duplicate detection, role boundaries, risk flags |
+| **Validation Scripts** | IMPLEMENTED | `scripts/validate-*.sh` | Element refs, API URLs validation |
+| **Context Snapshot** | IMPLEMENTED | `/tmp/TINYSEED_CONTEXT_SNAPSHOT.md` | Auto-generated session context |
+| **Memory Architecture** | IMPLEMENTED | Multiple files | Working, Episodic, Semantic tiers |
+| **Agent Roles** | DOCUMENTED | `CLAUDE_ROLES.md` | 8 specialized roles defined |
+
+### Implementation Phases
+
+| Phase | Trust Level | Status | Target Date |
+|-------|-------------|--------|-------------|
+| **Phase 1: Foundation** | 0% -> 25% | IN PROGRESS | 2026-02-19 |
+| **Phase 2: Verification** | 25% -> 50% | PLANNED | 2026-02-26 |
+| **Phase 3: Autonomy** | 50% -> 75% | PLANNED | 2026-03-05 |
+| **Phase 4: Full Production** | 75% -> 100% | PLANNED | 2026-03-12 |
+
+### Key Files Reference
+
+| File | Purpose | Status |
+|------|---------|--------|
+| `scripts/governor_helpers.js` | Governor system with verification gates | ACTIVE |
+| `config/task_risk_classification.json` | Risk level definitions | ACTIVE |
+| `config/a2a_message_schema.json` | Inter-agent message format | ACTIVE |
+| `tinypm/.governor_metrics.json` | Performance metrics storage | ACTIVE |
+| `tinypm/.governor_audit.json` | Audit trail storage | ACTIVE |
+| `tinypm/.circuit_breaker_assessments.json` | Financial impact assessments | ACTIVE |
+| `tinypm/.circuit_breaker_audit.json` | Circuit breaker decisions | ACTIVE |
+| `Claude-Code-Remote/src/utils/trace-capture.js` | Execution trace capture | ACTIVE |
+
+---
+
 **This configuration establishes Claude Code as the Supreme Orchestrator of the Tiny Seed Farm AI team, with production-grade safety, coordination, and quality controls.**
 
 *NO SHORTCUTS. STATE OF THE ART. SO SMART IT KNOWS WHAT YOU SHOULD DO BEFORE YOU DO.*
@@ -1255,4 +2277,5 @@ When approval needed:
 ---
 
 *Document created: 2026-02-11*
+*Document updated: 2026-02-12 (Added STATUS_ABSTAIN, Risk Classification, A2A-Lite, Checkpointing, HOTL, Tracing, Circuit Breakers)*
 *Sovereign Production Blueprint v5.1*

@@ -23,11 +23,22 @@ const TINY_SEED_API = {
     //
     // Main OS Sheet ID: 128O56X_FN9_U-s0ENHBBRyLpae_yvWHPYbBheVlR3Vc
     //
-    // LAST UPDATED: 2026-01-28
-    // UPDATED BY: Claude - v444 Overnight mega upgrade
+    // LAST UPDATED: 2026-02-12
+    // UPDATED BY: Security_Claude - API key remediation
     // ═══════════════════════════════════════════════════════════════════════════
 
     MAIN_API: 'https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec',
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // GOOGLE MAPS API CONFIGURATION
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SECURITY: This key should be rotated and restricted in Google Cloud Console
+    // Restrictions should include:
+    // - HTTP referrer restrictions (only your domains)
+    // - API restrictions (Maps JavaScript API only)
+    // See: docs/SECURITY_API_KEY_REMEDIATION.md
+    // ═══════════════════════════════════════════════════════════════════════════
+    GOOGLE_MAPS_API_KEY: window.TINY_SEED_CONFIG?.GOOGLE_MAPS_API_KEY || '',
 
     // Farm location - 257 Zeigler Rd, Rochester, PA 15074
     FARM_LOCATION: {

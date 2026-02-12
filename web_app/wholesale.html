@@ -653,6 +653,29 @@
             background: #16a34a;
         }
 
+        .checkout-btn:disabled {
+            background: var(--text-muted);
+            cursor: not-allowed;
+        }
+
+        /* Minimum Order Warning */
+        .minimum-order-warning {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 12px;
+            font-size: 13px;
+            color: #92400e;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .minimum-order-warning .warning-icon {
+            font-size: 16px;
+        }
+
         /* ═══════════════════════════════════════════════════════════════════════════
            ORDERS TAB
            ═══════════════════════════════════════════════════════════════════════════ */
@@ -936,6 +959,176 @@
         }
 
         /* ═══════════════════════════════════════════════════════════════════════════
+           DELIVERY TRACKING
+           ═══════════════════════════════════════════════════════════════════════════ */
+
+        .deliveries-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .delivery-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.2s;
+        }
+
+        .delivery-card:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .delivery-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .delivery-order-id {
+            font-weight: 600;
+            font-size: 16px;
+            color: var(--text-primary);
+        }
+
+        .delivery-date {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .delivery-status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .delivery-status-badge.pending {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .delivery-status-badge.packed {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .delivery-status-badge.out-for-delivery {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .delivery-status-badge.delivered {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .delivery-progress {
+            display: flex;
+            align-items: center;
+            margin: 16px 0;
+            padding: 16px;
+            background: var(--bg-elevated);
+            border-radius: 8px;
+        }
+
+        .progress-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            position: relative;
+        }
+
+        .progress-step::after {
+            content: '';
+            position: absolute;
+            top: 16px;
+            left: 50%;
+            width: 100%;
+            height: 2px;
+            background: var(--border-color);
+            z-index: 1;
+        }
+
+        .progress-step:last-child::after {
+            display: none;
+        }
+
+        .progress-step.completed::after {
+            background: var(--success);
+        }
+
+        .progress-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            background: var(--bg-card);
+            border: 2px solid var(--border-color);
+            position: relative;
+            z-index: 2;
+        }
+
+        .progress-step.completed .progress-icon {
+            background: var(--success);
+            border-color: var(--success);
+            color: white;
+        }
+
+        .progress-step.active .progress-icon {
+            border-color: var(--primary);
+            color: var(--primary);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .progress-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 8px;
+            text-align: center;
+        }
+
+        .progress-step.completed .progress-label {
+            color: var(--success);
+            font-weight: 500;
+        }
+
+        .progress-step.active .progress-label {
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        .delivery-details {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .delivery-detail {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .delivery-detail-icon {
+            font-size: 16px;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
            TOAST NOTIFICATIONS
            ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -1070,6 +1263,7 @@
         <nav class="nav-tabs">
             <button class="nav-tab active" onclick="switchTab('catalog')">Product Catalog</button>
             <button class="nav-tab" onclick="switchTab('orders')">Order History</button>
+            <button class="nav-tab" onclick="switchTab('tracking')">Track Delivery</button>
             <button class="nav-tab" onclick="switchTab('standing')">Standing Orders</button>
             <button class="nav-tab" onclick="switchTab('account')">Account</button>
             <button class="nav-tab admin-only" onclick="switchTab('manage')" id="manageTab" style="display:none;">👥 Manage Chefs</button>
@@ -1101,6 +1295,17 @@
                 <h1 class="page-title">Order History</h1>
                 <div class="orders-list" id="ordersList">
                     <!-- Orders loaded dynamically -->
+                </div>
+            </div>
+
+            <!-- Delivery Tracking Tab -->
+            <div class="tab-content" id="tab-tracking">
+                <h1 class="page-title">Track My Deliveries</h1>
+                <p style="color: var(--text-secondary); margin-bottom: 24px;">
+                    View the status of your recent orders and track deliveries in real-time.
+                </p>
+                <div class="deliveries-list" id="deliveriesList">
+                    <!-- Deliveries loaded dynamically -->
                 </div>
             </div>
 
@@ -1367,7 +1572,12 @@
                 <span>Total</span>
                 <span id="cartTotal">$0.00</span>
             </div>
-            <button class="checkout-btn" onclick="submitOrder()">
+            <!-- Minimum Order Warning -->
+            <div id="minimumOrderWarning" class="minimum-order-warning" style="display: none;">
+                <span class="warning-icon">⚠️</span>
+                <span>Minimum order is <strong id="minimumOrderAmount">$50.00</strong>. Add <strong id="minimumOrderShortfall">$0.00</strong> more.</span>
+            </div>
+            <button class="checkout-btn" id="submitOrderBtn" onclick="submitOrder()">
                 Submit Order
             </button>
         </div>
@@ -1391,7 +1601,8 @@
             products: [],
             cart: [],
             orders: [],
-            isLoading: false
+            isLoading: false,
+            minimumOrder: 50 // Default minimum, will be loaded from backend
         };
 
         const api = new WholesalePortalAPI();
@@ -1527,10 +1738,32 @@
             document.getElementById('appContainer').style.display = 'block';
 
             updateAccountUI();
+            loadMinimumOrder(); // Load customer-specific minimum order
             loadProducts().then(() => {
                 loadStandingOrders();
             });
             loadOrders();
+            loadDeliveryTracking(); // Load delivery tracking data
+        }
+
+        async function loadMinimumOrder() {
+            if (!AppState.customer) return;
+
+            try {
+                const result = await api.call('getMinimumOrder', {
+                    customerId: AppState.customer.Customer_ID
+                }, 'GET');
+
+                if (result.success && result.minimumOrder) {
+                    AppState.minimumOrder = parseFloat(result.minimumOrder);
+                }
+            } catch (error) {
+                console.log('Using default minimum order amount');
+                // Keep default of $50
+            }
+
+            // Update the UI
+            updateCartUI();
         }
 
         function switchTab(tabId) {
@@ -1543,6 +1776,7 @@
                 if (t.textContent.toLowerCase().includes(tabId.toLowerCase().replace('-', ' ')) ||
                     (tabId === 'catalog' && t.textContent.includes('Catalog')) ||
                     (tabId === 'orders' && t.textContent.includes('History')) ||
+                    (tabId === 'tracking' && t.textContent.includes('Track')) ||
                     (tabId === 'standing' && t.textContent.includes('Standing')) ||
                     (tabId === 'account' && t.textContent.includes('Account'))) {
                     t.classList.add('active');
@@ -1551,9 +1785,12 @@
 
             document.getElementById(`tab-${tabId}`).classList.add('active');
 
-            // Load data for standing orders tab
+            // Load data for tabs
             if (tabId === 'standing' && AppState.products.length > 0) {
                 populateProductDropdown();
+            }
+            if (tabId === 'tracking') {
+                loadDeliveryTracking(); // Refresh delivery data when viewing tracking tab
             }
         }
 
@@ -1797,6 +2034,30 @@
 
             document.getElementById('cartSubtotal').textContent = TinySeedUtils.formatCurrency(subtotal);
             document.getElementById('cartTotal').textContent = TinySeedUtils.formatCurrency(subtotal);
+
+            // Update minimum order warning and submit button state
+            updateMinimumOrderUI(subtotal);
+        }
+
+        function updateMinimumOrderUI(subtotal) {
+            const warningEl = document.getElementById('minimumOrderWarning');
+            const submitBtn = document.getElementById('submitOrderBtn');
+            const minimumOrder = AppState.minimumOrder || 50;
+            const shortfall = minimumOrder - subtotal;
+
+            if (shortfall > 0) {
+                // Show warning
+                warningEl.style.display = 'flex';
+                document.getElementById('minimumOrderAmount').textContent = TinySeedUtils.formatCurrency(minimumOrder);
+                document.getElementById('minimumOrderShortfall').textContent = TinySeedUtils.formatCurrency(shortfall);
+                submitBtn.disabled = true;
+                submitBtn.textContent = `Add $${shortfall.toFixed(2)} more to order`;
+            } else {
+                // Hide warning
+                warningEl.style.display = 'none';
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Order';
+            }
         }
 
         function toggleCart() {
@@ -1813,6 +2074,7 @@
             const orderData = {
                 customerId: AppState.customer.Customer_ID,
                 customerName: AppState.customer.Company_Name || AppState.customer.Contact_Name,
+                customerPhone: AppState.customer.Phone || '', // For SMS confirmation
                 deliveryAddress: [AppState.customer.Address, AppState.customer.City, AppState.customer.State, AppState.customer.Zip].filter(Boolean).join(', '),
                 items: AppState.cart.map(item => ({
                     cropId: item.cropId,
@@ -1827,7 +2089,15 @@
             try {
                 const result = await api.submitOrder(orderData);
                 if (result.success) {
-                    showToast('Order submitted successfully!', 'success');
+                    // Show detailed success message with integration status
+                    let successMsg = `Order ${result.orderId} submitted!`;
+                    if (result.invoiceCreated) {
+                        successMsg += ' Invoice generated.';
+                    }
+                    if (result.smsConfirmationSent) {
+                        successMsg += ' Confirmation SMS sent.';
+                    }
+                    showToast(successMsg, 'success');
                     AppState.cart = [];
                     saveCart();
                     updateCartUI();
@@ -1897,6 +2167,149 @@
                     <div class="order-total">${TinySeedUtils.formatCurrency(order.Total)}</div>
                 </div>
             `).join('');
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // DELIVERY TRACKING (Priority 1.3)
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        AppState.deliveries = [];
+
+        async function loadDeliveryTracking() {
+            if (!AppState.customer) return;
+
+            const container = document.getElementById('deliveriesList');
+            container.innerHTML = '<div class="cart-empty"><div class="cart-empty-icon">⏳</div><p>Loading deliveries...</p></div>';
+
+            try {
+                const result = await api.call('getWholesaleDeliveryStatus', {
+                    customerId: AppState.customer.Customer_ID
+                }, 'GET');
+
+                if (result.success) {
+                    AppState.deliveries = result.deliveries || [];
+                    renderDeliveryTracking();
+                } else {
+                    container.innerHTML = `
+                        <div class="cart-empty">
+                            <div class="cart-empty-icon">📦</div>
+                            <p>No deliveries to track</p>
+                            <p style="font-size: 13px; margin-top: 8px;">Place an order to see delivery tracking here</p>
+                        </div>`;
+                }
+            } catch (error) {
+                console.error('Load delivery tracking error:', error);
+                container.innerHTML = `
+                    <div class="cart-empty">
+                        <div class="cart-empty-icon">⚠️</div>
+                        <p>Could not load deliveries</p>
+                        <button onclick="loadDeliveryTracking()" class="btn" style="margin-top: 12px;">Retry</button>
+                    </div>`;
+            }
+        }
+
+        function renderDeliveryTracking() {
+            const container = document.getElementById('deliveriesList');
+
+            if (AppState.deliveries.length === 0) {
+                container.innerHTML = `
+                    <div class="cart-empty">
+                        <div class="cart-empty-icon">📦</div>
+                        <p>No deliveries to track</p>
+                        <p style="font-size: 13px; margin-top: 8px;">Place an order to see delivery tracking here</p>
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = AppState.deliveries.map(delivery => {
+                const status = normalizeDeliveryStatus(delivery.deliveryStatus || delivery.status);
+                const statusClass = status.toLowerCase().replace(/\s+/g, '-');
+                const progressSteps = getDeliveryProgress(status);
+
+                return `
+                    <div class="delivery-card">
+                        <div class="delivery-header">
+                            <div>
+                                <div class="delivery-order-id">${delivery.orderId}</div>
+                                <div class="delivery-date">Ordered: ${TinySeedUtils.formatDate(delivery.orderDate)}</div>
+                            </div>
+                            <span class="delivery-status-badge ${statusClass}">${status}</span>
+                        </div>
+
+                        <div class="delivery-progress">
+                            ${progressSteps.map(step => `
+                                <div class="progress-step ${step.state}">
+                                    <div class="progress-icon">${step.icon}</div>
+                                    <span class="progress-label">${step.label}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+
+                        <div class="delivery-details">
+                            ${delivery.deliveryDate ? `
+                                <div class="delivery-detail">
+                                    <span class="delivery-detail-icon">📅</span>
+                                    <span>Delivery: ${TinySeedUtils.formatDate(delivery.deliveryDate)}</span>
+                                </div>
+                            ` : ''}
+                            ${delivery.driverName ? `
+                                <div class="delivery-detail">
+                                    <span class="delivery-detail-icon">🚗</span>
+                                    <span>Driver: ${delivery.driverName}</span>
+                                </div>
+                            ` : ''}
+                            ${delivery.eta ? `
+                                <div class="delivery-detail">
+                                    <span class="delivery-detail-icon">⏰</span>
+                                    <span>ETA: ${delivery.eta}</span>
+                                </div>
+                            ` : ''}
+                            ${delivery.deliveryCompletedAt ? `
+                                <div class="delivery-detail">
+                                    <span class="delivery-detail-icon">✅</span>
+                                    <span>Delivered: ${TinySeedUtils.formatDate(delivery.deliveryCompletedAt)}</span>
+                                </div>
+                            ` : ''}
+                            <div class="delivery-detail">
+                                <span class="delivery-detail-icon">💵</span>
+                                <span>Total: ${TinySeedUtils.formatCurrency(delivery.total)}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function normalizeDeliveryStatus(status) {
+            if (!status) return 'Pending';
+            const s = status.toLowerCase();
+            if (s.includes('deliver')) return 'Delivered';
+            if (s.includes('out') || s.includes('transit') || s.includes('route')) return 'Out for Delivery';
+            if (s.includes('pack') || s.includes('prepar') || s.includes('ready')) return 'Packed';
+            return 'Pending';
+        }
+
+        function getDeliveryProgress(status) {
+            const steps = [
+                { label: 'Received', icon: '📥' },
+                { label: 'Packed', icon: '📦' },
+                { label: 'Out for Delivery', icon: '🚚' },
+                { label: 'Delivered', icon: '✅' }
+            ];
+
+            const statusMap = {
+                'Pending': 0,
+                'Packed': 1,
+                'Out for Delivery': 2,
+                'Delivered': 3
+            };
+
+            const currentIndex = statusMap[status] ?? 0;
+
+            return steps.map((step, index) => ({
+                ...step,
+                state: index < currentIndex ? 'completed' : (index === currentIndex ? 'active' : '')
+            }));
         }
 
         // ═══════════════════════════════════════════════════════════════════════════

@@ -53,7 +53,7 @@ You MUST identify which Claude role you are operating as:
 cat /Users/samanthapollack/Documents/TIny_Seed_OS/tinypm/.env | grep -v "^#" | grep "="
 
 # Read the system status file
-cat /Users/samanthapollack/Documents/TIny_Seed_OS/tinypm/SYSTEM_STATUS.md
+cat /Users/samanthapollack/Documents/TIny_Seed_OS/claude_sessions/SYSTEM_STATUS.md
 ```
 
 **NEVER assume OAuth, Supabase, or API keys are missing without checking .env first!**
@@ -554,9 +554,9 @@ Before deploying, confirm:
 
 ## CRITICAL CONTEXT
 
-### Chief of Staff Backend EXISTS But Is NOT Connected
+### Chief of Staff Backend IS Connected (via MERGED TOTAL.js)
 
-12 backend modules are ALREADY BUILT in `/apps_script/`:
+The following ChiefOfStaff_*.js files exist in `/apps_script/` as **STUB FILES** that redirect to MERGED TOTAL.js:
 - ChiefOfStaff_Voice.js
 - ChiefOfStaff_Memory.js
 - ChiefOfStaff_Autonomy.js
@@ -570,7 +570,14 @@ Before deploying, confirm:
 - ChiefOfStaff_MultiAgent.js
 - EmailWorkflowEngine.js
 
-**DO NOT REBUILD THESE. Connect them to the frontend instead.**
+**The actual implementations exist in `apps_script/MERGED TOTAL.js`** and ARE connected to:
+- `web_app/chief-of-staff.html` (primary frontend)
+- `apps_script/ChiefOfStaffDashboard.html` (alternative frontend)
+
+Core voice, memory, and autonomy functions are working via API endpoints like `?action=chatWithChiefOfStaff`.
+Some advanced features may not be fully exposed in the UI yet.
+
+**DO NOT REBUILD THESE. Enhance UI exposure if needed.**
 
 ---
 
@@ -610,6 +617,58 @@ The owner has explicitly stated they will stop all building until enforcement is
 | `tinypm/.governor_audit.json` | Audit trail of agent actions |
 | `tinypm/GOVERNOR_USAGE.md` | Governor system documentation |
 | `scripts/governor_helpers.js` | Governor helper functions |
+| `docs/audits/CLAUDE_MD_VERIFICATION_AUDIT.md` | CLAUDE.md accuracy audit |
+
+---
+
+## STATUS_ABSTAIN Protocol
+
+When an agent cannot determine the current working status (e.g., IMPLEMENTED, VERIFIED, PENDING), they MUST use `STATUS_ABSTAIN` rather than guessing.
+
+### Usage Rules
+
+1. **Never guess a status** - If you are unsure whether something is working, use `STATUS_ABSTAIN`
+2. **Document uncertainty** - When using STATUS_ABSTAIN, explain why you cannot determine status
+3. **Request verification** - STATUS_ABSTAIN should trigger a verification step
+
+### Example
+
+```markdown
+| Feature | Status |
+|---------|--------|
+| Login flow | VERIFIED |
+| Dashboard tabs | STATUS_ABSTAIN (cannot verify without live testing) |
+| API endpoints | IMPLEMENTED (not yet verified) |
+```
+
+### Why This Matters
+
+On 2026-02-12, agents marked features as "working" without verification, causing user frustration when features failed. STATUS_ABSTAIN prevents false confidence.
+
+---
+
+## Verification Infrastructure
+
+The system includes verification tools to ensure accuracy:
+
+| Tool | Purpose |
+|------|---------|
+| `docs/audits/CLAUDE_MD_VERIFICATION_AUDIT.md` | Audit of CLAUDE.md claims against codebase |
+| `scripts/pre-flight-check.sh` | Pre-commit verification for new files |
+| `scripts/validate-element-refs.sh` | HTML/JS reference validation |
+| `scripts/validate-api-urls.sh` | API URL consistency check |
+
+### Running Verification Audits
+
+Periodic audits ensure documentation accuracy:
+
+1. **CLAUDE.md verification** - Cross-reference file claims against actual codebase
+2. **SYSTEM_MANIFEST.md verification** - Ensure all documented files exist
+3. **API endpoint verification** - Confirm documented endpoints respond
+
+### Audit Location
+
+All audit reports are stored in: `docs/audits/`
 
 ---
 
@@ -625,7 +684,7 @@ https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSj
 ```
 
 ### Key Files
-- `apps_script/MERGED TOTAL.js` - Main backend (50,000+ lines, 230+ endpoints)
+- `apps_script/MERGED TOTAL.js` - Main backend (125,000+ lines, 1,934+ endpoints)
 - `web_app/api-config.js` - API configuration (USE THIS)
 - `web_app/auth-guard.js` - Authentication
 
