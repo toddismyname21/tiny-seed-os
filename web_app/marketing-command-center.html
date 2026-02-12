@@ -15577,17 +15577,66 @@ Would you like to test posting to Threads?`;
                 if (el) el.textContent = '0';
             }
 
-            // NOTE: Scheduled posts and Instagram followers are now loaded via bulk endpoint
-            // on page load (getMarketingDashboardBulk) for ~10x faster initial load
-            // Only make these API calls if data hasn't been populated yet
-            const scheduledEl = document.getElementById('scheduledCount');
-            const igFarmEl = document.getElementById('igFarmFollowersCard');
+            // 2. Wait 12 seconds for bulk endpoint, then check if we need fallback
+            setTimeout(async () => {
+                const igFarmEl = document.getElementById('igFarmFollowersCard');
 
-            // Skip API calls if bulk data already populated
-            if (scheduledEl?.textContent !== '0' && igFarmEl?.textContent !== '--') {
-                console.log('Stats already loaded via bulk endpoint');
-                return;
-            }
+                // If bulk data didn't load (still showing --), fetch via getSocialStats
+                if (igFarmEl && igFarmEl.textContent === '--') {
+                    console.log('Bulk data not loaded, fetching via getSocialStats fallback...');
+                    try {
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+                        const response = await fetch(`${API_URL}?action=getSocialStats`, {
+                            signal: controller.signal
+                        });
+                        clearTimeout(timeoutId);
+                        const data = await response.json();
+
+                        if (data.success && data.stats) {
+                            const ig = data.stats.instagram || {};
+                            let totalFollowers = 0;
+
+                            // Find accounts and update cards
+                            const farmData = ig['Tiny Seed Farm'] || Object.values(ig).find(a => a.handle?.includes('tinyseedfarm')) || {};
+                            const fleursData = ig['Tiny Seed Fleurs'] || Object.values(ig).find(a => a.handle?.includes('fleurs')) || {};
+                            const fungiData = ig['Tiny Seed Fungi'] || Object.values(ig).find(a => a.handle?.includes('fungi')) || {};
+
+                            if (farmData.followers) {
+                                document.getElementById('igFarmFollowersCard').textContent = formatNumber(farmData.followers);
+                                totalFollowers += farmData.followers;
+                            }
+                            if (fleursData.followers) {
+                                const el = document.getElementById('igFleursFollowersCard');
+                                if (el) el.textContent = formatNumber(fleursData.followers);
+                                totalFollowers += fleursData.followers;
+                            }
+                            if (fungiData.followers) {
+                                const el = document.getElementById('igFungiFollowersCard');
+                                if (el) el.textContent = formatNumber(fungiData.followers);
+                                totalFollowers += fungiData.followers;
+                            }
+
+                            // Update total
+                            const totalEl = document.getElementById('totalFollowersCard');
+                            if (totalEl && totalFollowers > 0) {
+                                totalEl.textContent = formatNumber(totalFollowers);
+                            }
+
+                            console.log('Follower data loaded via fallback:', totalFollowers);
+                        }
+                    } catch (e) {
+                        if (e.name === 'AbortError') {
+                            console.log('getSocialStats fallback timed out');
+                        } else {
+                            console.warn('getSocialStats fallback failed:', e.message);
+                        }
+                    }
+                } else {
+                    console.log('Stats already loaded via bulk endpoint');
+                }
+            }, 12000); // Wait 12s for bulk to finish first
         }
 
         function showEmptyActionStates() {
