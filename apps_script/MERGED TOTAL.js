@@ -14410,6 +14410,14 @@ function doGet(e) {
       case 'getSocialStats':
         return jsonResponse(getSocialStats(e.parameter));
 
+      // ============ CSA BOX VISUALIZER (GET) ============
+      case 'generateCSABoxVisual':
+        return jsonResponse(generateCSABoxVisual(e.parameter));
+      case 'getProduceImage':
+        return jsonResponse(getProduceImage(e.parameter));
+      case 'getCSABoxLayouts':
+        return jsonResponse(getCSABoxLayouts(e.parameter));
+
       // ============ SOCIAL INTELLIGENCE ENGINE (GET) ============
       case 'getSocialIntelligenceDashboard':
         return jsonResponse(getSocialIntelligenceDashboard(e.parameter));
@@ -14470,6 +14478,21 @@ function doGet(e) {
         return jsonResponse(getTrendingHashtags(e.parameter));
       case 'getContentIdeas':
         return jsonResponse(getContentIdeas(e.parameter));
+
+      // ============ WEATHER-AWARE TEMPLATES SYSTEM (GET) (2026-02-12) ============
+      case 'fetchWeatherForecast':
+        return jsonResponse(fetchWeatherForecastAPI());
+      case 'getWeatherContentSuggestions':
+        return jsonResponse(getWeatherContentSuggestions(e.parameter));
+      case 'getWeatherTriggeredTemplates':
+        return jsonResponse(getWeatherTriggeredTemplates(e.parameter));
+      case 'getWeatherSmartDashboard':
+        return jsonResponse(getWeatherSmartDashboard());
+      case 'setupDailyWeatherTrigger':
+        return jsonResponse(setupDailyWeatherTrigger());
+      case 'runDailyWeatherUpdate':
+        dailyWeatherContentUpdate();
+        return jsonResponse({ success: true, message: 'Daily weather update executed' });
 
       // ============ MARKETING AUTOMATION SYSTEM (GET) ============
       case 'getEmailQueue':
@@ -18201,6 +18224,21 @@ function doPost(e) {
         return jsonResponse(saveDraftSchedule(data));
       case 'approveDraftSchedule':
         return jsonResponse(approveDraftSchedule(data.scheduleId));
+
+      // ============ CROP-TO-CONTENT PIPELINE (POST) (2026-02-12) ============
+      // AI-powered produce photo to social media content generation
+      case 'analyzeProducePhoto':
+        return jsonResponse(analyzeProducePhoto(data.imageBase64 || data.image));
+      case 'generateProduceContent':
+        return jsonResponse(generateProduceContent(data.produceType || data.produce, data.platform));
+      case 'getRecipeForProduce':
+        return jsonResponse(getRecipeForProduce(data.produce));
+      case 'getNutritionData':
+        return jsonResponse(getNutritionData(data.produce));
+      case 'getStorageTips':
+        return jsonResponse(getStorageTips(data.produce));
+      case 'processProduceImage':
+        return jsonResponse(processProduceImage(data.imageBase64 || data.image, data.options));
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
@@ -67544,6 +67582,320 @@ function testMarketingModule() {
 
     Logger.log('=== Marketing Module Tests Complete ===');
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CSA BOX VISUALIZER MODULE
+// Generate "What's In Your Box" social graphics using golden ratio positioning
+// Research: docs/research/CSA_VISUALIZER_RESEARCH.md
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Generate CSA Box Visual layout instructions
+ * Uses golden ratio spiral for natural-looking flat-lay composition
+ * @param {Object} params - { items: string[], background: string, season: string }
+ * @returns {Object} Layout instructions for frontend Fabric.js canvas
+ */
+function generateCSABoxVisual(params) {
+  try {
+    const items = params.items ? (Array.isArray(params.items) ? params.items : params.items.split(',').map(i => i.trim())) : [];
+    const background = params.background || 'wooden_rustic';
+    const season = params.season || 'summer';
+    const headerText = params.headerText || "What's In Your Box This Week";
+
+    if (items.length === 0) {
+      return { success: false, error: 'No items provided' };
+    }
+
+    // Canvas dimensions (optimized for Instagram feed 4:5)
+    const canvasWidth = 1080;
+    const canvasHeight = 1350;
+
+    // Golden ratio for spiral positioning
+    const PHI = (1 + Math.sqrt(5)) / 2;
+
+    // Calculate positions using golden ratio spiral
+    const positions = calculateGoldenSpiralPositions_(items.length, canvasWidth, canvasHeight);
+
+    // Get produce images for each item
+    const itemLayouts = items.map((item, index) => {
+      const produceInfo = getProduceImageInfo_(item.toLowerCase().trim());
+      return {
+        item: item,
+        imageUrl: produceInfo.url,
+        position: positions[index],
+        scale: positions[index].scale * produceInfo.scale,
+        color: produceInfo.color
+      };
+    });
+
+    // Get background and color palette info
+    const backgroundInfo = getBackgroundInfo_(background);
+    const paletteInfo = getSeasonPalette_(season);
+
+    return {
+      success: true,
+      layout: {
+        canvas: {
+          width: canvasWidth,
+          height: canvasHeight,
+          aspectRatio: '4:5',
+          format: 'instagram_feed'
+        },
+        background: backgroundInfo,
+        palette: paletteInfo,
+        header: {
+          text: headerText,
+          position: { x: canvasWidth / 2, y: 80 },
+          fontSize: 72,
+          fontFamily: 'Montserrat',
+          fontWeight: 700,
+          fill: backgroundInfo.lightBackground ? '#333333' : '#ffffff'
+        },
+        items: itemLayouts,
+        footer: {
+          itemList: items.map(i => i.charAt(0).toUpperCase() + i.slice(1)).join(' | '),
+          branding: 'TINY SEED FARM',
+          position: { x: canvasWidth / 2, y: canvasHeight - 60 }
+        }
+      },
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    Logger.log('Error generating CSA box visual: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Calculate golden ratio spiral positions for items
+ * Creates natural-looking flat-lay composition
+ */
+function calculateGoldenSpiralPositions_(itemCount, canvasWidth, canvasHeight) {
+  const positions = [];
+  const centerX = canvasWidth / 2;
+  const centerY = canvasHeight / 2;
+  const maxRadius = Math.min(canvasWidth, canvasHeight) * 0.35;
+  const PHI = (1 + Math.sqrt(5)) / 2;
+
+  for (let i = 0; i < itemCount; i++) {
+    // Golden angle in radians
+    const angle = i * 2 * Math.PI / PHI;
+    // Radius increases with square root for even distribution
+    const r = maxRadius * Math.sqrt((i + 1) / itemCount);
+
+    // Add slight randomness for natural look (seeded by index for consistency)
+    const randomOffset = 0.1;
+    const pseudoRandom = Math.sin(i * 12.9898 + 78.233) * 43758.5453;
+    const rx = (pseudoRandom % 1 - 0.5) * 2 * randomOffset * r;
+    const ry = (Math.cos(pseudoRandom) % 1 - 0.5) * 2 * randomOffset * r;
+
+    positions.push({
+      x: Math.round(centerX + r * Math.cos(angle) + rx),
+      y: Math.round(centerY + r * Math.sin(angle) + ry),
+      rotation: Math.round((pseudoRandom % 1 - 0.5) * 30), // -15 to +15 degrees
+      scale: 0.9 + (pseudoRandom % 0.3) // 0.9 to 1.2 scale variation
+    });
+  }
+
+  return positions;
+}
+
+/**
+ * Get produce image URL and info for an item
+ * Returns placeholder emoji URLs - in production, use real PNG library
+ * @param {string} itemName - Name of produce item
+ * @returns {Object} { url, scale, color }
+ */
+function getProduceImage(params) {
+  const item = params.item || params.name || '';
+  return { success: true, ...getProduceImageInfo_(item.toLowerCase().trim()) };
+}
+
+function getProduceImageInfo_(itemName) {
+  // Produce library with emoji placeholders (Twemoji CDN)
+  // In production, replace with real high-quality PNG library
+  const PRODUCE_LIBRARY = {
+    'tomatoes': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f345.png', scale: 1.2, color: '#ff6347' },
+    'tomato': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f345.png', scale: 1.2, color: '#ff6347' },
+    'zucchini': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f952.png', scale: 1.1, color: '#4a7c59' },
+    'basil': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f33f.png', scale: 0.9, color: '#228b22' },
+    'eggs': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f95a.png', scale: 1.0, color: '#f5deb3' },
+    'carrots': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f955.png', scale: 1.1, color: '#ff8c00' },
+    'carrot': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f955.png', scale: 1.1, color: '#ff8c00' },
+    'lettuce': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f957.png', scale: 1.0, color: '#90ee90' },
+    'kale': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f96c.png', scale: 1.0, color: '#006400' },
+    'peppers': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1fad1.png', scale: 1.1, color: '#dc143c' },
+    'pepper': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1fad1.png', scale: 1.1, color: '#dc143c' },
+    'onions': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9c5.png', scale: 1.0, color: '#daa520' },
+    'onion': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9c5.png', scale: 1.0, color: '#daa520' },
+    'garlic': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9c4.png', scale: 0.9, color: '#f5f5f5' },
+    'bread': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f35e.png', scale: 1.2, color: '#d2b48c' },
+    'flowers': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f490.png', scale: 1.1, color: '#ff69b4' },
+    'flower': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f490.png', scale: 1.1, color: '#ff69b4' },
+    'corn': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f33d.png', scale: 1.1, color: '#ffd700' },
+    'broccoli': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f966.png', scale: 1.0, color: '#228b22' },
+    'potato': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f954.png', scale: 1.0, color: '#d2691e' },
+    'potatoes': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f954.png', scale: 1.0, color: '#d2691e' },
+    'mushrooms': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f344.png', scale: 1.0, color: '#8b4513' },
+    'mushroom': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f344.png', scale: 1.0, color: '#8b4513' },
+    'strawberries': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f353.png', scale: 0.9, color: '#dc143c' },
+    'strawberry': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f353.png', scale: 0.9, color: '#dc143c' },
+    'blueberries': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1fad0.png', scale: 0.8, color: '#4169e1' },
+    'apples': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f34e.png', scale: 1.0, color: '#dc143c' },
+    'apple': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f34e.png', scale: 1.0, color: '#dc143c' },
+    'peaches': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f351.png', scale: 1.0, color: '#ffb347' },
+    'peach': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f351.png', scale: 1.0, color: '#ffb347' },
+    'herbs': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f33f.png', scale: 0.8, color: '#228b22' },
+    'squash': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f952.png', scale: 1.2, color: '#ffa500' },
+    'beets': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f96c.png', scale: 1.0, color: '#8b0000' },
+    'beet': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f96c.png', scale: 1.0, color: '#8b0000' },
+    'radishes': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f96c.png', scale: 0.9, color: '#ff4500' },
+    'radish': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f96c.png', scale: 0.9, color: '#ff4500' },
+    'spinach': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f96c.png', scale: 1.0, color: '#228b22' },
+    'chard': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f96c.png', scale: 1.0, color: '#228b22' },
+    'cucumber': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f952.png', scale: 1.0, color: '#2e8b57' },
+    'cucumbers': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f952.png', scale: 1.0, color: '#2e8b57' },
+    'eggplant': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f346.png', scale: 1.1, color: '#614051' },
+    'honey': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f36f.png', scale: 0.9, color: '#ffc125' },
+    'cheese': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9c0.png', scale: 1.0, color: '#ffd700' },
+    'jam': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f36f.png', scale: 0.9, color: '#8b0000' },
+    'cabbage': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f96c.png', scale: 1.1, color: '#228b22' },
+    'beans': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1fad8.png', scale: 0.9, color: '#228b22' },
+    'peas': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1fad8.png', scale: 0.9, color: '#90ee90' },
+    'leeks': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9c5.png', scale: 1.0, color: '#228b22' },
+    'scallions': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f33f.png', scale: 0.8, color: '#228b22' },
+    'cilantro': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f33f.png', scale: 0.8, color: '#228b22' },
+    'parsley': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f33f.png', scale: 0.8, color: '#228b22' },
+    'dill': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f33f.png', scale: 0.8, color: '#228b22' },
+    'mint': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f33f.png', scale: 0.8, color: '#3cb371' },
+    'arugula': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f96c.png', scale: 0.9, color: '#228b22' },
+    'turnips': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f96c.png', scale: 1.0, color: '#f5f5dc' },
+    'turnip': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f96c.png', scale: 1.0, color: '#f5f5dc' },
+    'melon': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f348.png', scale: 1.2, color: '#90ee90' },
+    'watermelon': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f349.png', scale: 1.2, color: '#ff6347' },
+    'grapes': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f347.png', scale: 1.0, color: '#6b3fa0' },
+    'cherries': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f352.png', scale: 0.9, color: '#dc143c' },
+    'pear': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f350.png', scale: 1.0, color: '#9acd32' },
+    'pears': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f350.png', scale: 1.0, color: '#9acd32' }
+  };
+
+  return PRODUCE_LIBRARY[itemName] || {
+    url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f96c.png',
+    scale: 1.0,
+    color: '#4a7c59'
+  };
+}
+
+/**
+ * Get background surface info
+ */
+function getBackgroundInfo_(backgroundKey) {
+  const BACKGROUNDS = {
+    'wooden_rustic': {
+      color: '#8b4513',
+      gradient: 'linear-gradient(135deg, #a0522d 0%, #8b4513 50%, #654321 100%)',
+      lightBackground: false,
+      name: 'Rustic Wooden Board'
+    },
+    'marble_white': {
+      color: '#f5f5f5',
+      gradient: 'linear-gradient(135deg, #ffffff 0%, #f0f0f0 50%, #e8e8e8 100%)',
+      lightBackground: true,
+      name: 'White Marble'
+    },
+    'linen_cream': {
+      color: '#f5f5dc',
+      gradient: 'linear-gradient(135deg, #fffef0 0%, #f5f5dc 50%, #e8e4c9 100%)',
+      lightBackground: true,
+      name: 'Cream Linen'
+    },
+    'slate_dark': {
+      color: '#708090',
+      gradient: 'linear-gradient(135deg, #778899 0%, #708090 50%, #5a6a7a 100%)',
+      lightBackground: false,
+      name: 'Dark Slate'
+    },
+    'burlap': {
+      color: '#c4a35a',
+      gradient: 'linear-gradient(135deg, #d4b56a 0%, #c4a35a 50%, #a08040 100%)',
+      lightBackground: false,
+      name: 'Burlap Texture'
+    }
+  };
+
+  return BACKGROUNDS[backgroundKey] || BACKGROUNDS['wooden_rustic'];
+}
+
+/**
+ * Get seasonal color palette
+ * Based on color theory research for produce photography
+ */
+function getSeasonPalette_(seasonKey) {
+  const PALETTES = {
+    'summer': {
+      primary: '#4a7c59',    // Fresh Green
+      secondary: '#ff6347',  // Tomato Red
+      accent: '#ff8c00',     // Harvest Orange
+      background: '#87ceeb', // Sky Blue
+      name: 'Summer'
+    },
+    'fall': {
+      primary: '#ff8c00',    // Pumpkin Orange
+      secondary: '#daa520',  // Goldenrod
+      accent: '#614051',     // Eggplant Purple
+      background: '#8b4513', // Warm Wood
+      name: 'Fall'
+    },
+    'winter': {
+      primary: '#006400',    // Deep Green
+      secondary: '#614051',  // Purple Root
+      accent: '#708090',     // Slate Gray
+      background: '#f5f5dc', // Cream
+      name: 'Winter'
+    },
+    'spring': {
+      primary: '#90ee90',    // Light Green
+      secondary: '#ffb6c1',  // Light Pink
+      accent: '#e6e6fa',     // Lavender
+      background: '#f5f5f5', // White
+      name: 'Spring'
+    }
+  };
+
+  return PALETTES[seasonKey] || PALETTES['summer'];
+}
+
+/**
+ * Get available CSA box layout templates
+ */
+function getCSABoxLayouts(params) {
+  return {
+    success: true,
+    layouts: [
+      { id: 'golden_spiral', name: 'Golden Spiral', description: 'Natural arrangement using golden ratio', recommended: true },
+      { id: 'grid', name: 'Grid Layout', description: 'Clean organized rows and columns' },
+      { id: 'circular', name: 'Circular', description: 'Items arranged in concentric circles' },
+      { id: 'random_scatter', name: 'Organic Scatter', description: 'Casual, natural-looking placement' }
+    ],
+    backgrounds: Object.entries({
+      'wooden_rustic': 'Rustic Wooden Board',
+      'marble_white': 'White Marble',
+      'linen_cream': 'Cream Linen',
+      'slate_dark': 'Dark Slate',
+      'burlap': 'Burlap Texture'
+    }).map(([key, name]) => ({ key, name })),
+    seasons: Object.entries({
+      'summer': 'Summer (Warm Greens, Reds)',
+      'fall': 'Fall (Oranges, Deep Greens)',
+      'winter': 'Winter (Deep Greens, Roots)',
+      'spring': 'Spring (Light Greens, Pastels)'
+    }).map(([key, name]) => ({ key, name }))
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// END CSA BOX VISUALIZER MODULE
+// ═══════════════════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SEO DOMINATION MODULE
@@ -127940,4 +128292,737 @@ function isLikelyDuplicate(fileName) {
   });
 
   return result.blocked || result.errorCount > 0;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WEATHER-AWARE TEMPLATES SYSTEM (2026-02-12)
+// Based on research showing 65-600% sales increases with weather-triggered marketing
+// Uses WeatherAPI.com for Rochester, PA (farm location)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Weather-to-Content mapping configuration
+ * Based on research: Michaels found 3 days before weather is optimal
+ */
+const WEATHER_CONTENT_CONFIG = {
+  // Temperature thresholds (Fahrenheit)
+  thresholds: {
+    heatwave: { min: 85, urgency: 'high' },
+    hotSunny: { min: 75, max: 84, urgency: 'medium' },
+    perfect: { min: 65, max: 78, urgency: 'low' },
+    cool: { min: 45, max: 64, urgency: 'low' },
+    coldSnap: { max: 44, urgency: 'medium' },
+    frost: { max: 32, urgency: 'critical' }
+  },
+
+  // Content themes mapped to weather conditions
+  contentThemes: {
+    heatwave: {
+      themes: ['salads', 'refreshing_produce', 'hydration', 'cool_recipes'],
+      products: ['lettuce', 'cucumbers', 'tomatoes', 'melons', 'zucchini'],
+      messaging: 'Beat the heat with farm-fresh produce',
+      emoji: '🥗☀️',
+      cta: 'Stay cool with our crisp greens'
+    },
+    hotSunny: {
+      themes: ['grilling', 'upick', 'farm_visits', 'bbq_pairings'],
+      products: ['peppers', 'onions', 'corn', 'tomatoes', 'herbs'],
+      messaging: 'Perfect weather for farm visits',
+      emoji: '🌽🔥',
+      cta: 'Visit us this weekend'
+    },
+    perfect: {
+      themes: ['farm_experience', 'upick', 'market_visits', 'behind_scenes'],
+      products: ['seasonal_variety', 'mixed_boxes', 'u-pick_items'],
+      messaging: 'Beautiful day at the farm',
+      emoji: '🌻✨',
+      cta: 'Come see where your food grows'
+    },
+    rainy: {
+      themes: ['delivery', 'comfort_food', 'indoor_recipes', 'cozy_meals'],
+      products: ['root_vegetables', 'hearty_greens', 'soup_ingredients'],
+      messaging: 'Skip the puddles - we deliver',
+      emoji: '🌧️🚗',
+      cta: 'Order for home delivery'
+    },
+    coldSnap: {
+      themes: ['soups', 'root_vegetables', 'storage_crops', 'warming_recipes'],
+      products: ['potatoes', 'carrots', 'beets', 'squash', 'onions'],
+      messaging: 'Warm up with hearty root vegetables',
+      emoji: '🥔🍲',
+      cta: 'Perfect for soups and stews'
+    },
+    frost: {
+      themes: ['last_harvest', 'seasonal_transition', 'urgency', 'preservation'],
+      products: ['tender_crops', 'summer_favorites', 'tomatoes', 'peppers'],
+      messaging: 'Last chance before frost!',
+      emoji: '❄️⏰',
+      cta: 'Order now - limited availability'
+    }
+  },
+
+  // Rochester, PA coordinates
+  farmLocation: {
+    city: 'Rochester',
+    state: 'PA',
+    lat: 40.7020,
+    lon: -80.2887,
+    zipcode: '15074'
+  }
+};
+
+/**
+ * Fetch weather forecast from WeatherAPI.com
+ * Stores API key in Script Properties
+ * @returns {Object} Weather forecast data with content suggestions
+ */
+function fetchWeatherForecastAPI() {
+  try {
+    // Get API key from Script Properties
+    let apiKey = PropertiesService.getScriptProperties().getProperty('WEATHERAPI_KEY');
+
+    // If no WeatherAPI key, fall back to Open-Meteo (free, no key needed)
+    if (!apiKey) {
+      Logger.log('No WEATHERAPI_KEY found, using Open-Meteo fallback');
+      return fetchWeatherForecastOpenMeteo();
+    }
+
+    const location = WEATHER_CONTENT_CONFIG.farmLocation;
+    const url = `https://api.weatherapi.com/v1/forecast.json?key=${apiKey}&q=${location.lat},${location.lon}&days=7&aqi=no&alerts=yes`;
+
+    const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    const statusCode = response.getResponseCode();
+
+    if (statusCode !== 200) {
+      Logger.log('WeatherAPI error, falling back to Open-Meteo: ' + response.getContentText());
+      return fetchWeatherForecastOpenMeteo();
+    }
+
+    const data = JSON.parse(response.getContentText());
+
+    // Parse WeatherAPI response
+    const forecast = {
+      success: true,
+      source: 'weatherapi.com',
+      location: {
+        name: data.location.name,
+        region: data.location.region,
+        lat: data.location.lat,
+        lon: data.location.lon
+      },
+      current: {
+        tempF: Math.round(data.current.temp_f),
+        condition: data.current.condition.text,
+        conditionCode: data.current.condition.code,
+        humidity: data.current.humidity,
+        windMph: Math.round(data.current.wind_mph),
+        feelsLikeF: Math.round(data.current.feelslike_f),
+        isDay: data.current.is_day === 1,
+        icon: data.current.condition.icon
+      },
+      daily: data.forecast.forecastday.map(day => ({
+        date: day.date,
+        dateFormatted: formatDateNice(day.date),
+        highF: Math.round(day.day.maxtemp_f),
+        lowF: Math.round(day.day.mintemp_f),
+        avgTempF: Math.round(day.day.avgtemp_f),
+        condition: day.day.condition.text,
+        conditionCode: day.day.condition.code,
+        rainChance: day.day.daily_chance_of_rain,
+        snowChance: day.day.daily_chance_of_snow,
+        totalPrecipIn: day.day.totalprecip_in,
+        maxWindMph: Math.round(day.day.maxwind_mph),
+        avgHumidity: day.day.avghumidity,
+        icon: day.day.condition.icon
+      })),
+      alerts: data.alerts?.alert?.map(a => ({
+        headline: a.headline,
+        severity: a.severity,
+        event: a.event,
+        effective: a.effective,
+        expires: a.expires,
+        description: a.desc
+      })) || [],
+      fetchedAt: new Date().toISOString()
+    };
+
+    // Cache the forecast
+    CacheService.getScriptCache().put('weather_forecast', JSON.stringify(forecast), 10800); // 3 hours
+
+    return forecast;
+
+  } catch (error) {
+    Logger.log('fetchWeatherForecastAPI error: ' + error.toString());
+    // Fall back to Open-Meteo
+    return fetchWeatherForecastOpenMeteo();
+  }
+}
+
+/**
+ * Fallback weather fetch using Open-Meteo (free, no API key)
+ */
+function fetchWeatherForecastOpenMeteo() {
+  try {
+    const location = WEATHER_CONTENT_CONFIG.farmLocation;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${location.lat}&longitude=${location.lon}&current=temperature_2m,weather_code,relative_humidity_2m,wind_speed_10m,apparent_temperature,is_day&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,weather_code,wind_speed_10m_max&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=America/New_York&forecast_days=7`;
+
+    const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    const data = JSON.parse(response.getContentText());
+
+    if (!data.current || !data.daily) {
+      return { success: false, error: 'Invalid weather data from Open-Meteo' };
+    }
+
+    const forecast = {
+      success: true,
+      source: 'open-meteo.com',
+      location: {
+        name: location.city,
+        region: location.state,
+        lat: location.lat,
+        lon: location.lon
+      },
+      current: {
+        tempF: Math.round(data.current.temperature_2m),
+        condition: getWeatherConditionFromCode(data.current.weather_code),
+        conditionCode: data.current.weather_code,
+        humidity: data.current.relative_humidity_2m,
+        windMph: Math.round(data.current.wind_speed_10m),
+        feelsLikeF: Math.round(data.current.apparent_temperature),
+        isDay: data.current.is_day === 1,
+        icon: null
+      },
+      daily: data.daily.time.map((date, i) => ({
+        date: date,
+        dateFormatted: formatDateNice(date),
+        highF: Math.round(data.daily.temperature_2m_max[i]),
+        lowF: Math.round(data.daily.temperature_2m_min[i]),
+        avgTempF: Math.round((data.daily.temperature_2m_max[i] + data.daily.temperature_2m_min[i]) / 2),
+        condition: getWeatherConditionFromCode(data.daily.weather_code[i]),
+        conditionCode: data.daily.weather_code[i],
+        rainChance: data.daily.precipitation_probability_max[i],
+        snowChance: 0,
+        totalPrecipIn: Math.round(data.daily.precipitation_sum[i] / 25.4 * 100) / 100, // mm to inches
+        maxWindMph: Math.round(data.daily.wind_speed_10m_max[i]),
+        avgHumidity: null,
+        icon: null
+      })),
+      alerts: [],
+      fetchedAt: new Date().toISOString()
+    };
+
+    // Cache the forecast
+    CacheService.getScriptCache().put('weather_forecast', JSON.stringify(forecast), 10800);
+
+    return forecast;
+
+  } catch (error) {
+    Logger.log('fetchWeatherForecastOpenMeteo error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Convert WMO weather code to text description
+ */
+function getWeatherConditionFromCode(code) {
+  const conditions = {
+    0: 'Clear',
+    1: 'Mainly Clear',
+    2: 'Partly Cloudy',
+    3: 'Overcast',
+    45: 'Foggy',
+    48: 'Depositing Rime Fog',
+    51: 'Light Drizzle',
+    53: 'Drizzle',
+    55: 'Dense Drizzle',
+    56: 'Freezing Drizzle',
+    57: 'Dense Freezing Drizzle',
+    61: 'Light Rain',
+    63: 'Rain',
+    65: 'Heavy Rain',
+    66: 'Freezing Rain',
+    67: 'Heavy Freezing Rain',
+    71: 'Light Snow',
+    73: 'Snow',
+    75: 'Heavy Snow',
+    77: 'Snow Grains',
+    80: 'Light Showers',
+    81: 'Showers',
+    82: 'Heavy Showers',
+    85: 'Light Snow Showers',
+    86: 'Heavy Snow Showers',
+    95: 'Thunderstorm',
+    96: 'Thunderstorm with Hail',
+    99: 'Thunderstorm with Heavy Hail'
+  };
+  return conditions[code] || 'Unknown';
+}
+
+/**
+ * Format date nicely (e.g., "Wed, Feb 12")
+ */
+function formatDateNice(dateStr) {
+  const date = new Date(dateStr + 'T12:00:00');
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${days[date.getDay()]}, ${months[date.getMonth()]} ${date.getDate()}`;
+}
+
+/**
+ * Get weather-based content suggestions
+ * Maps current and forecasted weather to content themes
+ * @param {Object} params - Optional forecast data or date filter
+ * @returns {Object} Content suggestions based on weather
+ */
+function getWeatherContentSuggestions(params) {
+  try {
+    // Get forecast (use cached if available)
+    const cached = CacheService.getScriptCache().get('weather_forecast');
+    let forecast = cached ? JSON.parse(cached) : fetchWeatherForecastAPI();
+
+    if (!forecast.success) {
+      return { success: false, error: forecast.error || 'Failed to fetch weather' };
+    }
+
+    const suggestions = [];
+
+    // Analyze each day in the forecast
+    forecast.daily.forEach((day, index) => {
+      const category = categorizeWeatherDay(day);
+      const theme = WEATHER_CONTENT_CONFIG.contentThemes[category];
+
+      if (theme) {
+        suggestions.push({
+          date: day.date,
+          dateFormatted: day.dateFormatted,
+          daysAhead: index,
+          weather: {
+            highF: day.highF,
+            lowF: day.lowF,
+            condition: day.condition,
+            rainChance: day.rainChance
+          },
+          category: category,
+          urgency: WEATHER_CONTENT_CONFIG.thresholds[category]?.urgency || 'low',
+          content: {
+            themes: theme.themes,
+            products: theme.products,
+            messaging: theme.messaging,
+            emoji: theme.emoji,
+            cta: theme.cta
+          },
+          // Per research: post 3 days before weather event for best results
+          recommendedPostDate: index <= 3 ? 'Post now for best impact' : `Post ${index - 3} days before`,
+          confidence: calculateWeatherConfidence(index)
+        });
+      }
+    });
+
+    // Sort by urgency and relevance
+    const urgencyOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+    suggestions.sort((a, b) => {
+      // Prioritize urgent and near-term
+      const urgencyDiff = urgencyOrder[a.urgency] - urgencyOrder[b.urgency];
+      if (urgencyDiff !== 0) return urgencyDiff;
+      return a.daysAhead - b.daysAhead;
+    });
+
+    return {
+      success: true,
+      currentConditions: forecast.current,
+      location: forecast.location,
+      suggestions: suggestions,
+      topRecommendation: suggestions[0] || null,
+      alerts: forecast.alerts,
+      source: forecast.source,
+      fetchedAt: forecast.fetchedAt
+    };
+
+  } catch (error) {
+    Logger.log('getWeatherContentSuggestions error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Categorize a weather day into content category
+ */
+function categorizeWeatherDay(day) {
+  const highF = day.highF;
+  const lowF = day.lowF;
+  const rainChance = day.rainChance || 0;
+  const condition = (day.condition || '').toLowerCase();
+
+  // Check frost first (highest urgency)
+  if (lowF <= 32) {
+    return 'frost';
+  }
+
+  // Check for rain
+  if (rainChance >= 70 || condition.includes('rain') || condition.includes('shower')) {
+    return 'rainy';
+  }
+
+  // Temperature-based categories
+  if (highF >= 85) {
+    return 'heatwave';
+  }
+
+  if (highF >= 75 && (condition.includes('sunny') || condition.includes('clear'))) {
+    return 'hotSunny';
+  }
+
+  if (highF >= 65 && highF <= 78) {
+    return 'perfect';
+  }
+
+  if (highF < 45) {
+    return 'coldSnap';
+  }
+
+  // Default to perfect if conditions are good
+  return 'perfect';
+}
+
+/**
+ * Calculate confidence based on forecast range
+ * Per research: 24hr = 90-95%, 48hr = 85-90%, 3-5 days = 75-85%
+ */
+function calculateWeatherConfidence(daysAhead) {
+  if (daysAhead === 0) return 0.95;
+  if (daysAhead === 1) return 0.90;
+  if (daysAhead === 2) return 0.85;
+  if (daysAhead <= 4) return 0.80;
+  if (daysAhead <= 6) return 0.70;
+  return 0.60;
+}
+
+/**
+ * Get weather-triggered template suggestions
+ * Returns ready-to-use templates based on current weather
+ * @param {Object} params - Optional filters (platform, category)
+ * @returns {Object} Template suggestions
+ */
+function getWeatherTriggeredTemplates(params) {
+  try {
+    const suggestions = getWeatherContentSuggestions(params);
+    if (!suggestions.success) {
+      return suggestions;
+    }
+
+    const platform = params?.platform || 'all';
+    const templates = [];
+
+    // Generate templates for top 3 suggestions
+    const topSuggestions = suggestions.suggestions.slice(0, 3);
+
+    topSuggestions.forEach(suggestion => {
+      const category = suggestion.category;
+      const theme = WEATHER_CONTENT_CONFIG.contentThemes[category];
+
+      // Instagram Post Template
+      if (platform === 'all' || platform === 'instagram') {
+        templates.push({
+          platform: 'instagram',
+          type: 'post',
+          weatherCategory: category,
+          urgency: suggestion.urgency,
+          targetDate: suggestion.date,
+          template: {
+            hook: generateWeatherHook(suggestion),
+            body: `${theme.messaging}. Our ${theme.products.slice(0, 2).join(' and ')} are at peak freshness right now!`,
+            cta: theme.cta,
+            hashtags: generateWeatherHashtags(category),
+            emoji: theme.emoji
+          },
+          fullCaption: `${theme.emoji} ${generateWeatherHook(suggestion)}\n\n${theme.messaging}. Our ${theme.products.slice(0, 2).join(' and ')} are at peak freshness right now!\n\n${theme.cta}\n\n${generateWeatherHashtags(category)}`,
+          mediaType: category === 'rainy' ? 'delivery_photo' : 'product_photo',
+          confidence: suggestion.confidence
+        });
+      }
+
+      // Facebook Post Template
+      if (platform === 'all' || platform === 'facebook') {
+        templates.push({
+          platform: 'facebook',
+          type: 'post',
+          weatherCategory: category,
+          urgency: suggestion.urgency,
+          targetDate: suggestion.date,
+          template: {
+            hook: generateWeatherHook(suggestion),
+            body: `With temperatures reaching ${suggestion.weather.highF}F, there's nothing better than fresh, local produce. ${theme.messaging}.\n\nFeatured this week:\n${theme.products.map(p => '- ' + p.charAt(0).toUpperCase() + p.slice(1)).join('\n')}`,
+            cta: `\n\n${theme.cta}`,
+            link: 'https://tinyseedfarm.com/shop'
+          },
+          fullCaption: `${generateWeatherHook(suggestion)}\n\nWith temperatures reaching ${suggestion.weather.highF}F, there's nothing better than fresh, local produce. ${theme.messaging}.\n\nFeatured this week:\n${theme.products.map(p => '- ' + p.charAt(0).toUpperCase() + p.slice(1)).join('\n')}\n\n${theme.cta}`,
+          confidence: suggestion.confidence
+        });
+      }
+
+      // Email Subject Template
+      if (platform === 'all' || platform === 'email') {
+        templates.push({
+          platform: 'email',
+          type: 'subject',
+          weatherCategory: category,
+          urgency: suggestion.urgency,
+          targetDate: suggestion.date,
+          template: {
+            subject: generateEmailSubject(category, suggestion),
+            preheader: theme.messaging
+          },
+          confidence: suggestion.confidence
+        });
+      }
+    });
+
+    return {
+      success: true,
+      currentWeather: suggestions.currentConditions,
+      location: suggestions.location,
+      templates: templates,
+      topTemplate: templates[0] || null,
+      alerts: suggestions.alerts,
+      source: suggestions.source,
+      generatedAt: new Date().toISOString()
+    };
+
+  } catch (error) {
+    Logger.log('getWeatherTriggeredTemplates error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Generate weather-specific hook line
+ */
+function generateWeatherHook(suggestion) {
+  const category = suggestion.category;
+  const temp = suggestion.weather.highF;
+
+  const hooks = {
+    heatwave: [
+      `It's going to be a scorcher at ${temp}F!`,
+      `Hot hot hot! ${temp}F this week!`,
+      `Beat the heat with farm-fresh goodness!`
+    ],
+    hotSunny: [
+      `Perfect grilling weather at ${temp}F!`,
+      `Sunshine and ${temp}F - time for a farm visit!`,
+      `Summer vibes at the farm!`
+    ],
+    perfect: [
+      `Beautiful day ahead - ${temp}F and gorgeous!`,
+      `Couldn't ask for better weather!`,
+      `Perfect farm weather this week!`
+    ],
+    rainy: [
+      `Rain in the forecast? We've got you covered!`,
+      `Skip the puddles this week!`,
+      `Cozy weather calls for comfort food!`
+    ],
+    coldSnap: [
+      `Chilly ${temp}F weather calls for hearty meals!`,
+      `Time to warm up with root vegetables!`,
+      `Cold snap comfort food!`
+    ],
+    frost: [
+      `FROST ALERT! Last chance for summer favorites!`,
+      `First frost coming - don't miss out!`,
+      `Season's changing! Final harvest alert!`
+    ]
+  };
+
+  const categoryHooks = hooks[category] || hooks.perfect;
+  return categoryHooks[Math.floor(Math.random() * categoryHooks.length)];
+}
+
+/**
+ * Generate weather-appropriate hashtags
+ */
+function generateWeatherHashtags(category) {
+  const base = '#TinySeedFarm #FarmFresh #LocalProduce #Pittsburgh';
+  const categoryTags = {
+    heatwave: '#BeatTheHeat #SummerSalads #StayCool',
+    hotSunny: '#SummerVibes #FarmLife #GrillingSeason',
+    perfect: '#FarmVisit #UPick #PerfectDay',
+    rainy: '#DeliveryDay #ComfortFood #CozyMeals',
+    coldSnap: '#SoupSeason #RootVegetables #WarmUp',
+    frost: '#LastHarvest #SeasonEnd #GetItWhileYouCan'
+  };
+  return `${base} ${categoryTags[category] || ''}`;
+}
+
+/**
+ * Generate weather-based email subject
+ */
+function generateEmailSubject(category, suggestion) {
+  const subjects = {
+    heatwave: `Stay cool with farm-fresh salads - ${suggestion.weather.highF}F this week! 🥗`,
+    hotSunny: `Perfect weather for a farm visit this weekend! ☀️`,
+    perfect: `Beautiful week ahead - visit the farm! 🌻`,
+    rainy: `Rain coming? We deliver! Skip the weather 🌧️`,
+    coldSnap: `Warm up with hearty root vegetables 🥔`,
+    frost: `⚠️ FROST ALERT: Last chance for summer favorites!`
+  };
+  return subjects[category] || 'This week at Tiny Seed Farm';
+}
+
+/**
+ * Get complete weather-smart dashboard data
+ * Combined endpoint for frontend efficiency
+ */
+function getWeatherSmartDashboard() {
+  try {
+    const forecast = fetchWeatherForecastAPI();
+    const suggestions = getWeatherContentSuggestions({});
+    const templates = getWeatherTriggeredTemplates({ platform: 'all' });
+
+    // Check for alerts that need immediate action
+    const urgentAlerts = [];
+    if (forecast.success) {
+      // Frost alert
+      const todayLow = forecast.daily[0]?.lowF;
+      if (todayLow && todayLow <= 36) {
+        urgentAlerts.push({
+          type: 'FROST',
+          severity: todayLow <= 32 ? 'CRITICAL' : 'HIGH',
+          message: `Frost warning: Low of ${todayLow}F tonight`,
+          contentAction: 'Post "Last Harvest" content immediately'
+        });
+      }
+
+      // High rain chance
+      const rainChance = forecast.daily[0]?.rainChance;
+      if (rainChance && rainChance >= 70) {
+        urgentAlerts.push({
+          type: 'RAIN',
+          severity: 'MEDIUM',
+          message: `Rain likely: ${rainChance}% chance today`,
+          contentAction: 'Promote delivery options'
+        });
+      }
+
+      // Heat wave
+      const todayHigh = forecast.daily[0]?.highF;
+      if (todayHigh && todayHigh >= 90) {
+        urgentAlerts.push({
+          type: 'HEAT',
+          severity: 'MEDIUM',
+          message: `Heat advisory: High of ${todayHigh}F today`,
+          contentAction: 'Feature refreshing produce'
+        });
+      }
+    }
+
+    return {
+      success: true,
+      dashboard: {
+        current: forecast.success ? forecast.current : null,
+        location: forecast.success ? forecast.location : WEATHER_CONTENT_CONFIG.farmLocation,
+        sevenDayForecast: forecast.success ? forecast.daily : [],
+        urgentAlerts: urgentAlerts,
+        apiAlerts: forecast.success ? forecast.alerts : [],
+        topSuggestion: suggestions.success ? suggestions.topRecommendation : null,
+        contentSuggestions: suggestions.success ? suggestions.suggestions.slice(0, 5) : [],
+        readyTemplates: templates.success ? templates.templates.slice(0, 6) : [],
+        topTemplate: templates.success ? templates.topTemplate : null
+      },
+      source: forecast.source || 'unavailable',
+      fetchedAt: new Date().toISOString()
+    };
+
+  } catch (error) {
+    Logger.log('getWeatherSmartDashboard error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Daily trigger to update weather suggestions
+ * Should be set up as a time-driven trigger (daily at 6 AM)
+ */
+function dailyWeatherContentUpdate() {
+  try {
+    Logger.log('Running daily weather content update...');
+
+    // Fetch fresh forecast
+    const forecast = fetchWeatherForecastAPI();
+
+    if (!forecast.success) {
+      Logger.log('Failed to fetch weather: ' + (forecast.error || 'Unknown error'));
+      return;
+    }
+
+    // Get content suggestions
+    const suggestions = getWeatherContentSuggestions({});
+
+    // Check for urgent conditions that need immediate content
+    if (suggestions.success && suggestions.topRecommendation) {
+      const top = suggestions.topRecommendation;
+
+      if (top.urgency === 'critical' || top.urgency === 'high') {
+        // Log urgent weather condition
+        const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+        let logSheet = ss.getSheetByName('LOG_WeatherAlerts');
+
+        if (!logSheet) {
+          logSheet = ss.insertSheet('LOG_WeatherAlerts');
+          logSheet.appendRow(['Timestamp', 'Category', 'Urgency', 'Weather', 'Recommendation']);
+          logSheet.getRange(1, 1, 1, 5).setFontWeight('bold').setBackground('#a4c2f4');
+        }
+
+        logSheet.appendRow([
+          new Date().toISOString(),
+          top.category,
+          top.urgency,
+          `High: ${top.weather.highF}F, Low: ${top.weather.lowF}F, ${top.weather.condition}`,
+          top.content.messaging
+        ]);
+
+        Logger.log(`Urgent weather condition logged: ${top.category} (${top.urgency})`);
+      }
+    }
+
+    Logger.log('Daily weather content update complete');
+
+  } catch (error) {
+    Logger.log('dailyWeatherContentUpdate error: ' + error.toString());
+  }
+}
+
+/**
+ * Set up the daily weather trigger
+ * Run this once to create the trigger
+ */
+function setupDailyWeatherTrigger() {
+  try {
+    // Remove existing triggers for this function
+    const triggers = ScriptApp.getProjectTriggers();
+    triggers.forEach(trigger => {
+      if (trigger.getHandlerFunction() === 'dailyWeatherContentUpdate') {
+        ScriptApp.deleteTrigger(trigger);
+      }
+    });
+
+    // Create new daily trigger at 6 AM Eastern
+    ScriptApp.newTrigger('dailyWeatherContentUpdate')
+      .timeBased()
+      .atHour(6)
+      .everyDays(1)
+      .inTimezone('America/New_York')
+      .create();
+
+    return {
+      success: true,
+      message: 'Daily weather trigger set for 6 AM Eastern',
+      nextRun: 'Tomorrow at 6:00 AM'
+    };
+
+  } catch (error) {
+    Logger.log('setupDailyWeatherTrigger error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
 }

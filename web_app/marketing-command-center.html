@@ -4240,6 +4240,95 @@
                 </div>
             </div>
 
+            <!-- WEATHER-SMART CONTENT PANEL (2026-02-12) -->
+            <div class="card" style="margin-top: 1.5rem; background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(34, 197, 94, 0.1) 100%); border: 1px solid rgba(59, 130, 246, 0.4);">
+                <div class="card-header" style="flex-wrap: wrap; gap: 0.5rem;">
+                    <h3 style="display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-cloud-sun" style="color: #3B82F6;"></i> Weather-Smart Content
+                        <span id="weatherUrgencyBadge" class="badge" style="background: var(--info); font-size: 0.65rem; padding: 0.2rem 0.5rem; margin-left: 0.5rem;">LOADING</span>
+                    </h3>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <span id="weatherLocation" style="font-size: 0.7rem; color: var(--text-secondary);">
+                            <i class="fas fa-map-marker-alt"></i> Rochester, PA
+                        </span>
+                        <button class="btn btn-sm" onclick="refreshWeatherData(true)" style="background: linear-gradient(135deg, #3B82F6, #22C55E); color: white; font-size: 0.75rem;">
+                            <i class="fas fa-sync-alt" id="weatherRefreshIcon"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Current Weather Widget -->
+                    <div id="weatherCurrentSection" style="display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: flex-start;">
+                        <!-- Current Conditions -->
+                        <div style="background: rgba(0,0,0,0.2); padding: 1rem 1.5rem; border-radius: 12px; min-width: 180px;">
+                            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                                <i class="fas fa-thermometer-half"></i> CURRENT CONDITIONS
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <span id="weatherCurrentTemp" style="font-size: 2.5rem; font-weight: 700; color: #3B82F6;">--</span>
+                                <div style="text-align: left;">
+                                    <div id="weatherCurrentCondition" style="font-size: 0.9rem; font-weight: 600; color: var(--text-primary);">Loading...</div>
+                                    <div id="weatherCurrentDetails" style="font-size: 0.75rem; color: var(--text-secondary);">
+                                        <span id="weatherHumidity">--</span>% humidity <span style="margin: 0 0.25rem;">|</span> <span id="weatherWind">--</span> mph wind
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Today's Forecast -->
+                        <div style="background: rgba(0,0,0,0.2); padding: 1rem 1.5rem; border-radius: 12px; flex: 1; min-width: 200px;">
+                            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                                <i class="fas fa-calendar-day"></i> TODAY
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                                <div>
+                                    <span style="font-size: 0.75rem; color: var(--text-secondary);">High</span>
+                                    <div id="weatherTodayHigh" style="font-size: 1.5rem; font-weight: 700; color: var(--danger);">--</div>
+                                </div>
+                                <div>
+                                    <span style="font-size: 0.75rem; color: var(--text-secondary);">Low</span>
+                                    <div id="weatherTodayLow" style="font-size: 1.5rem; font-weight: 700; color: #3B82F6;">--</div>
+                                </div>
+                                <div>
+                                    <span style="font-size: 0.75rem; color: var(--text-secondary);">Rain</span>
+                                    <div id="weatherTodayRain" style="font-size: 1.5rem; font-weight: 700; color: var(--info);">--%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Weather Alerts -->
+                    <div id="weatherAlertsSection" style="margin-top: 1rem; display: none;">
+                        <div id="weatherAlertsList"></div>
+                    </div>
+
+                    <!-- Weather-Smart Suggestions -->
+                    <div style="margin-top: 1.5rem;">
+                        <div style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-lightbulb" style="color: #F59E0B;"></i> Weather-Smart Suggestions
+                            <span id="suggestionCount" style="font-size: 0.7rem; background: var(--warning); padding: 0.15rem 0.5rem; border-radius: 10px; color: #000;">0</span>
+                        </div>
+                        <div id="weatherSuggestionsList" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
+                            <div style="text-align: center; padding: 2rem; color: var(--text-secondary); font-size: 0.85rem; grid-column: 1 / -1;">
+                                <i class="fas fa-spinner fa-spin"></i> Loading weather suggestions...
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ready-to-Use Templates -->
+                    <div style="margin-top: 1.5rem;">
+                        <div style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-file-alt" style="color: #22C55E;"></i> Ready-to-Use Templates
+                        </div>
+                        <div id="weatherTemplatesList" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem;">
+                            <div style="text-align: center; padding: 1rem; color: var(--text-secondary); font-size: 0.85rem; grid-column: 1 / -1;">
+                                <i class="fas fa-spinner fa-spin"></i> Loading templates...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Quick Link to Calendar -->
             <div style="margin-top: 1rem; text-align: right;">
                 <a href="#" onclick="switchTab('contentcalendar'); return false;" style="color: var(--info); text-decoration: none; font-size: 0.9rem;">
@@ -4561,6 +4650,9 @@
                 </button>
                 <button class="create-mode-btn" id="aiStudioModeBtn" onclick="switchCreateMode('aistudio')" style="flex: 1; padding: 1rem 1.5rem; background: transparent; border: none; border-radius: 12px; color: var(--text-secondary); font-weight: 600; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 56px; transition: all 0.2s;">
                     <i class="fas fa-magic"></i> AI Studio
+                </button>
+                <button class="create-mode-btn" id="csaVisualizerModeBtn" onclick="switchCreateMode('csavisualizer')" style="flex: 1; padding: 1rem 1.5rem; background: transparent; border: none; border-radius: 12px; color: var(--text-secondary); font-weight: 600; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 56px; transition: all 0.2s;">
+                    <i class="fas fa-box-open"></i> CSA Box Visual
                 </button>
             </div>
 
@@ -5120,6 +5212,221 @@
                                 <p style="color: var(--text-secondary); font-size: 0.9rem; text-align: center; padding: 1rem;">
                                     <i class="fas fa-info-circle"></i> Templates you save will appear here for quick reuse
                                 </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CSA BOX VISUALIZER MODE - "What's In Your Box" Social Graphic Generator -->
+            <div id="csaVisualizerMode" class="create-mode-content" style="display: none;">
+                <div class="card" style="background: linear-gradient(135deg, rgba(74, 124, 89, 0.15), rgba(255, 143, 0, 0.1)); border: 2px solid rgba(74, 124, 89, 0.4);">
+                    <div class="card-header" style="border-bottom: 1px solid rgba(74, 124, 89, 0.3);">
+                        <h3><i class="fas fa-box-open" style="color: #4a7c59;"></i> CSA Share Visualizer</h3>
+                        <span style="font-size: 0.75rem; background: linear-gradient(135deg, #4a7c59, #ff8f00); padding: 0.35rem 0.85rem; border-radius: 20px; color: white; font-weight: 600;">What's In Your Box</span>
+                    </div>
+                    <div class="card-body">
+                        <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.95rem;">
+                            <i class="fas fa-camera" style="color: var(--gold);"></i>
+                            Generate beautiful flat-lay style "What's in Your Box" graphics for Instagram, Facebook, and more.
+                        </p>
+
+                        <!-- Box Contents Input -->
+                        <div class="form-group">
+                            <label class="form-label" style="font-size: 1rem; font-weight: 600;">
+                                <i class="fas fa-carrot" style="color: #ff6347;"></i> What's in this week's box?
+                            </label>
+                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem;" id="csaSelectedItems">
+                                <!-- Selected items will appear here as tags -->
+                            </div>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <input type="text" class="form-input" id="csaItemInput" placeholder="Type item name (e.g., tomatoes, basil, eggs)" style="flex: 1; min-height: 48px;" onkeypress="if(event.key==='Enter'){addCSAItem(); event.preventDefault();}">
+                                <button class="btn btn-secondary" onclick="addCSAItem()" style="min-height: 48px;">
+                                    <i class="fas fa-plus"></i> Add
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Quick Add Common Items -->
+                        <div class="form-group">
+                            <label class="form-label" style="font-size: 0.9rem; color: var(--text-secondary);">
+                                <i class="fas fa-bolt"></i> Quick Add Common Items
+                            </label>
+                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                <button class="btn btn-sm" onclick="quickAddCSAItem('tomatoes')" style="background: rgba(255,99,71,0.2); border: 1px solid #ff6347; color: #ff6347;">
+                                    <i class="fas fa-circle" style="font-size: 0.5rem;"></i> Tomatoes
+                                </button>
+                                <button class="btn btn-sm" onclick="quickAddCSAItem('zucchini')" style="background: rgba(74,124,89,0.2); border: 1px solid #4a7c59; color: #4a7c59;">
+                                    <i class="fas fa-circle" style="font-size: 0.5rem;"></i> Zucchini
+                                </button>
+                                <button class="btn btn-sm" onclick="quickAddCSAItem('basil')" style="background: rgba(34,139,34,0.2); border: 1px solid #228b22; color: #228b22;">
+                                    <i class="fas fa-leaf"></i> Basil
+                                </button>
+                                <button class="btn btn-sm" onclick="quickAddCSAItem('eggs')" style="background: rgba(255,228,181,0.3); border: 1px solid #f4a460; color: #f4a460;">
+                                    <i class="fas fa-egg"></i> Eggs
+                                </button>
+                                <button class="btn btn-sm" onclick="quickAddCSAItem('carrots')" style="background: rgba(255,140,0,0.2); border: 1px solid #ff8c00; color: #ff8c00;">
+                                    <i class="fas fa-carrot"></i> Carrots
+                                </button>
+                                <button class="btn btn-sm" onclick="quickAddCSAItem('lettuce')" style="background: rgba(144,238,144,0.2); border: 1px solid #90ee90; color: #228b22;">
+                                    <i class="fas fa-seedling"></i> Lettuce
+                                </button>
+                                <button class="btn btn-sm" onclick="quickAddCSAItem('kale')" style="background: rgba(0,100,0,0.2); border: 1px solid #006400; color: #006400;">
+                                    <i class="fas fa-leaf"></i> Kale
+                                </button>
+                                <button class="btn btn-sm" onclick="quickAddCSAItem('peppers')" style="background: rgba(255,0,0,0.2); border: 1px solid #dc143c; color: #dc143c;">
+                                    <i class="fas fa-pepper-hot"></i> Peppers
+                                </button>
+                                <button class="btn btn-sm" onclick="quickAddCSAItem('onions')" style="background: rgba(238,232,170,0.3); border: 1px solid #daa520; color: #b8860b;">
+                                    <i class="fas fa-circle" style="font-size: 0.5rem;"></i> Onions
+                                </button>
+                                <button class="btn btn-sm" onclick="quickAddCSAItem('garlic')" style="background: rgba(255,250,250,0.3); border: 1px solid #dcdcdc; color: #808080;">
+                                    <i class="fas fa-circle" style="font-size: 0.5rem;"></i> Garlic
+                                </button>
+                                <button class="btn btn-sm" onclick="quickAddCSAItem('bread')" style="background: rgba(210,180,140,0.3); border: 1px solid #d2b48c; color: #8b4513;">
+                                    <i class="fas fa-bread-slice"></i> Bread
+                                </button>
+                                <button class="btn btn-sm" onclick="quickAddCSAItem('flowers')" style="background: rgba(255,182,193,0.3); border: 1px solid #ff69b4; color: #ff69b4;">
+                                    <i class="fas fa-spa"></i> Flowers
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Background & Style Selection -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.5rem;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label class="form-label">Background Surface</label>
+                                <select class="form-input" id="csaBackground" style="min-height: 48px;">
+                                    <option value="wooden_rustic">Rustic Wooden Board</option>
+                                    <option value="marble_white">White Marble</option>
+                                    <option value="linen_cream">Cream Linen</option>
+                                    <option value="slate_dark">Dark Slate</option>
+                                    <option value="burlap">Burlap Texture</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label class="form-label">Season/Color Theme</label>
+                                <select class="form-input" id="csaSeason" style="min-height: 48px;">
+                                    <option value="summer">Summer (Warm Greens, Reds)</option>
+                                    <option value="fall">Fall (Oranges, Deep Greens)</option>
+                                    <option value="winter">Winter (Deep Greens, Roots)</option>
+                                    <option value="spring">Spring (Light Greens, Pastels)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Header Text Options -->
+                        <div class="form-group" style="margin-top: 1rem;">
+                            <label class="form-label">Header Text</label>
+                            <input type="text" class="form-input" id="csaHeaderText" value="What's In Your Box This Week" style="min-height: 48px;">
+                        </div>
+
+                        <!-- Generate Button -->
+                        <button class="btn" id="csaGenerateBtn" onclick="generateCSABoxVisual()" style="min-height: 60px; font-size: 1.1rem; width: 100%; background: linear-gradient(135deg, #4a7c59 0%, #ff8c00 100%); border: none; color: white; font-weight: 700; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.75rem; transition: all 0.3s; box-shadow: 0 4px 15px rgba(74, 124, 89, 0.4); margin-top: 1.5rem;">
+                            <i class="fas fa-wand-magic-sparkles"></i> Generate Box Visual
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Canvas Preview Area -->
+                <div class="card" style="margin-top: 1.5rem;">
+                    <div class="card-header">
+                        <h3><i class="fas fa-image" style="color: var(--success);"></i> Preview</h3>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="btn btn-sm btn-secondary" onclick="clearCSACanvas()" id="csaClearBtn" style="display: none;">
+                                <i class="fas fa-trash"></i> Clear
+                            </button>
+                            <button class="btn btn-sm btn-primary" onclick="downloadCSAVisual()" id="csaDownloadBtn" style="display: none;">
+                                <i class="fas fa-download"></i> Download
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body" style="display: flex; justify-content: center; align-items: center; min-height: 400px; background: rgba(0,0,0,0.2); border-radius: 12px;">
+                        <div id="csaCanvasWrapper" style="position: relative;">
+                            <canvas id="csaCanvas" style="border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);"></canvas>
+                            <div id="csaCanvasPlaceholder" style="text-align: center; color: var(--text-secondary); padding: 3rem;">
+                                <i class="fas fa-box-open" style="font-size: 4rem; color: var(--border); margin-bottom: 1rem; display: block;"></i>
+                                <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">Your CSA box visual will appear here</p>
+                                <p style="font-size: 0.85rem;">Add items above and click "Generate Box Visual"</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Export Options -->
+                <div class="card" style="margin-top: 1.5rem; display: none;" id="csaExportOptions">
+                    <div class="card-header">
+                        <h3><i class="fas fa-share-alt" style="color: var(--instagram);"></i> Share & Export</h3>
+                    </div>
+                    <div class="card-body">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
+                            <button class="btn btn-secondary" onclick="downloadCSAVisual('png')" style="padding: 1rem; min-height: 70px; display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-image" style="font-size: 1.5rem;"></i>
+                                <span>PNG (Best Quality)</span>
+                            </button>
+                            <button class="btn btn-secondary" onclick="downloadCSAVisual('jpg')" style="padding: 1rem; min-height: 70px; display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-file-image" style="font-size: 1.5rem;"></i>
+                                <span>JPG (Smaller Size)</span>
+                            </button>
+                            <button class="btn btn-secondary" onclick="useCSAVisualInQuickPost()" style="padding: 1rem; min-height: 70px; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; background: linear-gradient(135deg, rgba(225,48,108,0.2), rgba(155,89,182,0.2)); border-color: var(--instagram);">
+                                <i class="fas fa-bolt" style="font-size: 1.5rem; color: var(--instagram);"></i>
+                                <span>Use in Quick Post</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Farm Color Palettes Reference -->
+                <div class="card" style="margin-top: 1.5rem;">
+                    <div class="card-header" onclick="toggleCSAColorPalettes()" style="cursor: pointer;">
+                        <h3><i class="fas fa-palette" style="color: var(--purple);"></i> Farm Color Palettes</h3>
+                        <i class="fas fa-chevron-down" id="csaPaletteToggleIcon"></i>
+                    </div>
+                    <div class="card-body" id="csaPaletteBody" style="display: none;">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                            <!-- Summer Palette -->
+                            <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px;">
+                                <h4 style="margin-bottom: 0.75rem; color: var(--gold);"><i class="fas fa-sun"></i> Summer</h4>
+                                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                    <div style="width: 30px; height: 30px; background: #4a7c59; border-radius: 4px;" title="Fresh Green"></div>
+                                    <div style="width: 30px; height: 30px; background: #ff6347; border-radius: 4px;" title="Tomato Red"></div>
+                                    <div style="width: 30px; height: 30px; background: #ff8c00; border-radius: 4px;" title="Harvest Orange"></div>
+                                    <div style="width: 30px; height: 30px; background: #87ceeb; border-radius: 4px;" title="Sky Blue"></div>
+                                </div>
+                                <p style="font-size: 0.75rem; color: var(--text-secondary);">Warm subjects on cool backgrounds</p>
+                            </div>
+                            <!-- Fall Palette -->
+                            <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px;">
+                                <h4 style="margin-bottom: 0.75rem; color: #ff8c00;"><i class="fas fa-leaf"></i> Fall</h4>
+                                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                    <div style="width: 30px; height: 30px; background: #ff8c00; border-radius: 4px;" title="Pumpkin Orange"></div>
+                                    <div style="width: 30px; height: 30px; background: #daa520; border-radius: 4px;" title="Goldenrod"></div>
+                                    <div style="width: 30px; height: 30px; background: #614051; border-radius: 4px;" title="Eggplant Purple"></div>
+                                    <div style="width: 30px; height: 30px; background: #8b4513; border-radius: 4px;" title="Warm Wood"></div>
+                                </div>
+                                <p style="font-size: 0.75rem; color: var(--text-secondary);">Rustic warmth & earthy tones</p>
+                            </div>
+                            <!-- Winter Palette -->
+                            <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px;">
+                                <h4 style="margin-bottom: 0.75rem; color: #708090;"><i class="fas fa-snowflake"></i> Winter</h4>
+                                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                    <div style="width: 30px; height: 30px; background: #006400; border-radius: 4px;" title="Deep Green"></div>
+                                    <div style="width: 30px; height: 30px; background: #614051; border-radius: 4px;" title="Purple Root"></div>
+                                    <div style="width: 30px; height: 30px; background: #708090; border-radius: 4px;" title="Slate Gray"></div>
+                                    <div style="width: 30px; height: 30px; background: #f5f5dc; border-radius: 4px;" title="Cream"></div>
+                                </div>
+                                <p style="font-size: 0.75rem; color: var(--text-secondary);">Deep colors with cream accents</p>
+                            </div>
+                            <!-- Spring Palette -->
+                            <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px;">
+                                <h4 style="margin-bottom: 0.75rem; color: #90ee90;"><i class="fas fa-seedling"></i> Spring</h4>
+                                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                    <div style="width: 30px; height: 30px; background: #90ee90; border-radius: 4px;" title="Light Green"></div>
+                                    <div style="width: 30px; height: 30px; background: #ffb6c1; border-radius: 4px;" title="Light Pink"></div>
+                                    <div style="width: 30px; height: 30px; background: #f5f5f5; border-radius: 4px;" title="White"></div>
+                                    <div style="width: 30px; height: 30px; background: #e6e6fa; border-radius: 4px;" title="Lavender"></div>
+                                </div>
+                                <p style="font-size: 0.75rem; color: var(--text-secondary);">Fresh pastels & new growth</p>
                             </div>
                         </div>
                     </div>
@@ -10805,23 +11112,35 @@
         function switchCreateMode(mode) {
             const quickPostMode = document.getElementById('quickPostMode');
             const aiStudioMode = document.getElementById('aiStudioMode');
+            const csaVisualizerMode = document.getElementById('csaVisualizerMode');
             const quickPostBtn = document.getElementById('quickPostModeBtn');
             const aiStudioBtn = document.getElementById('aiStudioModeBtn');
+            const csaVisualizerBtn = document.getElementById('csaVisualizerModeBtn');
+
+            // Hide all modes and reset all buttons
+            quickPostMode.style.display = 'none';
+            aiStudioMode.style.display = 'none';
+            csaVisualizerMode.style.display = 'none';
+            quickPostBtn.style.background = 'transparent';
+            quickPostBtn.style.color = 'var(--text-secondary)';
+            aiStudioBtn.style.background = 'transparent';
+            aiStudioBtn.style.color = 'var(--text-secondary)';
+            csaVisualizerBtn.style.background = 'transparent';
+            csaVisualizerBtn.style.color = 'var(--text-secondary)';
 
             if (mode === 'quickpost') {
                 quickPostMode.style.display = 'block';
-                aiStudioMode.style.display = 'none';
                 quickPostBtn.style.background = 'linear-gradient(135deg, var(--instagram) 0%, var(--accent) 100%)';
                 quickPostBtn.style.color = 'white';
-                aiStudioBtn.style.background = 'transparent';
-                aiStudioBtn.style.color = 'var(--text-secondary)';
-            } else {
-                quickPostMode.style.display = 'none';
+            } else if (mode === 'aistudio') {
                 aiStudioMode.style.display = 'block';
                 aiStudioBtn.style.background = 'linear-gradient(135deg, var(--purple) 0%, var(--instagram) 100%)';
                 aiStudioBtn.style.color = 'white';
-                quickPostBtn.style.background = 'transparent';
-                quickPostBtn.style.color = 'var(--text-secondary)';
+            } else if (mode === 'csavisualizer') {
+                csaVisualizerMode.style.display = 'block';
+                csaVisualizerBtn.style.background = 'linear-gradient(135deg, #4a7c59 0%, #ff8c00 100%)';
+                csaVisualizerBtn.style.color = 'white';
+                initializeCSACanvas();
             }
         }
 
@@ -17345,6 +17664,9 @@ Would you like to test posting to Threads?`;
                 // BACKGROUND: Load REAL Algorithm Intelligence data from backend
                 setTimeout(() => initAlgorithmIntelligence(), 1500);
 
+                // BACKGROUND: Load Weather-Smart Content (2026-02-12)
+                setTimeout(() => loadWeatherSmartContent(), 500);
+
             } catch (error) {
                 console.error('Error loading Brain tab:', error);
                 document.getElementById('briefingSummary').textContent =
@@ -17943,6 +18265,343 @@ Would you like to test posting to Threads?`;
 
             // Also run the old local research check for backwards compatibility
             checkAlgorithmResearchUpdate();
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // WEATHER-SMART CONTENT SYSTEM (2026-02-12)
+        // Based on research showing 65-600% sales increases with weather-triggered marketing
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        let weatherData = null;
+
+        async function loadWeatherSmartContent() {
+            try {
+                console.log('Loading weather-smart content...');
+
+                // Check for cached data first
+                const cached = localStorage.getItem('weatherSmartData');
+                if (cached) {
+                    try {
+                        const cachedData = JSON.parse(cached);
+                        // Use cache if less than 3 hours old
+                        const cacheAge = Date.now() - new Date(cachedData.fetchedAt).getTime();
+                        if (cacheAge < 3 * 60 * 60 * 1000) {
+                            console.log('Using cached weather data');
+                            renderWeatherDashboard(cachedData.dashboard);
+                        }
+                    } catch (e) { /* ignore cache errors */ }
+                }
+
+                // Fetch fresh data from backend
+                const response = await fetch(`${API_URL}?action=getWeatherSmartDashboard`);
+                const data = await response.json();
+
+                if (data.success && data.dashboard) {
+                    weatherData = data;
+                    renderWeatherDashboard(data.dashboard);
+                    // Cache for next time
+                    localStorage.setItem('weatherSmartData', JSON.stringify(data));
+                    console.log('Weather data loaded successfully');
+                } else {
+                    console.warn('Weather data fetch failed:', data.error);
+                    showWeatherError(data.error || 'Failed to load weather data');
+                }
+            } catch (error) {
+                console.error('Error loading weather data:', error);
+                showWeatherError('Connection error');
+            }
+        }
+
+        async function refreshWeatherData(showSpinner = false) {
+            const refreshIcon = document.getElementById('weatherRefreshIcon');
+            if (showSpinner && refreshIcon) {
+                refreshIcon.classList.add('fa-spin');
+            }
+
+            try {
+                // Clear cache and reload
+                localStorage.removeItem('weatherSmartData');
+                await loadWeatherSmartContent();
+                showToast('Weather data refreshed!', 'success');
+            } catch (error) {
+                showToast('Failed to refresh weather', 'error');
+            } finally {
+                if (refreshIcon) {
+                    refreshIcon.classList.remove('fa-spin');
+                }
+            }
+        }
+
+        function renderWeatherDashboard(dashboard) {
+            if (!dashboard) return;
+
+            // Update current conditions
+            if (dashboard.current) {
+                document.getElementById('weatherCurrentTemp').textContent = dashboard.current.tempF + '\u00B0F';
+                document.getElementById('weatherCurrentCondition').textContent = dashboard.current.condition || 'Unknown';
+                document.getElementById('weatherHumidity').textContent = dashboard.current.humidity || '--';
+                document.getElementById('weatherWind').textContent = dashboard.current.windMph || '--';
+
+                // Update temp color based on temperature
+                const tempEl = document.getElementById('weatherCurrentTemp');
+                if (dashboard.current.tempF >= 85) {
+                    tempEl.style.color = '#EF4444'; // Hot red
+                } else if (dashboard.current.tempF >= 65) {
+                    tempEl.style.color = '#22C55E'; // Perfect green
+                } else if (dashboard.current.tempF <= 32) {
+                    tempEl.style.color = '#60A5FA'; // Frost blue
+                } else {
+                    tempEl.style.color = '#3B82F6'; // Normal blue
+                }
+            }
+
+            // Update today's forecast
+            if (dashboard.sevenDayForecast && dashboard.sevenDayForecast.length > 0) {
+                const today = dashboard.sevenDayForecast[0];
+                document.getElementById('weatherTodayHigh').textContent = today.highF + '\u00B0';
+                document.getElementById('weatherTodayLow').textContent = today.lowF + '\u00B0';
+                document.getElementById('weatherTodayRain').textContent = (today.rainChance || 0) + '%';
+            }
+
+            // Update urgency badge
+            const urgencyBadge = document.getElementById('weatherUrgencyBadge');
+            if (dashboard.urgentAlerts && dashboard.urgentAlerts.length > 0) {
+                const topAlert = dashboard.urgentAlerts[0];
+                urgencyBadge.textContent = topAlert.type;
+                urgencyBadge.style.background = topAlert.severity === 'CRITICAL' ? 'var(--danger)' :
+                                                 topAlert.severity === 'HIGH' ? 'var(--warning)' : 'var(--info)';
+                urgencyBadge.style.color = topAlert.severity === 'HIGH' ? '#000' : '#fff';
+            } else if (dashboard.topSuggestion) {
+                urgencyBadge.textContent = dashboard.topSuggestion.category.toUpperCase();
+                urgencyBadge.style.background = dashboard.topSuggestion.urgency === 'critical' ? 'var(--danger)' :
+                                                 dashboard.topSuggestion.urgency === 'high' ? 'var(--warning)' : 'var(--success)';
+                urgencyBadge.style.color = dashboard.topSuggestion.urgency === 'high' ? '#000' : '#fff';
+            } else {
+                urgencyBadge.textContent = 'ACTIVE';
+                urgencyBadge.style.background = 'var(--success)';
+            }
+
+            // Render weather alerts
+            renderWeatherAlerts(dashboard.urgentAlerts || [], dashboard.apiAlerts || []);
+
+            // Render content suggestions
+            renderWeatherSuggestions(dashboard.contentSuggestions || []);
+
+            // Render ready templates
+            renderWeatherTemplates(dashboard.readyTemplates || []);
+        }
+
+        function renderWeatherAlerts(urgentAlerts, apiAlerts) {
+            const section = document.getElementById('weatherAlertsSection');
+            const listEl = document.getElementById('weatherAlertsList');
+
+            const allAlerts = [...urgentAlerts];
+
+            if (allAlerts.length === 0) {
+                section.style.display = 'none';
+                return;
+            }
+
+            section.style.display = 'block';
+            listEl.innerHTML = allAlerts.map(alert => {
+                const severityColors = {
+                    'CRITICAL': { bg: 'rgba(239, 68, 68, 0.2)', border: '#EF4444', icon: 'fa-exclamation-triangle' },
+                    'HIGH': { bg: 'rgba(245, 158, 11, 0.2)', border: '#F59E0B', icon: 'fa-exclamation-circle' },
+                    'MEDIUM': { bg: 'rgba(59, 130, 246, 0.2)', border: '#3B82F6', icon: 'fa-info-circle' }
+                };
+                const style = severityColors[alert.severity] || severityColors.MEDIUM;
+
+                return `
+                    <div style="background: ${style.bg}; border-left: 4px solid ${style.border}; padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 0.5rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas ${style.icon}" style="color: ${style.border};"></i>
+                            <span style="font-weight: 600; color: ${style.border};">${alert.type}</span>
+                            <span style="font-size: 0.85rem; color: var(--text-primary);">${alert.message}</span>
+                        </div>
+                        ${alert.contentAction ? `<div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem; margin-left: 1.5rem;"><i class="fas fa-lightbulb"></i> ${alert.contentAction}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderWeatherSuggestions(suggestions) {
+            const listEl = document.getElementById('weatherSuggestionsList');
+            const countEl = document.getElementById('suggestionCount');
+
+            countEl.textContent = suggestions.length;
+
+            if (suggestions.length === 0) {
+                listEl.innerHTML = `<div style="text-align: center; padding: 1rem; color: var(--text-secondary); font-size: 0.85rem; grid-column: 1 / -1;">
+                    <i class="fas fa-cloud-sun"></i> Weather data loading...
+                </div>`;
+                return;
+            }
+
+            listEl.innerHTML = suggestions.slice(0, 4).map(suggestion => {
+                const urgencyColors = {
+                    'critical': { bg: 'rgba(239, 68, 68, 0.1)', border: '#EF4444' },
+                    'high': { bg: 'rgba(245, 158, 11, 0.1)', border: '#F59E0B' },
+                    'medium': { bg: 'rgba(59, 130, 246, 0.1)', border: '#3B82F6' },
+                    'low': { bg: 'rgba(34, 197, 94, 0.1)', border: '#22C55E' }
+                };
+                const style = urgencyColors[suggestion.urgency] || urgencyColors.low;
+
+                return `
+                    <div style="background: ${style.bg}; border: 1px solid ${style.border}; border-radius: 12px; padding: 1rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                            <span style="font-size: 1.5rem;">${suggestion.content?.emoji || '🌤️'}</span>
+                            <span style="font-size: 0.7rem; padding: 0.2rem 0.5rem; border-radius: 8px; background: ${style.border}; color: white; text-transform: uppercase;">${suggestion.category}</span>
+                        </div>
+                        <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">${suggestion.dateFormatted}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                            ${suggestion.weather.highF}\u00B0/${suggestion.weather.lowF}\u00B0 | ${suggestion.weather.condition}
+                        </div>
+                        <div style="font-size: 0.8rem; color: var(--text-primary); margin-bottom: 0.5rem;">${suggestion.content?.messaging || ''}</div>
+                        <div style="font-size: 0.75rem; color: ${style.border}; font-weight: 600;">${suggestion.content?.cta || ''}</div>
+                        <div style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.25rem;">
+                            ${(suggestion.content?.themes || []).slice(0, 3).map(t => `<span style="font-size: 0.65rem; padding: 0.15rem 0.4rem; background: rgba(255,255,255,0.1); border-radius: 4px; color: var(--text-secondary);">${t}</span>`).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderWeatherTemplates(templates) {
+            const listEl = document.getElementById('weatherTemplatesList');
+
+            if (templates.length === 0) {
+                listEl.innerHTML = `<div style="text-align: center; padding: 1rem; color: var(--text-secondary); font-size: 0.85rem; grid-column: 1 / -1;">
+                    <i class="fas fa-file-alt"></i> Templates loading...
+                </div>`;
+                return;
+            }
+
+            // Group by platform
+            const instagramTemplates = templates.filter(t => t.platform === 'instagram').slice(0, 2);
+            const facebookTemplates = templates.filter(t => t.platform === 'facebook').slice(0, 1);
+            const emailTemplates = templates.filter(t => t.platform === 'email').slice(0, 1);
+
+            const allTemplates = [...instagramTemplates, ...facebookTemplates, ...emailTemplates];
+
+            listEl.innerHTML = allTemplates.map(template => {
+                const platformIcons = {
+                    'instagram': { icon: 'fab fa-instagram', color: '#E1306C', name: 'Instagram' },
+                    'facebook': { icon: 'fab fa-facebook', color: '#1877F2', name: 'Facebook' },
+                    'email': { icon: 'fas fa-envelope', color: '#22C55E', name: 'Email' }
+                };
+                const platform = platformIcons[template.platform] || platformIcons.instagram;
+
+                const captionText = template.fullCaption || template.template?.subject || '';
+                const truncatedCaption = captionText.length > 150 ? captionText.substring(0, 150) + '...' : captionText;
+
+                return `
+                    <div style="background: rgba(0,0,0,0.2); border-radius: 12px; padding: 1rem; border: 1px solid rgba(255,255,255,0.1);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="${platform.icon}" style="color: ${platform.color};"></i>
+                                <span style="font-size: 0.8rem; font-weight: 600;">${platform.name}</span>
+                            </div>
+                            <span style="font-size: 0.65rem; padding: 0.2rem 0.5rem; border-radius: 8px; background: rgba(34, 197, 94, 0.2); color: #22C55E;">${Math.round((template.confidence || 0.8) * 100)}% confidence</span>
+                        </div>
+                        <div style="font-size: 0.8rem; color: var(--text-primary); line-height: 1.5; margin-bottom: 0.75rem; white-space: pre-wrap;">${escapeHtml(truncatedCaption)}</div>
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <button class="btn btn-sm" onclick="useWeatherTemplate('${template.platform}', ${templates.indexOf(template)})" style="background: ${platform.color}; color: white; font-size: 0.7rem;">
+                                <i class="fas fa-copy"></i> Use Template
+                            </button>
+                            <button class="btn btn-sm" onclick="editWeatherTemplate('${template.platform}', ${templates.indexOf(template)})" style="background: transparent; border: 1px solid var(--text-secondary); color: var(--text-secondary); font-size: 0.7rem;">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function useWeatherTemplate(platform, index) {
+            if (!weatherData || !weatherData.dashboard || !weatherData.dashboard.readyTemplates) {
+                showToast('Template data not available', 'error');
+                return;
+            }
+
+            const template = weatherData.dashboard.readyTemplates[index];
+            if (!template) {
+                showToast('Template not found', 'error');
+                return;
+            }
+
+            const caption = template.fullCaption || template.template?.subject || '';
+
+            // Copy to clipboard
+            navigator.clipboard.writeText(caption).then(() => {
+                showToast('Template copied to clipboard!', 'success');
+            }).catch(() => {
+                // Fallback for older browsers
+                const textarea = document.createElement('textarea');
+                textarea.value = caption;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                showToast('Template copied!', 'success');
+            });
+
+            // Also switch to Create tab with content pre-filled
+            if (platform !== 'email') {
+                const contentEl = document.getElementById('captionInput');
+                if (contentEl) {
+                    contentEl.value = caption;
+                    switchTab('create');
+                }
+            }
+        }
+
+        function editWeatherTemplate(platform, index) {
+            if (!weatherData || !weatherData.dashboard || !weatherData.dashboard.readyTemplates) {
+                showToast('Template data not available', 'error');
+                return;
+            }
+
+            const template = weatherData.dashboard.readyTemplates[index];
+            if (!template) {
+                showToast('Template not found', 'error');
+                return;
+            }
+
+            const caption = template.fullCaption || template.template?.subject || '';
+
+            // Switch to Create tab with content pre-filled for editing
+            const contentEl = document.getElementById('captionInput');
+            if (contentEl) {
+                contentEl.value = caption;
+                switchTab('create');
+                contentEl.focus();
+                showToast('Edit your template in the Create tab', 'info');
+            }
+        }
+
+        function showWeatherError(message) {
+            const listEl = document.getElementById('weatherSuggestionsList');
+            listEl.innerHTML = `
+                <div style="text-align: center; padding: 2rem; color: var(--text-secondary); font-size: 0.85rem; grid-column: 1 / -1;">
+                    <i class="fas fa-cloud" style="font-size: 2rem; margin-bottom: 0.5rem;"></i>
+                    <p>Weather data unavailable</p>
+                    <p style="font-size: 0.75rem; opacity: 0.7;">${message}</p>
+                    <button class="btn btn-sm" onclick="refreshWeatherData(true)" style="margin-top: 0.5rem;">
+                        <i class="fas fa-sync-alt"></i> Retry
+                    </button>
+                </div>
+            `;
+
+            const templatesList = document.getElementById('weatherTemplatesList');
+            templatesList.innerHTML = `<div style="text-align: center; padding: 1rem; color: var(--text-secondary); font-size: 0.85rem; grid-column: 1 / -1;">
+                Templates unavailable
+            </div>`;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -23015,6 +23674,432 @@ Would you like to test posting to Threads?`;
 
             // Initialize voice activation (optional)
             initVoiceActivation();
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // CSA BOX VISUALIZER - "What's In Your Box" Social Graphic Generator
+        // Uses golden ratio spiral positioning and farm color palettes from research
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        let csaCanvas = null;
+        let csaSelectedItems = [];
+        const PHI = (1 + Math.sqrt(5)) / 2; // Golden ratio
+
+        // Produce PNG library - placeholder URLs (in production, these would be real PNGs)
+        const PRODUCE_LIBRARY = {
+            'tomatoes': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f345.png', scale: 1.2, color: '#ff6347' },
+            'zucchini': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f952.png', scale: 1.1, color: '#4a7c59' },
+            'basil': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f33f.png', scale: 0.9, color: '#228b22' },
+            'eggs': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f95a.png', scale: 1.0, color: '#f5deb3' },
+            'carrots': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f955.png', scale: 1.1, color: '#ff8c00' },
+            'lettuce': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f957.png', scale: 1.0, color: '#90ee90' },
+            'kale': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f96c.png', scale: 1.0, color: '#006400' },
+            'peppers': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1fad1.png', scale: 1.1, color: '#dc143c' },
+            'onions': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9c5.png', scale: 1.0, color: '#daa520' },
+            'garlic': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9c4.png', scale: 0.9, color: '#f5f5f5' },
+            'bread': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f35e.png', scale: 1.2, color: '#d2b48c' },
+            'flowers': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f490.png', scale: 1.1, color: '#ff69b4' },
+            'corn': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f33d.png', scale: 1.1, color: '#ffd700' },
+            'broccoli': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f966.png', scale: 1.0, color: '#228b22' },
+            'potato': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f954.png', scale: 1.0, color: '#d2691e' },
+            'mushrooms': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f344.png', scale: 1.0, color: '#8b4513' },
+            'strawberries': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f353.png', scale: 0.9, color: '#dc143c' },
+            'blueberries': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1fad0.png', scale: 0.8, color: '#4169e1' },
+            'apples': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f34e.png', scale: 1.0, color: '#dc143c' },
+            'peaches': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f351.png', scale: 1.0, color: '#ffb347' },
+            'herbs': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f33f.png', scale: 0.8, color: '#228b22' },
+            'squash': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f952.png', scale: 1.2, color: '#ffa500' },
+            'beets': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f96c.png', scale: 1.0, color: '#8b0000' },
+            'radishes': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f96c.png', scale: 0.9, color: '#ff4500' },
+            'spinach': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f96c.png', scale: 1.0, color: '#228b22' },
+            'chard': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f96c.png', scale: 1.0, color: '#228b22' },
+            'cucumber': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f952.png', scale: 1.0, color: '#2e8b57' },
+            'eggplant': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f346.png', scale: 1.1, color: '#614051' },
+            'honey': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f36f.png', scale: 0.9, color: '#ffc125' },
+            'cheese': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f9c0.png', scale: 1.0, color: '#ffd700' },
+            'jam': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f36f.png', scale: 0.9, color: '#8b0000' },
+            'default': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f96c.png', scale: 1.0, color: '#4a7c59' }
+        };
+
+        // Background patterns (using solid colors for MVP, can be replaced with textures)
+        const BACKGROUNDS = {
+            'wooden_rustic': { color: '#8b4513', gradient: 'linear-gradient(135deg, #a0522d 0%, #8b4513 50%, #654321 100%)' },
+            'marble_white': { color: '#f5f5f5', gradient: 'linear-gradient(135deg, #ffffff 0%, #f0f0f0 50%, #e8e8e8 100%)' },
+            'linen_cream': { color: '#f5f5dc', gradient: 'linear-gradient(135deg, #fffef0 0%, #f5f5dc 50%, #e8e4c9 100%)' },
+            'slate_dark': { color: '#708090', gradient: 'linear-gradient(135deg, #778899 0%, #708090 50%, #5a6a7a 100%)' },
+            'burlap': { color: '#c4a35a', gradient: 'linear-gradient(135deg, #d4b56a 0%, #c4a35a 50%, #a08040 100%)' }
+        };
+
+        // Season color palettes from research
+        const SEASON_PALETTES = {
+            'summer': { primary: '#4a7c59', secondary: '#ff6347', accent: '#ff8c00', background: '#87ceeb' },
+            'fall': { primary: '#ff8c00', secondary: '#daa520', accent: '#614051', background: '#8b4513' },
+            'winter': { primary: '#006400', secondary: '#614051', accent: '#708090', background: '#f5f5dc' },
+            'spring': { primary: '#90ee90', secondary: '#ffb6c1', accent: '#e6e6fa', background: '#f5f5f5' }
+        };
+
+        // Initialize CSA Canvas
+        function initializeCSACanvas() {
+            if (csaCanvas) return; // Already initialized
+
+            const canvasEl = document.getElementById('csaCanvas');
+            if (!canvasEl) return;
+
+            // Set canvas dimensions (1080x1350 for Instagram feed optimal)
+            const displayWidth = 400; // Display size
+            const displayHeight = 500;
+            const canvasWidth = 1080;
+            const canvasHeight = 1350;
+
+            csaCanvas = new fabric.Canvas('csaCanvas', {
+                width: displayWidth,
+                height: displayHeight,
+                backgroundColor: '#8b4513',
+                preserveObjectStacking: true
+            });
+
+            // Store actual dimensions for export
+            csaCanvas.actualWidth = canvasWidth;
+            csaCanvas.actualHeight = canvasHeight;
+            csaCanvas.displayScale = displayWidth / canvasWidth;
+
+            // Hide placeholder
+            document.getElementById('csaCanvasPlaceholder').style.display = 'none';
+
+            console.log('CSA Canvas initialized');
+        }
+
+        // Add CSA item from input
+        function addCSAItem() {
+            const input = document.getElementById('csaItemInput');
+            const itemName = input.value.trim().toLowerCase();
+
+            if (!itemName) return;
+            if (csaSelectedItems.includes(itemName)) {
+                showToast('Item already added', 'warning');
+                return;
+            }
+
+            csaSelectedItems.push(itemName);
+            updateCSAItemTags();
+            input.value = '';
+            input.focus();
+        }
+
+        // Quick add item
+        function quickAddCSAItem(itemName) {
+            if (csaSelectedItems.includes(itemName)) {
+                showToast('Item already added', 'warning');
+                return;
+            }
+            csaSelectedItems.push(itemName);
+            updateCSAItemTags();
+        }
+
+        // Remove CSA item
+        function removeCSAItem(itemName) {
+            csaSelectedItems = csaSelectedItems.filter(item => item !== itemName);
+            updateCSAItemTags();
+        }
+
+        // Update the item tags display
+        function updateCSAItemTags() {
+            const container = document.getElementById('csaSelectedItems');
+            if (csaSelectedItems.length === 0) {
+                container.innerHTML = '<span style="color: var(--text-secondary); font-size: 0.85rem;"><i class="fas fa-info-circle"></i> No items selected yet</span>';
+                return;
+            }
+
+            container.innerHTML = csaSelectedItems.map(item => {
+                const itemData = PRODUCE_LIBRARY[item] || PRODUCE_LIBRARY['default'];
+                return `
+                    <div style="display: inline-flex; align-items: center; gap: 0.5rem; background: ${itemData.color}33; border: 1px solid ${itemData.color}; padding: 0.4rem 0.75rem; border-radius: 20px; font-size: 0.85rem;">
+                        <span style="text-transform: capitalize;">${item}</span>
+                        <button onclick="removeCSAItem('${item}')" style="background: none; border: none; color: ${itemData.color}; cursor: pointer; padding: 0; font-size: 0.9rem;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Calculate golden ratio spiral positions
+        function calculateGoldenSpiralPositions(itemCount, canvasWidth, canvasHeight) {
+            const positions = [];
+            const centerX = canvasWidth / 2;
+            const centerY = canvasHeight / 2;
+            const maxRadius = Math.min(canvasWidth, canvasHeight) * 0.35;
+
+            for (let i = 0; i < itemCount; i++) {
+                // Golden angle in radians
+                const angle = i * 2 * Math.PI / PHI;
+                // Radius increases with square root for even distribution
+                const r = maxRadius * Math.sqrt((i + 1) / itemCount);
+
+                // Add some randomness for natural look
+                const randomOffset = 0.1;
+                const rx = (Math.random() - 0.5) * 2 * randomOffset * r;
+                const ry = (Math.random() - 0.5) * 2 * randomOffset * r;
+
+                positions.push({
+                    x: centerX + r * Math.cos(angle) + rx,
+                    y: centerY + r * Math.sin(angle) + ry,
+                    rotation: Math.random() * 30 - 15, // -15 to +15 degrees
+                    scale: 0.9 + Math.random() * 0.3 // 0.9 to 1.2 scale variation
+                });
+            }
+
+            return positions;
+        }
+
+        // Generate CSA Box Visual
+        async function generateCSABoxVisual() {
+            if (csaSelectedItems.length === 0) {
+                showToast('Please add at least one item to your box', 'warning');
+                return;
+            }
+
+            // Initialize canvas if needed
+            if (!csaCanvas) {
+                initializeCSACanvas();
+            }
+
+            // Show loading state
+            const btn = document.getElementById('csaGenerateBtn');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+            btn.disabled = true;
+
+            try {
+                // Clear existing canvas
+                csaCanvas.clear();
+
+                // Get settings
+                const bgKey = document.getElementById('csaBackground').value;
+                const seasonKey = document.getElementById('csaSeason').value;
+                const headerText = document.getElementById('csaHeaderText').value;
+
+                const background = BACKGROUNDS[bgKey];
+                const palette = SEASON_PALETTES[seasonKey];
+
+                // Set background
+                csaCanvas.backgroundColor = background.color;
+
+                // Calculate positions using golden ratio spiral
+                const positions = calculateGoldenSpiralPositions(
+                    csaSelectedItems.length,
+                    csaCanvas.actualWidth,
+                    csaCanvas.actualHeight
+                );
+
+                // Add items to canvas
+                for (let i = 0; i < csaSelectedItems.length; i++) {
+                    const itemName = csaSelectedItems[i];
+                    const position = positions[i];
+                    const itemData = PRODUCE_LIBRARY[itemName] || PRODUCE_LIBRARY['default'];
+
+                    await addProduceItemToCanvas(itemData.url, position, itemData.scale);
+                }
+
+                // Add header text
+                const headerTextObj = new fabric.Text(headerText, {
+                    left: csaCanvas.actualWidth / 2 * csaCanvas.displayScale,
+                    top: 40 * csaCanvas.displayScale,
+                    fontSize: 72 * csaCanvas.displayScale,
+                    fontFamily: 'Montserrat, sans-serif',
+                    fontWeight: '700',
+                    fill: bgKey === 'marble_white' || bgKey === 'linen_cream' ? '#333333' : '#ffffff',
+                    textAlign: 'center',
+                    originX: 'center',
+                    shadow: new fabric.Shadow({
+                        color: 'rgba(0,0,0,0.3)',
+                        blur: 10 * csaCanvas.displayScale,
+                        offsetX: 2 * csaCanvas.displayScale,
+                        offsetY: 2 * csaCanvas.displayScale
+                    })
+                });
+                csaCanvas.add(headerTextObj);
+
+                // Add item list at bottom
+                const itemListText = csaSelectedItems.map(item =>
+                    item.charAt(0).toUpperCase() + item.slice(1)
+                ).join(' | ');
+
+                const itemListObj = new fabric.Text(itemListText, {
+                    left: csaCanvas.actualWidth / 2 * csaCanvas.displayScale,
+                    top: (csaCanvas.actualHeight - 60) * csaCanvas.displayScale,
+                    fontSize: 28 * csaCanvas.displayScale,
+                    fontFamily: 'Inter, sans-serif',
+                    fontWeight: '500',
+                    fill: bgKey === 'marble_white' || bgKey === 'linen_cream' ? '#666666' : '#eeeeee',
+                    textAlign: 'center',
+                    originX: 'center',
+                    opacity: 0.9
+                });
+                csaCanvas.add(itemListObj);
+
+                // Add farm branding
+                const brandingObj = new fabric.Text('TINY SEED FARM', {
+                    left: csaCanvas.actualWidth / 2 * csaCanvas.displayScale,
+                    top: (csaCanvas.actualHeight - 30) * csaCanvas.displayScale,
+                    fontSize: 18 * csaCanvas.displayScale,
+                    fontFamily: 'Montserrat, sans-serif',
+                    fontWeight: '600',
+                    fill: bgKey === 'marble_white' || bgKey === 'linen_cream' ? '#888888' : '#cccccc',
+                    textAlign: 'center',
+                    originX: 'center',
+                    letterSpacing: 200
+                });
+                csaCanvas.add(brandingObj);
+
+                csaCanvas.renderAll();
+
+                // Show export options
+                document.getElementById('csaClearBtn').style.display = 'inline-flex';
+                document.getElementById('csaDownloadBtn').style.display = 'inline-flex';
+                document.getElementById('csaExportOptions').style.display = 'block';
+
+                showToast('Box visual generated!', 'success');
+
+            } catch (error) {
+                console.error('Error generating CSA visual:', error);
+                showToast('Error generating visual. Please try again.', 'error');
+            } finally {
+                btn.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i> Generate Box Visual';
+                btn.disabled = false;
+            }
+        }
+
+        // Add produce item to canvas
+        function addProduceItemToCanvas(imageUrl, position, baseScale) {
+            return new Promise((resolve) => {
+                fabric.Image.fromURL(imageUrl, function(img) {
+                    const scale = position.scale * baseScale * 1.5 * csaCanvas.displayScale;
+
+                    img.set({
+                        left: position.x * csaCanvas.displayScale,
+                        top: position.y * csaCanvas.displayScale,
+                        scaleX: scale,
+                        scaleY: scale,
+                        angle: position.rotation,
+                        originX: 'center',
+                        originY: 'center',
+                        shadow: new fabric.Shadow({
+                            color: 'rgba(0,0,0,0.2)',
+                            blur: 15 * csaCanvas.displayScale,
+                            offsetX: 5 * csaCanvas.displayScale,
+                            offsetY: 5 * csaCanvas.displayScale
+                        })
+                    });
+
+                    csaCanvas.add(img);
+                    resolve(img);
+                }, { crossOrigin: 'anonymous' });
+            });
+        }
+
+        // Download CSA Visual
+        function downloadCSAVisual(format = 'png') {
+            if (!csaCanvas) return;
+
+            // Create a temporary canvas at full resolution
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = csaCanvas.actualWidth;
+            tempCanvas.height = csaCanvas.actualHeight;
+            const ctx = tempCanvas.getContext('2d');
+
+            // Scale factor to go from display to actual
+            const scaleFactor = 1 / csaCanvas.displayScale;
+
+            // Draw background
+            ctx.fillStyle = csaCanvas.backgroundColor;
+            ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+            // Export current canvas and draw scaled
+            const dataUrl = csaCanvas.toDataURL({
+                format: format,
+                quality: format === 'jpg' ? 0.92 : 1,
+                multiplier: scaleFactor
+            });
+
+            // Create download link
+            const link = document.createElement('a');
+            const date = new Date().toISOString().split('T')[0];
+            link.download = `csa-box-${date}.${format}`;
+            link.href = dataUrl;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showToast(`Image downloaded as ${format.toUpperCase()}!`, 'success');
+        }
+
+        // Clear CSA Canvas
+        function clearCSACanvas() {
+            if (csaCanvas) {
+                csaCanvas.clear();
+                csaCanvas.backgroundColor = '#8b4513';
+                csaCanvas.renderAll();
+            }
+            document.getElementById('csaClearBtn').style.display = 'none';
+            document.getElementById('csaDownloadBtn').style.display = 'none';
+            document.getElementById('csaExportOptions').style.display = 'none';
+        }
+
+        // Use CSA Visual in Quick Post
+        function useCSAVisualInQuickPost() {
+            if (!csaCanvas) return;
+
+            const dataUrl = csaCanvas.toDataURL({
+                format: 'png',
+                quality: 1,
+                multiplier: 1 / csaCanvas.displayScale
+            });
+
+            // Switch to Quick Post mode
+            switchCreateMode('quickpost');
+
+            // Set the preview image
+            const preview = document.getElementById('uploadPreview');
+            const uploadIcon = document.getElementById('uploadIcon');
+            const uploadText = document.getElementById('uploadText');
+            const uploadSubtext = document.getElementById('uploadSubtext');
+
+            preview.src = dataUrl;
+            preview.classList.add('visible');
+            uploadIcon.style.display = 'none';
+            uploadText.style.display = 'none';
+            uploadSubtext.style.display = 'none';
+
+            // Store data for posting
+            window.currentUploadData = dataUrl;
+            window.currentMediaType = 'image';
+
+            // Enable publish button
+            document.getElementById('blastBtn').disabled = false;
+
+            // Pre-fill caption
+            const itemList = csaSelectedItems.map(item =>
+                item.charAt(0).toUpperCase() + item.slice(1)
+            ).join(', ');
+
+            const headerText = document.getElementById('csaHeaderText').value;
+            document.getElementById('captionInput').value = `${headerText}:\n\n${itemList}\n\nFresh from the farm to your table!\n\n#CSA #FarmFresh #TinySeedFarm #LocalFood #Pittsburgh`;
+            updateCharCount();
+
+            showToast('Visual added to Quick Post!', 'success');
+        }
+
+        // Toggle color palettes section
+        function toggleCSAColorPalettes() {
+            const body = document.getElementById('csaPaletteBody');
+            const icon = document.getElementById('csaPaletteToggleIcon');
+            if (body.style.display === 'none') {
+                body.style.display = 'block';
+                icon.style.transform = 'rotate(180deg)';
+            } else {
+                body.style.display = 'none';
+                icon.style.transform = 'rotate(0deg)';
+            }
         }
 
         // Initialize all mobile features on page load
