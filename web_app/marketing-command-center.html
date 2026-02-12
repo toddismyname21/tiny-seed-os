@@ -14361,16 +14361,11 @@ Would you like to test posting to Threads?`;
             console.log('Marketing Command Center v6.0 - INSTANT UI - Active!');
         });
 
-        // Background bulk load with timeout (doesn't block UI)
+        // Background bulk load - NO TIMEOUT (let it complete, API is slow but works)
         async function loadBulkDashboardData() {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
-
             try {
-                const response = await fetch(`${API_URL}?action=getMarketingDashboardBulk`, {
-                    signal: controller.signal
-                });
-                clearTimeout(timeoutId);
+                console.log('Loading bulk dashboard data...');
+                const response = await fetch(`${API_URL}?action=getMarketingDashboardBulk`);
                 const bulkData = await response.json();
 
                 if (bulkData.success) {
@@ -14405,15 +14400,10 @@ Would you like to test posting to Threads?`;
                             brainBadge.textContent = bulkData.tasks.urgent;
                         }
                     }
-                    console.log('Bulk dashboard data loaded');
+                    console.log('Bulk dashboard data loaded successfully');
                 }
             } catch (e) {
-                clearTimeout(timeoutId);
-                if (e.name === 'AbortError') {
-                    console.log('Bulk load timed out - using cached/local data');
-                } else {
-                    console.warn('Bulk load failed:', e.message);
-                }
+                console.warn('Bulk load failed:', e.message);
             }
         }
 
@@ -15508,34 +15498,26 @@ Would you like to test posting to Threads?`;
             }
         }
 
-        // Helper: Load actions with timeout to prevent slow loading
+        // Helper: Load actions - NO TIMEOUT (API is slow but works)
         async function loadActionsWithTimeout(timeoutMs) {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
             try {
+                console.log('Loading action queue...');
                 // Try unified task system first
-                const response = await fetch(`${API_URL}?action=getMarketingTasksFromUnified`, {
-                    signal: controller.signal
-                });
-                clearTimeout(timeoutId);
+                const response = await fetch(`${API_URL}?action=getMarketingTasksFromUnified`);
                 const data = await response.json();
 
                 if (data.success && data.actionQueue) {
+                    console.log('Actions loaded from unified system');
                     return data.actionQueue;
                 }
 
-                // Fallback to legacy with shorter timeout
-                const controller2 = new AbortController();
-                const timeoutId2 = setTimeout(() => controller2.abort(), 5000);
-
-                const legacyResponse = await fetch(`${API_URL}?action=getSocialActionQueue`, {
-                    signal: controller2.signal
-                });
-                clearTimeout(timeoutId2);
+                // Fallback to legacy
+                console.log('Trying legacy action queue...');
+                const legacyResponse = await fetch(`${API_URL}?action=getSocialActionQueue`);
                 const legacyData = await legacyResponse.json();
 
                 if (legacyData.success) {
+                    console.log('Actions loaded from legacy system');
                     return {
                         urgent: legacyData.briefing?.urgentActions || legacyData.actionQueue?.urgent || [],
                         today: legacyData.briefing?.todayActions || legacyData.actionQueue?.today || []
@@ -15544,12 +15526,7 @@ Would you like to test posting to Threads?`;
 
                 return null;
             } catch (e) {
-                clearTimeout(timeoutId);
-                if (e.name === 'AbortError') {
-                    console.log('Action queue fetch timed out - using cached data');
-                } else {
-                    console.error('Error fetching actions:', e);
-                }
+                console.error('Error fetching actions:', e);
                 return null;
             }
         }
@@ -15577,66 +15554,7 @@ Would you like to test posting to Threads?`;
                 if (el) el.textContent = '0';
             }
 
-            // 2. Wait 12 seconds for bulk endpoint, then check if we need fallback
-            setTimeout(async () => {
-                const igFarmEl = document.getElementById('igFarmFollowersCard');
-
-                // If bulk data didn't load (still showing --), fetch via getSocialStats
-                if (igFarmEl && igFarmEl.textContent === '--') {
-                    console.log('Bulk data not loaded, fetching via getSocialStats fallback...');
-                    try {
-                        const controller = new AbortController();
-                        const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-                        const response = await fetch(`${API_URL}?action=getSocialStats`, {
-                            signal: controller.signal
-                        });
-                        clearTimeout(timeoutId);
-                        const data = await response.json();
-
-                        if (data.success && data.stats) {
-                            const ig = data.stats.instagram || {};
-                            let totalFollowers = 0;
-
-                            // Find accounts and update cards
-                            const farmData = ig['Tiny Seed Farm'] || Object.values(ig).find(a => a.handle?.includes('tinyseedfarm')) || {};
-                            const fleursData = ig['Tiny Seed Fleurs'] || Object.values(ig).find(a => a.handle?.includes('fleurs')) || {};
-                            const fungiData = ig['Tiny Seed Fungi'] || Object.values(ig).find(a => a.handle?.includes('fungi')) || {};
-
-                            if (farmData.followers) {
-                                document.getElementById('igFarmFollowersCard').textContent = formatNumber(farmData.followers);
-                                totalFollowers += farmData.followers;
-                            }
-                            if (fleursData.followers) {
-                                const el = document.getElementById('igFleursFollowersCard');
-                                if (el) el.textContent = formatNumber(fleursData.followers);
-                                totalFollowers += fleursData.followers;
-                            }
-                            if (fungiData.followers) {
-                                const el = document.getElementById('igFungiFollowersCard');
-                                if (el) el.textContent = formatNumber(fungiData.followers);
-                                totalFollowers += fungiData.followers;
-                            }
-
-                            // Update total
-                            const totalEl = document.getElementById('totalFollowersCard');
-                            if (totalEl && totalFollowers > 0) {
-                                totalEl.textContent = formatNumber(totalFollowers);
-                            }
-
-                            console.log('Follower data loaded via fallback:', totalFollowers);
-                        }
-                    } catch (e) {
-                        if (e.name === 'AbortError') {
-                            console.log('getSocialStats fallback timed out');
-                        } else {
-                            console.warn('getSocialStats fallback failed:', e.message);
-                        }
-                    }
-                } else {
-                    console.log('Stats already loaded via bulk endpoint');
-                }
-            }, 12000); // Wait 12s for bulk to finish first
+            // Follower data is loaded by loadBulkDashboardData() - no extra calls needed
         }
 
         function showEmptyActionStates() {
