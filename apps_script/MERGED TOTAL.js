@@ -132739,7 +132739,7 @@ function autoFillSeasonalContent(params) {
 // Added 2026-02-12 - Competitive with Hootsuite, Sprout Social, etc.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const SOCIAL_LISTENING_CONFIG = {
+const SOCIAL_LISTENING_EXTENDED = {
   hashtags: ['#farmersmarket', '#organicfarm', '#csafarm', '#locallygrown', '#tinyseedfarm', '#pittsburghfarmersmarket', '#localfood', '#farmtotable', '#organicproduce', '#csabox', '#eatlocal', '#supportlocalfarms', '#sustainablefarming', '#rochesterpa', '#pittsburgh', '#westernpa'],
   brandMentions: ['tiny seed', 'tinyseed', 'tiny seed farm', 'tinyseedfarm', 'tiny seed fleurs', 'tinyseedfleurs', 'tiny seed fungi', 'tinyseedfungi', '@tinyseedfarm', '@tinyseedfleurs', '@tinyseedfungi'],
   competitorHandles: ['kretschmannfarm', 'whocanyon', 'farmersmarketpgh'],
@@ -132780,11 +132780,11 @@ function getSocialListeningConfig(params) {
     return {
       success: true,
       config: {
-        hashtags: customHashtags ? JSON.parse(customHashtags) : SOCIAL_LISTENING_CONFIG.hashtags,
-        brandMentions: customBrands ? JSON.parse(customBrands) : SOCIAL_LISTENING_CONFIG.brandMentions,
-        competitorHandles: customCompetitors ? JSON.parse(customCompetitors) : SOCIAL_LISTENING_CONFIG.competitorHandles,
-        engagementKeywords: SOCIAL_LISTENING_CONFIG.engagementKeywords,
-        urgentKeywords: SOCIAL_LISTENING_CONFIG.urgentKeywords
+        hashtags: customHashtags ? JSON.parse(customHashtags) : SOCIAL_LISTENING_EXTENDED.hashtags,
+        brandMentions: customBrands ? JSON.parse(customBrands) : SOCIAL_LISTENING_EXTENDED.brandMentions,
+        competitorHandles: customCompetitors ? JSON.parse(customCompetitors) : SOCIAL_LISTENING_EXTENDED.competitorHandles,
+        engagementKeywords: SOCIAL_LISTENING_EXTENDED.engagementKeywords,
+        urgentKeywords: SOCIAL_LISTENING_EXTENDED.urgentKeywords
       },
       lastUpdated: props.getProperty('SOCIAL_LISTENING_CONFIG_UPDATED') || null
     };
@@ -132818,8 +132818,8 @@ function analyzeSentimentQuick(text) {
 function determineMentionPriority(text) {
   if (!text) return 'low';
   const lowerText = text.toLowerCase();
-  if (SOCIAL_LISTENING_CONFIG.urgentKeywords.some(kw => lowerText.includes(kw))) return 'high';
-  if (SOCIAL_LISTENING_CONFIG.engagementKeywords.some(kw => lowerText.includes(kw))) return 'medium';
+  if (SOCIAL_LISTENING_EXTENDED.urgentKeywords.some(kw => lowerText.includes(kw))) return 'high';
+  if (SOCIAL_LISTENING_EXTENDED.engagementKeywords.some(kw => lowerText.includes(kw))) return 'medium';
   return 'low';
 }
 
@@ -132961,8 +132961,8 @@ function getSocialListeningDashboard(params) {
       success: true,
       stats: { mentions24h: mentions24h || combinedMentions.filter(function(m) { return new Date(m.timestamp) >= last24h; }).length, mentions7d: mentions7d || combinedMentions.length, positiveCount: positiveCount || Math.floor(combinedMentions.length * 0.7), negativeCount: negativeCount, neutralCount: (mentions7d || combinedMentions.length) - (positiveCount || Math.floor(combinedMentions.length * 0.7)) - negativeCount, unrespondedCount: unrespondedCount || combinedMentions.length, avgSentiment: mentions7d > 0 ? ((positiveCount / mentions7d) * 0.5 + 0.25).toFixed(2) : '0.72' },
       recentMentions: combinedMentions.length > 0 ? combinedMentions.slice(0, 20) : recentMentions,
-      monitoredHashtags: config.success ? config.config.hashtags : SOCIAL_LISTENING_CONFIG.hashtags,
-      monitoredBrands: config.success ? config.config.brandMentions : SOCIAL_LISTENING_CONFIG.brandMentions,
+      monitoredHashtags: config.success ? config.config.hashtags : SOCIAL_LISTENING_EXTENDED.hashtags,
+      monitoredBrands: config.success ? config.config.brandMentions : SOCIAL_LISTENING_EXTENDED.brandMentions,
       alerts: getListeningAlerts(),
       isSimulated: combinedMentions.some(function(m) { return m.id && m.id.toString().startsWith('sim_'); }),
       lastUpdated: new Date().toISOString()
@@ -133023,7 +133023,7 @@ function getHashtagAnalytics(params) {
     var sheet = initHashtagTrackingSheet();
     var data = sheet.getDataRange().getValues();
     var config = getSocialListeningConfig({});
-    var hashtags = config.success ? config.config.hashtags : SOCIAL_LISTENING_CONFIG.hashtags;
+    var hashtags = config.success ? config.config.hashtags : SOCIAL_LISTENING_EXTENDED.hashtags;
     var analytics = {};
     hashtags.slice(0, 10).forEach(function(tag) { analytics[tag] = { totalPosts: Math.floor(Math.random() * 500) + 100, totalEngagement: Math.floor(Math.random() * 5000) + 500, avgSentiment: (Math.random() * 0.3 + 0.6).toFixed(2), trendingScore: Math.floor(Math.random() * 50) + 50, weekOverWeek: (Math.random() * 20 - 5).toFixed(1) + '%' }; });
     return { success: true, hashtags: analytics, monitoredCount: hashtags.length, period: '30_days', fetchedAt: new Date().toISOString() };
@@ -133085,7 +133085,7 @@ function getSocialListeningStatus() {
     var sheet = initSocialListeningSheet();
     var data = sheet.getDataRange().getValues();
     var lastMention = data.length > 1 ? data[data.length - 1][9] : null;
-    return { success: true, status: { instagramConnected: accounts.length > 0, accountCount: accounts.length, automatedScanEnabled: hasTrigger, totalMentionsTracked: Math.max(0, data.length - 1), lastMentionDetected: lastMention, configuredHashtags: SOCIAL_LISTENING_CONFIG.hashtags.length, configuredBrands: SOCIAL_LISTENING_CONFIG.brandMentions.length }, recommendations: accounts.length === 0 ? ['Connect Instagram accounts in Settings to enable live monitoring'] : [] };
+    return { success: true, status: { instagramConnected: accounts.length > 0, accountCount: accounts.length, automatedScanEnabled: hasTrigger, totalMentionsTracked: Math.max(0, data.length - 1), lastMentionDetected: lastMention, configuredHashtags: SOCIAL_LISTENING_EXTENDED.hashtags.length, configuredBrands: SOCIAL_LISTENING_EXTENDED.brandMentions.length }, recommendations: accounts.length === 0 ? ['Connect Instagram accounts in Settings to enable live monitoring'] : [] };
   } catch (error) { return { success: false, error: error.toString() }; }
 }
 
