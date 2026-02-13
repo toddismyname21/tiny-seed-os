@@ -4786,7 +4786,7 @@
             <i class="fas fa-plane"></i> Auto-Pilot
             <span class="badge new" style="background: var(--success);">NEW</span>
         </button>
-        END ARCHIVED NAV BUTTONS -->
+        <!-- END ARCHIVED NAV BUTTONS -->
     </div>
 
     <!-- MAIN CONTENT -->
@@ -13908,7 +13908,29 @@
                                         <i class="fas fa-lightbulb"></i> Best time: ${suggestedDay} at ${suggestedTime}
                                     </p>
                                     <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem; flex-wrap: wrap;">
-                                        <button class="btn btn-sm btn-primary" onclick="scheduleRepost('${item.id}', \`${escapeHtmlEvergreen(item.content).replace(/`/g, '\\`')}\`)">
+                                        <button class="btn btn-sm btn-primary" onclick="scheduleRepost('${item.id}', '${escapeHtmlEvergreen(item.content).substring(0,100)}')">
+                                            <i class="fas fa-calendar-plus"></i> Schedule Repost
+                                        </button>
+                                        <button class="btn btn-sm btn-secondary" onclick="editEvergreen('${item.id}')">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('') + '</div>';
+                    } else {
+                        container.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 2rem;">No evergreen posts to recycle yet. Create some in the Engage tab!</p>';
+                    }
+                } else {
+                    container.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 2rem;">No content available for recycling.</p>';
+                }
+            } catch (error) {
+                    console.error('Error loading recycle suggestions:', error);
+                    container.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 2rem;">Error loading suggestions. Try again later.</p>';
+                }
+            }
+        }
+
         function switchCreateMode(mode) {
             const quickPostMode = document.getElementById('quickPostMode');
             const aiStudioMode = document.getElementById('aiStudioMode');
@@ -23648,7 +23670,6 @@ Would you like to test posting to Threads?`;
         // VOICE LEARNING ENGINE - Analyzes past posts to learn brand voice
         // ═══════════════════════════════════════════════════════════════════════════
 
-        const VOICE_PROFILE_KEY = 'tinyseed_voice_profile';
         const VOICE_PROFILE_KEY = 'tinyseed_voice_profile';
 
         function getVoiceProfile() {
