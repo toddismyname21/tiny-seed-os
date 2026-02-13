@@ -5036,7 +5036,7 @@
                             <button id="btnRefreshBriefing" class="btn btn-primary" onclick="refreshBriefing()">
                                 <i class="fas fa-sync-alt"></i> Refresh
                             </button>
-                            <button id="btnPlanWeek" class="btn btn-secondary" onclick="generateContentCalendar()">
+                            <button id="btnPlanWeek" class="btn btn-secondary" onclick="switchTab('contentcalendar')">
                                 <i class="fas fa-calendar-plus"></i> Plan Week
                             </button>
                             <button id="btnLearnVoice" class="btn" onclick="learnVoiceFromPosts()" style="background: linear-gradient(135deg, var(--purple), var(--instagram)); color: white;">
@@ -5166,8 +5166,8 @@
                         <i class="fas fa-eye"></i> This week
                     </div>
                 </div>
-                <!-- KPI 4: Best Posting Time -->
-                <div class="stat-card" style="border-left: 3px solid var(--warning);">
+                <!-- KPI 4: Best Posting Time - CLICKABLE -->
+                <div class="stat-card" style="border-left: 3px solid var(--warning); cursor: pointer;" onclick="goToCreateWithTime()" title="Click to create a post at this time">
                     <div class="stat-label" id="brainBestTimeLabel">Next Best Time</div>
                     <div class="stat-value" id="brainBestTime" style="color: var(--warning); font-size: 1.25rem;">--</div>
                     <div class="stat-change neutral" id="brainBestTimeQuality">
@@ -13271,6 +13271,42 @@
                 loadMarketSchedule();
             } else if (tabId === 'designstudio') {
                 initializeDesignStudio();
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // GO TO CREATE TAB WITH OPTIMAL TIME PRE-FILLED
+        // Added 2026-02-13: Click "Best Time" KPI to jump to Create with time set
+        // ═══════════════════════════════════════════════════════════════════════════
+        function goToCreateWithTime() {
+            // Get the optimal time from MARKETING_STATE
+            const optimalTime = MARKETING_STATE.recommendations.nextBestPostTime;
+
+            // Switch to Create tab
+            switchTab('create');
+
+            // Show toast with the optimal time
+            if (optimalTime) {
+                const timeStr = optimalTime.isToday ? optimalTime.time : `${optimalTime.day} at ${optimalTime.time}`;
+                showToast(`Best time to post: ${timeStr}`, 'success');
+
+                // If there's a schedule picker, pre-fill it
+                const schedulePicker = document.getElementById('scheduleDateTimePicker');
+                if (schedulePicker && optimalTime.isToday) {
+                    // Set to today's optimal time
+                    const now = new Date();
+                    const [hours, minutes] = optimalTime.time.replace(/[AP]M/i, '').trim().split(':');
+                    let hour = parseInt(hours);
+                    if (optimalTime.time.toLowerCase().includes('pm') && hour !== 12) hour += 12;
+                    if (optimalTime.time.toLowerCase().includes('am') && hour === 12) hour = 0;
+                    now.setHours(hour, parseInt(minutes) || 0, 0, 0);
+
+                    // Format for datetime-local input
+                    const formatted = now.toISOString().slice(0, 16);
+                    schedulePicker.value = formatted;
+                }
+            } else {
+                showToast('Create your post!', 'info');
             }
         }
 
