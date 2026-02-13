@@ -5044,43 +5044,53 @@
                 </div>
             </div>
 
-            <!-- Week in Review - Sunday Journal (Updated 2026-02-13) -->
+            <!-- FARM JOURNAL - Continuous Knowledge Building (Updated 2026-02-13) -->
             <div class="card" style="margin-top: 1.5rem; background: linear-gradient(135deg, rgba(255, 182, 72, 0.15) 0%, rgba(255, 145, 77, 0.1) 100%); border: 1px solid rgba(255, 182, 72, 0.4);">
                 <div class="card-header" style="border-left: 4px solid var(--gold); cursor: pointer;" onclick="toggleWeekInReview()">
                     <h3 style="display: flex; align-items: center; gap: 0.5rem;">
-                        <i class="fas fa-journal-whills" style="color: var(--gold);"></i> Week in Review
+                        <i class="fas fa-book-open" style="color: var(--gold);"></i> Farm Journal
+                        <span style="font-size: 0.65rem; background: rgba(255,182,72,0.3); padding: 0.2rem 0.5rem; border-radius: 4px; color: var(--gold);">AI LEARNS FROM THIS</span>
                     </h3>
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <span id="journalStatusBadge" class="badge" style="background: var(--gold); color: #000;">Sunday 11am</span>
+                        <span id="journalStatusBadge" class="badge" style="background: var(--gold); color: #000;">Add Entry Anytime</span>
                         <span id="lastEntryDate" style="font-size: 0.75rem; color: var(--text-secondary);"></span>
                         <i id="weekReviewToggle" class="fas fa-chevron-down" style="color: var(--gold); transition: transform 0.3s;"></i>
                     </div>
                 </div>
                 <div id="weekInReviewBody" class="card-body" style="display: none;">
-                    <!-- Current week's prompt -->
+                    <!-- Explanation of Farm Journal Purpose -->
+                    <div style="background: rgba(67, 97, 238, 0.1); border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem; border-left: 3px solid var(--info);">
+                        <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0;">
+                            <i class="fas fa-lightbulb" style="color: var(--info);"></i>
+                            <strong>What is this?</strong> Every entry becomes farm knowledge. AI uses your journal to write better posts, understand seasonal patterns, and capture your authentic voice over time.
+                        </p>
+                    </div>
+
+                    <!-- Quick Entry Prompts -->
                     <div style="background: rgba(0,0,0,0.2); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
                         <h4 style="font-size: 0.9rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
-                            <i class="fas fa-pen-fancy" style="color: var(--gold);"></i> This Week's Writing Prompt
+                            <i class="fas fa-pen-fancy" style="color: var(--gold);"></i> Quick Prompts (or write whatever's on your mind)
                         </h4>
                         <div id="currentWeekPrompts" style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6;">
-                            <p style="margin-bottom: 0.5rem;">1. What's looking great in the fields this week?</p>
-                            <p style="margin-bottom: 0.5rem;">2. Any customer moments worth sharing?</p>
-                            <p>3. What's exciting you about this week?</p>
+                            <p style="margin-bottom: 0.5rem;">• What's looking great in the fields right now?</p>
+                            <p style="margin-bottom: 0.5rem;">• Any customer moments worth remembering?</p>
+                            <p style="margin-bottom: 0.5rem;">• What's blooming, harvesting, or changing?</p>
+                            <p>• What would you tell a friend about the farm today?</p>
                         </div>
                         <div style="display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap;">
                             <button class="btn btn-sm" style="background: var(--gold); color: #000;" onclick="openWeeklyJournalEntry()">
-                                <i class="fas fa-edit"></i> Write Entry
+                                <i class="fas fa-plus"></i> Add Journal Entry
                             </button>
                             <button class="btn btn-sm btn-secondary" onclick="sendManualPrompt()">
-                                <i class="fas fa-sms"></i> Send SMS Prompt
+                                <i class="fas fa-sms"></i> SMS Prompt to Team
                             </button>
                         </div>
                     </div>
 
-                    <!-- Todd's Response (if any) -->
+                    <!-- Team Responses (Todd, Loren, etc.) -->
                     <div id="toddResponseSection" style="background: rgba(42, 157, 143, 0.15); border-radius: 12px; padding: 1rem; margin-bottom: 1rem; border-left: 3px solid var(--success); display: none;">
                         <h4 style="font-size: 0.9rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
-                            <i class="fas fa-comment-dots" style="color: var(--success);"></i> Todd's Response
+                            <i class="fas fa-comment-dots" style="color: var(--success);"></i> Latest Team Entry
                             <span id="responseTimestamp" style="font-size: 0.7rem; color: var(--text-secondary);"></span>
                         </h4>
                         <div id="toddResponseContent" style="font-size: 0.85rem; color: var(--text-primary); font-style: italic; padding: 0.5rem; background: rgba(0,0,0,0.2); border-radius: 8px;">
@@ -5548,8 +5558,8 @@
                                 <div id="optimalTimeSource" style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.25rem; opacity: 0.7;"></div>
                             </div>
                             <div style="text-align: center;">
-                                <button class="btn btn-primary" onclick="switchTab('create')" style="background: linear-gradient(135deg, var(--success), var(--info));">
-                                    <i class="fas fa-edit"></i> Create Post Now
+                                <button class="btn btn-primary" onclick="createAIPrefilledPost()" style="background: linear-gradient(135deg, var(--success), var(--info));">
+                                    <i class="fas fa-magic"></i> Create Post Now
                                 </button>
                             </div>
                         </div>
@@ -13273,50 +13283,166 @@
 
         // ═══════════════════════════════════════════════════════════════════════════
         // GO TO CREATE TAB WITH OPTIMAL TIME PRE-FILLED
-        // Added 2026-02-13: Click "Best Time" KPI to jump to Create with time set
+        // Updated 2026-02-13: Made more robust with better error handling
         // ═══════════════════════════════════════════════════════════════════════════
         function goToCreateWithTime() {
+            console.log('goToCreateWithTime called'); // Debug log
+
+            // ALWAYS switch to Create tab first - this should NEVER fail
+            switchTab('create');
+
             try {
                 // Initialize MARKETING_STATE if needed
-                if (!MARKETING_STATE.recommendations || !MARKETING_STATE.recommendations.lastUpdated) {
-                    MARKETING_STATE.init();
-                }
+                if (typeof MARKETING_STATE !== 'undefined') {
+                    if (!MARKETING_STATE.recommendations || !MARKETING_STATE.recommendations.lastUpdated) {
+                        MARKETING_STATE.init();
+                    }
 
-                // Get the optimal time from MARKETING_STATE
-                const optimalTime = MARKETING_STATE.recommendations?.nextBestPostTime;
+                    // Get the optimal time from MARKETING_STATE
+                    const optimalTime = MARKETING_STATE.recommendations?.nextBestPostTime;
 
-                // Switch to Create tab
-                switchTab('create');
+                    // Show toast with the optimal time
+                    if (optimalTime && optimalTime.time) {
+                        const timeStr = optimalTime.isToday ? optimalTime.time : `${optimalTime.day} at ${optimalTime.time}`;
+                        showToast(`Best time to post: ${timeStr}`, 'success');
 
-                // Show toast with the optimal time
-                if (optimalTime && optimalTime.time) {
-                    const timeStr = optimalTime.isToday ? optimalTime.time : `${optimalTime.day} at ${optimalTime.time}`;
-                    showToast(`Best time to post: ${timeStr}`, 'success');
-
-                    // If there's a schedule picker, pre-fill it
-                    const schedulePicker = document.getElementById('scheduleDateTimePicker');
-                    if (schedulePicker && optimalTime.isToday) {
-                        // Set to today's optimal time
-                        const now = new Date();
-                        const [hours, minutes] = optimalTime.time.replace(/[AP]M/i, '').trim().split(':');
-                        let hour = parseInt(hours);
-                        if (optimalTime.time.toLowerCase().includes('pm') && hour !== 12) hour += 12;
-                        if (optimalTime.time.toLowerCase().includes('am') && hour === 12) hour = 0;
-                        now.setHours(hour, parseInt(minutes) || 0, 0, 0);
-
-                        // Format for datetime-local input
-                        const formatted = now.toISOString().slice(0, 16);
-                        schedulePicker.value = formatted;
+                        // If there's a schedule picker, pre-fill it
+                        setTimeout(() => {
+                            const schedulePicker = document.getElementById('scheduleDateTimePicker');
+                            if (schedulePicker && optimalTime.date) {
+                                try {
+                                    const formatted = optimalTime.date.toISOString().slice(0, 16);
+                                    schedulePicker.value = formatted;
+                                } catch (e) {
+                                    console.warn('Could not set schedule picker:', e);
+                                }
+                            }
+                        }, 100);
+                    } else {
+                        showToast('Create your post now!', 'info');
                     }
                 } else {
                     showToast('Create your post now!', 'info');
                 }
             } catch (error) {
                 console.error('goToCreateWithTime error:', error);
-                // Still switch to Create tab even if there's an error
-                switchTab('create');
                 showToast('Create your post!', 'info');
             }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // CREATE AI-PREFILLED POST - Uses all intelligence to generate ready-to-post content
+        // Added 2026-02-13: "Create Post Now" from AI Intelligence should pre-fill everything
+        // ═══════════════════════════════════════════════════════════════════════════
+        async function createAIPrefilledPost() {
+            console.log('createAIPrefilledPost called');
+            showToast('Generating AI post...', 'info');
+
+            // Switch to Create tab first
+            switchTab('create');
+
+            try {
+                // Initialize MARKETING_STATE if needed
+                if (typeof MARKETING_STATE !== 'undefined' && !MARKETING_STATE.recommendations?.lastUpdated) {
+                    MARKETING_STATE.init();
+                }
+
+                // Get context from all available intelligence
+                const optimalTime = MARKETING_STATE?.recommendations?.nextBestPostTime;
+                const contentType = MARKETING_STATE?.recommendations?.nextBestPostType;
+                const weatherData = MARKETING_STATE?.recommendations?.weatherContext;
+                const seoKeywords = MARKETING_STATE?.recommendations?.seoKeywords || [];
+
+                // Get current account
+                const currentAccount = selectedAccount || 'farm';
+
+                // Generate AI caption using available context
+                const context = {
+                    account: currentAccount,
+                    contentType: contentType?.type || 'farm_update',
+                    weather: weatherData,
+                    keywords: seoKeywords,
+                    season: getCurrentSeason(),
+                    dayOfWeek: new Date().toLocaleDateString('en-US', { weekday: 'long' })
+                };
+
+                // Call API to generate AI content
+                const response = await fetch(`${API_URL}?action=generateSmartCaption`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(context)
+                });
+                const data = await response.json();
+
+                // Wait for tab switch to complete
+                await new Promise(resolve => setTimeout(resolve, 200));
+
+                // Pre-fill the caption textarea (ID: captionInput in Create tab)
+                const captionArea = document.getElementById('captionInput');
+                if (captionArea && data.success && data.caption) {
+                    captionArea.value = data.caption;
+                    captionArea.dispatchEvent(new Event('input', { bubbles: true }));
+                    showToast('AI post ready! Review and publish.', 'success');
+                } else {
+                    // Fallback: Generate local caption if API fails or captionArea not found yet
+                    setTimeout(() => {
+                        const delayedCaptionArea = document.getElementById('captionInput');
+                        if (delayedCaptionArea) {
+                            const fallbackCaption = generateLocalSmartCaption(context);
+                            delayedCaptionArea.value = fallbackCaption;
+                            delayedCaptionArea.dispatchEvent(new Event('input', { bubbles: true }));
+                            showToast('Post ready! Review and publish.', 'success');
+                        }
+                    }, 300);
+                }
+
+                // Pre-fill optimal time if available
+                if (optimalTime && optimalTime.date) {
+                    const schedulePicker = document.getElementById('scheduleDateTimePicker');
+                    if (schedulePicker) {
+                        try {
+                            const formatted = optimalTime.date.toISOString().slice(0, 16);
+                            schedulePicker.value = formatted;
+                        } catch (e) { /* ignore */ }
+                    }
+                }
+
+                // Select the right account
+                if (typeof selectAccount === 'function') {
+                    selectAccount(currentAccount);
+                }
+
+            } catch (error) {
+                console.error('createAIPrefilledPost error:', error);
+                showToast('Could not generate AI post. Create manually.', 'warning');
+            }
+        }
+
+        // Helper: Generate local smart caption when API unavailable
+        function generateLocalSmartCaption(context) {
+            const templates = {
+                farm_update: [
+                    `🌱 Fresh from the fields! ${context.dayOfWeek} is bringing great things from the farm.`,
+                    `🚜 Farm life update: Another beautiful ${context.dayOfWeek} at Tiny Seed Farm!`,
+                    `🥬 What's growing this week? Stop by to see what's fresh!`
+                ],
+                harvest: [
+                    `🥕 Harvest day! Fresh picks ready for you.`,
+                    `🌿 Just harvested and ready for your table.`
+                ],
+                behind_scenes: [
+                    `👨‍🌾 Behind the scenes at the farm today...`,
+                    `🌅 Early mornings at Tiny Seed Farm...`
+                ],
+                community: [
+                    `💚 Thank you to our amazing community!`,
+                    `🙏 We love serving our local community.`
+                ]
+            };
+
+            const type = context.contentType || 'farm_update';
+            const options = templates[type] || templates.farm_update;
+            return options[Math.floor(Math.random() * options.length)];
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -25978,6 +26104,7 @@ Would you like to test posting to Threads?`;
         }
 
         // Navigate to the appropriate place for a task
+        // Updated 2026-02-13: Auto-selects account when navigating to Create tab
         function navigateToTask(type, index) {
             const actions = type === 'urgent' ? brainData.actionQueue?.urgent : brainData.actionQueue?.today;
             const action = actions?.[index];
@@ -25991,7 +26118,30 @@ Would you like to test posting to Threads?`;
             } else if (destination.tab) {
                 // Switch to the appropriate tab
                 switchTab(destination.tab);
-                showToast(`Switched to ${destination.tab.toUpperCase()} tab`, 'info');
+
+                // AUTO-SELECT ACCOUNT if task is for a specific account
+                if (action.account && destination.tab === 'create') {
+                    // Map account names to account IDs
+                    const accountMap = {
+                        'tinyseedfarm': 'farm',
+                        'tinyseedfleurs': 'fleurs',
+                        'tinyseedfungi': 'fungi',
+                        'farm': 'farm',
+                        'fleurs': 'fleurs',
+                        'fungi': 'fungi'
+                    };
+                    const accountId = accountMap[action.account.toLowerCase().replace('@', '')] || action.account;
+
+                    // Small delay to ensure tab switch completes
+                    setTimeout(() => {
+                        if (typeof selectAccount === 'function') {
+                            selectAccount(accountId);
+                            showToast(`Creating post for @tinyseed${accountId}`, 'success');
+                        }
+                    }, 100);
+                } else {
+                    showToast(`Switched to ${destination.tab.toUpperCase()} tab`, 'info');
+                }
             }
         }
 
@@ -26683,12 +26833,20 @@ Would you like to test posting to Threads?`;
         async function sendManualPrompt() {
             const btn = event.target.closest('button');
             const originalHTML = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending to team...';
             btn.disabled = true;
             try {
                 const response = await fetch(`${API_URL}?action=sendWeeklyWritingPrompts`);
                 const data = await response.json();
-                if (data.success) { showToast('Writing prompt SMS sent to Todd!', 'success'); const badge = document.getElementById('journalStatusBadge'); if (badge) { badge.style.background = 'var(--warning)'; badge.textContent = 'Prompt Sent'; } }
+                if (data.success) {
+                    // Updated 2026-02-13: Now sends to Todd (farm) and Loren (flowers)
+                    showToast('Journal prompts sent to Todd & Loren!', 'success');
+                    const badge = document.getElementById('journalStatusBadge');
+                    if (badge) {
+                        badge.style.background = 'var(--warning)';
+                        badge.textContent = 'Prompts Sent';
+                    }
+                }
                 else { showToast(data.error || 'Failed to send SMS', 'error'); }
             } catch (error) { console.error('Error sending manual prompt:', error); showToast('Failed to send prompt SMS', 'error'); }
             finally { btn.innerHTML = originalHTML; btn.disabled = false; }
@@ -26740,25 +26898,56 @@ Would you like to test posting to Threads?`;
         }
 
         function openWeeklyJournalEntry() {
-            // Open modal for writing entry
+            // Open modal for writing entry - Farm Journal concept (updated 2026-02-13)
             const modal = document.createElement('div');
             modal.id = 'journalEntryModal';
-            modal.style.cssText = 'position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9999; display: flex; align-items: center; justify-content: center;';
+            modal.style.cssText = 'position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 1rem;';
+
+            const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
             modal.innerHTML = `
-                <div style="background: var(--bg-card); padding: 2rem; border-radius: 16px; max-width: 600px; width: 90%; border: 1px solid rgba(255, 182, 72, 0.3);">
-                    <h2 style="margin-bottom: 1rem;"><i class="fas fa-journal-whills" style="color: var(--gold);"></i> Week in Review</h2>
-                    <p style="color: var(--text-secondary); margin-bottom: 1rem;">What happened this week? AI will turn this into content.</p>
-                    <textarea id="journalEntryText" rows="8" style="width: 100%; padding: 1rem; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: var(--text-primary); resize: vertical;"
-                        placeholder="What's looking great in the fields?&#10;Any memorable customer moments?&#10;What excited you this week?"></textarea>
-                    <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem;">
+                <div style="background: var(--bg-card); padding: 2rem; border-radius: 16px; max-width: 650px; width: 100%; border: 1px solid rgba(255, 182, 72, 0.3); max-height: 90vh; overflow-y: auto;">
+                    <h2 style="margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-book-open" style="color: var(--gold);"></i> Farm Journal Entry
+                    </h2>
+                    <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                        <i class="fas fa-calendar"></i> ${today}
+                    </p>
+
+                    <div style="background: rgba(67, 97, 238, 0.1); border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem; font-size: 0.8rem;">
+                        <p style="margin: 0; color: var(--text-secondary);">
+                            <i class="fas fa-brain" style="color: var(--info);"></i>
+                            <strong>AI learns from every entry.</strong> Share what's happening on the farm - the more you write, the better AI understands your farm's story and creates authentic content.
+                        </p>
+                    </div>
+
+                    <textarea id="journalEntryText" rows="10" style="width: 100%; padding: 1rem; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: var(--text-primary); resize: vertical; font-size: 1rem; line-height: 1.5;"
+                        placeholder="What's happening on the farm today?&#10;&#10;Ideas:&#10;• What's looking great in the fields?&#10;• Any memorable customer interactions?&#10;• What's blooming or ready to harvest?&#10;• Something funny that happened?&#10;• A challenge you're working through?&#10;• What you're proud of this week?"></textarea>
+
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem; flex-wrap: wrap;">
+                        <span style="font-size: 0.75rem; color: var(--text-secondary); background: rgba(0,0,0,0.2); padding: 0.25rem 0.5rem; border-radius: 4px;">
+                            <i class="fas fa-magic"></i> AI will generate posts from this
+                        </span>
+                        <span style="font-size: 0.75rem; color: var(--text-secondary); background: rgba(0,0,0,0.2); padding: 0.25rem 0.5rem; border-radius: 4px;">
+                            <i class="fas fa-clock"></i> Timestamped for farm history
+                        </span>
+                    </div>
+
+                    <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border);">
                         <button onclick="this.closest('#journalEntryModal').remove()" class="btn btn-secondary">Cancel</button>
-                        <button onclick="submitJournalEntry()" class="btn" style="background: var(--gold); color: #000;"><i class="fas fa-paper-plane"></i> Submit & Generate Content</button>
+                        <button onclick="submitJournalEntry()" class="btn" style="background: var(--gold); color: #000;">
+                            <i class="fas fa-save"></i> Save Entry & Generate Posts
+                        </button>
                     </div>
                 </div>
             `;
 
             document.body.appendChild(modal);
+
+            // Focus the textarea after modal appears
+            setTimeout(() => {
+                document.getElementById('journalEntryText')?.focus();
+            }, 100);
         }
 
         async function submitJournalEntry() {
@@ -26771,24 +26960,34 @@ Would you like to test posting to Threads?`;
             showToast('Saving entry and generating content...', 'info');
 
             try {
+                // Fixed 2026-02-13: Use text/plain Content-Type to match other API calls
                 const response = await fetch(`${API_URL}?action=generatePostsFromToddInput`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ input: text })
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        input: text,
+                        toddInput: text,  // Backend checks both
+                        account: selectedAccount || 'farm',
+                        source: 'web_journal'
+                    })
                 });
                 const data = await response.json();
 
                 document.getElementById('journalEntryModal')?.remove();
 
                 if (data.success) {
-                    showToast('Entry saved! Content generated.', 'success');
+                    showToast(`Entry saved! ${data.postsGenerated || ''} posts generated.`, 'success');
                     loadJournalEntries();
+                    // Also refresh the Week in Review section
+                    loadCurrentWeekResponse();
                 } else {
-                    showToast('Entry saved but content generation failed', 'warning');
+                    console.warn('Journal API response:', data);
+                    showToast(data.message || 'Entry saved but content generation failed', 'warning');
+                    loadJournalEntries();
                 }
             } catch (error) {
                 console.error('Error submitting journal:', error);
-                showToast('Failed to submit entry', 'error');
+                showToast('Failed to submit entry. Please try again.', 'error');
             }
         }
 
