@@ -21366,7 +21366,8 @@ Would you like to test posting to Threads?`;
         let selectedAccount = 'all'; // 'all', 'farm', 'fleurs', 'fungi'
 
         // Current selected account for 5-3-2 MIX TRACKER (independent from posting account)
-        let selectedMixTrackerAccount = 'farm'; // 'farm', 'fleurs', 'fungi' - NO 'all' option
+        // PERSISTED: Remember which account user last selected
+        let selectedMixTrackerAccount = localStorage.getItem('selectedMixTrackerAccount') || 'farm'; // 'farm', 'fleurs', 'fungi'
 
         // Current selected content type for AI recommendations
         let selectedContentType = 'curated'; // 'curated', 'original', 'personal'
@@ -21518,6 +21519,8 @@ Would you like to test posting to Threads?`;
         // Select which account to view in the 5-3-2 tracker
         function selectMixTrackerAccount(account) {
             selectedMixTrackerAccount = account;
+            // PERSIST selection so it's remembered on page reload
+            localStorage.setItem('selectedMixTrackerAccount', account);
 
             // Update tab UI
             document.querySelectorAll('.account-mix-tab').forEach(tab => {
@@ -21547,6 +21550,34 @@ Would you like to test posting to Threads?`;
                     badge.style.color = total >= 10 ? 'var(--success)' : 'inherit';
                 }
             });
+        }
+
+        // Sync 5-3-2 tracker with real Instagram data from API sync
+        // This updates localStorage to match actual posts fetched from Instagram
+        function syncTrackerWithInstagram(weeklySummary) {
+            if (!weeklySummary) return;
+
+            const currentWeek = getWeekNumber(new Date());
+
+            ['farm', 'fleurs', 'fungi'].forEach(account => {
+                const syncedData = weeklySummary[account];
+                if (syncedData) {
+                    // Update localStorage with synced counts
+                    const key = CONTENT_MIX_KEYS[account];
+                    const newData = {
+                        week: currentWeek,
+                        curated: syncedData.curated || 0,
+                        original: syncedData.original || 0,
+                        personal: syncedData.personal || 0
+                    };
+                    localStorage.setItem(key, JSON.stringify(newData));
+                    console.log(`Synced ${account} tracker: ${JSON.stringify(newData)}`);
+                }
+            });
+
+            // Update UI to reflect synced data
+            updateContentMixUI();
+            updateMixTrackerBadges();
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -21593,11 +21624,30 @@ Would you like to test posting to Threads?`;
                 }
             }
 
-            // Find next best day (prioritize Wed/Thu)
-            const dayPriority = [3, 4, 2, 1, 0, 5, 6]; // Wed, Thu, Tue, Mon, Sun, Fri, Sat
-            for (const day of dayPriority) {
-                if (day > currentDay || (day <= currentDay && day !== currentDay)) {
-                    const daysUntil = day > currentDay ? day - currentDay : 7 - currentDay + day;
+            // Find next best day (prioritize Wed/Thu) - ONLY FUTURE DAYS
+            // Sort days by quality, but only consider days AFTER today
+            const daysByQuality = [
+                { day: 3, quality: 'best' },   // Wednesday
+                { day: 4, quality: 'best' },   // Thursday
+                { day: 2, quality: 'great' },  // Tuesday
+                { day: 1, quality: 'good' },   // Monday
+                { day: 0, quality: 'medium' }, // Sunday
+                { day: 5, quality: 'low' },    // Friday
+                { day: 6, quality: 'lowest' }  // Saturday
+            ];
+
+            // Find the NEXT occurring best day (wrapping to next week if needed)
+            for (const { day } of daysByQuality) {
+                // Calculate days until this day occurs (always forward, wrap around week)
+                let daysUntil;
+                if (day > currentDay) {
+                    daysUntil = day - currentDay;
+                } else {
+                    daysUntil = 7 - currentDay + day; // Next week
+                }
+
+                // Skip if it's more than 7 days out (shouldn't happen) or today (already checked)
+                if (daysUntil > 0 && daysUntil <= 7) {
                     return {
                         day: OPTIMAL_TIMES[day].label,
                         time: formatTime(parseInt(OPTIMAL_TIMES[day].times[0].split(':')[0])),
@@ -21979,10 +22029,25 @@ Would you like to test posting to Threads?`;
                     localStorage.setItem('ig_synced_posts', JSON.stringify(igSyncedPosts));
                     localStorage.setItem('ig_last_sync', igLastSyncTime);
 
+                    // SYNC 5-3-2 TRACKER with real Instagram data
+                    // This updates the manual tracker to match actual posts
+                    if (result.weeklySummary) {
+                        syncTrackerWithInstagram(result.weeklySummary);
+                    }
+
                     // Update the UI
                     updateIgSyncUI(result);
 
-                    showToast(`Synced ${result.totalPosts} posts from Instagram!`, 'success');
+                    // Refresh Brain tab stats to reflect new data
+                    loadBrainTabStats();
+                    showInstantActions();
+
+                    // Show per-account sync results
+                    const summary = result.weeklySummary || {};
+                    const farmCount = summary.farm?.total || 0;
+                    const fleursCount = summary.fleurs?.total || 0;
+                    const fungiCount = summary.fungi?.total || 0;
+                    showToast(`Synced ${result.totalPosts} posts! 🌱${farmCount} 💐${fleursCount} 🍄${fungiCount}`, 'success');
                 } else {
                     // Show helpful message based on error type
                     if (result.error && result.error.includes('No Instagram accounts')) {
@@ -22063,29 +22128,41 @@ Would you like to test posting to Threads?`;
             }
         }
 
-        // Render recent posts from Instagram
+        // Render recent posts from Instagram - SHOWS ALL ACCOUNTS, not filtered
         function renderIgRecentPosts(posts) {
             const container = document.getElementById('igRecentPostsList');
             if (!container) return;
 
-            // Filter posts for selected account
-            const accountPosts = posts.filter(p => p.account === selectedMixTrackerAccount);
+            // Show ALL posts from ALL accounts (no filtering) - sorted by date
+            const sortedPosts = [...posts].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-            if (accountPosts.length === 0) {
+            if (sortedPosts.length === 0) {
                 container.innerHTML = `
                     <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
                         <i class="fab fa-instagram" style="font-size: 2rem; opacity: 0.3;"></i>
-                        <p style="margin-top: 0.5rem;">No posts found for @tinyseed${selectedMixTrackerAccount} this week</p>
+                        <p style="margin-top: 0.5rem;">No posts synced yet. Click Sync to fetch from Instagram.</p>
                     </div>
                 `;
                 return;
             }
 
-            container.innerHTML = accountPosts.slice(0, 10).map(post => {
+            // Account badge colors
+            const accountColors = {
+                farm: 'var(--primary)',
+                fleurs: 'var(--instagram)',
+                fungi: '#8B4513'
+            };
+            const accountLabels = {
+                farm: 'Farm',
+                fleurs: 'Fleurs',
+                fungi: 'Fungi'
+            };
+
+            container.innerHTML = sortedPosts.slice(0, 15).map(post => {
                 const categoryColors = {
                     curated: 'var(--success)',
                     original: 'var(--info)',
-                    personal: 'var(--instagram)'
+                    personal: 'var(--warning)'
                 };
                 const categoryIcons = {
                     curated: 'fa-share-square',
@@ -22094,14 +22171,17 @@ Would you like to test posting to Threads?`;
                 };
                 const postDate = new Date(post.timestamp);
                 const truncatedCaption = post.caption ? (post.caption.length > 80 ? post.caption.substring(0, 80) + '...' : post.caption) : '(no caption)';
+                const acctColor = accountColors[post.account] || 'var(--text-secondary)';
+                const acctLabel = accountLabels[post.account] || post.account;
 
                 return `
-                    <div style="display: flex; gap: 0.75rem; padding: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid var(--border);">
+                    <div style="display: flex; gap: 0.75rem; padding: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid var(--border); border-left: 3px solid ${acctColor};">
                         ${post.mediaUrl ? `<img src="${post.mediaUrl}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 6px;" onerror="this.style.display='none'">` : ''}
                         <div style="flex: 1; min-width: 0;">
-                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
-                                <span style="background: ${categoryColors[post.category]}; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.65rem; font-weight: 600; text-transform: uppercase; display: flex; align-items: center; gap: 0.25rem;">
-                                    <i class="fas ${categoryIcons[post.category]}"></i> ${post.category}
+                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem; flex-wrap: wrap;">
+                                <span style="background: ${acctColor}; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.65rem; font-weight: 600; text-transform: uppercase;">@${acctLabel}</span>
+                                <span style="background: ${categoryColors[post.category] || 'var(--text-secondary)'}; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.65rem; font-weight: 600; text-transform: uppercase; display: flex; align-items: center; gap: 0.25rem;">
+                                    <i class="fas ${categoryIcons[post.category] || 'fa-question'}"></i> ${post.category || 'uncategorized'}
                                 </span>
                                 <span style="font-size: 0.7rem; color: var(--text-secondary);">${postDate.toLocaleDateString()}</span>
                             </div>
@@ -22154,6 +22234,10 @@ Would you like to test posting to Threads?`;
                             }
                         }
                     });
+
+                    // SYNC the 5-3-2 tracker with cached Instagram data
+                    // This ensures the manual tracker reflects actual posts
+                    syncTrackerWithInstagram(weeklySummary);
 
                     updateIgSyncUI({
                         posts: igSyncedPosts,
@@ -22366,27 +22450,37 @@ Would you like to test posting to Threads?`;
                 // IMMEDIATE: Show local data first (no API calls)
                 updateContentMixUI();
 
-                // Generate smart briefing from LOCAL data (instant)
+                // Generate smart briefing from LOCAL data - ALL 3 ACCOUNTS
                 const recommendation = getWhatToPostNext();
                 const optimalTime = getNextOptimalPostTime();
-                const accountData = getAccountContentMix(selectedMixTrackerAccount);
-                const totalPosts = accountData.curated + accountData.original + accountData.personal;
 
-                // Calculate accountability metrics
+                // Get ALL accounts' data
+                const farm = getAccountContentMix('farm');
+                const fleurs = getAccountContentMix('fleurs');
+                const fungi = getAccountContentMix('fungi');
+
+                const farmTotal = farm.curated + farm.original + farm.personal;
+                const fleursTotal = fleurs.curated + fleurs.original + fleurs.personal;
+                const fungiTotal = fungi.curated + fungi.original + fungi.personal;
+                const grandTotal = farmTotal + fleursTotal + fungiTotal;
+
+                // How many accounts hit their 10-post goal?
                 const targetPosts = 10;
-                const remaining = targetPosts - totalPosts;
+                const accountsOnGoal = [farmTotal >= targetPosts, fleursTotal >= targetPosts, fungiTotal >= targetPosts].filter(Boolean).length;
+                const accountsBehind = 3 - accountsOnGoal;
                 const daysLeftInWeek = 7 - new Date().getDay();
-                const onTrack = remaining <= daysLeftInWeek;
 
                 let smartBriefing = '';
 
-                // ACCOUNTABILITY FIRST - are we on track?
-                if (totalPosts >= targetPosts) {
-                    smartBriefing = `✅ GOAL MET: ${totalPosts}/10 posts this week! `;
-                } else if (!onTrack) {
-                    smartBriefing = `🚨 BEHIND SCHEDULE: ${totalPosts}/10 posts, need ${remaining} more in ${daysLeftInWeek} days! `;
-                } else if (remaining > 0) {
-                    smartBriefing = `📊 ${totalPosts}/10 posts. Need ${remaining} more this week. `;
+                // ACCOUNTABILITY FIRST - show all 3 accounts status
+                const accountStatus = `🌱${farmTotal}/10 💐${fleursTotal}/10 🍄${fungiTotal}/10`;
+
+                if (accountsOnGoal === 3) {
+                    smartBriefing = `✅ ALL GOALS MET! ${accountStatus}. `;
+                } else if (accountsBehind === 3) {
+                    smartBriefing = `🚨 ALL ACCOUNTS BEHIND: ${accountStatus}. `;
+                } else {
+                    smartBriefing = `📊 ${accountsOnGoal}/3 at goal: ${accountStatus}. `;
                 }
 
                 // Then add timing context
@@ -22451,6 +22545,16 @@ Would you like to test posting to Threads?`;
                 // BACKGROUND: Load stats (non-blocking)
                 loadBrainTabStats();
 
+                // BACKGROUND: Auto-sync Instagram if stale (> 1 hour or never synced)
+                const lastSync = localStorage.getItem('ig_last_sync');
+                const syncThreshold = 60 * 60 * 1000; // 1 hour
+                const now = Date.now();
+                const lastSyncTime = lastSync ? new Date(lastSync).getTime() : 0;
+                if (!lastSync || (now - lastSyncTime) > syncThreshold) {
+                    console.log('Auto-syncing Instagram posts (stale or never synced)...');
+                    setTimeout(() => syncInstagramPosts(), 500);
+                }
+
                 // BACKGROUND: Load Algorithm Intelligence (includes research check)
                 // Note: initAlgorithmIntelligence() calls both fetchAlgorithmIntelligence() and checkAlgorithmResearchUpdate()
                 setTimeout(() => initAlgorithmIntelligence(), 1500);
@@ -22503,21 +22607,36 @@ Would you like to test posting to Threads?`;
         }
 
         async function loadBrainTabStats() {
-            // 1. Load Posts This Week (from 5-3-2 tracker - LOCAL, no API call)
+            // 1. Load Posts This Week - SHOW ALL 3 ACCOUNTS STATUS
+            // Each account needs 10 posts/week = 30 total goal
             try {
-                const mixData = getContentMixData();
-                const accountData = selectedAccount === 'all' ? mixData.all : mixData[selectedAccount];
-                const totalPosts = accountData.curated + accountData.original + accountData.personal;
-                document.getElementById('weekPostsCount').textContent = totalPosts;
+                const farm = getAccountContentMix('farm');
+                const fleurs = getAccountContentMix('fleurs');
+                const fungi = getAccountContentMix('fungi');
+
+                const farmTotal = farm.curated + farm.original + farm.personal;
+                const fleursTotal = fleurs.curated + fleurs.original + fleurs.personal;
+                const fungiTotal = fungi.curated + fungi.original + fungi.personal;
+                const grandTotal = farmTotal + fleursTotal + fungiTotal;
+
+                // Count how many accounts have hit their 10-post goal
+                const accountsOnGoal = [farmTotal >= 10, fleursTotal >= 10, fungiTotal >= 10].filter(Boolean).length;
+
+                document.getElementById('weekPostsCount').textContent = grandTotal;
                 const statusEl = document.getElementById('weekPostsStatus');
-                if (totalPosts >= 10) {
-                    statusEl.innerHTML = '<i class="fas fa-check-circle"></i> Goal reached!';
+
+                // Show per-account status: 🌱2 💐1 🍄0 = totals per account
+                const summary = `🌱${farmTotal} 💐${fleursTotal} 🍄${fungiTotal}`;
+
+                if (accountsOnGoal === 3) {
+                    statusEl.innerHTML = `<i class="fas fa-check-circle"></i> All 3 accounts at goal! ${summary}`;
                     statusEl.className = 'stat-change positive';
-                } else if (totalPosts >= 5) {
-                    statusEl.innerHTML = `<i class="fas fa-chart-line"></i> ${10 - totalPosts} more to goal`;
+                } else if (accountsOnGoal > 0) {
+                    statusEl.innerHTML = `<i class="fas fa-chart-line"></i> ${accountsOnGoal}/3 at goal | ${summary}`;
                     statusEl.className = 'stat-change neutral';
                 } else {
-                    statusEl.innerHTML = `<i class="fas fa-arrow-up"></i> ${10 - totalPosts} more to goal`;
+                    const totalNeeded = 30 - grandTotal;
+                    statusEl.innerHTML = `<i class="fas fa-arrow-up"></i> ${totalNeeded} more to goal | ${summary}`;
                     statusEl.className = 'stat-change negative';
                 }
             } catch (e) {
@@ -22667,81 +22786,74 @@ Would you like to test posting to Threads?`;
             showInstantActions();
         }
 
-        // Show SMART actions based on ACTUAL 5-3-2 progress - ACCOUNTABILITY MODE
+        // Show SMART actions based on ACTUAL 5-3-2 progress - ALL ACCOUNTS ACCOUNTABILITY
         function showInstantActions() {
-            const accountData = getAccountContentMix(selectedMixTrackerAccount);
-            const totalPosts = accountData.curated + accountData.original + accountData.personal;
-            const targetPosts = 10;
-            const remaining = targetPosts - totalPosts;
-
             const optimalTime = getNextOptimalPostTime();
             const dayOfWeek = new Date().getDay(); // 0=Sun, 3=Wed, 4=Thu
             const isPeakDay = dayOfWeek === 3 || dayOfWeek === 4; // Wed or Thu
             const daysLeftInWeek = 7 - dayOfWeek;
-
-            // Calculate 5-3-2 balance
-            const idealCurated = 5;
-            const idealOriginal = 3;
-            const idealPersonal = 2;
-            const needCurated = Math.max(0, idealCurated - accountData.curated);
-            const needOriginal = Math.max(0, idealOriginal - accountData.original);
-            const needPersonal = Math.max(0, idealPersonal - accountData.personal);
+            const targetPosts = 10;
 
             const urgentTasks = [];
             const todayTasks = [];
 
-            // URGENT: Not enough posts this week (FIXED 2026-02-12: use 'action' key for renderActionList compatibility)
-            if (remaining > 0) {
-                if (remaining >= daysLeftInWeek) {
+            // Account labels and colors for display
+            const accountInfo = {
+                farm: { label: '@tinyseedfarm', icon: '🌱', color: 'var(--primary)' },
+                fleurs: { label: '@tinyseedfleurs', icon: '💐', color: 'var(--instagram)' },
+                fungi: { label: '@tinyseedfungi', icon: '🍄', color: '#8B4513' }
+            };
+
+            // CHECK ALL 3 ACCOUNTS - each needs 10 posts/week independently
+            ['farm', 'fleurs', 'fungi'].forEach(account => {
+                const accountData = getAccountContentMix(account);
+                const totalPosts = accountData.curated + accountData.original + accountData.personal;
+                const remaining = targetPosts - totalPosts;
+                const info = accountInfo[account];
+
+                // Calculate 5-3-2 balance for this account
+                const needCurated = Math.max(0, 5 - accountData.curated);
+                const needOriginal = Math.max(0, 3 - accountData.original);
+                const needPersonal = Math.max(0, 2 - accountData.personal);
+
+                // URGENT: Behind schedule for this account
+                if (remaining > 0 && remaining >= daysLeftInWeek) {
                     urgentTasks.push({
-                        action: `Behind on posting - ${totalPosts}/10 posts this week`,
-                        description: `Need ${remaining} posts in ${daysLeftInWeek} days. Post ${Math.ceil(remaining/daysLeftInWeek)}x per day to hit goal!`,
+                        action: `${info.icon} ${info.label}: BEHIND - ${totalPosts}/10 posts`,
+                        description: `Need ${remaining} posts in ${daysLeftInWeek} days. Post ${Math.ceil(remaining/daysLeftInWeek)}x per day!`,
                         priority: 'high',
-                        type: 'BEHIND_SCHEDULE'
+                        type: 'BEHIND_SCHEDULE',
+                        account: account
+                    });
+                } else if (remaining > 0) {
+                    // Not urgent but needs work
+                    todayTasks.push({
+                        action: `${info.icon} ${info.label}: ${remaining} more needed`,
+                        description: `Currently at ${totalPosts}/10. ${daysLeftInWeek} days remaining.`,
+                        priority: remaining > 5 ? 'high' : 'medium',
+                        type: 'CREATE_POST',
+                        account: account
                     });
                 } else {
+                    // Goal met for this account!
                     todayTasks.push({
-                        action: `Post ${remaining} more this week to hit 10-post goal`,
-                        description: `Currently at ${totalPosts}/10. ${daysLeftInWeek} days remaining.`,
-                        priority: 'medium',
-                        type: 'CREATE_POST'
+                        action: `${info.icon} ${info.label}: ✅ GOAL MET (${totalPosts}/10)`,
+                        description: `Great work! Keep the momentum going.`,
+                        priority: 'low',
+                        type: 'GOAL_MET',
+                        account: account
                     });
                 }
-            }
+            });
 
-            // URGENT: Peak posting day with no post yet today
-            if (isPeakDay && totalPosts < targetPosts) {
+            // URGENT: Peak posting day alert (applies to all accounts)
+            if (isPeakDay) {
                 urgentTasks.unshift({
-                    action: `${dayOfWeek === 3 ? 'WEDNESDAY' : 'THURSDAY'} = PEAK DAY - Post now for max reach!`,
-                    description: `${optimalTime.time} is optimal. Peak days get 23% higher engagement.`,
+                    action: `🔥 ${dayOfWeek === 3 ? 'WEDNESDAY' : 'THURSDAY'} = PEAK DAY`,
+                    description: `${optimalTime.time} is optimal. Peak days get 23% higher engagement on ALL accounts!`,
                     priority: 'high',
                     type: 'PEAK_DAY'
                 });
-            }
-
-            // 5-3-2 BALANCE tasks - suggest just TODAY'S portion, not the entire week
-            // Spread the required posts across remaining days
-            const postsPerDay = Math.ceil(remaining / Math.max(1, daysLeftInWeek));
-            const todayTarget = Math.min(postsPerDay, 2); // Max 2 posts suggested per day
-
-            // Prioritize what's most needed: pick ONE type to focus on today
-            if (todayTarget > 0 && (needCurated > 0 || needOriginal > 0 || needPersonal > 0)) {
-                // Find the most imbalanced type
-                const priorities = [
-                    { type: 'curated', need: needCurated, label: 'curated (industry news/tips)', ideal: 5 },
-                    { type: 'original', need: needOriginal, label: 'original (farm content)', ideal: 3 },
-                    { type: 'personal', need: needPersonal, label: 'personal (behind-the-scenes)', ideal: 2 }
-                ].filter(p => p.need > 0).sort((a, b) => (b.need / b.ideal) - (a.need / a.ideal));
-
-                if (priorities.length > 0) {
-                    const focus = priorities[0];
-                    todayTasks.push({
-                        action: `Today: Post 1 ${focus.label}`,
-                        description: `5-3-2 balance: Need ${focus.need} more ${focus.type} this week.`,
-                        priority: focus.need >= 3 ? 'high' : 'medium',
-                        type: 'CONTENT_BALANCE'
-                    });
-                }
             }
 
             // If ALL goals met, show success

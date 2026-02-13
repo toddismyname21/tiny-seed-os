@@ -40,6 +40,46 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-02-12 - PM_Architect (5-3-2 Tracker Per-Account Accountability)
+
+### Context
+User feedback: Each Instagram account (Farm, Fleurs, Fungi) needs SEPARATE 10-post weekly goals. Posts weren't showing without clicking an account. Day display was showing Wednesday instead of Thursday.
+
+### Files Modified
+- `web_app/marketing-command-center.html` - Major 5-3-2 tracker overhaul
+
+### Changes Made
+1. **Per-Account Goals**: Each account now has its own 10-post weekly goal (30 total)
+2. **Fixed Day Bug**: `getNextOptimalPostTime()` was returning past days (Wednesday) instead of future days
+3. **Show ALL Posts**: Recent posts list now shows ALL accounts, not filtered by selected account
+4. **Account Selection Persisted**: `selectedMixTrackerAccount` saved to localStorage
+5. **Auto-Sync on Load**: Instagram posts auto-sync if last sync > 1 hour ago
+6. **Sync Updates Tracker**: `syncTrackerWithInstagram()` function updates 5-3-2 localStorage from API data
+7. **Briefing Shows All Accounts**: "Good Evening Boss" now shows all 3 accounts status: 🌱X/10 💐X/10 🍄X/10
+8. **Posts This Week KPI**: Shows total posts AND per-account breakdown
+9. **Needs Your Attention**: Shows which specific accounts are behind
+
+### Functions Added
+- `syncTrackerWithInstagram(weeklySummary)` - Updates manual tracker with synced data
+
+### Functions Modified
+- `showInstantActions()` - Now checks ALL 3 accounts independently
+- `loadBrainTabStats()` - Shows all 3 accounts status in KPI
+- `loadBrainTab()` - Generates briefing for ALL accounts
+- `renderIgRecentPosts()` - Shows ALL posts with account badges
+- `getNextOptimalPostTime()` - Fixed to only return FUTURE days
+- `selectMixTrackerAccount()` - Persists selection to localStorage
+- `loadCachedIgSync()` - Now syncs tracker with cached data on load
+
+### Reason
+User needs to track each Instagram account separately. They have 3 accounts that all need 10 posts/week each. Previous implementation treated all accounts as combined.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] No duplicates created
+
+---
+
 ## 2026-02-12 - PM_Architect (Connect Real Instagram Data to Brain Tab KPIs)
 
 ### Context
