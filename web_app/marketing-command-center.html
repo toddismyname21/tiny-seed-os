@@ -21655,26 +21655,44 @@ Would you like to test posting to Threads?`;
                 { day: 6, quality: 'lowest' }  // Saturday
             ];
 
-            // Find the NEXT occurring best day (wrapping to next week if needed)
-            for (const { day } of daysByQuality) {
-                // Calculate days until this day occurs (always forward, wrap around week)
-                let daysUntil;
-                if (day > currentDay) {
-                    daysUntil = day - currentDay;
-                } else {
-                    daysUntil = 7 - currentDay + day; // Next week
-                }
+            // Find the NEXT occurring best day - prioritize THIS WEEK first, then next week
+            // Sort remaining days this week by quality, then look at next week
 
-                // Skip if it's more than 7 days out (shouldn't happen) or today (already checked)
-                if (daysUntil > 0 && daysUntil <= 7) {
-                    return {
-                        day: OPTIMAL_TIMES[day].label,
-                        time: formatTime(parseInt(OPTIMAL_TIMES[day].times[0].split(':')[0])),
-                        quality: OPTIMAL_TIMES[day].quality,
-                        isToday: false,
-                        daysUntil: daysUntil
-                    };
-                }
+            // Days remaining this week (after today)
+            const remainingThisWeek = [];
+            for (let d = currentDay + 1; d <= 6; d++) {
+                const dayInfo = daysByQuality.find(x => x.day === d);
+                if (dayInfo) remainingThisWeek.push({ ...dayInfo, daysUntil: d - currentDay, isNextWeek: false });
+            }
+
+            // Sort remaining days by quality
+            remainingThisWeek.sort((a, b) => {
+                const qualityOrder = { best: 0, great: 1, good: 2, medium: 3, low: 4, lowest: 5 };
+                return qualityOrder[a.quality] - qualityOrder[b.quality];
+            });
+
+            // If there's a decent day this week, use it
+            if (remainingThisWeek.length > 0) {
+                const best = remainingThisWeek[0];
+                return {
+                    day: OPTIMAL_TIMES[best.day].label,
+                    time: formatTime(parseInt(OPTIMAL_TIMES[best.day].times[0].split(':')[0])),
+                    quality: best.quality,
+                    isToday: false,
+                    daysUntil: best.daysUntil
+                };
+            }
+
+            // No good days left this week - find best day NEXT week
+            for (const { day, quality } of daysByQuality) {
+                const daysUntil = 7 - currentDay + day;
+                return {
+                    day: `Next ${OPTIMAL_TIMES[day].label}`,  // Add "Next" prefix
+                    time: formatTime(parseInt(OPTIMAL_TIMES[day].times[0].split(':')[0])),
+                    quality: quality,
+                    isToday: false,
+                    daysUntil: daysUntil
+                };
             }
 
             // Fallback to tomorrow's first time
@@ -22044,6 +22062,16 @@ Would you like to test posting to Threads?`;
                     igSyncedPosts = result.posts || [];
                     igLastSyncTime = result.lastSync;
 
+                    // DEBUG: Log what we got from the API
+                    console.log('=== INSTAGRAM SYNC DEBUG ===');
+                    console.log('Total posts received:', igSyncedPosts.length);
+                    console.log('Posts by account:', igSyncedPosts.reduce((acc, p) => {
+                        acc[p.account || 'unknown'] = (acc[p.account || 'unknown'] || 0) + 1;
+                        return acc;
+                    }, {}));
+                    console.log('Weekly summary from API:', result.weeklySummary);
+                    console.log('Errors from API:', result.errors);
+
                     // Store in localStorage for persistence
                     localStorage.setItem('ig_synced_posts', JSON.stringify(igSyncedPosts));
                     localStorage.setItem('ig_last_sync', igLastSyncTime);
@@ -22061,12 +22089,19 @@ Would you like to test posting to Threads?`;
                     loadBrainTabStats();
                     showInstantActions();
 
-                    // Show per-account sync results
+                    // Show per-account sync results (with error info if any)
                     const summary = result.weeklySummary || {};
                     const farmCount = summary.farm?.total || 0;
                     const fleursCount = summary.fleurs?.total || 0;
                     const fungiCount = summary.fungi?.total || 0;
-                    showToast(`Synced ${result.totalPosts} posts! 🌱${farmCount} 💐${fleursCount} 🍄${fungiCount}`, 'success');
+
+                    let toastMsg = `Synced ${result.totalPosts} posts! 🌱${farmCount} 💐${fleursCount} 🍄${fungiCount}`;
+                    if (result.errors && result.errors.length > 0) {
+                        const errorAccounts = result.errors.map(e => e.account).join(', ');
+                        toastMsg += ` ⚠️ Errors: ${errorAccounts}`;
+                        console.warn('Sync errors:', result.errors);
+                    }
+                    showToast(toastMsg, result.errors?.length ? 'warning' : 'success');
                 } else {
                     // Show helpful message based on error type
                     if (result.error && result.error.includes('No Instagram accounts')) {
