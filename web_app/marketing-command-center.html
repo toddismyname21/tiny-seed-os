@@ -5015,12 +5015,13 @@
                                     <i class="fas fa-snowflake" style="color: #64B5F6;"></i>
                                     <span style="font-size: 0.85rem; font-weight: 600; color: #64B5F6;">WINTER</span>
                                 </div>
-                                <!-- Optimal Posting Time - PROMINENT -->
-                                <div id="optimalTimeDisplay" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(34, 197, 94, 0.2); padding: 0.4rem 0.8rem; border-radius: 20px; border: 1px solid rgba(34, 197, 94, 0.4);">
-                                    <i class="fas fa-clock" style="color: var(--success);"></i>
-                                    <span style="font-size: 0.85rem; color: var(--text-secondary);">Best time today:</span>
-                                    <span id="headerOptimalTime" style="font-weight: 700; color: var(--success);">--</span>
-                                </div>
+                                <!-- Optimal Posting Time - NOW A CLICKABLE BUTTON -->
+                                <button id="optimalTimeDisplay" onclick="goToCreateWithTime()" style="display: flex; align-items: center; gap: 0.5rem; background: linear-gradient(135deg, rgba(255,193,7,0.3), rgba(255,152,0,0.2)); padding: 0.6rem 1.2rem; border-radius: 25px; border: 2px solid var(--warning); cursor: pointer; transition: all 0.2s ease;" title="Click to schedule a post at this time">
+                                    <i class="fas fa-bolt" style="color: var(--warning);"></i>
+                                    <span style="font-size: 0.85rem; color: var(--warning); font-weight: 600;">POST NOW:</span>
+                                    <span id="headerOptimalTime" style="font-weight: 700; color: var(--warning); font-size: 1.1rem;">--</span>
+                                    <i class="fas fa-arrow-right" style="color: var(--warning);"></i>
+                                </button>
                             </div>
                             <p id="briefingSummary" style="color: var(--text-secondary); max-width: 600px; line-height: 1.6;">
                                 Loading your AI-powered daily briefing...
@@ -22350,12 +22351,12 @@ Would you like to test posting to Threads?`;
                 headerTimeEl.style.color = color;
             }
 
-            // Update header label if exists
+            // Update header action button label - keep action-oriented "POST NOW" CTA
             const displayEl = document.getElementById('optimalTimeDisplay');
             if (displayEl) {
                 const labelEl = displayEl.querySelector('span:first-of-type');
                 if (labelEl) {
-                    labelEl.textContent = optimalTime.isToday ? 'Best time today:' : `Best time ${optimalTime.day}:`;
+                    labelEl.textContent = optimalTime.isToday ? 'POST NOW:' : `POST ${optimalTime.day.toUpperCase()}:`;
                 }
             }
 
