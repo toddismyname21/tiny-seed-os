@@ -5047,6 +5047,74 @@
                 </div>
             </div>
 
+            <!-- Week in Review - Sunday Journal (Updated 2026-02-13) -->
+            <div class="card" style="margin-top: 1.5rem; background: linear-gradient(135deg, rgba(255, 182, 72, 0.15) 0%, rgba(255, 145, 77, 0.1) 100%); border: 1px solid rgba(255, 182, 72, 0.4);">
+                <div class="card-header" style="border-left: 4px solid var(--gold); cursor: pointer;" onclick="toggleWeekInReview()">
+                    <h3 style="display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-journal-whills" style="color: var(--gold);"></i> Week in Review
+                    </h3>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span id="journalStatusBadge" class="badge" style="background: var(--gold); color: #000;">Sunday 11am</span>
+                        <span id="lastEntryDate" style="font-size: 0.75rem; color: var(--text-secondary);"></span>
+                        <i id="weekReviewToggle" class="fas fa-chevron-down" style="color: var(--gold); transition: transform 0.3s;"></i>
+                    </div>
+                </div>
+                <div id="weekInReviewBody" class="card-body" style="display: none;">
+                    <!-- Current week's prompt -->
+                    <div style="background: rgba(0,0,0,0.2); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
+                        <h4 style="font-size: 0.9rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-pen-fancy" style="color: var(--gold);"></i> This Week's Writing Prompt
+                        </h4>
+                        <div id="currentWeekPrompts" style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6;">
+                            <p style="margin-bottom: 0.5rem;">1. What's looking great in the fields this week?</p>
+                            <p style="margin-bottom: 0.5rem;">2. Any customer moments worth sharing?</p>
+                            <p>3. What's exciting you about this week?</p>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap;">
+                            <button class="btn btn-sm" style="background: var(--gold); color: #000;" onclick="openWeeklyJournalEntry()">
+                                <i class="fas fa-edit"></i> Write Entry
+                            </button>
+                            <button class="btn btn-sm btn-secondary" onclick="sendManualPrompt()">
+                                <i class="fas fa-sms"></i> Send SMS Prompt
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Todd's Response (if any) -->
+                    <div id="toddResponseSection" style="background: rgba(42, 157, 143, 0.15); border-radius: 12px; padding: 1rem; margin-bottom: 1rem; border-left: 3px solid var(--success); display: none;">
+                        <h4 style="font-size: 0.9rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-comment-dots" style="color: var(--success);"></i> Todd's Response
+                            <span id="responseTimestamp" style="font-size: 0.7rem; color: var(--text-secondary);"></span>
+                        </h4>
+                        <div id="toddResponseContent" style="font-size: 0.85rem; color: var(--text-primary); font-style: italic; padding: 0.5rem; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                        </div>
+                    </div>
+
+                    <!-- Generated Posts from Input -->
+                    <div id="generatedPostsSection" style="background: rgba(67, 97, 238, 0.15); border-radius: 12px; padding: 1rem; margin-bottom: 1rem; border-left: 3px solid var(--info); display: none;">
+                        <h4 style="font-size: 0.9rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-magic" style="color: var(--info);"></i> Generated Posts
+                            <span id="postsGeneratedCount" class="badge" style="background: var(--info); font-size: 0.65rem;">0</span>
+                        </h4>
+                        <div id="generatedPostsList" style="max-height: 200px; overflow-y: auto;">
+                        </div>
+                    </div>
+
+                    <!-- Recent Journal Entries -->
+                    <div>
+                        <h4 style="font-size: 0.9rem; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between;">
+                            <span><i class="fas fa-history" style="color: var(--text-secondary);"></i> Recent Entries</span>
+                            <span id="totalEntriesCount" style="font-size: 0.7rem; color: var(--text-secondary);"></span>
+                        </h4>
+                        <div id="recentJournalEntries" style="max-height: 200px; overflow-y: auto;">
+                            <p style="color: var(--text-secondary); font-size: 0.85rem; text-align: center; padding: 1rem;">
+                                <i class="fas fa-spinner fa-spin"></i> Loading entries...
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- ACCOUNT SELECTOR - Toggle between accounts -->
             <div class="card" style="margin-top: 1.5rem; background: rgba(0,0,0,0.3);">
                 <div class="card-body" style="padding: 1rem 1.5rem;">
@@ -5268,24 +5336,22 @@
             <!-- ADDITIONAL METRICS SECTION (Hidden by default) -->
             <div id="additionalMetricsSection" style="display: none;">
 
-            <!-- AEO (ANSWER ENGINE OPTIMIZATION) PANEL - CRITICAL FOR 2026 -->
-            <div class="card" style="margin-top: 1.5rem; background: linear-gradient(135deg, rgba(26, 188, 156, 0.15) 0%, rgba(52, 152, 219, 0.1) 100%); border: 2px solid rgba(26, 188, 156, 0.4);">
-                <div class="card-header" style="flex-wrap: wrap; gap: 0.5rem;">
-                    <h3 style="display: flex; align-items: center; gap: 0.5rem;">
-                        <i class="fas fa-robot" style="color: #1abc9c;"></i> AEO Visibility
-                        <span class="badge" style="background: linear-gradient(135deg, #e74c3c, #c0392b); font-size: 0.65rem; padding: 0.2rem 0.5rem;">2026 CRITICAL</span>
-                        <span id="aeoNewMentionsBadge" class="badge" style="background: var(--success); font-size: 0.65rem; padding: 0.2rem 0.5rem; display: none;">NEW MENTIONS</span>
-                    </h3>
+            <!-- AEO (ANSWER ENGINE OPTIMIZATION) PANEL - CRITICAL FOR 2026 - NOW COLLAPSIBLE -->
+            <div class="card" id="aeoCard" style="margin-top: 1.5rem; background: linear-gradient(135deg, rgba(26, 188, 156, 0.15) 0%, rgba(52, 152, 219, 0.1) 100%); border: 2px solid rgba(26, 188, 156, 0.4);">
+                <div class="card-header" style="flex-wrap: wrap; gap: 0.5rem; cursor: pointer; justify-content: space-between; align-items: center;" onclick="toggleAEOCard()">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                        <h3 style="display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+                            <i class="fas fa-robot" style="color: #1abc9c;"></i> AEO Visibility
+                            <span class="badge" style="background: linear-gradient(135deg, #e74c3c, #c0392b); font-size: 0.65rem; padding: 0.2rem 0.5rem;">2026 CRITICAL</span>
+                            <span id="aeoNewMentionsBadge" class="badge" style="background: var(--success); font-size: 0.65rem; padding: 0.2rem 0.5rem; display: none;">NEW MENTIONS</span>
+                        </h3>
+                    </div>
                     <div style="display: flex; gap: 0.5rem; align-items: center;">
-                        <a href="seo_dashboard.html" style="font-size: 0.7rem; color: var(--text-secondary); text-decoration: none;">
-                            <i class="fas fa-external-link-alt"></i> Full Dashboard
-                        </a>
-                        <button class="btn btn-sm" onclick="refreshAEOData()" style="background: linear-gradient(135deg, #1abc9c, #3498db); color: white; font-size: 0.75rem;">
-                            <i class="fas fa-sync-alt" id="aeoRefreshIcon"></i> Refresh
-                        </button>
+                        <span id="aeoMiniScore" style="font-weight: 700; color: #1abc9c; font-size: 1rem;">--</span>
+                        <i id="aeoToggleIcon" class="fas fa-chevron-down" style="color: #1abc9c; transition: transform 0.3s; font-size: 1.2rem;"></i>
                     </div>
                 </div>
-                <div class="card-body">
+                <div id="aeoCardBody" class="card-body" style="display: none;">
                     <!-- AEO Score Overview -->
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
                         <!-- AEO Score -->
@@ -13219,6 +13285,35 @@
                 body.style.display = isHidden ? 'block' : 'none';
                 arrow.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
             }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // AEO VISIBILITY CARD TOGGLE - COLLAPSIBLE BY DEFAULT
+        // Added 2026-02-13: Make AEO card collapsible to reduce vertical space
+        // ═══════════════════════════════════════════════════════════════════════════
+        let aeoCardExpanded = false;
+
+        function toggleAEOCard() {
+            aeoCardExpanded = !aeoCardExpanded;
+            const body = document.getElementById('aeoCardBody');
+            const icon = document.getElementById('aeoToggleIcon');
+
+            if (body) body.style.display = aeoCardExpanded ? 'block' : 'none';
+            if (icon) icon.style.transform = aeoCardExpanded ? 'rotate(180deg)' : 'rotate(0)';
+
+            // Save preference to localStorage
+            localStorage.setItem('aeoCardExpanded', aeoCardExpanded);
+        }
+
+        function initAEOCard() {
+            // Restore saved preference, defaults to collapsed (false)
+            const saved = localStorage.getItem('aeoCardExpanded');
+            aeoCardExpanded = saved === 'true';
+            const body = document.getElementById('aeoCardBody');
+            const icon = document.getElementById('aeoToggleIcon');
+
+            if (body) body.style.display = aeoCardExpanded ? 'block' : 'none';
+            if (icon) icon.style.transform = aeoCardExpanded ? 'rotate(180deg)' : 'rotate(0)';
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -21273,6 +21368,7 @@ Would you like to test posting to Threads?`;
             loadWeeklyChecklist();
             initGrowthChart();
             initAIIntelligence();
+            initAEOCard(); // Initialize AEO card as collapsed by default
             if (typeof updateCalendarWeekDisplay === 'function') {
                 updateCalendarWeekDisplay();
             }
@@ -22022,29 +22118,100 @@ Would you like to test posting to Threads?`;
             }
         };
 
+        // ═══════════════════════════════════════════════════════════════════════════
+        // UNIFIED OPTIMAL TIME DISPLAY FUNCTION - Single source of truth
+        // Added 2026-02-13: Ensures brainBestTime and algorithmOptimalTime show same time
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        function updateAllOptimalTimeDisplays() {
+            // Initialize MARKETING_STATE if needed
+            if (!MARKETING_STATE.recommendations.lastUpdated) {
+                MARKETING_STATE.init();
+            }
+
+            const optimalTime = MARKETING_STATE.recommendations.nextBestPostTime;
+            if (!optimalTime) {
+                console.warn('updateAllOptimalTimeDisplays: No optimal time in MARKETING_STATE');
+                return;
+            }
+
+            // Format strings for display
+            const timeStrShort = optimalTime.isToday ? optimalTime.time : `${optimalTime.day} ${optimalTime.time}`;
+            const timeStrWithAt = optimalTime.isToday ? optimalTime.time : `${optimalTime.day} at ${optimalTime.time}`;
+
+            // Quality color mapping
+            const qualityColors = {
+                best: 'var(--success)',
+                great: 'var(--success)',
+                good: 'var(--info)',
+                medium: 'var(--warning)',
+                low: 'var(--danger)',
+                lowest: 'var(--danger)'
+            };
+            const color = qualityColors[optimalTime.quality] || 'var(--success)';
+
+            // 1. Update Header Optimal Time (top of page)
+            const headerTimeEl = document.getElementById('headerOptimalTime');
+            if (headerTimeEl) {
+                headerTimeEl.textContent = timeStrShort;
+                headerTimeEl.style.color = color;
+            }
+
+            // Update header label if exists
+            const displayEl = document.getElementById('optimalTimeDisplay');
+            if (displayEl) {
+                const labelEl = displayEl.querySelector('span:first-of-type');
+                if (labelEl) {
+                    labelEl.textContent = optimalTime.isToday ? 'Best time today:' : `Best time ${optimalTime.day}:`;
+                }
+            }
+
+            // 2. Update Brain Tab KPI Card (brainBestTime)
+            const brainBestTimeEl = document.getElementById('brainBestTime');
+            const brainBestTimeLabelEl = document.getElementById('brainBestTimeLabel');
+            const brainBestTimeQualityEl = document.getElementById('brainBestTimeQuality');
+
+            if (brainBestTimeEl) {
+                brainBestTimeEl.textContent = timeStrShort;
+            }
+
+            if (brainBestTimeLabelEl) {
+                brainBestTimeLabelEl.textContent = optimalTime.isToday ? 'Best Time Today' : `Best Time ${optimalTime.day}`;
+            }
+
+            if (brainBestTimeQualityEl) {
+                const qualityIcon = optimalTime.quality === 'best' ? 'fa-star' : optimalTime.quality === 'great' ? 'fa-thumbs-up' : 'fa-clock';
+                const qualityText = optimalTime.quality === 'best' ? 'Peak time!' : optimalTime.quality === 'great' ? 'Great time!' : 'Optimal window';
+                brainBestTimeQualityEl.innerHTML = `<i class="fas ${qualityIcon}"></i> ${qualityText}`;
+            }
+
+            // 3. Update Algorithm Intelligence Panel (algorithmOptimalTime)
+            const algoTimeEl = document.getElementById('algorithmOptimalTime');
+            const algoQualityEl = document.getElementById('algorithmTimeQuality');
+
+            if (algoTimeEl) {
+                algoTimeEl.textContent = timeStrWithAt;
+            }
+
+            if (algoQualityEl) {
+                const qualityText = {
+                    best: '<i class="fas fa-fire"></i> PEAK engagement window',
+                    great: '<i class="fas fa-star"></i> High engagement expected',
+                    good: '<i class="fas fa-thumbs-up"></i> Good engagement time',
+                    medium: '<i class="fas fa-minus"></i> Average engagement',
+                    low: '<i class="fas fa-arrow-down"></i> Lower engagement time',
+                    lowest: '<i class="fas fa-exclamation-triangle"></i> Lowest engagement - consider waiting'
+                };
+                algoQualityEl.innerHTML = `${qualityText[optimalTime.quality] || ''} - Based on 9.6M posts analyzed`;
+            }
+
+            console.log('updateAllOptimalTimeDisplays: Updated all displays with', timeStrShort);
+        }
+
         // Event listener for cross-tab updates - when MARKETING_STATE updates, refresh displays
         window.addEventListener('marketingStateUpdated', (event) => {
             console.log('Marketing state updated:', event.detail);
-
-            // Update Brain Tab displays
-            const headerTimeEl = document.getElementById('headerOptimalTime');
-            const brainBestTimeEl = document.getElementById('brainBestTime');
-            const algoTimeEl = document.getElementById('algorithmOptimalTime');
-
-            const time = event.detail.nextBestPostTime;
-            if (time) {
-                const timeStr = time.isToday ? time.time : `${time.day} ${time.time}`;
-
-                if (headerTimeEl) {
-                    headerTimeEl.textContent = time.isToday ? time.time : `${time.day} ${time.time}`;
-                }
-                if (brainBestTimeEl) {
-                    brainBestTimeEl.textContent = timeStr;
-                }
-                if (algoTimeEl) {
-                    algoTimeEl.textContent = time.isToday ? time.time : `${time.day} at ${time.time}`;
-                }
-            }
+            updateAllOptimalTimeDisplays();
         });
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -23116,68 +23283,9 @@ Would you like to test posting to Threads?`;
         // ═══════════════════════════════════════════════════════════════════════════
 
         function updateHeaderOptimalTime() {
-            // Updated 2026-02-13: Use MARKETING_STATE for unified recommendations
-            // Initialize MARKETING_STATE if needed
-            if (!MARKETING_STATE.recommendations.lastUpdated) {
-                MARKETING_STATE.init();
-            }
-
-            // Use MARKETING_STATE optimal time for consistency with Create Tab
-            const optimalTime = MARKETING_STATE.recommendations.nextBestPostTime || getNextOptimalPostTime();
-            if (!optimalTime) return;
-
-            // Update header display - always show the formatted time
-            const headerTimeEl = document.getElementById('headerOptimalTime');
-            if (headerTimeEl) {
-                // Always format properly - never assign the object directly
-                headerTimeEl.textContent = optimalTime.isToday
-                    ? optimalTime.time
-                    : `${optimalTime.day} ${optimalTime.time}`;
-            }
-
-            // Update optimal time display label and color
-            const displayEl = document.getElementById('optimalTimeDisplay');
-            if (displayEl) {
-                const qualityColors = {
-                    best: 'var(--success)',
-                    great: 'var(--success)',
-                    good: 'var(--info)',
-                    medium: 'var(--warning)',
-                    low: 'var(--danger)',
-                    lowest: 'var(--danger)'
-                };
-                const color = qualityColors[optimalTime.quality] || 'var(--success)';
-
-                // Update the label based on whether it's today
-                const labelEl = displayEl.querySelector('span:first-of-type');
-                if (labelEl) {
-                    labelEl.textContent = optimalTime.isToday ? 'Best time today:' : `Best time ${optimalTime.day}:`;
-                }
-
-                if (headerTimeEl) headerTimeEl.style.color = color;
-            }
-
-            // Also update the Algorithm Intelligence panel
-            const algoTimeEl = document.getElementById('algorithmOptimalTime');
-            const algoQualityEl = document.getElementById('algorithmTimeQuality');
-
-            if (algoTimeEl) {
-                algoTimeEl.textContent = optimalTime.isToday
-                    ? optimalTime.time
-                    : `${optimalTime.day} at ${optimalTime.time}`;
-            }
-
-            if (algoQualityEl) {
-                const qualityText = {
-                    best: '<i class="fas fa-fire"></i> PEAK engagement window',
-                    great: '<i class="fas fa-star"></i> High engagement expected',
-                    good: '<i class="fas fa-thumbs-up"></i> Good engagement time',
-                    medium: '<i class="fas fa-minus"></i> Average engagement',
-                    low: '<i class="fas fa-arrow-down"></i> Lower engagement time',
-                    lowest: '<i class="fas fa-exclamation-triangle"></i> Lowest engagement - consider waiting'
-                };
-                algoQualityEl.innerHTML = `${qualityText[optimalTime.quality] || ''} - Based on 9.6M posts analyzed`;
-            }
+            // Updated 2026-02-13: Delegates to unified updateAllOptimalTimeDisplays()
+            // This ensures header, brainBestTime, and algorithmOptimalTime all show the same time
+            updateAllOptimalTimeDisplays();
         }
 
         async function loadBrainTab() {
@@ -23401,35 +23509,10 @@ Would you like to test posting to Threads?`;
             // 2 & 3. Load REAL Instagram Data (Engagement & Followers) from API
             loadRealInstagramStats();
 
-            // 4. Load Best Posting Time - Using MARKETING_STATE for unified recommendations
+            // 4. Load Best Posting Time - Using unified updateAllOptimalTimeDisplays()
+            // Updated 2026-02-13: Now uses single function to update ALL time displays consistently
             try {
-                // Updated 2026-02-13: Use MARKETING_STATE for consistency
-                if (!MARKETING_STATE.recommendations.lastUpdated) {
-                    MARKETING_STATE.init();
-                }
-
-                const bestTimeEl = document.getElementById('brainBestTime');
-                const bestTimeQualityEl = document.getElementById('brainBestTimeQuality');
-                const bestTimeLabelEl = document.getElementById('brainBestTimeLabel');
-                const optimalTime = MARKETING_STATE.recommendations.nextBestPostTime || getNextOptimalPostTime();
-                if (bestTimeEl && optimalTime) {
-                    // optimalTime is an object {day, time, quality, isToday} - format it properly
-                    const timeDisplay = optimalTime.isToday ? optimalTime.time : `${optimalTime.day} ${optimalTime.time}`;
-                    bestTimeEl.textContent = timeDisplay;
-
-                    // Update label to reflect whether it's today or another day
-                    if (bestTimeLabelEl) {
-                        bestTimeLabelEl.textContent = optimalTime.isToday ? 'Best Time Today' : `Best Time ${optimalTime.day}`;
-                    }
-
-                    if (bestTimeQualityEl) {
-                        const qualityIcon = optimalTime.quality === 'best' ? 'fa-star' : optimalTime.quality === 'great' ? 'fa-thumbs-up' : 'fa-clock';
-                        const qualityText = optimalTime.quality === 'best' ? 'Peak time!' : optimalTime.quality === 'great' ? 'Great time!' : 'Optimal window';
-                        bestTimeQualityEl.innerHTML = `<i class="fas ${qualityIcon}"></i> ${qualityText}`;
-                    }
-                }
-                // Also update header optimal time (this now calls updateHeaderOptimalTime which handles formatting)
-                updateHeaderOptimalTime();
+                updateAllOptimalTimeDisplays();
             } catch (e) { console.log('Best time not available'); }
 
             // 5. Load Content Mix Status (5-3-2)
@@ -23923,39 +24006,30 @@ Would you like to test posting to Threads?`;
                 }
             }
 
-            // Update Optimal Times Section
+            // Update Optimal Times Section - Updated 2026-02-13 to use unified display
             if (data.optimalTimes) {
                 const times = data.optimalTimes;
-                const optimalTimeEl = document.getElementById('algorithmOptimalTime');
-                const qualityEl = document.getElementById('algorithmTimeQuality');
                 const sourceEl = document.getElementById('optimalTimeSource');
                 const top3El = document.getElementById('top3Times');
                 const altListEl = document.getElementById('alternativeTimesList');
 
-                if (times.recommendations && times.recommendations.length > 0) {
-                    const bestTime = times.recommendations[0];
-                    if (optimalTimeEl) optimalTimeEl.textContent = bestTime.time;
-                    if (qualityEl) {
-                        qualityEl.innerHTML = times.personalized
-                            ? `<i class="fas fa-user-check" style="color: var(--success);"></i> ${bestTime.reason}`
-                            : `<i class="fas fa-chart-line"></i> ${bestTime.reason}`;
-                    }
-                    if (sourceEl) {
-                        sourceEl.innerHTML = `Source: ${times.source || 'Industry Research'}`;
-                    }
+                // Use unified function to ensure brainBestTime and algorithmOptimalTime show the same time
+                // API data doesn't override MARKETING_STATE - we use MARKETING_STATE as the single source of truth
+                updateAllOptimalTimeDisplays();
 
-                    // Show alternative times
-                    if (times.recommendations.length > 1 && top3El && altListEl) {
-                        top3El.style.display = 'block';
-                        altListEl.innerHTML = times.recommendations.slice(1).map(t => `
-                            <span style="background: rgba(255,255,255,0.1); padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.8rem;">
-                                ${t.time}
-                            </span>
-                        `).join('');
-                    }
-                } else if (times.nextBest) {
-                    if (optimalTimeEl) optimalTimeEl.textContent = times.nextBest.time;
-                    if (qualityEl) qualityEl.innerHTML = `<i class="fas fa-clock"></i> ${times.nextBest.reason}`;
+                // Update source info (this is supplementary, not conflicting)
+                if (sourceEl) {
+                    sourceEl.innerHTML = `Source: ${times.source || 'Industry Research'}`;
+                }
+
+                // Show alternative times from API (these are supplementary suggestions)
+                if (times.recommendations && times.recommendations.length > 1 && top3El && altListEl) {
+                    top3El.style.display = 'block';
+                    altListEl.innerHTML = times.recommendations.slice(1).map(t => `
+                        <span style="background: rgba(255,255,255,0.1); padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.8rem;">
+                            ${t.time}
+                        </span>
+                    `).join('');
                 }
             }
 
@@ -23965,17 +24039,61 @@ Would you like to test posting to Threads?`;
                 const briefContentEl = document.getElementById('weeklyBriefContent');
 
                 if (briefContentEl) {
-                    const weekLabel = brief.weekNumber ? `Week ${brief.weekNumber}` : '';
+                    const weekLabel = brief.weekNumber ? `Week ${brief.weekNumber}` : 'Weekly';
                     const alertsCount = brief.alertsCount || 0;
+                    const engagementHealth = data.engagementHealth;
+                    const healthStatus = engagementHealth?.status === 'HEALTHY' ? 'ON TRACK' : 'NEEDS ATTENTION';
+                    const healthIcon = engagementHealth?.status === 'HEALTHY'
+                        ? '<i class="fas fa-check-circle" style="color: var(--success);"></i>'
+                        : '<i class="fas fa-exclamation-circle" style="color: var(--warning);"></i>';
+
+                    // Get local 5-3-2 data for the posts summary
+                    const weeklyData = getWeeklyPostSummaryFromLocal();
+
                     briefContentEl.innerHTML = `
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div>
-                                <strong>${weekLabel} Brief</strong> - Generated ${brief.date ? new Date(brief.date).toLocaleDateString() : 'recently'}
+                        <div style="border-bottom: 1px solid rgba(139, 92, 246, 0.2); padding-bottom: 0.75rem; margin-bottom: 0.75rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <strong style="color: var(--text-primary);">${weekLabel} Brief</strong>
+                                ${alertsCount > 0
+                                    ? `<span style="background: var(--warning); color: #000; padding: 0.2rem 0.5rem; border-radius: 8px; font-size: 0.7rem; font-weight: 600;">${alertsCount} Alert${alertsCount > 1 ? 's' : ''}</span>`
+                                    : `<span style="font-size: 0.7rem; background: rgba(34,197,94,0.2); color: var(--success); padding: 0.2rem 0.5rem; border-radius: 8px;">API Data</span>`}
                             </div>
-                            ${alertsCount > 0 ? `<span style="background: var(--warning); color: #000; padding: 0.2rem 0.5rem; border-radius: 8px; font-size: 0.7rem; font-weight: 600;">${alertsCount} Alerts</span>` : ''}
+                            <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                                Generated ${brief.date ? new Date(brief.date).toLocaleDateString() : 'recently'}
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 0.75rem;">
+                            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.25rem;"><i class="fas fa-chart-bar"></i> Posts This Week</div>
+                            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                                <span style="background: rgba(99, 102, 241, 0.2); padding: 0.25rem 0.5rem; border-radius: 6px;">
+                                    <i class="fas fa-share-alt" style="color: var(--info);"></i> Curated: ${weeklyData.curated}
+                                </span>
+                                <span style="background: rgba(34, 197, 94, 0.2); padding: 0.25rem 0.5rem; border-radius: 6px;">
+                                    <i class="fas fa-pen" style="color: var(--success);"></i> Original: ${weeklyData.original}
+                                </span>
+                                <span style="background: rgba(236, 72, 153, 0.2); padding: 0.25rem 0.5rem; border-radius: 6px;">
+                                    <i class="fas fa-user" style="color: #EC4899;"></i> Personal: ${weeklyData.personal}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 0.75rem;">
+                            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.25rem;"><i class="fas fa-heartbeat"></i> Algorithm Health</div>
+                            <span style="background: rgba(100,100,100,0.3); padding: 0.2rem 0.5rem; border-radius: 6px; font-size: 0.8rem;">
+                                ${healthIcon} ${healthStatus}
+                            </span>
+                        </div>
+
+                        <div>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.25rem;"><i class="fas fa-lightbulb"></i> Recommendation</div>
+                            <div style="font-size: 0.8rem; color: var(--text-primary);">${getWeeklyRecommendation(weeklyData)}</div>
                         </div>
                     `;
                 }
+            } else {
+                // No API brief available, use local data fallback
+                displayWeeklyBriefFromLocal();
             }
         }
 
@@ -24032,21 +24150,129 @@ Would you like to test posting to Threads?`;
         }
 
         function showFallbackAlgorithmData() {
-            // Show cached/default data if API fails
-            const optimalTimeEl = document.getElementById('algorithmOptimalTime');
-            const qualityEl = document.getElementById('algorithmTimeQuality');
+            // Updated 2026-02-13: Use MARKETING_STATE for unified time display instead of hardcoded "4:00 PM"
+            // This ensures brainBestTime and algorithmOptimalTime show the same time even in fallback mode
+
+            // Use unified function to update optimal time displays from MARKETING_STATE
+            updateAllOptimalTimeDisplays();
+
+            // Update non-time elements
             const sourceEl = document.getElementById('optimalTimeSource');
             const listEl = document.getElementById('algorithmUpdatesList');
             const statusEl = document.getElementById('engagementStatus');
 
-            if (optimalTimeEl) optimalTimeEl.textContent = '4:00 PM';
-            if (qualityEl) qualityEl.innerHTML = '<i class="fas fa-fire"></i> PEAK engagement window - Based on 9.6M posts analyzed';
             if (sourceEl) sourceEl.innerHTML = 'Source: Industry Research (Buffer, Later)';
             if (listEl) listEl.innerHTML = '<div style="text-align: center; padding: 1rem; color: var(--text-secondary); font-size: 0.85rem;"><i class="fas fa-check-circle"></i> No major updates detected</div>';
             if (statusEl) {
                 statusEl.textContent = 'OFFLINE';
                 statusEl.style.background = 'var(--text-secondary)';
             }
+
+            // Show fallback for Weekly Intelligence Brief with real local data
+            displayWeeklyBriefFromLocal();
+        }
+
+        // Get week number for display
+        function getWeekNumber(date) {
+            const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+            const dayNum = d.getUTCDay() || 7;
+            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        }
+
+        // Gather weekly post summary from localStorage 5-3-2 tracker
+        function getWeeklyPostSummaryFromLocal() {
+            let totalCurated = 0, totalOriginal = 0, totalPersonal = 0;
+
+            // Sum up from all accounts
+            ['tinyseedfarm', 'tinyseedflowers'].forEach(account => {
+                const key = `igSyncData_${account}_weeklyContent`;
+                const data = JSON.parse(localStorage.getItem(key) || '{}');
+                totalCurated += data.curated || 0;
+                totalOriginal += data.original || 0;
+                totalPersonal += data.personal || 0;
+            });
+
+            return {
+                curated: totalCurated,
+                original: totalOriginal,
+                personal: totalPersonal,
+                total: totalCurated + totalOriginal + totalPersonal
+            };
+        }
+
+        // Get smart recommendation based on 5-3-2 progress
+        function getWeeklyRecommendation(data) {
+            const { curated, original, personal, total } = data;
+            const dayOfWeek = new Date().getDay();
+            const daysLeft = 7 - dayOfWeek;
+
+            if (total >= 10) {
+                return 'Great job! You hit your weekly 5-3-2 target. Consider a bonus engagement post.';
+            }
+
+            // Check what's most needed
+            const curatedNeeded = Math.max(0, 5 - curated);
+            const originalNeeded = Math.max(0, 3 - original);
+            const personalNeeded = Math.max(0, 2 - personal);
+
+            if (curatedNeeded > 0 && curatedNeeded >= originalNeeded && curatedNeeded >= personalNeeded) {
+                return `Focus on ${curatedNeeded} more curated posts (value-driven content) to hit your 5-3-2 goal.`;
+            } else if (originalNeeded > 0 && originalNeeded >= personalNeeded) {
+                return `Need ${originalNeeded} more original posts. Share farm updates, tips, or educational content.`;
+            } else if (personalNeeded > 0) {
+                return `Add ${personalNeeded} personal post${personalNeeded > 1 ? 's' : ''} to connect with your audience authentically.`;
+            } else if (daysLeft <= 2 && total < 7) {
+                return `Weekend push needed! Try to post ${7 - total} more times before week ends.`;
+            }
+
+            return 'Keep up consistent posting. Aim for 10 posts/week across your 5-3-2 mix.';
+        }
+
+        // Display weekly brief from local data (fallback when API unavailable)
+        function displayWeeklyBriefFromLocal() {
+            const briefContentEl = document.getElementById('weeklyBriefContent');
+            if (!briefContentEl) return;
+
+            const weekNumber = getWeekNumber(new Date());
+            const weeklyData = getWeeklyPostSummaryFromLocal();
+
+            briefContentEl.innerHTML = `
+                <div style="border-bottom: 1px solid rgba(139, 92, 246, 0.2); padding-bottom: 0.75rem; margin-bottom: 0.75rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <strong style="color: var(--text-primary);">Week ${weekNumber} Brief</strong>
+                        <span style="font-size: 0.7rem; background: rgba(255,193,7,0.2); color: var(--warning); padding: 0.2rem 0.5rem; border-radius: 8px;">Local Data</span>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 0.75rem;">
+                    <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.25rem;"><i class="fas fa-chart-bar"></i> Posts This Week</div>
+                    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                        <span style="background: rgba(99, 102, 241, 0.2); padding: 0.25rem 0.5rem; border-radius: 6px;">
+                            <i class="fas fa-share-alt" style="color: var(--info);"></i> Curated: ${weeklyData.curated}
+                        </span>
+                        <span style="background: rgba(34, 197, 94, 0.2); padding: 0.25rem 0.5rem; border-radius: 6px;">
+                            <i class="fas fa-pen" style="color: var(--success);"></i> Original: ${weeklyData.original}
+                        </span>
+                        <span style="background: rgba(236, 72, 153, 0.2); padding: 0.25rem 0.5rem; border-radius: 6px;">
+                            <i class="fas fa-user" style="color: #EC4899;"></i> Personal: ${weeklyData.personal}
+                        </span>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 0.75rem;">
+                    <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.25rem;"><i class="fas fa-heartbeat"></i> Algorithm Health</div>
+                    <span style="background: rgba(100,100,100,0.3); padding: 0.2rem 0.5rem; border-radius: 6px; font-size: 0.8rem;">
+                        ${weeklyData.total >= 7 ? '<i class="fas fa-check-circle" style="color: var(--success);"></i> ON TRACK' : '<i class="fas fa-exclamation-circle" style="color: var(--warning);"></i> NEEDS MORE POSTS'}
+                    </span>
+                </div>
+
+                <div>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.25rem;"><i class="fas fa-lightbulb"></i> Recommendation</div>
+                    <div style="font-size: 0.8rem; color: var(--text-primary);">${getWeeklyRecommendation(weeklyData)}</div>
+                </div>
+            `;
         }
 
         async function generateNewBrief() {
@@ -24061,23 +24287,84 @@ Would you like to test posting to Threads?`;
 
                 if (data.success) {
                     showToast('Weekly Intelligence Brief generated!', 'success');
-                    // Refresh the display
-                    fetchAlgorithmIntelligence(true);
+
+                    // Display the brief content directly from the response
+                    if (briefContentEl && data.sections) {
+                        const weeklyData = getWeeklyPostSummaryFromLocal();
+                        const weekNumber = data.weekNumber || getWeekNumber(new Date());
+                        const alertsCount = data.summary?.alertsCount || 0;
+                        const healthStatus = data.summary?.performanceStatus === 'HEALTHY' ? 'ON TRACK' : 'NEEDS ATTENTION';
+                        const healthIcon = data.summary?.performanceStatus === 'HEALTHY'
+                            ? '<i class="fas fa-check-circle" style="color: var(--success);"></i>'
+                            : '<i class="fas fa-exclamation-circle" style="color: var(--warning);"></i>';
+
+                        // Extract top recommendation from sections
+                        const recsSection = data.sections.find(s => s.title.includes('Recommendation'));
+                        const topRec = data.summary?.topRecommendation || (recsSection?.content?.split('\n')[0]?.replace(/^\d+\.\s*/, '') || getWeeklyRecommendation(weeklyData));
+
+                        briefContentEl.innerHTML = `
+                            <div style="border-bottom: 1px solid rgba(139, 92, 246, 0.2); padding-bottom: 0.75rem; margin-bottom: 0.75rem;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <strong style="color: var(--text-primary);">Week ${weekNumber} Brief</strong>
+                                    ${alertsCount > 0
+                                        ? `<span style="background: var(--warning); color: #000; padding: 0.2rem 0.5rem; border-radius: 8px; font-size: 0.7rem; font-weight: 600;">${alertsCount} Alert${alertsCount > 1 ? 's' : ''}</span>`
+                                        : `<span style="font-size: 0.7rem; background: rgba(34,197,94,0.2); color: var(--success); padding: 0.2rem 0.5rem; border-radius: 8px;">Fresh</span>`}
+                                </div>
+                                <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                                    Generated just now
+                                </div>
+                            </div>
+
+                            <div style="margin-bottom: 0.75rem;">
+                                <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.25rem;"><i class="fas fa-chart-bar"></i> Posts This Week</div>
+                                <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                                    <span style="background: rgba(99, 102, 241, 0.2); padding: 0.25rem 0.5rem; border-radius: 6px;">
+                                        <i class="fas fa-share-alt" style="color: var(--info);"></i> Curated: ${weeklyData.curated}
+                                    </span>
+                                    <span style="background: rgba(34, 197, 94, 0.2); padding: 0.25rem 0.5rem; border-radius: 6px;">
+                                        <i class="fas fa-pen" style="color: var(--success);"></i> Original: ${weeklyData.original}
+                                    </span>
+                                    <span style="background: rgba(236, 72, 153, 0.2); padding: 0.25rem 0.5rem; border-radius: 6px;">
+                                        <i class="fas fa-user" style="color: #EC4899;"></i> Personal: ${weeklyData.personal}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div style="margin-bottom: 0.75rem;">
+                                <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.25rem;"><i class="fas fa-heartbeat"></i> Algorithm Health</div>
+                                <span style="background: rgba(100,100,100,0.3); padding: 0.2rem 0.5rem; border-radius: 6px; font-size: 0.8rem;">
+                                    ${healthIcon} ${healthStatus}
+                                </span>
+                            </div>
+
+                            <div>
+                                <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.25rem;"><i class="fas fa-lightbulb"></i> Recommendation</div>
+                                <div style="font-size: 0.8rem; color: var(--text-primary);">${escapeHtml(topRec)}</div>
+                            </div>
+                        `;
+                    } else {
+                        // Fallback: Refresh the display via API
+                        fetchAlgorithmIntelligence(true);
+                    }
                 } else {
                     showToast('Failed to generate brief: ' + (data.error || 'Unknown error'), 'error');
-                    if (briefContentEl) {
-                        briefContentEl.innerHTML = '<i class="fas fa-exclamation-triangle" style="color: var(--warning);"></i> Failed to generate. Try again later.';
-                    }
+                    // Show local data as fallback instead of error message
+                    displayWeeklyBriefFromLocal();
                 }
             } catch (error) {
                 console.error('Generate brief error:', error);
                 showToast('Failed to generate brief', 'error');
+                // Show local data as fallback
+                displayWeeklyBriefFromLocal();
             }
         }
 
         // Auto-load algorithm intelligence when Brain tab loads
         function initAlgorithmIntelligence() {
-            // Fetch real data from backend
+            // Show local data immediately while API loads (prevents "Loading brief..." state)
+            displayWeeklyBriefFromLocal();
+
+            // Fetch real data from backend (will update brief if API data available)
             fetchAlgorithmIntelligence();
 
             // Also run the old local research check for backwards compatibility
@@ -24979,12 +25266,8 @@ Would you like to test posting to Threads?`;
         }
 
         async function refreshAEOData() {
-            const icon = document.getElementById('aeoRefreshIcon');
-            if (icon) icon.classList.add('fa-spin');
-
+            // AEO refresh handled through loadAEOVisibilityData
             await loadAEOVisibilityData();
-
-            if (icon) icon.classList.remove('fa-spin');
             showToast('AEO data refreshed', 'success');
         }
 
@@ -24997,10 +25280,17 @@ Would you like to test posting to Threads?`;
             // AEO Score
             const scoreEl = document.getElementById('mccAeoScore');
             const trendEl = document.getElementById('mccAeoTrend');
+            const miniScoreEl = document.getElementById('aeoMiniScore');
             if (scoreEl) {
                 const score = aeoData.aeoScore || 0;
                 scoreEl.textContent = score + '%';
                 scoreEl.style.color = score >= 50 ? '#1abc9c' : score >= 30 ? '#f1c40f' : '#e74c3c';
+
+                // Also update mini score in collapsed header
+                if (miniScoreEl) {
+                    miniScoreEl.textContent = score + '%';
+                    miniScoreEl.style.color = score >= 50 ? '#1abc9c' : score >= 30 ? '#f1c40f' : '#e74c3c';
+                }
             }
             if (trendEl) {
                 const totalChecks = aeoData.totalChecks || 0;
@@ -25126,11 +25416,17 @@ Would you like to test posting to Threads?`;
             const rateEl = document.getElementById('mccAppearanceRate');
             const statsEl = document.getElementById('mccAppearanceStats');
             const mentionsEl = document.getElementById('mccRecentMentions');
+            const miniScoreEl = document.getElementById('aeoMiniScore');
 
             // Show actionable empty state
             if (scoreEl) {
                 scoreEl.textContent = '0%';
                 scoreEl.style.color = '#e74c3c';
+            }
+            // Also update mini score in collapsed header
+            if (miniScoreEl) {
+                miniScoreEl.textContent = '0%';
+                miniScoreEl.style.color = '#e74c3c';
             }
             if (trendEl) trendEl.innerHTML = '<a href="seo_dashboard.html#ai-check" style="color: #1abc9c;">Run first check →</a>';
             if (rateEl) {
@@ -25630,28 +25926,219 @@ Would you like to test posting to Threads?`;
             }
         }
 
+        // Cache for employees to avoid repeated API calls
+        let cachedEmployees = null;
+        const EMPLOYEE_CACHE_KEY = 'tinyseed_employees_cache';
+        const EMPLOYEE_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+
+        function getCachedEmployees() {
+            try {
+                const cached = localStorage.getItem(EMPLOYEE_CACHE_KEY);
+                if (cached) {
+                    const { employees, timestamp } = JSON.parse(cached);
+                    if (Date.now() - timestamp < EMPLOYEE_CACHE_TTL) {
+                        return employees;
+                    }
+                }
+            } catch (e) {
+                console.warn('Error reading employee cache:', e);
+            }
+            return null;
+        }
+
+        function setCachedEmployees(employees) {
+            try {
+                localStorage.setItem(EMPLOYEE_CACHE_KEY, JSON.stringify({
+                    employees: employees,
+                    timestamp: Date.now()
+                }));
+            } catch (e) {
+                console.warn('Error caching employees:', e);
+            }
+        }
+
         // Delegate a task to someone
         async function delegateAction(type, index) {
             const actions = type === 'urgent' ? brainData.actionQueue?.urgent : brainData.actionQueue?.today;
             const action = actions?.[index];
 
-            // Simple prompt for now - could be enhanced with a modal
-            const assignee = prompt('Delegate to (name or email):');
-            if (!assignee) return;
+            showToast('Loading team members...', 'info');
+
+            // Check in-memory cache first
+            if (cachedEmployees && cachedEmployees.length > 0) {
+                showDelegateModal(type, index, cachedEmployees);
+                return;
+            }
+
+            // Check localStorage cache
+            const localCached = getCachedEmployees();
+            if (localCached && localCached.length > 0) {
+                cachedEmployees = localCached;
+                showDelegateModal(type, index, cachedEmployees);
+                return;
+            }
 
             try {
-                await fetch(API_URL, {
+                // Fetch employees from API
+                const response = await fetch(`${API_URL}?action=getEmployees`);
+                const data = await response.json();
+
+                if (data.success && data.employees && data.employees.length > 0) {
+                    cachedEmployees = data.employees;
+                    setCachedEmployees(data.employees);
+                    showDelegateModal(type, index, data.employees);
+                } else {
+                    // API returned no employees - show empty state with manual entry option
+                    console.warn('No employees returned from API');
+                    showDelegateModal(type, index, []);
+                }
+            } catch (error) {
+                console.error('Error fetching employees:', error);
+                // Show modal with manual entry option only
+                showDelegateModal(type, index, []);
+            }
+        }
+
+        function showDelegateModal(type, index, employees) {
+            const modal = document.createElement('div');
+            modal.id = 'delegateModal';
+            modal.style.cssText = 'position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 9999; display: flex; align-items: center; justify-content: center;';
+
+            // Store employee data in data attributes for ID retrieval
+            const options = employees.map(e =>
+                `<option value="${e.id}" data-name="${e.name}" data-role="${e.role || 'Employee'}">${e.name} (${e.role || 'Employee'})</option>`
+            ).join('');
+
+            // Get action details for task preview
+            const actions = type === 'urgent' ? brainData.actionQueue?.urgent : brainData.actionQueue?.today;
+            const action = actions?.[index];
+            const taskTitle = action?.title || action?.task || 'Marketing Task';
+            const taskDesc = action?.description || action?.reason || '';
+
+            // Escape HTML for safety
+            const escapeHtmlForModal = (str) => {
+                if (!str) return '';
+                return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            };
+
+            modal.innerHTML = `
+                <div style="background: var(--bg-card); padding: 2rem; border-radius: 16px; max-width: 450px; width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+                    <h3 style="margin: 0 0 1rem 0; display: flex; align-items: center; gap: 0.5rem;"><i class="fas fa-user-plus"></i> Delegate Task</h3>
+
+                    <div style="background: var(--bg-input); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border-left: 3px solid var(--accent);">
+                        <div style="font-weight: 600; margin-bottom: 0.25rem;">${escapeHtmlForModal(taskTitle)}</div>
+                        ${taskDesc ? `<div style="font-size: 0.85rem; opacity: 0.8;">${escapeHtmlForModal(taskDesc)}</div>` : ''}
+                    </div>
+
+                    <label style="font-size: 0.85rem; font-weight: 500; margin-bottom: 0.5rem; display: block;">Assign to:</label>
+                    <select id="delegateSelect" style="width: 100%; padding: 0.75rem; margin-bottom: 1rem; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-input); color: var(--text-primary); font-size: 1rem;">
+                        <option value="">Select team member...</option>
+                        ${options}
+                        <option value="other">Other (enter manually)</option>
+                    </select>
+                    <input type="text" id="delegateOther" placeholder="Enter name or email" style="display: none; width: 100%; padding: 0.75rem; margin-bottom: 1rem; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-input); color: var(--text-primary); box-sizing: border-box;">
+
+                    <label style="font-size: 0.85rem; font-weight: 500; margin-bottom: 0.5rem; display: block;">Notes (optional):</label>
+                    <textarea id="delegateNotes" placeholder="Add any instructions or context..." style="width: 100%; padding: 0.75rem; margin-bottom: 1rem; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-input); color: var(--text-primary); font-size: 0.9rem; min-height: 60px; resize: vertical; box-sizing: border-box;"></textarea>
+
+                    <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                        <button onclick="closeDelegateModal()" class="btn btn-secondary" style="padding: 0.75rem 1.5rem;">Cancel</button>
+                        <button onclick="confirmDelegate('${type}', ${index})" class="btn btn-primary" style="padding: 0.75rem 1.5rem;">
+                            <i class="fas fa-paper-plane" style="margin-right: 0.5rem;"></i>Delegate
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            const selectEl = document.getElementById('delegateSelect');
+            selectEl.addEventListener('change', function() {
+                const otherInput = document.getElementById('delegateOther');
+                otherInput.style.display = this.value === 'other' ? 'block' : 'none';
+                if (this.value === 'other') {
+                    otherInput.focus();
+                }
+            });
+
+            selectEl.focus();
+        }
+
+        function closeDelegateModal() {
+            const modal = document.getElementById('delegateModal');
+            if (modal) modal.remove();
+        }
+
+        async function confirmDelegate(type, index) {
+            const select = document.getElementById('delegateSelect');
+            const otherInput = document.getElementById('delegateOther');
+            const notesInput = document.getElementById('delegateNotes');
+
+            // Get assignee name and ID
+            let assigneeName = '';
+            let assigneeId = '';
+            if (select.value === 'other') {
+                assigneeName = otherInput.value.trim();
+                assigneeId = assigneeName; // Use name as ID for manual entries
+            } else if (select.value) {
+                assigneeId = select.value;
+                const selectedOption = select.options[select.selectedIndex];
+                assigneeName = selectedOption.dataset?.name || selectedOption.text.split(' (')[0];
+            }
+
+            if (!assigneeName) {
+                showToast('Please select a team member or enter a name', 'warning');
+                return;
+            }
+
+            // Get optional notes
+            const notes = notesInput ? notesInput.value.trim() : '';
+
+            closeDelegateModal();
+
+            try {
+                const actions = type === 'urgent' ? brainData.actionQueue?.urgent : brainData.actionQueue?.today;
+                const action = actions?.[index];
+
+                showToast('Creating task and delegating...', 'info');
+
+                // Build task title and description
+                const taskTitle = action?.title || action?.task || 'Marketing Task';
+                const taskDesc = action?.description || action?.reason || '';
+                const fullDescription = notes
+                    ? `${taskDesc}\n\nDelegation Notes: ${notes}`
+                    : taskDesc;
+
+                // Calculate due date (default: tomorrow for urgent, 3 days for normal)
+                const dueDate = new Date();
+                dueDate.setDate(dueDate.getDate() + (type === 'urgent' ? 1 : 3));
+                const dueDateStr = dueDate.toISOString().split('T')[0];
+
+                // Create task in TinySeed task system using the real createTask API
+                const response = await fetch(API_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'text/plain' },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        action: 'delegateMarketingTask',
-                        taskId: action?.taskId || null,
-                        actionType: action?.type,
-                        actionId: `${type}_${index}`,
-                        assignee: assignee
+                        action: 'createTask',
+                        title: `[Delegated] ${taskTitle}`,
+                        description: fullDescription,
+                        dueDate: dueDateStr,
+                        priority: type === 'urgent' ? 'High' : 'Medium',
+                        category: 'Marketing',
+                        source: 'marketing_command_center',
+                        assignedTo: assigneeName,
+                        createdBy: 'Marketing Brain'
                     })
                 });
-                showToast(`Task delegated to ${assignee}!`, 'success');
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast(`Task created and delegated to ${assigneeName}!`, 'success');
+                } else {
+                    console.warn('Task creation returned:', result);
+                    showToast(`Task delegated to ${assigneeName} (local only)`, 'warning');
+                }
 
                 // Remove from local list
                 if (brainData.actionQueue?.[type]) {
@@ -26025,6 +26512,229 @@ Would you like to test posting to Threads?`;
                 btn.innerHTML = originalHTML;
                 btn.disabled = false;
                 btn.style.opacity = '1';
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // WEEK IN REVIEW - Sunday Journal System
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        let weekReviewExpanded = false;
+
+        function toggleWeekInReview() {
+            weekReviewExpanded = !weekReviewExpanded;
+            const body = document.getElementById('weekInReviewBody');
+            const icon = document.getElementById('weekReviewToggle');
+
+            if (body) {
+                body.style.display = weekReviewExpanded ? 'block' : 'none';
+                if (weekReviewExpanded) loadWeeklyJournal();
+            }
+            if (icon) icon.style.transform = weekReviewExpanded ? 'rotate(180deg)' : 'rotate(0)';
+        }
+
+        // Load all weekly journal data (Added 2026-02-13)
+        async function loadWeeklyJournal() {
+            await Promise.all([loadJournalEntries(), loadCurrentWeekResponse()]);
+        }
+
+        // Load current week's response from Todd (Added 2026-02-13)
+        async function loadCurrentWeekResponse() {
+            const responseSection = document.getElementById('toddResponseSection');
+            const postsSection = document.getElementById('generatedPostsSection');
+            if (!responseSection) return;
+            try {
+                const response = await fetch(`${API_URL}?action=getWritingResponses&limit=1`);
+                const data = await response.json();
+                const responses = data.responses || data.entries || [];
+                if (responses.length > 0) {
+                    const latestResponse = responses[0];
+                    const receivedAt = new Date(latestResponse.Received_At || latestResponse.date);
+                    const weekAgo = new Date();
+                    weekAgo.setDate(weekAgo.getDate() - 7);
+                    if (receivedAt > weekAgo) {
+                        const content = latestResponse.Todd_Input || latestResponse.content || '';
+                        const postsGenerated = latestResponse.Posts_Generated || 0;
+                        const status = latestResponse.Status || '';
+                        responseSection.style.display = 'block';
+                        document.getElementById('toddResponseContent').textContent = content;
+                        document.getElementById('responseTimestamp').textContent = receivedAt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                        const lastDate = document.getElementById('lastEntryDate');
+                        if (lastDate) lastDate.textContent = `Last: ${receivedAt.toLocaleDateString()}`;
+                        if (postsGenerated > 0 || status === 'posts_generated' || status === 'queued_for_approval') {
+                            postsSection.style.display = 'block';
+                            document.getElementById('postsGeneratedCount').textContent = postsGenerated || '?';
+                            await loadGeneratedPosts();
+                        }
+                        updateJournalBadge(status, postsGenerated);
+                    } else {
+                        responseSection.style.display = 'none';
+                        postsSection.style.display = 'none';
+                    }
+                }
+            } catch (error) { console.error('Error loading current week response:', error); }
+        }
+
+        // Load generated posts from writing prompt (Added 2026-02-13)
+        async function loadGeneratedPosts() {
+            const container = document.getElementById('generatedPostsList');
+            if (!container) return;
+            try {
+                const response = await fetch(`${API_URL}?action=getMarketingQueue&status=pending_approval&limit=10`);
+                const data = await response.json();
+                const posts = (data.items || []).filter(item => item.generated_by && item.generated_by.includes('writing_prompt'));
+                if (posts.length > 0) {
+                    const platformIcons = { 'instagram': 'fab fa-instagram', 'facebook': 'fab fa-facebook', 'gbp': 'fab fa-google', 'twitter': 'fab fa-twitter' };
+                    const platformColors = { 'instagram': 'var(--instagram)', 'facebook': 'var(--facebook)', 'gbp': 'var(--gbp)', 'twitter': 'var(--twitter)' };
+                    container.innerHTML = posts.map(post => `<div style="background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 8px; margin-bottom: 0.5rem; border-left: 2px solid ${platformColors[post.platform] || 'var(--border)'};">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                            <i class="${platformIcons[post.platform] || 'fas fa-share'}" style="color: ${platformColors[post.platform] || 'var(--text-secondary)'};"></i>
+                            <span style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-secondary);">${post.platform}</span>
+                            <span class="badge" style="font-size: 0.6rem; background: var(--warning); color: #000;">Pending</span>
+                        </div>
+                        <div style="font-size: 0.8rem; color: var(--text-primary);">${(post.content || '').substring(0, 200)}${post.content?.length > 200 ? '...' : ''}</div>
+                    </div>`).join('');
+                    document.getElementById('postsGeneratedCount').textContent = posts.length;
+                } else {
+                    container.innerHTML = '<p style="color: var(--text-secondary); font-size: 0.8rem; text-align: center;">Posts generated - check Marketing Queue</p>';
+                }
+            } catch (error) { console.error('Error loading generated posts:', error); container.innerHTML = '<p style="color: var(--text-secondary); font-size: 0.8rem;">Could not load posts</p>'; }
+        }
+
+        // Update journal status badge (Added 2026-02-13)
+        function updateJournalBadge(status, postsGenerated) {
+            const badge = document.getElementById('journalStatusBadge');
+            if (!badge) return;
+            if (status === 'queued_for_approval' || status === 'posts_generated') { badge.style.background = 'var(--success)'; badge.style.color = '#fff'; badge.textContent = `${postsGenerated} Posts Ready`; }
+            else if (status === 'processing') { badge.style.background = 'var(--warning)'; badge.style.color = '#000'; badge.textContent = 'Processing...'; }
+            else { badge.style.background = 'var(--gold)'; badge.style.color = '#000'; badge.textContent = 'Sunday 11am'; }
+        }
+
+        // Send manual SMS prompt to Todd (Added 2026-02-13)
+        async function sendManualPrompt() {
+            const btn = event.target.closest('button');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+            btn.disabled = true;
+            try {
+                const response = await fetch(`${API_URL}?action=sendWeeklyWritingPrompts`);
+                const data = await response.json();
+                if (data.success) { showToast('Writing prompt SMS sent to Todd!', 'success'); const badge = document.getElementById('journalStatusBadge'); if (badge) { badge.style.background = 'var(--warning)'; badge.textContent = 'Prompt Sent'; } }
+                else { showToast(data.error || 'Failed to send SMS', 'error'); }
+            } catch (error) { console.error('Error sending manual prompt:', error); showToast('Failed to send prompt SMS', 'error'); }
+            finally { btn.innerHTML = originalHTML; btn.disabled = false; }
+        }
+
+        async function loadJournalEntries() {
+            const container = document.getElementById('recentJournalEntries');
+            if (!container) return;
+
+            try {
+                const response = await fetch(`${API_URL}?action=getWritingResponses&limit=5`);
+                const data = await response.json();
+
+                // Handle both response formats (responses or entries)
+                const entries = data.responses || data.entries || [];
+
+                if (entries.length > 0) {
+                    container.innerHTML = entries.map(entry => {
+                        const content = entry.Todd_Input || entry.content || '';
+                        const date = entry.Received_At || entry.date;
+                        const postsGenerated = entry.Posts_Generated || 0;
+                        return `
+                            <div style="background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 8px; margin-bottom: 0.5rem;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                                    <span style="font-size: 0.7rem; color: var(--text-secondary);">
+                                        ${new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                    </span>
+                                    ${postsGenerated > 0 ? `<span style="font-size: 0.65rem; background: var(--info); padding: 0.1rem 0.4rem; border-radius: 8px;">${postsGenerated} posts</span>` : ''}
+                                </div>
+                                <div style="font-size: 0.85rem; color: var(--text-primary);">
+                                    ${content.substring(0, 150)}${content.length > 150 ? '...' : ''}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+
+                    // Update total count
+                    const totalCount = document.getElementById('totalEntriesCount');
+                    if (totalCount && data.total) {
+                        totalCount.textContent = `${data.total} total`;
+                    }
+                } else {
+                    container.innerHTML = '<p style="color: var(--text-secondary); text-align: center;">No entries yet. Write your first Week in Review!</p>';
+                }
+            } catch (error) {
+                console.error('Error loading journal entries:', error);
+                container.innerHTML = '<p style="color: var(--danger);">Failed to load entries</p>';
+            }
+        }
+
+        function openWeeklyJournalEntry() {
+            // Open modal for writing entry
+            const modal = document.createElement('div');
+            modal.id = 'journalEntryModal';
+            modal.style.cssText = 'position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9999; display: flex; align-items: center; justify-content: center;';
+
+            modal.innerHTML = `
+                <div style="background: var(--bg-card); padding: 2rem; border-radius: 16px; max-width: 600px; width: 90%; border: 1px solid rgba(255, 182, 72, 0.3);">
+                    <h2 style="margin-bottom: 1rem;"><i class="fas fa-journal-whills" style="color: var(--gold);"></i> Week in Review</h2>
+                    <p style="color: var(--text-secondary); margin-bottom: 1rem;">What happened this week? AI will turn this into content.</p>
+                    <textarea id="journalEntryText" rows="8" style="width: 100%; padding: 1rem; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: var(--text-primary); resize: vertical;"
+                        placeholder="What's looking great in the fields?&#10;Any memorable customer moments?&#10;What excited you this week?"></textarea>
+                    <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem;">
+                        <button onclick="this.closest('#journalEntryModal').remove()" class="btn btn-secondary">Cancel</button>
+                        <button onclick="submitJournalEntry()" class="btn" style="background: var(--gold); color: #000;"><i class="fas fa-paper-plane"></i> Submit & Generate Content</button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+        }
+
+        async function submitJournalEntry() {
+            const text = document.getElementById('journalEntryText')?.value;
+            if (!text || text.trim().length < 20) {
+                showToast('Please write a bit more (at least a few sentences)', 'warning');
+                return;
+            }
+
+            showToast('Saving entry and generating content...', 'info');
+
+            try {
+                const response = await fetch(`${API_URL}?action=generatePostsFromToddInput`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ input: text })
+                });
+                const data = await response.json();
+
+                document.getElementById('journalEntryModal')?.remove();
+
+                if (data.success) {
+                    showToast('Entry saved! Content generated.', 'success');
+                    loadJournalEntries();
+                } else {
+                    showToast('Entry saved but content generation failed', 'warning');
+                }
+            } catch (error) {
+                console.error('Error submitting journal:', error);
+                showToast('Failed to submit entry', 'error');
+            }
+        }
+
+        async function sendMePromptSMS() {
+            showToast('Sending prompt SMS...', 'info');
+            try {
+                const response = await fetch(`${API_URL}?action=sendWeeklyWritingPrompts`);
+                const data = await response.json();
+                if (data.success) {
+                    showToast('Prompt SMS sent!', 'success');
+                } else {
+                    showToast('Failed to send SMS', 'error');
+                }
+            } catch (error) {
+                showToast('Failed to send SMS', 'error');
             }
         }
 
