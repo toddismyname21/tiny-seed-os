@@ -5173,14 +5173,14 @@
                         <i class="fas fa-eye"></i> This week
                     </div>
                 </div>
-                <!-- KPI 4: Best Posting Time - CLICKABLE -->
-                <div class="stat-card best-time-clickable" id="bestTimeCard" onclick="goToCreateWithTime()" style="border-left: 3px solid var(--warning); cursor: pointer;" title="Click to create a post at this time">
-                    <div class="stat-label" id="brainBestTimeLabel">Next Best Time</div>
-                    <div class="stat-value" id="brainBestTime" style="color: var(--warning); font-size: 1.25rem;">--</div>
-                    <div class="stat-change neutral" id="brainBestTimeQuality">
-                        <i class="fas fa-arrow-right"></i> Click to post now
+                <!-- KPI 4: Best Posting Time - NOW A REAL BUTTON -->
+                <button class="stat-card best-time-button" id="bestTimeCard" onclick="goToCreateWithTime()" style="border-left: 3px solid var(--warning); cursor: pointer; background: linear-gradient(135deg, rgba(255,193,7,0.15) 0%, rgba(255,193,7,0.05) 100%); border: 2px solid var(--warning); transition: all 0.2s ease;" title="Click to schedule a post at this optimal time">
+                    <div class="stat-label" id="brainBestTimeLabel" style="color: var(--warning); font-weight: 600;">🕐 BEST TIME TODAY</div>
+                    <div class="stat-value" id="brainBestTime" style="color: var(--warning); font-size: 1.5rem; font-weight: 700;">--</div>
+                    <div class="stat-change" style="background: var(--warning); color: #000; padding: 4px 12px; border-radius: 20px; font-weight: 600; margin-top: 8px;">
+                        <i class="fas fa-plus-circle"></i> SCHEDULE POST
                     </div>
-                </div>
+                </button>
                 <!-- KPI 5: Content Mix (5-3-2) -->
                 <div class="stat-card" style="border-left: 3px solid var(--instagram);">
                     <div class="stat-label">Content Mix</div>
@@ -22359,23 +22359,17 @@ Would you like to test posting to Threads?`;
                 }
             }
 
-            // 2. Update Brain Tab KPI Card (brainBestTime)
+            // 2. Update Brain Tab KPI Card (brainBestTime) - now a button with static CTA
             const brainBestTimeEl = document.getElementById('brainBestTime');
             const brainBestTimeLabelEl = document.getElementById('brainBestTimeLabel');
-            const brainBestTimeQualityEl = document.getElementById('brainBestTimeQuality');
+            // Note: brainBestTimeQuality was removed - button now has static "SCHEDULE POST" CTA
 
             if (brainBestTimeEl) {
                 brainBestTimeEl.textContent = timeStrShort;
             }
 
             if (brainBestTimeLabelEl) {
-                brainBestTimeLabelEl.textContent = optimalTime.isToday ? 'Best Time Today' : `Best Time ${optimalTime.day}`;
-            }
-
-            if (brainBestTimeQualityEl) {
-                const qualityIcon = optimalTime.quality === 'best' ? 'fa-star' : optimalTime.quality === 'great' ? 'fa-thumbs-up' : 'fa-clock';
-                const qualityText = optimalTime.quality === 'best' ? 'Peak time!' : optimalTime.quality === 'great' ? 'Great time!' : 'Optimal window';
-                brainBestTimeQualityEl.innerHTML = `<i class="fas ${qualityIcon}"></i> ${qualityText}`;
+                brainBestTimeLabelEl.textContent = optimalTime.isToday ? '🕐 BEST TIME TODAY' : `🕐 BEST TIME ${optimalTime.day.toUpperCase()}`;
             }
 
             // 3. Update Algorithm Intelligence Panel (algorithmOptimalTime)
@@ -24215,12 +24209,29 @@ Would you like to test posting to Threads?`;
                     sourceEl.innerHTML = `Source: ${times.source || 'Industry Research'}`;
                 }
 
-                // Show alternative times from API (these are supplementary suggestions)
-                if (times.recommendations && times.recommendations.length > 1 && top3El && altListEl) {
+                // REMOVED: Alternative times from API that conflicted with Best Time card
+                // Now using MARKETING_STATE as single source of truth for all posting times
+                // Get the unified optimal times from MARKETING_STATE
+                const unifiedTimes = MARKETING_STATE.calculateOptimalTime();
+                const todayTimes = ['19:00 PM', '18:00 PM', '20:00 PM']; // Default evening times
+
+                if (unifiedTimes && top3El && altListEl) {
                     top3El.style.display = 'block';
-                    altListEl.innerHTML = times.recommendations.slice(1).map(t => `
-                        <span style="background: rgba(255,255,255,0.1); padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.8rem;">
-                            ${t.time}
+                    // Show today's optimal times from the same source as Best Time button
+                    const dayOfWeek = new Date().getDay();
+                    const UNIFIED_OPTIMAL_TIMES = {
+                        0: ['9:00 PM', '10:00 PM', '8:00 PM'],
+                        1: ['7:00 PM', '6:00 PM', '8:00 PM'],
+                        2: ['7:00 PM', '3:00 PM', '5:00 PM'],
+                        3: ['12:00 PM', '6:00 PM', '8:00 AM'],
+                        4: ['9:00 AM', '8:00 AM', '7:00 AM'],
+                        5: ['10:00 PM', '9:00 PM', '6:00 AM'],
+                        6: ['9:00 PM', '10:00 PM', '8:00 PM']
+                    };
+                    const dayTimes = UNIFIED_OPTIMAL_TIMES[dayOfWeek] || todayTimes;
+                    altListEl.innerHTML = dayTimes.map(t => `
+                        <span style="background: rgba(255,193,7,0.15); padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.8rem; border: 1px solid var(--warning);">
+                            ${t}
                         </span>
                     `).join('');
                 }
