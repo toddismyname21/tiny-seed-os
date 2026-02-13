@@ -3006,6 +3006,32 @@ function gatherChiefOfStaffContext() {
     context.farmIntelligence = null;
   }
 
+  // 16. FARM JOURNAL / INSTITUTIONAL MEMORY - Recent journal entries for context
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('MARKETING_WritingResponses') || ss.getSheetByName('WRITING_RESPONSES');
+    if (sheet) {
+      const data = sheet.getDataRange().getValues();
+      if (data.length > 1) {
+        // Get last 10 entries, sorted by date (newest first)
+        const entries = data.slice(1)
+          .filter(row => row[2] && String(row[2]).trim().length > 10) // Has content
+          .map(row => ({
+            date: row[1] ? new Date(row[1]).toLocaleDateString() : 'Unknown',
+            content: String(row[2]).substring(0, 300), // Todd_Input column
+            account: row[6] || 'farm', // Account column
+            category: row[7] || 'general', // Category column
+            source: row[8] || 'web' // Source column
+          }))
+          .slice(-15) // Last 15
+          .reverse(); // Newest first
+        context.farmJournal = entries;
+      }
+    }
+  } catch (e) {
+    context.farmJournal = [];
+  }
+
   return context;
 }
 
@@ -3852,6 +3878,17 @@ CURRENT FARM STATUS
     if (s.blockers && s.blockers > 0) {
       prompt += `🚨 TEAM ALERT: ${s.blockers} employee(s) reporting blockers - need immediate attention!\n\n`;
     }
+  }
+
+  // Add Farm Journal / Institutional Memory
+  if (context.farmJournal && context.farmJournal.length > 0) {
+    prompt += `📓 FARM JOURNAL - RECENT ENTRIES (Your institutional memory):\n`;
+    prompt += `Use these to remember context from past observations, lessons learned, and what's been happening:\n\n`;
+    context.farmJournal.forEach(entry => {
+      const brandIcon = entry.account === 'fungi' ? '🍄' : entry.account === 'fleurs' ? '🌸' : '🥬';
+      prompt += `${brandIcon} [${entry.date}] ${entry.content}\n`;
+    });
+    prompt += `\nReference these when discussing past events, patterns, or when Todd asks "remember when..."\n\n`;
   }
 
   prompt += `═══════════════════════════════════════════════════════════════════════════════
