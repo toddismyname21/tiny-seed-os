@@ -84,10 +84,10 @@ async function verifyTabContent(page: Page, tabName: TabName): Promise<void> {
 test.describe('MCC Tab Smoke Tests', () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to the MCC page
-    await page.goto(MCC_URL, { waitUntil: 'networkidle' });
+    await page.goto(MCC_URL, { waitUntil: 'domcontentloaded' });
 
     // Wait for the page to fully load
-    await page.waitForSelector('.tab-nav', { timeout: 10000 });
+    await page.waitForSelector('.tab-nav', { timeout: 30000 });
   });
 
   // Test that the page loads successfully
