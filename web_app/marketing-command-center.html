@@ -4893,7 +4893,7 @@
                 </div>
                 <!-- KPI 4: Best Posting Time -->
                 <div class="stat-card" style="border-left: 3px solid var(--warning);">
-                    <div class="stat-label">Best Time Today</div>
+                    <div class="stat-label" id="brainBestTimeLabel">Next Best Time</div>
                     <div class="stat-value" id="brainBestTime" style="color: var(--warning); font-size: 1.25rem;">--</div>
                     <div class="stat-change neutral" id="brainBestTimeQuality">
                         <i class="fas fa-clock"></i> Optimal window
@@ -5512,7 +5512,7 @@
                         <h3><i class="fas fa-clock"></i> Recent Posts</h3>
                         <button class="btn btn-sm btn-secondary">View All</button>
                     </div>
-                    <div class="card-body" id="recentPostsList">
+                    <div class="card-body" id="dashboardRecentPostsList">
                         <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
                             <i class="fas fa-inbox" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i>
                             <p>No posts yet</p>
@@ -5560,7 +5560,6 @@
                 </div>
             </div>
         </div>
-        -->
 
         <!-- CREATE TAB - Unified Content Creation (Field Mode + AI Studio) -->
         <div id="createTab" class="tab-content">
@@ -7059,7 +7058,6 @@
                 </div>
             </div>
         </div>
-        -->
 
         <!-- CONTENT CALENDAR TAB - 7-Day Visual Calendar -->
         <div id="contentcalendarTab" class="tab-content">
@@ -7728,7 +7726,6 @@
                 </div>
             </div>
         </div>
-        -->
 
         <!-- ARCHIVED 2026-02-12: Basic UI only
 <!-- BUDGET TAB -->
@@ -7799,7 +7796,6 @@
                 </div>
             </div>
         </div>
-        -->
 
         <!-- PAID ADS TAB - META ADS MANAGEMENT -->
         <div id="paidadsTab" class="tab-content">
@@ -8249,7 +8245,7 @@
                         <span id="recentPostsCount" style="font-size: 0.85rem; color: var(--text-secondary);"></span>
                     </div>
                     <div class="card-body" style="padding: 0;">
-                        <div id="recentPostsList" style="max-height: 400px; overflow-y: auto;">
+                        <div id="analyticsRecentPostsList" style="max-height: 400px; overflow-y: auto;">
                             <!-- Populated by JavaScript -->
                         </div>
                     </div>
@@ -9179,7 +9175,6 @@
                 </div>
             </div>
         </div>
-        -->
 
         <!-- GROWTH TAB - Consolidated Growth & Connections -->
         <div id="growthTab" class="tab-content">
@@ -9774,7 +9769,6 @@
                 </div>
             </div>
         </div>
-        -->
 
         <!-- ARCHIVED 2026-02-12: Merged into CREATE tab
 <!-- CONTENT STUDIO TAB -->
@@ -9833,7 +9827,6 @@
                 </div>
             </div>
         </div>
-        -->
 
         <!-- ENGAGE TAB - Consolidated Social Listening, Comments, Crisis & Evergreen -->
         <div id="engageTab" class="tab-content">
@@ -10228,7 +10221,6 @@
         <div id="commentsTab" class="tab-content" style="display: none;">
             <!-- Redirects to Engage tab -->
         </div>
-        -->
 
         <!-- EVERGREEN TAB (Hidden - content now in Engage tab) -->
         <div id="evergreenTab" class="tab-content" style="display: none;">
@@ -10308,7 +10300,6 @@
                 </div>
             </div>
         </div>
-        -->
 
         <!-- ARCHIVED 2026-02-12: Merged into ANALYTICS tab
 <!-- COMPETITORS TAB - Competitor Watch -->
@@ -10580,7 +10571,6 @@
                 </div>
             </div>
         </div>
-        -->
 
         <!-- ARCHIVED 2026-02-12: Merged into ENGAGE tab
 <!-- CRISIS TAB -->
@@ -10668,7 +10658,6 @@
                 </div>
             </div>
         </div>
-        -->
 
         <!-- ARCHIVED 2026-02-12: Hidden feature
 <!-- AUTO-PILOT TAB - Marketing Automation Queue System -->
@@ -10808,7 +10797,7 @@
                     <h3><i class="fas fa-history" style="color: var(--success);"></i> Recently Posted</h3>
                 </div>
                 <div class="card-body">
-                    <div id="recentPostsList" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div id="autopilotRecentPostsList" style="display: flex; flex-direction: column; gap: 1rem;">
                         <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
                             <p>No recent posts</p>
                         </div>
@@ -10867,9 +10856,7 @@
                     </div>
                 </div>
             </div>
-        -->
         </div>
-        -->
 
         <!-- SETTINGS TAB - Consolidated (merged Brand Voice + Auto-Pilot) -->
         <div id="settingsTab" class="tab-content">
@@ -12094,7 +12081,7 @@
                     <div class="form-group">
                         <label class="form-label">Estimated Reach</label>
                         <div style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 1rem; text-align: center;">
-                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--success);" id="estimatedReach">45,000 - 130,000</div>
+                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--success);" id="metaAdEstimatedReach">45,000 - 130,000</div>
                             <div style="color: var(--text-secondary); font-size: 0.85rem;">people in your target audience</div>
                         </div>
                     </div>
@@ -19654,7 +19641,7 @@ Would you like to test posting to Threads?`;
         }
 
         function renderRecentPosts(posts) {
-            const container = document.getElementById('recentPostsList');
+            const container = document.getElementById('analyticsRecentPostsList');
             const countEl = document.getElementById('recentPostsCount');
             if (!container) return;
 
@@ -22297,14 +22284,18 @@ Would you like to test posting to Threads?`;
 
         function updateHeaderOptimalTime() {
             const optimalTime = getNextOptimalPostTime();
+            if (!optimalTime) return;
 
-            // Update header display
+            // Update header display - always show the formatted time
             const headerTimeEl = document.getElementById('headerOptimalTime');
             if (headerTimeEl) {
-                headerTimeEl.textContent = optimalTime.time;
+                // Always format properly - never assign the object directly
+                headerTimeEl.textContent = optimalTime.isToday
+                    ? optimalTime.time
+                    : `${optimalTime.day} ${optimalTime.time}`;
             }
 
-            // Update optimal time display visibility
+            // Update optimal time display label and color
             const displayEl = document.getElementById('optimalTimeDisplay');
             if (displayEl) {
                 const qualityColors = {
@@ -22317,12 +22308,13 @@ Would you like to test posting to Threads?`;
                 };
                 const color = qualityColors[optimalTime.quality] || 'var(--success)';
 
-                if (!optimalTime.isToday) {
-                    // Show that it's not today
-                    displayEl.querySelector('span:first-of-type').textContent = `Best time ${optimalTime.day}:`;
+                // Update the label based on whether it's today
+                const labelEl = displayEl.querySelector('span:first-of-type');
+                if (labelEl) {
+                    labelEl.textContent = optimalTime.isToday ? 'Best time today:' : `Best time ${optimalTime.day}:`;
                 }
 
-                headerTimeEl.style.color = color;
+                if (headerTimeEl) headerTimeEl.style.color = color;
             }
 
             // Also update the Algorithm Intelligence panel
@@ -22447,10 +22439,8 @@ Would you like to test posting to Threads?`;
                 // BACKGROUND: Load stats (non-blocking)
                 loadBrainTabStats();
 
-                // BACKGROUND: Check algorithm research (weekly, non-blocking)
-                setTimeout(() => checkAlgorithmResearchUpdate(), 2000);
-
-                // BACKGROUND: Load REAL Algorithm Intelligence data from backend
+                // BACKGROUND: Load Algorithm Intelligence (includes research check)
+                // Note: initAlgorithmIntelligence() calls both fetchAlgorithmIntelligence() and checkAlgorithmResearchUpdate()
                 setTimeout(() => initAlgorithmIntelligence(), 1500);
 
                 // BACKGROUND: Load Weather-Smart Content (2026-02-12)
@@ -22557,21 +22547,26 @@ Would you like to test posting to Threads?`;
             try {
                 const bestTimeEl = document.getElementById('brainBestTime');
                 const bestTimeQualityEl = document.getElementById('brainBestTimeQuality');
+                const bestTimeLabelEl = document.getElementById('brainBestTimeLabel');
                 const optimalTime = getNextOptimalPostTime();
                 if (bestTimeEl && optimalTime) {
                     // optimalTime is an object {day, time, quality, isToday} - format it properly
                     const timeDisplay = optimalTime.isToday ? optimalTime.time : `${optimalTime.day} ${optimalTime.time}`;
                     bestTimeEl.textContent = timeDisplay;
+
+                    // Update label to reflect whether it's today or another day
+                    if (bestTimeLabelEl) {
+                        bestTimeLabelEl.textContent = optimalTime.isToday ? 'Best Time Today' : `Best Time ${optimalTime.day}`;
+                    }
+
                     if (bestTimeQualityEl) {
                         const qualityIcon = optimalTime.quality === 'best' ? 'fa-star' : optimalTime.quality === 'great' ? 'fa-thumbs-up' : 'fa-clock';
-                        bestTimeQualityEl.innerHTML = `<i class="fas ${qualityIcon}"></i> ${optimalTime.quality === 'best' ? 'Peak time!' : 'Optimal window'}`;
+                        const qualityText = optimalTime.quality === 'best' ? 'Peak time!' : optimalTime.quality === 'great' ? 'Great time!' : 'Optimal window';
+                        bestTimeQualityEl.innerHTML = `<i class="fas ${qualityIcon}"></i> ${qualityText}`;
                     }
                 }
-                // Also update header optimal time
-                const headerOptimalEl = document.getElementById('headerOptimalTime');
-                if (headerOptimalEl && optimalTime) {
-                    headerOptimalEl.textContent = optimalTime.isToday ? optimalTime.time : `${optimalTime.day} ${optimalTime.time}`;
-                }
+                // Also update header optimal time (this now calls updateHeaderOptimalTime which handles formatting)
+                updateHeaderOptimalTime();
             } catch (e) { console.log('Best time not available'); }
 
             // 5. Load Content Mix Status (5-3-2)
@@ -24603,7 +24598,7 @@ Would you like to test posting to Threads?`;
             const estimatedReach = totalSchedulable * 200;
             document.getElementById('scheduledPostsCount').textContent = scheduledCount;
             document.getElementById('approvedCount').textContent = approvedCount;
-            document.getElementById('estimatedReach').textContent = estimatedReach > 0 ? estimatedReach.toLocaleString() : '--';
+            document.getElementById('scheduleEstimatedReach').textContent = estimatedReach > 0 ? estimatedReach.toLocaleString() : '--';
             document.getElementById('scheduleCount').textContent = totalSchedulable;
             const scheduleBtn = document.getElementById('scheduleWeekBtn');
             if (scheduleBtn) scheduleBtn.disabled = totalSchedulable === 0;
@@ -26662,7 +26657,7 @@ Would you like to test posting to Threads?`;
 
                     // Load upcoming posts
                     renderUpcomingPosts(result.upcomingPosts || []);
-                    renderRecentPosts(result.recentPosts || []);
+                    renderAutopilotRecentPosts(result.recentPosts || []);
                 }
             } catch (error) {
                 console.error('Error loading auto-pilot status:', error);
@@ -26703,8 +26698,8 @@ Would you like to test posting to Threads?`;
             `).join('');
         }
 
-        function renderRecentPosts(posts) {
-            const container = document.getElementById('recentPostsList');
+        function renderAutopilotRecentPosts(posts) {
+            const container = document.getElementById('autopilotRecentPostsList');
 
             if (!posts || posts.length === 0) {
                 container.innerHTML = `
@@ -29164,6 +29159,11 @@ Would you like to test posting to Threads?`;
 
         // Format optimal time for display
         function formatOptimalTime(date) {
+            // Guard against undefined/null date
+            if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+                return 'soon';
+            }
+
             const now = new Date();
             const isToday = date.toDateString() === now.toDateString();
 
@@ -30222,7 +30222,7 @@ Would you like to test posting to Threads?`;
                     <div class="schedule-stat-label">Approved</div>
                 </div>
                 <div class="schedule-stat">
-                    <div class="schedule-stat-value" id="estimatedReach">--</div>
+                    <div class="schedule-stat-value" id="scheduleEstimatedReach">--</div>
                     <div class="schedule-stat-label">Est. Reach</div>
                 </div>
             </div>

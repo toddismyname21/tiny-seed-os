@@ -40,6 +40,34 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-02-12 - PM_Architect (Brain Tab Critical Bug Fixes)
+
+### Context
+User provided detailed audit report identifying critical bugs: visible `-->` HTML comment leaks, [object Object] race condition, duplicate element IDs, and duplicate function definitions.
+
+### Files Modified
+- `web_app/marketing-command-center.html` - Critical bug fixes
+
+### Bug Fixes
+1. **Removed 13 orphaned `-->` tags** - HTML comment closings that were rendering as visible text on the page
+2. **Fixed [object Object] race condition** - `updateHeaderOptimalTime()` now properly formats the object properties before assigning to textContent
+3. **Fixed "Best Time Today" label** - Now dynamically shows "Best Time Wednesday" etc. when optimal time is not today
+4. **Added null guard to `formatOptimalTime()`** - Prevents TypeError when called without valid Date
+5. **Fixed duplicate algorithm intelligence loading** - Removed duplicate call to `checkAlgorithmResearchUpdate()` (was being called twice on load)
+6. **Fixed duplicate IDs:**
+   - `recentPostsList` (3x) → renamed to `dashboardRecentPostsList`, `analyticsRecentPostsList`, `autopilotRecentPostsList`
+   - `estimatedReach` (2x) → renamed to `metaAdEstimatedReach`, `scheduleEstimatedReach`
+7. **Fixed duplicate function definition** - Renamed second `renderRecentPosts()` to `renderAutopilotRecentPosts()`
+8. **Updated all JavaScript references** to use the new unique IDs
+
+### Reason
+Audit revealed critical bugs that caused visible broken text on page, JavaScript errors, and incorrect data display due to duplicate IDs.
+
+### Duplicate Check
+- [x] No duplicates created - only renamed existing duplicates to unique names
+
+---
+
 ## 2026-02-12 - PM_Architect (Brain Tab UX Fixes - Production Ready)
 
 ### Context
