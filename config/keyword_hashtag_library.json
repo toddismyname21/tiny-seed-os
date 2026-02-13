@@ -1,0 +1,384 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2026-02-12",
+  "description": "Unified keyword/hashtag library shared between Marketing Command Center and SEO Dashboard. Maps SEO target keywords to social media hashtag sets for coordinated content strategy.",
+
+  "seoKeywordCategories": {
+    "core_csa": {
+      "displayName": "Core CSA",
+      "icon": "fa-box-open",
+      "color": "#22c55e",
+      "priority": 1,
+      "keywords": [
+        { "keyword": "CSA pittsburgh", "target": 1, "searchVolume": "high", "difficulty": "medium" },
+        { "keyword": "best CSA pittsburgh", "target": 1, "searchVolume": "medium", "difficulty": "medium" },
+        { "keyword": "farm share pittsburgh", "target": 1, "searchVolume": "medium", "difficulty": "low" },
+        { "keyword": "pittsburgh CSA", "target": 1, "searchVolume": "medium", "difficulty": "medium" },
+        { "keyword": "community supported agriculture pittsburgh", "target": 3, "searchVolume": "low", "difficulty": "low" }
+      ],
+      "mappedHashtagSets": ["csa", "pittsburgh", "farmlife"]
+    },
+    "farm": {
+      "displayName": "Farm",
+      "icon": "fa-tractor",
+      "color": "#16a34a",
+      "priority": 2,
+      "keywords": [
+        { "keyword": "farm pittsburgh", "target": 1, "searchVolume": "high", "difficulty": "high" },
+        { "keyword": "organic farm pittsburgh", "target": 1, "searchVolume": "medium", "difficulty": "medium" },
+        { "keyword": "local farm pittsburgh", "target": 1, "searchVolume": "medium", "difficulty": "low" },
+        { "keyword": "local produce pittsburgh", "target": 1, "searchVolume": "medium", "difficulty": "medium" }
+      ],
+      "mappedHashtagSets": ["farmlife", "organic", "pittsburgh"]
+    },
+    "farmers_market": {
+      "displayName": "Farmers Market",
+      "icon": "fa-store",
+      "color": "#f4a261",
+      "priority": 2,
+      "keywords": [
+        { "keyword": "pittsburgh farmers market", "target": 1, "searchVolume": "high", "difficulty": "high" },
+        { "keyword": "farmers market pittsburgh", "target": 1, "searchVolume": "high", "difficulty": "high" },
+        { "keyword": "best farmers market pittsburgh", "target": 1, "searchVolume": "medium", "difficulty": "medium" },
+        { "keyword": "saturday farmers market pittsburgh", "target": 1, "searchVolume": "low", "difficulty": "low" },
+        { "keyword": "sewickley farmers market", "target": 1, "searchVolume": "low", "difficulty": "low" }
+      ],
+      "mappedHashtagSets": ["farmlife", "pittsburgh", "seasonal"]
+    },
+    "farm_to_table": {
+      "displayName": "Farm to Table",
+      "icon": "fa-utensils",
+      "color": "#e76f51",
+      "priority": 3,
+      "keywords": [
+        { "keyword": "farm to table pittsburgh", "target": 1, "searchVolume": "medium", "difficulty": "medium" },
+        { "keyword": "pittsburgh farm to table", "target": 1, "searchVolume": "medium", "difficulty": "medium" },
+        { "keyword": "farm to table delivery pittsburgh", "target": 1, "searchVolume": "low", "difficulty": "low" },
+        { "keyword": "farm fresh pittsburgh", "target": 1, "searchVolume": "medium", "difficulty": "medium" }
+      ],
+      "mappedHashtagSets": ["farmlife", "pittsburgh", "organic"]
+    },
+    "flowers": {
+      "displayName": "Flowers & Florals",
+      "icon": "fa-seedling",
+      "color": "#ec4899",
+      "priority": 2,
+      "keywords": [
+        { "keyword": "flower CSA pittsburgh", "target": 1, "searchVolume": "low", "difficulty": "low" },
+        { "keyword": "florist pittsburgh", "target": 1, "searchVolume": "high", "difficulty": "high" },
+        { "keyword": "pittsburgh florals", "target": 1, "searchVolume": "medium", "difficulty": "medium" },
+        { "keyword": "local flowers pittsburgh", "target": 1, "searchVolume": "medium", "difficulty": "low" },
+        { "keyword": "wedding florals pittsburgh", "target": 1, "searchVolume": "medium", "difficulty": "high" },
+        { "keyword": "flower subscription pittsburgh", "target": 1, "searchVolume": "low", "difficulty": "low" }
+      ],
+      "mappedHashtagSets": ["flowers", "pittsburgh", "seasonal"]
+    },
+    "mushrooms": {
+      "displayName": "Mushrooms",
+      "icon": "fa-leaf",
+      "color": "#8b5cf6",
+      "priority": 3,
+      "keywords": [
+        { "keyword": "pittsburgh mushrooms", "target": 1, "searchVolume": "low", "difficulty": "low" },
+        { "keyword": "local mushrooms pittsburgh", "target": 1, "searchVolume": "low", "difficulty": "low" },
+        { "keyword": "gourmet mushrooms pittsburgh", "target": 1, "searchVolume": "low", "difficulty": "low" },
+        { "keyword": "oyster mushrooms pittsburgh", "target": 1, "searchVolume": "low", "difficulty": "low" },
+        { "keyword": "lions mane pittsburgh", "target": 1, "searchVolume": "low", "difficulty": "low" }
+      ],
+      "mappedHashtagSets": ["mushrooms", "organic", "pittsburgh"]
+    },
+    "delivery": {
+      "displayName": "Delivery",
+      "icon": "fa-truck",
+      "color": "#4361ee",
+      "priority": 2,
+      "keywords": [
+        { "keyword": "farm delivery pittsburgh", "target": 1, "searchVolume": "medium", "difficulty": "medium" },
+        { "keyword": "local produce delivery pittsburgh", "target": 1, "searchVolume": "medium", "difficulty": "medium" },
+        { "keyword": "vegetable delivery pittsburgh", "target": 3, "searchVolume": "medium", "difficulty": "high" },
+        { "keyword": "organic delivery pittsburgh", "target": 1, "searchVolume": "low", "difficulty": "low" }
+      ],
+      "mappedHashtagSets": ["csa", "pittsburgh", "farmlife"]
+    },
+    "pick_your_own": {
+      "displayName": "Pick Your Own",
+      "icon": "fa-hand-holding-heart",
+      "color": "#f59e0b",
+      "priority": 4,
+      "keywords": [
+        { "keyword": "pick your own pittsburgh", "target": 1, "searchVolume": "medium", "difficulty": "medium" },
+        { "keyword": "pick your own flowers pittsburgh", "target": 1, "searchVolume": "low", "difficulty": "low" },
+        { "keyword": "u-pick farm pittsburgh", "target": 1, "searchVolume": "low", "difficulty": "low" }
+      ],
+      "mappedHashtagSets": ["flowers", "farmlife", "seasonal"]
+    }
+  },
+
+  "hashtagSets": {
+    "farmlife": {
+      "displayName": "Farm Life",
+      "icon": "fa-tractor",
+      "color": "#22c55e",
+      "description": "General farming and agriculture hashtags",
+      "hashtags": [
+        "#FarmLife", "#FarmersOfInstagram", "#SmallFarm", "#OrganicFarming",
+        "#FarmTok", "#ModernFarmer", "#SustainableFarming", "#FarmersMarket",
+        "#GrowYourOwn", "#FromFarmToTable"
+      ],
+      "relatedKeywords": ["farm", "farmers_market", "core_csa", "farm_to_table"]
+    },
+    "pittsburgh": {
+      "displayName": "Pittsburgh Local",
+      "icon": "fa-city",
+      "color": "#ffd700",
+      "description": "Pittsburgh and local PA hashtags",
+      "hashtags": [
+        "#Pittsburgh", "#PittsburghFood", "#EatPittsburgh", "#LocalPGH",
+        "#PittsburghFoodie", "#SteelCity", "#PghEats", "#SupportLocalPGH",
+        "#PittsburghLocal", "#412Food"
+      ],
+      "relatedKeywords": ["all"]
+    },
+    "csa": {
+      "displayName": "CSA & Farm Share",
+      "icon": "fa-box-open",
+      "color": "#2a9d8f",
+      "description": "Community Supported Agriculture specific",
+      "hashtags": [
+        "#CSA", "#CommunitySupported", "#FarmShare", "#CSABox", "#WeeklyHarvest",
+        "#FarmFresh", "#LocalFood", "#EatLocal", "#FarmToTable", "#FreshProduce"
+      ],
+      "relatedKeywords": ["core_csa", "delivery"]
+    },
+    "seasonal": {
+      "displayName": "Seasonal",
+      "icon": "fa-calendar-alt",
+      "color": "#e9c46a",
+      "description": "Seasonal eating and harvest hashtags",
+      "hashtags": [
+        "#SeasonalEating", "#EatTheSeason", "#HarvestTime", "#FreshPicked",
+        "#InSeason", "#SeasonalProduce", "#GardenFresh", "#JustHarvested"
+      ],
+      "relatedKeywords": ["farmers_market", "flowers", "pick_your_own"],
+      "seasonalVariants": {
+        "spring": ["#SpringHarvest", "#SpringGarden", "#PlantingSeason"],
+        "summer": ["#SummerHarvest", "#SummerVeggies", "#PeakSeason"],
+        "fall": ["#FallHarvest", "#AutumnBounty", "#HarvestSeason"],
+        "winter": ["#WinterGarden", "#WinterGreens", "#SeasonExtension"]
+      }
+    },
+    "organic": {
+      "displayName": "Organic & Natural",
+      "icon": "fa-leaf",
+      "color": "#4ade80",
+      "description": "Organic certification and clean eating",
+      "hashtags": [
+        "#Organic", "#OrganicFood", "#OrganicProduce", "#USDA", "#Certified",
+        "#CleanEating", "#NoGMO", "#ChemicalFree", "#NaturalFood", "#HealthyEating"
+      ],
+      "relatedKeywords": ["farm", "mushrooms", "farm_to_table"]
+    },
+    "flowers": {
+      "displayName": "Flowers & Florals",
+      "icon": "fa-seedling",
+      "color": "#ec4899",
+      "description": "Flower farming and floral design",
+      "hashtags": [
+        "#FlowersOfInstagram", "#FlowerFarmer", "#LocallyGrownFlowers", "#SlowFlowers",
+        "#FlowerCSA", "#SeasonalFlowers", "#FarmFlowers", "#FieldToVase",
+        "#FloralDesign", "#CutFlowers"
+      ],
+      "relatedKeywords": ["flowers", "pick_your_own"],
+      "seasonalVariants": {
+        "spring": ["#SpringBlooms", "#Tulips", "#Daffodils", "#Peonies"],
+        "summer": ["#SummerFlowers", "#Dahlias", "#Zinnias", "#Sunflowers"],
+        "fall": ["#FallFlowers", "#Chrysanthemums", "#AutumnArrangements"],
+        "winter": ["#WinterGreens", "#HolidayFlorals", "#Evergreens"]
+      }
+    },
+    "mushrooms": {
+      "displayName": "Mushrooms & Fungi",
+      "icon": "fa-cloud",
+      "color": "#8b5cf6",
+      "description": "Gourmet and medicinal mushrooms",
+      "hashtags": [
+        "#MushroomFarm", "#GourmetMushrooms", "#OysterMushrooms", "#LionsMane",
+        "#Shiitake", "#FungiPerfecti", "#MushroomGrowing", "#UrbanMushrooms",
+        "#MedicinalMushrooms", "#MyceliumMagic"
+      ],
+      "relatedKeywords": ["mushrooms"]
+    },
+    "wellness": {
+      "displayName": "Health & Wellness",
+      "icon": "fa-heart",
+      "color": "#ef4444",
+      "description": "Health-focused food and nutrition",
+      "hashtags": [
+        "#HealthyEating", "#PlantBased", "#WholeFoods", "#NutrientDense",
+        "#FoodIsMedicine", "#EatClean", "#FarmToFork", "#RealFood",
+        "#FreshFood", "#NourishYourBody"
+      ],
+      "relatedKeywords": ["organic", "core_csa", "mushrooms"]
+    },
+    "engagement": {
+      "displayName": "Engagement Boosters",
+      "icon": "fa-fire",
+      "color": "#f97316",
+      "description": "High-engagement hashtags for reach",
+      "hashtags": [
+        "#SupportSmallBusiness", "#ShopLocal", "#SmallBusiness", "#LocalLove",
+        "#CommunityFirst", "#FamilyFarm", "#KnowYourFarmer", "#MeetYourFarmer"
+      ],
+      "relatedKeywords": ["all"]
+    }
+  },
+
+  "keywordToHashtagMapping": {
+    "_description": "Maps specific SEO keywords to recommended hashtag sets for content creation",
+    "CSA pittsburgh": ["csa", "pittsburgh", "farmlife"],
+    "best CSA pittsburgh": ["csa", "pittsburgh", "engagement"],
+    "farm share pittsburgh": ["csa", "pittsburgh", "farmlife"],
+    "organic farm pittsburgh": ["organic", "farmlife", "pittsburgh"],
+    "pittsburgh farmers market": ["farmlife", "pittsburgh", "seasonal"],
+    "farm to table pittsburgh": ["farmlife", "pittsburgh", "wellness"],
+    "flower CSA pittsburgh": ["flowers", "csa", "pittsburgh"],
+    "florist pittsburgh": ["flowers", "pittsburgh", "engagement"],
+    "pittsburgh mushrooms": ["mushrooms", "pittsburgh", "wellness"],
+    "farm delivery pittsburgh": ["csa", "pittsburgh", "engagement"],
+    "pick your own pittsburgh": ["seasonal", "flowers", "farmlife"]
+  },
+
+  "aiCaptionPrompts": {
+    "_description": "SEO-informed prompts for AI caption generation in MCC",
+    "core_csa": {
+      "keywords": ["CSA", "farm share", "weekly box", "community supported agriculture"],
+      "toneGuidance": "Emphasize community connection, seasonal variety, and supporting local",
+      "callToAction": "Join our CSA | Sign up for farm share | Reserve your spot",
+      "samplePhrases": [
+        "Your weekly farm-fresh delivery",
+        "Straight from our fields to your table",
+        "Community supported, locally grown"
+      ]
+    },
+    "farm": {
+      "keywords": ["organic", "sustainable", "family farm", "local"],
+      "toneGuidance": "Focus on farming practices, land stewardship, and behind-the-scenes",
+      "callToAction": "Visit the farm | Shop local | Support family farms",
+      "samplePhrases": [
+        "From our family farm to yours",
+        "Grown with care in Pittsburgh",
+        "Sustainable farming in action"
+      ]
+    },
+    "flowers": {
+      "keywords": ["seasonal blooms", "locally grown flowers", "field to vase"],
+      "toneGuidance": "Romantic, artistic, emphasize seasonality and local sourcing",
+      "callToAction": "Order a bouquet | Subscribe to flower share | Book wedding flowers",
+      "samplePhrases": [
+        "Fresh from the flower field",
+        "Seasonal blooms, locally grown",
+        "Field to vase beauty"
+      ]
+    },
+    "mushrooms": {
+      "keywords": ["gourmet mushrooms", "oyster", "lions mane", "locally grown fungi"],
+      "toneGuidance": "Educational, health-focused, emphasize unique varieties",
+      "callToAction": "Try our mushrooms | Add to your CSA | Visit at market",
+      "samplePhrases": [
+        "Gourmet fungi, grown local",
+        "Medicinal mushrooms from our farm",
+        "Fresh-picked mushroom magic"
+      ]
+    }
+  },
+
+  "contentThemes": {
+    "_description": "Monthly content themes that align SEO keywords with hashtag strategies",
+    "january": {
+      "theme": "New Year, New CSA",
+      "focusKeywords": ["core_csa", "delivery"],
+      "focusHashtags": ["csa", "wellness", "engagement"],
+      "contentIdeas": ["CSA signup push", "Winter storage vegetables", "Planning your garden"]
+    },
+    "february": {
+      "theme": "Valentine's Flowers",
+      "focusKeywords": ["flowers"],
+      "focusHashtags": ["flowers", "engagement"],
+      "contentIdeas": ["Flower bouquet pre-orders", "Grow your own flowers workshop"]
+    },
+    "march": {
+      "theme": "Spring Planning",
+      "focusKeywords": ["core_csa", "farm"],
+      "focusHashtags": ["farmlife", "seasonal", "csa"],
+      "contentIdeas": ["What's coming this season", "Planting schedule", "CSA final push"]
+    },
+    "april": {
+      "theme": "Earth Month",
+      "focusKeywords": ["farm", "organic"],
+      "focusHashtags": ["organic", "farmlife", "wellness"],
+      "contentIdeas": ["Sustainable practices", "Soil health", "No-till farming"]
+    },
+    "may": {
+      "theme": "Mother's Day & Spring Blooms",
+      "focusKeywords": ["flowers", "pick_your_own"],
+      "focusHashtags": ["flowers", "seasonal", "engagement"],
+      "contentIdeas": ["Mother's Day bouquets", "First harvests", "U-pick opening"]
+    },
+    "june": {
+      "theme": "Peak Season Launch",
+      "focusKeywords": ["farmers_market", "core_csa"],
+      "focusHashtags": ["farmlife", "seasonal", "pittsburgh"],
+      "contentIdeas": ["Market season kick-off", "Full boxes", "Summer abundance"]
+    },
+    "july": {
+      "theme": "Summer Abundance",
+      "focusKeywords": ["farm_to_table", "delivery"],
+      "focusHashtags": ["seasonal", "farmlife", "wellness"],
+      "contentIdeas": ["Recipe content", "Summer favorites", "Heat wave farming"]
+    },
+    "august": {
+      "theme": "Harvest Festival",
+      "focusKeywords": ["farmers_market", "pick_your_own"],
+      "focusHashtags": ["seasonal", "flowers", "farmlife"],
+      "contentIdeas": ["Dahlia season", "Tomato week", "Canning and preserving"]
+    },
+    "september": {
+      "theme": "Fall Transition",
+      "focusKeywords": ["core_csa", "mushrooms"],
+      "focusHashtags": ["seasonal", "mushrooms", "csa"],
+      "contentIdeas": ["Fall CSA signup", "Mushroom season begins", "Root vegetables"]
+    },
+    "october": {
+      "theme": "Autumn Harvest",
+      "focusKeywords": ["farm", "pick_your_own"],
+      "focusHashtags": ["seasonal", "farmlife", "pittsburgh"],
+      "contentIdeas": ["Pumpkins and squash", "Fall farm tours", "Season wrap-up"]
+    },
+    "november": {
+      "theme": "Thanksgiving & Gratitude",
+      "focusKeywords": ["farm_to_table", "core_csa"],
+      "focusHashtags": ["engagement", "farmlife", "pittsburgh"],
+      "contentIdeas": ["Holiday pre-orders", "Farmer gratitude", "Winter storage"]
+    },
+    "december": {
+      "theme": "Holiday & Winter Planning",
+      "focusKeywords": ["flowers", "mushrooms"],
+      "focusHashtags": ["flowers", "engagement", "wellness"],
+      "contentIdeas": ["Holiday florals", "Gift boxes", "Next year planning"]
+    }
+  },
+
+  "trackingIntegration": {
+    "_description": "How to track hashtag usage against SEO keyword performance",
+    "hashtagToKeywordTracking": {
+      "description": "When MCC creates a post using hashtag set X, SEO dashboard can correlate with keyword Y rankings",
+      "implementation": "Posts are tagged with both hashtag set ID and mapped SEO keyword category",
+      "dataFlow": "MCC post -> hashtagSetUsed -> mappedKeywords -> SEO dashboard tracking"
+    },
+    "utmParameters": {
+      "instagram": "?utm_source=instagram&utm_medium=social&utm_campaign={hashtagSet}",
+      "facebook": "?utm_source=facebook&utm_medium=social&utm_campaign={hashtagSet}",
+      "tiktok": "?utm_source=tiktok&utm_medium=social&utm_campaign={hashtagSet}"
+    }
+  }
+}

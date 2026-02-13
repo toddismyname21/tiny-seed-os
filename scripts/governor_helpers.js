@@ -213,6 +213,64 @@ const CONFIDENCE_THRESHOLDS = {
   ABSTAIN: 0.00       // <70% = STATUS_ABSTAIN
 };
 
+// ═══════════════════════════════════════════════════════════════════════════
+// RISK_CLASSIFICATION - Per MASTER_AGENTIC_IMPLEMENTATION_PLAN
+// ═══════════════════════════════════════════════════════════════════════════
+// This constant defines the exact patterns for risk classification as specified
+// in the master plan. Used by classifyTaskRisk and related functions.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const RISK_CLASSIFICATION = {
+  LOW: {
+    patterns: ['docs/**', '*.md', '*.css', 'claude_sessions/**'],
+    excludes: ['CLAUDE.md'], // High-risk even though .md
+    approval: 'auto',
+    monitoring: 'async'
+  },
+  MEDIUM: {
+    patterns: ['apps_script/**', 'web_app/**', 'scripts/**'],
+    excludes: ['**/shopify*', '**/production*', '**/deploy*'],
+    approval: 'auto_with_review',
+    monitoring: 'real-time'
+  },
+  HIGH: {
+    patterns: ['**/shopify*', '**/production*', '**/deploy*', '**/financial*', '**/auth*'],
+    keywords: ['deploy', 'publish', 'external', 'api_key', 'credential'],
+    approval: 'human_required',
+    monitoring: 'real-time',
+    rollbackRequired: true
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CIRCUIT BREAKER CONFIGURATION - Per MASTER_AGENTIC_IMPLEMENTATION_PLAN
+// ═══════════════════════════════════════════════════════════════════════════
+// Circuit breaker pattern to suspend agents after repeated failures.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const CIRCUIT_BREAKER_CONFIG = {
+  maxConsecutiveFailures: 3,
+  cooldownMinutes: 30,
+  escalationThreshold: 5
+};
+
+// Agent status constants
+const AGENT_STATUS = {
+  ACTIVE: 'ACTIVE',
+  SUSPENDED: 'SUSPENDED',
+  COOLDOWN: 'COOLDOWN'
+};
+
+// Escalation type constants
+const ESCALATION_TYPES = {
+  CIRCUIT_BREAKER: 'CIRCUIT_BREAKER',
+  VERIFICATION_FAILURE: 'VERIFICATION_FAILURE',
+  ERROR_BUDGET_EXCEEDED: 'ERROR_BUDGET_EXCEEDED',
+  HIGH_RISK_TASK: 'HIGH_RISK_TASK',
+  ABSTENTION: 'ABSTENTION',
+  MANUAL: 'MANUAL'
+};
+
 /**
  * Evaluate confidence for a task based on context factors
  * @param {Object} taskContext - Context information for the task
@@ -2494,6 +2552,772 @@ function createAgentTask(agentId, taskId, taskFn) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// CIRCUIT BREAKER FUNCTIONS - Per MASTER_AGENTIC_IMPLEMENTATION_PLAN
+// ═══════════════════════════════════════════════════════════════════════════
+// These functions implement the circuit breaker pattern to suspend agents
+// after repeated failures, preventing cascading errors.
+// ═══════════════════════════════════════════════════════════════════════════
+
+// File path for agent status storage
+const AGENT_STATUS_FILE = path.join(TINYPM_DIR, '.agent_status.json');
+const ESCALATIONS_FILE = path.join(TINYPM_DIR, '.escalations.json');
+
+/**
+ * Load agent status data from storage
+ * @returns {object} Agent status data
+ */
+function loadAgentStatusData() {
+  const data = readJsonFile(AGENT_STATUS_FILE);
+  if (!data) {
+    return {
+      version: '1.0',
+      lastUpdated: new Date().toISOString(),
+      agents: {}
+    };
+  }
+  return data;
+}
+
+/**
+ * Save agent status data to storage
+ * @param {object} data - Agent status data
+ * @returns {boolean} Success status
+ */
+function saveAgentStatusData(data) {
+  data.lastUpdated = new Date().toISOString();
+  return writeJsonFile(AGENT_STATUS_FILE, data);
+}
+
+/**
+ * Get agent metrics including consecutive failures
+ * @param {string} agentRole - Agent role name
+ * @returns {object} Agent metrics
+ */
+function getAgentMetrics(agentRole) {
+  const metrics = readJsonFile(METRICS_FILE);
+  if (!metrics || !metrics.by_agent || !metrics.by_agent[agentRole]) {
+    return {
+      consecutiveFailures: 0,
+      tasksCompleted: 0,
+      tasksFailed: 0,
+      lastActivity: null
+    };
+  }
+
+  const agentMetrics = metrics.by_agent[agentRole];
+
+  // Calculate consecutive failures from recent events
+  const recentEvents = getRecentEvents({ agent: agentRole, limit: 20 });
+  let consecutiveFailures = 0;
+
+  for (const event of recentEvents) {
+    if (event.outcome === 'failure' || event.action === 'task_failed') {
+      consecutiveFailures++;
+    } else if (event.outcome === 'success' || event.action === 'task_completed') {
+      break; // Stop counting at first success
+    }
+  }
+
+  return {
+    consecutiveFailures,
+    tasksCompleted: agentMetrics.tasks_completed || 0,
+    tasksFailed: agentMetrics.tasks_failed || 0,
+    lastActivity: recentEvents[0]?.timestamp || null
+  };
+}
+
+/**
+ * Check circuit breaker status for an agent
+ *
+ * @param {string} agentRole - Agent role to check
+ * @returns {object} Circuit breaker status
+ *
+ * @example
+ * const status = checkCircuitBreaker('Backend_Claude');
+ * if (status.tripped) {
+ *   console.log(`Agent suspended until ${status.cooldownUntil}`);
+ * }
+ */
+function checkCircuitBreaker(agentRole) {
+  // Validate agent
+  if (!VALID_AGENTS.includes(agentRole)) {
+    return {
+      tripped: false,
+      error: `Unknown agent: ${agentRole}`,
+      valid: false
+    };
+  }
+
+  const statusData = loadAgentStatusData();
+  const agentStatus = statusData.agents[agentRole];
+  const metrics = getAgentMetrics(agentRole);
+
+  // Check if agent is already suspended
+  if (agentStatus && agentStatus.status === AGENT_STATUS.SUSPENDED) {
+    const cooldownUntil = new Date(agentStatus.cooldownUntil);
+    const now = new Date();
+
+    if (now < cooldownUntil) {
+      // Still in cooldown
+      return {
+        tripped: true,
+        reason: agentStatus.reason || `${agentRole} is suspended`,
+        cooldownUntil: agentStatus.cooldownUntil,
+        remainingMinutes: Math.ceil((cooldownUntil - now) / (60 * 1000)),
+        escalateTo: 'human',
+        valid: true
+      };
+    } else {
+      // Cooldown expired, auto-reset to ACTIVE
+      setAgentStatus(agentRole, AGENT_STATUS.ACTIVE, 'Cooldown period expired');
+    }
+  }
+
+  // Check if should be tripped based on consecutive failures
+  if (metrics.consecutiveFailures >= CIRCUIT_BREAKER_CONFIG.maxConsecutiveFailures) {
+    return {
+      tripped: true,
+      reason: `${agentRole} has ${metrics.consecutiveFailures} consecutive failures`,
+      cooldownUntil: new Date(Date.now() + (CIRCUIT_BREAKER_CONFIG.cooldownMinutes * 60 * 1000)).toISOString(),
+      escalateTo: 'human',
+      shouldTrip: true, // Indicates circuit breaker should be tripped
+      valid: true
+    };
+  }
+
+  return {
+    tripped: false,
+    consecutiveFailures: metrics.consecutiveFailures,
+    maxAllowed: CIRCUIT_BREAKER_CONFIG.maxConsecutiveFailures,
+    status: agentStatus?.status || AGENT_STATUS.ACTIVE,
+    valid: true
+  };
+}
+
+/**
+ * Trip the circuit breaker for an agent (suspend operations)
+ *
+ * @param {string} agentRole - Agent role to suspend
+ * @param {string} reason - Reason for tripping
+ * @returns {object} Result with success status
+ *
+ * @example
+ * tripCircuitBreaker('Backend_Claude', '3 consecutive verification failures');
+ */
+function tripCircuitBreaker(agentRole, reason) {
+  const result = {
+    success: false,
+    agentRole,
+    reason,
+    cooldownUntil: null,
+    escalationId: null,
+    timestamp: null
+  };
+
+  // Validate agent
+  if (!VALID_AGENTS.includes(agentRole)) {
+    result.error = `Unknown agent: ${agentRole}`;
+    return result;
+  }
+
+  const timestamp = new Date().toISOString();
+  const cooldownUntil = new Date(Date.now() + (CIRCUIT_BREAKER_CONFIG.cooldownMinutes * 60 * 1000)).toISOString();
+
+  // Log the circuit breaker trip event
+  logGovernorEvent(agentRole, 'circuit_breaker_tripped', 'failure', {
+    reason,
+    cooldownMinutes: CIRCUIT_BREAKER_CONFIG.cooldownMinutes,
+    cooldownUntil
+  });
+
+  // Set agent status to SUSPENDED
+  const statusResult = setAgentStatus(agentRole, AGENT_STATUS.SUSPENDED, reason, cooldownUntil);
+  if (!statusResult.success) {
+    result.error = statusResult.error;
+    return result;
+  }
+
+  // Create escalation to notify human
+  const escalation = createEscalation(agentRole, reason, ESCALATION_TYPES.CIRCUIT_BREAKER);
+
+  // Increment circuit breaker trips metric
+  incrementMetric('circuit_breaker_trips', agentRole);
+
+  result.success = true;
+  result.cooldownUntil = cooldownUntil;
+  result.escalationId = escalation.escalationId;
+  result.timestamp = timestamp;
+
+  console.log(`\n[CIRCUIT BREAKER TRIPPED] ${agentRole}`);
+  console.log(`   Reason: ${reason}`);
+  console.log(`   Cooldown until: ${cooldownUntil}`);
+  console.log(`   Escalation ID: ${escalation.escalationId}`);
+
+  return result;
+}
+
+/**
+ * Set the status of an agent (ACTIVE, SUSPENDED, COOLDOWN)
+ *
+ * @param {string} agentRole - Agent role
+ * @param {string} status - New status (ACTIVE, SUSPENDED, COOLDOWN)
+ * @param {string} reason - Reason for status change (optional)
+ * @param {string} cooldownUntil - Cooldown end time (for SUSPENDED/COOLDOWN)
+ * @returns {object} Result with success status
+ *
+ * @example
+ * setAgentStatus('Backend_Claude', 'SUSPENDED', 'Too many failures');
+ * setAgentStatus('Backend_Claude', 'ACTIVE'); // Reset to active
+ */
+function setAgentStatus(agentRole, status, reason = '', cooldownUntil = null) {
+  const result = {
+    success: false,
+    agentRole,
+    previousStatus: null,
+    newStatus: status,
+    timestamp: null
+  };
+
+  // Validate agent
+  if (!VALID_AGENTS.includes(agentRole)) {
+    result.error = `Unknown agent: ${agentRole}`;
+    return result;
+  }
+
+  // Validate status
+  if (!Object.values(AGENT_STATUS).includes(status)) {
+    result.error = `Invalid status: ${status}. Valid: ${Object.values(AGENT_STATUS).join(', ')}`;
+    return result;
+  }
+
+  const timestamp = new Date().toISOString();
+  const statusData = loadAgentStatusData();
+
+  // Get previous status
+  result.previousStatus = statusData.agents[agentRole]?.status || AGENT_STATUS.ACTIVE;
+
+  // Update agent status
+  statusData.agents[agentRole] = {
+    status,
+    reason,
+    cooldownUntil: status === AGENT_STATUS.SUSPENDED ? cooldownUntil : null,
+    updatedAt: timestamp,
+    history: statusData.agents[agentRole]?.history || []
+  };
+
+  // Add to history (keep last 20 entries)
+  statusData.agents[agentRole].history.push({
+    from: result.previousStatus,
+    to: status,
+    reason,
+    timestamp
+  });
+  if (statusData.agents[agentRole].history.length > 20) {
+    statusData.agents[agentRole].history = statusData.agents[agentRole].history.slice(-20);
+  }
+
+  // Save status data
+  const saved = saveAgentStatusData(statusData);
+  if (!saved) {
+    result.error = 'Failed to save agent status';
+    return result;
+  }
+
+  // Log appropriate event
+  if (status === AGENT_STATUS.SUSPENDED) {
+    logGovernorEvent(agentRole, 'circuit_breaker_tripped', 'failure', { reason, cooldownUntil });
+  } else if (status === AGENT_STATUS.ACTIVE && result.previousStatus === AGENT_STATUS.SUSPENDED) {
+    logGovernorEvent(agentRole, 'circuit_breaker_reset', 'success', { reason });
+    incrementMetric('circuit_breaker_resets', agentRole);
+  }
+
+  result.success = true;
+  result.timestamp = timestamp;
+
+  return result;
+}
+
+/**
+ * Create an escalation for human review
+ *
+ * @param {string} agentRole - Agent role creating escalation
+ * @param {string} reason - Reason for escalation
+ * @param {string} type - Escalation type (CIRCUIT_BREAKER, VERIFICATION_FAILURE, etc.)
+ * @param {object} details - Additional details (optional)
+ * @returns {object} Result with escalation ID
+ *
+ * @example
+ * createEscalation('Backend_Claude', 'Cannot verify API response', 'VERIFICATION_FAILURE');
+ */
+function createEscalation(agentRole, reason, type, details = {}) {
+  const result = {
+    success: false,
+    escalationId: null,
+    timestamp: null
+  };
+
+  // Validate agent
+  if (!VALID_AGENTS.includes(agentRole)) {
+    result.error = `Unknown agent: ${agentRole}`;
+    return result;
+  }
+
+  // Validate type
+  if (!Object.values(ESCALATION_TYPES).includes(type)) {
+    result.error = `Invalid escalation type: ${type}. Valid: ${Object.values(ESCALATION_TYPES).join(', ')}`;
+    return result;
+  }
+
+  const timestamp = new Date().toISOString();
+  const escalationId = `ESC-${Date.now()}-${generateUUID().slice(0, 8)}`;
+
+  // Load existing escalations
+  let escalations = readJsonFile(ESCALATIONS_FILE);
+  if (!escalations) {
+    escalations = {
+      version: '1.0',
+      lastUpdated: timestamp,
+      pending: [],
+      resolved: [],
+      statistics: {
+        totalCreated: 0,
+        totalResolved: 0,
+        avgResolutionTimeMinutes: 0
+      }
+    };
+  }
+
+  // Create escalation record
+  const escalation = {
+    id: escalationId,
+    agentRole,
+    reason,
+    type,
+    details,
+    status: 'pending',
+    priority: type === ESCALATION_TYPES.CIRCUIT_BREAKER ? 'high' : 'normal',
+    createdAt: timestamp,
+    resolvedAt: null,
+    resolvedBy: null,
+    resolution: null
+  };
+
+  // Add to pending list
+  escalations.pending.push(escalation);
+  escalations.statistics.totalCreated++;
+  escalations.lastUpdated = timestamp;
+
+  // Keep pending list manageable
+  if (escalations.pending.length > 100) {
+    // Move oldest to resolved as "expired"
+    const expired = escalations.pending.shift();
+    expired.status = 'expired';
+    expired.resolvedAt = timestamp;
+    expired.resolution = 'Auto-expired due to queue overflow';
+    escalations.resolved.push(expired);
+  }
+
+  // Save escalations
+  const saved = writeJsonFile(ESCALATIONS_FILE, escalations);
+  if (!saved) {
+    result.error = 'Failed to save escalation';
+    return result;
+  }
+
+  // Log the escalation event
+  logGovernorEvent(agentRole, 'escalation', 'escalated', {
+    escalationId,
+    type,
+    reason,
+    priority: escalation.priority
+  });
+
+  // Update metrics
+  incrementMetric('escalations', agentRole);
+
+  result.success = true;
+  result.escalationId = escalationId;
+  result.timestamp = timestamp;
+  result.priority = escalation.priority;
+
+  console.log(`\n[ESCALATION CREATED] ${escalationId}`);
+  console.log(`   Agent: ${agentRole}`);
+  console.log(`   Type: ${type}`);
+  console.log(`   Reason: ${reason}`);
+  console.log(`   Priority: ${escalation.priority}`);
+
+  return result;
+}
+
+/**
+ * Get all pending escalations
+ * @returns {Array} Pending escalations
+ */
+function getPendingEscalations() {
+  const escalations = readJsonFile(ESCALATIONS_FILE);
+  if (!escalations) return [];
+  return escalations.pending || [];
+}
+
+/**
+ * Resolve an escalation
+ * @param {string} escalationId - Escalation ID
+ * @param {string} resolvedBy - Who resolved it
+ * @param {string} resolution - Resolution notes
+ * @returns {object} Result with success status
+ */
+function resolveEscalation(escalationId, resolvedBy, resolution) {
+  const result = {
+    success: false,
+    escalationId,
+    timestamp: null
+  };
+
+  let escalations = readJsonFile(ESCALATIONS_FILE);
+  if (!escalations) {
+    result.error = 'Escalations file not found';
+    return result;
+  }
+
+  const index = escalations.pending.findIndex(e => e.id === escalationId);
+  if (index === -1) {
+    result.error = `Escalation not found: ${escalationId}`;
+    return result;
+  }
+
+  const timestamp = new Date().toISOString();
+  const escalation = escalations.pending[index];
+
+  // Update escalation
+  escalation.status = 'resolved';
+  escalation.resolvedAt = timestamp;
+  escalation.resolvedBy = resolvedBy;
+  escalation.resolution = resolution;
+
+  // Move to resolved
+  escalations.pending.splice(index, 1);
+  escalations.resolved.push(escalation);
+  escalations.statistics.totalResolved++;
+  escalations.lastUpdated = timestamp;
+
+  // Keep resolved list manageable
+  if (escalations.resolved.length > 500) {
+    escalations.resolved = escalations.resolved.slice(-500);
+  }
+
+  const saved = writeJsonFile(ESCALATIONS_FILE, escalations);
+  if (!saved) {
+    result.error = 'Failed to save escalation resolution';
+    return result;
+  }
+
+  result.success = true;
+  result.timestamp = timestamp;
+
+  return result;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// VERIFICATION GATE FUNCTIONS - Per MASTER_AGENTIC_IMPLEMENTATION_PLAN
+// ═══════════════════════════════════════════════════════════════════════════
+// requireVerification() and markVerified() implement the verification gate
+// system as specified in the master plan.
+// ═══════════════════════════════════════════════════════════════════════════
+
+// File path for verification requests
+const VERIFICATION_REQUESTS_FILE = path.join(TINYPM_DIR, '.verification_requests.json');
+
+/**
+ * Require verification for a task - blocks until verified
+ *
+ * This function is called when an agent claims a task is complete.
+ * It logs the verification request and blocks the task from being
+ * marked as DONE until Verifier_Claude calls markVerified().
+ *
+ * @param {string} taskId - Task identifier
+ * @param {string} agentRole - Agent role requesting verification
+ * @param {object} evidence - Evidence of completion
+ * @param {string} evidence.command - Command executed
+ * @param {string} evidence.output - Output/result of command
+ * @param {string} evidence.description - Description of what was done
+ * @returns {object} Result with blocked status and request ID
+ *
+ * @example
+ * const result = requireVerification('TASK-001', 'Backend_Claude', {
+ *   command: 'npm test',
+ *   output: 'All 45 tests passed',
+ *   description: 'Fixed API endpoint validation'
+ * });
+ */
+function requireVerification(taskId, agentRole, evidence) {
+  const result = {
+    blocked: true,
+    awaitingVerification: false,
+    requestId: null,
+    timestamp: null,
+    error: null
+  };
+
+  // Validate agent
+  if (!VALID_AGENTS.includes(agentRole)) {
+    result.reason = `Unknown agent: ${agentRole}`;
+    return result;
+  }
+
+  // Validate evidence
+  if (!evidence || !evidence.command || !evidence.output) {
+    result.reason = 'Missing verification evidence (command and output required)';
+    logGovernorEvent(agentRole, 'verification_gate_blocked', 'blocked', {
+      taskId,
+      reason: 'Missing verification evidence'
+    });
+    incrementMetric('verification_gates_blocked', agentRole);
+    return result;
+  }
+
+  const timestamp = new Date().toISOString();
+  const requestId = `VRQ-${taskId}-${Date.now()}-${generateUUID().slice(0, 8)}`;
+
+  // Load verification requests
+  let requests = readJsonFile(VERIFICATION_REQUESTS_FILE);
+  if (!requests) {
+    requests = {
+      version: '1.0',
+      lastUpdated: timestamp,
+      pending: [],
+      completed: [],
+      statistics: {
+        totalRequested: 0,
+        totalVerified: 0,
+        totalRejected: 0
+      }
+    };
+  }
+
+  // Create verification request
+  const request = {
+    id: requestId,
+    taskId,
+    agentRole,
+    evidence: {
+      command: evidence.command,
+      output: evidence.output,
+      description: evidence.description || '',
+      files: evidence.files || [],
+      screenshots: evidence.screenshots || []
+    },
+    status: 'pending',
+    priority: evidence.priority || 'normal',
+    requestedAt: timestamp,
+    verifiedAt: null,
+    verifiedBy: null,
+    verificationResult: null,
+    verificationNotes: null
+  };
+
+  // Add to pending
+  requests.pending.push(request);
+  requests.statistics.totalRequested++;
+  requests.lastUpdated = timestamp;
+
+  // Save
+  const saved = writeJsonFile(VERIFICATION_REQUESTS_FILE, requests);
+  if (!saved) {
+    result.error = 'Failed to save verification request';
+    return result;
+  }
+
+  // Log verification request
+  logGovernorEvent(agentRole, 'verification_gate_required', 'pending', {
+    taskId,
+    requestId,
+    evidence: {
+      command: evidence.command,
+      hasOutput: !!evidence.output,
+      description: evidence.description
+    }
+  });
+
+  incrementMetric('verification_gates_required', agentRole);
+
+  // Also route to Verifier_Claude
+  routeToVerifier(taskId, agentRole, {
+    description: evidence.description || `Verification required for ${taskId}`,
+    evidence: evidence,
+    priority: evidence.priority || 'MEDIUM'
+  });
+
+  result.blocked = false;
+  result.awaitingVerification = true;
+  result.requestId = requestId;
+  result.timestamp = timestamp;
+  result.reason = null;
+
+  console.log(`\n[VERIFICATION REQUIRED] ${taskId}`);
+  console.log(`   Agent: ${agentRole}`);
+  console.log(`   Request ID: ${requestId}`);
+  console.log(`   Evidence: ${evidence.description || evidence.command}`);
+  console.log(`\n   Awaiting Verifier_Claude review...`);
+
+  return result;
+}
+
+/**
+ * Mark a task as verified - ONLY Verifier_Claude can call this
+ *
+ * @param {string} taskId - Task identifier
+ * @param {string} verifierAgent - Agent performing verification (must be Verifier_Claude)
+ * @param {boolean} result - Verification result (true = passed, false = failed)
+ * @param {string} notes - Verification notes
+ * @returns {object} Result with success status
+ *
+ * @example
+ * // Only Verifier_Claude should call this
+ * const result = markVerified('TASK-001', 'Verifier_Claude', true, 'Tests confirmed passing');
+ */
+function markVerified(taskId, verifierAgent, verificationResult, notes = '') {
+  const result = {
+    success: false,
+    taskId,
+    verificationResult,
+    timestamp: null,
+    error: null
+  };
+
+  // CRITICAL: Only Verifier_Claude can call this
+  if (verifierAgent !== 'Verifier_Claude') {
+    result.error = `Unauthorized verifier: ${verifierAgent}. Only Verifier_Claude can mark tasks as verified.`;
+    logGovernorEvent(verifierAgent, 'verification_gate_blocked', 'failure', {
+      taskId,
+      reason: 'Unauthorized verifier attempt',
+      attemptedBy: verifierAgent
+    });
+    return result;
+  }
+
+  const timestamp = new Date().toISOString();
+
+  // Load verification requests
+  let requests = readJsonFile(VERIFICATION_REQUESTS_FILE);
+  if (!requests) {
+    result.error = 'Verification requests file not found';
+    return result;
+  }
+
+  // Find the pending request
+  const index = requests.pending.findIndex(r => r.taskId === taskId);
+  if (index === -1) {
+    result.error = `No pending verification request for task: ${taskId}`;
+    return result;
+  }
+
+  const request = requests.pending[index];
+
+  // Update request
+  request.status = verificationResult ? 'verified' : 'rejected';
+  request.verifiedAt = timestamp;
+  request.verifiedBy = verifierAgent;
+  request.verificationResult = verificationResult;
+  request.verificationNotes = notes;
+
+  // Move to completed
+  requests.pending.splice(index, 1);
+  requests.completed.push(request);
+
+  // Update statistics
+  if (verificationResult) {
+    requests.statistics.totalVerified++;
+  } else {
+    requests.statistics.totalRejected++;
+  }
+  requests.lastUpdated = timestamp;
+
+  // Keep completed list manageable
+  if (requests.completed.length > 500) {
+    requests.completed = requests.completed.slice(-500);
+  }
+
+  // Save
+  const saved = writeJsonFile(VERIFICATION_REQUESTS_FILE, requests);
+  if (!saved) {
+    result.error = 'Failed to save verification result';
+    return result;
+  }
+
+  // Update task state
+  if (verificationResult) {
+    // Transition to VERIFIED
+    transitionTaskState(taskId, TASK_STATES.AWAITING_VERIFICATION, TASK_STATES.VERIFIED, verifierAgent);
+    incrementMetric('verification_gates_passed', request.agentRole);
+    logGovernorEvent(verifierAgent, 'verification_gate_passed', 'success', {
+      taskId,
+      requestId: request.id,
+      originalAgent: request.agentRole,
+      notes
+    });
+  } else {
+    // Transition back to IMPLEMENTED for fixes
+    transitionTaskState(taskId, TASK_STATES.AWAITING_VERIFICATION, TASK_STATES.IMPLEMENTED, verifierAgent);
+    incrementMetric('verification_gates_failed', request.agentRole);
+    logGovernorEvent(verifierAgent, 'verification_gate_failed', 'failure', {
+      taskId,
+      requestId: request.id,
+      originalAgent: request.agentRole,
+      notes,
+      reason: 'Verification rejected'
+    });
+  }
+
+  result.success = true;
+  result.timestamp = timestamp;
+  result.originalAgent = request.agentRole;
+  result.requestId = request.id;
+
+  console.log(`\n[VERIFICATION ${verificationResult ? 'PASSED' : 'FAILED'}] ${taskId}`);
+  console.log(`   Verified by: ${verifierAgent}`);
+  console.log(`   Original agent: ${request.agentRole}`);
+  console.log(`   Notes: ${notes || 'None'}`);
+
+  return result;
+}
+
+/**
+ * Get pending verification requests
+ * @returns {Array} Pending verification requests
+ */
+function getPendingVerifications() {
+  const requests = readJsonFile(VERIFICATION_REQUESTS_FILE);
+  if (!requests) return [];
+  return requests.pending || [];
+}
+
+/**
+ * Get verification statistics
+ * @returns {object} Verification statistics
+ */
+function getVerificationStats() {
+  const requests = readJsonFile(VERIFICATION_REQUESTS_FILE);
+  if (!requests) {
+    return {
+      totalRequested: 0,
+      totalVerified: 0,
+      totalRejected: 0,
+      pendingCount: 0,
+      passRate: 0
+    };
+  }
+
+  const stats = requests.statistics;
+  const total = stats.totalVerified + stats.totalRejected;
+
+  return {
+    ...stats,
+    pendingCount: requests.pending.length,
+    passRate: total > 0 ? Math.round((stats.totalVerified / total) * 100) : 0
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // HUMAN-ON-THE-LOOP PAUSE/RESUME SYSTEM
 // Tasks can pause for human input and resume later
 // ═══════════════════════════════════════════════════════════════════════════
@@ -2665,6 +3489,11 @@ module.exports = {
   validateProof,
   getTaskVerificationStatus,
   routeToVerifier,
+  // NEW: Verification gate functions (MASTER_AGENTIC_IMPLEMENTATION_PLAN)
+  requireVerification,
+  markVerified,
+  getPendingVerifications,
+  getVerificationStats,
   // STATUS_ABSTAIN Protocol functions
   checkConfidenceThreshold,
   handleAbstention,
@@ -2700,6 +3529,15 @@ module.exports = {
   resumeTask,
   listPausedTasks,
   isTaskPaused,
+  // NEW: Circuit Breaker functions (MASTER_AGENTIC_IMPLEMENTATION_PLAN)
+  checkCircuitBreaker,
+  tripCircuitBreaker,
+  setAgentStatus,
+  getAgentMetrics,
+  // NEW: Escalation functions (MASTER_AGENTIC_IMPLEMENTATION_PLAN)
+  createEscalation,
+  getPendingEscalations,
+  resolveEscalation,
   // Constants
   VALID_AGENTS,
   VALID_METRICS,
@@ -2716,7 +3554,13 @@ module.exports = {
   CONFIDENCE_THRESHOLDS,
   // Risk Classification Constants
   RISK_LEVELS,
-  RISK_LEVEL_VALUES
+  RISK_LEVEL_VALUES,
+  // NEW: Risk Classification constant (MASTER_AGENTIC_IMPLEMENTATION_PLAN)
+  RISK_CLASSIFICATION,
+  // NEW: Circuit Breaker Constants (MASTER_AGENTIC_IMPLEMENTATION_PLAN)
+  CIRCUIT_BREAKER_CONFIG,
+  AGENT_STATUS,
+  ESCALATION_TYPES
 };
 
 // CLI usage support
@@ -2947,6 +3791,97 @@ if (require.main === module) {
       }, null, 2));
       break;
 
+    // ═══════════════════════════════════════════════════════════════════
+    // CIRCUIT BREAKER CLI COMMANDS (MASTER_AGENTIC_IMPLEMENTATION_PLAN)
+    // ═══════════════════════════════════════════════════════════════════
+
+    case 'check-circuit-breaker':
+      // node governor_helpers.js check-circuit-breaker Backend_Claude
+      const [, cbAgent] = args;
+      console.log(JSON.stringify(checkCircuitBreaker(cbAgent), null, 2));
+      break;
+
+    case 'trip-circuit-breaker':
+      // node governor_helpers.js trip-circuit-breaker Backend_Claude "Too many failures"
+      const [, tcbAgent, tcbReason] = args;
+      console.log(JSON.stringify(tripCircuitBreaker(tcbAgent, tcbReason || 'Manual trip'), null, 2));
+      break;
+
+    case 'set-agent-status':
+      // node governor_helpers.js set-agent-status Backend_Claude ACTIVE "Reset after review"
+      const [, sasAgent, sasStatus, sasReason] = args;
+      console.log(JSON.stringify(setAgentStatus(sasAgent, sasStatus, sasReason || ''), null, 2));
+      break;
+
+    case 'agent-metrics':
+      // node governor_helpers.js agent-metrics Backend_Claude
+      const [, amAgent] = args;
+      console.log(JSON.stringify(getAgentMetrics(amAgent), null, 2));
+      break;
+
+    // ═══════════════════════════════════════════════════════════════════
+    // ESCALATION CLI COMMANDS (MASTER_AGENTIC_IMPLEMENTATION_PLAN)
+    // ═══════════════════════════════════════════════════════════════════
+
+    case 'create-escalation':
+      // node governor_helpers.js create-escalation Backend_Claude "Cannot verify output" VERIFICATION_FAILURE
+      const [, ceAgent, ceReason, ceType] = args;
+      console.log(JSON.stringify(createEscalation(ceAgent, ceReason, ceType || 'MANUAL'), null, 2));
+      break;
+
+    case 'pending-escalations':
+      // node governor_helpers.js pending-escalations
+      console.log(JSON.stringify(getPendingEscalations(), null, 2));
+      break;
+
+    case 'resolve-escalation':
+      // node governor_helpers.js resolve-escalation ESC-123 PM_Architect "Issue resolved"
+      const [, reEscId, reResolvedBy, reResolution] = args;
+      console.log(JSON.stringify(resolveEscalation(reEscId, reResolvedBy, reResolution || ''), null, 2));
+      break;
+
+    // ═══════════════════════════════════════════════════════════════════
+    // VERIFICATION GATE CLI COMMANDS (MASTER_AGENTIC_IMPLEMENTATION_PLAN)
+    // ═══════════════════════════════════════════════════════════════════
+
+    case 'require-verification':
+      // node governor_helpers.js require-verification TASK-001 Backend_Claude '{"command":"npm test","output":"PASS","description":"All tests pass"}'
+      const [, rvTaskId, rvAgent, rvEvidenceJson] = args;
+      const rvEvidence = rvEvidenceJson ? JSON.parse(rvEvidenceJson) : {};
+      console.log(JSON.stringify(requireVerification(rvTaskId, rvAgent, rvEvidence), null, 2));
+      break;
+
+    case 'mark-verified':
+      // node governor_helpers.js mark-verified TASK-001 Verifier_Claude true "Tests confirmed"
+      const [, mvTaskId, mvVerifier, mvResult, mvNotes] = args;
+      const mvPassed = mvResult === 'true';
+      console.log(JSON.stringify(markVerified(mvTaskId, mvVerifier, mvPassed, mvNotes || ''), null, 2));
+      break;
+
+    case 'pending-verifications':
+      // node governor_helpers.js pending-verifications
+      console.log(JSON.stringify(getPendingVerifications(), null, 2));
+      break;
+
+    case 'verification-stats':
+      // node governor_helpers.js verification-stats
+      console.log(JSON.stringify(getVerificationStats(), null, 2));
+      break;
+
+    case 'risk-classification':
+      // node governor_helpers.js risk-classification
+      console.log('RISK_CLASSIFICATION constant (from MASTER_AGENTIC_IMPLEMENTATION_PLAN):');
+      console.log(JSON.stringify(RISK_CLASSIFICATION, null, 2));
+      break;
+
+    case 'circuit-breaker-config':
+      // node governor_helpers.js circuit-breaker-config
+      console.log('CIRCUIT_BREAKER_CONFIG:');
+      console.log(JSON.stringify(CIRCUIT_BREAKER_CONFIG, null, 2));
+      console.log('\nAGENT_STATUS options:', Object.values(AGENT_STATUS).join(', '));
+      console.log('ESCALATION_TYPES:', Object.values(ESCALATION_TYPES).join(', '));
+      break;
+
     default:
       console.log(`
 Governor Helper Functions CLI
@@ -3122,6 +4057,71 @@ RISK LEVEL ROUTING
   MEDIUM   → Requires verification at Trust >= 50%
   HIGH     → ALWAYS requires human approval
   CRITICAL → ALWAYS requires explicit human command
+
+═══════════════════════════════════════════════════════════════════════════
+CIRCUIT BREAKER COMMANDS (NEW - MASTER_AGENTIC_IMPLEMENTATION_PLAN)
+═══════════════════════════════════════════════════════════════════════════
+
+  check-circuit-breaker <agent>
+    Check if an agent's circuit breaker is tripped
+    Example: node governor_helpers.js check-circuit-breaker Backend_Claude
+
+  trip-circuit-breaker <agent> <reason>
+    Manually trip circuit breaker to suspend an agent
+    Example: node governor_helpers.js trip-circuit-breaker Backend_Claude "Too many failures"
+
+  set-agent-status <agent> <status> [reason]
+    Set agent status (ACTIVE, SUSPENDED, COOLDOWN)
+    Example: node governor_helpers.js set-agent-status Backend_Claude ACTIVE "Reset after review"
+
+  agent-metrics <agent>
+    Get agent metrics including consecutive failures
+    Example: node governor_helpers.js agent-metrics Backend_Claude
+
+  circuit-breaker-config
+    Display circuit breaker configuration constants
+    Example: node governor_helpers.js circuit-breaker-config
+
+═══════════════════════════════════════════════════════════════════════════
+ESCALATION COMMANDS (NEW - MASTER_AGENTIC_IMPLEMENTATION_PLAN)
+═══════════════════════════════════════════════════════════════════════════
+
+  create-escalation <agent> <reason> [type]
+    Create human escalation
+    Types: CIRCUIT_BREAKER, VERIFICATION_FAILURE, ERROR_BUDGET_EXCEEDED, HIGH_RISK_TASK, ABSTENTION, MANUAL
+    Example: node governor_helpers.js create-escalation Backend_Claude "Cannot verify" VERIFICATION_FAILURE
+
+  pending-escalations
+    List all pending escalations awaiting human review
+    Example: node governor_helpers.js pending-escalations
+
+  resolve-escalation <escalation_id> <resolved_by> [resolution]
+    Resolve an escalation
+    Example: node governor_helpers.js resolve-escalation ESC-123 PM_Architect "Issue fixed"
+
+═══════════════════════════════════════════════════════════════════════════
+VERIFICATION GATE COMMANDS (NEW - MASTER_AGENTIC_IMPLEMENTATION_PLAN)
+═══════════════════════════════════════════════════════════════════════════
+
+  require-verification <task_id> <agent> <evidence_json>
+    Request verification for a task with evidence
+    Example: node governor_helpers.js require-verification TASK-001 Backend_Claude '{"command":"npm test","output":"PASS","description":"Tests pass"}'
+
+  mark-verified <task_id> <verifier> <passed> [notes]
+    Mark a task as verified (ONLY Verifier_Claude can call this)
+    Example: node governor_helpers.js mark-verified TASK-001 Verifier_Claude true "Confirmed"
+
+  pending-verifications
+    List all pending verification requests
+    Example: node governor_helpers.js pending-verifications
+
+  verification-stats
+    Get verification statistics
+    Example: node governor_helpers.js verification-stats
+
+  risk-classification
+    Display the RISK_CLASSIFICATION constant patterns
+    Example: node governor_helpers.js risk-classification
 
 ═══════════════════════════════════════════════════════════════════════════
 TASK STATE FLOW (with ABSTAINED state)

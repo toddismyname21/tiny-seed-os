@@ -40,6 +40,41 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-02-12 - Desktop_Claude (Unified Keyword/Hashtag Library)
+
+### Context
+Built a unified keyword/hashtag library shared between Marketing Command Center and SEO Dashboard. This allows coordinated content strategy where hashtags used in MCC social posts can be tracked against SEO keyword performance.
+
+### Files Created
+- `config/keyword_hashtag_library.json` - Master JSON config file with all SEO keywords, hashtag sets, and mappings
+- `web_app/keyword-hashtag-library.js` - JavaScript module providing API to access the unified library
+
+### Files Modified
+- `web_app/marketing-command-center.html` - Updated to use shared library for hashtag sets, added SEO keyword targeting section, added hashtag-to-SEO tracking
+- `web_app/seo_dashboard.html` - Updated to use shared library for keyword categories, added Hashtag-SEO Correlation panel
+
+### Functions Added
+- `getHashtagSetsFromLibrary()` in MCC - Gets hashtag sets from shared library with fallback
+- `trackHashtagUsageForSEO()` in MCC - Tracks hashtag usage and maps to related SEO keywords
+- `addSEOHashtags()` in MCC - Adds SEO-optimized hashtags based on keyword category
+- `toggleSEOKeywords()` in MCC - Toggle for SEO keywords panel UI
+- `getKeywordCategoriesFromLibrary()` in SEO Dashboard - Gets keywords from shared library
+- `loadHashtagSEOCorrelation()` in SEO Dashboard - Loads and displays hashtag usage tracking from MCC
+
+### Key Features
+1. Master list of target keywords from SEO research (8 categories, 30+ keywords)
+2. Mapped hashtag sets for each keyword category (9 sets including flowers, mushrooms, wellness)
+3. When MCC creates content with hashtag set X, SEO dashboard can track related keyword Y
+4. AI caption generator in MCC now has SEO keyword prompts and sample phrases
+5. UI component accessible in both dashboards (hashtag section in MCC, correlation panel in SEO)
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created (enhanced existing hashtagSets, did not create new system)
+
+---
+
 ## 2026-02-12 - Backend_Claude (Instagram Graph API Sync for 5-3-2 Tracker)
 
 ### Context

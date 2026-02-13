@@ -7,6 +7,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="auth-guard.js" data-required-role="Admin"></script>
+    <script src="api-config.js"></script>
+    <script src="shared-content-calendar.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -28,6 +30,7 @@
             --gold: #ffd700;
             --purple: #9b59b6;
             --teal: #1abc9c;
+            --gbp: #4285F4;
             /* Mobile-first touch targets */
             --touch-min: 48px;
             --touch-comfortable: 56px;
@@ -1134,7 +1137,7 @@
         </div>
         <div class="nav-actions">
             <a href="marketing-command-center.html" class="btn btn-secondary">
-                <i class="fas fa-bullhorn"></i> Marketing Hub
+                <i class="fas fa-bullhorn"></i> Marketing Command Center
             </a>
             <a href="index.html" class="btn btn-secondary">
                 <i class="fas fa-home"></i> Hub
@@ -1336,6 +1339,62 @@
             </div>
         </div>
 
+        <!-- COMBINED PERFORMANCE ANALYTICS - Social + SEO Unified View -->
+        <div class="card" style="margin-bottom: 1.5rem; background: linear-gradient(135deg, var(--bg-card) 0%, rgba(225, 48, 108, 0.1) 100%); border: 2px solid rgba(225, 48, 108, 0.3);">
+            <div class="card-header" style="background: linear-gradient(135deg, rgba(225, 48, 108, 0.2) 0%, transparent 100%);">
+                <h3><i class="fas fa-share-alt" style="color: #e1306c;"></i> Social Media Impact on SEO</h3>
+                <div style="display: flex; gap: 0.5rem;">
+                    <a href="marketing-command-center.html" class="btn btn-secondary btn-sm" target="_blank">
+                        <i class="fas fa-external-link-alt"></i> Full MCC
+                    </a>
+                    <button class="btn btn-sm" style="background: #e1306c;" onclick="loadSocialImpactData()">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Social Engagement Summary -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                    <div style="background: var(--bg-light); padding: 1rem; border-radius: 10px; text-align: center; border-left: 3px solid #e1306c;">
+                        <i class="fas fa-eye" style="color: #e1306c; font-size: 1.25rem; margin-bottom: 0.5rem; display: block;"></i>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Social Impressions</div>
+                        <div style="font-size: 1.5rem; font-weight: 700;" id="seoSocialImpressions">--</div>
+                    </div>
+                    <div style="background: var(--bg-light); padding: 1rem; border-radius: 10px; text-align: center; border-left: 3px solid var(--success);">
+                        <i class="fas fa-heart" style="color: var(--success); font-size: 1.25rem; margin-bottom: 0.5rem; display: block;"></i>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Engagements</div>
+                        <div style="font-size: 1.5rem; font-weight: 700;" id="seoSocialEngagements">--</div>
+                    </div>
+                    <div style="background: var(--bg-light); padding: 1rem; border-radius: 10px; text-align: center; border-left: 3px solid var(--gold);">
+                        <i class="fas fa-percentage" style="color: var(--gold); font-size: 1.25rem; margin-bottom: 0.5rem; display: block;"></i>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Engagement Rate</div>
+                        <div style="font-size: 1.5rem; font-weight: 700;" id="seoEngagementRate">--%</div>
+                    </div>
+                    <div style="background: var(--bg-light); padding: 1rem; border-radius: 10px; text-align: center; border-left: 3px solid var(--info);">
+                        <i class="fas fa-paper-plane" style="color: var(--info); font-size: 1.25rem; margin-bottom: 0.5rem; display: block;"></i>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary);">Posts This Month</div>
+                        <div style="font-size: 1.5rem; font-weight: 700;" id="seoSocialPosts">--</div>
+                    </div>
+                </div>
+
+                <!-- Content with SEO + Social Attribution -->
+                <div style="margin-bottom: 1rem;">
+                    <h4 style="font-size: 0.9rem; margin-bottom: 0.75rem; color: var(--text-secondary);">
+                        <i class="fas fa-link"></i> Content Attribution (Social Posts with SEO Impact)
+                    </h4>
+                    <div id="seoSocialAttributionList" style="max-height: 200px; overflow-y: auto;">
+                        <div class="loading" style="padding: 1rem; text-align: center;"><div class="spinner"></div></div>
+                    </div>
+                </div>
+
+                <!-- Quick Insight -->
+                <div style="background: rgba(225, 48, 108, 0.1); padding: 0.75rem; border-radius: 8px; font-size: 0.85rem;" id="socialSEOInsight">
+                    <i class="fas fa-lightbulb" style="color: var(--gold);"></i>
+                    <span style="color: var(--text-secondary);">Loading social media impact analysis...</span>
+                </div>
+            </div>
+        </div>
+
         <!-- SEO Pages Inventory -->
         <div class="card" style="margin-bottom: 1.5rem;">
             <div class="card-header">
@@ -1431,6 +1490,46 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Google Business Profile Posts -->
+                <div class="card" style="margin-top: 1.5rem; border: 2px solid #4285F4;">
+                    <div class="card-header" style="background: linear-gradient(135deg, #4285F4 0%, #34A853 100%);">
+                        <h3 style="color: white;"><i class="fab fa-google"></i> GBP Posts (Local SEO)</h3>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <a href="marketing-command-center.html" class="btn btn-secondary btn-sm" style="color: white; border-color: white;">
+                                <i class="fas fa-plus"></i> Create Post
+                            </a>
+                            <button class="btn btn-secondary btn-sm" onclick="loadGBPPostsSEO()" style="color: white; border-color: white;">
+                                <i class="fas fa-sync"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- GBP Stats Row -->
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem;">
+                            <div style="text-align: center; padding: 1rem; background: rgba(66, 133, 244, 0.1); border-radius: 8px;">
+                                <div style="font-size: 1.5rem; font-weight: 700; color: #4285F4;" id="gbpTotalPostsSEO">--</div>
+                                <div style="font-size: 0.75rem; color: var(--text-secondary);">Total Posts</div>
+                            </div>
+                            <div style="text-align: center; padding: 1rem; background: rgba(52, 168, 83, 0.1); border-radius: 8px;">
+                                <div style="font-size: 1.5rem; font-weight: 700; color: #34A853;" id="gbpWeeklyRateSEO">--</div>
+                                <div style="font-size: 0.75rem; color: var(--text-secondary);">Posts/Week</div>
+                            </div>
+                            <div style="text-align: center; padding: 1rem; background: rgba(234, 67, 53, 0.1); border-radius: 8px;">
+                                <div style="font-size: 1.5rem; font-weight: 700; color: #EA4335;" id="gbpPendingManualSEO">--</div>
+                                <div style="font-size: 0.75rem; color: var(--text-secondary);">Pending Manual</div>
+                            </div>
+                        </div>
+                        <!-- GBP Status -->
+                        <div style="padding: 0.75rem; background: rgba(66, 133, 244, 0.1); border-radius: 8px; margin-bottom: 1rem; border-left: 3px solid #4285F4;">
+                            <div style="font-size: 0.85rem;"><i class="fas fa-lightbulb" style="color: #FBBC05;"></i> <span id="gbpRecommendationSEO">Aim for 3+ posts per week for best local SEO results.</span></div>
+                        </div>
+                        <!-- Recent Posts List -->
+                        <div id="gbpRecentPostsSEO">
+                            <div class="loading"><div class="spinner"></div></div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Right Column -->
@@ -1458,6 +1557,65 @@
                     <div class="card-body" id="actions-container">
                         <div class="loading">
                             <div class="spinner"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hashtag-SEO Correlation (Shared with MCC) -->
+                <div class="card" style="margin-top: 1.5rem; border: 1px solid var(--purple);">
+                    <div class="card-header" style="background: rgba(155, 89, 182, 0.1);">
+                        <h3><i class="fas fa-hashtag" style="color: var(--purple);"></i> Hashtag-SEO Correlation</h3>
+                        <a href="marketing-command-center.html" class="btn btn-sm btn-secondary">
+                            <i class="fas fa-bullhorn"></i> Open MCC
+                        </a>
+                    </div>
+                    <div class="card-body" id="hashtag-correlation-container">
+                        <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;">
+                            Track how hashtags used in social posts correlate with SEO keyword performance.
+                        </p>
+                        <div id="hashtag-tracking-data">
+                            <p style="color: var(--text-secondary); font-size: 0.8rem;">No hashtag usage tracked yet. Use MCC to create posts with hashtags.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Shared Content Calendar (52-Week SEO Strategy) -->
+                <div class="card" style="margin-top: 1.5rem; border: 1px solid var(--primary);">
+                    <div class="card-header" style="background: rgba(34, 197, 94, 0.1);">
+                        <h3><i class="fas fa-calendar-alt" style="color: var(--primary);"></i> SEO Content Calendar</h3>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="btn btn-sm" onclick="open52WeekImportModal()" style="background: linear-gradient(135deg, var(--info), var(--success)); color: white;">
+                                <i class="fas fa-download"></i> Import 52-Week
+                            </button>
+                            <button class="btn btn-sm" onclick="openSharedContentEntryModal()" style="background: var(--primary); color: white;">
+                                <i class="fas fa-plus"></i> Add Entry
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;">
+                            <i class="fas fa-sync-alt"></i> Shared with Marketing Command Center. Track blog posts, social content, and GBP posts with SEO keywords.
+                        </p>
+                        <div id="seo-content-calendar-container">
+                            <div class="loading" id="seoCalendarLoading">
+                                <div class="spinner"></div>
+                            </div>
+                            <div id="seoCalendarContent" style="display: none;">
+                                <!-- Calendar entries will be rendered here -->
+                            </div>
+                        </div>
+                        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; font-size: 0.75rem;">
+                                    <span style="display: flex; align-items: center; gap: 0.25rem;"><span style="width: 8px; height: 8px; background: #E1306C; border-radius: 50%;"></span> Social</span>
+                                    <span style="display: flex; align-items: center; gap: 0.25rem;"><span style="width: 8px; height: 8px; background: #3b82f6; border-radius: 50%;"></span> Blog</span>
+                                    <span style="display: flex; align-items: center; gap: 0.25rem;"><span style="width: 8px; height: 8px; background: #4285f4; border-radius: 50%;"></span> GBP</span>
+                                    <span style="display: flex; align-items: center; gap: 0.25rem;"><span style="width: 8px; height: 8px; background: #8b5cf6; border-radius: 50%;"></span> Email</span>
+                                </div>
+                                <button class="btn btn-sm btn-secondary" onclick="loadSEOContentCalendar()">
+                                    <i class="fas fa-sync-alt"></i> Refresh
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1809,11 +1967,32 @@
     </div>
 
     <script src="api-config.js"></script>
+    <script src="keyword-hashtag-library.js"></script>
     <script>
         // ============================================
         // CONFIGURATION - DOMINATION KEYWORD ENGINE
+        // (Using shared KeywordHashtagLibrary for unified data)
         // ============================================
-        const KEYWORD_CATEGORIES = {
+
+        // Get keyword categories from shared library or use fallback
+        function getKeywordCategoriesFromLibrary() {
+            if (typeof KeywordHashtagLibrary !== 'undefined') {
+                const libraryCats = KeywordHashtagLibrary.getKeywordCategories();
+                // Convert to legacy format for backward compatibility
+                const converted = {};
+                Object.entries(libraryCats).forEach(([key, cat]) => {
+                    converted[cat.displayName] = cat.keywords.map(kw => ({
+                        keyword: kw.keyword,
+                        target: kw.target
+                    }));
+                });
+                return converted;
+            }
+            return null;
+        }
+
+        // Use library if available, otherwise fall back to hardcoded
+        const KEYWORD_CATEGORIES = getKeywordCategoriesFromLibrary() || {
             'Core CSA': [
                 { keyword: 'CSA pittsburgh', target: 1 },
                 { keyword: 'best CSA pittsburgh', target: 1 },
@@ -1884,7 +2063,57 @@
         document.addEventListener('DOMContentLoaded', () => {
             loadDashboard();
             checkAPIStatus();
+            loadHashtagSEOCorrelation();
         });
+
+        // ============================================
+        // HASHTAG-SEO CORRELATION (Shared with MCC)
+        // ============================================
+        function loadHashtagSEOCorrelation() {
+            const container = document.getElementById('hashtag-tracking-data');
+            if (!container) return;
+
+            // Get tracking data from localStorage (set by MCC)
+            const tracking = JSON.parse(localStorage.getItem('hashtagSEOTracking') || '{}');
+            const entries = Object.entries(tracking);
+
+            if (entries.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-secondary); font-size: 0.8rem;">No hashtag usage tracked yet. Use MCC to create posts with hashtags.</p>';
+                return;
+            }
+
+            // Sort by timestamp (most recent first) and take last 10
+            const sorted = entries.sort((a, b) => parseInt(b[0]) - parseInt(a[0])).slice(0, 10);
+
+            let html = '<div style="display: flex; flex-direction: column; gap: 0.75rem;">';
+
+            sorted.forEach(([timestamp, data]) => {
+                const date = new Date(parseInt(timestamp));
+                const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                const relatedKws = data.relatedSEOKeywords || [];
+
+                html += `
+                    <div style="background: var(--bg-light); padding: 0.75rem; border-radius: 8px; border-left: 3px solid var(--purple);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <span style="font-weight: 600; color: var(--purple);">${data.hashtagSet}</span>
+                            <span style="font-size: 0.75rem; color: var(--text-secondary);">${dateStr}</span>
+                        </div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                            Hashtags: ${(data.hashtags || []).slice(0, 5).join(' ')}${(data.hashtags || []).length > 5 ? '...' : ''}
+                        </div>
+                        <div style="font-size: 0.75rem;">
+                            <span style="color: var(--success);">Related SEO Keywords:</span>
+                            ${relatedKws.length > 0 ? relatedKws.slice(0, 3).map(kw => `<span style="background: rgba(34, 197, 94, 0.2); padding: 2px 6px; border-radius: 4px; margin-left: 4px;">${kw}</span>`).join('') : '<span style="color: var(--text-secondary);">None mapped</span>'}
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            html += `<p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 1rem; text-align: center;">Showing last ${sorted.length} hashtag usages from MCC</p>`;
+
+            container.innerHTML = html;
+        }
 
         // ============================================
         // API STATUS & AUTOMATION
@@ -2193,6 +2422,8 @@
                 renderActionItems();
                 loadAIVisibility(); // Load AI visibility data
                 updatePriorityHero(); // Update #1 priority card
+                loadGBPPostsSEO(); // Load GBP posts for local SEO section
+                loadSocialImpactData(); // Load combined social + SEO data
 
             } catch (error) {
                 console.error('Error loading dashboard:', error);
@@ -2246,6 +2477,172 @@
                 btn.innerHTML = originalHTML;
                 btn.disabled = false;
             }
+        }
+
+        // ============================================
+        // GOOGLE BUSINESS PROFILE POSTS (SEO)
+        // ============================================
+        async function loadGBPPostsSEO() {
+            try {
+                // Load GBP analytics
+                const analyticsResponse = await callAPI('getGBPAnalytics', {});
+                console.log('GBP Analytics (SEO):', analyticsResponse);
+
+                if (analyticsResponse.success && analyticsResponse.analytics) {
+                    const analytics = analyticsResponse.analytics;
+
+                    // Update stats
+                    const totalEl = document.getElementById('gbpTotalPostsSEO');
+                    const rateEl = document.getElementById('gbpWeeklyRateSEO');
+                    const pendingEl = document.getElementById('gbpPendingManualSEO');
+                    const recEl = document.getElementById('gbpRecommendationSEO');
+
+                    if (totalEl) totalEl.textContent = analytics.totalPosts || 0;
+                    if (rateEl) rateEl.textContent = analytics.weeklyPostingRate || '0';
+                    if (pendingEl) pendingEl.textContent = analytics.stats?.pendingManual || 0;
+                    if (recEl) recEl.textContent = analytics.recommendation || 'Aim for 3+ posts per week for best local SEO results.';
+                }
+
+                // Load recent GBP posts
+                const postsResponse = await callAPI('getGBPPosts', { limit: 5 });
+                console.log('GBP Posts (SEO):', postsResponse);
+
+                if (postsResponse.success) {
+                    renderGBPPostsSEO(postsResponse.posts || []);
+                }
+
+            } catch (error) {
+                console.error('Error loading GBP data for SEO:', error);
+            }
+        }
+
+        function renderGBPPostsSEO(posts) {
+            const container = document.getElementById('gbpRecentPostsSEO');
+            if (!container) return;
+
+            if (posts.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 1.5rem; color: var(--text-secondary);">
+                        <i class="fab fa-google" style="font-size: 2rem; opacity: 0.5; color: #4285F4;"></i>
+                        <p style="margin-top: 0.5rem;">No GBP posts yet</p>
+                        <a href="marketing-command-center.html" class="btn btn-sm btn-primary" style="margin-top: 0.5rem; background: #4285F4;">
+                            <i class="fas fa-plus"></i> Create First Post
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = posts.slice(0, 5).map(post => {
+                const date = new Date(post.postedDate || post.scheduledDate || post.createdAt);
+                const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                const statusColor = post.status === 'posted' ? '#34A853' :
+                                   post.status === 'pending_manual' ? '#FBBC05' :
+                                   post.status === 'failed' ? '#EA4335' : '#4285F4';
+                const statusIcon = post.status === 'posted' ? 'fa-check-circle' :
+                                  post.status === 'pending_manual' ? 'fa-hand-pointer' :
+                                  post.status === 'failed' ? 'fa-times-circle' : 'fa-clock';
+
+                return `
+                    <div style="display: flex; gap: 0.75rem; padding: 0.75rem; background: var(--bg-light); border-radius: 8px; margin-bottom: 0.5rem; border-left: 3px solid ${statusColor};">
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="font-size: 0.8rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                ${post.content?.substring(0, 100) || 'No content'}...
+                            </div>
+                            <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                                <i class="fas fa-calendar"></i> ${dateStr}
+                                <span style="color: ${statusColor}; margin-left: 0.5rem;"><i class="fas ${statusIcon}"></i> ${post.status}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ============================================
+        // COMBINED PERFORMANCE ANALYTICS - Social + SEO
+        // ============================================
+        async function loadSocialImpactData() {
+            try {
+                const data = await callAPI('getCombinedAnalytics', { period: 'month' });
+
+                if (data.success) {
+                    renderSocialImpactData(data);
+                } else {
+                    console.error('Error loading combined analytics:', data.error);
+                    document.getElementById('seoSocialImpressions').textContent = '--';
+                }
+            } catch (error) {
+                console.error('Error fetching social impact data:', error);
+            }
+        }
+
+        function renderSocialImpactData(data) {
+            // Update social metrics cards
+            const impressionsEl = document.getElementById('seoSocialImpressions');
+            const engagementsEl = document.getElementById('seoSocialEngagements');
+            const rateEl = document.getElementById('seoEngagementRate');
+            const postsEl = document.getElementById('seoSocialPosts');
+
+            if (impressionsEl) impressionsEl.textContent = formatNumber(data.social?.impressions || 0);
+            if (engagementsEl) engagementsEl.textContent = formatNumber(data.social?.engagements || 0);
+            if (rateEl) rateEl.textContent = (data.social?.engagementRate || 0) + '%';
+            if (postsEl) postsEl.textContent = data.social?.posts || 0;
+
+            // Render attribution list
+            const listEl = document.getElementById('seoSocialAttributionList');
+            if (listEl && data.topContent) {
+                if (data.topContent.length === 0) {
+                    listEl.innerHTML = `
+                        <div style="text-align: center; padding: 1rem; color: var(--text-secondary);">
+                            <i class="fas fa-link" style="font-size: 1.5rem; opacity: 0.5;"></i>
+                            <p style="margin-top: 0.5rem; font-size: 0.85rem;">No combined content data yet. Post to social media to track SEO impact.</p>
+                        </div>
+                    `;
+                } else {
+                    listEl.innerHTML = data.topContent.slice(0, 5).map((content, i) => `
+                        <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem; background: var(--bg-light); border-radius: 8px; margin-bottom: 0.4rem; ${content.seoRank && content.seoRank <= 3 ? 'border-left: 3px solid var(--gold);' : ''}">
+                            <div style="width: 28px; height: 28px; background: ${content.seoKeyword ? 'linear-gradient(135deg, var(--primary), var(--success))' : '#e1306c'}; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                <span style="font-weight: 600; font-size: 0.8rem;">${i + 1}</span>
+                            </div>
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${content.title}</div>
+                                <div style="font-size: 0.7rem; color: var(--text-secondary);">
+                                    ${content.attribution}
+                                </div>
+                            </div>
+                            <div style="text-align: center; flex-shrink: 0;">
+                                <div style="font-size: 1rem; font-weight: 700; color: ${content.combinedScore >= 100 ? 'var(--success)' : content.combinedScore >= 50 ? 'var(--warning)' : 'var(--text-secondary)'};">${content.combinedScore}</div>
+                                <div style="font-size: 0.6rem; color: var(--text-secondary);">score</div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            }
+
+            // Update insight
+            const insightEl = document.getElementById('socialSEOInsight');
+            if (insightEl) {
+                const socialHealth = data.social?.health || 0;
+                const seoHealth = data.seo?.health || 0;
+                let insight = '';
+
+                if (socialHealth > seoHealth + 20) {
+                    insight = `<i class="fas fa-exclamation-triangle" style="color: var(--warning);"></i> <strong>Social outperforming SEO.</strong> Your social engagement is strong (${socialHealth}/100) but SEO needs attention (${seoHealth}/100). Focus on optimizing content for search.`;
+                } else if (seoHealth > socialHealth + 20) {
+                    insight = `<i class="fas fa-info-circle" style="color: var(--info);"></i> <strong>SEO leading social.</strong> Great SEO performance (${seoHealth}/100)! Amplify your ranking content with social posts to drive more traffic.`;
+                } else {
+                    insight = `<i class="fas fa-check-circle" style="color: var(--success);"></i> <strong>Balanced performance!</strong> Social (${socialHealth}/100) and SEO (${seoHealth}/100) are working together. Keep up the consistent effort.`;
+                }
+
+                insightEl.innerHTML = insight;
+            }
+        }
+
+        function formatNumber(num) {
+            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+            return (num || 0).toLocaleString();
         }
 
         // ============================================
@@ -2833,7 +3230,7 @@
             'getSEOAPIStatus', 'getSEOMasterDashboard', 'getSEOCompetitors',
             'getAIShareOfVoiceMetrics', 'getVideoAnalytics', 'healthCheck',
             'getSEOPages', 'getSEOPageById', 'fetchGoogleReviews',
-            'getAIVisibilityMetrics'
+            'getAIVisibilityMetrics', 'getGBPPosts', 'getGBPAnalytics'
         ];
 
         // ============================================
@@ -2937,6 +3334,7 @@
                 };
                 const statusColor = check.appeared ? 'var(--success)' : 'var(--danger)';
                 const statusIcon = check.appeared ? 'fa-check-circle' : 'fa-times-circle';
+                const isCited = check.appeared && (check.position === 'featured' || check.position === 'mentioned');
 
                 return `
                     <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: var(--bg-light); border-radius: 8px; margin-bottom: 0.5rem; border-left: 3px solid ${statusColor};">
@@ -2944,14 +3342,58 @@
                         <div style="flex: 1;">
                             <div style="font-size: 0.85rem; font-weight: 500;">"${check.query}"</div>
                             <div style="font-size: 0.75rem; color: var(--text-secondary);">${check.platform} - ${check.position || 'N/A'}</div>
+                            ${isCited ? `<div style="font-size: 0.7rem; color: var(--instagram); margin-top: 0.25rem;"><i class="fas fa-share-alt"></i> Cited! Promote this on social media</div>` : ''}
                         </div>
-                        <div style="display: flex; align-items: center; gap: 0.25rem; color: ${statusColor};">
-                            <i class="fas ${statusIcon}"></i>
-                            <span style="font-size: 0.75rem;">${check.appeared ? 'Found' : 'Missing'}</span>
+                        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.25rem;">
+                            <div style="display: flex; align-items: center; gap: 0.25rem; color: ${statusColor};">
+                                <i class="fas ${statusIcon}"></i>
+                                <span style="font-size: 0.75rem;">${check.appeared ? 'Found' : 'Missing'}</span>
+                            </div>
+                            ${isCited ? `<button onclick="copyShareText('${encodeURIComponent(check.query)}')" style="font-size: 0.65rem; padding: 0.2rem 0.5rem; background: var(--instagram); border: none; border-radius: 4px; color: white; cursor: pointer;"><i class="fas fa-copy"></i> Share</button>` : ''}
                         </div>
                     </div>
                 `;
             }).join('');
+
+            // Render cited content recommendations section
+            renderCitedContentRecommendations();
+        }
+
+        function renderCitedContentRecommendations() {
+            const citedContent = aiVisibilityData?.citedContent || [];
+            if (citedContent.length === 0) return;
+
+            const container = document.getElementById('ai-recent-checks');
+            const citedHtml = `
+                <div style="margin-top: 1rem; padding: 1rem; background: linear-gradient(135deg, rgba(225, 48, 108, 0.15), rgba(155, 89, 182, 0.1)); border-radius: 8px; border: 1px solid rgba(225, 48, 108, 0.4);">
+                    <h5 style="font-size: 0.9rem; color: var(--instagram); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-fire"></i> Content Being Cited by AI - Promote These!
+                    </h5>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+                        These queries resulted in AI citing your content. Share this success on social media!
+                    </div>
+                    ${citedContent.slice(0, 3).map(item => `
+                        <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; background: rgba(0,0,0,0.2); border-radius: 6px; margin-bottom: 0.5rem;">
+                            <i class="fas fa-quote-left" style="color: var(--instagram); font-size: 0.8rem;"></i>
+                            <div style="flex: 1; font-size: 0.8rem;">"${item.query}" - cited by ${item.platform}</div>
+                            <button onclick="copyShareText('${encodeURIComponent(item.query)}')" style="font-size: 0.7rem; padding: 0.25rem 0.5rem; background: var(--instagram); border: none; border-radius: 4px; color: white; cursor: pointer;">
+                                <i class="fas fa-share"></i> Share
+                            </button>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            container.insertAdjacentHTML('afterend', citedHtml);
+        }
+
+        function copyShareText(encodedQuery) {
+            const query = decodeURIComponent(encodedQuery);
+            const shareText = "Exciting news! Our content about '" + query + "' was cited by AI answer engines. This shows we're becoming a trusted source in our industry! #AEO #DigitalMarketing #AIVisibility";
+            navigator.clipboard.writeText(shareText).then(() => {
+                showToast('Share text copied! Paste in your social post.');
+            }).catch(() => {
+                showToast('Could not copy text');
+            });
         }
 
         function renderAIVisibilityPlaceholder() {
@@ -3714,6 +4156,144 @@
 
         function toggleKeyboardHelp() {
             document.getElementById('keyboardHelp')?.classList.toggle('visible');
+        }
+
+        // ============================================
+        // SEO CONTENT CALENDAR INTEGRATION
+        // Uses shared-content-calendar.js functions
+        // ============================================
+
+        async function loadSEOContentCalendar() {
+            const loading = document.getElementById('seoCalendarLoading');
+            const content = document.getElementById('seoCalendarContent');
+
+            if (!loading || !content) return;
+
+            loading.style.display = 'block';
+            content.style.display = 'none';
+
+            try {
+                // Get current week's entries
+                const currentWeek = getCurrentWeekNumber();
+                const result = await loadSharedContentCalendar({
+                    weekNumber: currentWeek
+                });
+
+                if (result.success && result.entries && result.entries.length > 0) {
+                    renderSEOCalendarEntries(result.entries);
+                } else {
+                    content.innerHTML = `
+                        <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                            <i class="fas fa-calendar-times" style="font-size: 2rem; margin-bottom: 1rem; color: var(--warning);"></i>
+                            <p>No content planned for week ${currentWeek}.</p>
+                            <div style="margin-top: 1rem; display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;">
+                                <button class="btn btn-sm" onclick="open52WeekImportModal()" style="background: linear-gradient(135deg, var(--info), var(--success)); color: white;">
+                                    <i class="fas fa-download"></i> Import 52-Week Calendar
+                                </button>
+                                <button class="btn btn-sm btn-primary" onclick="openSharedContentEntryModal()">
+                                    <i class="fas fa-plus"></i> Add Entry
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                loading.style.display = 'none';
+                content.style.display = 'block';
+            } catch (error) {
+                console.error('Error loading SEO content calendar:', error);
+                loading.style.display = 'none';
+                content.innerHTML = `<p style="color: var(--danger);">Error loading calendar: ${error.message}</p>`;
+                content.style.display = 'block';
+            }
+        }
+
+        function renderSEOCalendarEntries(entries) {
+            const content = document.getElementById('seoCalendarContent');
+            if (!content) return;
+
+            // Group entries by content type
+            const groupedByType = {};
+            entries.forEach(entry => {
+                const type = entry.Content_Type || 'SOCIAL';
+                if (!groupedByType[type]) groupedByType[type] = [];
+                groupedByType[type].push(entry);
+            });
+
+            let html = `
+                <div style="margin-bottom: 1rem; padding: 0.5rem; background: rgba(34, 197, 94, 0.1); border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 0.85rem;"><strong>${entries.length}</strong> entries for Week ${getCurrentWeekNumber()}</span>
+                    <a href="marketing-command-center.html#contentcalendar" class="btn btn-sm btn-secondary" style="font-size: 0.75rem;">
+                        <i class="fas fa-external-link-alt"></i> Full Calendar in MCC
+                    </a>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 300px; overflow-y: auto;">
+            `;
+
+            entries.slice(0, 10).forEach(entry => {
+                const contentType = SHARED_CONTENT_TYPES[entry.Content_Type] || SHARED_CONTENT_TYPES['SOCIAL'];
+                const pillar = SHARED_CONTENT_PILLARS[entry.Content_Pillar] || { name: entry.Content_Pillar, color: '#666' };
+
+                html += `
+                    <div style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 0.75rem; border-left: 3px solid ${pillar.color};">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
+                            <div style="flex: 1;">
+                                <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.25rem;">
+                                    ${renderContentTypeBadge(entry.Content_Type)}
+                                    ${renderSharedPillarBadge(entry.Content_Pillar)}
+                                </div>
+                                <div style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.25rem;">${entry.Title || 'Untitled'}</div>
+                                ${entry.SEO_Keywords ? renderSEOKeywords(entry.SEO_Keywords) : ''}
+                            </div>
+                            <button onclick="openSharedContentEntryModal(${JSON.stringify(entry).replace(/"/g, '&quot;')})" style="background: none; border: none; color: var(--text-secondary); cursor: pointer;">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            if (entries.length > 10) {
+                html += `<p style="text-align: center; color: var(--text-secondary); font-size: 0.85rem;">+${entries.length - 10} more entries</p>`;
+            }
+
+            html += '</div>';
+            content.innerHTML = html;
+        }
+
+        // Load SEO content calendar on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                if (typeof loadSharedContentCalendar === 'function') {
+                    loadSEOContentCalendar();
+                }
+            }, 500);
+        });
+
+        // ============================================
+        // REQUIRED WRAPPER FUNCTIONS (per spec)
+        // ============================================
+
+        /**
+         * Get shared calendar data - Required by spec
+         * @param {Object} params - Filter parameters
+         */
+        async function getSharedCalendar(params) {
+            if (typeof loadSharedContentCalendar === 'function') {
+                return await loadSharedContentCalendar(params || {});
+            }
+            return { success: false, error: 'loadSharedContentCalendar not available' };
+        }
+
+        /**
+         * Update a shared calendar item - Required by spec
+         * @param {Object} entryData - Entry data with entryId for update
+         */
+        async function updateSharedCalendarItem(entryData) {
+            if (typeof saveSharedContentEntry === 'function') {
+                return await saveSharedContentEntry(entryData);
+            }
+            return { success: false, error: 'saveSharedContentEntry not available' };
         }
     </script>
 
