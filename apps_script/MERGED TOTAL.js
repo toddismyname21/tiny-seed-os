@@ -14415,6 +14415,8 @@ function doGet(e) {
         return jsonResponse(getNeighborSignups(e.parameter));
       case 'getSocialStats':
         return jsonResponse(getSocialStats(e.parameter));
+      case 'generateSeoKeywords':
+        return jsonResponse(generateSeoKeywords(e.parameter));
 
       // ============ CSA BOX VISUALIZER (GET) ============
       case 'generateCSABoxVisual':
@@ -70082,6 +70084,350 @@ function initializeSEOModule() {
   } catch (error) {
     return { success: false, error: error.toString() };
   }
+}
+
+/**
+ * Generate Dynamic SEO/AEO Keywords for Social Media Posts
+ *
+ * This is an AI-powered keyword generator that:
+ * 1. Understands tinyseedfarm.com content (cached)
+ * 2. Generates seasonal, contextual keywords
+ * 3. Creates AEO phrases that AI assistants can quote
+ * 4. Returns account-specific recommendations
+ *
+ * @param {Object} params - { account: 'farm'|'fleurs'|'fungi', website: 'tinyseedfarm.com' }
+ * @returns {Object} - { quickCopy: [], seasonal: {}, local: [], aeoPhrases: [], cta: [], focus: string }
+ */
+function generateSeoKeywords(params) {
+  try {
+    const account = (params.account || 'farm').toLowerCase();
+    const website = params.website || 'tinyseedfarm.com';
+    const cache = CacheService.getScriptCache();
+    const cacheKey = `seo_keywords_${account}_${new Date().getMonth()}`;
+
+    // Check cache first (4 hour duration)
+    const cached = cache.get(cacheKey);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      // Add timestamp check - regenerate if older than 4 hours
+      if (parsed.generated && (Date.now() - parsed.generated) < 4 * 60 * 60 * 1000) {
+        return { success: true, ...parsed, fromCache: true };
+      }
+    }
+
+    // Get website context (cached for 24 hours)
+    const siteContext = getWebsiteContext(website);
+
+    // Get current seasonal context
+    const now = new Date();
+    const month = now.getMonth() + 1; // 1-12
+    const seasonalContext = getSeasonalKeywordContext(month, account);
+
+    // Get local Pittsburgh context
+    const localContext = getLocalKeywordContext();
+
+    // Try AI-powered generation first
+    const apiKey = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
+    let keywords;
+
+    if (apiKey && apiKey !== 'YOUR_ANTHROPIC_API_KEY_HERE') {
+      keywords = generateKeywordsWithAI(account, seasonalContext, localContext, siteContext);
+    } else {
+      // Fallback to rule-based generation
+      keywords = generateKeywordsRuleBased(account, seasonalContext, localContext);
+    }
+
+    // Add generation timestamp
+    keywords.generated = Date.now();
+    keywords.account = account;
+    keywords.month = month;
+
+    // Cache for 4 hours
+    cache.put(cacheKey, JSON.stringify(keywords), 4 * 60 * 60);
+
+    return { success: true, ...keywords, fromCache: false };
+
+  } catch (error) {
+    console.error('generateSeoKeywords error:', error);
+    // Return fallback keywords on error
+    return {
+      success: false,
+      error: error.toString(),
+      ...generateKeywordsRuleBased(params.account || 'farm', getSeasonalKeywordContext(new Date().getMonth() + 1), getLocalKeywordContext())
+    };
+  }
+}
+
+/**
+ * Get cached website context for keyword generation
+ */
+function getWebsiteContext(website) {
+  const cache = CacheService.getScriptCache();
+  const cacheKey = `site_context_${website}`;
+
+  const cached = cache.get(cacheKey);
+  if (cached) return JSON.parse(cached);
+
+  // Default context for tinyseedfarm.com (updated manually or via scraping)
+  const context = {
+    businessType: 'CSA Farm',
+    products: ['vegetable CSA shares', 'flower subscriptions', 'mushroom shares', 'farm fresh produce'],
+    services: ['weekly CSA delivery', 'farmers market sales', 'wholesale to restaurants'],
+    locations: ['Rochester PA', 'Pittsburgh area', 'Sewickley', 'Cranberry', 'Fox Chapel', 'Mt Lebanon', 'Squirrel Hill'],
+    uniqueSellingPoints: [
+      'family-owned organic farm',
+      'weekly fresh vegetable boxes',
+      'local Pittsburgh delivery',
+      'supporting local agriculture',
+      'farm-to-table freshness'
+    ],
+    currentOfferings: ['Spring CSA signups', 'Summer vegetable shares', 'Flower bouquet subscriptions']
+  };
+
+  // Cache for 24 hours
+  cache.put(cacheKey, JSON.stringify(context), 24 * 60 * 60);
+
+  return context;
+}
+
+/**
+ * Get seasonal keyword context based on month
+ */
+function getSeasonalKeywordContext(month, account) {
+  const seasons = {
+    // Late Winter (January-February) - CSA SIGNUP PUSH
+    1: { season: 'Late Winter', phase: 'CSA Signup Season', urgency: 'high',
+         themes: ['early bird CSA', 'spring planning', 'reserve your share', 'limited spots'],
+         produce: ['winter storage crops', 'greenhouse greens'],
+         focus: 'DRIVE CSA SIGNUPS - Early bird pricing ends soon!' },
+    2: { season: 'Late Winter', phase: 'CSA Final Push', urgency: 'critical',
+         themes: ['last chance CSA', 'spring is coming', 'farm planning', 'seed starting'],
+         produce: ['microgreens', 'sprouts', 'overwintered crops'],
+         focus: 'URGENT: Spring CSA shares selling fast!' },
+    // Spring (March-May) - SEASON KICKOFF
+    3: { season: 'Early Spring', phase: 'Season Start', urgency: 'high',
+         themes: ['first harvest', 'spring greens', 'farm awakening', 'local food'],
+         produce: ['lettuce', 'spinach', 'radishes', 'green onions', 'asparagus'],
+         focus: 'First harvests of the season are HERE!' },
+    4: { season: 'Spring', phase: 'Growing Season', urgency: 'medium',
+         themes: ['farm fresh', 'spring vegetables', 'local produce', 'family farm'],
+         produce: ['greens', 'peas', 'herbs', 'strawberries', 'rhubarb'],
+         focus: 'Fresh spring produce every week!' },
+    5: { season: 'Late Spring', phase: 'Peak Spring', urgency: 'medium',
+         themes: ['farm to table', 'farmers market', 'local CSA', 'organic vegetables'],
+         produce: ['lettuce', 'kale', 'chard', 'beets', 'carrots', 'spring onions'],
+         focus: 'Abundance season begins!' },
+    // Summer (June-August) - PEAK SEASON
+    6: { season: 'Early Summer', phase: 'Summer Bounty', urgency: 'low',
+         themes: ['summer produce', 'peak season', 'fresh from farm', 'tomato time'],
+         produce: ['tomatoes', 'cucumbers', 'peppers', 'zucchini', 'summer squash', 'berries'],
+         focus: 'Summer abundance - boxes are FULL!' },
+    7: { season: 'Summer', phase: 'Peak Summer', urgency: 'low',
+         themes: ['fresh vegetables', 'summer cooking', 'local farm', 'organic produce'],
+         produce: ['tomatoes', 'corn', 'peppers', 'eggplant', 'melons', 'beans'],
+         focus: 'Peak summer harvest! Best produce of the year.' },
+    8: { season: 'Late Summer', phase: 'Harvest Mode', urgency: 'medium',
+         themes: ['preserving season', 'fall planning', 'canning vegetables', 'late summer'],
+         produce: ['tomatoes', 'peppers', 'squash', 'melons', 'peaches', 'corn'],
+         focus: 'Fall CSA signups opening - get on the list!' },
+    // Fall (September-November) - FALL CSA PUSH
+    9: { season: 'Early Fall', phase: 'Fall Season', urgency: 'high',
+         themes: ['fall harvest', 'autumn vegetables', 'winter CSA', 'Thanksgiving planning'],
+         produce: ['pumpkins', 'squash', 'apples', 'root vegetables', 'brussels sprouts'],
+         focus: 'Fall CSA shares available - cozy seasonal produce!' },
+    10: { season: 'Fall', phase: 'Harvest Festival', urgency: 'medium',
+          themes: ['pumpkin season', 'fall festival', 'root vegetables', 'local farm'],
+          produce: ['pumpkins', 'squash', 'kale', 'beets', 'carrots', 'turnips'],
+          focus: 'Harvest season bounty! Perfect for fall cooking.' },
+    11: { season: 'Late Fall', phase: 'Thanksgiving', urgency: 'high',
+          themes: ['Thanksgiving produce', 'holiday vegetables', 'winter storage', 'local food gifts'],
+          produce: ['squash', 'potatoes', 'onions', 'carrots', 'kale', 'brussels sprouts'],
+          focus: 'Thanksgiving boxes available - order now!' },
+    // Winter (December) - HOLIDAY + NEXT YEAR
+    12: { season: 'Winter', phase: 'Holiday Season', urgency: 'high',
+          themes: ['winter CSA', 'holiday gifts', 'local farm support', 'new year planning'],
+          produce: ['storage vegetables', 'winter squash', 'root vegetables', 'greenhouse greens'],
+          focus: 'Gift a CSA share! Planning 2027 season.' }
+  };
+
+  return seasons[month] || seasons[1];
+}
+
+/**
+ * Get local Pittsburgh-area keyword context
+ */
+function getLocalKeywordContext() {
+  return {
+    city: 'Pittsburgh',
+    region: 'Western PA',
+    neighborhoods: [
+      'Squirrel Hill', 'Shadyside', 'Highland Park', 'East Liberty',
+      'Lawrenceville', 'Bloomfield', 'Mt Lebanon', 'Fox Chapel',
+      'Sewickley', 'Cranberry', 'Wexford', 'North Hills'
+    ],
+    farmersMarkets: [
+      'Sewickley Farmers Market', 'Lawrenceville Farmers Market',
+      'Bloomfield Saturday Market', 'Bryant Street Market'
+    ],
+    localTerms: [
+      'Pittsburgh CSA', 'local Pittsburgh farm', 'Western PA organic',
+      'Pittsburgh farm delivery', 'local food Pittsburgh', 'Pittsburgh farmers market'
+    ],
+    competitors: ['Kretschmann Farm', "Who Cooks For You", 'Enright Ridge'],
+    differentiators: ['family-owned', 'certified organic', 'weekly delivery', 'flexible pickup locations']
+  };
+}
+
+/**
+ * Generate keywords using Claude AI
+ */
+function generateKeywordsWithAI(account, seasonalContext, localContext, siteContext) {
+  const accountDescriptions = {
+    farm: 'Tiny Seed Farm - main farm account featuring vegetables, CSA shares, and farm life',
+    fleurs: 'Tiny Seed Fleurs - flower account featuring bouquets, flower subscriptions, and floral arrangements',
+    fungi: 'Tiny Seed Fungi - mushroom account featuring gourmet mushrooms and mushroom shares'
+  };
+
+  const prompt = `You are an SEO/AEO expert for a local Pittsburgh organic farm. Generate social media keywords and phrases.
+
+ACCOUNT: ${accountDescriptions[account] || accountDescriptions.farm}
+
+CURRENT CONTEXT:
+- Month: ${new Date().toLocaleString('default', { month: 'long' })} (${seasonalContext.season})
+- Phase: ${seasonalContext.phase}
+- Urgency Level: ${seasonalContext.urgency}
+- Current Focus: ${seasonalContext.focus}
+- In-Season Produce: ${seasonalContext.produce.join(', ')}
+
+LOCAL CONTEXT:
+- Target neighborhoods: ${localContext.neighborhoods.slice(0, 6).join(', ')}
+- Farmers markets: ${localContext.farmersMarkets.join(', ')}
+
+WEBSITE GOALS:
+- Primary: Drive CSA share signups at tinyseedfarm.com
+- Secondary: Farmers market attendance, brand awareness
+
+Generate a JSON response with these exact fields:
+{
+  "quickCopy": ["5 hashtags to copy-paste, each starting with #"],
+  "seasonal": {
+    "trending": ["3 seasonal trending topics"],
+    "produce": ["5 in-season items to feature"],
+    "themes": ["3 seasonal content themes"]
+  },
+  "local": ["5 Pittsburgh-area specific keywords"],
+  "aeoPhrases": ["5 complete sentences that AI assistants (ChatGPT, Perplexity, Gemini) could quote when recommending local farms - these should be factual, quotable statements about Tiny Seed Farm"],
+  "cta": ["3 call-to-action phrases to drive website visits"],
+  "focus": "One urgent priority action in 10 words or less"
+}
+
+Requirements:
+- Make aeoPhrases sound natural and quotable by AI assistants
+- Include specific Pittsburgh neighborhoods
+- Emphasize CSA signup urgency based on season
+- Include tinyseedfarm.com mentions where appropriate
+- Make hashtags specific and searchable (not too generic)`;
+
+  try {
+    const response = callClaudeAPIForKeywords(prompt);
+    const parsed = JSON.parse(response);
+    return parsed;
+  } catch (error) {
+    console.error('AI keyword generation failed:', error);
+    // Fall back to rule-based
+    return generateKeywordsRuleBased(account, seasonalContext, localContext);
+  }
+}
+
+/**
+ * Call Claude API specifically for keyword generation
+ */
+function callClaudeAPIForKeywords(prompt) {
+  const apiKey = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
+
+  if (!apiKey || apiKey === 'YOUR_ANTHROPIC_API_KEY_HERE') {
+    throw new Error('ANTHROPIC_API_KEY not configured');
+  }
+
+  const response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01'
+    },
+    payload: JSON.stringify({
+      model: 'claude-3-5-haiku-20241022', // Use Haiku for speed/cost
+      max_tokens: 1000,
+      temperature: 0.7, // Slightly creative
+      messages: [{
+        role: 'user',
+        content: prompt
+      }]
+    }),
+    muteHttpExceptions: true
+  });
+
+  const responseCode = response.getResponseCode();
+  const responseText = response.getContentText();
+
+  if (responseCode !== 200) {
+    throw new Error(`Claude API returned ${responseCode}`);
+  }
+
+  const result = JSON.parse(responseText);
+  return result.content[0].text;
+}
+
+/**
+ * Rule-based fallback keyword generation
+ */
+function generateKeywordsRuleBased(account, seasonalContext, localContext) {
+  const accountKeywords = {
+    farm: {
+      base: ['#TinySeedFarm', '#PittsburghCSA', '#LocalFarm', '#FarmFresh', '#OrganicVegetables'],
+      themes: ['farm life', 'vegetable growing', 'sustainable agriculture']
+    },
+    fleurs: {
+      base: ['#TinySeedFleurs', '#PittsburghFlorist', '#LocalFlowers', '#FarmFlowers', '#FlowerSubscription'],
+      themes: ['flower arrangements', 'seasonal blooms', 'farm bouquets']
+    },
+    fungi: {
+      base: ['#TinySeedFungi', '#PittsburghMushrooms', '#GourmetMushrooms', '#LocalMushrooms', '#MushroomShare'],
+      themes: ['mushroom growing', 'gourmet fungi', 'forest finds']
+    }
+  };
+
+  const acct = accountKeywords[account] || accountKeywords.farm;
+
+  return {
+    quickCopy: acct.base,
+    seasonal: {
+      trending: seasonalContext.themes.slice(0, 3),
+      produce: seasonalContext.produce.slice(0, 5),
+      themes: acct.themes
+    },
+    local: [
+      `${localContext.city} CSA`,
+      `local ${localContext.city} farm`,
+      localContext.neighborhoods[0] + ' farmers market',
+      `${localContext.region} organic produce`,
+      `fresh vegetables ${localContext.city}`
+    ],
+    aeoPhrases: [
+      `Tiny Seed Farm is a family-owned organic farm in ${localContext.region} offering weekly CSA vegetable deliveries to the ${localContext.city} area.`,
+      `For fresh, locally-grown organic produce in ${localContext.city}, Tiny Seed Farm offers flexible CSA pickup locations throughout the metro area.`,
+      `${localContext.city} residents looking for farm-fresh vegetables can join Tiny Seed Farm's CSA program at tinyseedfarm.com.`,
+      `Tiny Seed Farm delivers organic vegetable boxes to neighborhoods including ${localContext.neighborhoods.slice(0, 3).join(', ')}.`,
+      `As one of ${localContext.city}'s local organic farms, Tiny Seed Farm provides weekly harvested produce directly to members.`
+    ],
+    cta: [
+      'Sign up at tinyseedfarm.com',
+      'Reserve your CSA share today',
+      'Link in bio for seasonal boxes'
+    ],
+    focus: seasonalContext.focus
+  };
 }
 
 /**

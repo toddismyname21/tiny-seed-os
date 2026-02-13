@@ -5058,171 +5058,18 @@
                 </div>
             </div>
 
-            <!-- SEO/AEO KEYWORDS FOR POSTS - Drive Traffic -->
-            <div class="card" style="margin-top: 1.5rem; background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(59, 130, 246, 0.1) 100%); border: 1px solid rgba(34, 197, 94, 0.4);">
-                <div class="card-header" style="border-left: 4px solid var(--success);">
-                    <h3 style="display: flex; align-items: center; gap: 0.5rem;">
-                        <i class="fas fa-search" style="color: var(--success);"></i> Keywords for Today's Posts
-                        <span class="badge" style="background: var(--success); font-size: 0.65rem;">SEO + AEO</span>
-                    </h3>
-                    <button class="btn btn-sm" onclick="refreshSeoKeywords()" style="background: var(--success); color: white; font-size: 0.75rem;">
-                        <i class="fas fa-sync-alt" id="seoKeywordRefreshIcon"></i> Refresh
-                    </button>
-                </div>
-                <div class="card-body">
-                    <!-- Quick Copy Keywords Section -->
-                    <div style="margin-bottom: 1rem;">
-                        <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
-                            <i class="fas fa-copy"></i> Click to copy, paste into your caption:
-                        </div>
-                        <div id="quickCopyKeywords" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                            <!-- Keywords will be populated by JS -->
-                        </div>
-                    </div>
-
-                    <!-- Seasonal + Local Keywords -->
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-                        <div style="background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 8px;">
-                            <div style="font-size: 0.75rem; font-weight: 600; color: var(--primary); margin-bottom: 0.5rem;">
-                                <i class="fas fa-calendar-alt"></i> SEASONAL (February)
-                            </div>
-                            <div id="seasonalKeywords" style="font-size: 0.8rem; color: var(--text-primary);">
-                                Loading...
-                            </div>
-                        </div>
-                        <div style="background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 8px;">
-                            <div style="font-size: 0.75rem; font-weight: 600; color: var(--info); margin-bottom: 0.5rem;">
-                                <i class="fas fa-map-marker-alt"></i> LOCAL (Pittsburgh)
-                            </div>
-                            <div id="localKeywords" style="font-size: 0.8rem; color: var(--text-primary);">
-                                Loading...
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- AEO Phrases (What AI Assistants Can Quote) -->
-                    <div style="background: rgba(26, 188, 156, 0.15); padding: 0.75rem; border-radius: 8px; border-left: 3px solid #1abc9c;">
-                        <div style="font-size: 0.75rem; font-weight: 600; color: #1abc9c; margin-bottom: 0.5rem;">
-                            <i class="fas fa-robot"></i> AEO PHRASES (for AI assistants to quote)
-                        </div>
-                        <div id="aeoPhrases" style="font-size: 0.85rem; color: var(--text-primary); line-height: 1.5;">
-                            Loading...
-                        </div>
-                        <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.5rem;">
-                            <i class="fas fa-info-circle"></i> Include these in captions so ChatGPT, Perplexity, etc. can cite your content
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <!-- SHOW MORE METRICS TOGGLE (UX: Progressive Disclosure) -->
             <div id="showMoreMetricsToggle" style="margin-top: 1.5rem; text-align: center;">
                 <button id="btnShowMoreMetrics" onclick="toggleMoreMetrics()" style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(67, 97, 238, 0.2)); border: 1px dashed rgba(139, 92, 246, 0.5); color: var(--text-primary); padding: 0.75rem 1.5rem; border-radius: 12px; cursor: pointer; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.5rem; transition: all 0.3s ease;">
                     <i class="fas fa-chart-bar" style="color: #8B5CF6;"></i>
                     <span id="showMoreMetricsText">Show More Metrics</span>
                     <i id="showMoreMetricsArrow" class="fas fa-chevron-down" style="color: #8B5CF6; transition: transform 0.3s;"></i>
-                    <span style="background: rgba(139, 92, 246, 0.3); padding: 0.2rem 0.5rem; border-radius: 10px; font-size: 0.7rem; color: #8B5CF6;">3 panels</span>
+                    <span style="background: rgba(139, 92, 246, 0.3); padding: 0.2rem 0.5rem; border-radius: 10px; font-size: 0.7rem; color: #8B5CF6;">2 panels</span>
                 </button>
             </div>
 
             <!-- ADDITIONAL METRICS SECTION (Hidden by default) -->
             <div id="additionalMetricsSection" style="display: none;">
-
-            <!-- WEATHER-SMART CONTENT PANEL (2026-02-12) -->
-            <div class="card" style="margin-top: 1.5rem; background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(34, 197, 94, 0.1) 100%); border: 1px solid rgba(59, 130, 246, 0.4);">
-                <div class="card-header" style="flex-wrap: wrap; gap: 0.5rem;">
-                    <h3 style="display: flex; align-items: center; gap: 0.5rem;">
-                        <i class="fas fa-cloud-sun" style="color: #3B82F6;"></i> Weather-Smart Content
-                        <span id="weatherUrgencyBadge" class="badge" style="background: var(--info); font-size: 0.65rem; padding: 0.2rem 0.5rem; margin-left: 0.5rem;">LOADING</span>
-                    </h3>
-                    <div style="display: flex; gap: 0.5rem; align-items: center;">
-                        <span id="weatherLocation" style="font-size: 0.7rem; color: var(--text-secondary);">
-                            <i class="fas fa-map-marker-alt"></i> Rochester, PA
-                        </span>
-                        <button class="btn btn-sm" onclick="refreshWeatherData(true)" style="background: linear-gradient(135deg, #3B82F6, #22C55E); color: white; font-size: 0.75rem;">
-                            <i class="fas fa-sync-alt" id="weatherRefreshIcon"></i> Refresh
-                        </button>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <!-- Current Weather Widget -->
-                    <div id="weatherCurrentSection" style="display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: flex-start;">
-                        <!-- Current Conditions -->
-                        <div style="background: rgba(0,0,0,0.2); padding: 1rem 1.5rem; border-radius: 12px; min-width: 180px;">
-                            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
-                                <i class="fas fa-thermometer-half"></i> CURRENT CONDITIONS
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                <span id="weatherCurrentTemp" style="font-size: 2.5rem; font-weight: 700; color: #3B82F6;">--</span>
-                                <div style="text-align: left;">
-                                    <div id="weatherCurrentCondition" style="font-size: 0.9rem; font-weight: 600; color: var(--text-primary);">Loading...</div>
-                                    <div id="weatherCurrentDetails" style="font-size: 0.75rem; color: var(--text-secondary);">
-                                        <span id="weatherHumidity">--</span>% humidity <span style="margin: 0 0.25rem;">|</span> <span id="weatherWind">--</span> mph wind
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Today's Forecast -->
-                        <div style="background: rgba(0,0,0,0.2); padding: 1rem 1.5rem; border-radius: 12px; flex: 1; min-width: 200px;">
-                            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
-                                <i class="fas fa-calendar-day"></i> TODAY
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
-                                <div>
-                                    <span style="font-size: 0.75rem; color: var(--text-secondary);">High</span>
-                                    <div id="weatherTodayHigh" style="font-size: 1.5rem; font-weight: 700; color: var(--danger);">--</div>
-                                </div>
-                                <div>
-                                    <span style="font-size: 0.75rem; color: var(--text-secondary);">Low</span>
-                                    <div id="weatherTodayLow" style="font-size: 1.5rem; font-weight: 700; color: #3B82F6;">--</div>
-                                </div>
-                                <div>
-                                    <span style="font-size: 0.75rem; color: var(--text-secondary);">Rain</span>
-                                    <div id="weatherTodayRain" style="font-size: 1.5rem; font-weight: 700; color: var(--info);">--%</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Weather Alerts -->
-                    <div id="weatherAlertsSection" style="margin-top: 1rem; display: none;">
-                        <div id="weatherAlertsList"></div>
-                    </div>
-
-                    <!-- Weather-Smart Suggestions -->
-                    <div style="margin-top: 1.5rem;">
-                        <div style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
-                            <i class="fas fa-lightbulb" style="color: #F59E0B;"></i> Weather-Smart Suggestions
-                            <span id="suggestionCount" style="font-size: 0.7rem; background: var(--warning); padding: 0.15rem 0.5rem; border-radius: 10px; color: #000;">0</span>
-                        </div>
-                        <div id="weatherSuggestionsList" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
-                            <div style="text-align: center; padding: 2rem; color: var(--text-secondary); font-size: 0.85rem; grid-column: 1 / -1;">
-                                <i class="fas fa-spinner fa-spin"></i> Loading weather suggestions...
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Ready-to-Use Templates -->
-                    <div style="margin-top: 1.5rem;">
-                        <div style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
-                            <i class="fas fa-file-alt" style="color: #22C55E;"></i> Ready-to-Use Templates
-                        </div>
-                        <div id="weatherTemplatesList" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem;">
-                            <div style="text-align: center; padding: 1rem; color: var(--text-secondary); font-size: 0.85rem; grid-column: 1 / -1;">
-                                <i class="fas fa-spinner fa-spin"></i> Loading templates...
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Quick Link to Calendar -->
-            <div style="margin-top: 1rem; text-align: right;">
-                <a href="#" onclick="switchTab('contentcalendar'); return false;" style="color: var(--info); text-decoration: none; font-size: 0.9rem;">
-                    <i class="fas fa-calendar-week"></i> View Full Calendar <i class="fas fa-arrow-right" style="font-size: 0.8rem;"></i>
-                </a>
-            </div>
 
             <!-- AEO (ANSWER ENGINE OPTIMIZATION) PANEL - CRITICAL FOR 2026 -->
             <div class="card" style="margin-top: 1.5rem; background: linear-gradient(135deg, rgba(26, 188, 156, 0.15) 0%, rgba(52, 152, 219, 0.1) 100%); border: 2px solid rgba(26, 188, 156, 0.4);">
@@ -5656,6 +5503,98 @@
                 <button class="create-mode-btn" id="aiCopilotModeBtn" onclick="switchCreateMode('aicopilot')" style="flex: 1; padding: 1rem 1.5rem; background: transparent; border: none; border-radius: 12px; color: var(--text-secondary); font-weight: 600; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 56px; transition: all 0.2s;">
                     <i class="fas fa-robot"></i> AI Copilot
                 </button>
+            </div>
+
+            <!-- POST INTELLIGENCE BAR - Dynamic Context for Any Post -->
+            <div class="post-intelligence-bar" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; padding: 0.75rem; background: rgba(99, 102, 241, 0.1); border-radius: 12px; border: 1px solid rgba(99, 102, 241, 0.2);">
+                <div style="width: 100%; margin-bottom: 0.25rem;">
+                    <span style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 600;">
+                        <i class="fas fa-brain"></i> POST INTELLIGENCE - Click to inject context into your post
+                    </span>
+                </div>
+                <button class="intel-toggle-btn" id="weatherIntelBtn" onclick="togglePostIntel('weather')" style="padding: 0.5rem 1rem; background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 8px; color: #3B82F6; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s;">
+                    <i class="fas fa-cloud-sun"></i> Weather
+                    <span id="weatherIntelStatus" class="intel-status" style="background: var(--warning); color: white; font-size: 0.6rem; padding: 0.15rem 0.4rem; border-radius: 4px; display: none;">LIVE</span>
+                </button>
+                <button class="intel-toggle-btn" id="keywordsIntelBtn" onclick="togglePostIntel('keywords')" style="padding: 0.5rem 1rem; background: rgba(34, 197, 94, 0.2); border: 1px solid rgba(34, 197, 94, 0.4); border-radius: 8px; color: #22C55E; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s;">
+                    <i class="fas fa-hashtag"></i> SEO/AEO Keywords
+                    <span id="keywordsIntelStatus" class="intel-status" style="background: var(--success); color: white; font-size: 0.6rem; padding: 0.15rem 0.4rem; border-radius: 4px; display: none;">DYNAMIC</span>
+                </button>
+                <button class="intel-toggle-btn" id="algoIntelBtn" onclick="togglePostIntel('algorithm')" style="padding: 0.5rem 1rem; background: rgba(139, 92, 246, 0.2); border: 1px solid rgba(139, 92, 246, 0.4); border-radius: 8px; color: #8B5CF6; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s;">
+                    <i class="fas fa-chart-line"></i> Algorithm Intel
+                    <span id="algoIntelStatus" class="intel-status" style="background: var(--instagram); color: white; font-size: 0.6rem; padding: 0.15rem 0.4rem; border-radius: 4px; display: none;">HOT</span>
+                </button>
+                <button class="intel-toggle-btn" id="farmDataIntelBtn" onclick="togglePostIntel('farmdata')" style="padding: 0.5rem 1rem; background: rgba(251, 146, 60, 0.2); border: 1px solid rgba(251, 146, 60, 0.4); border-radius: 8px; color: #FB923C; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s;">
+                    <i class="fas fa-database"></i> Farm Data
+                    <span id="farmDataIntelStatus" class="intel-status" style="background: var(--gold); color: white; font-size: 0.6rem; padding: 0.15rem 0.4rem; border-radius: 4px; display: none;">SYNC</span>
+                </button>
+            </div>
+
+            <!-- WEATHER INTELLIGENCE PANEL (Expandable) -->
+            <div id="weatherIntelPanel" class="intel-panel" style="display: none; margin-bottom: 1rem; padding: 1rem; background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(14, 165, 233, 0.1) 100%); border-radius: 12px; border: 1px solid rgba(59, 130, 246, 0.3);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h4 style="margin: 0; color: #3B82F6;"><i class="fas fa-cloud-sun"></i> Weather-Smart Content Ideas</h4>
+                    <button onclick="refreshWeatherIntel()" class="btn btn-sm" style="background: #3B82F6; color: white; font-size: 0.75rem;">
+                        <i class="fas fa-sync-alt" id="weatherIntelRefreshIcon"></i> Refresh
+                    </button>
+                </div>
+                <div id="weatherIntelContent" style="display: grid; gap: 0.75rem;">
+                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        <i class="fas fa-spinner fa-spin"></i> Loading weather intelligence...
+                    </div>
+                </div>
+            </div>
+
+            <!-- SEO/AEO KEYWORDS PANEL (Expandable) -->
+            <div id="keywordsIntelPanel" class="intel-panel" style="display: none; margin-bottom: 1rem; padding: 1rem; background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(16, 185, 129, 0.1) 100%); border-radius: 12px; border: 1px solid rgba(34, 197, 94, 0.3);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h4 style="margin: 0; color: #22C55E;"><i class="fas fa-hashtag"></i> Dynamic SEO/AEO Keywords</h4>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <select id="keywordsIntelAccount" onchange="loadKeywordsIntel()" style="padding: 0.4rem 0.75rem; background: rgba(255,255,255,0.1); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-size: 0.8rem;">
+                            <option value="farm">🌱 Farm</option>
+                            <option value="fleurs">💐 Fleurs</option>
+                            <option value="fungi">🍄 Fungi</option>
+                        </select>
+                        <button onclick="loadKeywordsIntel(true)" class="btn btn-sm" style="background: #22C55E; color: white; font-size: 0.75rem;">
+                            <i class="fas fa-sync-alt" id="keywordsIntelRefreshIcon"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+                <div id="keywordsIntelContent" style="display: grid; gap: 0.75rem;">
+                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        <i class="fas fa-spinner fa-spin"></i> Loading dynamic keywords...
+                    </div>
+                </div>
+            </div>
+
+            <!-- ALGORITHM INTELLIGENCE PANEL (Expandable) -->
+            <div id="algorithmIntelPanel" class="intel-panel" style="display: none; margin-bottom: 1rem; padding: 1rem; background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(99, 102, 241, 0.1) 100%); border-radius: 12px; border: 1px solid rgba(139, 92, 246, 0.3);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h4 style="margin: 0; color: #8B5CF6;"><i class="fas fa-chart-line"></i> Algorithm Intelligence</h4>
+                    <button onclick="refreshAlgorithmIntel()" class="btn btn-sm" style="background: #8B5CF6; color: white; font-size: 0.75rem;">
+                        <i class="fas fa-sync-alt" id="algoIntelRefreshIcon"></i> Refresh
+                    </button>
+                </div>
+                <div id="algorithmIntelContent" style="display: grid; gap: 0.75rem;">
+                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        <i class="fas fa-spinner fa-spin"></i> Loading algorithm intelligence...
+                    </div>
+                </div>
+            </div>
+
+            <!-- FARM DATA PANEL (Chief of Staff Data Channel) -->
+            <div id="farmDataIntelPanel" class="intel-panel" style="display: none; margin-bottom: 1rem; padding: 1rem; background: linear-gradient(135deg, rgba(251, 146, 60, 0.15) 0%, rgba(249, 115, 22, 0.1) 100%); border-radius: 12px; border: 1px solid rgba(251, 146, 60, 0.3);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h4 style="margin: 0; color: #FB923C;"><i class="fas fa-database"></i> Farm Data (Chief of Staff Channel)</h4>
+                    <button onclick="refreshFarmDataIntel()" class="btn btn-sm" style="background: #FB923C; color: white; font-size: 0.75rem;">
+                        <i class="fas fa-sync-alt" id="farmDataIntelRefreshIcon"></i> Sync
+                    </button>
+                </div>
+                <div id="farmDataIntelContent" style="display: grid; gap: 0.75rem;">
+                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        <i class="fas fa-spinner fa-spin"></i> Syncing with Chief of Staff...
+                    </div>
+                </div>
             </div>
 
             <!-- QUICK POST MODE (Field Mode) -->
@@ -23032,120 +22971,20 @@ Would you like to test posting to Threads?`;
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
-        // SEO/AEO KEYWORDS ENGINE - Drive Search Traffic from Social Posts
+        // DYNAMIC SEO/AEO KEYWORDS ENGINE - AI-Powered, Website-Aware
+        // Pulls from tinyseedfarm.com, generates AI suggestions, tracks trends
+        // GOAL: Drive traffic to CSA signups!
         // ═══════════════════════════════════════════════════════════════════════════
 
-        const SEO_KEYWORDS = {
-            // Business core keywords
-            core: [
-                'CSA Pittsburgh', 'farm fresh produce', 'local vegetables Pittsburgh',
-                'organic farm PA', 'farm to table', 'local flowers Pittsburgh',
-                'gourmet mushrooms', 'Rochester PA farm', 'Tiny Seed Farm'
-            ],
-
-            // Seasonal keywords by month
-            seasonal: {
-                1: ['winter vegetables', 'cold storage crops', 'root vegetables', 'seasonal eating'],
-                2: ['Valentine flowers', 'early spring planning', 'seed starting', 'winter harvest'],
-                3: ['spring planting', 'seedlings', 'early greens', 'CSA signup'],
-                4: ['spring vegetables', 'asparagus', 'ramps', 'spring flowers'],
-                5: ['May flowers', 'strawberries', 'spring bounty', 'farm fresh'],
-                6: ['summer vegetables', 'tomatoes', 'summer flowers', 'farmers market'],
-                7: ['peak summer', 'fresh tomatoes', 'summer squash', 'local produce'],
-                8: ['late summer harvest', 'peaches', 'corn', 'summer abundance'],
-                9: ['fall vegetables', 'apples', 'pumpkins', 'fall harvest'],
-                10: ['fall harvest', 'squash', 'Halloween pumpkins', 'autumn'],
-                11: ['Thanksgiving', 'winter squash', 'holiday flowers', 'fall cleanup'],
-                12: ['holiday arrangements', 'winter vegetables', 'Christmas flowers', 'year end']
-            },
-
-            // Local geo keywords
-            local: [
-                'Pittsburgh area', 'Rochester PA', 'Western PA', 'Allegheny County',
-                'Beaver County', 'North Hills', 'South Hills', 'delivery Pittsburgh'
-            ],
-
-            // AEO phrases (complete sentences AI can quote)
-            aeoPhrases: {
-                farm: [
-                    "Tiny Seed Farm delivers fresh, locally-grown vegetables to Pittsburgh families through their CSA program.",
-                    "For the freshest organic produce in the Pittsburgh area, local families choose Tiny Seed Farm's weekly CSA boxes.",
-                    "Rochester PA's Tiny Seed Farm grows sustainable vegetables using regenerative farming practices."
-                ],
-                fleurs: [
-                    "Tiny Seed Fleurs creates stunning farm-fresh flower arrangements for Pittsburgh weddings and events.",
-                    "For locally-grown flowers in Pittsburgh, Tiny Seed Fleurs offers seasonal subscription bouquets.",
-                    "Western Pennsylvania's premier flower farm, Tiny Seed Fleurs, specializes in sustainable floral design."
-                ],
-                fungi: [
-                    "Tiny Seed Fungi grows gourmet mushrooms for Pittsburgh's top restaurants and home chefs.",
-                    "For fresh, locally-grown specialty mushrooms in Pennsylvania, chefs choose Tiny Seed Fungi.",
-                    "Tiny Seed Fungi provides oyster, shiitake, and lion's mane mushrooms to the Pittsburgh market."
-                ]
-            }
-        };
-
-        function loadSeoAeoKeywords() {
-            const month = new Date().getMonth() + 1; // 1-12
-            const account = selectedMixTrackerAccount || 'farm';
-
-            // Quick copy keywords - mix of core and seasonal
-            const quickKeywords = [
-                ...SEO_KEYWORDS.core.slice(0, 4),
-                ...SEO_KEYWORDS.seasonal[month].slice(0, 3),
-                ...SEO_KEYWORDS.local.slice(0, 2)
-            ];
-
-            const quickCopyEl = document.getElementById('quickCopyKeywords');
-            if (quickCopyEl) {
-                quickCopyEl.innerHTML = quickKeywords.map(kw => `
-                    <button onclick="copyKeyword('${kw}')" style="padding: 0.4rem 0.75rem; background: rgba(34, 197, 94, 0.2); border: 1px solid var(--success); border-radius: 20px; color: var(--success); font-size: 0.75rem; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='var(--success)'; this.style.color='white';" onmouseout="this.style.background='rgba(34, 197, 94, 0.2)'; this.style.color='var(--success)';">
-                        #${kw.replace(/\s+/g, '')}
-                    </button>
-                `).join('');
-            }
-
-            // Seasonal keywords
-            const seasonalEl = document.getElementById('seasonalKeywords');
-            if (seasonalEl) {
-                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                seasonalEl.innerHTML = `<strong>${monthNames[month-1]}:</strong> ` + SEO_KEYWORDS.seasonal[month].map(k => `<span style="color: var(--success);">${k}</span>`).join(', ');
-            }
-
-            // Local keywords
-            const localEl = document.getElementById('localKeywords');
-            if (localEl) {
-                localEl.innerHTML = SEO_KEYWORDS.local.map(k => `<span style="color: var(--info);">${k}</span>`).join(', ');
-            }
-
-            // AEO phrases
-            const aeoEl = document.getElementById('aeoPhrases');
-            if (aeoEl) {
-                const phrases = SEO_KEYWORDS.aeoPhrases[account] || SEO_KEYWORDS.aeoPhrases.farm;
-                const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
-                aeoEl.innerHTML = `"<em>${randomPhrase}</em>"<br><br>
-                    <button onclick="copyKeyword('${randomPhrase}')" style="font-size: 0.7rem; padding: 0.3rem 0.6rem; background: rgba(26, 188, 156, 0.2); border: 1px solid #1abc9c; border-radius: 6px; color: #1abc9c; cursor: pointer;">
-                        <i class="fas fa-copy"></i> Copy this phrase
-                    </button>`;
-            }
-        }
+        // Old Brain tab SEO/keyword functions removed - functionality moved to CREATE tab Post Intelligence panels
+        // See: loadKeywordsIntel(), renderKeywordsIntelPanel(), generateLocalKeywords() in Post Intelligence section
 
         function copyKeyword(text) {
             navigator.clipboard.writeText(text).then(() => {
-                showToast(`Copied: "${text.substring(0, 30)}${text.length > 30 ? '...' : ''}"`, 'success');
+                showToast(`Copied: "${text.substring(0, 40)}${text.length > 40 ? '...' : ''}"`, 'success');
             }).catch(() => {
                 showToast('Could not copy - try selecting manually', 'warning');
             });
-        }
-
-        function refreshSeoKeywords() {
-            const icon = document.getElementById('seoKeywordRefreshIcon');
-            if (icon) icon.className = 'fas fa-spinner fa-spin';
-            loadSeoAeoKeywords();
-            setTimeout(() => {
-                if (icon) icon.className = 'fas fa-sync-alt';
-                showToast('Keywords refreshed!', 'success');
-            }, 500);
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -23566,6 +23405,606 @@ Would you like to test posting to Threads?`;
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
+        // POST INTELLIGENCE BAR - Dynamic Context Panels (2026-02-12)
+        // Toggle panels that inject AI context into post creation
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        const activeIntelPanels = new Set();
+
+        function togglePostIntel(type) {
+            const panelMap = {
+                'weather': 'weatherIntelPanel',
+                'keywords': 'keywordsIntelPanel',
+                'algorithm': 'algorithmIntelPanel',
+                'farmdata': 'farmDataIntelPanel'
+            };
+            const btnMap = {
+                'weather': 'weatherIntelBtn',
+                'keywords': 'keywordsIntelBtn',
+                'algorithm': 'algoIntelBtn',
+                'farmdata': 'farmDataIntelBtn'
+            };
+            const statusMap = {
+                'weather': 'weatherIntelStatus',
+                'keywords': 'keywordsIntelStatus',
+                'algorithm': 'algoIntelStatus',
+                'farmdata': 'farmDataIntelStatus'
+            };
+
+            const panel = document.getElementById(panelMap[type]);
+            const btn = document.getElementById(btnMap[type]);
+            const status = document.getElementById(statusMap[type]);
+
+            if (!panel || !btn) return;
+
+            if (activeIntelPanels.has(type)) {
+                // Close panel
+                panel.style.display = 'none';
+                btn.style.background = btn.style.background.replace('0.4', '0.2');
+                btn.style.borderWidth = '1px';
+                if (status) status.style.display = 'none';
+                activeIntelPanels.delete(type);
+            } else {
+                // Open panel
+                panel.style.display = 'block';
+                btn.style.background = btn.style.background.replace('0.2', '0.4');
+                btn.style.borderWidth = '2px';
+                if (status) status.style.display = 'inline-block';
+                activeIntelPanels.add(type);
+
+                // Load data for the panel
+                switch(type) {
+                    case 'weather': loadWeatherIntel(); break;
+                    case 'keywords': loadKeywordsIntel(); break;
+                    case 'algorithm': loadAlgorithmIntel(); break;
+                    case 'farmdata': loadFarmDataIntel(); break;
+                }
+            }
+        }
+
+        // WEATHER INTEL - Uses same data as Chief of Staff
+        async function loadWeatherIntel() {
+            const content = document.getElementById('weatherIntelContent');
+            if (!content) return;
+
+            try {
+                content.innerHTML = '<div style="text-align: center; padding: 1rem;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+
+                // Fetch from same weather endpoint as Chief of Staff
+                const response = await fetch(`${API_URL}?action=getWeatherSmartDashboard`);
+                const data = await response.json();
+
+                if (data.success && data.dashboard) {
+                    renderWeatherIntelPanel(data.dashboard);
+                } else {
+                    content.innerHTML = '<div style="color: var(--warning); text-align: center;"><i class="fas fa-exclamation-triangle"></i> Weather data unavailable</div>';
+                }
+            } catch (error) {
+                console.error('Weather intel error:', error);
+                content.innerHTML = '<div style="color: var(--error);"><i class="fas fa-times-circle"></i> Failed to load weather</div>';
+            }
+        }
+
+        function renderWeatherIntelPanel(dashboard) {
+            const content = document.getElementById('weatherIntelContent');
+            if (!content || !dashboard) return;
+
+            const current = dashboard.current || {};
+            const suggestions = dashboard.suggestions || [];
+            const triggers = dashboard.contentTriggers || [];
+
+            let html = `
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-bottom: 1rem;">
+                    <div style="background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 1.5rem; font-weight: 700; color: #3B82F6;">${current.tempF || '--'}°F</div>
+                        <div style="font-size: 0.7rem; color: var(--text-secondary);">${current.condition || 'Unknown'}</div>
+                    </div>
+                    <div style="background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 1.5rem; font-weight: 700; color: #60A5FA;">${current.humidity || '--'}%</div>
+                        <div style="font-size: 0.7rem; color: var(--text-secondary);">Humidity</div>
+                    </div>
+                    <div style="background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 1.5rem; font-weight: 700; color: #22C55E;">${current.windMph || '--'}</div>
+                        <div style="font-size: 0.7rem; color: var(--text-secondary);">Wind mph</div>
+                    </div>
+                </div>
+
+                <div style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; color: #3B82F6;">
+                    <i class="fas fa-lightbulb"></i> Weather-Smart Content Ideas
+                </div>
+            `;
+
+            // Dynamic content suggestions based on weather
+            if (suggestions.length > 0) {
+                html += '<div style="display: grid; gap: 0.5rem;">';
+                suggestions.slice(0, 3).forEach(s => {
+                    html += `
+                        <div style="background: rgba(59, 130, 246, 0.1); padding: 0.75rem; border-radius: 8px; border-left: 3px solid #3B82F6; cursor: pointer;" onclick="injectWeatherContent('${s.caption?.replace(/'/g, "\\'")}')">
+                            <div style="font-size: 0.8rem; font-weight: 600;">${s.type || 'Post Idea'}</div>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">${s.caption || s.suggestion || 'Click to use'}</div>
+                            <button class="btn btn-sm" style="margin-top: 0.5rem; background: #3B82F6; color: white; font-size: 0.7rem;">
+                                <i class="fas fa-plus"></i> Use This
+                            </button>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+            } else {
+                // Generate dynamic suggestions based on current conditions
+                const weatherIdeas = generateWeatherIdeas(current);
+                html += '<div style="display: grid; gap: 0.5rem;">';
+                weatherIdeas.forEach(idea => {
+                    html += `
+                        <div style="background: rgba(59, 130, 246, 0.1); padding: 0.75rem; border-radius: 8px; border-left: 3px solid #3B82F6; cursor: pointer;" onclick="injectWeatherContent('${idea.text.replace(/'/g, "\\'")}')">
+                            <div style="font-size: 0.8rem; font-weight: 600;">${idea.type}</div>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">${idea.text}</div>
+                            <button class="btn btn-sm" style="margin-top: 0.5rem; background: #3B82F6; color: white; font-size: 0.7rem;">
+                                <i class="fas fa-plus"></i> Use This
+                            </button>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+            }
+
+            content.innerHTML = html;
+        }
+
+        function generateWeatherIdeas(current) {
+            const temp = current.tempF || 50;
+            const condition = (current.condition || '').toLowerCase();
+            const ideas = [];
+
+            if (condition.includes('rain') || condition.includes('shower')) {
+                ideas.push({ type: '🌧️ Rain Day', text: 'The rain is exactly what our crops needed! Nature doing its thing.' });
+                ideas.push({ type: '☔ Cozy Weather', text: 'Perfect soup weather! Our CSA members know exactly what to cook.' });
+            } else if (temp >= 85) {
+                ideas.push({ type: '☀️ Hot Day', text: `${temp}°F out here! Keeping the crops hydrated and dreaming of ice cream.` });
+                ideas.push({ type: '🥵 Beat the Heat', text: 'Hot days mean sweeter tomatoes! The sugar is concentrating.' });
+            } else if (temp >= 65 && temp <= 80) {
+                ideas.push({ type: '🌤️ Perfect Weather', text: `${temp}°F - absolutely perfect growing weather! The crops are loving it.` });
+                ideas.push({ type: '👩‍🌾 Farm Day', text: 'Beautiful day on the farm. This is why we do what we do.' });
+            } else if (temp <= 40) {
+                ideas.push({ type: '🥶 Cold Weather', text: 'Chilly morning! But these root vegetables are getting sweeter by the day.' });
+                ideas.push({ type: '❄️ Frost Watch', text: 'Cold nights mean our kale is developing that sweetness you love!' });
+            } else {
+                ideas.push({ type: '🌱 Growing Day', text: `Another day, another harvest! ${temp}°F and growing strong.` });
+            }
+
+            if (condition.includes('sunny') || condition.includes('clear')) {
+                ideas.push({ type: '☀️ Sunshine', text: 'Sun-kissed produce coming your way! Photosynthesis working overtime.' });
+            }
+
+            return ideas.slice(0, 3);
+        }
+
+        function injectWeatherContent(text) {
+            const captionField = document.getElementById('captionInput');
+            if (captionField) {
+                const current = captionField.value;
+                captionField.value = current ? current + '\n\n' + text : text;
+                showToast('Weather content added!', 'success');
+            }
+        }
+
+        async function refreshWeatherIntel() {
+            const icon = document.getElementById('weatherIntelRefreshIcon');
+            if (icon) icon.classList.add('fa-spin');
+            await loadWeatherIntel();
+            if (icon) icon.classList.remove('fa-spin');
+            showToast('Weather refreshed!', 'success');
+        }
+
+        // SEO/AEO KEYWORDS INTEL - Dynamic AI-powered
+        async function loadKeywordsIntel(forceRefresh = false) {
+            const content = document.getElementById('keywordsIntelContent');
+            const accountSelect = document.getElementById('keywordsIntelAccount');
+            const account = accountSelect?.value || 'farm';
+
+            if (!content) return;
+
+            try {
+                content.innerHTML = '<div style="text-align: center; padding: 1rem;"><i class="fas fa-spinner fa-spin"></i> Generating dynamic keywords...</div>';
+
+                // Call the new backend endpoint
+                const response = await fetch(`${API_URL}?action=generateSeoKeywords&account=${account}&website=tinyseedfarm.com`);
+                const data = await response.json();
+
+                if (data.success) {
+                    renderKeywordsIntelPanel(data, account);
+                } else {
+                    // Fallback to local generation
+                    const localData = generateLocalKeywords(account);
+                    renderKeywordsIntelPanel(localData, account);
+                }
+            } catch (error) {
+                console.error('Keywords intel error:', error);
+                // Fallback to local
+                const localData = generateLocalKeywords(account);
+                renderKeywordsIntelPanel(localData, account);
+            }
+        }
+
+        function generateLocalKeywords(account) {
+            const month = new Date().getMonth() + 1;
+            const seasonMap = {
+                1: { season: 'Late Winter', focus: 'Spring CSA signups NOW!', themes: ['early bird CSA', 'spring planning'] },
+                2: { season: 'Late Winter', focus: 'CSA shares selling fast!', themes: ['last chance CSA', 'seed starting'] },
+                3: { season: 'Early Spring', focus: 'First harvests arriving!', themes: ['spring greens', 'local food'] },
+                4: { season: 'Spring', focus: 'Fresh spring produce!', themes: ['farm fresh', 'spring vegetables'] },
+                5: { season: 'Late Spring', focus: 'Abundance begins!', themes: ['farmers market', 'organic'] },
+                6: { season: 'Early Summer', focus: 'Tomato season!', themes: ['summer produce', 'peak season'] },
+                7: { season: 'Summer', focus: 'Peak harvest!', themes: ['fresh vegetables', 'summer cooking'] },
+                8: { season: 'Late Summer', focus: 'Fall CSA coming soon!', themes: ['preserving', 'canning'] },
+                9: { season: 'Early Fall', focus: 'Fall harvest!', themes: ['autumn vegetables', 'pumpkins'] },
+                10: { season: 'Fall', focus: 'Harvest festival!', themes: ['root vegetables', 'squash'] },
+                11: { season: 'Late Fall', focus: 'Thanksgiving boxes!', themes: ['holiday vegetables', 'local'] },
+                12: { season: 'Winter', focus: 'Gift a CSA share!', themes: ['holiday gifts', 'new year'] }
+            };
+
+            const seasonal = seasonMap[month] || seasonMap[1];
+            const accountHashtags = {
+                farm: ['#TinySeedFarm', '#PittsburghCSA', '#LocalFarm', '#FarmFresh', '#OrganicProduce'],
+                fleurs: ['#TinySeedFleurs', '#PittsburghFlorist', '#LocalFlowers', '#FlowerSubscription', '#FarmBouquet'],
+                fungi: ['#TinySeedFungi', '#GourmetMushrooms', '#PittsburghMushrooms', '#LocalMushrooms', '#MushroomShare']
+            };
+
+            return {
+                quickCopy: accountHashtags[account] || accountHashtags.farm,
+                seasonal: seasonal,
+                local: ['Pittsburgh CSA', 'local Pittsburgh farm', 'Western PA organic', 'Pittsburgh delivery', 'farmers market Pittsburgh'],
+                aeoPhrases: [
+                    'Tiny Seed Farm is a family-owned organic farm near Pittsburgh offering weekly CSA deliveries.',
+                    'For local Pittsburgh produce, Tiny Seed Farm delivers to Squirrel Hill, Shadyside, and more.',
+                    'Pittsburgh CSA options include Tiny Seed Farm with flexible pickup locations.'
+                ],
+                cta: ['Join at tinyseedfarm.com', 'Reserve your share today', 'Link in bio for details'],
+                focus: seasonal.focus
+            };
+        }
+
+        function renderKeywordsIntelPanel(data, account) {
+            const content = document.getElementById('keywordsIntelContent');
+            if (!content) return;
+
+            const accountEmoji = { farm: '🌱', fleurs: '💐', fungi: '🍄' };
+
+            let html = `
+                <div style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; color: #22C55E;">
+                    <i class="fas fa-bolt"></i> ${accountEmoji[account] || '🌱'} Priority Focus: ${data.focus || 'Drive CSA signups'}
+                </div>
+
+                <!-- Quick Copy Hashtags -->
+                <div style="background: rgba(34, 197, 94, 0.1); padding: 0.75rem; border-radius: 8px; margin-bottom: 0.75rem;">
+                    <div style="font-size: 0.75rem; font-weight: 600; margin-bottom: 0.5rem;">Quick Copy Hashtags</div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                        ${(data.quickCopy || []).map(tag => `
+                            <span onclick="copyToClipboard('${tag}')" style="background: rgba(34, 197, 94, 0.2); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem; cursor: pointer;">${tag}</span>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <!-- Seasonal Keywords -->
+                <div style="background: rgba(251, 146, 60, 0.1); padding: 0.75rem; border-radius: 8px; margin-bottom: 0.75rem;">
+                    <div style="font-size: 0.75rem; font-weight: 600; margin-bottom: 0.5rem;">${data.seasonal?.season || 'Seasonal'} Themes</div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                        ${(data.seasonal?.themes || data.seasonal?.trending || []).map(theme => `
+                            <span onclick="injectKeyword('${theme}')" style="background: rgba(251, 146, 60, 0.2); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem; cursor: pointer;">${theme}</span>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <!-- AEO Phrases (AI-quotable) -->
+                <div style="background: rgba(26, 188, 156, 0.1); padding: 0.75rem; border-radius: 8px; margin-bottom: 0.75rem;">
+                    <div style="font-size: 0.75rem; font-weight: 600; margin-bottom: 0.5rem;">
+                        <i class="fas fa-robot"></i> AEO Phrases (AI will quote these)
+                    </div>
+                    <div style="display: grid; gap: 0.5rem;">
+                        ${(data.aeoPhrases || []).slice(0, 3).map(phrase => `
+                            <div onclick="injectAeoPhrase('${phrase.replace(/'/g, "\\'")}')" style="background: rgba(26, 188, 156, 0.15); padding: 0.5rem; border-radius: 6px; font-size: 0.75rem; cursor: pointer; border-left: 2px solid #1abc9c;">
+                                "${phrase}"
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <!-- CTAs -->
+                <div style="background: rgba(239, 68, 68, 0.1); padding: 0.75rem; border-radius: 8px;">
+                    <div style="font-size: 0.75rem; font-weight: 600; margin-bottom: 0.5rem;">Calls to Action</div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                        ${(data.cta || []).map(cta => `
+                            <span onclick="injectCTA('${cta}')" style="background: rgba(239, 68, 68, 0.2); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem; cursor: pointer;">${cta}</span>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+
+            content.innerHTML = html;
+        }
+
+        function injectKeyword(keyword) {
+            const captionField = document.getElementById('captionInput');
+            if (captionField) {
+                captionField.value = captionField.value + ' #' + keyword.replace(/\s+/g, '');
+                showToast('Keyword added!', 'success');
+            }
+        }
+
+        function injectAeoPhrase(phrase) {
+            const captionField = document.getElementById('captionInput');
+            if (captionField) {
+                const current = captionField.value;
+                captionField.value = current ? current + '\n\n' + phrase : phrase;
+                showToast('AEO phrase added!', 'success');
+            }
+        }
+
+        function injectCTA(cta) {
+            const captionField = document.getElementById('captionInput');
+            if (captionField) {
+                const current = captionField.value;
+                captionField.value = current ? current + '\n\n' + cta : cta;
+                showToast('CTA added!', 'success');
+            }
+        }
+
+        // ALGORITHM INTELLIGENCE - Same channel as Brain tab
+        async function loadAlgorithmIntel() {
+            const content = document.getElementById('algorithmIntelContent');
+            if (!content) return;
+
+            try {
+                content.innerHTML = '<div style="text-align: center; padding: 1rem;"><i class="fas fa-spinner fa-spin"></i> Loading algorithm intel...</div>';
+
+                const response = await fetch(`${API_URL}?action=getAlgorithmIntelligence`);
+                const data = await response.json();
+
+                if (data.success) {
+                    renderAlgorithmIntelPanel(data);
+                } else {
+                    renderAlgorithmIntelFallback(content);
+                }
+            } catch (error) {
+                renderAlgorithmIntelFallback(content);
+            }
+        }
+
+        function renderAlgorithmIntelPanel(data) {
+            const content = document.getElementById('algorithmIntelContent');
+            if (!content) return;
+
+            const health = data.health || 'NEUTRAL';
+            const healthColor = health === 'HEALTHY' ? '#22C55E' : health === 'CAUTION' ? '#F59E0B' : '#8B5CF6';
+
+            let html = `
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; margin-bottom: 1rem;">
+                    <div style="background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 8px; text-align: center; border-left: 3px solid ${healthColor};">
+                        <div style="font-size: 0.7rem; color: var(--text-secondary);">Algorithm Health</div>
+                        <div style="font-size: 1.25rem; font-weight: 700; color: ${healthColor};">${health}</div>
+                    </div>
+                    <div style="background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 0.7rem; color: var(--text-secondary);">Best Post Time</div>
+                        <div style="font-size: 1.25rem; font-weight: 700; color: #8B5CF6;">${data.bestTime || '6-9pm'}</div>
+                    </div>
+                </div>
+
+                <div style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; color: #8B5CF6;">
+                    <i class="fas fa-fire"></i> What's Working Now
+                </div>
+                <div style="display: grid; gap: 0.5rem; margin-bottom: 1rem;">
+                    ${(data.whatsWorking || ['Reels under 30 seconds', 'Behind-the-scenes content', 'Carousel educational posts']).map(item => `
+                        <div style="background: rgba(139, 92, 246, 0.1); padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.8rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-check-circle" style="color: #22C55E;"></i> ${item}
+                        </div>
+                    `).join('')}
+                </div>
+
+                <div style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--warning);">
+                    <i class="fas fa-exclamation-triangle"></i> Algorithm Updates
+                </div>
+                <div style="display: grid; gap: 0.5rem;">
+                    ${(data.updates || ['Instagram now prioritizes Reels over static images', 'Engagement in first hour is critical']).map(update => `
+                        <div style="background: rgba(245, 158, 11, 0.1); padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.8rem;">
+                            ${update}
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            content.innerHTML = html;
+        }
+
+        function renderAlgorithmIntelFallback(content) {
+            const now = new Date();
+            const hour = now.getHours();
+
+            let bestTime = '6-9pm';
+            if (hour < 12) bestTime = '11am-1pm or 6-9pm';
+            else if (hour < 17) bestTime = '6-9pm tonight';
+
+            content.innerHTML = `
+                <div style="display: grid; gap: 0.75rem;">
+                    <div style="background: rgba(139, 92, 246, 0.1); padding: 0.75rem; border-radius: 8px;">
+                        <div style="font-size: 0.85rem; font-weight: 600; color: #8B5CF6; margin-bottom: 0.5rem;">
+                            <i class="fas fa-clock"></i> Best Time to Post Today
+                        </div>
+                        <div style="font-size: 1.1rem; font-weight: 700;">${bestTime}</div>
+                    </div>
+
+                    <div style="background: rgba(34, 197, 94, 0.1); padding: 0.75rem; border-radius: 8px;">
+                        <div style="font-size: 0.85rem; font-weight: 600; color: #22C55E; margin-bottom: 0.5rem;">
+                            <i class="fas fa-fire"></i> What's Working (Feb 2026)
+                        </div>
+                        <ul style="margin: 0; padding-left: 1.25rem; font-size: 0.8rem;">
+                            <li>Reels get 2-3x more reach than photos</li>
+                            <li>Behind-the-scenes content builds trust</li>
+                            <li>Carousels increase save rate</li>
+                            <li>Story polls boost engagement</li>
+                        </ul>
+                    </div>
+
+                    <div style="background: rgba(245, 158, 11, 0.1); padding: 0.75rem; border-radius: 8px;">
+                        <div style="font-size: 0.85rem; font-weight: 600; color: #F59E0B; margin-bottom: 0.5rem;">
+                            <i class="fas fa-exclamation-circle"></i> Algorithm Notes
+                        </div>
+                        <div style="font-size: 0.8rem;">
+                            First 30 minutes of engagement determines reach. Reply to comments FAST!
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function refreshAlgorithmIntel() {
+            const icon = document.getElementById('algoIntelRefreshIcon');
+            if (icon) icon.classList.add('fa-spin');
+            await loadAlgorithmIntel();
+            if (icon) icon.classList.remove('fa-spin');
+            showToast('Algorithm intel refreshed!', 'success');
+        }
+
+        // FARM DATA INTEL - Chief of Staff Data Channel
+        async function loadFarmDataIntel() {
+            const content = document.getElementById('farmDataIntelContent');
+            if (!content) return;
+
+            try {
+                content.innerHTML = '<div style="text-align: center; padding: 1rem;"><i class="fas fa-spinner fa-spin"></i> Syncing with Chief of Staff...</div>';
+
+                // Fetch from Chief of Staff intelligence
+                const response = await fetch(`${API_URL}?action=getChiefOfStaffBriefing`);
+                const data = await response.json();
+
+                if (data.success) {
+                    renderFarmDataIntelPanel(data);
+                } else {
+                    renderFarmDataIntelFallback(content);
+                }
+            } catch (error) {
+                renderFarmDataIntelFallback(content);
+            }
+        }
+
+        function renderFarmDataIntelPanel(data) {
+            const content = document.getElementById('farmDataIntelContent');
+            if (!content) return;
+
+            const briefing = data.briefing || {};
+
+            let html = `
+                <div style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.75rem; color: #FB923C;">
+                    <i class="fas fa-database"></i> Farm Data for Content Ideas
+                </div>
+
+                <div style="display: grid; gap: 0.75rem;">
+                    <!-- Current Tasks -->
+                    <div style="background: rgba(251, 146, 60, 0.1); padding: 0.75rem; border-radius: 8px;">
+                        <div style="font-size: 0.8rem; font-weight: 600; margin-bottom: 0.5rem;">
+                            <i class="fas fa-tasks"></i> What's Happening Today
+                        </div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary);">
+                            ${briefing.todayTasks || 'Harvesting, packing CSA boxes, market prep'}
+                        </div>
+                        <button onclick="injectFarmData('Today on the farm: ${(briefing.todayTasks || 'harvesting and packing CSA boxes').replace(/'/g, "\\'")}')" class="btn btn-sm" style="margin-top: 0.5rem; background: #FB923C; color: white; font-size: 0.7rem;">
+                            <i class="fas fa-plus"></i> Use in Post
+                        </button>
+                    </div>
+
+                    <!-- This Week's Harvest -->
+                    <div style="background: rgba(34, 197, 94, 0.1); padding: 0.75rem; border-radius: 8px;">
+                        <div style="font-size: 0.8rem; font-weight: 600; margin-bottom: 0.5rem;">
+                            <i class="fas fa-carrot"></i> In Season Now
+                        </div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary);">
+                            ${briefing.currentHarvest || 'Kale, spinach, carrots, beets, lettuce'}
+                        </div>
+                    </div>
+
+                    <!-- Upcoming Events -->
+                    <div style="background: rgba(99, 102, 241, 0.1); padding: 0.75rem; border-radius: 8px;">
+                        <div style="font-size: 0.8rem; font-weight: 600; margin-bottom: 0.5rem;">
+                            <i class="fas fa-calendar"></i> Coming Up
+                        </div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary);">
+                            ${briefing.upcomingEvents || 'Saturday market, CSA delivery day'}
+                        </div>
+                    </div>
+
+                    <!-- Sales/Inventory Alerts -->
+                    <div style="background: rgba(239, 68, 68, 0.1); padding: 0.75rem; border-radius: 8px;">
+                        <div style="font-size: 0.8rem; font-weight: 600; margin-bottom: 0.5rem;">
+                            <i class="fas fa-bell"></i> Content Priorities
+                        </div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary);">
+                            ${briefing.contentPriorities || 'Push CSA signups - 15 spots remaining!'}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            content.innerHTML = html;
+        }
+
+        function renderFarmDataIntelFallback(content) {
+            const month = new Date().getMonth() + 1;
+            const seasonalProduce = {
+                1: 'Storage crops, microgreens, greenhouse greens',
+                2: 'Winter greens, sprouted seeds, root vegetables',
+                3: 'First spring greens, radishes, green onions',
+                4: 'Lettuce, spinach, asparagus, peas',
+                5: 'Greens, strawberries, herbs',
+                6: 'Tomatoes starting, cucumbers, summer squash',
+                7: 'Peak tomatoes, corn, peppers, melons',
+                8: 'Tomatoes, peppers, eggplant, late summer bounty',
+                9: 'Fall crops, squash, pumpkins, apples',
+                10: 'Root vegetables, winter squash, kale',
+                11: 'Thanksgiving produce, storage crops',
+                12: 'Winter storage, greenhouse greens'
+            };
+
+            content.innerHTML = `
+                <div style="display: grid; gap: 0.75rem;">
+                    <div style="background: rgba(251, 146, 60, 0.1); padding: 0.75rem; border-radius: 8px;">
+                        <div style="font-size: 0.8rem; font-weight: 600; margin-bottom: 0.5rem;">
+                            <i class="fas fa-carrot"></i> In Season Now
+                        </div>
+                        <div style="font-size: 0.8rem;">${seasonalProduce[month]}</div>
+                    </div>
+
+                    <div style="background: rgba(99, 102, 241, 0.1); padding: 0.75rem; border-radius: 8px;">
+                        <div style="font-size: 0.8rem; font-weight: 600; margin-bottom: 0.5rem;">
+                            <i class="fas fa-bullhorn"></i> Content Priority
+                        </div>
+                        <div style="font-size: 0.8rem;">Push CSA signups! Link: tinyseedfarm.com</div>
+                    </div>
+
+                    <div style="padding: 0.75rem; background: rgba(245, 158, 11, 0.1); border-radius: 8px; text-align: center;">
+                        <div style="font-size: 0.75rem; color: var(--text-secondary);">
+                            <i class="fas fa-info-circle"></i> Connect Chief of Staff for real-time farm data
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function injectFarmData(text) {
+            const captionField = document.getElementById('captionInput');
+            if (captionField) {
+                const current = captionField.value;
+                captionField.value = current ? current + '\n\n' + text : text;
+                showToast('Farm data added!', 'success');
+            }
+        }
+
+        async function refreshFarmDataIntel() {
+            const icon = document.getElementById('farmDataIntelRefreshIcon');
+            if (icon) icon.classList.add('fa-spin');
+            await loadFarmDataIntel();
+            if (icon) icon.classList.remove('fa-spin');
+            showToast('Farm data synced!', 'success');
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
         // WEATHER-SMART CONTENT SYSTEM (2026-02-12)
         // Based on research showing 65-600% sales increases with weather-triggered marketing
         // ═══════════════════════════════════════════════════════════════════════════
@@ -23610,297 +24049,42 @@ Would you like to test posting to Threads?`;
             }
         }
 
-        async function refreshWeatherData(showSpinner = false) {
-            const refreshIcon = document.getElementById('weatherRefreshIcon');
-            if (showSpinner && refreshIcon) {
-                refreshIcon.classList.add('fa-spin');
-            }
-
-            try {
-                // Clear cache and reload
-                localStorage.removeItem('weatherSmartData');
-                await loadWeatherSmartContent();
-                showToast('Weather data refreshed!', 'success');
-            } catch (error) {
-                showToast('Failed to refresh weather', 'error');
-            } finally {
-                if (refreshIcon) {
-                    refreshIcon.classList.remove('fa-spin');
-                }
-            }
-        }
+        // Old Brain tab weather dashboard rendering functions removed
+        // Weather functionality is now in CREATE tab Post Intelligence panels
+        // See: loadWeatherIntel(), renderWeatherIntelPanel() in Post Intelligence section above
 
         function renderWeatherDashboard(dashboard) {
-            if (!dashboard) return;
-
-            // Update current conditions
-            if (dashboard.current) {
-                document.getElementById('weatherCurrentTemp').textContent = dashboard.current.tempF + '\u00B0F';
-                document.getElementById('weatherCurrentCondition').textContent = dashboard.current.condition || 'Unknown';
-                document.getElementById('weatherHumidity').textContent = dashboard.current.humidity || '--';
-                document.getElementById('weatherWind').textContent = dashboard.current.windMph || '--';
-
-                // Update temp color based on temperature
-                const tempEl = document.getElementById('weatherCurrentTemp');
-                if (dashboard.current.tempF >= 85) {
-                    tempEl.style.color = '#EF4444'; // Hot red
-                } else if (dashboard.current.tempF >= 65) {
-                    tempEl.style.color = '#22C55E'; // Perfect green
-                } else if (dashboard.current.tempF <= 32) {
-                    tempEl.style.color = '#60A5FA'; // Frost blue
-                } else {
-                    tempEl.style.color = '#3B82F6'; // Normal blue
-                }
-            }
-
-            // Update today's forecast
-            if (dashboard.sevenDayForecast && dashboard.sevenDayForecast.length > 0) {
-                const today = dashboard.sevenDayForecast[0];
-                document.getElementById('weatherTodayHigh').textContent = today.highF + '\u00B0';
-                document.getElementById('weatherTodayLow').textContent = today.lowF + '\u00B0';
-                document.getElementById('weatherTodayRain').textContent = (today.rainChance || 0) + '%';
-            }
-
-            // Update urgency badge
-            const urgencyBadge = document.getElementById('weatherUrgencyBadge');
-            if (dashboard.urgentAlerts && dashboard.urgentAlerts.length > 0) {
-                const topAlert = dashboard.urgentAlerts[0];
-                urgencyBadge.textContent = topAlert.type;
-                urgencyBadge.style.background = topAlert.severity === 'CRITICAL' ? 'var(--danger)' :
-                                                 topAlert.severity === 'HIGH' ? 'var(--warning)' : 'var(--info)';
-                urgencyBadge.style.color = topAlert.severity === 'HIGH' ? '#000' : '#fff';
-            } else if (dashboard.topSuggestion) {
-                urgencyBadge.textContent = dashboard.topSuggestion.category.toUpperCase();
-                urgencyBadge.style.background = dashboard.topSuggestion.urgency === 'critical' ? 'var(--danger)' :
-                                                 dashboard.topSuggestion.urgency === 'high' ? 'var(--warning)' : 'var(--success)';
-                urgencyBadge.style.color = dashboard.topSuggestion.urgency === 'high' ? '#000' : '#fff';
-            } else {
-                urgencyBadge.textContent = 'ACTIVE';
-                urgencyBadge.style.background = 'var(--success)';
-            }
-
-            // Render weather alerts
-            renderWeatherAlerts(dashboard.urgentAlerts || [], dashboard.apiAlerts || []);
-
-            // Render content suggestions
-            renderWeatherSuggestions(dashboard.contentSuggestions || []);
-
-            // Render ready templates
-            renderWeatherTemplates(dashboard.readyTemplates || []);
+            // Deprecated - old Brain tab card removed
+            // Weather now renders in CREATE tab intelligence panel
+            console.log('renderWeatherDashboard deprecated - use CREATE tab Weather Intel panel');
         }
 
         function renderWeatherAlerts(urgentAlerts, apiAlerts) {
-            const section = document.getElementById('weatherAlertsSection');
-            const listEl = document.getElementById('weatherAlertsList');
-
-            const allAlerts = [...urgentAlerts];
-
-            if (allAlerts.length === 0) {
-                section.style.display = 'none';
-                return;
-            }
-
-            section.style.display = 'block';
-            listEl.innerHTML = allAlerts.map(alert => {
-                const severityColors = {
-                    'CRITICAL': { bg: 'rgba(239, 68, 68, 0.2)', border: '#EF4444', icon: 'fa-exclamation-triangle' },
-                    'HIGH': { bg: 'rgba(245, 158, 11, 0.2)', border: '#F59E0B', icon: 'fa-exclamation-circle' },
-                    'MEDIUM': { bg: 'rgba(59, 130, 246, 0.2)', border: '#3B82F6', icon: 'fa-info-circle' }
-                };
-                const style = severityColors[alert.severity] || severityColors.MEDIUM;
-
-                return `
-                    <div style="background: ${style.bg}; border-left: 4px solid ${style.border}; padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 0.5rem;">
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <i class="fas ${style.icon}" style="color: ${style.border};"></i>
-                            <span style="font-weight: 600; color: ${style.border};">${alert.type}</span>
-                            <span style="font-size: 0.85rem; color: var(--text-primary);">${alert.message}</span>
-                        </div>
-                        ${alert.contentAction ? `<div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem; margin-left: 1.5rem;"><i class="fas fa-lightbulb"></i> ${alert.contentAction}</div>` : ''}
-                    </div>
-                `;
-            }).join('');
+            // Deprecated - functionality moved to CREATE tab
+            console.log('renderWeatherAlerts deprecated');
         }
 
         function renderWeatherSuggestions(suggestions) {
-            const listEl = document.getElementById('weatherSuggestionsList');
-            const countEl = document.getElementById('suggestionCount');
-
-            countEl.textContent = suggestions.length;
-
-            if (suggestions.length === 0) {
-                // No weather-triggered suggestions = good weather, show helpful message
-                listEl.innerHTML = `<div style="text-align: center; padding: 1.5rem; color: var(--success); font-size: 0.85rem; grid-column: 1 / -1; background: rgba(34, 197, 94, 0.1); border-radius: 12px; border: 1px solid rgba(34, 197, 94, 0.3);">
-                    <i class="fas fa-sun" style="font-size: 1.5rem; margin-bottom: 0.5rem;"></i>
-                    <p style="font-weight: 600; margin: 0;">Perfect posting weather!</p>
-                    <p style="color: var(--text-secondary); font-size: 0.75rem; margin-top: 0.25rem;">No urgent weather alerts. Any content works great today.</p>
-                </div>`;
-                return;
-            }
-
-            listEl.innerHTML = suggestions.slice(0, 4).map(suggestion => {
-                const urgencyColors = {
-                    'critical': { bg: 'rgba(239, 68, 68, 0.1)', border: '#EF4444' },
-                    'high': { bg: 'rgba(245, 158, 11, 0.1)', border: '#F59E0B' },
-                    'medium': { bg: 'rgba(59, 130, 246, 0.1)', border: '#3B82F6' },
-                    'low': { bg: 'rgba(34, 197, 94, 0.1)', border: '#22C55E' }
-                };
-                const style = urgencyColors[suggestion.urgency] || urgencyColors.low;
-
-                return `
-                    <div style="background: ${style.bg}; border: 1px solid ${style.border}; border-radius: 12px; padding: 1rem;">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
-                            <span style="font-size: 1.5rem;">${suggestion.content?.emoji || '🌤️'}</span>
-                            <span style="font-size: 0.7rem; padding: 0.2rem 0.5rem; border-radius: 8px; background: ${style.border}; color: white; text-transform: uppercase;">${suggestion.category}</span>
-                        </div>
-                        <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">${suggestion.dateFormatted}</div>
-                        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
-                            ${suggestion.weather.highF}\u00B0/${suggestion.weather.lowF}\u00B0 | ${suggestion.weather.condition}
-                        </div>
-                        <div style="font-size: 0.8rem; color: var(--text-primary); margin-bottom: 0.5rem;">${suggestion.content?.messaging || ''}</div>
-                        <div style="font-size: 0.75rem; color: ${style.border}; font-weight: 600;">${suggestion.content?.cta || ''}</div>
-                        <div style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.25rem;">
-                            ${(suggestion.content?.themes || []).slice(0, 3).map(t => `<span style="font-size: 0.65rem; padding: 0.15rem 0.4rem; background: rgba(255,255,255,0.1); border-radius: 4px; color: var(--text-secondary);">${t}</span>`).join('')}
-                        </div>
-                    </div>
-                `;
-            }).join('');
+            // Deprecated - functionality moved to CREATE tab
+            console.log('renderWeatherSuggestions deprecated - not used');
         }
 
         function renderWeatherTemplates(templates) {
-            const listEl = document.getElementById('weatherTemplatesList');
-            const sectionEl = listEl.parentElement;
-
-            if (templates.length === 0) {
-                // Hide the entire Ready-to-Use Templates section when no weather-triggered templates
-                sectionEl.style.display = 'none';
-                return;
-            }
-
-            // Show the section when we have templates
-            sectionEl.style.display = 'block';
-
-            // Group by platform
-            const instagramTemplates = templates.filter(t => t.platform === 'instagram').slice(0, 2);
-            const facebookTemplates = templates.filter(t => t.platform === 'facebook').slice(0, 1);
-            const emailTemplates = templates.filter(t => t.platform === 'email').slice(0, 1);
-
-            const allTemplates = [...instagramTemplates, ...facebookTemplates, ...emailTemplates];
-
-            listEl.innerHTML = allTemplates.map(template => {
-                const platformIcons = {
-                    'instagram': { icon: 'fab fa-instagram', color: '#E1306C', name: 'Instagram' },
-                    'facebook': { icon: 'fab fa-facebook', color: '#1877F2', name: 'Facebook' },
-                    'email': { icon: 'fas fa-envelope', color: '#22C55E', name: 'Email' }
-                };
-                const platform = platformIcons[template.platform] || platformIcons.instagram;
-
-                const captionText = template.fullCaption || template.template?.subject || '';
-                const truncatedCaption = captionText.length > 150 ? captionText.substring(0, 150) + '...' : captionText;
-
-                return `
-                    <div style="background: rgba(0,0,0,0.2); border-radius: 12px; padding: 1rem; border: 1px solid rgba(255,255,255,0.1);">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <i class="${platform.icon}" style="color: ${platform.color};"></i>
-                                <span style="font-size: 0.8rem; font-weight: 600;">${platform.name}</span>
-                            </div>
-                            <span style="font-size: 0.65rem; padding: 0.2rem 0.5rem; border-radius: 8px; background: rgba(34, 197, 94, 0.2); color: #22C55E;">${Math.round((template.confidence || 0.8) * 100)}% confidence</span>
-                        </div>
-                        <div style="font-size: 0.8rem; color: var(--text-primary); line-height: 1.5; margin-bottom: 0.75rem; white-space: pre-wrap;">${escapeHtml(truncatedCaption)}</div>
-                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                            <button class="btn btn-sm" onclick="useWeatherTemplate('${template.platform}', ${templates.indexOf(template)})" style="background: ${platform.color}; color: white; font-size: 0.7rem;">
-                                <i class="fas fa-copy"></i> Use Template
-                            </button>
-                            <button class="btn btn-sm" onclick="editWeatherTemplate('${template.platform}', ${templates.indexOf(template)})" style="background: transparent; border: 1px solid var(--text-secondary); color: var(--text-secondary); font-size: 0.7rem;">
-                                <i class="fas fa-edit"></i> Edit
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
+            // Deprecated - functionality moved to CREATE tab
+            console.log('renderWeatherTemplates deprecated - not used');
         }
 
+        // Keep template use functions for backwards compatibility
         function useWeatherTemplate(platform, index) {
-            if (!weatherData || !weatherData.dashboard || !weatherData.dashboard.readyTemplates) {
-                showToast('Template data not available', 'error');
-                return;
-            }
-
-            const template = weatherData.dashboard.readyTemplates[index];
-            if (!template) {
-                showToast('Template not found', 'error');
-                return;
-            }
-
-            const caption = template.fullCaption || template.template?.subject || '';
-
-            // Copy to clipboard
-            navigator.clipboard.writeText(caption).then(() => {
-                showToast('Template copied to clipboard!', 'success');
-            }).catch(() => {
-                // Fallback for older browsers
-                const textarea = document.createElement('textarea');
-                textarea.value = caption;
-                document.body.appendChild(textarea);
-                textarea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textarea);
-                showToast('Template copied!', 'success');
-            });
-
-            // Also switch to Create tab with content pre-filled
-            if (platform !== 'email') {
-                const contentEl = document.getElementById('captionInput');
-                if (contentEl) {
-                    contentEl.value = caption;
-                    switchTab('create');
-                }
-            }
+            showToast('Use Weather Intel in CREATE tab', 'info');
         }
 
         function editWeatherTemplate(platform, index) {
-            if (!weatherData || !weatherData.dashboard || !weatherData.dashboard.readyTemplates) {
-                showToast('Template data not available', 'error');
-                return;
-            }
-
-            const template = weatherData.dashboard.readyTemplates[index];
-            if (!template) {
-                showToast('Template not found', 'error');
-                return;
-            }
-
-            const caption = template.fullCaption || template.template?.subject || '';
-
-            // Switch to Create tab with content pre-filled for editing
-            const contentEl = document.getElementById('captionInput');
-            if (contentEl) {
-                contentEl.value = caption;
-                switchTab('create');
-                contentEl.focus();
-                showToast('Edit your template in the Create tab', 'info');
-            }
+            showToast('Use Weather Intel in CREATE tab', 'info');
         }
 
         function showWeatherError(message) {
-            const listEl = document.getElementById('weatherSuggestionsList');
-            // Show a clean "no data" state that doesn't look broken
-            listEl.innerHTML = `
-                <div style="text-align: center; padding: 1.5rem; color: var(--text-secondary); font-size: 0.85rem; grid-column: 1 / -1; background: rgba(255,255,255,0.05); border-radius: 12px;">
-                    <i class="fas fa-cloud" style="font-size: 1.5rem; margin-bottom: 0.5rem; opacity: 0.5;"></i>
-                    <p style="margin: 0; font-weight: 500;">Weather service unavailable</p>
-                    <button class="btn btn-sm" onclick="refreshWeatherData(true)" style="margin-top: 0.75rem; background: var(--card-bg); border: 1px solid var(--border-color);">
-                        <i class="fas fa-sync-alt"></i> Retry
-                    </button>
-                </div>
-            `;
-
-            // Hide the templates section entirely when weather fails
-            const templatesList = document.getElementById('weatherTemplatesList');
-            if (templatesList && templatesList.parentElement) {
-                templatesList.parentElement.style.display = 'none';
-            }
+            console.log('Weather error (deprecated):', message);
         }
 
         function escapeHtml(text) {
