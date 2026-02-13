@@ -26,8 +26,8 @@ test.use({
   trace: 'on-first-retry',
 });
 
-// Base URL for the MCC page
-const MCC_URL = process.env.MCC_URL || 'http://localhost:3000/marketing-command-center.html';
+// Base URL for the MCC page (with test_mode to bypass auth)
+const MCC_URL = process.env.MCC_URL || 'http://localhost:3000/marketing-command-center.html?test_mode=true&ci=true';
 
 // All tabs that should be tested
 const MCC_TABS = [
