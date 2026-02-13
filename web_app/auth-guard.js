@@ -111,15 +111,8 @@
             'api_diagnostic.html'
         ],
 
-        // CI/Test mode - bypass auth when running automated tests
-        // Set via URL param ?test_mode=true or localStorage test_mode=true
-        TEST_MODE_ENABLED: (
-            typeof window !== 'undefined' && (
-                window.location.search.includes('test_mode=true') ||
-                window.location.hostname === 'localhost' && window.location.search.includes('ci=true') ||
-                localStorage.getItem('test_mode') === 'true'
-            )
-        ),
+        // CI/Test mode flag - checked at runtime by isTestMode()
+        TEST_MODE_KEY: 'test_mode',
 
         // Pages by minimum role required
         PAGE_PERMISSIONS: {
@@ -370,6 +363,26 @@
         },
 
         /**
+         * Check if running in test/CI mode (runtime check)
+         * Allows automated tests to bypass auth
+         */
+        isTestMode() {
+            try {
+                // Check URL params
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.get('test_mode') === 'true') return true;
+                if (urlParams.get('ci') === 'true' && window.location.hostname === 'localhost') return true;
+
+                // Check localStorage
+                if (localStorage.getItem('test_mode') === 'true') return true;
+
+                return false;
+            } catch (e) {
+                return false;
+            }
+        },
+
+        /**
          * Get required role for current page
          */
         getRequiredRole() {
@@ -389,8 +402,9 @@
             } = options;
 
             // Skip check if page is public or in test mode
-            if (this.isPublicPage() || skipCheck || AUTH_CONFIG.TEST_MODE_ENABLED) {
-                if (AUTH_CONFIG.TEST_MODE_ENABLED) {
+            const isTestMode = this.isTestMode();
+            if (this.isPublicPage() || skipCheck || isTestMode) {
+                if (isTestMode) {
                     console.log('AuthGuard: Test mode enabled, skipping auth check');
                 }
                 return true;
