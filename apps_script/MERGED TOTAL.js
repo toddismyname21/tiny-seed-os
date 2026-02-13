@@ -117823,14 +117823,15 @@ function getUpcomingEventsContext() {
 function sendWeeklyWritingPrompts() {
   try {
     const TODD_PHONE = '717-725-5177';
+    const LOREN_PHONE = '724-496-6499'; // Flower Manager
 
     // Get contextual information
     const seasonalContext = getSeasonalContext();
     const customerContext = getCustomerContext();
     const eventsContext = getUpcomingEventsContext();
 
-    // Build the prompt message
-    const promptMessage = `🌱 WEEKLY CONTENT PROMPTS
+    // Build Todd's prompt message (Farm focus)
+    const toddPrompt = `🌱 WEEKLY CONTENT PROMPTS
 
 1. What's looking great in the fields this week? (${seasonalContext.whatsGrowing})
 
@@ -117840,26 +117841,49 @@ function sendWeeklyWritingPrompts() {
 
 Reply with your thoughts (even just a few sentences) and I'll turn them into posts!`;
 
-    // Send via existing sendSMS function
-    const smsResult = sendSMS({
+    // Build Loren's prompt message (Flower focus)
+    const lorenPrompt = `💐 WEEKLY FLOWER CONTENT PROMPTS
+
+1. What's blooming beautifully this week? Any standout varieties or colors?
+
+2. Any special bouquet moments or customer reactions to share?
+
+3. What flower-related tips or behind-the-scenes would followers love?
+
+Reply with your thoughts and I'll turn them into posts for @tinyseedfleurs!`;
+
+    // Send to Todd
+    const toddResult = sendSMS({
       to: TODD_PHONE,
-      message: promptMessage
+      message: toddPrompt
     });
 
-    if (!smsResult.success) {
-      Logger.log('Failed to send weekly writing prompts: ' + JSON.stringify(smsResult));
+    // Send to Loren
+    const lorenResult = sendSMS({
+      to: LOREN_PHONE,
+      message: lorenPrompt
+    });
+
+    const results = {
+      todd: toddResult.success,
+      loren: lorenResult.success
+    };
+
+    if (!toddResult.success && !lorenResult.success) {
+      Logger.log('Failed to send weekly writing prompts to both: ' + JSON.stringify({ todd: toddResult, loren: lorenResult }));
       return {
         success: false,
-        error: smsResult.error || 'Failed to send SMS'
+        error: 'Failed to send SMS to both recipients'
       };
     }
 
-    Logger.log('Weekly writing prompts sent to Todd');
+    Logger.log('Weekly writing prompts sent - Todd: ' + toddResult.success + ', Loren: ' + lorenResult.success);
 
     return {
       success: true,
-      message: 'Weekly writing prompts sent to Todd',
+      message: `Weekly writing prompts sent (Todd: ${toddResult.success ? 'YES' : 'NO'}, Loren: ${lorenResult.success ? 'YES' : 'NO'})`,
       sentAt: new Date().toISOString(),
+      results: results,
       context: {
         season: seasonalContext.season,
         seasonalFocus: seasonalContext.seasonalFocus,
@@ -117887,16 +117911,29 @@ Reply with your thoughts (even just a few sentences) and I'll turn them into pos
 function processWritingPromptReply(message, fromPhone) {
   try {
     const TODD_PHONE = '7177255177'; // Normalized
+    const LOREN_PHONE = '7244966499'; // Loren - Flower Manager
 
-    // Verify it's from Todd
+    // Verify it's from Todd or Loren
     const normalizedFrom = (fromPhone || '').replace(/\D/g, '');
     const fromLast10 = normalizedFrom.slice(-10);
     const toddLast10 = TODD_PHONE.slice(-10);
+    const lorenLast10 = LOREN_PHONE.slice(-10);
 
-    if (fromLast10 !== toddLast10) {
+    let senderName = '';
+    let targetAccount = 'farm'; // Default to farm account
+
+    if (fromLast10 === toddLast10) {
+      senderName = 'Todd';
+      targetAccount = 'farm';
+    } else if (fromLast10 === lorenLast10) {
+      senderName = 'Loren';
+      targetAccount = 'fleurs'; // Loren's responses go to flower account
+    } else {
       Logger.log('Writing prompt reply from unauthorized number: ' + fromPhone);
       return { success: false, error: 'Unauthorized sender' };
     }
+
+    Logger.log('Processing writing prompt reply from ' + senderName);
 
     if (!message || message.trim().length < 10) {
       // Too short to be meaningful content
@@ -117914,19 +117951,21 @@ function processWritingPromptReply(message, fromPhone) {
     const responseId = 'WR_' + Date.now();
     const receivedAt = new Date().toISOString();
 
-    // Store Todd's input
+    // Store input from Todd or Loren
     sheet.appendRow([
       responseId,
       receivedAt,
       message.trim(),
       0,  // Posts_Generated (will update after generation)
-      'processing'
+      'processing',
+      senderName,      // Column F: Who sent it
+      targetAccount    // Column G: Target account (farm/fleurs)
     ]);
 
     const rowIndex = sheet.getLastRow();
 
-    // Generate posts from Todd's input
-    const postsResult = generatePostsFromToddInput(message.trim());
+    // Generate posts from input (pass sender context for appropriate tone)
+    const postsResult = generatePostsFromToddInput(message.trim(), targetAccount, senderName);
 
     if (postsResult.success && postsResult.posts && postsResult.posts.length > 0) {
       // Update the row with post count
@@ -118002,8 +118041,12 @@ function processWritingPromptReply(message, fromPhone) {
  * @param {string} toddInput - Todd's written thoughts/response
  * @returns {Object} - Array of generated posts for different platforms
  */
-function generatePostsFromToddInput(toddInput) {
+function generatePostsFromToddInput(toddInput, targetAccount, senderName) {
   try {
+    // Default to farm account if not specified
+    targetAccount = targetAccount || 'farm';
+    senderName = senderName || 'Todd';
+
     if (!toddInput || toddInput.trim().length < 10) {
       return { success: false, error: 'Input too short to generate meaningful content' };
     }
@@ -118011,10 +118054,34 @@ function generatePostsFromToddInput(toddInput) {
     const apiKey = CLAUDE_CONFIG.API_KEY;
     if (!apiKey) {
       // Fallback to simple post generation without AI
-      return generatePostsFromToddInput_NoAI(toddInput);
+      return generatePostsFromToddInput_NoAI(toddInput, targetAccount, senderName);
     }
 
     const seasonalContext = getSeasonalContext();
+
+    // Account-specific context
+    const accountContext = {
+      farm: {
+        name: 'Tiny Seed Farm',
+        handle: '@tinyseedfarm',
+        focus: 'organic vegetables and produce',
+        hashtags: '#TinySeedFarm #PittsburghFarmers #OrganicFarm #LocalFood #CSA'
+      },
+      fleurs: {
+        name: 'Tiny Seed Fleurs',
+        handle: '@tinyseedfleurs',
+        focus: 'organic cut flowers and bouquets',
+        hashtags: '#TinySeedFleurs #PittsburghFlorist #OrganicFlowers #LocalFlowers #FarmFlowers'
+      },
+      fungi: {
+        name: 'Tiny Seed Fungi',
+        handle: '@tinyseedfungi',
+        focus: 'gourmet mushrooms',
+        hashtags: '#TinySeedFungi #PittsburghMushrooms #GourmetMushrooms #LocalMushrooms'
+      }
+    };
+
+    const context = accountContext[targetAccount] || accountContext.farm;
 
     // Pittsburgh SEO keywords to incorporate
     const pittsburghKeywords = [
@@ -118133,33 +118200,54 @@ Return ONLY valid JSON, no explanation.`;
  * Fallback post generation without AI
  * Creates simple posts based on Todd's input
  */
-function generatePostsFromToddInput_NoAI(toddInput) {
+function generatePostsFromToddInput_NoAI(toddInput, targetAccount, senderName) {
   try {
+    targetAccount = targetAccount || 'farm';
     const seasonalContext = getSeasonalContext();
     const posts = [];
+
+    // Account-specific templates
+    const templates = {
+      farm: {
+        instagram: `From the fields at Tiny Seed Farm: ${toddInput}\n\n🌱 Fresh from our certified organic farm in Rochester, PA to your table!\n\n#TinySeedFarm #PittsburghFarmers #OrganicFarm #LocalFood #CSA #FarmFresh #PittsburghLocal`,
+        facebook: `What's happening at Tiny Seed Farm this week:\n\n${toddInput}\n\nWant to get our fresh, certified organic produce? Join our CSA or find us at local Pittsburgh farmers markets! Visit tinyseedfarm.com to learn more.`
+      },
+      fleurs: {
+        instagram: `From the flower fields at Tiny Seed Fleurs: ${toddInput}\n\n💐 Fresh organic blooms from our farm in Rochester, PA!\n\n#TinySeedFleurs #PittsburghFlorist #OrganicFlowers #LocalFlowers #FarmFlowers #PittsburghWeddings`,
+        facebook: `What's blooming at Tiny Seed Fleurs this week:\n\n${toddInput}\n\nOur organic, locally-grown flowers are perfect for weddings, events, or just brightening your home! Visit tinyseedfarm.com to learn more.`
+      },
+      fungi: {
+        instagram: `From the grow rooms at Tiny Seed Fungi: ${toddInput}\n\n🍄 Fresh gourmet mushrooms grown locally in Pittsburgh!\n\n#TinySeedFungi #PittsburghMushrooms #GourmetMushrooms #LocalFood #FarmFresh`,
+        facebook: `What's growing at Tiny Seed Fungi this week:\n\n${toddInput}\n\nOur locally-grown gourmet mushrooms are perfect for chefs and home cooks! Find us at Pittsburgh farmers markets.`
+      }
+    };
+
+    const template = templates[targetAccount] || templates.farm;
 
     // Instagram post
     posts.push({
       platform: 'instagram',
-      content: `From the fields at Tiny Seed Farm: ${toddInput}\n\n🌱 Fresh from our certified organic farm in Rochester, PA to your table!\n\n#TinySeedFarm #PittsburghFarmers #OrganicFarm #LocalFood #CSA #FarmFresh #PittsburghLocal`,
-      contentType: 'todd_input'
+      content: template.instagram,
+      contentType: senderName ? `${senderName.toLowerCase()}_input` : 'team_input'
     });
 
     // Facebook post
     posts.push({
       platform: 'facebook',
-      content: `What's happening at Tiny Seed Farm this week:\n\n${toddInput}\n\nWant to get our fresh, certified organic produce? Join our CSA or find us at local Pittsburgh farmers markets! Visit tinyseedfarm.com to learn more.`,
-      contentType: 'todd_input'
+      content: template.facebook,
+      contentType: senderName ? `${senderName.toLowerCase()}_input` : 'team_input'
     });
 
-    // Google Business Profile post
-    posts.push({
-      platform: 'gbp',
-      content: `Fresh update from Tiny Seed Farm in Rochester, PA: ${toddInput.substring(0, 800)} Visit us at Pittsburgh-area farmers markets or sign up for our CSA delivery!`,
-      contentType: 'todd_input'
-    });
+    // Google Business Profile post (farm only)
+    if (targetAccount === 'farm') {
+      posts.push({
+        platform: 'gbp',
+        content: `Fresh update from Tiny Seed Farm in Rochester, PA: ${toddInput.substring(0, 800)} Visit us at Pittsburgh-area farmers markets or sign up for our CSA delivery!`,
+        contentType: 'todd_input'
+      });
+    }
 
-    Logger.log('Generated 3 posts from Todd input without AI');
+    Logger.log(`Generated ${posts.length} posts from ${senderName || 'team'} input without AI`);
 
     return {
       success: true,

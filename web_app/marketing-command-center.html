@@ -5039,9 +5039,6 @@
                             <button id="btnPlanWeek" class="btn btn-secondary" onclick="switchTab('contentcalendar')">
                                 <i class="fas fa-calendar-plus"></i> Plan Week
                             </button>
-                            <button id="btnLearnVoice" class="btn" onclick="learnVoiceFromPosts()" style="background: linear-gradient(135deg, var(--purple), var(--instagram)); color: white;">
-                                <i class="fas fa-microphone-alt"></i> Learn My Voice
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -13279,33 +13276,45 @@
         // Added 2026-02-13: Click "Best Time" KPI to jump to Create with time set
         // ═══════════════════════════════════════════════════════════════════════════
         function goToCreateWithTime() {
-            // Get the optimal time from MARKETING_STATE
-            const optimalTime = MARKETING_STATE.recommendations.nextBestPostTime;
-
-            // Switch to Create tab
-            switchTab('create');
-
-            // Show toast with the optimal time
-            if (optimalTime) {
-                const timeStr = optimalTime.isToday ? optimalTime.time : `${optimalTime.day} at ${optimalTime.time}`;
-                showToast(`Best time to post: ${timeStr}`, 'success');
-
-                // If there's a schedule picker, pre-fill it
-                const schedulePicker = document.getElementById('scheduleDateTimePicker');
-                if (schedulePicker && optimalTime.isToday) {
-                    // Set to today's optimal time
-                    const now = new Date();
-                    const [hours, minutes] = optimalTime.time.replace(/[AP]M/i, '').trim().split(':');
-                    let hour = parseInt(hours);
-                    if (optimalTime.time.toLowerCase().includes('pm') && hour !== 12) hour += 12;
-                    if (optimalTime.time.toLowerCase().includes('am') && hour === 12) hour = 0;
-                    now.setHours(hour, parseInt(minutes) || 0, 0, 0);
-
-                    // Format for datetime-local input
-                    const formatted = now.toISOString().slice(0, 16);
-                    schedulePicker.value = formatted;
+            try {
+                // Initialize MARKETING_STATE if needed
+                if (!MARKETING_STATE.recommendations || !MARKETING_STATE.recommendations.lastUpdated) {
+                    MARKETING_STATE.init();
                 }
-            } else {
+
+                // Get the optimal time from MARKETING_STATE
+                const optimalTime = MARKETING_STATE.recommendations?.nextBestPostTime;
+
+                // Switch to Create tab
+                switchTab('create');
+
+                // Show toast with the optimal time
+                if (optimalTime && optimalTime.time) {
+                    const timeStr = optimalTime.isToday ? optimalTime.time : `${optimalTime.day} at ${optimalTime.time}`;
+                    showToast(`Best time to post: ${timeStr}`, 'success');
+
+                    // If there's a schedule picker, pre-fill it
+                    const schedulePicker = document.getElementById('scheduleDateTimePicker');
+                    if (schedulePicker && optimalTime.isToday) {
+                        // Set to today's optimal time
+                        const now = new Date();
+                        const [hours, minutes] = optimalTime.time.replace(/[AP]M/i, '').trim().split(':');
+                        let hour = parseInt(hours);
+                        if (optimalTime.time.toLowerCase().includes('pm') && hour !== 12) hour += 12;
+                        if (optimalTime.time.toLowerCase().includes('am') && hour === 12) hour = 0;
+                        now.setHours(hour, parseInt(minutes) || 0, 0, 0);
+
+                        // Format for datetime-local input
+                        const formatted = now.toISOString().slice(0, 16);
+                        schedulePicker.value = formatted;
+                    }
+                } else {
+                    showToast('Create your post now!', 'info');
+                }
+            } catch (error) {
+                console.error('goToCreateWithTime error:', error);
+                // Still switch to Create tab even if there's an error
+                switchTab('create');
                 showToast('Create your post!', 'info');
             }
         }
@@ -24221,13 +24230,31 @@ Would you like to test posting to Threads?`;
         function getWeeklyPostSummaryFromLocal() {
             let totalCurated = 0, totalOriginal = 0, totalPersonal = 0;
 
+            // Use the CORRECT localStorage keys from the 5-3-2 tracker
+            // Keys are: tinyseed_content_mix_farm, tinyseed_content_mix_fleurs, tinyseed_content_mix_fungi
+            const CONTENT_MIX_KEYS = {
+                farm: 'tinyseed_content_mix_farm',
+                fleurs: 'tinyseed_content_mix_fleurs',
+                fungi: 'tinyseed_content_mix_fungi'
+            };
+
             // Sum up from all accounts
-            ['tinyseedfarm', 'tinyseedflowers'].forEach(account => {
-                const key = `igSyncData_${account}_weeklyContent`;
-                const data = JSON.parse(localStorage.getItem(key) || '{}');
-                totalCurated += data.curated || 0;
-                totalOriginal += data.original || 0;
-                totalPersonal += data.personal || 0;
+            Object.values(CONTENT_MIX_KEYS).forEach(key => {
+                try {
+                    const stored = localStorage.getItem(key);
+                    if (stored) {
+                        const data = JSON.parse(stored);
+                        // Check if data is from current week
+                        const currentWeek = getWeekNumber(new Date());
+                        if (data.weekNumber === currentWeek || !data.weekNumber) {
+                            totalCurated += parseInt(data.curated) || 0;
+                            totalOriginal += parseInt(data.original) || 0;
+                            totalPersonal += parseInt(data.personal) || 0;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Error reading content mix data for key:', key, e);
+                }
             });
 
             return {
@@ -25534,12 +25561,16 @@ Would you like to test posting to Threads?`;
             };
         }
 
-        async function learnVoiceFromPosts() {
-            const btn = document.getElementById('btnLearnVoice');
-            const originalHTML = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Learning...';
-            btn.disabled = true;
-            btn.style.opacity = '0.7';
+        async function learnVoiceFromPosts(buttonElement) {
+            // Button passed as parameter, or find the calling button via event
+            const btn = buttonElement || (event && event.target && event.target.closest('button'));
+            let originalHTML = '';
+            if (btn) {
+                originalHTML = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Learning...';
+                btn.disabled = true;
+                btn.style.opacity = '0.7';
+            }
 
             showToast('🎯 Analyzing your post history to learn brand voice...', 'info');
 
@@ -25581,9 +25612,11 @@ Would you like to test posting to Threads?`;
                 console.error('Voice learning error:', error);
                 showToast('Using manual voice training. Add posts in Brand Voice tab.', 'info');
             } finally {
-                btn.innerHTML = originalHTML;
-                btn.disabled = false;
-                btn.style.opacity = '1';
+                if (btn) {
+                    btn.innerHTML = originalHTML;
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                }
             }
         }
 
