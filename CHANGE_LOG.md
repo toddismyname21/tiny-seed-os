@@ -40,6 +40,211 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-02-13 - PM_Architect (Brain Tab: Good Evening Boss POST NOW Button)
+
+### Files Modified
+- `web_app/marketing-command-center.html` - Changed Best Time display in Good Evening Boss card from div to clickable button
+
+### Changes Made
+1. **HTML Change (line 5019-5024)**: Changed `<div id="optimalTimeDisplay">` to `<button>` with `onclick="goToCreateWithTime()"`
+2. **Visual Redesign**: Added gradient background, bolt icon, arrow icon, "POST NOW:" action CTA
+3. **JS Update (line 22354-22361)**: Updated `updateAllOptimalTimeDisplays()` to maintain action-oriented "POST NOW:" label
+
+### Reason
+User reported the Best Time display in Good Evening Boss card was NOT clickable despite multiple previous "fixes". This fix makes it a proper button that navigates to CREATE tab with the optimal time pre-selected.
+
+### Verification
+- Pre-commit hooks passed
+- Deployed to GitHub Pages via `git push`
+
+---
+
+## 2026-02-13 - Backend_Claude (AI Memory System Phase 1B: Brand-Specific Sheets)
+
+### Context
+Building Phase 1B of the Ultimate AI Memory Architecture - the brand-specific memory sheets and supporting infrastructure. This coordinates with the MEM-1 team who built the core sheets in Phase 1. Phase 1B adds brand-specific storage (FARM, FLEURS, FUNGI), embeddings, corrections, consolidation tracking, working memory sessions, and daily decay calculations.
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Added AI Memory System Phase 1B (approximately 1,000 lines of new code)
+
+### Sheets Initialized (8 sheets)
+- `FARM_MEMORY` - Vegetable-specific memories (Vegetables, Soil, Irrigation, Pest_Management, Harvest, Storage, Sales)
+- `FLEURS_MEMORY` - Flower-specific memories (Arrangements, Varieties, Vase_Life, Market_Performance, Wedding_Work, Design_Notes)
+- `FUNGI_MEMORY` - Mushroom-specific memories (Strains, Substrates, Climate_Control, Contamination, Yields, Processing)
+- `MEMORY_EMBEDDINGS` - Vector storage for semantic search (embedding vectors, model info, chunking)
+- `MEMORY_CORRECTIONS` - Self-correction log (error tracking, confidence changes, learning applied)
+- `CONSOLIDATION_LOG` - Episodic to Semantic transformation tracking
+- `WORKING_MEMORY` - Session context management (active context, recent retrievals, pending actions)
+- `MEMORY_STATS` - Daily system metrics snapshots
+
+### Functions Added
+**Initialization:**
+- `initializeBrandMemorySheets()` - Creates all 8 Phase 1B sheets
+
+**Brand Memory Access:**
+- `getBrandMemory(brand, params)` - Get brand-specific memories with filtering
+- `addBrandMemory(brand, memoryData)` - Add entry to brand-specific sheet
+
+**Correction System:**
+- `logCorrection(originalId, correction)` - Log a memory correction
+- `getMemoryCorrections(params)` - Get recent corrections with filters
+
+**Statistics:**
+- `getMemoryStats()` - Get current memory system statistics
+- `recordMemoryStatsSnapshot()` - Record daily stats snapshot
+
+**Daily Decay:**
+- `runDailyMemoryDecay()` - Update current_relevance scores based on Ebbinghaus decay formula
+- `getMemoryISOWeek(date)` - Get ISO week number
+- `getMemorySeason(date)` - Get season (SPRING/SUMMER/FALL/WINTER)
+
+**Trigger Setup:**
+- `setupMemoryTriggers()` - Configure daily triggers (3AM decay, 11:59PM stats)
+
+**Working Memory Sessions:**
+- `createWorkingMemorySession(params)` - Start new session
+- `updateWorkingMemorySession(sessionId, updates)` - Update session context
+- `endWorkingMemorySession(sessionId, insights)` - Close session
+
+**Consolidation:**
+- `logConsolidationRun(params)` - Log an episodic-to-semantic consolidation run
+
+**Embeddings:**
+- `storeMemoryEmbedding(params)` - Store embedding vector
+- `getMemoryEmbedding(memoryId)` - Retrieve embedding for a memory
+
+### API Routes Added
+**GET endpoints:**
+- `action=initializeBrandMemorySheets` - Initialize all 8 Phase 1B sheets
+- `action=getBrandMemory&brand=FARM|FLEURS|FUNGI` - Query brand-specific memories
+- `action=getMemoryStats` - Get system statistics
+- `action=getMemoryCorrections` - Get corrections with filters
+- `action=getMemoryEmbedding&memoryId=XXX` - Get embedding vector
+- `action=setupMemoryTriggers` - Configure daily triggers
+- `action=runDailyMemoryDecay` - Manually run decay calculation
+- `action=recordMemoryStatsSnapshot` - Manually record stats
+
+**POST endpoints:**
+- `action=addBrandMemory` - Add brand-specific memory
+- `action=logCorrection` - Log a correction
+- `action=storeMemoryEmbedding` - Store embedding
+- `action=createWorkingMemorySession` - Start session
+- `action=updateWorkingMemorySession` - Update session
+- `action=endWorkingMemorySession` - End session
+- `action=logConsolidationRun` - Log consolidation
+
+### Reason
+Phase 1B builds upon the MEM-1 core sheets to add:
+- Brand-specific memory storage for vegetables, flowers, and mushrooms
+- Vector embeddings for future semantic search
+- Self-correction tracking to learn from mistakes
+- Consolidation logging (episodic to semantic transformation)
+- Working memory for session context management
+- Daily decay calculations based on Ebbinghaus forgetting curve with farming-specific modifications (seasonal and annual boosts)
+- System metrics and health tracking
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (FARM_MEMORY, FLEURS_MEMORY, FUNGI_MEMORY - no matches)
+- [x] Coordinated with MEM-1 team to avoid duplicating core sheets
+- [x] No duplicates created
+
+### Deployment Note
+Code pushed successfully via `clasp push`. The Phase 1B sheets complement the Phase 1 core sheets created by MEM-1.
+
+---
+
+## 2026-02-13 - Backend_Claude (AI Memory System Phase 1: Foundation)
+
+### Context
+Building the Ultimate AI Memory Architecture for Tiny Seed Farm as specified in `/docs/plans/ULTIMATE_AI_MEMORY_ARCHITECTURE.md`. This is Phase 1 - the foundation layer with 6 core sheets and CRUD operations. The memory system is for the ENTIRE operating system, accessible from Chief of Staff, dashboards, and all correspondence systems.
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Added AI Memory System Phase 1 (approximately 1,200 lines of new code)
+
+### Sheets Initialized (6 core sheets)
+- `AI_MEMORY_INDEX` - Master index of all memories with importance scores, decay rates, and bitemporal timestamps
+- `EPISODIC_MEMORY` - Specific events with full context (location, actor, outcome, lessons learned)
+- `SEMANTIC_MEMORY` - Patterns and generalized knowledge (rules, facts, preferences)
+- `ENTITIES` - Knowledge graph nodes (crops, varieties, customers, fields, etc.)
+- `ENTITY_RELATIONSHIPS` - Knowledge graph edges (GROWS_IN, FOLLOWS, SUPPLIES, etc.)
+- `TEMPORAL_EVENTS` - Timeline index for "this time last year" queries
+
+### Functions Added
+**ID Generators:**
+- `generateMemoryId()` - Creates unique MEM_YYYYMMDD_HHMMSS_XXX IDs
+- `generateEpisodeId()` - Creates EP_YYYYMMDD_XXX IDs
+- `generateSemanticId()` - Creates SEM_XXX IDs
+- `generateEntityId(type)` - Creates ENT_TYPE_XXX IDs
+- `generateRelationshipId()` - Creates REL_XXX IDs
+- `generateTemporalEventId()` - Creates TE_YYYYMMDD_XXX IDs
+
+**Helpers:**
+- `getSeasonFromDate(date)` - Returns SPRING/SUMMER/FALL/WINTER
+- `getWeekNumber(date)` - Returns ISO week number
+
+**Sheet Initialization:**
+- `initializeAIMemoryIndex()` - Creates AI_MEMORY_INDEX with 19 columns
+- `initializeEpisodicMemory()` - Creates EPISODIC_MEMORY with 22 columns
+- `initializeSemanticMemory()` - Creates SEMANTIC_MEMORY with 17 columns
+- `initializeEntities()` - Creates ENTITIES with 11 columns
+- `initializeEntityRelationships()` - Creates ENTITY_RELATIONSHIPS with 10 columns
+- `initializeTemporalEvents()` - Creates TEMPORAL_EVENTS with 17 columns
+- `initializeAIMemorySystem()` - Master function to initialize all 6 sheets
+
+**Core CRUD:**
+- `createMemory(params)` - Create new memory (episodic, semantic, procedural, or factual)
+- `createTemporalEventFromMemory(...)` - Auto-create temporal index entry
+- `retrieveMemories(params)` - Query memories with filtering, scoring, and sorting
+- `updateAccessStats(memoryIds)` - Track memory access for relevance decay
+- `updateMemory(memoryId, updates)` - Update memory fields
+- `getMemoryById(memoryId)` - Get full memory details including episode/semantic data
+- `getEpisodeDataByMemoryId(memoryId)` - Get episode details
+- `getSemanticDataByMemoryId(memoryId)` - Get semantic details
+- `getMemorySystemStatus()` - Get system status and counts
+
+**Entity Management:**
+- `createEntity(params)` - Create knowledge graph node
+- `createEntityRelationship(params)` - Create knowledge graph edge
+- `searchEntities(params)` - Search entities by name/type/brand
+
+**Temporal Queries:**
+- `getThisTimeLastYearMemories(params)` - Get memories from same week last year
+
+### API Routes Added
+**GET endpoints:**
+- `action=initializeAIMemorySystem` - Initialize all 6 memory sheets
+- `action=getMemorySystemStatus` - Get system status
+- `action=retrieveMemories` - Query memories with filters
+- `action=getMemoryById&memoryId=XXX` - Get single memory
+- `action=searchEntities` - Search entities
+- `action=getThisTimeLastYearMemories` - Temporal comparison
+
+**POST endpoints:**
+- `action=createMemory` - Create new memory
+- `action=updateMemory` - Update memory
+- `action=createEntity` - Create entity
+- `action=createEntityRelationship` - Create relationship
+
+### Reason
+Phase 1 of the 8-phase memory architecture. This foundation enables:
+- Storing episodic memories (specific farm events)
+- Storing semantic memories (learned patterns)
+- Building a knowledge graph of entities and relationships
+- Temporal queries ("what happened this time last year?")
+- Multi-brand support (FARM, FLEURS, FUNGI, CROSS_BRAND)
+- Bitemporal modeling (event time vs ingestion time)
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (AI_MEMORY, EPISODIC_MEMORY - no matches)
+- [x] No duplicates created (this is new functionality)
+
+### Deployment Note
+Code pushed to Apps Script but could not create new version (200 version limit reached). The code is available via HEAD deployment. To use with the main production deployment, old versions need to be deleted from the Apps Script project history page.
+
+---
+
 ## 2026-02-12 - PM_Architect (5-3-2 Tracker Per-Account Accountability)
 
 ### Context
