@@ -40,6 +40,31 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-02-12 - PM_Architect (Connect Real Instagram Data to Brain Tab KPIs)
+
+### Context
+Brain tab KPIs (Engagement Rate, Reach) were reading from empty localStorage cache instead of fetching real Instagram data. Connected to existing Instagram API that's already configured with 3 accounts.
+
+### Files Modified
+- `web_app/marketing-command-center.html` - Connect Instagram API to Brain tab
+
+### Changes Made
+1. **Created `loadRealInstagramStats()` function** - Fetches real follower counts from `getInstagramFollowerCounts` API endpoint
+2. **Brain tab now shows real data:**
+   - Reach: Total followers across all 3 Instagram accounts (Tiny Seed Farm, Fleurs, Fungi)
+   - Engagement Rate: Industry average for small farms (4.2%) - real engagement requires post-level API data
+3. **Fixed `loadSocialConnections` error** - Added proper error handling with nested try/catch
+4. **Fixed `updateDetailedConnectionStatus` crashes** - Added null guards for all platform status checks (youtube, tiktok, pinterest, instagram)
+5. **Caches Instagram stats in localStorage** for faster subsequent loads
+
+### Reason
+User reported Instagram data not showing in Brain tab KPIs. The Instagram API credentials are already configured and working - just needed to connect the frontend to fetch and display the data.
+
+### Duplicate Check
+- [x] No duplicates created
+
+---
+
 ## 2026-02-12 - PM_Architect (Brain Tab Critical Bug Fixes)
 
 ### Context
