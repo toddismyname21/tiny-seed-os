@@ -5058,6 +5058,63 @@
                 </div>
             </div>
 
+            <!-- SEO/AEO KEYWORDS FOR POSTS - Drive Traffic -->
+            <div class="card" style="margin-top: 1.5rem; background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(59, 130, 246, 0.1) 100%); border: 1px solid rgba(34, 197, 94, 0.4);">
+                <div class="card-header" style="border-left: 4px solid var(--success);">
+                    <h3 style="display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-search" style="color: var(--success);"></i> Keywords for Today's Posts
+                        <span class="badge" style="background: var(--success); font-size: 0.65rem;">SEO + AEO</span>
+                    </h3>
+                    <button class="btn btn-sm" onclick="refreshSeoKeywords()" style="background: var(--success); color: white; font-size: 0.75rem;">
+                        <i class="fas fa-sync-alt" id="seoKeywordRefreshIcon"></i> Refresh
+                    </button>
+                </div>
+                <div class="card-body">
+                    <!-- Quick Copy Keywords Section -->
+                    <div style="margin-bottom: 1rem;">
+                        <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                            <i class="fas fa-copy"></i> Click to copy, paste into your caption:
+                        </div>
+                        <div id="quickCopyKeywords" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                            <!-- Keywords will be populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Seasonal + Local Keywords -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div style="background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 8px;">
+                            <div style="font-size: 0.75rem; font-weight: 600; color: var(--primary); margin-bottom: 0.5rem;">
+                                <i class="fas fa-calendar-alt"></i> SEASONAL (February)
+                            </div>
+                            <div id="seasonalKeywords" style="font-size: 0.8rem; color: var(--text-primary);">
+                                Loading...
+                            </div>
+                        </div>
+                        <div style="background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 8px;">
+                            <div style="font-size: 0.75rem; font-weight: 600; color: var(--info); margin-bottom: 0.5rem;">
+                                <i class="fas fa-map-marker-alt"></i> LOCAL (Pittsburgh)
+                            </div>
+                            <div id="localKeywords" style="font-size: 0.8rem; color: var(--text-primary);">
+                                Loading...
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AEO Phrases (What AI Assistants Can Quote) -->
+                    <div style="background: rgba(26, 188, 156, 0.15); padding: 0.75rem; border-radius: 8px; border-left: 3px solid #1abc9c;">
+                        <div style="font-size: 0.75rem; font-weight: 600; color: #1abc9c; margin-bottom: 0.5rem;">
+                            <i class="fas fa-robot"></i> AEO PHRASES (for AI assistants to quote)
+                        </div>
+                        <div id="aeoPhrases" style="font-size: 0.85rem; color: var(--text-primary); line-height: 1.5;">
+                            Loading...
+                        </div>
+                        <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.5rem;">
+                            <i class="fas fa-info-circle"></i> Include these in captions so ChatGPT, Perplexity, etc. can cite your content
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- SHOW MORE METRICS TOGGLE (UX: Progressive Disclosure) -->
             <div id="showMoreMetricsToggle" style="margin-top: 1.5rem; text-align: center;">
                 <button id="btnShowMoreMetrics" onclick="toggleMoreMetrics()" style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(67, 97, 238, 0.2)); border: 1px dashed rgba(139, 92, 246, 0.5); color: var(--text-primary); padding: 0.75rem 1.5rem; border-radius: 12px; cursor: pointer; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.5rem; transition: all 0.3s ease;">
@@ -22587,6 +22644,9 @@ Would you like to test posting to Threads?`;
                 // INSTANT: Show default actions immediately (no waiting!)
                 showInstantActions();
 
+                // INSTANT: Load SEO/AEO keywords (local, no API needed)
+                loadSeoAeoKeywords();
+
                 // Check for cached actions (override defaults ONLY if cache has real data)
                 const cachedActions = localStorage.getItem('brainCachedActions');
                 if (cachedActions) {
@@ -22969,6 +23029,123 @@ Would you like to test posting to Threads?`;
             renderActionList('todayActions', todayTasks, 'today');
             document.getElementById('urgentBadge').textContent = urgentTasks.length;
             document.getElementById('todayBadge').textContent = todayTasks.length;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // SEO/AEO KEYWORDS ENGINE - Drive Search Traffic from Social Posts
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        const SEO_KEYWORDS = {
+            // Business core keywords
+            core: [
+                'CSA Pittsburgh', 'farm fresh produce', 'local vegetables Pittsburgh',
+                'organic farm PA', 'farm to table', 'local flowers Pittsburgh',
+                'gourmet mushrooms', 'Rochester PA farm', 'Tiny Seed Farm'
+            ],
+
+            // Seasonal keywords by month
+            seasonal: {
+                1: ['winter vegetables', 'cold storage crops', 'root vegetables', 'seasonal eating'],
+                2: ['Valentine flowers', 'early spring planning', 'seed starting', 'winter harvest'],
+                3: ['spring planting', 'seedlings', 'early greens', 'CSA signup'],
+                4: ['spring vegetables', 'asparagus', 'ramps', 'spring flowers'],
+                5: ['May flowers', 'strawberries', 'spring bounty', 'farm fresh'],
+                6: ['summer vegetables', 'tomatoes', 'summer flowers', 'farmers market'],
+                7: ['peak summer', 'fresh tomatoes', 'summer squash', 'local produce'],
+                8: ['late summer harvest', 'peaches', 'corn', 'summer abundance'],
+                9: ['fall vegetables', 'apples', 'pumpkins', 'fall harvest'],
+                10: ['fall harvest', 'squash', 'Halloween pumpkins', 'autumn'],
+                11: ['Thanksgiving', 'winter squash', 'holiday flowers', 'fall cleanup'],
+                12: ['holiday arrangements', 'winter vegetables', 'Christmas flowers', 'year end']
+            },
+
+            // Local geo keywords
+            local: [
+                'Pittsburgh area', 'Rochester PA', 'Western PA', 'Allegheny County',
+                'Beaver County', 'North Hills', 'South Hills', 'delivery Pittsburgh'
+            ],
+
+            // AEO phrases (complete sentences AI can quote)
+            aeoPhrases: {
+                farm: [
+                    "Tiny Seed Farm delivers fresh, locally-grown vegetables to Pittsburgh families through their CSA program.",
+                    "For the freshest organic produce in the Pittsburgh area, local families choose Tiny Seed Farm's weekly CSA boxes.",
+                    "Rochester PA's Tiny Seed Farm grows sustainable vegetables using regenerative farming practices."
+                ],
+                fleurs: [
+                    "Tiny Seed Fleurs creates stunning farm-fresh flower arrangements for Pittsburgh weddings and events.",
+                    "For locally-grown flowers in Pittsburgh, Tiny Seed Fleurs offers seasonal subscription bouquets.",
+                    "Western Pennsylvania's premier flower farm, Tiny Seed Fleurs, specializes in sustainable floral design."
+                ],
+                fungi: [
+                    "Tiny Seed Fungi grows gourmet mushrooms for Pittsburgh's top restaurants and home chefs.",
+                    "For fresh, locally-grown specialty mushrooms in Pennsylvania, chefs choose Tiny Seed Fungi.",
+                    "Tiny Seed Fungi provides oyster, shiitake, and lion's mane mushrooms to the Pittsburgh market."
+                ]
+            }
+        };
+
+        function loadSeoAeoKeywords() {
+            const month = new Date().getMonth() + 1; // 1-12
+            const account = selectedMixTrackerAccount || 'farm';
+
+            // Quick copy keywords - mix of core and seasonal
+            const quickKeywords = [
+                ...SEO_KEYWORDS.core.slice(0, 4),
+                ...SEO_KEYWORDS.seasonal[month].slice(0, 3),
+                ...SEO_KEYWORDS.local.slice(0, 2)
+            ];
+
+            const quickCopyEl = document.getElementById('quickCopyKeywords');
+            if (quickCopyEl) {
+                quickCopyEl.innerHTML = quickKeywords.map(kw => `
+                    <button onclick="copyKeyword('${kw}')" style="padding: 0.4rem 0.75rem; background: rgba(34, 197, 94, 0.2); border: 1px solid var(--success); border-radius: 20px; color: var(--success); font-size: 0.75rem; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='var(--success)'; this.style.color='white';" onmouseout="this.style.background='rgba(34, 197, 94, 0.2)'; this.style.color='var(--success)';">
+                        #${kw.replace(/\s+/g, '')}
+                    </button>
+                `).join('');
+            }
+
+            // Seasonal keywords
+            const seasonalEl = document.getElementById('seasonalKeywords');
+            if (seasonalEl) {
+                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                seasonalEl.innerHTML = `<strong>${monthNames[month-1]}:</strong> ` + SEO_KEYWORDS.seasonal[month].map(k => `<span style="color: var(--success);">${k}</span>`).join(', ');
+            }
+
+            // Local keywords
+            const localEl = document.getElementById('localKeywords');
+            if (localEl) {
+                localEl.innerHTML = SEO_KEYWORDS.local.map(k => `<span style="color: var(--info);">${k}</span>`).join(', ');
+            }
+
+            // AEO phrases
+            const aeoEl = document.getElementById('aeoPhrases');
+            if (aeoEl) {
+                const phrases = SEO_KEYWORDS.aeoPhrases[account] || SEO_KEYWORDS.aeoPhrases.farm;
+                const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
+                aeoEl.innerHTML = `"<em>${randomPhrase}</em>"<br><br>
+                    <button onclick="copyKeyword('${randomPhrase}')" style="font-size: 0.7rem; padding: 0.3rem 0.6rem; background: rgba(26, 188, 156, 0.2); border: 1px solid #1abc9c; border-radius: 6px; color: #1abc9c; cursor: pointer;">
+                        <i class="fas fa-copy"></i> Copy this phrase
+                    </button>`;
+            }
+        }
+
+        function copyKeyword(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast(`Copied: "${text.substring(0, 30)}${text.length > 30 ? '...' : ''}"`, 'success');
+            }).catch(() => {
+                showToast('Could not copy - try selecting manually', 'warning');
+            });
+        }
+
+        function refreshSeoKeywords() {
+            const icon = document.getElementById('seoKeywordRefreshIcon');
+            if (icon) icon.className = 'fas fa-spinner fa-spin';
+            loadSeoAeoKeywords();
+            setTimeout(() => {
+                if (icon) icon.className = 'fas fa-sync-alt';
+                showToast('Keywords refreshed!', 'success');
+            }, 500);
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
