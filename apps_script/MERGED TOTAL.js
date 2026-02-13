@@ -117689,7 +117689,8 @@ function getMarketingAutomationStatus() {
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════════
 
 const WRITING_RESPONSES_SHEET = 'MARKETING_WritingResponses';
-const WRITING_RESPONSES_HEADERS = ['Response_ID', 'Received_At', 'Todd_Input', 'Posts_Generated', 'Status'];
+// Updated 2026-02-13: Added Sender, Account, Category, Source columns for better tracking
+const WRITING_RESPONSES_HEADERS = ['Response_ID', 'Received_At', 'Todd_Input', 'Posts_Generated', 'Status', 'Sender', 'Account', 'Category', 'Source'];
 
 /**
  * Initialize the Writing Responses sheet
@@ -118037,23 +118038,73 @@ function processWritingPromptReply(message, fromPhone) {
  * Generate social posts from Todd's written input
  * Uses AI to create platform-specific, SEO/AEO optimized posts
  * API Route: generatePostsFromToddInput
+ * Updated 2026-02-13: NOW SAVES entries to sheet and fetches historical context for AI memory
  *
  * @param {string} toddInput - Todd's written thoughts/response
  * @returns {Object} - Array of generated posts for different platforms
  */
-function generatePostsFromToddInput(toddInput, targetAccount, senderName) {
+function generatePostsFromToddInput(toddInput, targetAccount, senderName, category, source) {
   try {
     // Default to farm account if not specified
     targetAccount = targetAccount || 'farm';
     senderName = senderName || 'Todd';
+    category = category || 'general';
+    source = source || 'web';
 
     if (!toddInput || toddInput.trim().length < 10) {
       return { success: false, error: 'Input too short to generate meaningful content' };
     }
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // STEP 1: SAVE THE JOURNAL ENTRY (so it's never lost)
+    // ═══════════════════════════════════════════════════════════════════════════
+    const sheet = initializeWritingResponsesSheet();
+    const responseId = 'WR_' + Date.now();
+    const receivedAt = new Date().toISOString();
+
+    // Save the entry FIRST (before AI generation, in case that fails)
+    sheet.appendRow([
+      responseId,
+      receivedAt,
+      toddInput.trim(),
+      0,  // Posts_Generated (will update after generation)
+      'processing',
+      senderName,
+      targetAccount,
+      category,
+      source
+    ]);
+    const rowIndex = sheet.getLastRow();
+
+    Logger.log('Saved journal entry: ' + responseId + ' from ' + senderName + ' (' + source + ')');
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // STEP 2: FETCH HISTORICAL ENTRIES FOR AI CONTEXT (institutional memory)
+    // ═══════════════════════════════════════════════════════════════════════════
+    let historicalContext = '';
+    try {
+      const data = sheet.getDataRange().getValues();
+      const recentEntries = data.slice(1) // Skip header
+        .filter(row => row[6] === targetAccount || !row[6]) // Same account or general
+        .slice(-10) // Last 10 entries
+        .map(row => ({
+          date: row[1],
+          content: row[2],
+          sender: row[5] || 'Todd'
+        }));
+
+      if (recentEntries.length > 0) {
+        historicalContext = '\n\nRECENT FARM JOURNAL ENTRIES (use these for context and voice consistency):\n' +
+          recentEntries.map(e => `[${new Date(e.date).toLocaleDateString()}] ${e.content.substring(0, 200)}`).join('\n');
+      }
+    } catch (histErr) {
+      Logger.log('Could not fetch historical context: ' + histErr.toString());
+    }
+
     const apiKey = CLAUDE_CONFIG.API_KEY;
     if (!apiKey) {
-      // Fallback to simple post generation without AI
+      // Update row to show no AI available
+      sheet.getRange(rowIndex, 5).setValue('saved_no_ai');
       return generatePostsFromToddInput_NoAI(toddInput, targetAccount, senderName);
     }
 
@@ -118097,18 +118148,20 @@ function generatePostsFromToddInput(toddInput, targetAccount, senderName) {
 
     const prompt = `You are a social media content creator for Tiny Seed Farm, a certified organic farm in Rochester, PA (just outside Pittsburgh).
 
-Todd (the farmer) just shared these thoughts about the week:
+${senderName} (${senderName === 'Todd' ? 'the farmer' : senderName === 'Loren' ? 'the flower manager' : 'team member'}) just shared these thoughts:
 "${toddInput}"
 
 Current season: ${seasonalContext.season}
 What's growing: ${seasonalContext.whatsGrowing}
 Seasonal focus: ${seasonalContext.seasonalFocus}
+${historicalContext}
 
-Generate 3-5 social media posts based on Todd's input. Each post should:
-1. Capture Todd's authentic voice and enthusiasm
+Generate 3-5 social media posts based on ${senderName}'s input. Each post should:
+1. Capture the authentic voice and enthusiasm (use the historical entries above for voice consistency)
 2. Be optimized for the specific platform
 3. Include SEO/AEO keywords naturally (Pittsburgh, organic, local, farm-fresh)
 4. Have a clear call-to-action when appropriate
+5. Build on the farm's ongoing story from the journal entries
 
 Return a JSON array with this structure:
 [
@@ -118174,25 +118227,43 @@ Return ONLY valid JSON, no explanation.`;
         contentType: post.contentType || 'todd_input'
       })).filter(post => post.content.length > 20);
 
-      Logger.log(`Generated ${validatedPosts.length} posts from Todd's input using AI`);
+      Logger.log(`Generated ${validatedPosts.length} posts from ${senderName}'s input using AI`);
+
+      // UPDATE the journal entry row with post count and success status
+      try {
+        sheet.getRange(rowIndex, 4).setValue(validatedPosts.length); // Posts_Generated
+        sheet.getRange(rowIndex, 5).setValue('posts_generated');     // Status
+      } catch (updateErr) {
+        Logger.log('Could not update row: ' + updateErr.toString());
+      }
 
       return {
         success: true,
         posts: validatedPosts,
+        postsGenerated: validatedPosts.length,
+        entryId: responseId,
         generatedBy: 'ai',
         inputPreview: toddInput.substring(0, 100) + '...'
       };
 
     } else if (result.error) {
       Logger.log('Claude API error: ' + JSON.stringify(result.error));
-      return generatePostsFromToddInput_NoAI(toddInput);
+      sheet.getRange(rowIndex, 5).setValue('ai_error');
+      return generatePostsFromToddInput_NoAI(toddInput, targetAccount, senderName);
     }
 
-    return generatePostsFromToddInput_NoAI(toddInput);
+    sheet.getRange(rowIndex, 5).setValue('fallback');
+    return generatePostsFromToddInput_NoAI(toddInput, targetAccount, senderName);
 
   } catch (error) {
     Logger.log('Error generating posts from Todd input: ' + error.toString());
-    return generatePostsFromToddInput_NoAI(toddInput);
+    // Entry is already saved, just log the error
+    try {
+      if (typeof sheet !== 'undefined' && typeof rowIndex !== 'undefined') {
+        sheet.getRange(rowIndex, 5).setValue('error: ' + error.message);
+      }
+    } catch (e) {}
+    return generatePostsFromToddInput_NoAI(toddInput, targetAccount, senderName);
   }
 }
 
