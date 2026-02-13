@@ -5174,11 +5174,11 @@
                     </div>
                 </div>
                 <!-- KPI 4: Best Posting Time - CLICKABLE -->
-                <div class="stat-card" style="border-left: 3px solid var(--warning); cursor: pointer;" onclick="goToCreateWithTime()" title="Click to create a post at this time">
+                <div class="stat-card best-time-clickable" id="bestTimeCard" style="border-left: 3px solid var(--warning); cursor: pointer;" title="Click to create a post at this time">
                     <div class="stat-label" id="brainBestTimeLabel">Next Best Time</div>
                     <div class="stat-value" id="brainBestTime" style="color: var(--warning); font-size: 1.25rem;">--</div>
                     <div class="stat-change neutral" id="brainBestTimeQuality">
-                        <i class="fas fa-clock"></i> Optimal window
+                        <i class="fas fa-arrow-right"></i> Click to post now
                     </div>
                 </div>
                 <!-- KPI 5: Content Mix (5-3-2) -->
@@ -6189,13 +6189,13 @@
                         <div class="platform-selection">
                             <label style="font-size: 0.9rem; margin-bottom: 0.5rem; display: block;">Publish to: <span style="font-size: 0.75rem; color: var(--text-secondary);">(TikTok-first for max engagement)</span></label>
 
-                            <!-- Primary Platforms (Daily Use) -->
+                            <!-- Primary Platforms (Daily Use) - Default: Instagram + Facebook -->
                             <div class="platform-group-primary">
                                 <div class="platform-toggles">
-                                    <div class="platform-toggle active" onclick="togglePlatform(this, 'tiktok')" style="border: 2px solid var(--success);">
+                                    <div class="platform-toggle" onclick="togglePlatform(this, 'tiktok')" style="border: 1px solid var(--border);">
                                         <i class="fab fa-tiktok"></i>
                                         <span>TikTok</span>
-                                        <span style="font-size: 0.6rem; background: var(--success); padding: 0.1rem 0.3rem; border-radius: 4px; margin-left: 0.25rem;">2.8% eng</span>
+                                        <span style="font-size: 0.6rem; background: var(--text-secondary); padding: 0.1rem 0.3rem; border-radius: 4px; margin-left: 0.25rem; opacity: 0.7;">optional</span>
                                         <div class="toggle-check"><i class="fas fa-check"></i></div>
                                     </div>
                                     <div class="platform-toggle active" onclick="togglePlatform(this, 'instagram')" id="instagramToggle">
@@ -6248,10 +6248,10 @@
                                 <i class="fas fa-chevron-down" id="morePlatformsIcon"></i> More platforms...
                             </button>
 
-                            <!-- Secondary Platforms (Occasional) -->
+                            <!-- Secondary Platforms (Occasional) - All off by default -->
                             <div id="secondaryPlatforms" class="platform-group-secondary" style="display: none;">
                                 <div class="platform-toggles">
-                                    <div class="platform-toggle active" onclick="togglePlatform(this, 'youtube')">
+                                    <div class="platform-toggle" onclick="togglePlatform(this, 'youtube')">
                                         <i class="fab fa-youtube" style="color: var(--youtube);"></i>
                                         <span>YouTube</span>
                                         <div class="toggle-check"><i class="fas fa-check"></i></div>
@@ -6261,7 +6261,7 @@
                                         <span>Pinterest</span>
                                         <div class="toggle-check"><i class="fas fa-check"></i></div>
                                     </div>
-                                    <div class="platform-toggle active" onclick="togglePlatform(this, 'appfeed')">
+                                    <div class="platform-toggle" onclick="togglePlatform(this, 'appfeed')">
                                         <i class="fas fa-mobile-alt" style="color: var(--success);"></i>
                                         <span>App Feed</span>
                                         <div class="toggle-check"><i class="fas fa-check"></i></div>
@@ -13186,6 +13186,28 @@
         document.addEventListener('DOMContentLoaded', () => {
             const savedMode = localStorage.getItem('mccDisplayMode') || 'office';
             setDisplayMode(savedMode);
+
+            // BEST TIME CARD CLICK HANDLER - Added 2026-02-13
+            // Using event listener instead of inline onclick for reliability
+            const bestTimeCard = document.getElementById('bestTimeCard');
+            if (bestTimeCard) {
+                bestTimeCard.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Best Time card clicked!');
+                    goToCreateWithTime();
+                });
+                // Visual feedback on hover
+                bestTimeCard.style.transition = 'transform 0.2s, box-shadow 0.2s';
+                bestTimeCard.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-2px)';
+                    this.style.boxShadow = '0 4px 12px rgba(255, 182, 72, 0.3)';
+                });
+                bestTimeCard.addEventListener('mouseleave', function() {
+                    this.style.transform = '';
+                    this.style.boxShadow = '';
+                });
+            }
         });
 
         // Keyboard shortcut for mode toggle (Ctrl/Cmd + Shift + M)
@@ -26104,7 +26126,7 @@ Would you like to test posting to Threads?`;
         }
 
         // Navigate to the appropriate place for a task
-        // Updated 2026-02-13: Auto-selects account when navigating to Create tab
+        // Updated 2026-02-13: Auto-selects ONLY the target account and sets platforms to IG+FB
         function navigateToTask(type, index) {
             const actions = type === 'urgent' ? brainData.actionQueue?.urgent : brainData.actionQueue?.today;
             const action = actions?.[index];
@@ -26121,24 +26143,53 @@ Would you like to test posting to Threads?`;
 
                 // AUTO-SELECT ACCOUNT if task is for a specific account
                 if (action.account && destination.tab === 'create') {
-                    // Map account names to account IDs
-                    const accountMap = {
-                        'tinyseedfarm': 'farm',
-                        'tinyseedfleurs': 'fleurs',
-                        'tinyseedfungi': 'fungi',
-                        'farm': 'farm',
-                        'fleurs': 'fleurs',
-                        'fungi': 'fungi'
+                    // Map account names to checkbox values
+                    const accountToCheckbox = {
+                        'tinyseedfarm': '0',
+                        'tinyseedfleurs': '1',
+                        'tinyseedfungi': '2',
+                        'farm': '0',
+                        'fleurs': '1',
+                        'fungi': '2'
                     };
-                    const accountId = accountMap[action.account.toLowerCase().replace('@', '')] || action.account;
+                    const accountKey = action.account.toLowerCase().replace('@', '');
+                    const checkboxValue = accountToCheckbox[accountKey];
 
                     // Small delay to ensure tab switch completes
                     setTimeout(() => {
-                        if (typeof selectAccount === 'function') {
-                            selectAccount(accountId);
-                            showToast(`Creating post for @tinyseed${accountId}`, 'success');
+                        // 1. UNCHECK ALL Instagram account checkboxes first
+                        document.querySelectorAll('input[name="igAccount"]').forEach(cb => {
+                            cb.checked = false;
+                            cb.closest('label')?.style.setProperty('background', 'rgba(255,255,255,0.05)');
+                        });
+
+                        // 2. CHECK ONLY the target account
+                        const targetCheckbox = document.querySelector(`input[name="igAccount"][value="${checkboxValue}"]`);
+                        if (targetCheckbox) {
+                            targetCheckbox.checked = true;
+                            targetCheckbox.closest('label')?.style.setProperty('background', 'rgba(225,48,108,0.15)');
                         }
-                    }, 100);
+
+                        // 3. Set platforms to Instagram + Facebook ONLY (deselect TikTok, YouTube, etc.)
+                        document.querySelectorAll('.platform-toggle').forEach(toggle => {
+                            const platform = toggle.getAttribute('onclick')?.match(/togglePlatform\(this,\s*'(\w+)'\)/)?.[1];
+                            if (platform === 'instagram' || platform === 'facebook') {
+                                toggle.classList.add('active');
+                            } else {
+                                toggle.classList.remove('active');
+                            }
+                        });
+
+                        // 4. Also update the Brain tab account selector
+                        const accountId = accountKey.replace('tinyseed', '');
+                        if (typeof selectAccount === 'function') {
+                            selectAccount(accountId || accountKey);
+                        }
+
+                        const accountName = accountKey.includes('fungi') ? 'Fungi' :
+                                           accountKey.includes('fleurs') ? 'Fleurs' : 'Farm';
+                        showToast(`Ready to post for @tinyseed${accountName.toLowerCase()} (Instagram + Facebook)`, 'success');
+                    }, 150);
                 } else {
                     showToast(`Switched to ${destination.tab.toUpperCase()} tab`, 'info');
                 }
@@ -26856,8 +26907,17 @@ Would you like to test posting to Threads?`;
             const container = document.getElementById('recentJournalEntries');
             if (!container) return;
 
+            // Category styling config
+            const categoryConfig = {
+                flowers: { icon: 'fa-seedling', color: '#E91E63', label: 'Flowers' },
+                mushrooms: { icon: 'fa-cloud', color: '#9C27B0', label: 'Mushrooms' },
+                vegetables: { icon: 'fa-carrot', color: '#4CAF50', label: 'Vegetables' },
+                farmers_market: { icon: 'fa-store', color: '#FF9800', label: 'Market' },
+                general: { icon: 'fa-leaf', color: '#607D8B', label: 'General' }
+            };
+
             try {
-                const response = await fetch(`${API_URL}?action=getWritingResponses&limit=5`);
+                const response = await fetch(`${API_URL}?action=getWritingResponses&limit=10`);
                 const data = await response.json();
 
                 // Handle both response formats (responses or entries)
@@ -26868,16 +26928,27 @@ Would you like to test posting to Threads?`;
                         const content = entry.Todd_Input || entry.content || '';
                         const date = entry.Received_At || entry.date;
                         const postsGenerated = entry.Posts_Generated || 0;
+                        const sender = entry.Sender || entry.sender || 'Todd';
+
+                        // Detect category from content or use saved category
+                        const category = entry.category || detectJournalCategory(content);
+                        const catStyle = categoryConfig[category] || categoryConfig.general;
+
                         return `
-                            <div style="background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 8px; margin-bottom: 0.5rem;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
-                                    <span style="font-size: 0.7rem; color: var(--text-secondary);">
-                                        ${new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                                    </span>
-                                    ${postsGenerated > 0 ? `<span style="font-size: 0.65rem; background: var(--info); padding: 0.1rem 0.4rem; border-radius: 8px;">${postsGenerated} posts</span>` : ''}
+                            <div style="background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 8px; margin-bottom: 0.5rem; border-left: 3px solid ${catStyle.color};">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; flex-wrap: wrap; gap: 0.25rem;">
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <span style="font-size: 0.65rem; background: ${catStyle.color}; color: white; padding: 0.15rem 0.4rem; border-radius: 4px;">
+                                            <i class="fas ${catStyle.icon}"></i> ${catStyle.label}
+                                        </span>
+                                        <span style="font-size: 0.65rem; color: var(--text-secondary);">
+                                            ${sender !== 'Todd' ? `by ${sender} · ` : ''}${new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                        </span>
+                                    </div>
+                                    ${postsGenerated > 0 ? `<span style="font-size: 0.6rem; background: var(--info); padding: 0.1rem 0.4rem; border-radius: 8px;">${postsGenerated} posts</span>` : ''}
                                 </div>
-                                <div style="font-size: 0.85rem; color: var(--text-primary);">
-                                    ${content.substring(0, 150)}${content.length > 150 ? '...' : ''}
+                                <div style="font-size: 0.8rem; color: var(--text-primary); line-height: 1.4;">
+                                    ${content.substring(0, 120)}${content.length > 120 ? '...' : ''}
                                 </div>
                             </div>
                         `;
@@ -26886,14 +26957,14 @@ Would you like to test posting to Threads?`;
                     // Update total count
                     const totalCount = document.getElementById('totalEntriesCount');
                     if (totalCount && data.total) {
-                        totalCount.textContent = `${data.total} total`;
+                        totalCount.textContent = `${data.total} entries`;
                     }
                 } else {
-                    container.innerHTML = '<p style="color: var(--text-secondary); text-align: center;">No entries yet. Write your first Week in Review!</p>';
+                    container.innerHTML = '<p style="color: var(--text-secondary); text-align: center; font-size: 0.85rem;">No entries yet. Add your first farm journal entry!</p>';
                 }
             } catch (error) {
                 console.error('Error loading journal entries:', error);
-                container.innerHTML = '<p style="color: var(--danger);">Failed to load entries</p>';
+                container.innerHTML = '<p style="color: var(--danger); font-size: 0.85rem;">Failed to load entries</p>';
             }
         }
 
@@ -26951,13 +27022,29 @@ Would you like to test posting to Threads?`;
         }
 
         async function submitJournalEntry() {
-            const text = document.getElementById('journalEntryText')?.value;
+            const textArea = document.getElementById('journalEntryText');
+            const text = textArea?.value;
             if (!text || text.trim().length < 20) {
                 showToast('Please write a bit more (at least a few sentences)', 'warning');
                 return;
             }
 
-            showToast('Saving entry and generating content...', 'info');
+            // Disable button and show loading state
+            const submitBtn = document.querySelector('#journalEntryModal button[onclick="submitJournalEntry()"]');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            }
+
+            // Store the entry locally first (so we don't lose it)
+            const entryBackup = {
+                text: text,
+                timestamp: new Date().toISOString(),
+                account: selectedAccount || 'farm'
+            };
+            localStorage.setItem('tinyseed_last_journal_entry', JSON.stringify(entryBackup));
+
+            showToast('Saving your entry...', 'info');
 
             try {
                 // Fixed 2026-02-13: Use text/plain Content-Type to match other API calls
@@ -26968,27 +27055,60 @@ Would you like to test posting to Threads?`;
                         input: text,
                         toddInput: text,  // Backend checks both
                         account: selectedAccount || 'farm',
-                        source: 'web_journal'
+                        source: 'web_journal',
+                        category: detectJournalCategory(text)
                     })
                 });
                 const data = await response.json();
 
-                document.getElementById('journalEntryModal')?.remove();
-
                 if (data.success) {
-                    showToast(`Entry saved! ${data.postsGenerated || ''} posts generated.`, 'success');
+                    // SUCCESS - Close modal and show confirmation
+                    document.getElementById('journalEntryModal')?.remove();
+                    localStorage.removeItem('tinyseed_last_journal_entry'); // Clear backup
+
+                    const postsMsg = data.postsGenerated ? ` ${data.postsGenerated} posts queued for your approval.` : '';
+                    showToast(`Entry saved!${postsMsg}`, 'success');
+
+                    // Refresh the journal entries list
                     loadJournalEntries();
-                    // Also refresh the Week in Review section
                     loadCurrentWeekResponse();
                 } else {
+                    // API returned error but didn't throw
                     console.warn('Journal API response:', data);
-                    showToast(data.message || 'Entry saved but content generation failed', 'warning');
-                    loadJournalEntries();
+                    showToast(data.message || data.error || 'Entry may not have saved. Check Recent Entries.', 'warning');
+                    // Re-enable button so user can try again
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<i class="fas fa-save"></i> Save Entry & Generate Posts';
+                    }
                 }
             } catch (error) {
                 console.error('Error submitting journal:', error);
-                showToast('Failed to submit entry. Please try again.', 'error');
+                showToast('Network error. Your entry is saved locally - try again.', 'error');
+                // Re-enable button
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-save"></i> Save Entry & Generate Posts';
+                }
             }
+        }
+
+        // Detect category from journal entry text
+        function detectJournalCategory(text) {
+            const lower = text.toLowerCase();
+            if (lower.includes('flower') || lower.includes('bloom') || lower.includes('bouquet') || lower.includes('dahlia') || lower.includes('sunflower') || lower.includes('zinnia')) {
+                return 'flowers';
+            }
+            if (lower.includes('mushroom') || lower.includes('fungi') || lower.includes('oyster') || lower.includes('shiitake') || lower.includes('lion')) {
+                return 'mushrooms';
+            }
+            if (lower.includes('market') || lower.includes('sewickley') || lower.includes('lawrenceville') || lower.includes('customer') || lower.includes('booth')) {
+                return 'farmers_market';
+            }
+            if (lower.includes('tomato') || lower.includes('pepper') || lower.includes('lettuce') || lower.includes('harvest') || lower.includes('plant') || lower.includes('field') || lower.includes('vegetable') || lower.includes('carrot') || lower.includes('beet')) {
+                return 'vegetables';
+            }
+            return 'general';
         }
 
         async function sendMePromptSMS() {
