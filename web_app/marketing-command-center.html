@@ -5253,11 +5253,14 @@
             <!-- Algorithm Intelligence Panel - COLLAPSIBLE - NOW WITH REAL DATA -->
             <div class="card" style="margin-top: 1.5rem; background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%); border: 1px solid rgba(139, 92, 246, 0.3);">
                 <div class="card-header" style="flex-wrap: wrap; gap: 0.5rem; cursor: pointer;" onclick="toggleAlgorithmPanel()">
-                    <h3 style="background: linear-gradient(135deg, #6366F1, #8B5CF6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: flex; align-items: center; gap: 0.5rem;">
-                        <i class="fas fa-brain" style="-webkit-text-fill-color: #8B5CF6;"></i> Algorithm Intelligence
-                        <i id="algorithmPanelArrow" class="fas fa-chevron-down" style="-webkit-text-fill-color: #8B5CF6; font-size: 0.8rem; transition: transform 0.3s;"></i>
-                        <span id="algoHealthBadge" class="badge" style="background: var(--success); font-size: 0.65rem; padding: 0.2rem 0.5rem; margin-left: 0.5rem; -webkit-text-fill-color: white;">HEALTHY</span>
-                    </h3>
+                    <div>
+                        <h3 style="background: linear-gradient(135deg, #6366F1, #8B5CF6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                            <i class="fas fa-brain" style="-webkit-text-fill-color: #8B5CF6;"></i> Algorithm Intelligence
+                            <i id="algorithmPanelArrow" class="fas fa-chevron-down" style="-webkit-text-fill-color: #8B5CF6; font-size: 0.8rem; transition: transform 0.3s;"></i>
+                            <span id="algoHealthBadge" class="badge" style="background: var(--success); font-size: 0.65rem; padding: 0.2rem 0.5rem; margin-left: 0.5rem; -webkit-text-fill-color: white;">HEALTHY</span>
+                        </h3>
+                        <p style="font-size: 0.75rem; color: var(--text-secondary); margin: 0;">Instagram & Facebook engagement trends, algorithm updates, and what's working</p>
+                    </div>
                     <div style="display: flex; gap: 0.5rem; align-items: center;">
                         <span id="researchLastUpdated" style="font-size: 0.7rem; color: var(--text-secondary);">
                             <i class="fas fa-clock"></i> Updated: Loading...
@@ -21982,11 +21985,18 @@ Would you like to test posting to Threads?`;
 
                     showToast(`Synced ${result.totalPosts} posts from Instagram!`, 'success');
                 } else {
-                    showToast(`Sync failed: ${result.error}`, 'error');
+                    // Show helpful message based on error type
+                    if (result.error && result.error.includes('No Instagram accounts')) {
+                        showToast('Instagram not connected. Go to Settings → Connect Instagram.', 'warning');
+                    } else if (result.error && result.error.includes('Missing token')) {
+                        showToast('Instagram token expired. Re-connect in Settings.', 'warning');
+                    } else {
+                        showToast(`Sync failed: ${result.error}`, 'error');
+                    }
                 }
             } catch (error) {
                 console.error('Instagram sync error:', error);
-                showToast('Failed to sync from Instagram. Check console for details.', 'error');
+                showToast('Instagram sync failed. Go to Settings to connect Instagram.', 'warning');
             } finally {
                 syncBtn.disabled = false;
                 syncIcon.className = 'fas fa-sync-alt';
@@ -22549,12 +22559,19 @@ Would you like to test posting to Threads?`;
                 const bestTimeQualityEl = document.getElementById('brainBestTimeQuality');
                 const optimalTime = getNextOptimalPostTime();
                 if (bestTimeEl && optimalTime) {
-                    bestTimeEl.textContent = optimalTime;
-                    if (bestTimeQualityEl) bestTimeQualityEl.innerHTML = '<i class="fas fa-clock"></i> Optimal window';
+                    // optimalTime is an object {day, time, quality, isToday} - format it properly
+                    const timeDisplay = optimalTime.isToday ? optimalTime.time : `${optimalTime.day} ${optimalTime.time}`;
+                    bestTimeEl.textContent = timeDisplay;
+                    if (bestTimeQualityEl) {
+                        const qualityIcon = optimalTime.quality === 'best' ? 'fa-star' : optimalTime.quality === 'great' ? 'fa-thumbs-up' : 'fa-clock';
+                        bestTimeQualityEl.innerHTML = `<i class="fas ${qualityIcon}"></i> ${optimalTime.quality === 'best' ? 'Peak time!' : 'Optimal window'}`;
+                    }
                 }
                 // Also update header optimal time
                 const headerOptimalEl = document.getElementById('headerOptimalTime');
-                if (headerOptimalEl && optimalTime) headerOptimalEl.textContent = optimalTime;
+                if (headerOptimalEl && optimalTime) {
+                    headerOptimalEl.textContent = optimalTime.isToday ? optimalTime.time : `${optimalTime.day} ${optimalTime.time}`;
+                }
             } catch (e) { console.log('Best time not available'); }
 
             // 5. Load Content Mix Status (5-3-2)
@@ -22652,30 +22669,29 @@ Would you like to test posting to Threads?`;
                 });
             }
 
-            // 5-3-2 BALANCE tasks - add to Today's Focus when mix is unbalanced
-            if (needCurated > 0) {
-                todayTasks.push({
-                    action: `Share ${needCurated} curated post${needCurated > 1 ? 's' : ''} (industry news, tips)`,
-                    description: '5-3-2 Rule: 50% should be curated content. Mix is unbalanced.',
-                    priority: needCurated >= 3 ? 'high' : 'medium',
-                    type: 'CURATED_CONTENT'
-                });
-            }
-            if (needOriginal > 0) {
-                todayTasks.push({
-                    action: `Create ${needOriginal} original post${needOriginal > 1 ? 's' : ''} (farm content)`,
-                    description: '5-3-2 Rule: 30% should be original content. Mix is unbalanced.',
-                    priority: needOriginal >= 2 ? 'high' : 'medium',
-                    type: 'ORIGINAL_CONTENT'
-                });
-            }
-            if (needPersonal > 0) {
-                todayTasks.push({
-                    action: `Add ${needPersonal} personal post${needPersonal > 1 ? 's' : ''} (behind-the-scenes)`,
-                    description: '5-3-2 Rule: 20% should be personal content. Mix is unbalanced.',
-                    priority: 'medium',
-                    type: 'PERSONAL_CONTENT'
-                });
+            // 5-3-2 BALANCE tasks - suggest just TODAY'S portion, not the entire week
+            // Spread the required posts across remaining days
+            const postsPerDay = Math.ceil(remaining / Math.max(1, daysLeftInWeek));
+            const todayTarget = Math.min(postsPerDay, 2); // Max 2 posts suggested per day
+
+            // Prioritize what's most needed: pick ONE type to focus on today
+            if (todayTarget > 0 && (needCurated > 0 || needOriginal > 0 || needPersonal > 0)) {
+                // Find the most imbalanced type
+                const priorities = [
+                    { type: 'curated', need: needCurated, label: 'curated (industry news/tips)', ideal: 5 },
+                    { type: 'original', need: needOriginal, label: 'original (farm content)', ideal: 3 },
+                    { type: 'personal', need: needPersonal, label: 'personal (behind-the-scenes)', ideal: 2 }
+                ].filter(p => p.need > 0).sort((a, b) => (b.need / b.ideal) - (a.need / a.ideal));
+
+                if (priorities.length > 0) {
+                    const focus = priorities[0];
+                    todayTasks.push({
+                        action: `Today: Post 1 ${focus.label}`,
+                        description: `5-3-2 balance: Need ${focus.need} more ${focus.type} this week.`,
+                        priority: focus.need >= 3 ? 'high' : 'medium',
+                        type: 'CONTENT_BALANCE'
+                    });
+                }
             }
 
             // If ALL goals met, show success
@@ -22764,9 +22780,9 @@ Would you like to test posting to Threads?`;
                 brainBadge.title = 'Algorithm research update available';
             }
 
-            // Add a notification to the briefing
+            // Add a notification to the briefing (only if not already present)
             const briefing = document.getElementById('briefingSummary');
-            if (briefing) {
+            if (briefing && !briefing.textContent.includes('algorithm research update')) {
                 briefing.textContent += ' 🔬 Weekly algorithm research update available - click "Research Update" to refresh.';
             }
         }
@@ -23284,8 +23300,11 @@ Would you like to test posting to Threads?`;
             countEl.textContent = suggestions.length;
 
             if (suggestions.length === 0) {
-                listEl.innerHTML = `<div style="text-align: center; padding: 1rem; color: var(--text-secondary); font-size: 0.85rem; grid-column: 1 / -1;">
-                    <i class="fas fa-cloud-sun"></i> Weather data loading...
+                // No weather-triggered suggestions = good weather, show helpful message
+                listEl.innerHTML = `<div style="text-align: center; padding: 1.5rem; color: var(--success); font-size: 0.85rem; grid-column: 1 / -1; background: rgba(34, 197, 94, 0.1); border-radius: 12px; border: 1px solid rgba(34, 197, 94, 0.3);">
+                    <i class="fas fa-sun" style="font-size: 1.5rem; margin-bottom: 0.5rem;"></i>
+                    <p style="font-weight: 600; margin: 0;">Perfect posting weather!</p>
+                    <p style="color: var(--text-secondary); font-size: 0.75rem; margin-top: 0.25rem;">No urgent weather alerts. Any content works great today.</p>
                 </div>`;
                 return;
             }
@@ -23321,13 +23340,16 @@ Would you like to test posting to Threads?`;
 
         function renderWeatherTemplates(templates) {
             const listEl = document.getElementById('weatherTemplatesList');
+            const sectionEl = listEl.parentElement;
 
             if (templates.length === 0) {
-                listEl.innerHTML = `<div style="text-align: center; padding: 1rem; color: var(--text-secondary); font-size: 0.85rem; grid-column: 1 / -1;">
-                    <i class="fas fa-file-alt"></i> Templates loading...
-                </div>`;
+                // Hide the entire Ready-to-Use Templates section when no weather-triggered templates
+                sectionEl.style.display = 'none';
                 return;
             }
+
+            // Show the section when we have templates
+            sectionEl.style.display = 'block';
 
             // Group by platform
             const instagramTemplates = templates.filter(t => t.platform === 'instagram').slice(0, 2);
@@ -23434,21 +23456,22 @@ Would you like to test posting to Threads?`;
 
         function showWeatherError(message) {
             const listEl = document.getElementById('weatherSuggestionsList');
+            // Show a clean "no data" state that doesn't look broken
             listEl.innerHTML = `
-                <div style="text-align: center; padding: 2rem; color: var(--text-secondary); font-size: 0.85rem; grid-column: 1 / -1;">
-                    <i class="fas fa-cloud" style="font-size: 2rem; margin-bottom: 0.5rem;"></i>
-                    <p>Weather data unavailable</p>
-                    <p style="font-size: 0.75rem; opacity: 0.7;">${message}</p>
-                    <button class="btn btn-sm" onclick="refreshWeatherData(true)" style="margin-top: 0.5rem;">
+                <div style="text-align: center; padding: 1.5rem; color: var(--text-secondary); font-size: 0.85rem; grid-column: 1 / -1; background: rgba(255,255,255,0.05); border-radius: 12px;">
+                    <i class="fas fa-cloud" style="font-size: 1.5rem; margin-bottom: 0.5rem; opacity: 0.5;"></i>
+                    <p style="margin: 0; font-weight: 500;">Weather service unavailable</p>
+                    <button class="btn btn-sm" onclick="refreshWeatherData(true)" style="margin-top: 0.75rem; background: var(--card-bg); border: 1px solid var(--border-color);">
                         <i class="fas fa-sync-alt"></i> Retry
                     </button>
                 </div>
             `;
 
+            // Hide the templates section entirely when weather fails
             const templatesList = document.getElementById('weatherTemplatesList');
-            templatesList.innerHTML = `<div style="text-align: center; padding: 1rem; color: var(--text-secondary); font-size: 0.85rem; grid-column: 1 / -1;">
-                Templates unavailable
-            </div>`;
+            if (templatesList && templatesList.parentElement) {
+                templatesList.parentElement.style.display = 'none';
+            }
         }
 
         function escapeHtml(text) {
@@ -23629,11 +23652,29 @@ Would you like to test posting to Threads?`;
             const rateEl = document.getElementById('mccAppearanceRate');
             const statsEl = document.getElementById('mccAppearanceStats');
             const mentionsEl = document.getElementById('mccRecentMentions');
-            if (scoreEl) scoreEl.textContent = '--';
-            if (trendEl) trendEl.textContent = 'Start tracking AI visibility';
-            if (rateEl) rateEl.textContent = '--%';
-            if (statsEl) statsEl.textContent = 'No data yet';
+
+            // Show actionable empty state
+            if (scoreEl) {
+                scoreEl.textContent = '0%';
+                scoreEl.style.color = '#e74c3c';
+            }
+            if (trendEl) trendEl.innerHTML = '<a href="seo_dashboard.html#ai-check" style="color: #1abc9c;">Run first check →</a>';
+            if (rateEl) {
+                rateEl.textContent = '0%';
+                rateEl.style.color = '#e74c3c';
+            }
+            if (statsEl) statsEl.textContent = 'Run 10+ checks to track';
             if (mentionsEl) mentionsEl.textContent = '0';
+
+            // Hide the detail sections when no data
+            const platformGrid = document.getElementById('mccAiPlatformsGrid');
+            const mentionAlerts = document.getElementById('mccBrandMentionAlerts');
+            const citedContent = document.getElementById('mccCitedContentSection');
+            const recommendations = document.getElementById('mccAeoRecommendations');
+            if (platformGrid) platformGrid.style.display = 'none';
+            if (mentionAlerts) mentionAlerts.style.display = 'none';
+            if (citedContent) citedContent.style.display = 'none';
+            if (recommendations) recommendations.style.display = 'none';
         }
 
         function openMCCAICheckModal() {
