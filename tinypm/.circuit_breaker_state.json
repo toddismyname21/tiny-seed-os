@@ -1,0 +1,53 @@
+{
+  "version": "1.0",
+  "created": "2026-02-12T00:00:00.000Z",
+  "last_updated": "2026-02-12T14:14:32.369Z",
+  "agents": {
+    "Backend_Claude": {
+      "state": "CLOSED",
+      "failureCount": 0,
+      "successCount": 0,
+      "lastFailureTime": null,
+      "lastSuccessTime": null,
+      "tripReason": null,
+      "actionHistory": [],
+      "recentResults": [],
+      "tokenUsage": 0,
+      "thresholds": {
+        "failure_threshold": 5,
+        "recovery_timeout_ms": 60000,
+        "half_open_success_threshold": 3,
+        "max_iterations": 30,
+        "max_execution_time_ms": 120000,
+        "repeated_action_limit": 3,
+        "error_rate_threshold": 0.5,
+        "error_rate_window": 10,
+        "token_limit_warning": 80000,
+        "token_limit_trip": 100000
+      }
+    },
+    "Test_Agent": {
+      "state": "CLOSED",
+      "failureCount": 0,
+      "successCount": 0,
+      "lastFailureTime": null,
+      "lastSuccessTime": null,
+      "tripReason": null,
+      "actionHistory": [],
+      "recentResults": [],
+      "tokenUsage": 0,
+      "thresholds": {
+        "failure_threshold": 5,
+        "recovery_timeout_ms": 60000,
+        "half_open_success_threshold": 3,
+        "max_iterations": 30,
+        "max_execution_time_ms": 120000,
+        "repeated_action_limit": 3,
+        "error_rate_threshold": 0.5,
+        "error_rate_window": 10,
+        "token_limit_warning": 80000,
+        "token_limit_trip": 100000
+      }
+    }
+  }
+}

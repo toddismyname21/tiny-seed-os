@@ -2,40 +2,62 @@
   "version": "1.1",
   "created": "2026-02-12",
   "metrics": {
-    "tasks_completed": 1,
+    "tasks_completed": 2,
     "tasks_failed": 0,
-    "escalations": 0,
+    "escalations": 2,
     "approvals_requested": 0,
     "rollbacks_executed": 0,
     "duplicates_prevented": 0,
     "pre_flight_failures": 0,
-    "verification_gates_required": 0,
-    "verification_gates_passed": 0,
-    "verification_gates_failed": 0,
-    "verification_gates_blocked": 0,
+    "verification_gates_required": 2,
+    "verification_gates_passed": 1,
+    "verification_gates_failed": 1,
+    "verification_gates_blocked": 1,
     "proofs_submitted": 0,
     "proofs_validated": 0,
     "proofs_rejected": 0,
-    "direct_done_attempts_blocked": 0
+    "direct_done_attempts_blocked": 0,
+    "abstentions_total": 2,
+    "abstentions_low_confidence": 1,
+    "abstentions_ethical_concern": 1,
+    "abstentions_escalated": 1,
+    "tasks_paused": 3,
+    "tasks_resumed": 3,
+    "circuit_breaker_resets": 2,
+    "circuit_breaker_trips": 1
   },
   "by_agent": {
     "PM_Architect": {
-      "tasks_completed": 0,
+      "tasks_completed": 1,
       "tasks_failed": 0,
-      "escalations": 0,
-      "approvals_requested": 0
+      "escalations": 1,
+      "approvals_requested": 0,
+      "tasks_paused": 1,
+      "tasks_resumed": 1,
+      "circuit_breaker_trips": 1,
+      "circuit_breaker_resets": 1
     },
     "Backend_Claude": {
       "tasks_completed": 1,
       "tasks_failed": 0,
       "escalations": 0,
-      "approvals_requested": 0
+      "approvals_requested": 0,
+      "abstentions_total": 1,
+      "abstentions_low_confidence": 1,
+      "tasks_paused": 1,
+      "tasks_resumed": 1,
+      "circuit_breaker_resets": 1,
+      "verification_gates_required": 1,
+      "verification_gates_passed": 1,
+      "verification_gates_blocked": 1
     },
     "Desktop_Claude": {
       "tasks_completed": 0,
       "tasks_failed": 0,
       "escalations": 0,
-      "approvals_requested": 0
+      "approvals_requested": 0,
+      "verification_gates_required": 1,
+      "verification_gates_failed": 1
     },
     "Mobile_Claude": {
       "tasks_completed": 0,
@@ -58,8 +80,15 @@
     "Security_Claude": {
       "tasks_completed": 0,
       "tasks_failed": 0,
-      "escalations": 0,
-      "approvals_requested": 0
+      "escalations": 1,
+      "approvals_requested": 0,
+      "abstentions_total": 1,
+      "abstentions_ethical_concern": 1,
+      "abstentions_escalated": 1
+    },
+    "Builder": {
+      "tasks_paused": 1,
+      "tasks_resumed": 1
     }
   },
   "error_budgets": {
@@ -94,7 +123,7 @@
       "period": "weekly"
     }
   },
-  "last_updated": "2026-02-12T06:45:53.024Z",
+  "last_updated": "2026-02-12T21:23:03.496Z",
   "task_states": {
     "TEST-004": {
       "currentState": "AWAITING_VERIFICATION",
@@ -104,6 +133,45 @@
           "to": "AWAITING_VERIFICATION",
           "agent": "Backend_Claude",
           "timestamp": "2026-02-12T06:45:53.024Z"
+        }
+      ]
+    },
+    "TEST-002": {
+      "currentState": "IMPLEMENTED",
+      "history": [
+        {
+          "from": "PENDING",
+          "to": "IN_PROGRESS",
+          "agent": "Backend_Claude",
+          "timestamp": "2026-02-12T14:09:12.052Z"
+        },
+        {
+          "from": "AWAITING_VERIFICATION",
+          "to": "IMPLEMENTED",
+          "agent": "Verifier_Claude",
+          "timestamp": "2026-02-12T21:22:50.170Z"
+        }
+      ]
+    },
+    "TEST-WIRE-001": {
+      "currentState": "AWAITING_VERIFICATION",
+      "history": [
+        {
+          "from": "IMPLEMENTED",
+          "to": "AWAITING_VERIFICATION",
+          "agent": "Backend_Claude",
+          "timestamp": "2026-02-12T18:25:29.842Z"
+        }
+      ]
+    },
+    "TEST-001": {
+      "currentState": "VERIFIED",
+      "history": [
+        {
+          "from": "AWAITING_VERIFICATION",
+          "to": "VERIFIED",
+          "agent": "Verifier_Claude",
+          "timestamp": "2026-02-12T21:22:35.094Z"
         }
       ]
     }
@@ -125,5 +193,54 @@
         "validatedAt": null
       }
     ]
+  },
+  "abstentions": {
+    "records": [
+      {
+        "id": "ABSTAIN-TASK-TEST-001-1770905496781-da98a740",
+        "taskId": "TASK-TEST-001",
+        "agentId": "Backend_Claude",
+        "reason": "low_confidence",
+        "confidence": 0.65,
+        "explanation": "Testing abstention protocol",
+        "missingInfo": [
+          "test data"
+        ],
+        "suggestedAction": "Verify test setup",
+        "timestamp": "2026-02-12T14:11:36.781Z",
+        "escalated": false,
+        "resolved": true,
+        "resolvedBy": "PM_Architect",
+        "resolvedAt": "2026-02-12T14:11:44.856Z",
+        "resolution": "Test resolution - documentation provided"
+      },
+      {
+        "id": "ABSTAIN-TASK-TEST-002-1770905514634-1eecda82",
+        "taskId": "TASK-TEST-002",
+        "agentId": "Security_Claude",
+        "reason": "ethical_concern",
+        "confidence": 0.8,
+        "explanation": "Potential security vulnerability detected",
+        "missingInfo": [],
+        "suggestedAction": "Immediate human review required",
+        "timestamp": "2026-02-12T14:11:54.634Z",
+        "escalated": true,
+        "resolved": false,
+        "resolvedBy": null,
+        "resolvedAt": null
+      }
+    ],
+    "by_agent": {
+      "Backend_Claude": [
+        "ABSTAIN-TASK-TEST-001-1770905496781-da98a740"
+      ],
+      "Security_Claude": [
+        "ABSTAIN-TASK-TEST-002-1770905514634-1eecda82"
+      ]
+    },
+    "by_reason": {
+      "low_confidence": 1,
+      "ethical_concern": 1
+    }
   }
 }

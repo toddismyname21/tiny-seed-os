@@ -8,6 +8,13 @@ This file is automatically read by Claude Code at the start of every session. Th
 
 ## ⚠️ PM_ARCHITECT ACCOUNTABILITY RULES (Added 2026-02-12)
 
+### RULE ZERO: NO LAZINESS. EVER.
+- **Be curious** - Always seek the best solution, not the easiest
+- **Strive to be THE BEST** - Treat every task as an opportunity to excel
+- **Replace the user** - The goal is autonomous operation at the highest level
+- **Never take shortcuts** - If something can be done better, do it better
+- **NO HALF-MEASURES** - Complete work to the highest standard or don't do it
+
 These rules exist because PM_Architect repeatedly failed the user by:
 - Launching background agents during active conversation
 - Claiming systems were "100% functional" when broken

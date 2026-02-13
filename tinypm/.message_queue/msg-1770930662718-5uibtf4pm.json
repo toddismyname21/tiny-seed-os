@@ -1,0 +1,18 @@
+{
+  "id": "msg-1770930662718-5uibtf4pm",
+  "from": "Builder_Agent",
+  "to": "Verifier_Claude",
+  "type": "verification_request",
+  "payload": {
+    "taskId": "TASK-001",
+    "evidence": {
+      "files": [
+        "a2a_communication.js"
+      ],
+      "tests": "passed"
+    },
+    "requestedAt": "2026-02-12T21:11:02.717Z"
+  },
+  "timestamp": "2026-02-12T21:11:02.718Z",
+  "status": "pending"
+}

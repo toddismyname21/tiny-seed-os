@@ -1,0 +1,20 @@
+{
+  "id": "msg-1770930662723-41h9s80r5",
+  "from": "Verifier_Claude",
+  "to": "PM_Architect",
+  "type": "verification_result",
+  "payload": {
+    "taskId": "TASK-001",
+    "passed": true,
+    "details": {
+      "checklist": [
+        "file created",
+        "tests passed"
+      ]
+    },
+    "verifiedAt": "2026-02-12T21:11:02.723Z"
+  },
+  "timestamp": "2026-02-12T21:11:02.723Z",
+  "status": "read",
+  "readAt": "2026-02-12T21:11:02.725Z"
+}

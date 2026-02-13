@@ -1,0 +1,38 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2026-02-12T21:23:08.255Z",
+  "pending": [],
+  "resolved": [
+    {
+      "id": "ESC-1770931316811-2cc3bfe6",
+      "agentRole": "PM_Architect",
+      "reason": "Testing tripCircuitBreaker function",
+      "type": "CIRCUIT_BREAKER",
+      "details": {},
+      "status": "resolved",
+      "priority": "high",
+      "createdAt": "2026-02-12T21:21:56.811Z",
+      "resolvedAt": "2026-02-12T21:22:06.055Z",
+      "resolvedBy": "PM_Architect",
+      "resolution": "Resolved after testing"
+    },
+    {
+      "id": "ESC-1770931335165-51234000",
+      "agentRole": "Security_Claude",
+      "reason": "Testing manual escalation",
+      "type": "MANUAL",
+      "details": {},
+      "status": "resolved",
+      "priority": "normal",
+      "createdAt": "2026-02-12T21:22:15.165Z",
+      "resolvedAt": "2026-02-12T21:23:08.255Z",
+      "resolvedBy": "PM_Architect",
+      "resolution": "Test cleanup"
+    }
+  ],
+  "statistics": {
+    "totalCreated": 2,
+    "totalResolved": 2,
+    "avgResolutionTimeMinutes": 0
+  }
+}

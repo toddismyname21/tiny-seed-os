@@ -1,0 +1,34 @@
+{
+  "traceId": "0fd3f2d95b0377ec69ef27f5b16f5088",
+  "spanId": "e3e303b802b70047",
+  "parentSpanId": null,
+  "operationName": "agent_task_WRAP-TEST-001",
+  "startTime": 1770930711921000000,
+  "endTime": 1770930711933000000,
+  "duration": 12000000,
+  "status": {
+    "code": "OK"
+  },
+  "attributes": {
+    "service.name": "tiny-seed-os",
+    "agent.id": "Builder",
+    "task.id": "WRAP-TEST-001",
+    "agentId": "Builder",
+    "taskId": "WRAP-TEST-001"
+  },
+  "events": [
+    {
+      "name": "task_started",
+      "timestamp": 1770930711921000000,
+      "attributes": {}
+    },
+    {
+      "name": "task_completed",
+      "timestamp": 1770930711933000000,
+      "attributes": {
+        "resultType": "object"
+      }
+    }
+  ],
+  "links": []
+}

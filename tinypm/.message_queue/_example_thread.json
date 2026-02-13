@@ -1,0 +1,74 @@
+[
+  {
+    "messageId": "example-001-pm-to-backend",
+    "timestamp": "2026-02-12T10:00:00Z",
+    "from": "PM_Architect",
+    "to": "Backend_Claude",
+    "type": "request",
+    "contextId": "ctx-example-thread",
+    "taskId": "TASK-EXAMPLE-001",
+    "priority": "high",
+    "payload": {
+      "subject": "Example Request: API Review",
+      "body": "This is an example message demonstrating the A2A-Lite protocol structure.\n\nPlease review the authentication endpoints and provide feedback on:\n1. Security best practices\n2. Error handling\n3. Rate limiting",
+      "action": "review_code",
+      "metadata": {
+        "files": ["apps_script/Auth.js"],
+        "deadline": "2026-02-13T17:00:00Z"
+      }
+    },
+    "confidence": 0.95,
+    "status": "completed",
+    "parentMessageId": null,
+    "retryCount": 0
+  },
+  {
+    "messageId": "example-002-backend-response",
+    "timestamp": "2026-02-12T11:30:00Z",
+    "from": "Backend_Claude",
+    "to": "PM_Architect",
+    "type": "response",
+    "contextId": "ctx-example-thread",
+    "taskId": "TASK-EXAMPLE-001",
+    "priority": "high",
+    "payload": {
+      "subject": "Re: Example Request: API Review",
+      "body": "Review complete. The authentication endpoints look good overall.\n\n**Findings:**\n1. Security: Token validation is solid\n2. Error handling: Could improve error messages for better debugging\n3. Rate limiting: Not yet implemented - recommend adding\n\n**Recommendation:** Implement rate limiting before production deploy.",
+      "result": {
+        "status": "issues_found",
+        "issueCount": 1,
+        "recommendation": "implement_rate_limiting"
+      }
+    },
+    "confidence": 0.88,
+    "status": "completed",
+    "parentMessageId": "example-001-pm-to-backend",
+    "acknowledgedAt": "2026-02-12T10:15:00Z",
+    "updatedAt": "2026-02-12T11:30:00Z",
+    "retryCount": 0
+  },
+  {
+    "messageId": "example-003-handoff",
+    "timestamp": "2026-02-12T12:00:00Z",
+    "from": "Backend_Claude",
+    "to": "Security_Claude",
+    "type": "handoff",
+    "contextId": "ctx-example-thread",
+    "taskId": "TASK-EXAMPLE-001",
+    "priority": "high",
+    "payload": {
+      "subject": "Handoff: Rate Limiting Implementation",
+      "body": "Handing off rate limiting implementation to Security_Claude as this falls under security scope.\n\n**Context:**\n- Auth endpoints reviewed and approved\n- Rate limiting identified as missing component\n- Deadline: 2026-02-13\n\n**Files to modify:**\n- apps_script/Auth.js\n- apps_script/RateLimiter.js (new)",
+      "action": "implement_rate_limiting",
+      "metadata": {
+        "originalRequester": "PM_Architect",
+        "handoffReason": "security_scope",
+        "previousWork": "api_review_complete"
+      }
+    },
+    "confidence": 0.92,
+    "status": "pending",
+    "parentMessageId": "example-002-backend-response",
+    "retryCount": 0
+  }
+]

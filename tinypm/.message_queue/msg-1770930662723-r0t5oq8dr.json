@@ -1,0 +1,13 @@
+{
+  "id": "msg-1770930662723-r0t5oq8dr",
+  "from": "Builder_Agent",
+  "to": "PM_Architect",
+  "type": "status_update",
+  "payload": {
+    "task": "A2A Protocol",
+    "status": "COMPLETE"
+  },
+  "timestamp": "2026-02-12T21:11:02.723Z",
+  "status": "read",
+  "readAt": "2026-02-12T21:11:02.725Z"
+}

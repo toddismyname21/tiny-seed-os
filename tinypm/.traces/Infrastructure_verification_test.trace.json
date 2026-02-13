@@ -1,0 +1,25 @@
+{
+  "traceId": "9fbf3ffa-bc94-455a-92b8-edf6a4ea97f2",
+  "taskId": "Infrastructure verification test",
+  "createdAt": "2026-02-12T14:25:14.001Z",
+  "updatedAt": "2026-02-12T14:25:14.000Z",
+  "spans": [
+    {
+      "spanId": "ae99b90ba8fba08e",
+      "traceId": "9fbf3ffa-bc94-455a-92b8-edf6a4ea97f2",
+      "operationName": "TEST-001",
+      "agentId": "PM_Architect",
+      "taskId": "Infrastructure verification test",
+      "parentSpanId": null,
+      "startTime": "2026-02-12T14:25:14.000Z",
+      "endTime": null,
+      "durationMs": null,
+      "status": "UNSET",
+      "statusMessage": null,
+      "events": [],
+      "attributes": {},
+      "output": null
+    }
+  ],
+  "metadata": {}
+}

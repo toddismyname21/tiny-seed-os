@@ -408,15 +408,9 @@
         }
 
         .field-mode-content {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 2rem;
-        }
-
-        @media (max-width: 900px) {
-            .field-mode-content {
-                grid-template-columns: 1fr;
-            }
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
         }
 
         .upload-zone {
@@ -2177,9 +2171,7 @@
                 grid-template-columns: repeat(2, 1fr);
             }
 
-            .field-mode-content {
-                grid-template-columns: 1fr;
-            }
+            /* field-mode-content now uses flex - no grid override needed */
 
             .gallery-grid {
                 grid-template-columns: repeat(2, 1fr);
@@ -4647,6 +4639,211 @@
             font-size: 1.2rem;
             box-shadow: 0 6px 20px rgba(0,0,0,0.4);
         }
+
+        /* ============================================= */
+        /* INTELLIGENCE DRAWER - Right Sidebar */
+        /* ============================================= */
+        .intel-drawer {
+            position: sticky;
+            top: 80px;
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 1rem;
+            border: 1px solid var(--border);
+        }
+
+        .intel-drawer.collapsed {
+            display: none;
+        }
+
+        .intel-drawer-toggle {
+            position: fixed;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 50;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+        }
+
+        .intel-drawer-toggle:hover {
+            background: var(--bg-hover);
+        }
+
+        /* Create Tab Layout - Main + Drawer */
+        .create-tab-layout {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 1rem;
+            align-items: start;
+        }
+
+        @media (max-width: 1200px) {
+            .create-tab-layout {
+                grid-template-columns: 1fr;
+            }
+            .intel-drawer {
+                position: fixed;
+                right: 0;
+                top: 0;
+                bottom: 0;
+                z-index: 100;
+                width: 320px;
+                border-radius: 0;
+                transform: translateX(100%);
+                transition: transform 0.3s ease;
+            }
+            .intel-drawer.open {
+                transform: translateX(0);
+            }
+            .intel-drawer-overlay {
+                position: fixed;
+                inset: 0;
+                background: rgba(0,0,0,0.5);
+                z-index: 99;
+                display: none;
+            }
+            .intel-drawer-overlay.open {
+                display: block;
+            }
+        }
+
+        /* ============================================= */
+        /* PLATFORM GROUPS - Hierarchy */
+        /* ============================================= */
+        .platform-group-primary {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .platform-group-secondary {
+            display: none;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            padding-top: 0.5rem;
+            border-top: 1px solid var(--border);
+            margin-top: 0.5rem;
+        }
+
+        .platform-group-secondary.expanded {
+            display: flex;
+        }
+
+        .more-platforms-toggle {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .more-platforms-toggle:hover {
+            background: var(--bg-hover);
+        }
+
+        /* ============================================= */
+        /* PUBLISH ACTIONS - Post Now / Schedule */
+        /* ============================================= */
+        .publish-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .btn-post-now {
+            background: linear-gradient(135deg, var(--success), #059669);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-post-now:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
+        }
+
+        .btn-schedule {
+            background: linear-gradient(135deg, var(--info), #0284c7);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-schedule:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-schedule.has-time {
+            position: relative;
+        }
+
+        .btn-schedule .scheduled-time {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 400;
+            margin-top: 0.25rem;
+            opacity: 0.9;
+        }
+
+        /* ============================================= */
+        /* COMPOSER - Top Priority */
+        /* ============================================= */
+        .composer-primary {
+            background: var(--bg-card);
+            border: 2px solid var(--primary);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .composer-primary textarea {
+            width: 100%;
+            min-height: 120px;
+            background: transparent;
+            border: none;
+            color: var(--text);
+            font-size: 1rem;
+            resize: vertical;
+            outline: none;
+        }
+
+        .composer-primary textarea::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .composer-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
     </style>
 </head>
 <body>
@@ -5502,97 +5699,15 @@
                 </button>
             </div>
 
-            <!-- POST INTELLIGENCE BAR - Dynamic Context for Any Post -->
-            <div class="post-intelligence-bar" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; padding: 0.75rem; background: rgba(99, 102, 241, 0.1); border-radius: 12px; border: 1px solid rgba(99, 102, 241, 0.2);">
-                <div style="width: 100%; margin-bottom: 0.25rem;">
-                    <span style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 600;">
-                        <i class="fas fa-brain"></i> POST INTELLIGENCE - Click to inject context into your post
-                    </span>
-                </div>
-                <button class="intel-toggle-btn" id="weatherIntelBtn" onclick="togglePostIntel('weather')" style="padding: 0.5rem 1rem; background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 8px; color: #3B82F6; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s;">
-                    <i class="fas fa-cloud-sun"></i> Weather
-                    <span id="weatherIntelStatus" class="intel-status" style="background: var(--warning); color: white; font-size: 0.6rem; padding: 0.15rem 0.4rem; border-radius: 4px; display: none;">LIVE</span>
-                </button>
-                <button class="intel-toggle-btn" id="keywordsIntelBtn" onclick="togglePostIntel('keywords')" style="padding: 0.5rem 1rem; background: rgba(34, 197, 94, 0.2); border: 1px solid rgba(34, 197, 94, 0.4); border-radius: 8px; color: #22C55E; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s;">
-                    <i class="fas fa-hashtag"></i> SEO/AEO Keywords
-                    <span id="keywordsIntelStatus" class="intel-status" style="background: var(--success); color: white; font-size: 0.6rem; padding: 0.15rem 0.4rem; border-radius: 4px; display: none;">DYNAMIC</span>
-                </button>
-                <button class="intel-toggle-btn" id="algoIntelBtn" onclick="togglePostIntel('algorithm')" style="padding: 0.5rem 1rem; background: rgba(139, 92, 246, 0.2); border: 1px solid rgba(139, 92, 246, 0.4); border-radius: 8px; color: #8B5CF6; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s;">
-                    <i class="fas fa-chart-line"></i> Algorithm Intel
-                    <span id="algoIntelStatus" class="intel-status" style="background: var(--instagram); color: white; font-size: 0.6rem; padding: 0.15rem 0.4rem; border-radius: 4px; display: none;">HOT</span>
-                </button>
-                <button class="intel-toggle-btn" id="farmDataIntelBtn" onclick="togglePostIntel('farmdata')" style="padding: 0.5rem 1rem; background: rgba(251, 146, 60, 0.2); border: 1px solid rgba(251, 146, 60, 0.4); border-radius: 8px; color: #FB923C; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s;">
-                    <i class="fas fa-database"></i> Farm Data
-                    <span id="farmDataIntelStatus" class="intel-status" style="background: var(--gold); color: white; font-size: 0.6rem; padding: 0.15rem 0.4rem; border-radius: 4px; display: none;">SYNC</span>
-                </button>
-            </div>
+            <!-- Intelligence Drawer Toggle Button -->
+            <button class="intel-drawer-toggle" onclick="toggleIntelDrawer()" title="Toggle Intelligence Panel">
+                <i class="fas fa-lightbulb"></i>
+            </button>
+            <div class="intel-drawer-overlay" onclick="toggleIntelDrawer()"></div>
 
-            <!-- WEATHER INTELLIGENCE PANEL (Expandable) -->
-            <div id="weatherIntelPanel" class="intel-panel" style="display: none; margin-bottom: 1rem; padding: 1rem; background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(14, 165, 233, 0.1) 100%); border-radius: 12px; border: 1px solid rgba(59, 130, 246, 0.3);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <h4 style="margin: 0; color: #3B82F6;"><i class="fas fa-cloud-sun"></i> Weather-Smart Content Ideas</h4>
-                    <button onclick="refreshWeatherIntel()" class="btn btn-sm" style="background: #3B82F6; color: white; font-size: 0.75rem;">
-                        <i class="fas fa-sync-alt" id="weatherIntelRefreshIcon"></i> Refresh
-                    </button>
-                </div>
-                <div id="weatherIntelContent" style="display: grid; gap: 0.75rem;">
-                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-                        <i class="fas fa-spinner fa-spin"></i> Loading weather intelligence...
-                    </div>
-                </div>
-            </div>
-
-            <!-- SEO/AEO KEYWORDS PANEL (Expandable) -->
-            <div id="keywordsIntelPanel" class="intel-panel" style="display: none; margin-bottom: 1rem; padding: 1rem; background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(16, 185, 129, 0.1) 100%); border-radius: 12px; border: 1px solid rgba(34, 197, 94, 0.3);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <h4 style="margin: 0; color: #22C55E;"><i class="fas fa-hashtag"></i> Dynamic SEO/AEO Keywords</h4>
-                    <div style="display: flex; gap: 0.5rem;">
-                        <select id="keywordsIntelAccount" onchange="loadKeywordsIntel()" style="padding: 0.4rem 0.75rem; background: rgba(255,255,255,0.1); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-size: 0.8rem;">
-                            <option value="farm">🌱 Farm</option>
-                            <option value="fleurs">💐 Fleurs</option>
-                            <option value="fungi">🍄 Fungi</option>
-                        </select>
-                        <button onclick="loadKeywordsIntel(true)" class="btn btn-sm" style="background: #22C55E; color: white; font-size: 0.75rem;">
-                            <i class="fas fa-sync-alt" id="keywordsIntelRefreshIcon"></i> Refresh
-                        </button>
-                    </div>
-                </div>
-                <div id="keywordsIntelContent" style="display: grid; gap: 0.75rem;">
-                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-                        <i class="fas fa-spinner fa-spin"></i> Loading dynamic keywords...
-                    </div>
-                </div>
-            </div>
-
-            <!-- ALGORITHM INTELLIGENCE PANEL (Expandable) -->
-            <div id="algorithmIntelPanel" class="intel-panel" style="display: none; margin-bottom: 1rem; padding: 1rem; background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(99, 102, 241, 0.1) 100%); border-radius: 12px; border: 1px solid rgba(139, 92, 246, 0.3);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <h4 style="margin: 0; color: #8B5CF6;"><i class="fas fa-chart-line"></i> Algorithm Intelligence</h4>
-                    <button onclick="refreshAlgorithmIntel()" class="btn btn-sm" style="background: #8B5CF6; color: white; font-size: 0.75rem;">
-                        <i class="fas fa-sync-alt" id="algoIntelRefreshIcon"></i> Refresh
-                    </button>
-                </div>
-                <div id="algorithmIntelContent" style="display: grid; gap: 0.75rem;">
-                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-                        <i class="fas fa-spinner fa-spin"></i> Loading algorithm intelligence...
-                    </div>
-                </div>
-            </div>
-
-            <!-- FARM DATA PANEL (Chief of Staff Data Channel) -->
-            <div id="farmDataIntelPanel" class="intel-panel" style="display: none; margin-bottom: 1rem; padding: 1rem; background: linear-gradient(135deg, rgba(251, 146, 60, 0.15) 0%, rgba(249, 115, 22, 0.1) 100%); border-radius: 12px; border: 1px solid rgba(251, 146, 60, 0.3);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <h4 style="margin: 0; color: #FB923C;"><i class="fas fa-database"></i> Farm Data (Chief of Staff Channel)</h4>
-                    <button onclick="refreshFarmDataIntel()" class="btn btn-sm" style="background: #FB923C; color: white; font-size: 0.75rem;">
-                        <i class="fas fa-sync-alt" id="farmDataIntelRefreshIcon"></i> Sync
-                    </button>
-                </div>
-                <div id="farmDataIntelContent" style="display: grid; gap: 0.75rem;">
-                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-                        <i class="fas fa-spinner fa-spin"></i> Syncing with Chief of Staff...
-                    </div>
-                </div>
-            </div>
+            <!-- CREATE TAB LAYOUT - Main content + Intel Drawer -->
+            <div class="create-tab-layout">
+                <div class="create-main-content">
 
             <!-- QUICK POST MODE (Field Mode) -->
             <div id="quickPostMode" class="create-mode-content">
@@ -5610,7 +5725,33 @@
                 </div>
 
                 <div class="field-mode-content">
-                    <!-- VOICE NOTE FIRST - Most important for field use -->
+                    <!-- CAPTION INPUT - COMPOSER (MOVED TO TOP for immediate visibility) -->
+                    <div class="composer-section">
+                        <textarea class="caption-input" id="captionInput" placeholder="What's happening on the farm?" oninput="updateCharCount()" style="min-height: 120px; font-size: 1rem; padding: 1rem;"></textarea>
+                        <div class="char-count" id="charCount">
+                            <span id="charTiktok"><i class="fab fa-tiktok"></i> 0/2200</span>
+                            <span id="charInsta"><i class="fab fa-instagram"></i> 0/2200</span>
+                            <span id="charFb"><i class="fab fa-facebook"></i> 0/63206</span>
+                            <span id="charYt"><i class="fab fa-youtube"></i> 0/5000</span>
+                            <span id="charGbp" style="display: none;"><i class="fab fa-google" style="color: var(--gbp);"></i> 0/1500</span>
+                        </div>
+                        <div class="post-controls">
+                            <button class="ai-caption-btn" onclick="generateAICaption()">
+                                <i class="fas fa-magic"></i> AI Caption
+                            </button>
+                            <button class="ai-caption-btn" onclick="enhanceCaptionWithAI()" style="background: rgba(34, 197, 94, 0.2); border-color: var(--success); color: var(--success);">
+                                <i class="fas fa-brain"></i> AI Enhance
+                            </button>
+                            <button class="draft-btn" id="draftBtn" onclick="saveDraft()">
+                                <i class="fas fa-save"></i> Save Draft
+                            </button>
+                            <button class="draft-btn" id="loadDraftBtn" onclick="loadDraft()" style="display: none;">
+                                <i class="fas fa-file-import"></i> Load Draft
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- VOICE NOTE - Hands-free for field use -->
                     <button class="voice-note-btn" id="voiceNoteBtn" onclick="toggleVoiceRecording()" style="min-height: 72px; font-size: 1.1rem; margin-bottom: 1rem; background: linear-gradient(135deg, var(--success) 0%, var(--accent) 100%);">
                         <i class="fas fa-microphone" style="font-size: 1.5rem;"></i>
                         <span>Record Voice Note</span>
@@ -5971,127 +6112,115 @@
                             </div>
                         </div>
 
-                        <div>
-                            <textarea class="caption-input" id="captionInput" placeholder="What's happening on the farm?" oninput="updateCharCount()" style="min-height: 120px; font-size: 1rem; padding: 1rem;"></textarea>
-                            <div class="char-count" id="charCount">
-                                <span id="charTiktok"><i class="fab fa-tiktok"></i> 0/2200</span>
-                                <span id="charInsta"><i class="fab fa-instagram"></i> 0/2200</span>
-                                <span id="charFb"><i class="fab fa-facebook"></i> 0/63206</span>
-                                <span id="charYt"><i class="fab fa-youtube"></i> 0/5000</span>
-                                <span id="charGbp" style="display: none;"><i class="fab fa-google" style="color: var(--gbp);"></i> 0/1500</span>
-                            </div>
-                            <div class="post-controls">
-                                <button class="ai-caption-btn" onclick="generateAICaption()">
-                                    <i class="fas fa-magic"></i> AI Caption
-                                </button>
-                                <button class="ai-caption-btn" onclick="enhanceCaptionWithAI()" style="background: rgba(34, 197, 94, 0.2); border-color: var(--success); color: var(--success);">
-                                    <i class="fas fa-brain"></i> AI Enhance
-                                </button>
-                                <button class="schedule-toggle" id="scheduleToggle" onclick="toggleScheduleMode()">
-                                    <i class="fas fa-clock"></i> Schedule Post
-                                </button>
-                                <input type="datetime-local" class="schedule-datetime" id="scheduleDateTime">
-                                <button class="draft-btn" id="draftBtn" onclick="saveDraft()">
-                                    <i class="fas fa-save"></i> Save Draft
-                                </button>
-                                <button class="draft-btn" id="loadDraftBtn" onclick="loadDraft()" style="display: none;">
-                                    <i class="fas fa-file-import"></i> Load Draft
-                                </button>
-                            </div>
-                        </div>
-
-                        <div>
+                        <!-- Platform Selection - Restructured with Primary/Secondary -->
+                        <div class="platform-selection">
                             <label style="font-size: 0.9rem; margin-bottom: 0.5rem; display: block;">Publish to: <span style="font-size: 0.75rem; color: var(--text-secondary);">(TikTok-first for max engagement)</span></label>
-                            <div class="platform-toggles">
-                                <div class="platform-toggle active" onclick="togglePlatform(this, 'tiktok')" style="border: 2px solid var(--success);">
-                                    <i class="fab fa-tiktok"></i>
-                                    <span>TikTok</span>
-                                    <span style="font-size: 0.6rem; background: var(--success); padding: 0.1rem 0.3rem; border-radius: 4px; margin-left: 0.25rem;">2.8% eng</span>
-                                    <div class="toggle-check"><i class="fas fa-check"></i></div>
-                                </div>
-                                <div class="platform-toggle active" onclick="togglePlatform(this, 'instagram')" id="instagramToggle">
-                                    <i class="fab fa-instagram" style="color: var(--instagram);"></i>
-                                    <span>Instagram</span>
-                                    <div class="toggle-check"><i class="fas fa-check"></i></div>
-                                </div>
-                                <!-- Instagram Post Type Sub-Options -->
-                                <div class="instagram-type-options" id="instagramTypeOptions" style="display: flex; gap: 0.5rem; margin-left: 1.5rem; padding: 0.5rem 0;">
-                                    <label class="ig-type-option" style="display: flex; align-items: center; gap: 0.3rem; cursor: pointer; font-size: 0.75rem; padding: 0.4rem 0.6rem; background: rgba(225,48,108,0.2); border-radius: 6px; border: 1px solid transparent;">
-                                        <input type="radio" name="igPostType" value="FEED" checked style="accent-color: var(--instagram);">
-                                        <i class="fas fa-th"></i> Feed
-                                    </label>
-                                    <label class="ig-type-option" style="display: flex; align-items: center; gap: 0.3rem; cursor: pointer; font-size: 0.75rem; padding: 0.4rem 0.6rem; background: rgba(255,255,255,0.05); border-radius: 6px; border: 1px solid transparent;">
-                                        <input type="radio" name="igPostType" value="STORY" style="accent-color: var(--instagram);">
-                                        <i class="fas fa-clock"></i> Story <span style="font-size: 0.6rem; opacity: 0.7;">(24hr)</span>
-                                    </label>
-                                    <label class="ig-type-option" style="display: flex; align-items: center; gap: 0.3rem; cursor: pointer; font-size: 0.75rem; padding: 0.4rem 0.6rem; background: rgba(255,255,255,0.05); border-radius: 6px; border: 1px solid transparent;">
-                                        <input type="radio" name="igPostType" value="REEL" style="accent-color: var(--instagram);">
-                                        <i class="fas fa-film"></i> Reel <span style="font-size: 0.6rem; opacity: 0.7;">(video)</span>
-                                    </label>
-                                </div>
-                                <!-- Instagram Account Selection -->
-                                <div class="instagram-account-options" id="instagramAccountOptions" style="display: flex; flex-direction: column; gap: 0.4rem; margin-left: 1.5rem; padding: 0.5rem 0; border-top: 1px solid rgba(225,48,108,0.2);">
-                                    <div style="font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 0.2rem;">Post to accounts:</div>
-                                    <label class="ig-account-option" style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.75rem; padding: 0.3rem 0.5rem; background: rgba(225,48,108,0.15); border-radius: 6px;">
-                                        <input type="checkbox" name="igAccount" value="0" checked style="accent-color: var(--instagram);">
-                                        <i class="fab fa-instagram" style="color: var(--instagram);"></i> Tiny Seed Farm
-                                    </label>
-                                    <label class="ig-account-option" style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.75rem; padding: 0.3rem 0.5rem; background: rgba(255,255,255,0.05); border-radius: 6px;">
-                                        <input type="checkbox" name="igAccount" value="1" checked style="accent-color: var(--instagram);">
-                                        <i class="fab fa-instagram" style="color: #E1306C;"></i> Tiny Seed Fleurs
-                                    </label>
-                                    <label class="ig-account-option" style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.75rem; padding: 0.3rem 0.5rem; background: rgba(255,255,255,0.05); border-radius: 6px;">
-                                        <input type="checkbox" name="igAccount" value="2" checked style="accent-color: var(--instagram);">
-                                        <i class="fab fa-instagram" style="color: #C13584;"></i> Tiny Seed Fungi
-                                    </label>
-                                    <button type="button" onclick="toggleAllIgAccounts()" style="font-size: 0.65rem; padding: 0.2rem 0.5rem; background: rgba(225,48,108,0.2); border: none; border-radius: 4px; color: var(--text-secondary); cursor: pointer; margin-top: 0.2rem; width: fit-content;">Toggle All</button>
-                                </div>
-                                <div class="platform-toggle active" onclick="togglePlatform(this, 'facebook')">
-                                    <i class="fab fa-facebook" style="color: var(--facebook);"></i>
-                                    <span>Facebook</span>
-                                    <div class="toggle-check"><i class="fas fa-check"></i></div>
-                                </div>
-                                <div class="platform-toggle active" onclick="togglePlatform(this, 'youtube')">
-                                    <i class="fab fa-youtube" style="color: var(--youtube);"></i>
-                                    <span>YouTube</span>
-                                    <div class="toggle-check"><i class="fas fa-check"></i></div>
-                                </div>
-                                <div class="platform-toggle" onclick="togglePlatform(this, 'pinterest')">
-                                    <i class="fab fa-pinterest" style="color: var(--pinterest);"></i>
-                                    <span>Pinterest</span>
-                                    <div class="toggle-check"><i class="fas fa-check"></i></div>
-                                </div>
-                                <div class="platform-toggle active" onclick="togglePlatform(this, 'appfeed')">
-                                    <i class="fas fa-mobile-alt" style="color: var(--success);"></i>
-                                    <span>App Feed</span>
-                                    <div class="toggle-check"><i class="fas fa-check"></i></div>
-                                </div>
-                                <div class="platform-toggle" onclick="togglePlatform(this, 'sms')">
-                                    <i class="fas fa-sms" style="color: var(--purple);"></i>
-                                    <span>SMS VIPs</span>
-                                    <div class="toggle-check"><i class="fas fa-check"></i></div>
-                                </div>
-                                <div class="platform-toggle" onclick="togglePlatform(this, 'gbp')" id="gbpToggle" style="border: 2px solid transparent;">
-                                    <i class="fab fa-google" style="color: var(--gbp);"></i>
-                                    <span>Google Business</span>
-                                    <span style="font-size: 0.6rem; background: var(--gbp); padding: 0.1rem 0.3rem; border-radius: 4px; margin-left: 0.25rem; color: white;">SEO</span>
-                                    <div class="toggle-check"><i class="fas fa-check"></i></div>
-                                </div>
-                                <!-- GBP CTA Options (shown when GBP selected) -->
-                                <div class="gbp-cta-options" id="gbpCtaOptions" style="display: none; flex-direction: column; gap: 0.4rem; margin-left: 1.5rem; padding: 0.5rem 0; border-top: 1px solid rgba(66, 133, 244, 0.2); width: 100%;">
-                                    <div style="font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 0.2rem;">GBP Call-to-Action Button:</div>
-                                    <select id="gbpCtaType" style="padding: 0.5rem; background: rgba(66, 133, 244, 0.15); border: 1px solid rgba(66, 133, 244, 0.3); border-radius: 6px; color: var(--text-primary); font-size: 0.8rem;">
-                                        <option value="LEARN_MORE">Learn More</option>
-                                        <option value="BOOK">Book</option>
-                                        <option value="ORDER">Order Online</option>
-                                        <option value="SHOP">Shop</option>
-                                        <option value="SIGN_UP">Sign Up</option>
-                                        <option value="CALL">Call Now</option>
-                                    </select>
-                                    <input type="url" id="gbpCtaUrl" placeholder="https://tinyseedfarm.com" value="https://tinyseedfarm.com" style="padding: 0.5rem; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-size: 0.8rem;">
-                                    <div style="font-size: 0.65rem; color: var(--gbp); margin-top: 0.25rem;"><i class="fas fa-info-circle"></i> GBP posts are limited to 1500 characters. Posts appear in local search results.</div>
+
+                            <!-- Primary Platforms (Daily Use) -->
+                            <div class="platform-group-primary">
+                                <div class="platform-toggles">
+                                    <div class="platform-toggle active" onclick="togglePlatform(this, 'tiktok')" style="border: 2px solid var(--success);">
+                                        <i class="fab fa-tiktok"></i>
+                                        <span>TikTok</span>
+                                        <span style="font-size: 0.6rem; background: var(--success); padding: 0.1rem 0.3rem; border-radius: 4px; margin-left: 0.25rem;">2.8% eng</span>
+                                        <div class="toggle-check"><i class="fas fa-check"></i></div>
+                                    </div>
+                                    <div class="platform-toggle active" onclick="togglePlatform(this, 'instagram')" id="instagramToggle">
+                                        <i class="fab fa-instagram" style="color: var(--instagram);"></i>
+                                        <span>Instagram</span>
+                                        <div class="toggle-check"><i class="fas fa-check"></i></div>
+                                    </div>
+                                    <!-- Instagram Post Type Sub-Options -->
+                                    <div class="instagram-type-options" id="instagramTypeOptions" style="display: flex; gap: 0.5rem; margin-left: 1.5rem; padding: 0.5rem 0;">
+                                        <label class="ig-type-option" style="display: flex; align-items: center; gap: 0.3rem; cursor: pointer; font-size: 0.75rem; padding: 0.4rem 0.6rem; background: rgba(225,48,108,0.2); border-radius: 6px; border: 1px solid transparent;">
+                                            <input type="radio" name="igPostType" value="FEED" checked style="accent-color: var(--instagram);">
+                                            <i class="fas fa-th"></i> Feed
+                                        </label>
+                                        <label class="ig-type-option" style="display: flex; align-items: center; gap: 0.3rem; cursor: pointer; font-size: 0.75rem; padding: 0.4rem 0.6rem; background: rgba(255,255,255,0.05); border-radius: 6px; border: 1px solid transparent;">
+                                            <input type="radio" name="igPostType" value="STORY" style="accent-color: var(--instagram);">
+                                            <i class="fas fa-clock"></i> Story <span style="font-size: 0.6rem; opacity: 0.7;">(24hr)</span>
+                                        </label>
+                                        <label class="ig-type-option" style="display: flex; align-items: center; gap: 0.3rem; cursor: pointer; font-size: 0.75rem; padding: 0.4rem 0.6rem; background: rgba(255,255,255,0.05); border-radius: 6px; border: 1px solid transparent;">
+                                            <input type="radio" name="igPostType" value="REEL" style="accent-color: var(--instagram);">
+                                            <i class="fas fa-film"></i> Reel <span style="font-size: 0.6rem; opacity: 0.7;">(video)</span>
+                                        </label>
+                                    </div>
+                                    <!-- Instagram Account Selection -->
+                                    <div class="instagram-account-options" id="instagramAccountOptions" style="display: flex; flex-direction: column; gap: 0.4rem; margin-left: 1.5rem; padding: 0.5rem 0; border-top: 1px solid rgba(225,48,108,0.2);">
+                                        <div style="font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 0.2rem;">Post to accounts:</div>
+                                        <label class="ig-account-option" style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.75rem; padding: 0.3rem 0.5rem; background: rgba(225,48,108,0.15); border-radius: 6px;">
+                                            <input type="checkbox" name="igAccount" value="0" checked style="accent-color: var(--instagram);">
+                                            <i class="fab fa-instagram" style="color: var(--instagram);"></i> Tiny Seed Farm
+                                        </label>
+                                        <label class="ig-account-option" style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.75rem; padding: 0.3rem 0.5rem; background: rgba(255,255,255,0.05); border-radius: 6px;">
+                                            <input type="checkbox" name="igAccount" value="1" checked style="accent-color: var(--instagram);">
+                                            <i class="fab fa-instagram" style="color: #E1306C;"></i> Tiny Seed Fleurs
+                                        </label>
+                                        <label class="ig-account-option" style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.75rem; padding: 0.3rem 0.5rem; background: rgba(255,255,255,0.05); border-radius: 6px;">
+                                            <input type="checkbox" name="igAccount" value="2" checked style="accent-color: var(--instagram);">
+                                            <i class="fab fa-instagram" style="color: #C13584;"></i> Tiny Seed Fungi
+                                        </label>
+                                        <button type="button" onclick="toggleAllIgAccounts()" style="font-size: 0.65rem; padding: 0.2rem 0.5rem; background: rgba(225,48,108,0.2); border: none; border-radius: 4px; color: var(--text-secondary); cursor: pointer; margin-top: 0.2rem; width: fit-content;">Toggle All</button>
+                                    </div>
+                                    <div class="platform-toggle active" onclick="togglePlatform(this, 'facebook')">
+                                        <i class="fab fa-facebook" style="color: var(--facebook);"></i>
+                                        <span>Facebook</span>
+                                        <div class="toggle-check"><i class="fas fa-check"></i></div>
+                                    </div>
                                 </div>
                             </div>
+
+                            <!-- More Platforms Toggle -->
+                            <button class="more-platforms-toggle" onclick="toggleSecondaryPlatforms()" style="width: 100%; padding: 0.5rem; background: rgba(255,255,255,0.05); border: 1px dashed var(--border); border-radius: 8px; color: var(--text-secondary); font-size: 0.85rem; cursor: pointer; margin: 0.75rem 0; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                <i class="fas fa-chevron-down" id="morePlatformsIcon"></i> More platforms...
+                            </button>
+
+                            <!-- Secondary Platforms (Occasional) -->
+                            <div id="secondaryPlatforms" class="platform-group-secondary" style="display: none;">
+                                <div class="platform-toggles">
+                                    <div class="platform-toggle active" onclick="togglePlatform(this, 'youtube')">
+                                        <i class="fab fa-youtube" style="color: var(--youtube);"></i>
+                                        <span>YouTube</span>
+                                        <div class="toggle-check"><i class="fas fa-check"></i></div>
+                                    </div>
+                                    <div class="platform-toggle" onclick="togglePlatform(this, 'pinterest')">
+                                        <i class="fab fa-pinterest" style="color: var(--pinterest);"></i>
+                                        <span>Pinterest</span>
+                                        <div class="toggle-check"><i class="fas fa-check"></i></div>
+                                    </div>
+                                    <div class="platform-toggle active" onclick="togglePlatform(this, 'appfeed')">
+                                        <i class="fas fa-mobile-alt" style="color: var(--success);"></i>
+                                        <span>App Feed</span>
+                                        <div class="toggle-check"><i class="fas fa-check"></i></div>
+                                    </div>
+                                    <div class="platform-toggle" onclick="togglePlatform(this, 'sms')">
+                                        <i class="fas fa-sms" style="color: var(--purple);"></i>
+                                        <span>SMS VIPs</span>
+                                        <div class="toggle-check"><i class="fas fa-check"></i></div>
+                                    </div>
+                                    <div class="platform-toggle" onclick="togglePlatform(this, 'gbp')" id="gbpToggle" style="border: 2px solid transparent;">
+                                        <i class="fab fa-google" style="color: var(--gbp);"></i>
+                                        <span>Google Business</span>
+                                        <span style="font-size: 0.6rem; background: var(--gbp); padding: 0.1rem 0.3rem; border-radius: 4px; margin-left: 0.25rem; color: white;">SEO</span>
+                                        <div class="toggle-check"><i class="fas fa-check"></i></div>
+                                    </div>
+                                    <!-- GBP CTA Options (shown when GBP selected) -->
+                                    <div class="gbp-cta-options" id="gbpCtaOptions" style="display: none; flex-direction: column; gap: 0.4rem; margin-left: 1.5rem; padding: 0.5rem 0; border-top: 1px solid rgba(66, 133, 244, 0.2); width: 100%;">
+                                        <div style="font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 0.2rem;">GBP Call-to-Action Button:</div>
+                                        <select id="gbpCtaType" style="padding: 0.5rem; background: rgba(66, 133, 244, 0.15); border: 1px solid rgba(66, 133, 244, 0.3); border-radius: 6px; color: var(--text-primary); font-size: 0.8rem;">
+                                            <option value="LEARN_MORE">Learn More</option>
+                                            <option value="BOOK">Book</option>
+                                            <option value="ORDER">Order Online</option>
+                                            <option value="SHOP">Shop</option>
+                                            <option value="SIGN_UP">Sign Up</option>
+                                            <option value="CALL">Call Now</option>
+                                        </select>
+                                        <input type="url" id="gbpCtaUrl" placeholder="https://tinyseedfarm.com" value="https://tinyseedfarm.com" style="padding: 0.5rem; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-size: 0.8rem;">
+                                        <div style="font-size: 0.65rem; color: var(--gbp); margin-top: 0.25rem;"><i class="fas fa-info-circle"></i> GBP posts are limited to 1500 characters. Posts appear in local search results.</div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div style="margin-top: 0.75rem; padding: 0.75rem; background: rgba(0,0,0,0.3); border-radius: 8px; border-left: 3px solid var(--success);">
                                 <div style="font-size: 0.8rem; color: var(--success); font-weight: 600; margin-bottom: 0.25rem;">
                                     <i class="fas fa-lightbulb"></i> TikTok Tip
@@ -6135,10 +6264,17 @@
                             </div>
                         </div>
 
-                        <button class="blast-btn" id="blastBtn" onclick="publishAll()" disabled>
-                            <i class="fas fa-paper-plane"></i>
-                            PUBLISH ALL
-                        </button>
+                        <!-- Explicit Publish Actions -->
+                        <div class="publish-actions" style="display: flex; gap: 0.75rem; margin-top: 1rem;">
+                            <button class="btn-post-now" id="blastBtn" onclick="postNow()" disabled style="flex: 1; padding: 1rem 1.5rem; background: linear-gradient(135deg, var(--success) 0%, #10b981 100%); border: none; border-radius: 12px; color: white; font-weight: 700; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                <i class="fas fa-paper-plane"></i> POST NOW
+                            </button>
+                            <button id="scheduleBtn" class="btn-schedule" onclick="openSchedulePicker()" style="flex: 1; padding: 1rem 1.5rem; background: linear-gradient(135deg, var(--info) 0%, #3b82f6 100%); border: none; border-radius: 12px; color: white; font-weight: 700; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                <i class="fas fa-calendar-alt"></i> SCHEDULE
+                                <span id="scheduledTimeDisplay" class="scheduled-time" style="display: none; font-size: 0.75rem; background: rgba(255,255,255,0.2); padding: 0.2rem 0.5rem; border-radius: 4px; margin-left: 0.25rem;"></span>
+                            </button>
+                        </div>
+                        <input type="datetime-local" id="scheduleDateTimePicker" style="display: none;" onchange="setScheduleTime(this.value)">
                     </div>
                 </div>
             </div>
@@ -6374,6 +6510,115 @@
             <!-- NOTE: Crop-to-Content has been moved to AI Content Studio -->
 
         </div> <!-- End quickPostMode -->
+
+                </div> <!-- End create-main-content -->
+
+                <!-- INTELLIGENCE DRAWER (Right Sidebar) -->
+                <div id="intelDrawer" class="intel-drawer">
+                    <!-- Drawer Header with Close Button -->
+                    <div class="intel-drawer-header" style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 1rem; border-bottom: 1px solid var(--border); margin-bottom: 1rem;">
+                        <h3 style="margin: 0; font-size: 1rem; display: flex; align-items: center; gap: 0.5rem; color: var(--purple);">
+                            <i class="fas fa-lightbulb"></i> Intelligence
+                        </h3>
+                        <button onclick="toggleIntelDrawer()" class="btn-close-drawer" style="background: none; border: none; color: var(--text-secondary); font-size: 1.25rem; cursor: pointer; padding: 0.25rem;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+
+                    <!-- POST INTELLIGENCE BAR - Dynamic Context for Any Post -->
+                    <div class="post-intelligence-bar" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; padding: 0.75rem; background: rgba(99, 102, 241, 0.1); border-radius: 12px; border: 1px solid rgba(99, 102, 241, 0.2);">
+                        <div style="width: 100%; margin-bottom: 0.25rem;">
+                            <span style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 600;">
+                                <i class="fas fa-brain"></i> Click to inject context
+                            </span>
+                        </div>
+                        <button class="intel-toggle-btn" id="weatherIntelBtn" onclick="togglePostIntel('weather')" style="padding: 0.4rem 0.75rem; background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 6px; color: #3B82F6; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 0.4rem; transition: all 0.2s;">
+                            <i class="fas fa-cloud-sun"></i> Weather
+                            <span id="weatherIntelStatus" class="intel-status" style="background: var(--warning); color: white; font-size: 0.55rem; padding: 0.1rem 0.3rem; border-radius: 3px; display: none;">LIVE</span>
+                        </button>
+                        <button class="intel-toggle-btn" id="keywordsIntelBtn" onclick="togglePostIntel('keywords')" style="padding: 0.4rem 0.75rem; background: rgba(34, 197, 94, 0.2); border: 1px solid rgba(34, 197, 94, 0.4); border-radius: 6px; color: #22C55E; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 0.4rem; transition: all 0.2s;">
+                            <i class="fas fa-hashtag"></i> Keywords
+                            <span id="keywordsIntelStatus" class="intel-status" style="background: var(--success); color: white; font-size: 0.55rem; padding: 0.1rem 0.3rem; border-radius: 3px; display: none;">DYNAMIC</span>
+                        </button>
+                        <button class="intel-toggle-btn" id="algoIntelBtn" onclick="togglePostIntel('algorithm')" style="padding: 0.4rem 0.75rem; background: rgba(139, 92, 246, 0.2); border: 1px solid rgba(139, 92, 246, 0.4); border-radius: 6px; color: #8B5CF6; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 0.4rem; transition: all 0.2s;">
+                            <i class="fas fa-chart-line"></i> Algorithm
+                            <span id="algoIntelStatus" class="intel-status" style="background: var(--instagram); color: white; font-size: 0.55rem; padding: 0.1rem 0.3rem; border-radius: 3px; display: none;">HOT</span>
+                        </button>
+                        <button class="intel-toggle-btn" id="farmDataIntelBtn" onclick="togglePostIntel('farmdata')" style="padding: 0.4rem 0.75rem; background: rgba(251, 146, 60, 0.2); border: 1px solid rgba(251, 146, 60, 0.4); border-radius: 6px; color: #FB923C; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 0.4rem; transition: all 0.2s;">
+                            <i class="fas fa-database"></i> Farm Data
+                            <span id="farmDataIntelStatus" class="intel-status" style="background: var(--gold); color: white; font-size: 0.55rem; padding: 0.1rem 0.3rem; border-radius: 3px; display: none;">SYNC</span>
+                        </button>
+                    </div>
+
+                    <!-- WEATHER INTELLIGENCE PANEL -->
+                    <div id="weatherIntelPanel" class="intel-panel" style="display: none; margin-bottom: 1rem; padding: 0.75rem; background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(14, 165, 233, 0.1) 100%); border-radius: 10px; border: 1px solid rgba(59, 130, 246, 0.3);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                            <h4 style="margin: 0; color: #3B82F6; font-size: 0.85rem;"><i class="fas fa-cloud-sun"></i> Weather</h4>
+                            <button onclick="refreshWeatherIntel()" class="btn btn-sm" style="background: #3B82F6; color: white; font-size: 0.65rem; padding: 0.25rem 0.5rem;">
+                                <i class="fas fa-sync-alt" id="weatherIntelRefreshIcon"></i>
+                            </button>
+                        </div>
+                        <div id="weatherIntelContent" style="display: grid; gap: 0.5rem; font-size: 0.8rem;">
+                            <div style="text-align: center; padding: 1rem; color: var(--text-secondary);">
+                                <i class="fas fa-spinner fa-spin"></i> Loading...
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SEO/AEO KEYWORDS PANEL -->
+                    <div id="keywordsIntelPanel" class="intel-panel" style="display: none; margin-bottom: 1rem; padding: 0.75rem; background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(16, 185, 129, 0.1) 100%); border-radius: 10px; border: 1px solid rgba(34, 197, 94, 0.3);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                            <h4 style="margin: 0; color: #22C55E; font-size: 0.85rem;"><i class="fas fa-hashtag"></i> Keywords</h4>
+                            <div style="display: flex; gap: 0.25rem;">
+                                <select id="keywordsIntelAccount" onchange="loadKeywordsIntel()" style="padding: 0.2rem 0.4rem; background: rgba(255,255,255,0.1); border: 1px solid var(--border); border-radius: 4px; color: var(--text-primary); font-size: 0.7rem;">
+                                    <option value="farm">Farm</option>
+                                    <option value="fleurs">Fleurs</option>
+                                    <option value="fungi">Fungi</option>
+                                </select>
+                                <button onclick="loadKeywordsIntel(true)" class="btn btn-sm" style="background: #22C55E; color: white; font-size: 0.65rem; padding: 0.25rem 0.5rem;">
+                                    <i class="fas fa-sync-alt" id="keywordsIntelRefreshIcon"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="keywordsIntelContent" style="display: grid; gap: 0.5rem; font-size: 0.8rem;">
+                            <div style="text-align: center; padding: 1rem; color: var(--text-secondary);">
+                                <i class="fas fa-spinner fa-spin"></i> Loading...
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ALGORITHM INTELLIGENCE PANEL -->
+                    <div id="algorithmIntelPanel" class="intel-panel" style="display: none; margin-bottom: 1rem; padding: 0.75rem; background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(99, 102, 241, 0.1) 100%); border-radius: 10px; border: 1px solid rgba(139, 92, 246, 0.3);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                            <h4 style="margin: 0; color: #8B5CF6; font-size: 0.85rem;"><i class="fas fa-chart-line"></i> Algorithm</h4>
+                            <button onclick="refreshAlgorithmIntel()" class="btn btn-sm" style="background: #8B5CF6; color: white; font-size: 0.65rem; padding: 0.25rem 0.5rem;">
+                                <i class="fas fa-sync-alt" id="algoIntelRefreshIcon"></i>
+                            </button>
+                        </div>
+                        <div id="algorithmIntelContent" style="display: grid; gap: 0.5rem; font-size: 0.8rem;">
+                            <div style="text-align: center; padding: 1rem; color: var(--text-secondary);">
+                                <i class="fas fa-spinner fa-spin"></i> Loading...
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FARM DATA PANEL -->
+                    <div id="farmDataIntelPanel" class="intel-panel" style="display: none; margin-bottom: 1rem; padding: 0.75rem; background: linear-gradient(135deg, rgba(251, 146, 60, 0.15) 0%, rgba(249, 115, 22, 0.1) 100%); border-radius: 10px; border: 1px solid rgba(251, 146, 60, 0.3);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                            <h4 style="margin: 0; color: #FB923C; font-size: 0.85rem;"><i class="fas fa-database"></i> Farm Data</h4>
+                            <button onclick="refreshFarmDataIntel()" class="btn btn-sm" style="background: #FB923C; color: white; font-size: 0.65rem; padding: 0.25rem 0.5rem;">
+                                <i class="fas fa-sync-alt" id="farmDataIntelRefreshIcon"></i>
+                            </button>
+                        </div>
+                        <div id="farmDataIntelContent" style="display: grid; gap: 0.5rem; font-size: 0.8rem;">
+                            <div style="text-align: center; padding: 1rem; color: var(--text-secondary);">
+                                <i class="fas fa-spinner fa-spin"></i> Loading...
+                            </div>
+                        </div>
+                    </div>
+                </div> <!-- End intelDrawer -->
+
+            </div> <!-- End create-tab-layout -->
 
         <!-- AI CONTENT STUDIO - UNIFIED AI-POWERED CONTENT CREATION -->
             <div id="aiStudioMode" class="create-mode-content" style="display: none;">
@@ -16261,27 +16506,32 @@ Example format:
         let isScheduled = false;
 
         function toggleScheduleMode() {
+            // UPDATED 2026-02-13: Now uses new explicit POST NOW / SCHEDULE buttons
             isScheduled = !isScheduled;
-            const toggle = document.getElementById('scheduleToggle');
-            const datetime = document.getElementById('scheduleDateTime');
+            const datetime = document.getElementById('scheduleDateTimePicker');
             const blastBtn = document.getElementById('blastBtn');
+            const scheduleBtn = document.getElementById('scheduleBtn');
+            const scheduleDisplay = document.getElementById('scheduledTimeDisplay');
 
-            if (isScheduled) {
-                toggle.classList.add('active');
-                toggle.innerHTML = '<i class="fas fa-clock"></i> Scheduled';
-                datetime.classList.add('visible');
-                blastBtn.innerHTML = '<i class="fas fa-calendar-check"></i> SCHEDULE POST';
-
+            if (isScheduled && datetime) {
                 // Default to tomorrow at 9am
                 const tomorrow = new Date();
                 tomorrow.setDate(tomorrow.getDate() + 1);
                 tomorrow.setHours(9, 0, 0, 0);
+                tomorrow.setMinutes(tomorrow.getMinutes() - tomorrow.getTimezoneOffset());
                 datetime.value = tomorrow.toISOString().slice(0, 16);
+
+                if (scheduleDisplay) {
+                    scheduleDisplay.textContent = tomorrow.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+                    scheduleDisplay.style.display = 'block';
+                }
+                if (scheduleBtn) scheduleBtn.classList.add('has-time');
+                if (blastBtn) blastBtn.innerHTML = '<i class="fas fa-calendar-check"></i> SCHEDULE POST';
             } else {
-                toggle.classList.remove('active');
-                toggle.innerHTML = '<i class="fas fa-clock"></i> Schedule Post';
-                datetime.classList.remove('visible');
-                blastBtn.innerHTML = '<i class="fas fa-paper-plane"></i> PUBLISH ALL';
+                if (datetime) datetime.value = '';
+                if (scheduleDisplay) scheduleDisplay.style.display = 'none';
+                if (scheduleBtn) scheduleBtn.classList.remove('has-time');
+                if (blastBtn) blastBtn.innerHTML = '<i class="fas fa-paper-plane"></i> POST NOW';
             }
         }
 
@@ -16293,7 +16543,7 @@ Example format:
 
         function saveDraft() {
             const caption = document.getElementById('captionInput').value;
-            const scheduleTime = document.getElementById('scheduleDateTime').value;
+            const scheduleTime = document.getElementById('scheduleDateTimePicker')?.value || '';
 
             if (!caption.trim()) {
                 showToast('Nothing to save!', 'warning');
@@ -16335,7 +16585,8 @@ Example format:
                     toggleScheduleMode();
                 }
                 if (draft.scheduleTime) {
-                    document.getElementById('scheduleDateTime').value = draft.scheduleTime;
+                    const picker = document.getElementById('scheduleDateTimePicker');
+                    if (picker) picker.value = draft.scheduleTime;
                 }
 
                 // Load platform selections
@@ -16387,7 +16638,7 @@ Example format:
             const timer = document.getElementById('postTimer');
             const startTime = Date.now();
             const caption = document.getElementById('captionInput').value;
-            const scheduleTime = isScheduled ? document.getElementById('scheduleDateTime').value : null;
+            const scheduleTime = isScheduled ? (document.getElementById('scheduleDateTimePicker')?.value || null) : null;
 
             btn.disabled = true;
             btn.innerHTML = isScheduled
@@ -21026,6 +21277,23 @@ Would you like to test posting to Threads?`;
                 updateCalendarWeekDisplay();
             }
 
+            // Initialize intel drawer for redesigned UI
+            initIntelDrawer();
+
+            // Handle window resize for drawer
+            window.addEventListener('resize', () => {
+                const drawer = document.getElementById('intelDrawer');
+                if (!drawer) return;
+
+                if (window.innerWidth > 1200) {
+                    drawer.classList.remove('open');
+                    drawer.classList.toggle('collapsed', !intelDrawerOpen);
+                } else {
+                    drawer.classList.remove('collapsed');
+                    drawer.classList.toggle('open', intelDrawerOpen);
+                }
+            });
+
             // ═══════════════════════════════════════════════════════════════════════════
             // PHASE 2: BACKGROUND - Load API data without blocking UI
             // ═══════════════════════════════════════════════════════════════════════════
@@ -21512,6 +21780,272 @@ Would you like to test posting to Threads?`;
             fleurs: { name: '@tinyseedfleurs', index: 1, color: '#E1306C', audience: 'floral', focus: 'flowers, arrangements, events' },
             fungi: { name: '@tinyseedfungi', index: 2, color: '#833AB4', audience: 'specialty', focus: 'mushrooms, specialty, gourmet' }
         };
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // UNIFIED MARKETING STATE - Single source of truth for both Brain Tab and Create Tab
+        // Added 2026-02-13: Fixes recommendation inconsistency between tabs
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        const MARKETING_STATE = {
+            recommendations: {
+                nextBestPostTime: null,
+                nextBestPostType: null,
+                urgentActions: [],
+                todayActions: [],
+                weatherContext: null,
+                seoKeywords: [],
+                lastUpdated: null
+            },
+
+            // Initialize from local data
+            init: function() {
+                this.updateFromLocalData();
+                return this;
+            },
+
+            // Update recommendations from local data
+            updateFromLocalData: function() {
+                // Use the same logic for both tabs
+                const optimalTime = this.calculateOptimalTime();
+                const nextPostType = this.calculateNextPostType();
+
+                this.recommendations.nextBestPostTime = optimalTime;
+                this.recommendations.nextBestPostType = nextPostType;
+                this.recommendations.lastUpdated = new Date().toISOString();
+
+                // Dispatch event so both tabs can update
+                window.dispatchEvent(new CustomEvent('marketingStateUpdated', {
+                    detail: this.recommendations
+                }));
+            },
+
+            // Unified optimal time calculation - aligned with OPTIMAL_TIMES constant
+            calculateOptimalTime: function() {
+                const now = new Date();
+                const hour = now.getHours();
+                const currentMinutes = now.getMinutes();
+                const dayOfWeek = now.getDay();
+
+                // Use the same OPTIMAL_TIMES data structure for consistency
+                const UNIFIED_OPTIMAL_TIMES = {
+                    0: { times: ['21:00', '22:00', '20:00'], label: 'Sunday', quality: 'medium' },
+                    1: { times: ['19:00', '18:00', '20:00'], label: 'Monday', quality: 'good' },
+                    2: { times: ['19:00', '15:00', '17:00'], label: 'Tuesday', quality: 'great' },
+                    3: { times: ['12:00', '18:00', '08:00'], label: 'Wednesday', quality: 'best' },
+                    4: { times: ['09:00', '08:00', '07:00'], label: 'Thursday', quality: 'best' },
+                    5: { times: ['22:00', '21:00', '06:00'], label: 'Friday', quality: 'low' },
+                    6: { times: ['21:00', '22:00', '20:00'], label: 'Saturday', quality: 'lowest' }
+                };
+
+                // Check today's remaining times first
+                const todayTimes = UNIFIED_OPTIMAL_TIMES[dayOfWeek].times;
+                for (const time of todayTimes) {
+                    const [targetHour] = time.split(':').map(Number);
+                    if (targetHour > hour || (targetHour === hour && currentMinutes < 30)) {
+                        const ampm = targetHour >= 12 ? 'PM' : 'AM';
+                        const displayHour = targetHour > 12 ? targetHour - 12 : (targetHour === 0 ? 12 : targetHour);
+                        return {
+                            date: new Date(now.getFullYear(), now.getMonth(), now.getDate(), targetHour, 0, 0),
+                            time: `${displayHour}:00 ${ampm}`,
+                            day: UNIFIED_OPTIMAL_TIMES[dayOfWeek].label,
+                            quality: UNIFIED_OPTIMAL_TIMES[dayOfWeek].quality,
+                            label: targetHour < 12 ? 'Morning' : targetHour < 17 ? 'Afternoon' : 'Evening',
+                            isToday: true
+                        };
+                    }
+                }
+
+                // Find next best day (prioritize Wed/Thu) - ONLY FUTURE DAYS
+                const daysByQuality = [
+                    { day: 3, quality: 'best' },   // Wednesday
+                    { day: 4, quality: 'best' },   // Thursday
+                    { day: 2, quality: 'great' },  // Tuesday
+                    { day: 1, quality: 'good' },   // Monday
+                    { day: 0, quality: 'medium' }, // Sunday
+                    { day: 5, quality: 'low' },    // Friday
+                    { day: 6, quality: 'lowest' }  // Saturday
+                ];
+
+                // Days remaining this week (after today)
+                const remainingThisWeek = [];
+                for (let d = dayOfWeek + 1; d <= 6; d++) {
+                    const dayInfo = daysByQuality.find(x => x.day === d);
+                    if (dayInfo) remainingThisWeek.push({ ...dayInfo, daysUntil: d - dayOfWeek, isNextWeek: false });
+                }
+
+                // Sort remaining days by quality
+                remainingThisWeek.sort((a, b) => {
+                    const qualityOrder = { best: 0, great: 1, good: 2, medium: 3, low: 4, lowest: 5 };
+                    return qualityOrder[a.quality] - qualityOrder[b.quality];
+                });
+
+                // If there's a decent day this week, use it
+                if (remainingThisWeek.length > 0) {
+                    const best = remainingThisWeek[0];
+                    const targetHour = parseInt(UNIFIED_OPTIMAL_TIMES[best.day].times[0].split(':')[0]);
+                    const ampm = targetHour >= 12 ? 'PM' : 'AM';
+                    const displayHour = targetHour > 12 ? targetHour - 12 : (targetHour === 0 ? 12 : targetHour);
+                    const targetDate = new Date(now);
+                    targetDate.setDate(targetDate.getDate() + best.daysUntil);
+                    targetDate.setHours(targetHour, 0, 0, 0);
+                    return {
+                        date: targetDate,
+                        time: `${displayHour}:00 ${ampm}`,
+                        day: UNIFIED_OPTIMAL_TIMES[best.day].label,
+                        quality: best.quality,
+                        label: targetHour < 12 ? 'Morning' : targetHour < 17 ? 'Afternoon' : 'Evening',
+                        isToday: false,
+                        daysUntil: best.daysUntil
+                    };
+                }
+
+                // No good days left this week - find best day NEXT week
+                for (const { day, quality } of daysByQuality) {
+                    const daysUntil = 7 - dayOfWeek + day;
+                    const targetHour = parseInt(UNIFIED_OPTIMAL_TIMES[day].times[0].split(':')[0]);
+                    const ampm = targetHour >= 12 ? 'PM' : 'AM';
+                    const displayHour = targetHour > 12 ? targetHour - 12 : (targetHour === 0 ? 12 : targetHour);
+                    const targetDate = new Date(now);
+                    targetDate.setDate(targetDate.getDate() + daysUntil);
+                    targetDate.setHours(targetHour, 0, 0, 0);
+                    return {
+                        date: targetDate,
+                        time: `${displayHour}:00 ${ampm}`,
+                        day: `Next ${UNIFIED_OPTIMAL_TIMES[day].label}`,
+                        quality: quality,
+                        label: targetHour < 12 ? 'Morning' : targetHour < 17 ? 'Afternoon' : 'Evening',
+                        isToday: false,
+                        daysUntil: daysUntil
+                    };
+                }
+
+                // Fallback to tomorrow's first time
+                const tomorrow = (dayOfWeek + 1) % 7;
+                const targetHour = parseInt(UNIFIED_OPTIMAL_TIMES[tomorrow].times[0].split(':')[0]);
+                const ampm = targetHour >= 12 ? 'PM' : 'AM';
+                const displayHour = targetHour > 12 ? targetHour - 12 : (targetHour === 0 ? 12 : targetHour);
+                const targetDate = new Date(now);
+                targetDate.setDate(targetDate.getDate() + 1);
+                targetDate.setHours(targetHour, 0, 0, 0);
+                return {
+                    date: targetDate,
+                    time: `${displayHour}:00 ${ampm}`,
+                    day: UNIFIED_OPTIMAL_TIMES[tomorrow].label,
+                    quality: UNIFIED_OPTIMAL_TIMES[tomorrow].quality,
+                    label: targetHour < 12 ? 'Morning' : targetHour < 17 ? 'Afternoon' : 'Evening',
+                    isToday: false,
+                    daysUntil: 1
+                };
+            },
+
+            // Unified next post type calculation (5-3-2 rule)
+            calculateNextPostType: function() {
+                // Get content mix data for selected account (or all)
+                // Note: getContentMixData may not be defined yet, so use try/catch
+                let accountData = { curated: 0, original: 0, personal: 0 };
+                try {
+                    if (typeof getContentMixData === 'function') {
+                        const mixData = getContentMixData();
+                        accountData = selectedAccount === 'all' ? mixData.all : (mixData[selectedAccount] || accountData);
+                    }
+                } catch (e) {
+                    console.log('getContentMixData not ready yet');
+                }
+
+                const total = accountData.curated + accountData.original + accountData.personal || 1;
+
+                // Calculate gaps from target (5-3-2)
+                const gaps = {
+                    curated: Math.max(0, 5 - accountData.curated),
+                    original: Math.max(0, 3 - accountData.original),
+                    personal: Math.max(0, 2 - accountData.personal)
+                };
+
+                // Find biggest gap
+                let recommended = 'curated';
+                let maxGap = gaps.curated;
+
+                if (gaps.original > maxGap) {
+                    recommended = 'original';
+                    maxGap = gaps.original;
+                }
+                if (gaps.personal > maxGap) {
+                    recommended = 'personal';
+                    maxGap = gaps.personal;
+                }
+
+                // If all minimums met, check ratios
+                if (gaps.curated === 0 && gaps.original === 0 && gaps.personal === 0) {
+                    const curatedRatio = accountData.curated / total;
+                    const originalRatio = accountData.original / total;
+                    const personalRatio = accountData.personal / total;
+
+                    if (curatedRatio < 0.5) recommended = 'curated';
+                    else if (originalRatio < 0.3) recommended = 'original';
+                    else if (personalRatio < 0.2) recommended = 'personal';
+                    else recommended = 'curated';
+                }
+
+                const labels = {
+                    curated: 'Curated/Value Content',
+                    original: 'Original Content',
+                    personal: 'Personal/Behind-the-Scenes'
+                };
+
+                return {
+                    type: recommended,
+                    label: labels[recommended],
+                    gap: gaps[recommended],
+                    gaps: gaps,
+                    current: accountData,
+                    message: gaps[recommended] > 0
+                        ? `Post ${recommended.toUpperCase()} content next (need ${gaps[recommended]} more this week)`
+                        : `Post ${recommended.toUpperCase()} content to maintain balance`
+                };
+            },
+
+            // Get recommendation formatted for display
+            getRecommendationSummary: function() {
+                if (!this.recommendations.lastUpdated) {
+                    this.init();
+                }
+
+                const time = this.recommendations.nextBestPostTime;
+                const postType = this.recommendations.nextBestPostType;
+
+                return {
+                    timeDisplay: time ? (time.isToday ? time.time : `${time.day} ${time.time}`) : 'Loading...',
+                    typeDisplay: postType ? postType.label : 'Loading...',
+                    typeMessage: postType ? postType.message : '',
+                    quality: time ? time.quality : 'medium'
+                };
+            }
+        };
+
+        // Event listener for cross-tab updates - when MARKETING_STATE updates, refresh displays
+        window.addEventListener('marketingStateUpdated', (event) => {
+            console.log('Marketing state updated:', event.detail);
+
+            // Update Brain Tab displays
+            const headerTimeEl = document.getElementById('headerOptimalTime');
+            const brainBestTimeEl = document.getElementById('brainBestTime');
+            const algoTimeEl = document.getElementById('algorithmOptimalTime');
+
+            const time = event.detail.nextBestPostTime;
+            if (time) {
+                const timeStr = time.isToday ? time.time : `${time.day} ${time.time}`;
+
+                if (headerTimeEl) {
+                    headerTimeEl.textContent = time.isToday ? time.time : `${time.day} ${time.time}`;
+                }
+                if (brainBestTimeEl) {
+                    brainBestTimeEl.textContent = timeStr;
+                }
+                if (algoTimeEl) {
+                    algoTimeEl.textContent = time.isToday ? time.time : `${time.day} at ${time.time}`;
+                }
+            }
+        });
 
         // ═══════════════════════════════════════════════════════════════════════════
         // 5-3-2 Content Mix Tracker - SEPARATE localStorage per account
@@ -22073,9 +22607,14 @@ Would you like to test posting to Threads?`;
         }
 
         async function generateSmartRecommendation() {
+            // Updated 2026-02-13: Use MARKETING_STATE for unified recommendations
+            if (!MARKETING_STATE.recommendations.lastUpdated) {
+                MARKETING_STATE.init();
+            }
+
             const idea = getRandomContentIdea(selectedContentType, selectedAccount);
-            const recommendation = getWhatToPostNext();
-            const optimalTime = getNextOptimalPostTime();
+            const recommendation = MARKETING_STATE.recommendations.nextBestPostType || getWhatToPostNext();
+            const optimalTime = MARKETING_STATE.recommendations.nextBestPostTime || getNextOptimalPostTime();
 
             // Get voice profile for personalized recommendations
             const accountKey = selectedAccount === 'all' ? 'farm' : selectedAccount;
@@ -22577,7 +23116,14 @@ Would you like to test posting to Threads?`;
         // ═══════════════════════════════════════════════════════════════════════════
 
         function updateHeaderOptimalTime() {
-            const optimalTime = getNextOptimalPostTime();
+            // Updated 2026-02-13: Use MARKETING_STATE for unified recommendations
+            // Initialize MARKETING_STATE if needed
+            if (!MARKETING_STATE.recommendations.lastUpdated) {
+                MARKETING_STATE.init();
+            }
+
+            // Use MARKETING_STATE optimal time for consistency with Create Tab
+            const optimalTime = MARKETING_STATE.recommendations.nextBestPostTime || getNextOptimalPostTime();
             if (!optimalTime) return;
 
             // Update header display - always show the formatted time
@@ -22639,7 +23185,13 @@ Would you like to test posting to Threads?`;
                 // ═══════════════════════════════════════════════════════════════════════════
                 // INITIALIZE INTELLIGENT BRAIN FEATURES - OPTIMIZED FOR SPEED
                 // Updated 2026-02-12: Per-account 5-3-2 tracking, removed AI Recommends
+                // Updated 2026-02-13: Uses MARKETING_STATE for unified recommendations
                 // ═══════════════════════════════════════════════════════════════════════════
+
+                // UNIFIED STATE: Initialize if not already done
+                if (!MARKETING_STATE.recommendations.lastUpdated) {
+                    MARKETING_STATE.init();
+                }
 
                 // IMMEDIATE: Initialize season indicator and optimal time display
                 updateSeasonIndicator();
@@ -22648,9 +23200,10 @@ Would you like to test posting to Threads?`;
                 // IMMEDIATE: Show local data first (no API calls)
                 updateContentMixUI();
 
-                // Generate smart briefing from LOCAL data - ALL 3 ACCOUNTS
-                const recommendation = getWhatToPostNext();
-                const optimalTime = getNextOptimalPostTime();
+                // Generate smart briefing from UNIFIED MARKETING STATE - ALL 3 ACCOUNTS
+                // Use MARKETING_STATE for unified recommendations between Brain Tab and Create Tab
+                const recommendation = MARKETING_STATE.recommendations.nextBestPostType || getWhatToPostNext();
+                const optimalTime = MARKETING_STATE.recommendations.nextBestPostTime || getNextOptimalPostTime();
 
                 // Get ALL accounts' data
                 const farm = getAccountContentMix('farm');
@@ -22848,12 +23401,17 @@ Would you like to test posting to Threads?`;
             // 2 & 3. Load REAL Instagram Data (Engagement & Followers) from API
             loadRealInstagramStats();
 
-            // 4. Load Best Posting Time
+            // 4. Load Best Posting Time - Using MARKETING_STATE for unified recommendations
             try {
+                // Updated 2026-02-13: Use MARKETING_STATE for consistency
+                if (!MARKETING_STATE.recommendations.lastUpdated) {
+                    MARKETING_STATE.init();
+                }
+
                 const bestTimeEl = document.getElementById('brainBestTime');
                 const bestTimeQualityEl = document.getElementById('brainBestTimeQuality');
                 const bestTimeLabelEl = document.getElementById('brainBestTimeLabel');
-                const optimalTime = getNextOptimalPostTime();
+                const optimalTime = MARKETING_STATE.recommendations.nextBestPostTime || getNextOptimalPostTime();
                 if (bestTimeEl && optimalTime) {
                     // optimalTime is an object {day, time, quality, isToday} - format it properly
                     const timeDisplay = optimalTime.isToday ? optimalTime.time : `${optimalTime.day} ${optimalTime.time}`;
@@ -22989,7 +23547,11 @@ Would you like to test posting to Threads?`;
 
         // Show SMART actions based on ACTUAL 5-3-2 progress - ALL ACCOUNTS ACCOUNTABILITY
         function showInstantActions() {
-            const optimalTime = getNextOptimalPostTime();
+            // Updated 2026-02-13: Use MARKETING_STATE for unified recommendations
+            if (!MARKETING_STATE.recommendations.lastUpdated) {
+                MARKETING_STATE.init();
+            }
+            const optimalTime = MARKETING_STATE.recommendations.nextBestPostTime || getNextOptimalPostTime();
             const dayOfWeek = new Date().getDay(); // 0=Sun, 3=Wed, 4=Thu
             const isPeakDay = dayOfWeek === 3 || dayOfWeek === 4; // Wed or Thu
             const daysLeftInWeek = 7 - dayOfWeek;
@@ -23523,6 +24085,154 @@ Would you like to test posting to Threads?`;
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
+        // INTEL DRAWER TOGGLE - For Redesigned UI (2026-02-13)
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        // Intelligence Drawer Toggle
+        let intelDrawerOpen = window.innerWidth > 1200; // Open by default on desktop
+
+        function toggleIntelDrawer() {
+            const drawer = document.getElementById('intelDrawer');
+            const overlay = document.querySelector('.intel-drawer-overlay');
+
+            if (!drawer) return;
+
+            intelDrawerOpen = !intelDrawerOpen;
+
+            if (window.innerWidth <= 1200) {
+                // Mobile: slide in/out
+                drawer.classList.toggle('open', intelDrawerOpen);
+                if (overlay) overlay.classList.toggle('open', intelDrawerOpen);
+            } else {
+                // Desktop: show/hide
+                drawer.classList.toggle('collapsed', !intelDrawerOpen);
+            }
+
+            // Save preference
+            localStorage.setItem('intelDrawerOpen', intelDrawerOpen);
+        }
+
+        // Initialize drawer state on load
+        function initIntelDrawer() {
+            const saved = localStorage.getItem('intelDrawerOpen');
+            if (saved !== null) {
+                intelDrawerOpen = saved === 'true';
+            }
+            const drawer = document.getElementById('intelDrawer');
+            if (drawer) {
+                if (window.innerWidth <= 1200) {
+                    drawer.classList.toggle('open', intelDrawerOpen);
+                } else {
+                    drawer.classList.toggle('collapsed', !intelDrawerOpen);
+                }
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // SECONDARY PLATFORMS TOGGLE - For Redesigned UI (2026-02-13)
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        // Toggle secondary platform options
+        function toggleSecondaryPlatforms() {
+            const secondary = document.getElementById('secondaryPlatforms');
+            const toggle = document.querySelector('.more-platforms-toggle');
+
+            if (!secondary) return;
+
+            const isExpanded = secondary.classList.toggle('expanded');
+
+            if (toggle) {
+                toggle.innerHTML = isExpanded
+                    ? '<i class="fas fa-chevron-up"></i> Fewer platforms...'
+                    : '<i class="fas fa-chevron-down"></i> More platforms...';
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // POST NOW & SCHEDULING FUNCTIONS - For Redesigned UI (2026-02-13)
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        // Post immediately without scheduling
+        function postNow() {
+            // Clear any scheduled time
+            const picker = document.getElementById('scheduleDateTimePicker');
+            const display = document.getElementById('scheduledTimeDisplay');
+            const btn = document.getElementById('scheduleBtn');
+
+            if (picker) picker.value = '';
+            if (display) display.style.display = 'none';
+            if (btn) btn.classList.remove('has-time');
+
+            // Call existing publish function
+            if (typeof publishAll === 'function') {
+                publishAll();
+            } else {
+                showToast('Publishing...', 'info');
+                // Fallback - look for other publish functions
+                console.log('Publishing immediately');
+            }
+        }
+
+        // Open the schedule date/time picker
+        function openSchedulePicker() {
+            const picker = document.getElementById('scheduleDateTimePicker');
+            if (picker) {
+                // Set minimum to now
+                const now = new Date();
+                now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+                picker.min = now.toISOString().slice(0, 16);
+
+                // Default to tomorrow at optimal time
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                tomorrow.setHours(9, 0, 0, 0); // 9 AM default
+                tomorrow.setMinutes(tomorrow.getMinutes() - tomorrow.getTimezoneOffset());
+                if (!picker.value) {
+                    picker.value = tomorrow.toISOString().slice(0, 16);
+                }
+
+                picker.showPicker();
+            }
+        }
+
+        // Set the scheduled time and update UI
+        function setScheduleTime(value) {
+            const display = document.getElementById('scheduledTimeDisplay');
+            const btn = document.getElementById('scheduleBtn');
+
+            if (value) {
+                const date = new Date(value);
+                const formatted = date.toLocaleString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit'
+                });
+
+                if (display) {
+                    display.textContent = formatted;
+                    display.style.display = 'block';
+                }
+                if (btn) {
+                    btn.classList.add('has-time');
+                }
+
+                showToast(`Scheduled for ${formatted}`, 'success');
+            }
+        }
+
+        // Clear scheduled time
+        function clearScheduledTime() {
+            const picker = document.getElementById('scheduleDateTimePicker');
+            const display = document.getElementById('scheduledTimeDisplay');
+            const btn = document.getElementById('scheduleBtn');
+
+            if (picker) picker.value = '';
+            if (display) display.style.display = 'none';
+            if (btn) btn.classList.remove('has-time');
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
         // POST INTELLIGENCE BAR - Dynamic Context Panels (2026-02-12)
         // Toggle panels that inject AI context into post creation
         // ═══════════════════════════════════════════════════════════════════════════
@@ -23711,6 +24421,39 @@ Would you like to test posting to Threads?`;
             await loadWeatherIntel();
             if (icon) icon.classList.remove('fa-spin');
             showToast('Weather refreshed!', 'success');
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // loadSeoAeoKeywords - Local keyword loading for Brain Tab (no API needed)
+        // Called on Brain Tab initialization to populate keyword display areas
+        // ═══════════════════════════════════════════════════════════════════════════
+        function loadSeoAeoKeywords() {
+            try {
+                // Populate the SEO Keywords Body section if it exists
+                const seoKeywordsBody = document.getElementById('seoKeywordsBody');
+                if (seoKeywordsBody) {
+                    // Section already has static buttons, just ensure it's ready
+                    console.log('SEO/AEO Keywords section ready');
+                }
+
+                // Pre-populate the keywords intel panel with local data
+                const keywordsIntelContent = document.getElementById('keywordsIntelContent');
+                if (keywordsIntelContent) {
+                    const localData = generateLocalKeywords('farm');
+                    renderKeywordsIntelPanel(localData, 'farm');
+                }
+
+                // Load hashtag sets from library if available
+                if (typeof KeywordHashtagLibrary !== 'undefined') {
+                    const librarySets = KeywordHashtagLibrary.getHashtagSets();
+                    if (librarySets && Object.keys(librarySets).length > 0) {
+                        console.log('KeywordHashtagLibrary loaded with', Object.keys(librarySets).length, 'sets');
+                    }
+                }
+            } catch (error) {
+                console.warn('loadSeoAeoKeywords: Non-critical error:', error);
+                // Non-critical - don't throw, just log
+            }
         }
 
         // SEO/AEO KEYWORDS INTEL - Dynamic AI-powered
@@ -25000,6 +25743,16 @@ Would you like to test posting to Threads?`;
         }
 
         async function loadPostRecommendation() {
+            // ═══════════════════════════════════════════════════════════════════════════
+            // UNIFIED RECOMMENDATION: Uses MARKETING_STATE for consistency with Brain Tab
+            // Updated 2026-02-13: Single source of truth for both tabs
+            // ═══════════════════════════════════════════════════════════════════════════
+
+            // Initialize MARKETING_STATE if not already done
+            if (!MARKETING_STATE.recommendations.lastUpdated) {
+                MARKETING_STATE.init();
+            }
+
             try {
                 const response = await fetch(`${API_URL}?action=getNextBestPost`);
                 const data = await response.json();
@@ -25008,22 +25761,47 @@ Would you like to test posting to Threads?`;
                     currentRecommendation = data.recommendation;
                     displayRecommendation(data.recommendation);
                 } else {
-                    // Generate local recommendation based on 2026 research
-                    const now = new Date();
-                    const hour = now.getHours();
-                    const dayName = now.toLocaleDateString('en-US', { weekday: 'long' });
+                    // Use UNIFIED MARKETING_STATE for consistent recommendations with Brain Tab
+                    const unifiedTime = MARKETING_STATE.recommendations.nextBestPostTime;
+                    const unifiedPostType = MARKETING_STATE.recommendations.nextBestPostType;
+                    const dayName = unifiedTime ? unifiedTime.day : new Date().toLocaleDateString('en-US', { weekday: 'long' });
 
                     currentRecommendation = {
-                        bestTime: hour < 11 ? '11:00 AM' : hour < 16 ? '4:00 PM' : '9:00 PM',
+                        // Use MARKETING_STATE optimal time instead of local calculation
+                        bestTime: unifiedTime ? unifiedTime.time : '9:00 AM',
+                        optimalTime: unifiedTime,
                         platform: 'instagram',
-                        expectedEngagement: 'High',
+                        expectedEngagement: unifiedTime && (unifiedTime.quality === 'best' || unifiedTime.quality === 'great') ? 'High' : 'Medium',
+                        contentType: unifiedPostType ? unifiedPostType.type : 'curated',
                         suggestedCaption: generateSmartCaption(),
-                        whyThisWorks: `${dayName} is a great day for Instagram. DM shares are the #1 ranking signal in 2026!`
+                        whyThisWorks: unifiedTime && unifiedTime.quality === 'best'
+                            ? `${dayName} is a PEAK engagement day! Post at ${unifiedTime.time} for maximum reach.`
+                            : `${dayName} is a good day for Instagram. DM shares are the #1 ranking signal in 2026!`,
+                        // Include 5-3-2 recommendation message for consistency
+                        contentRecommendation: unifiedPostType ? unifiedPostType.message : ''
                     };
                     displayRecommendation(currentRecommendation);
                 }
             } catch (error) {
                 console.error('Error loading recommendation:', error);
+
+                // Even on error, use MARKETING_STATE for consistency
+                const unifiedTime = MARKETING_STATE.recommendations.nextBestPostTime;
+                const unifiedPostType = MARKETING_STATE.recommendations.nextBestPostType;
+
+                if (unifiedTime) {
+                    currentRecommendation = {
+                        bestTime: unifiedTime.time,
+                        optimalTime: unifiedTime,
+                        platform: 'instagram',
+                        expectedEngagement: unifiedTime.quality === 'best' ? 'High' : 'Medium',
+                        contentType: unifiedPostType ? unifiedPostType.type : 'curated',
+                        suggestedCaption: generateSmartCaption(),
+                        whyThisWorks: `Post at ${unifiedTime.time} for optimal engagement.`,
+                        contentRecommendation: unifiedPostType ? unifiedPostType.message : ''
+                    };
+                    displayRecommendation(currentRecommendation);
+                }
             }
         }
 
@@ -25251,7 +26029,14 @@ Would you like to test posting to Threads?`;
         }
 
         async function generateContentCalendar() {
-            openSundayPlanning();
+            try {
+                openSundayPlanning();
+            } catch (error) {
+                // Ensure scroll is restored if openSundayPlanning fails
+                console.error('Error in generateContentCalendar:', error);
+                document.body.style.overflow = '';
+                showToast('Failed to open content calendar. Please try again.', 'error');
+            }
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -25285,16 +26070,38 @@ Would you like to test posting to Threads?`;
 
         function openSundayPlanning() {
             const overlay = document.getElementById('sundayPlanningOverlay');
-            if (!overlay) return;
-            sundayPlanningState.isOpen = true;
-            sundayPlanningState.weekStart = getStartOfWeek(new Date());
-            overlay.classList.add('active');
-            document.body.style.overflow = 'hidden';
-            updatePlanningWeekDisplay();
-            renderWeekGrid();
-            loadContentPool();
-            document.addEventListener('keydown', handlePlanningKeyboard);
-            showToast('Sunday Planning Mode - Press ? for keyboard shortcuts', 'info');
+            if (!overlay) {
+                // Overlay element not found - restore scroll and show error
+                document.body.style.overflow = '';
+                showToast('Planning overlay not available. Please refresh the page.', 'error');
+                return;
+            }
+
+            try {
+                sundayPlanningState.isOpen = true;
+                sundayPlanningState.weekStart = getStartOfWeek(new Date());
+                overlay.classList.add('active');
+                document.body.style.overflow = 'hidden';
+
+                // Verify the overlay is actually visible before proceeding
+                const computedStyle = window.getComputedStyle(overlay);
+                if (computedStyle.display === 'none' || computedStyle.visibility === 'hidden') {
+                    throw new Error('Overlay failed to display');
+                }
+
+                updatePlanningWeekDisplay();
+                renderWeekGrid();
+                loadContentPool();
+                document.addEventListener('keydown', handlePlanningKeyboard);
+                showToast('Sunday Planning Mode - Press ? for keyboard shortcuts', 'info');
+            } catch (error) {
+                // If anything fails, ensure scroll is restored
+                console.error('Error opening Sunday Planning:', error);
+                document.body.style.overflow = '';
+                sundayPlanningState.isOpen = false;
+                overlay.classList.remove('active');
+                showToast('Failed to open planning view. Please try again.', 'error');
+            }
         }
 
         function closeSundayPlanning() {
@@ -30671,12 +31478,42 @@ Would you like to test posting to Threads?`;
             'spring': { primary: '#90ee90', secondary: '#ffb6c1', accent: '#e6e6fa', background: '#f5f5f5' }
         };
 
+        // Set default CSA season based on current date
+        function setDefaultCSASeason() {
+            const seasonSelect = document.getElementById('csaSeason');
+            if (!seasonSelect) return;
+
+            const month = new Date().getMonth(); // 0-11
+            let season;
+
+            // Determine season based on month
+            // Winter: Dec, Jan, Feb (11, 0, 1)
+            // Spring: Mar, Apr, May (2, 3, 4)
+            // Summer: Jun, Jul, Aug (5, 6, 7)
+            // Fall: Sep, Oct, Nov (8, 9, 10)
+            if (month === 11 || month === 0 || month === 1) {
+                season = 'winter';
+            } else if (month >= 2 && month <= 4) {
+                season = 'spring';
+            } else if (month >= 5 && month <= 7) {
+                season = 'summer';
+            } else {
+                season = 'fall';
+            }
+
+            seasonSelect.value = season;
+            console.log('CSA season auto-set to:', season);
+        }
+
         // Initialize CSA Canvas
         function initializeCSACanvas() {
             if (csaCanvas) return; // Already initialized
 
             const canvasEl = document.getElementById('csaCanvas');
             if (!canvasEl) return;
+
+            // Auto-default season dropdown based on current date
+            setDefaultCSASeason();
 
             // Set canvas dimensions (1080x1350 for Instagram feed optimal)
             const displayWidth = 400; // Display size

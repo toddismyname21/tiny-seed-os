@@ -13,6 +13,944 @@
         "confidence": 95
       },
       "rollbackAvailable": true
+    },
+    {
+      "id": "1a87fd39-fae7-48b7-8afb-67f26f6a6d88",
+      "timestamp": "2026-02-12T06:45:53.021Z",
+      "agent": "Backend_Claude",
+      "action": "verification_gate_blocked",
+      "outcome": "blocked",
+      "details": {
+        "taskId": "TEST-001",
+        "currentState": "IMPLEMENTED",
+        "attemptedTransition": "IMPLEMENTED -> DONE (blocked)",
+        "rule": "No direct path from IMPLEMENTED to DONE"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "bdc72538-a98f-4a0f-8793-88f46c0cdf15",
+      "timestamp": "2026-02-12T06:45:53.024Z",
+      "agent": "Backend_Claude",
+      "action": "verification_gate_passed",
+      "outcome": "success",
+      "details": {
+        "taskId": "TEST-002",
+        "currentState": "VERIFIED",
+        "proofsCount": 1,
+        "verifierApproved": true
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "3cb1b42e-84ea-4ada-9a0e-e490c2890ff7",
+      "timestamp": "2026-02-12T06:45:53.024Z",
+      "agent": "Backend_Claude",
+      "action": "verification_gate_blocked",
+      "outcome": "failure",
+      "details": {
+        "taskId": "TEST-003",
+        "currentState": "IMPLEMENTED",
+        "attemptedState": "DONE",
+        "validTransitions": [
+          "AWAITING_VERIFICATION"
+        ],
+        "rule": "State machine enforcement"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "15b837e6-e2ed-419a-b1c5-0d3717fb4661",
+      "timestamp": "2026-02-12T06:45:53.024Z",
+      "agent": "Backend_Claude",
+      "action": "verification_gate_initiated",
+      "outcome": "pending",
+      "details": {
+        "taskId": "TEST-004",
+        "previousState": "IMPLEMENTED",
+        "newState": "AWAITING_VERIFICATION"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "a2c50126-429f-4316-98a8-4df1af173861",
+      "timestamp": "2026-02-12T06:45:53.024Z",
+      "agent": "Backend_Claude",
+      "action": "proof_of_success_submitted",
+      "outcome": "pending",
+      "details": {
+        "taskId": "TEST-004",
+        "proofId": "PROOF-TEST-004-1770878753024-2b11b8e3",
+        "proofType": "test_output",
+        "description": "All unit tests passing"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "a508162f-79a4-442e-a6ad-fa41c8a4596f",
+      "timestamp": "2026-02-12T14:08:51.546Z",
+      "agent": "Backend_Claude",
+      "action": "task_started",
+      "outcome": "success",
+      "details": {
+        "taskId": "TEST-001",
+        "checkpointId": "CP-1770905331541-0gs3fviu8",
+        "stepNumber": 1,
+        "action": "checkpoint_created"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "751de7d8-a8a3-4c55-84b1-1620eb27c51b",
+      "timestamp": "2026-02-12T14:08:58.556Z",
+      "agent": "Backend_Claude",
+      "action": "task_started",
+      "outcome": "success",
+      "details": {
+        "taskId": "TEST-001",
+        "checkpointId": "CP-1770905338555-a8ikrnumw",
+        "stepNumber": 2,
+        "action": "checkpoint_created"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "482b3741-0e4f-4f1e-9926-248d7c3579d4",
+      "timestamp": "2026-02-12T14:09:01.877Z",
+      "agent": "Backend_Claude",
+      "action": "task_started",
+      "outcome": "success",
+      "details": {
+        "taskId": "TEST-001",
+        "checkpointId": "CP-1770905338555-a8ikrnumw",
+        "stepNumber": 2,
+        "action": "checkpoint_resumed"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "ff11a3e5-1b6b-424c-bdbd-daf187f35683",
+      "timestamp": "2026-02-12T14:09:12.054Z",
+      "agent": "Backend_Claude",
+      "action": "task_started",
+      "outcome": "success",
+      "details": {
+        "taskId": "TEST-002",
+        "checkpointId": "CP-1770905352054-ox64gwrwf",
+        "stepNumber": 1,
+        "action": "checkpoint_created"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "72f668df-3261-40c8-b53d-10b33aefa816",
+      "timestamp": "2026-02-12T14:09:22.423Z",
+      "agent": "Backend_Claude",
+      "action": "task_paused",
+      "outcome": "pending",
+      "details": {
+        "taskId": "DEMO-001",
+        "pauseId": "PAUSE-DEMO-001-1770905362418-8i888vwb",
+        "reason": "confidence_low",
+        "requiredAction": "Review AI-generated content before publishing",
+        "confidence": 72,
+        "urgency": "high"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "62c2c7b5-bfb0-44bc-84e3-4bbb0c789452",
+      "timestamp": "2026-02-12T14:09:22.424Z",
+      "agent": "Backend_Claude",
+      "action": "human_notification_created",
+      "outcome": "pending",
+      "details": {
+        "taskId": "DEMO-001",
+        "notificationId": "NOTIFY-DEMO-001-1770905362424-gau4lnob",
+        "urgency": "high",
+        "reason": "confidence_low"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "6695daa9-917b-4351-9b2b-56903969b1bd",
+      "timestamp": "2026-02-12T14:09:31.798Z",
+      "agent": "Backend_Claude",
+      "action": "task_resumed",
+      "outcome": "success",
+      "details": {
+        "taskId": "DEMO-001",
+        "pauseId": "PAUSE-DEMO-001-1770905362418-8i888vwb",
+        "humanInput": {
+          "approved": true,
+          "notes": "Content reviewed and approved for publishing"
+        },
+        "pauseDuration": "9s"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "1f4d5b40-2939-40cb-963d-48b0593cbe72",
+      "timestamp": "2026-02-12T14:09:48.544Z",
+      "agent": "Backend_Claude",
+      "action": "task_paused",
+      "outcome": "pending",
+      "details": {
+        "taskId": "DEMO-002",
+        "pauseId": "PAUSE-DEMO-002-1770905388542-xgjhbi8x",
+        "reason": "high_risk",
+        "requiredAction": "Review production deployment",
+        "confidence": 60,
+        "urgency": "critical"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "da3addc4-2d03-4d95-9c91-61e5f278558e",
+      "timestamp": "2026-02-12T14:09:48.544Z",
+      "agent": "Backend_Claude",
+      "action": "human_notification_created",
+      "outcome": "pending",
+      "details": {
+        "taskId": "DEMO-002",
+        "notificationId": "NOTIFY-DEMO-002-1770905388544-m0die66r",
+        "urgency": "critical",
+        "reason": "high_risk"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "19ac189e-3fea-4c0a-a329-9e7afe1dada4",
+      "timestamp": "2026-02-12T14:10:00.580Z",
+      "agent": "Backend_Claude",
+      "action": "circuit_breaker_tripped",
+      "outcome": "failure",
+      "details": {
+        "source": "circuit_breaker",
+        "reason": "consecutive_failures",
+        "failureCount": 5,
+        "threshold": 5
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "b7b726e5-1a89-4c50-9722-7996e5d1c697",
+      "timestamp": "2026-02-12T14:10:06.181Z",
+      "agent": "Backend_Claude",
+      "action": "circuit_breaker_reset",
+      "outcome": "success",
+      "details": {
+        "source": "circuit_breaker",
+        "previousState": "OPEN",
+        "resetBy": "test_verification"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "16154d2c-f36e-4b4b-9d1b-fc64a2779661",
+      "timestamp": "2026-02-12T14:10:27.666Z",
+      "agent": "Backend_Claude",
+      "action": "circuit_breaker_tripped",
+      "outcome": "failure",
+      "details": {
+        "source": "circuit_breaker",
+        "previousState": "CLOSED",
+        "reason": "test"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "107f4866-04ff-438a-ac78-d6f126548892",
+      "timestamp": "2026-02-12T14:10:28.981Z",
+      "agent": "Backend_Claude",
+      "action": "circuit_breaker_reset",
+      "outcome": "success",
+      "details": {
+        "source": "circuit_breaker",
+        "previousState": "OPEN",
+        "resetBy": "cli"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "4e63bc9a-cab8-4db8-946f-77ad11040380",
+      "timestamp": "2026-02-12T14:10:33.303Z",
+      "agent": "Backend_Claude",
+      "action": "circuit_breaker_tripped",
+      "outcome": "failure",
+      "details": {
+        "source": "circuit_breaker",
+        "previousState": "CLOSED",
+        "reason": "manual_test"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "c280a01a-e8bc-4cd0-bbc2-d0a208cffc0e",
+      "timestamp": "2026-02-12T14:10:36.890Z",
+      "agent": "Backend_Claude",
+      "action": "circuit_breaker_reset",
+      "outcome": "success",
+      "details": {
+        "source": "circuit_breaker",
+        "previousState": "OPEN",
+        "resetBy": "cli"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "fda48c95-d751-4037-8561-3a096b96cdd1",
+      "timestamp": "2026-02-12T14:11:19.232Z",
+      "agent": "Backend_Claude",
+      "action": "circuit_breaker_tripped",
+      "outcome": "failure",
+      "details": {
+        "source": "circuit_breaker",
+        "previousState": "CLOSED",
+        "reason": "manual_test"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "cf1baf59-1940-4c55-a06c-4b06ab72dcf7",
+      "timestamp": "2026-02-12T14:11:36.782Z",
+      "agent": "Backend_Claude",
+      "action": "task_abstained",
+      "outcome": "abstained",
+      "details": {
+        "taskId": "TASK-TEST-001",
+        "abstentionId": "ABSTAIN-TASK-TEST-001-1770905496781-da98a740",
+        "reason": "low_confidence",
+        "confidence": 0.65,
+        "explanation": "Testing abstention protocol",
+        "escalated": false
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "3a433f73-aed3-4000-ad82-da676f879ece",
+      "timestamp": "2026-02-12T14:11:42.217Z",
+      "agent": "Backend_Claude",
+      "action": "task_completed",
+      "outcome": "success",
+      "details": {
+        "taskId": "TASK-002",
+        "task": "API endpoint update",
+        "confidence": 95
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "815de9ac-1d7f-4317-aff2-ed424641ef63",
+      "timestamp": "2026-02-12T14:11:44.856Z",
+      "agent": "PM_Architect",
+      "action": "abstention_resolved",
+      "outcome": "success",
+      "details": {
+        "abstentionId": "ABSTAIN-TASK-TEST-001-1770905496781-da98a740",
+        "taskId": "TASK-TEST-001",
+        "originalAgent": "Backend_Claude",
+        "originalReason": "low_confidence",
+        "resolution": "Test resolution - documentation provided"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "b674ce60-0ee4-481d-995c-05f64a6147b2",
+      "timestamp": "2026-02-12T14:11:54.636Z",
+      "agent": "Security_Claude",
+      "action": "task_abstained",
+      "outcome": "abstained",
+      "details": {
+        "taskId": "TASK-TEST-002",
+        "abstentionId": "ABSTAIN-TASK-TEST-002-1770905514634-1eecda82",
+        "reason": "ethical_concern",
+        "confidence": 0.8,
+        "explanation": "Potential security vulnerability detected",
+        "escalated": true
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "9c7b707f-2796-4d92-a965-e7d782d66dde",
+      "timestamp": "2026-02-12T14:11:54.636Z",
+      "agent": "Security_Claude",
+      "action": "abstention_escalated",
+      "outcome": "escalated",
+      "details": {
+        "taskId": "TASK-TEST-002",
+        "abstentionId": "ABSTAIN-TASK-TEST-002-1770905514634-1eecda82",
+        "reason": "ethical_concern",
+        "confidence": 0.8,
+        "message": "Abstention requires human review"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "b2ea1276-3ad1-4aeb-b7db-ce027e2739cd",
+      "timestamp": "2026-02-12T14:12:29.130Z",
+      "agent": "Backend_Claude",
+      "action": "circuit_half_open",
+      "outcome": "pending",
+      "details": {
+        "source": "circuit_breaker",
+        "previousState": "OPEN",
+        "elapsed": 69897,
+        "reason": "Recovery timeout elapsed"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "db4e7eac-109e-4310-afa3-6cd9014b569e",
+      "timestamp": "2026-02-12T14:12:49.287Z",
+      "agent": "Backend_Claude",
+      "action": "circuit_breaker_tripped",
+      "outcome": "failure",
+      "details": {
+        "source": "circuit_breaker",
+        "previousState": "HALF_OPEN",
+        "reason": "test_blocking"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "5ed31626-1fdf-4c3e-b72d-9819bb4e9f10",
+      "timestamp": "2026-02-12T14:13:54.656Z",
+      "agent": "Backend_Claude",
+      "action": "circuit_breaker_reset",
+      "outcome": "success",
+      "details": {
+        "source": "circuit_breaker",
+        "previousState": "OPEN",
+        "resetBy": "cli"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "387aef1d-e611-496b-a899-a937c7e90a37",
+      "timestamp": "2026-02-12T14:14:15.616Z",
+      "agent": "Test_Agent",
+      "action": "circuit_breaker_reset",
+      "outcome": "success",
+      "details": {
+        "source": "circuit_breaker",
+        "previousState": "CLOSED",
+        "resetBy": "manual"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "c764d6d8-4fbc-4160-905a-e0d5d3a20623",
+      "timestamp": "2026-02-12T14:14:15.618Z",
+      "agent": "Test_Agent",
+      "action": "circuit_breaker_tripped",
+      "outcome": "failure",
+      "details": {
+        "source": "circuit_breaker",
+        "reason": "repeated_same_action",
+        "pattern": "REPEATED_SAME_ACTION",
+        "actionCount": 3
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "45f46962-0ee7-40eb-88d3-a32e243cff32",
+      "timestamp": "2026-02-12T14:14:21.445Z",
+      "agent": "Backend_Claude",
+      "action": "circuit_breaker_reset",
+      "outcome": "success",
+      "details": {
+        "source": "circuit_breaker",
+        "previousState": "CLOSED",
+        "resetBy": "manual"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "7a051185-7758-44f0-911c-04e02546a03a",
+      "timestamp": "2026-02-12T14:14:21.451Z",
+      "agent": "Backend_Claude",
+      "action": "circuit_breaker_tripped",
+      "outcome": "failure",
+      "details": {
+        "source": "circuit_breaker",
+        "reason": "consecutive_failures",
+        "failureCount": 5,
+        "threshold": 5
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "6bc977a6-979a-4a0b-9e02-70638e5befb9",
+      "timestamp": "2026-02-12T14:14:26.987Z",
+      "agent": "Backend_Claude",
+      "action": "circuit_breaker_reset",
+      "outcome": "success",
+      "details": {
+        "source": "circuit_breaker",
+        "previousState": "OPEN",
+        "resetBy": "manual"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "60a508a1-42f9-4247-af1c-83f9e5f56599",
+      "timestamp": "2026-02-12T14:14:26.992Z",
+      "agent": "Backend_Claude",
+      "action": "token_usage_warning",
+      "outcome": "pending",
+      "details": {
+        "source": "circuit_breaker",
+        "tokenUsage": 80000,
+        "warningThreshold": 80000
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "0d7a00f0-bc87-46d2-9823-e8265939a882",
+      "timestamp": "2026-02-12T14:14:26.993Z",
+      "agent": "Backend_Claude",
+      "action": "circuit_breaker_tripped",
+      "outcome": "failure",
+      "details": {
+        "source": "circuit_breaker",
+        "reason": "token_limit_exceeded",
+        "tokenUsage": 110000,
+        "limit": 100000
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "4a540fad-88f4-4719-9f6f-e6f89b3b383e",
+      "timestamp": "2026-02-12T14:14:32.369Z",
+      "agent": "PM_Architect",
+      "action": "circuit_breaker_reset_all",
+      "outcome": "success",
+      "details": {
+        "source": "circuit_breaker",
+        "resetBy": "cleanup",
+        "previousStates": {
+          "Backend_Claude": "OPEN",
+          "Test_Agent": "OPEN"
+        }
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "90c2d345-464b-4363-81ff-5ab65b8a123b",
+      "timestamp": "2026-02-12T14:25:11.691Z",
+      "agent": "PM_Architect",
+      "action": "task_started",
+      "outcome": "success",
+      "details": {
+        "taskId": "TEST-001",
+        "checkpointId": "CP-1770906311688-8n49p0253",
+        "stepNumber": 1,
+        "action": "checkpoint_created"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "632f1c55-ec20-48ea-9892-1af8a0d93ffa",
+      "timestamp": "2026-02-12T14:25:12.849Z",
+      "agent": "PM_Architect",
+      "action": "task_completed",
+      "outcome": "success",
+      "details": {
+        "task": "Infrastructure verification test",
+        "evidence": "All components responding"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "b0f60c90-6e8a-40de-b575-5fc109508711",
+      "timestamp": "2026-02-12T18:25:29.849Z",
+      "agent": "Backend_Claude",
+      "action": "verification_gate_initiated",
+      "outcome": "pending",
+      "details": {
+        "taskId": "TEST-WIRE-001",
+        "previousState": "IMPLEMENTED",
+        "newState": "AWAITING_VERIFICATION"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "65d53db5-3a9b-486e-ba41-1dd9e47c1e60",
+      "timestamp": "2026-02-12T18:25:29.851Z",
+      "agent": "Backend_Claude",
+      "action": "verification_awaiting_approval",
+      "outcome": "pending",
+      "details": {
+        "taskId": "TEST-WIRE-001",
+        "requestId": "VER-TEST-WIRE-001-1770920729850-fcf7baad",
+        "routedTo": "Verifier_Claude",
+        "priority": "MEDIUM",
+        "queuePosition": 1
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "8310dbec-f83b-4c85-ba8f-96714df2056c",
+      "timestamp": "2026-02-12T18:25:29.855Z",
+      "agent": "Backend_Claude",
+      "action": "task_started",
+      "outcome": "success",
+      "details": {
+        "taskId": "TEST-WIRE-001",
+        "checkpointId": "CP-1770920729854-wic0evnrn",
+        "stepNumber": 1,
+        "action": "checkpoint_created"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "92991f8a-aea1-45c9-9f3e-1a17a122ac49",
+      "timestamp": "2026-02-12T21:11:53.371Z",
+      "agent": "Builder",
+      "action": "task_paused",
+      "outcome": "success",
+      "details": {
+        "taskId": "TEST-PAUSE",
+        "reason": "Need clarification",
+        "context": {
+          "question": "Which approach?"
+        }
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "d38f68e6-89c6-4006-90a0-6ad84a4a24b1",
+      "timestamp": "2026-02-12T21:11:53.373Z",
+      "agent": "Builder",
+      "action": "task_resumed",
+      "outcome": "success",
+      "details": {
+        "taskId": "TEST-PAUSE",
+        "pausedAt": "2026-02-12T21:11:53.364Z",
+        "resumedAt": "2026-02-12T21:11:53.373Z",
+        "humanResponse": "{\"answer\":\"Use approach A\"}"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "c186feec-666f-4de8-b703-f1cd5fbf816f",
+      "timestamp": "2026-02-12T21:12:00.306Z",
+      "agent": "PM_Architect",
+      "action": "task_paused",
+      "outcome": "success",
+      "details": {
+        "taskId": "TEST-PAUSE-2",
+        "reason": "Review needed",
+        "context": {
+          "item": "Architecture decision"
+        }
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "e254e350-3d88-4e9f-94e9-f31ccd4fcace",
+      "timestamp": "2026-02-12T21:12:15.577Z",
+      "agent": "PM_Architect",
+      "action": "task_resumed",
+      "outcome": "success",
+      "details": {
+        "taskId": "TEST-PAUSE-2",
+        "pausedAt": "2026-02-12T21:12:00.305Z",
+        "resumedAt": "2026-02-12T21:12:15.576Z",
+        "humanResponse": "{\"decision\":\"Test completed\"}"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "4388b331-c4fd-483a-9fa9-29cc5e5cbbfc",
+      "timestamp": "2026-02-12T21:12:25.711Z",
+      "agent": "Backend_Claude",
+      "action": "task_paused",
+      "outcome": "success",
+      "details": {
+        "taskId": "FINAL-TEST",
+        "reason": "Need approval for database migration",
+        "context": {
+          "migration": "add_user_column",
+          "risk": "medium"
+        }
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "e9d3a941-3731-4177-b57c-58d2a4a6e312",
+      "timestamp": "2026-02-12T21:12:25.712Z",
+      "agent": "Backend_Claude",
+      "action": "task_resumed",
+      "outcome": "success",
+      "details": {
+        "taskId": "FINAL-TEST",
+        "pausedAt": "2026-02-12T21:12:25.709Z",
+        "resumedAt": "2026-02-12T21:12:25.712Z",
+        "humanResponse": "{\"approved\":true,\"note\":\"Proceed with migration\"}"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "d2a1d5cd-f076-4c24-9ff1-f5d1dec5dd71",
+      "timestamp": "2026-02-12T21:21:44.117Z",
+      "agent": "Backend_Claude",
+      "action": "circuit_breaker_tripped",
+      "outcome": "failure",
+      "details": {
+        "reason": "Testing circuit breaker",
+        "cooldownUntil": null
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "d970ce7d-c971-47b9-8c63-1156e95c5cf9",
+      "timestamp": "2026-02-12T21:21:48.204Z",
+      "agent": "Backend_Claude",
+      "action": "circuit_breaker_reset",
+      "outcome": "success",
+      "details": {
+        "reason": "Cooldown period expired"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "d1ada5bb-2ad9-4e58-89ee-d033815abeee",
+      "timestamp": "2026-02-12T21:21:56.810Z",
+      "agent": "PM_Architect",
+      "action": "circuit_breaker_tripped",
+      "outcome": "failure",
+      "details": {
+        "reason": "Testing tripCircuitBreaker function",
+        "cooldownMinutes": 30,
+        "cooldownUntil": "2026-02-12T21:51:56.810Z"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "2542e883-3d99-4e36-9ceb-686cea1d2f88",
+      "timestamp": "2026-02-12T21:21:56.811Z",
+      "agent": "PM_Architect",
+      "action": "circuit_breaker_tripped",
+      "outcome": "failure",
+      "details": {
+        "reason": "Testing tripCircuitBreaker function",
+        "cooldownUntil": "2026-02-12T21:51:56.810Z"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "ecbcb0a8-ff7b-4be0-ab1e-e85aa2ac7290",
+      "timestamp": "2026-02-12T21:21:56.811Z",
+      "agent": "PM_Architect",
+      "action": "escalation",
+      "outcome": "escalated",
+      "details": {
+        "escalationId": "ESC-1770931316811-2cc3bfe6",
+        "type": "CIRCUIT_BREAKER",
+        "reason": "Testing tripCircuitBreaker function",
+        "priority": "high"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "8478a7a5-61e2-4ab3-9944-4617a711c57b",
+      "timestamp": "2026-02-12T21:22:10.559Z",
+      "agent": "PM_Architect",
+      "action": "circuit_breaker_reset",
+      "outcome": "success",
+      "details": {
+        "reason": "Reset after test"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "27716a21-26fe-4d09-b1e3-510423719bc1",
+      "timestamp": "2026-02-12T21:22:15.166Z",
+      "agent": "Security_Claude",
+      "action": "escalation",
+      "outcome": "escalated",
+      "details": {
+        "escalationId": "ESC-1770931335165-51234000",
+        "type": "MANUAL",
+        "reason": "Testing manual escalation",
+        "priority": "normal"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "9a1e91e2-a926-4736-a353-5eedce5ce617",
+      "timestamp": "2026-02-12T21:22:20.933Z",
+      "agent": "Backend_Claude",
+      "action": "verification_gate_required",
+      "outcome": "pending",
+      "details": {
+        "taskId": "TEST-001",
+        "requestId": "VRQ-TEST-001-1770931340932-5da7a578",
+        "evidence": {
+          "command": "npm test",
+          "hasOutput": true,
+          "description": "All unit tests passing"
+        }
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "45be5827-d86f-4f12-8a05-415e8df489f0",
+      "timestamp": "2026-02-12T21:22:20.935Z",
+      "agent": "Backend_Claude",
+      "action": "verification_awaiting_approval",
+      "outcome": "pending",
+      "details": {
+        "taskId": "TEST-001",
+        "requestId": "VER-TEST-001-1770931340934-85520535",
+        "routedTo": "Verifier_Claude",
+        "priority": "MEDIUM",
+        "queuePosition": 2
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "6d945267-c1fa-41bd-bb7b-eeb2c0d6abfa",
+      "timestamp": "2026-02-12T21:22:30.547Z",
+      "agent": "Backend_Claude",
+      "action": "verification_gate_blocked",
+      "outcome": "failure",
+      "details": {
+        "taskId": "TEST-001",
+        "reason": "Unauthorized verifier attempt",
+        "attemptedBy": "Backend_Claude"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "e53a2328-6799-4563-bc1b-f7851c955eb7",
+      "timestamp": "2026-02-12T21:22:35.094Z",
+      "agent": "Verifier_Claude",
+      "action": "verification_gate_passed",
+      "outcome": "success",
+      "details": {
+        "taskId": "TEST-001",
+        "previousState": "AWAITING_VERIFICATION",
+        "newState": "VERIFIED"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "5d82a551-5082-4354-9cdd-1411180f6943",
+      "timestamp": "2026-02-12T21:22:35.099Z",
+      "agent": "Verifier_Claude",
+      "action": "task_started",
+      "outcome": "success",
+      "details": {
+        "taskId": "TEST-001",
+        "checkpointId": "CP-1770931355097-kxk6z2irb",
+        "stepNumber": 2,
+        "action": "checkpoint_created"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "ae09b9da-717a-4b1e-ac0d-b1aa6830f5d2",
+      "timestamp": "2026-02-12T21:22:35.099Z",
+      "agent": "Verifier_Claude",
+      "action": "verification_gate_passed",
+      "outcome": "success",
+      "details": {
+        "taskId": "TEST-001",
+        "requestId": "VRQ-TEST-001-1770931340932-5da7a578",
+        "originalAgent": "Backend_Claude",
+        "notes": "Tests confirmed passing - verified by Verifier_Claude"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "4093471f-465d-4426-904c-372538cf3c99",
+      "timestamp": "2026-02-12T21:22:45.213Z",
+      "agent": "Desktop_Claude",
+      "action": "verification_gate_required",
+      "outcome": "pending",
+      "details": {
+        "taskId": "TEST-002",
+        "requestId": "VRQ-TEST-002-1770931365212-a44087f7",
+        "evidence": {
+          "command": "./validate.sh",
+          "hasOutput": true,
+          "description": "Validation script results"
+        }
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "70802dd4-4a88-4ed3-b211-da4c7530cef8",
+      "timestamp": "2026-02-12T21:22:45.214Z",
+      "agent": "Desktop_Claude",
+      "action": "verification_awaiting_approval",
+      "outcome": "pending",
+      "details": {
+        "taskId": "TEST-002",
+        "requestId": "VER-TEST-002-1770931365213-89c7f932",
+        "routedTo": "Verifier_Claude",
+        "priority": "MEDIUM",
+        "queuePosition": 3
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "72cb3758-1914-486e-b3a7-662456fdfd1a",
+      "timestamp": "2026-02-12T21:22:50.170Z",
+      "agent": "Verifier_Claude",
+      "action": "verification_gate_failed",
+      "outcome": "failure",
+      "details": {
+        "taskId": "TEST-002",
+        "previousState": "AWAITING_VERIFICATION",
+        "newState": "IMPLEMENTED",
+        "reason": "Sent back for fixes"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "df175606-7937-4582-b805-5e30b0db4e22",
+      "timestamp": "2026-02-12T21:22:50.172Z",
+      "agent": "Verifier_Claude",
+      "action": "task_started",
+      "outcome": "success",
+      "details": {
+        "taskId": "TEST-002",
+        "checkpointId": "CP-1770931370172-a0graubyn",
+        "stepNumber": 1,
+        "action": "checkpoint_created"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "267593ca-bafa-4812-b132-34577d78485f",
+      "timestamp": "2026-02-12T21:22:50.173Z",
+      "agent": "Verifier_Claude",
+      "action": "verification_gate_failed",
+      "outcome": "failure",
+      "details": {
+        "taskId": "TEST-002",
+        "requestId": "VRQ-TEST-002-1770931365212-a44087f7",
+        "originalAgent": "Desktop_Claude",
+        "notes": "Tests failed - 3 validation errors detected, need fixes",
+        "reason": "Verification rejected"
+      },
+      "rollbackAvailable": true
+    },
+    {
+      "id": "57614070-2e68-49f9-83e4-9a4d9c432ac9",
+      "timestamp": "2026-02-12T21:23:03.495Z",
+      "agent": "Backend_Claude",
+      "action": "verification_gate_blocked",
+      "outcome": "blocked",
+      "details": {
+        "taskId": "TEST-003",
+        "reason": "Missing verification evidence"
+      },
+      "rollbackAvailable": true
     }
   ]
 }

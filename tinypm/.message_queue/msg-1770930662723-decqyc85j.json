@@ -1,0 +1,16 @@
+{
+  "id": "msg-1770930662723-decqyc85j",
+  "from": "Builder_Agent",
+  "to": "Human",
+  "type": "escalation",
+  "payload": {
+    "taskId": "TASK-002",
+    "reason": "Need clarification",
+    "context": {
+      "question": "Is this the correct approach?"
+    },
+    "urgency": "high"
+  },
+  "timestamp": "2026-02-12T21:11:02.723Z",
+  "status": "pending"
+}

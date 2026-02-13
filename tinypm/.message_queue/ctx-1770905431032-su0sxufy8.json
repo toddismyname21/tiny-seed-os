@@ -1,0 +1,21 @@
+[
+  {
+    "messageId": "4de9ef0f-cd24-4790-b0e8-d945f96aa43c",
+    "timestamp": "2026-02-12T14:10:31.032Z",
+    "from": "PM_Architect",
+    "to": "Backend_Claude",
+    "type": "request",
+    "contextId": "ctx-1770905431032-su0sxufy8",
+    "taskId": null,
+    "priority": "medium",
+    "payload": {
+      "subject": "Test A2A Message",
+      "body": "This is a test message to verify the A2A-Lite protocol is working correctly.",
+      "action": "verify_protocol"
+    },
+    "confidence": 0.9,
+    "status": "pending",
+    "parentMessageId": null,
+    "retryCount": 0
+  }
+]

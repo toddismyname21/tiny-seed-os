@@ -1,0 +1,11 @@
+{
+  "id": "msg-1770930646513-smwfdsr9t",
+  "from": "Builder",
+  "to": "Verifier_Claude",
+  "type": "verification_request",
+  "payload": {
+    "task": "TEST"
+  },
+  "timestamp": "2026-02-12T21:10:46.513Z",
+  "status": "pending"
+}

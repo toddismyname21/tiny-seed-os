@@ -1,0 +1,69 @@
+{
+  "taskId": "TEST-001",
+  "created": "2026-02-12T14:25:11.688Z",
+  "checkpoints": [
+    {
+      "checkpointId": "CP-1770906311688-8n49p0253",
+      "taskId": "TEST-001",
+      "agentId": "PM_Architect",
+      "stepNumber": 1,
+      "timestamp": "2026-02-12T14:25:11.688Z",
+      "currentState": {
+        "title": "",
+        "status": "testing",
+        "priority": "medium",
+        "description": "Verification test"
+      },
+      "completedSteps": [],
+      "pendingSteps": [],
+      "context": {
+        "relevantFiles": [],
+        "variables": {},
+        "workingDirectory": "/Users/samanthapollack/Documents/TIny_Seed_OS"
+      },
+      "lastOutput": null,
+      "metadata": {
+        "createdAt": "2026-02-12T14:25:11.688Z",
+        "nodeVersion": "v25.2.1",
+        "platform": "darwin"
+      }
+    },
+    {
+      "checkpointId": "CP-1770931355097-kxk6z2irb",
+      "taskId": "TEST-001",
+      "agentId": "Verifier_Claude",
+      "stepNumber": 2,
+      "timestamp": "2026-02-12T21:22:35.097Z",
+      "currentState": {
+        "title": "TEST-001",
+        "status": "VERIFIED",
+        "priority": "medium",
+        "description": "State transition: AWAITING_VERIFICATION -> VERIFIED",
+        "previousState": "AWAITING_VERIFICATION",
+        "completedSteps": [],
+        "pendingSteps": [],
+        "relevantFiles": [],
+        "variables": {},
+        "context": {},
+        "lastOutput": null,
+        "transitionTimestamp": "2026-02-12T21:22:35.097Z"
+      },
+      "completedSteps": [],
+      "pendingSteps": [],
+      "context": {
+        "relevantFiles": [],
+        "variables": {},
+        "workingDirectory": "/Users/samanthapollack/Documents/TIny_Seed_OS"
+      },
+      "lastOutput": null,
+      "metadata": {
+        "createdAt": "2026-02-12T21:22:35.097Z",
+        "nodeVersion": "v25.2.1",
+        "platform": "darwin"
+      }
+    }
+  ],
+  "lastCheckpoint": "CP-1770931355097-kxk6z2irb",
+  "lastUpdated": "2026-02-12T21:22:35.097Z",
+  "latestStepNumber": 2
+}

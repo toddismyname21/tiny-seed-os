@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-02-12T18:25:29.850Z",
+  "last_updated": "2026-02-12T21:22:45.213Z",
   "queue_status": "ACTIVE",
   "requests": [
     {
@@ -19,14 +19,56 @@
       "verifiedBy": null,
       "verificationResult": null,
       "verificationNotes": null
+    },
+    {
+      "requestId": "VER-TEST-001-1770931340934-85520535",
+      "taskId": "TEST-001",
+      "requestedAt": "2026-02-12T21:22:20.934Z",
+      "requestedBy": "Backend_Claude",
+      "description": "All unit tests passing",
+      "evidence": {
+        "command": "npm test",
+        "output": "PASS: 45 tests, 0 failures",
+        "description": "All unit tests passing"
+      },
+      "priority": "MEDIUM",
+      "status": "pending",
+      "verificationType": "general",
+      "acceptanceCriteria": [],
+      "assignedTo": "Verifier_Claude",
+      "verifiedAt": null,
+      "verifiedBy": null,
+      "verificationResult": null,
+      "verificationNotes": null
+    },
+    {
+      "requestId": "VER-TEST-002-1770931365213-89c7f932",
+      "taskId": "TEST-002",
+      "requestedAt": "2026-02-12T21:22:45.213Z",
+      "requestedBy": "Desktop_Claude",
+      "description": "Validation script results",
+      "evidence": {
+        "command": "./validate.sh",
+        "output": "ERROR: 3 tests failed",
+        "description": "Validation script results"
+      },
+      "priority": "MEDIUM",
+      "status": "pending",
+      "verificationType": "general",
+      "acceptanceCriteria": [],
+      "assignedTo": "Verifier_Claude",
+      "verifiedAt": null,
+      "verifiedBy": null,
+      "verificationResult": null,
+      "verificationNotes": null
     }
   ],
   "processed": [],
   "statistics": {
-    "total_received": 1,
+    "total_received": 3,
     "total_verified": 0,
     "total_rejected": 0,
-    "total_pending": 1,
+    "total_pending": 3,
     "average_verification_time_minutes": 0
   },
   "verification_types": {

@@ -1,0 +1,29 @@
+{
+  "traceId": "3c4bef5e482ebde4f7d79f042d083480",
+  "spanId": "9a4aac5c3913578f",
+  "parentSpanId": null,
+  "operationName": "test_operation",
+  "startTime": 1770930756675000000,
+  "endTime": 1770930756675000000,
+  "duration": 0,
+  "status": {
+    "code": "OK"
+  },
+  "attributes": {
+    "service.name": "tiny-seed-os",
+    "agent.id": "Builder",
+    "task.id": "TEST-001",
+    "agentId": "Builder",
+    "taskId": "TEST-001"
+  },
+  "events": [
+    {
+      "name": "custom_event",
+      "timestamp": 1770930756675000000,
+      "attributes": {
+        "data": "test"
+      }
+    }
+  ],
+  "links": []
+}
