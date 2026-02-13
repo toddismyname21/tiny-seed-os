@@ -4994,17 +4994,26 @@
                         </div>
                     </div>
 
-                    <!-- Recent Posts from Instagram (scrollable) -->
+                    <!-- Recent Posts from Instagram (scrollable with toggle) -->
                     <div style="margin-top: 1rem;">
-                        <div style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
-                            <i class="fas fa-images" style="color: var(--instagram);"></i> Recent Posts from Instagram
-                            <span id="igPostsCount" style="font-size: 0.7rem; background: var(--instagram); padding: 0.15rem 0.5rem; border-radius: 10px; color: white;">0</span>
+                        <div style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-images" style="color: var(--instagram);"></i> Recent Posts from Instagram
+                                <span id="igPostsCount" style="font-size: 0.7rem; background: var(--instagram); padding: 0.15rem 0.5rem; border-radius: 10px; color: white;">0</span>
+                            </div>
+                            <button id="igToggleExpand" onclick="toggleIgPostsExpand()" style="font-size: 0.7rem; padding: 0.3rem 0.6rem; background: rgba(255,255,255,0.1); border: 1px solid var(--border); border-radius: 6px; color: var(--text-secondary); cursor: pointer; display: none;">
+                                <i class="fas fa-expand-alt"></i> Show All
+                            </button>
                         </div>
-                        <div id="igRecentPostsList" style="max-height: 300px; overflow-y: auto; display: grid; gap: 0.75rem;">
+                        <div id="igRecentPostsList" style="max-height: 350px; overflow-y: auto; display: grid; gap: 0.75rem; transition: max-height 0.3s ease;">
                             <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
                                 <i class="fab fa-instagram" style="font-size: 2rem; opacity: 0.3;"></i>
                                 <p style="margin-top: 0.5rem;">Click "Sync from Instagram" to pull your real posts</p>
                             </div>
+                        </div>
+                        <!-- Pagination/scroll hint -->
+                        <div id="igScrollHint" style="text-align: center; padding: 0.5rem; font-size: 0.7rem; color: var(--text-secondary); display: none;">
+                            <i class="fas fa-chevron-down"></i> Scroll for more posts
                         </div>
                     </div>
 
@@ -22205,6 +22214,36 @@ Would you like to test posting to Threads?`;
                     </div>
                 `;
             }).join('');
+
+            // Show expand toggle if there are more than 5 posts
+            const expandBtn = document.getElementById('igToggleExpand');
+            const scrollHint = document.getElementById('igScrollHint');
+            if (expandBtn) {
+                expandBtn.style.display = sortedPosts.length > 5 ? 'inline-flex' : 'none';
+            }
+            if (scrollHint) {
+                scrollHint.style.display = sortedPosts.length > 5 ? 'block' : 'none';
+            }
+        }
+
+        // Toggle Instagram posts list expanded/collapsed
+        let igPostsExpanded = false;
+        function toggleIgPostsExpand() {
+            const container = document.getElementById('igRecentPostsList');
+            const btn = document.getElementById('igToggleExpand');
+            const hint = document.getElementById('igScrollHint');
+
+            igPostsExpanded = !igPostsExpanded;
+
+            if (igPostsExpanded) {
+                container.style.maxHeight = '800px';
+                btn.innerHTML = '<i class="fas fa-compress-alt"></i> Show Less';
+                if (hint) hint.style.display = 'none';
+            } else {
+                container.style.maxHeight = '350px';
+                btn.innerHTML = '<i class="fas fa-expand-alt"></i> Show All';
+                if (hint) hint.style.display = 'block';
+            }
         }
 
         // Load cached Instagram sync data on page load
