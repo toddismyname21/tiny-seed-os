@@ -49,6 +49,16 @@
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
+        /* Clickable task cards in Needs Your Attention / Today's Focus */
+        .task-clickable:hover {
+            background: rgba(255,255,255,0.08) !important;
+            transform: translateX(4px);
+            border-left-width: 5px !important;
+        }
+        .action-task-card {
+            transition: all 0.2s ease;
+        }
+
         body {
             font-family: 'Inter', sans-serif;
             background: linear-gradient(135deg, var(--bg-dark) 0%, #0f0f1a 100%);
@@ -22874,6 +22884,12 @@ Would you like to test posting to Threads?`;
                 type: 'ENGAGEMENT'
             });
 
+            // Store in brainData so navigation works
+            brainData.actionQueue = {
+                urgent: urgentTasks,
+                today: todayTasks
+            };
+
             // Render the lists
             renderActionList('urgentActions', urgentTasks, 'urgent');
             renderActionList('todayActions', todayTasks, 'today');
@@ -24213,29 +24229,178 @@ Would you like to test posting to Threads?`;
                 return;
             }
 
-            container.innerHTML = actions.map((action, index) => `
-                <div style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 1rem; margin-bottom: 0.75rem; border-left: 3px solid ${type === 'urgent' ? 'var(--danger)' : 'var(--warning)'};" data-task-id="${action.taskId || ''}">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem;">
-                        <div style="flex: 1;">
+            container.innerHTML = actions.map((action, index) => {
+                // Determine where clicking this task should take you
+                const taskDestination = getTaskDestination(action);
+                const isClickable = taskDestination.tab || taskDestination.url;
+                const cursorStyle = isClickable ? 'cursor: pointer;' : '';
+                const hoverClass = isClickable ? 'task-clickable' : '';
+
+                return `
+                <div class="action-task-card ${hoverClass}"
+                     style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 1rem; margin-bottom: 0.75rem; border-left: 3px solid ${type === 'urgent' ? 'var(--danger)' : 'var(--warning)'}; ${cursorStyle} transition: all 0.2s ease;"
+                     data-task-id="${action.taskId || ''}"
+                     data-task-type="${type}"
+                     data-task-index="${index}">
+
+                    <!-- Clickable Task Content -->
+                    <div onclick="navigateToTask('${type}', ${index})" style="flex: 1; ${cursorStyle}">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                             <span style="font-size: 0.7rem; background: ${getTypeBadgeColor(action.type)}; color: white; padding: 0.2rem 0.5rem; border-radius: 4px; text-transform: uppercase;">
                                 ${action.type?.replace(/_/g, ' ') || 'Action'}
                             </span>
-                            ${action.taskId ? `<span style="font-size: 0.65rem; color: var(--text-secondary); margin-left: 0.5rem;" title="Synced with unified task system"><i class="fas fa-link"></i> OS Task</span>` : ''}
-                            <p style="margin-top: 0.5rem; font-weight: 500;">${action.action || 'Take action'}</p>
-                            ${action.draftReply ? `
-                                <div style="background: rgba(0,0,0,0.3); border-radius: 4px; padding: 0.75rem; margin-top: 0.5rem; font-size: 0.85rem; border-left: 2px solid var(--instagram);">
-                                    <p style="color: var(--text-secondary); font-size: 0.7rem; margin-bottom: 0.25rem;">SUGGESTED REPLY:</p>
-                                    <p>"${action.draftReply}"</p>
-                                </div>
-                            ` : ''}
-                            ${action.dueTime ? `<p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.5rem;"><i class="fas fa-clock"></i> Due by ${action.dueTime}</p>` : ''}
+                            ${action.account ? `<span style="font-size: 0.65rem; background: rgba(255,255,255,0.1); padding: 0.15rem 0.4rem; border-radius: 4px;">@${action.account}</span>` : ''}
+                            ${action.taskId ? `<span style="font-size: 0.65rem; color: var(--text-secondary);" title="Synced with unified task system"><i class="fas fa-link"></i> OS</span>` : ''}
+                            ${isClickable ? `<span style="font-size: 0.65rem; color: var(--primary);"><i class="fas fa-arrow-right"></i> ${taskDestination.label}</span>` : ''}
                         </div>
-                        <button class="btn btn-sm btn-success" onclick="markActionDone('${type}', ${index})">
+                        <p style="margin-top: 0.5rem; font-weight: 500;">${action.action || 'Take action'}</p>
+                        ${action.description ? `<p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">${action.description}</p>` : ''}
+                        ${action.draftReply ? `
+                            <div style="background: rgba(0,0,0,0.3); border-radius: 4px; padding: 0.75rem; margin-top: 0.5rem; font-size: 0.85rem; border-left: 2px solid var(--instagram);">
+                                <p style="color: var(--text-secondary); font-size: 0.7rem; margin-bottom: 0.25rem;">SUGGESTED REPLY:</p>
+                                <p>"${action.draftReply}"</p>
+                            </div>
+                        ` : ''}
+                        ${action.dueTime ? `<p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.5rem;"><i class="fas fa-clock"></i> Due by ${action.dueTime}</p>` : ''}
+                    </div>
+
+                    <!-- Action Buttons - Done, Delegate, Delete -->
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.1);">
+                        <button class="btn btn-sm" style="background: var(--success); color: white; flex: 1;" onclick="event.stopPropagation(); markActionDone('${type}', ${index})">
                             <i class="fas fa-check"></i> Done
+                        </button>
+                        <button class="btn btn-sm" style="background: var(--info); color: white; flex: 1;" onclick="event.stopPropagation(); delegateAction('${type}', ${index})">
+                            <i class="fas fa-user-plus"></i> Delegate
+                        </button>
+                        <button class="btn btn-sm" style="background: var(--danger); color: white;" onclick="event.stopPropagation(); deleteAction('${type}', ${index})" title="Delete task">
+                            <i class="fas fa-trash"></i>
                         </button>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
+        }
+
+        // Determine where a task should navigate to when clicked
+        function getTaskDestination(action) {
+            const type = action.type || '';
+
+            // Posting tasks -> Create tab
+            if (['CREATE_POST', 'BEHIND_SCHEDULE', 'PEAK_DAY', 'CONTENT_BALANCE'].includes(type)) {
+                return { tab: 'create', label: 'Go to Create' };
+            }
+
+            // Engagement tasks -> Engage tab
+            if (type === 'ENGAGEMENT') {
+                return { tab: 'engage', label: 'Go to Engage' };
+            }
+
+            // Comment/engagement tasks -> Instagram or Engage tab
+            if (['COMMENT_RESPONSE', 'SALES_OPPORTUNITY'].includes(type)) {
+                if (action.permalink) {
+                    return { url: action.permalink, label: 'Open Instagram' };
+                }
+                return { tab: 'engage', label: 'Go to Engage' };
+            }
+
+            // Crisis -> Engage tab
+            if (type === 'CRISIS_RESPONSE') {
+                return { tab: 'engage', label: 'Go to Engage' };
+            }
+
+            // Goal met - no navigation needed
+            if (type === 'GOAL_MET') {
+                return { tab: null, label: '' };
+            }
+
+            // Default - go to create tab for posting tasks
+            return { tab: 'create', label: 'Take Action' };
+        }
+
+        // Navigate to the appropriate place for a task
+        function navigateToTask(type, index) {
+            const actions = type === 'urgent' ? brainData.actionQueue?.urgent : brainData.actionQueue?.today;
+            const action = actions?.[index];
+            if (!action) return;
+
+            const destination = getTaskDestination(action);
+
+            if (destination.url) {
+                // Open external URL
+                window.open(destination.url, '_blank');
+            } else if (destination.tab) {
+                // Switch to the appropriate tab
+                switchTab(destination.tab);
+                showToast(`Switched to ${destination.tab.toUpperCase()} tab`, 'info');
+            }
+        }
+
+        // Delegate a task to someone
+        async function delegateAction(type, index) {
+            const actions = type === 'urgent' ? brainData.actionQueue?.urgent : brainData.actionQueue?.today;
+            const action = actions?.[index];
+
+            // Simple prompt for now - could be enhanced with a modal
+            const assignee = prompt('Delegate to (name or email):');
+            if (!assignee) return;
+
+            try {
+                await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'delegateMarketingTask',
+                        taskId: action?.taskId || null,
+                        actionType: action?.type,
+                        actionId: `${type}_${index}`,
+                        assignee: assignee
+                    })
+                });
+                showToast(`Task delegated to ${assignee}!`, 'success');
+
+                // Remove from local list
+                if (brainData.actionQueue?.[type]) {
+                    brainData.actionQueue[type].splice(index, 1);
+                    renderActionList(type === 'urgent' ? 'urgentActions' : 'todayActions',
+                                    brainData.actionQueue[type], type);
+                    updateBrainStats({ actionQueue: brainData.actionQueue });
+                }
+            } catch (error) {
+                console.error('Error delegating task:', error);
+                showToast('Error delegating task', 'error');
+            }
+        }
+
+        // Delete a task
+        async function deleteAction(type, index) {
+            if (!confirm('Delete this task?')) return;
+
+            const actions = type === 'urgent' ? brainData.actionQueue?.urgent : brainData.actionQueue?.today;
+            const action = actions?.[index];
+
+            try {
+                await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'deleteMarketingTask',
+                        taskId: action?.taskId || null,
+                        actionType: action?.type,
+                        actionId: `${type}_${index}`
+                    })
+                });
+                showToast('Task deleted!', 'info');
+
+                // Remove from local list
+                if (brainData.actionQueue?.[type]) {
+                    brainData.actionQueue[type].splice(index, 1);
+                    renderActionList(type === 'urgent' ? 'urgentActions' : 'todayActions',
+                                    brainData.actionQueue[type], type);
+                    updateBrainStats({ actionQueue: brainData.actionQueue });
+                }
+            } catch (error) {
+                console.error('Error deleting task:', error);
+                showToast('Error deleting task', 'error');
+            }
         }
 
         function getTypeBadgeColor(type) {
@@ -24245,7 +24410,12 @@ Would you like to test posting to Threads?`;
                 'CREATE_POST': 'var(--instagram)',
                 'COMMENT_RESPONSE': 'var(--info)',
                 'CRISIS_RESPONSE': 'var(--danger)',
-                'RECYCLE_CONTENT': 'var(--purple)'
+                'RECYCLE_CONTENT': 'var(--purple)',
+                'BEHIND_SCHEDULE': 'var(--danger)',
+                'PEAK_DAY': 'var(--warning)',
+                'GOAL_MET': 'var(--success)',
+                'ENGAGEMENT': 'var(--info)',
+                'CONTENT_BALANCE': 'var(--purple)'
             };
             return colors[type] || 'var(--text-secondary)';
         }
