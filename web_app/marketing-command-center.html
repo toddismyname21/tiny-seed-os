@@ -5174,7 +5174,7 @@
                     </div>
                 </div>
                 <!-- KPI 4: Best Posting Time - CLICKABLE -->
-                <div class="stat-card best-time-clickable" id="bestTimeCard" style="border-left: 3px solid var(--warning); cursor: pointer;" title="Click to create a post at this time">
+                <div class="stat-card best-time-clickable" id="bestTimeCard" onclick="goToCreateWithTime()" style="border-left: 3px solid var(--warning); cursor: pointer;" title="Click to create a post at this time">
                     <div class="stat-label" id="brainBestTimeLabel">Next Best Time</div>
                     <div class="stat-value" id="brainBestTime" style="color: var(--warning); font-size: 1.25rem;">--</div>
                     <div class="stat-change neutral" id="brainBestTimeQuality">
@@ -26130,7 +26130,10 @@ Would you like to test posting to Threads?`;
         function navigateToTask(type, index) {
             const actions = type === 'urgent' ? brainData.actionQueue?.urgent : brainData.actionQueue?.today;
             const action = actions?.[index];
-            if (!action) return;
+            if (!action) {
+                showToast('Task data not available. Try refreshing the Brain tab.', 'warning');
+                return;
+            }
 
             const destination = getTaskDestination(action);
 
