@@ -5881,7 +5881,7 @@
                         <p id="uploadSubtext">Photos and videos up to 100MB</p>
                     </div>
                     <!-- Pick from Farm Pics Button -->
-                    <button class="btn btn-secondary farm-pics-btn" onclick="event.stopPropagation(); openFarmPicsPicker()" style="margin-top: 0.75rem; width: 100%; min-height: 56px; font-size: 1rem; font-weight: 600;">
+                    <button class="btn btn-secondary farm-pics-btn" onclick="console.log('Farm Pics clicked'); openFarmPicsPicker()" style="margin-top: 0.75rem; width: 100%; min-height: 56px; font-size: 1rem; font-weight: 600;">
                         <i class="fas fa-images"></i> Pick from Farm Pics
                     </button>
 
@@ -6218,7 +6218,6 @@
                                     <option value="sewickley">Sewickley Farmers Market (Saturday)</option>
                                     <option value="lawrenceville">Lawrenceville Farmers Market (Tuesday)</option>
                                     <option value="bloomfield">Bloomfield Saturday Market</option>
-                                    <option value="bryant">Bryant Street Market</option>
                                 </select>
                                 <button class="schedule-market-btn" onclick="scheduleMarketDayPosts()">
                                     <i class="fas fa-calendar-plus"></i> Auto-Schedule Reminders
@@ -16454,7 +16453,7 @@ Example format:
             location: 'Rochester, PA (Pittsburgh area)',
             owner: 'Todd',
             accounts: ['@tinyseedfarm', '@tinyseedfleurs', '@tinyseedfungi'],
-            markets: ['Sewickley Saturday', 'Lawrenceville Tuesday', 'Bloomfield Saturday', 'Bryant Street'],
+            markets: ['Sewickley Saturday', 'Lawrenceville Tuesday', 'Bloomfield Saturday'],
             brandVoice: {
                 tone: 'warm, authentic, educational',
                 personality: 'passionate small farmer, community-focused, sustainability-minded',
@@ -17873,6 +17872,7 @@ Example format:
         let pickerFarmPicsCache = null;
 
         async function openFarmPicsPicker() {
+            console.log('openFarmPicsPicker called');
             document.getElementById('farmPicsPickerModal').classList.add('active');
             const grid = document.getElementById('farmPicsPickerGrid');
 
@@ -31213,16 +31213,6 @@ Would you like to test posting to Threads?`;
                 reminderTimes: [
                     { day: -1, hour: 17, label: 'Friday Evening Reminder' },
                     { day: 0, hour: 8, label: 'Saturday Morning' }
-                ]
-            },
-            bryant: {
-                name: 'Bryant Street Market',
-                day: 4,
-                startTime: '16:00',
-                endTime: '19:00',
-                reminderTimes: [
-                    { day: -1, hour: 18, label: 'Wednesday Evening Reminder' },
-                    { day: 0, hour: 14, label: 'Thursday Afternoon' }
                 ]
             }
         };
