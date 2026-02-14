@@ -17296,6 +17296,41 @@ function doGet(e) {
         // Alias for analyzeVoiceMatch
         return jsonResponse(analyzeVoiceMatch(e.parameter));
 
+      // ============ ULTIMATE AI MEMORY SYSTEM - PHASE 1 (2026-02-13) ============
+      // Institutional memory for the entire Tiny Seed OS - accessible from all systems
+      // See: /docs/plans/ULTIMATE_AI_MEMORY_ARCHITECTURE.md
+      case 'initializeAIMemorySystem':
+        return jsonResponse(initializeAIMemorySystem());
+      case 'getMemorySystemStatus':
+        return jsonResponse(getMemorySystemStatus());
+      case 'retrieveMemories':
+        return jsonResponse(retrieveMemories(e.parameter));
+      case 'getMemoryById':
+        return jsonResponse(getMemoryById(e.parameter.memoryId || e.parameter.id));
+      case 'searchEntities':
+        return jsonResponse(searchEntities(e.parameter));
+      case 'getThisTimeLastYearMemories':
+        return jsonResponse(getThisTimeLastYearMemories(e.parameter));
+
+      // ============ ULTIMATE AI MEMORY SYSTEM - PHASE 1B (GET) (2026-02-13) ============
+      // Brand-specific memory sheets and supporting infrastructure
+      case 'initializeBrandMemorySheets':
+        return jsonResponse(initializeBrandMemorySheets());
+      case 'getBrandMemory':
+        return jsonResponse(getBrandMemory(e.parameter.brand, e.parameter));
+      case 'getMemoryStats':
+        return jsonResponse(getMemoryStats());
+      case 'getMemoryCorrections':
+        return jsonResponse(getMemoryCorrections(e.parameter));
+      case 'getMemoryEmbedding':
+        return jsonResponse(getMemoryEmbedding(e.parameter.memoryId || e.parameter.id));
+      case 'setupMemoryTriggers':
+        return jsonResponse(setupMemoryTriggers());
+      case 'runDailyMemoryDecay':
+        return jsonResponse(runDailyMemoryDecay());
+      case 'recordMemoryStatsSnapshot':
+        return jsonResponse(recordMemoryStatsSnapshot());
+
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
     }
@@ -17875,6 +17910,10 @@ function doPost(e) {
         return jsonResponse(uploadSocialMediaImage(data));
       case 'configureInstagramAccount':
         return jsonResponse(configureInstagramAccount(data));
+      case 'updateInstagramCaption':
+        return jsonResponse(updateInstagramCaption(data));
+      case 'deleteInstagramPost':
+        return jsonResponse(deleteInstagramPost(data));
       case 'logSocialPost':
         return jsonResponse(logSocialPost(data));
       case 'saveSocialCredentials':
@@ -18489,6 +18528,35 @@ function doPost(e) {
       case 'analyzeVoice':
         // Alias for analyzeVoiceMatch
         return jsonResponse(analyzeVoiceMatch(data));
+
+      // ============ ULTIMATE AI MEMORY SYSTEM - PHASE 1 (POST) (2026-02-13) ============
+      // Institutional memory for the entire Tiny Seed OS - accessible from all systems
+      // See: /docs/plans/ULTIMATE_AI_MEMORY_ARCHITECTURE.md
+      case 'createMemory':
+        return jsonResponse(createMemory(data));
+      case 'updateMemory':
+        return jsonResponse(updateMemory(data.memoryId || data.id, data.updates || data));
+      case 'createEntity':
+        return jsonResponse(createEntity(data));
+      case 'createEntityRelationship':
+        return jsonResponse(createEntityRelationship(data));
+
+      // ============ ULTIMATE AI MEMORY SYSTEM - PHASE 1B (POST) (2026-02-13) ============
+      // Brand-specific memory sheets and supporting infrastructure
+      case 'addBrandMemory':
+        return jsonResponse(addBrandMemory(data.brand, data));
+      case 'logCorrection':
+        return jsonResponse(logCorrection(data.originalId || data.originalMemoryId, data));
+      case 'storeMemoryEmbedding':
+        return jsonResponse(storeMemoryEmbedding(data));
+      case 'createWorkingMemorySession':
+        return jsonResponse(createWorkingMemorySession(data));
+      case 'updateWorkingMemorySession':
+        return jsonResponse(updateWorkingMemorySession(data.sessionId, data.updates || data));
+      case 'endWorkingMemorySession':
+        return jsonResponse(endWorkingMemorySession(data.sessionId, data.sessionInsights || data.insights));
+      case 'logConsolidationRun':
+        return jsonResponse(logConsolidationRun(data));
 
       default:
         return jsonResponse({error: 'Unknown action: ' + action}, 400);
@@ -63205,6 +63273,151 @@ function configureInstagramAccount(params) {
         props.setProperty(`ig_token_${accountIndex}`, accessToken);
         return { success: true, message: `Instagram account "${name}" configured at index ${accountIndex}`, totalAccounts: accounts.length };
     } catch (error) { Logger.log('Error configuring Instagram: ' + error.toString()); return { success: false, error: error.toString() }; }
+}
+
+/**
+ * Update Instagram post caption
+ * Note: Instagram API only allows caption updates within 24 hours of posting
+ * @param {Object} params - { mediaId, accountIndex, newCaption }
+ */
+function updateInstagramCaption(params) {
+    try {
+        const { mediaId, accountIndex, newCaption } = params;
+
+        if (!mediaId || newCaption === undefined) {
+            return { success: false, error: 'Missing required parameters: mediaId, newCaption' };
+        }
+
+        const props = PropertiesService.getScriptProperties();
+        const accounts = JSON.parse(props.getProperty('instagram_accounts') || '[]');
+
+        if (accounts.length === 0) {
+            return { success: false, error: 'Instagram not configured' };
+        }
+
+        const idx = accountIndex || 0;
+        const account = accounts[idx];
+        if (!account) {
+            return { success: false, error: 'Account not found at index ' + idx };
+        }
+
+        const accessToken = props.getProperty(`ig_token_${idx}`);
+        if (!accessToken) {
+            return { success: false, error: 'Access token not found for account' };
+        }
+
+        // Use the appropriate API base URL
+        const baseUrl = accessToken.startsWith('IGAA') ? 'https://graph.instagram.com' : 'https://graph.facebook.com/v24.0';
+
+        // Instagram API endpoint to update media caption
+        const updateUrl = `${baseUrl}/${mediaId}`;
+
+        const response = UrlFetchApp.fetch(updateUrl, {
+            method: 'POST',
+            payload: {
+                caption: newCaption,
+                access_token: accessToken
+            },
+            muteHttpExceptions: true
+        });
+
+        const result = JSON.parse(response.getContentText());
+
+        if (result.error) {
+            // Check for common errors
+            if (result.error.code === 100) {
+                return {
+                    success: false,
+                    error: 'Cannot edit caption: Post may be older than 24 hours or media not found.',
+                    details: result.error.message
+                };
+            }
+            return { success: false, error: result.error.message };
+        }
+
+        Logger.log('Successfully updated Instagram caption for media: ' + mediaId);
+        return {
+            success: true,
+            message: 'Caption updated successfully',
+            mediaId: mediaId,
+            account: account.name
+        };
+
+    } catch (error) {
+        Logger.log('Error updating Instagram caption: ' + error.toString());
+        return { success: false, error: error.toString() };
+    }
+}
+
+/**
+ * Delete an Instagram post
+ * WARNING: This is permanent and cannot be undone!
+ * @param {Object} params - { mediaId, accountIndex }
+ */
+function deleteInstagramPost(params) {
+    try {
+        const { mediaId, accountIndex } = params;
+
+        if (!mediaId) {
+            return { success: false, error: 'Missing required parameter: mediaId' };
+        }
+
+        const props = PropertiesService.getScriptProperties();
+        const accounts = JSON.parse(props.getProperty('instagram_accounts') || '[]');
+
+        if (accounts.length === 0) {
+            return { success: false, error: 'Instagram not configured' };
+        }
+
+        const idx = accountIndex || 0;
+        const account = accounts[idx];
+        if (!account) {
+            return { success: false, error: 'Account not found at index ' + idx };
+        }
+
+        const accessToken = props.getProperty(`ig_token_${idx}`);
+        if (!accessToken) {
+            return { success: false, error: 'Access token not found for account' };
+        }
+
+        // Use the appropriate API base URL
+        const baseUrl = accessToken.startsWith('IGAA') ? 'https://graph.instagram.com' : 'https://graph.facebook.com/v24.0';
+
+        // Instagram API endpoint to delete media
+        // Note: Instagram Business accounts can delete via API
+        const deleteUrl = `${baseUrl}/${mediaId}?access_token=${accessToken}`;
+
+        const response = UrlFetchApp.fetch(deleteUrl, {
+            method: 'DELETE',
+            muteHttpExceptions: true
+        });
+
+        const result = JSON.parse(response.getContentText());
+
+        if (result.error) {
+            // Check for permission errors
+            if (result.error.code === 10 || result.error.code === 190) {
+                return {
+                    success: false,
+                    error: 'Permission denied: Your app may not have delete permissions.',
+                    details: result.error.message
+                };
+            }
+            return { success: false, error: result.error.message };
+        }
+
+        Logger.log('Successfully deleted Instagram post: ' + mediaId);
+        return {
+            success: true,
+            message: 'Post deleted permanently',
+            mediaId: mediaId,
+            account: account.name
+        };
+
+    } catch (error) {
+        Logger.log('Error deleting Instagram post: ' + error.toString());
+        return { success: false, error: error.toString() };
+    }
 }
 
 /**
@@ -129798,8 +130011,8 @@ function getInstagramPostHistory(params) {
         // Determine correct base URL based on token type
         const baseUrl = accessToken.startsWith('IGAA') ? 'https://graph.instagram.com' : 'https://graph.facebook.com/v24.0';
 
-        // Fetch recent media with captions, timestamps, and engagement
-        const url = `${baseUrl}/${account.igUserId}/media?fields=id,caption,timestamp,media_type,like_count,comments_count,permalink&limit=${limit}&access_token=${accessToken}`;
+        // Fetch recent media with captions, timestamps, engagement, AND thumbnails for grid preview
+        const url = `${baseUrl}/${account.igUserId}/media?fields=id,caption,timestamp,media_type,media_url,thumbnail_url,like_count,comments_count,permalink&limit=${limit}&access_token=${accessToken}`;
         const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
         const data = JSON.parse(response.getContentText());
 
@@ -129813,20 +130026,22 @@ function getInstagramPostHistory(params) {
 
         if (data.data && Array.isArray(data.data)) {
           data.data.forEach(post => {
-            if (post.caption && post.caption.trim()) { // Only include posts with captions
-              allPosts.push({
-                id: post.id,
-                caption: post.caption,
-                timestamp: post.timestamp,
-                mediaType: post.media_type,
-                likes: post.like_count || 0,
-                comments: post.comments_count || 0,
-                permalink: post.permalink,
-                account: normalizedAccountName, // Use normalized name for frontend compatibility
-                accountDisplayName: account.name || normalizedAccountName,
-                accountIndex: i
-              });
-            }
+            // Include posts for grid preview even without captions
+            allPosts.push({
+              id: post.id,
+              caption: post.caption || '',
+              timestamp: post.timestamp,
+              mediaType: post.media_type,
+              // For grid preview: use media_url for images, thumbnail_url for videos
+              thumbnail: post.media_type === 'VIDEO' ? post.thumbnail_url : post.media_url,
+              mediaUrl: post.media_url,
+              likes: post.like_count || 0,
+              comments: post.comments_count || 0,
+              permalink: post.permalink,
+              account: normalizedAccountName, // Use normalized name for frontend compatibility
+              accountDisplayName: account.name || normalizedAccountName,
+              accountIndex: i
+            });
           });
         }
       } catch (apiError) {
@@ -134261,6 +134476,2331 @@ function configureClaudeAPI(params) {
     };
   } catch (error) {
     Logger.log('configureClaudeAPI error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
+// ULTIMATE AI MEMORY SYSTEM - PHASE 1: FOUNDATION
+// ═══════════════════════════════════════════════════════════════════════════════
+// Built according to /docs/plans/ULTIMATE_AI_MEMORY_ARCHITECTURE.md
+// This is the institutional memory system for the ENTIRE Tiny Seed OS
+// Accessible from Chief of Staff, dashboards, correspondence, and all systems
+//
+// Memory Types: EPISODIC (events), SEMANTIC (patterns), PROCEDURAL (how-to), FACTUAL
+// Brands: FARM, FLEURS, FUNGI, CROSS_BRAND
+//
+// Created: 2026-02-13
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Generate a unique Memory ID
+ * Format: MEM_YYYYMMDD_HHMMSS_XXX (XXX = random 3 chars)
+ */
+function generateMemoryId() {
+  const now = new Date();
+  const datePart = Utilities.formatDate(now, 'America/New_York', 'yyyyMMdd_HHmmss');
+  const randomPart = Math.random().toString(36).substring(2, 5).toUpperCase();
+  return 'MEM_' + datePart + '_' + randomPart;
+}
+
+/**
+ * Generate Episode ID
+ * Format: EP_YYYYMMDD_XXX
+ */
+function generateEpisodeId() {
+  const now = new Date();
+  const datePart = Utilities.formatDate(now, 'America/New_York', 'yyyyMMdd');
+  const randomPart = Math.random().toString(36).substring(2, 5).toUpperCase();
+  return 'EP_' + datePart + '_' + randomPart;
+}
+
+/**
+ * Generate Semantic Memory ID
+ * Format: SEM_XXX
+ */
+function generateSemanticId() {
+  const randomPart = Math.random().toString(36).substring(2, 8).toUpperCase();
+  return 'SEM_' + randomPart;
+}
+
+/**
+ * Generate Entity ID
+ * Format: ENT_TYPE_XXX
+ */
+function generateEntityId(entityType) {
+  const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return 'ENT_' + (entityType || 'UNK').toUpperCase() + '_' + randomPart;
+}
+
+/**
+ * Generate Relationship ID
+ * Format: REL_XXX
+ */
+function generateRelationshipId() {
+  const randomPart = Math.random().toString(36).substring(2, 8).toUpperCase();
+  return 'REL_' + randomPart;
+}
+
+/**
+ * Generate Temporal Event ID
+ * Format: TE_YYYYMMDD_XXX
+ */
+function generateTemporalEventId() {
+  const now = new Date();
+  const datePart = Utilities.formatDate(now, 'America/New_York', 'yyyyMMdd');
+  const randomPart = Math.random().toString(36).substring(2, 5).toUpperCase();
+  return 'TE_' + datePart + '_' + randomPart;
+}
+
+/**
+ * Get current season from a date
+ */
+function getSeasonFromDate(date) {
+  const d = date instanceof Date ? date : new Date(date);
+  const month = d.getMonth(); // 0-11
+  if (month >= 2 && month <= 4) return 'SPRING';
+  if (month >= 5 && month <= 7) return 'SUMMER';
+  if (month >= 8 && month <= 10) return 'FALL';
+  return 'WINTER';
+}
+
+/**
+ * Get ISO week number from a date
+ */
+function getWeekNumber(date) {
+  const d = date instanceof Date ? date : new Date(date);
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SHEET INITIALIZATION FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Initialize AI_MEMORY_INDEX - The master index of all memories
+ * @returns {Sheet} The initialized sheet
+ */
+function initializeAIMemoryIndex() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName('AI_MEMORY_INDEX');
+
+  if (!sheet) {
+    sheet = ss.insertSheet('AI_MEMORY_INDEX');
+    const headers = [
+      'Memory_ID',           // UUID: MEM_YYYYMMDD_HHMMSS_XXX
+      'Memory_Type',         // EPISODIC, SEMANTIC, PROCEDURAL, FACTUAL
+      'Brand',               // FARM, FLEURS, FUNGI, CROSS_BRAND
+      'Event_Time',          // When the event/fact occurred (T)
+      'Ingestion_Time',      // When system learned it (T')
+      'Last_Accessed',       // Last retrieval time
+      'Access_Count',        // Times retrieved
+      'Importance_Score',    // AI-assigned importance (0-1)
+      'Decay_Rate',          // Daily decay multiplier
+      'Current_Relevance',   // Importance * decay over time (0-1)
+      'Summary',             // 1-sentence summary
+      'Full_Content_Ref',    // Reference to detailed sheet
+      'Embedding_ID',        // Reference to vector embedding
+      'Tags',                // Entity tags for filtering (JSON array)
+      'Source',              // JOURNAL, OBSERVATION, INFERENCE, CORRECTION
+      'Confidence',          // Certainty level (0-1)
+      'Superseded_By',       // Memory_ID if corrected
+      'Is_Active',           // FALSE if superseded
+      'Cross_Brand_Relevant' // TRUE if applies to multiple brands
+    ];
+
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    sheet.getRange(1, 1, 1, headers.length)
+      .setFontWeight('bold')
+      .setBackground('#4285f4')
+      .setFontColor('white');
+    sheet.setFrozenRows(1);
+
+    // Set column widths for readability
+    sheet.setColumnWidth(1, 180);  // Memory_ID
+    sheet.setColumnWidth(11, 300); // Summary
+    sheet.setColumnWidth(14, 200); // Tags
+
+    Logger.log('AI_MEMORY_INDEX sheet created with ' + headers.length + ' columns');
+  }
+
+  return sheet;
+}
+
+/**
+ * Initialize EPISODIC_MEMORY - Specific events and experiences
+ * @returns {Sheet} The initialized sheet
+ */
+function initializeEpisodicMemory() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName('EPISODIC_MEMORY');
+
+  if (!sheet) {
+    sheet = ss.insertSheet('EPISODIC_MEMORY');
+    const headers = [
+      'Episode_ID',          // EP_YYYYMMDD_XXX
+      'Memory_ID',           // FK to AI_MEMORY_INDEX
+      'Date',                // Event date
+      'Time',                // Event time (if known)
+      'Location',            // Where: field, greenhouse, market, etc.
+      'Actor',               // Who: Owner, employee, weather, pest
+      'Action',              // What happened
+      'Object',              // What was affected
+      'Outcome',             // SUCCESS, FAILURE, PARTIAL, NEUTRAL
+      'Quantity',            // Numeric value if applicable
+      'Unit',                // lbs, stems, trays, hours, etc.
+      'Weather_Conditions',  // Weather at time
+      'Temperature',         // Temp at time
+      'Full_Description',    // Complete narrative
+      'Lessons_Learned',     // What we took away
+      'Related_Episodes',    // Links to related events (JSON array)
+      'Photos_Drive_IDs',    // Google Drive photo refs (JSON array)
+      'Season',              // SPRING, SUMMER, FALL, WINTER
+      'Week_Number',         // ISO week number
+      'Growth_Stage',        // Seedling, Vegetative, Flowering, Harvest
+      'Crop_IDs',            // FK to crops involved (JSON array)
+      'Customer_IDs'         // FK to customers involved (JSON array)
+    ];
+
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    sheet.getRange(1, 1, 1, headers.length)
+      .setFontWeight('bold')
+      .setBackground('#34a853')
+      .setFontColor('white');
+    sheet.setFrozenRows(1);
+
+    sheet.setColumnWidth(14, 400); // Full_Description
+    sheet.setColumnWidth(15, 300); // Lessons_Learned
+
+    Logger.log('EPISODIC_MEMORY sheet created with ' + headers.length + ' columns');
+  }
+
+  return sheet;
+}
+
+/**
+ * Initialize SEMANTIC_MEMORY - Patterns and generalized knowledge
+ * @returns {Sheet} The initialized sheet
+ */
+function initializeSemanticMemory() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName('SEMANTIC_MEMORY');
+
+  if (!sheet) {
+    sheet = ss.insertSheet('SEMANTIC_MEMORY');
+    const headers = [
+      'Semantic_ID',         // SEM_XXX
+      'Memory_ID',           // FK to AI_MEMORY_INDEX
+      'Knowledge_Type',      // PATTERN, RULE, FACT, PREFERENCE, PROCEDURE
+      'Subject',             // What this is about
+      'Predicate',           // Relationship type
+      'Object',              // The value/target
+      'Confidence',          // How certain (0-1)
+      'Evidence_Count',      // How many episodes support this
+      'Source_Episodes',     // Episode_IDs that formed this (JSON array)
+      'First_Observed',      // When first noticed
+      'Last_Confirmed',      // When last validated
+      'Contradiction_Count', // Times contradicted
+      'Version',             // How many times updated
+      'Temporal_Qualifier',  // "usually", "in summer", "on Tuesdays"
+      'Condition',           // When this applies
+      'Natural_Language',    // Human-readable statement
+      'Structured_Form'      // Machine-parseable format (JSON)
+    ];
+
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    sheet.getRange(1, 1, 1, headers.length)
+      .setFontWeight('bold')
+      .setBackground('#fbbc04')
+      .setFontColor('black');
+    sheet.setFrozenRows(1);
+
+    sheet.setColumnWidth(15, 300); // Condition
+    sheet.setColumnWidth(16, 400); // Natural_Language
+
+    Logger.log('SEMANTIC_MEMORY sheet created with ' + headers.length + ' columns');
+  }
+
+  return sheet;
+}
+
+/**
+ * Initialize ENTITIES - Knowledge graph nodes
+ * @returns {Sheet} The initialized sheet
+ */
+function initializeEntities() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName('ENTITIES');
+
+  if (!sheet) {
+    sheet = ss.insertSheet('ENTITIES');
+    const headers = [
+      'Entity_ID',           // ENT_TYPE_XXX
+      'Entity_Type',         // CROP, VARIETY, FIELD, BED, CUSTOMER, MARKET, EMPLOYEE, etc.
+      'Name',                // Primary name
+      'Aliases',             // Alternative names (JSON array)
+      'Brand_Affinity',      // FARM, FLEURS, FUNGI (JSON array)
+      'Created_Date',        // When added
+      'Last_Modified',       // When updated
+      'Properties',          // Type-specific attributes (JSON)
+      'Embedding_ID',        // FK to embeddings
+      'Is_Active',           // Still relevant
+      'Notes'                // Additional context
+    ];
+
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    sheet.getRange(1, 1, 1, headers.length)
+      .setFontWeight('bold')
+      .setBackground('#ea4335')
+      .setFontColor('white');
+    sheet.setFrozenRows(1);
+
+    sheet.setColumnWidth(8, 400); // Properties
+    sheet.setColumnWidth(11, 300); // Notes
+
+    Logger.log('ENTITIES sheet created with ' + headers.length + ' columns');
+  }
+
+  return sheet;
+}
+
+/**
+ * Initialize ENTITY_RELATIONSHIPS - Knowledge graph edges
+ * @returns {Sheet} The initialized sheet
+ */
+function initializeEntityRelationships() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName('ENTITY_RELATIONSHIPS');
+
+  if (!sheet) {
+    sheet = ss.insertSheet('ENTITY_RELATIONSHIPS');
+    const headers = [
+      'Relationship_ID',     // REL_XXX
+      'Source_Entity_ID',    // FK to ENTITIES
+      'Relationship_Type',   // GROWS_IN, FOLLOWS, SUPPLIES, BUYS_FROM, etc.
+      'Target_Entity_ID',    // FK to ENTITIES
+      'Strength',            // How strong the relationship (0-1)
+      'Temporal_Start',      // When relationship started
+      'Temporal_End',        // When ended (null if current)
+      'Evidence_Episodes',   // Episodes supporting this (JSON array)
+      'Properties',          // Relationship-specific data (JSON)
+      'Notes'                // Context
+    ];
+
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    sheet.getRange(1, 1, 1, headers.length)
+      .setFontWeight('bold')
+      .setBackground('#9334e6')
+      .setFontColor('white');
+    sheet.setFrozenRows(1);
+
+    sheet.setColumnWidth(9, 300); // Properties
+    sheet.setColumnWidth(10, 300); // Notes
+
+    Logger.log('ENTITY_RELATIONSHIPS sheet created with ' + headers.length + ' columns');
+  }
+
+  return sheet;
+}
+
+/**
+ * Initialize TEMPORAL_EVENTS - Timeline index for temporal queries
+ * @returns {Sheet} The initialized sheet
+ */
+function initializeTemporalEvents() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName('TEMPORAL_EVENTS');
+
+  if (!sheet) {
+    sheet = ss.insertSheet('TEMPORAL_EVENTS');
+    const headers = [
+      'Event_ID',            // TE_YYYYMMDD_XXX
+      'Date',                // Event date
+      'Year',                // For year-over-year queries
+      'Month',               // 1-12
+      'Week',                // ISO week
+      'Day_Of_Year',         // 1-366
+      'Season',              // SPRING, SUMMER, FALL, WINTER
+      'Event_Type',          // frost, harvest, planting, market, etc.
+      'Brand',               // FARM, FLEURS, FUNGI, ALL
+      'Description',         // What happened
+      'Memory_ID',           // FK to AI_MEMORY_INDEX
+      'Is_Recurring',        // Annual event?
+      'Recurrence_Pattern',  // "every year", "first frost"
+      'Significance',        // How important historically (0-1)
+      'Weather_High',        // High temp
+      'Weather_Low',         // Low temp
+      'Weather_Precip'       // Precipitation
+    ];
+
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    sheet.getRange(1, 1, 1, headers.length)
+      .setFontWeight('bold')
+      .setBackground('#00bcd4')
+      .setFontColor('white');
+    sheet.setFrozenRows(1);
+
+    sheet.setColumnWidth(10, 300); // Description
+
+    Logger.log('TEMPORAL_EVENTS sheet created with ' + headers.length + ' columns');
+  }
+
+  return sheet;
+}
+
+/**
+ * Initialize ALL memory system sheets at once
+ * @returns {Object} Status of all sheet initializations
+ */
+function initializeAIMemorySystem() {
+  try {
+    const results = {
+      AI_MEMORY_INDEX: false,
+      EPISODIC_MEMORY: false,
+      SEMANTIC_MEMORY: false,
+      ENTITIES: false,
+      ENTITY_RELATIONSHIPS: false,
+      TEMPORAL_EVENTS: false
+    };
+
+    // Initialize each sheet
+    initializeAIMemoryIndex();
+    results.AI_MEMORY_INDEX = true;
+
+    initializeEpisodicMemory();
+    results.EPISODIC_MEMORY = true;
+
+    initializeSemanticMemory();
+    results.SEMANTIC_MEMORY = true;
+
+    initializeEntities();
+    results.ENTITIES = true;
+
+    initializeEntityRelationships();
+    results.ENTITY_RELATIONSHIPS = true;
+
+    initializeTemporalEvents();
+    results.TEMPORAL_EVENTS = true;
+
+    Logger.log('AI Memory System initialized successfully');
+
+    return {
+      success: true,
+      message: 'AI Memory System Phase 1 initialized successfully',
+      sheets_created: results,
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    Logger.log('initializeAIMemorySystem error: ' + error.toString());
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CORE CRUD FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Create a new memory in the system
+ * This is the primary entry point for storing new memories
+ *
+ * @param {Object} params - Memory parameters
+ * @param {string} params.content - Full memory content
+ * @param {string} params.type - EPISODIC, SEMANTIC, PROCEDURAL, FACTUAL
+ * @param {string} params.brand - FARM, FLEURS, FUNGI, CROSS_BRAND
+ * @param {string} params.eventTime - When event occurred (ISO string)
+ * @param {string[]} params.tags - Initial tags
+ * @param {number} params.importanceScore - AI-assigned importance (0-1)
+ * @param {string} params.summary - 1-sentence summary
+ * @param {string} params.source - JOURNAL, OBSERVATION, INFERENCE, CORRECTION
+ * @param {Object} params.episodeData - Additional data for episodic memories
+ * @returns {Object} { success, memoryId, message }
+ */
+function createMemory(params) {
+  try {
+    const startTime = Date.now();
+
+    // Validate required fields
+    if (!params.content && !params.summary) {
+      return { success: false, error: 'Content or summary is required' };
+    }
+
+    const memoryType = (params.type || 'EPISODIC').toUpperCase();
+    const brand = (params.brand || 'FARM').toUpperCase();
+    const now = new Date();
+    const eventTime = params.eventTime ? new Date(params.eventTime) : now;
+
+    // Generate unique Memory ID
+    const memoryId = generateMemoryId();
+
+    // Calculate importance score (default to 0.5 if not provided)
+    const importanceScore = params.importanceScore !== undefined
+      ? parseFloat(params.importanceScore)
+      : 0.5;
+
+    // Default decay rate based on importance (higher importance = slower decay)
+    const decayRate = 1 - (importanceScore * 0.003);
+
+    // Parse tags
+    let tags = [];
+    if (params.tags) {
+      tags = Array.isArray(params.tags) ? params.tags : JSON.parse(params.tags);
+    }
+
+    // Add to AI_MEMORY_INDEX
+    const indexSheet = initializeAIMemoryIndex();
+    const indexRow = [
+      memoryId,                                    // Memory_ID
+      memoryType,                                  // Memory_Type
+      brand,                                       // Brand
+      eventTime.toISOString(),                     // Event_Time
+      now.toISOString(),                           // Ingestion_Time
+      now.toISOString(),                           // Last_Accessed
+      0,                                           // Access_Count
+      importanceScore,                             // Importance_Score
+      decayRate,                                   // Decay_Rate
+      importanceScore,                             // Current_Relevance (initially same as importance)
+      params.summary || params.content.substring(0, 100) + '...', // Summary
+      memoryType === 'EPISODIC' ? 'EPISODIC_MEMORY' : 'SEMANTIC_MEMORY', // Full_Content_Ref
+      '',                                          // Embedding_ID (to be generated later)
+      JSON.stringify(tags),                        // Tags
+      params.source || 'OBSERVATION',              // Source
+      params.confidence || 1.0,                    // Confidence
+      '',                                          // Superseded_By
+      'TRUE',                                      // Is_Active
+      params.crossBrandRelevant ? 'TRUE' : 'FALSE' // Cross_Brand_Relevant
+    ];
+
+    indexSheet.appendRow(indexRow);
+
+    // If episodic, also add to EPISODIC_MEMORY
+    if (memoryType === 'EPISODIC') {
+      const episodeId = generateEpisodeId();
+      const episodeSheet = initializeEpisodicMemory();
+
+      const episodeData = params.episodeData || {};
+      const episodeRow = [
+        episodeId,                                      // Episode_ID
+        memoryId,                                       // Memory_ID
+        Utilities.formatDate(eventTime, 'America/New_York', 'yyyy-MM-dd'), // Date
+        episodeData.time || '',                         // Time
+        episodeData.location || '',                     // Location
+        episodeData.actor || 'Owner',                   // Actor
+        episodeData.action || '',                       // Action
+        episodeData.object || '',                       // Object
+        episodeData.outcome || 'NEUTRAL',               // Outcome
+        episodeData.quantity || '',                     // Quantity
+        episodeData.unit || '',                         // Unit
+        episodeData.weatherConditions || '',            // Weather_Conditions
+        episodeData.temperature || '',                  // Temperature
+        params.content || '',                           // Full_Description
+        episodeData.lessonsLearned || '',               // Lessons_Learned
+        JSON.stringify(episodeData.relatedEpisodes || []), // Related_Episodes
+        JSON.stringify(episodeData.photoDriveIds || []),   // Photos_Drive_IDs
+        getSeasonFromDate(eventTime),                   // Season
+        getWeekNumber(eventTime),                       // Week_Number
+        episodeData.growthStage || '',                  // Growth_Stage
+        JSON.stringify(episodeData.cropIds || []),      // Crop_IDs
+        JSON.stringify(episodeData.customerIds || [])   // Customer_IDs
+      ];
+
+      episodeSheet.appendRow(episodeRow);
+
+      // Also create temporal event entry
+      createTemporalEventFromMemory(memoryId, eventTime, episodeData.eventType || 'general', brand, params.summary || params.content.substring(0, 100));
+    }
+
+    // If semantic, add to SEMANTIC_MEMORY
+    if (memoryType === 'SEMANTIC') {
+      const semanticId = generateSemanticId();
+      const semanticSheet = initializeSemanticMemory();
+
+      const semanticData = params.semanticData || {};
+      const semanticRow = [
+        semanticId,                                     // Semantic_ID
+        memoryId,                                       // Memory_ID
+        semanticData.knowledgeType || 'PATTERN',        // Knowledge_Type
+        semanticData.subject || '',                     // Subject
+        semanticData.predicate || '',                   // Predicate
+        semanticData.object || '',                      // Object
+        params.confidence || 1.0,                       // Confidence
+        semanticData.evidenceCount || 1,                // Evidence_Count
+        JSON.stringify(semanticData.sourceEpisodes || []), // Source_Episodes
+        Utilities.formatDate(eventTime, 'America/New_York', 'yyyy-MM-dd'), // First_Observed
+        Utilities.formatDate(now, 'America/New_York', 'yyyy-MM-dd'),       // Last_Confirmed
+        0,                                              // Contradiction_Count
+        1,                                              // Version
+        semanticData.temporalQualifier || '',           // Temporal_Qualifier
+        semanticData.condition || '',                   // Condition
+        params.content || params.summary || '',         // Natural_Language
+        JSON.stringify(semanticData.structuredForm || {}) // Structured_Form
+      ];
+
+      semanticSheet.appendRow(semanticRow);
+    }
+
+    const duration = Date.now() - startTime;
+
+    // Log the action
+    logAgentAction({
+      agent: 'AIMemorySystem',
+      action: 'createMemory',
+      target: memoryId,
+      success: true,
+      duration_ms: duration,
+      metadata: { type: memoryType, brand: brand, importance: importanceScore }
+    });
+
+    return {
+      success: true,
+      memoryId: memoryId,
+      type: memoryType,
+      brand: brand,
+      importanceScore: importanceScore,
+      message: 'Memory created successfully',
+      duration_ms: duration
+    };
+
+  } catch (error) {
+    Logger.log('createMemory error: ' + error.toString());
+    logAgentAction({
+      agent: 'AIMemorySystem',
+      action: 'createMemory',
+      success: false,
+      error: error.toString()
+    });
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Create a temporal event entry from a memory
+ * @param {string} memoryId - FK to AI_MEMORY_INDEX
+ * @param {Date} eventDate - Event date
+ * @param {string} eventType - Type of event
+ * @param {string} brand - Brand
+ * @param {string} description - Event description
+ */
+function createTemporalEventFromMemory(memoryId, eventDate, eventType, brand, description) {
+  try {
+    const sheet = initializeTemporalEvents();
+    const d = eventDate instanceof Date ? eventDate : new Date(eventDate);
+
+    const row = [
+      generateTemporalEventId(),                    // Event_ID
+      Utilities.formatDate(d, 'America/New_York', 'yyyy-MM-dd'), // Date
+      d.getFullYear(),                              // Year
+      d.getMonth() + 1,                             // Month (1-12)
+      getWeekNumber(d),                             // Week
+      Math.floor((d - new Date(d.getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24)), // Day_Of_Year
+      getSeasonFromDate(d),                         // Season
+      eventType,                                    // Event_Type
+      brand,                                        // Brand
+      description,                                  // Description
+      memoryId,                                     // Memory_ID
+      'FALSE',                                      // Is_Recurring
+      '',                                           // Recurrence_Pattern
+      0.5,                                          // Significance
+      '',                                           // Weather_High
+      '',                                           // Weather_Low
+      ''                                            // Weather_Precip
+    ];
+
+    sheet.appendRow(row);
+    return true;
+  } catch (error) {
+    Logger.log('createTemporalEventFromMemory error: ' + error.toString());
+    return false;
+  }
+}
+
+/**
+ * Retrieve memories based on query parameters
+ * This is the primary retrieval function with filtering, scoring, and sorting
+ *
+ * @param {Object} params - Query parameters
+ * @param {string} params.query - Natural language query (for semantic search)
+ * @param {string} params.type - Filter by memory type
+ * @param {string} params.brand - Filter by brand
+ * @param {number} params.year - Filter by year
+ * @param {string} params.season - Filter by season
+ * @param {string[]} params.tags - Filter by tags
+ * @param {number} params.limit - Max results (default 10)
+ * @param {number} params.minRelevance - Minimum relevance score (default 0.1)
+ * @param {boolean} params.includeInactive - Include superseded memories
+ * @returns {Object} { success, memories, count, query_params }
+ */
+function retrieveMemories(params) {
+  try {
+    const startTime = Date.now();
+    params = params || {};
+
+    const limit = parseInt(params.limit) || 10;
+    const minRelevance = parseFloat(params.minRelevance) || 0.1;
+    const includeInactive = params.includeInactive === 'true' || params.includeInactive === true;
+
+    const indexSheet = initializeAIMemoryIndex();
+    const data = indexSheet.getDataRange().getValues();
+
+    if (data.length <= 1) {
+      return {
+        success: true,
+        memories: [],
+        count: 0,
+        message: 'No memories found',
+        query_params: params
+      };
+    }
+
+    const headers = data[0];
+    const memoryIdCol = headers.indexOf('Memory_ID');
+    const typeCol = headers.indexOf('Memory_Type');
+    const brandCol = headers.indexOf('Brand');
+    const eventTimeCol = headers.indexOf('Event_Time');
+    const importanceCol = headers.indexOf('Importance_Score');
+    const relevanceCol = headers.indexOf('Current_Relevance');
+    const summaryCol = headers.indexOf('Summary');
+    const tagsCol = headers.indexOf('Tags');
+    const isActiveCol = headers.indexOf('Is_Active');
+    const accessCountCol = headers.indexOf('Access_Count');
+    const lastAccessedCol = headers.indexOf('Last_Accessed');
+
+    let memories = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+
+      // Skip inactive unless requested
+      if (!includeInactive && row[isActiveCol] !== 'TRUE' && row[isActiveCol] !== true) {
+        continue;
+      }
+
+      // Filter by type
+      if (params.type && row[typeCol] !== params.type.toUpperCase()) {
+        continue;
+      }
+
+      // Filter by brand
+      if (params.brand && row[brandCol] !== params.brand.toUpperCase() && row[brandCol] !== 'CROSS_BRAND') {
+        continue;
+      }
+
+      // Filter by year
+      if (params.year) {
+        const eventTime = new Date(row[eventTimeCol]);
+        if (eventTime.getFullYear() !== parseInt(params.year)) {
+          continue;
+        }
+      }
+
+      // Filter by season
+      if (params.season) {
+        const eventTime = new Date(row[eventTimeCol]);
+        if (getSeasonFromDate(eventTime) !== params.season.toUpperCase()) {
+          continue;
+        }
+      }
+
+      // Filter by tags
+      if (params.tags) {
+        const memoryTags = JSON.parse(row[tagsCol] || '[]');
+        const queryTags = Array.isArray(params.tags) ? params.tags : JSON.parse(params.tags);
+        const hasMatchingTag = queryTags.some(tag => memoryTags.includes(tag));
+        if (!hasMatchingTag) {
+          continue;
+        }
+      }
+
+      // Calculate current relevance (with time decay)
+      let relevance = parseFloat(row[relevanceCol]) || parseFloat(row[importanceCol]) || 0.5;
+
+      // Boost for recent access
+      const lastAccessed = new Date(row[lastAccessedCol]);
+      const daysSinceAccess = Math.floor((Date.now() - lastAccessed.getTime()) / (1000 * 60 * 60 * 24));
+      if (daysSinceAccess < 7) {
+        relevance += 0.1;
+      }
+
+      // Boost for seasonal relevance
+      const eventTime = new Date(row[eventTimeCol]);
+      if (getSeasonFromDate(eventTime) === getSeasonFromDate(new Date())) {
+        relevance += 0.15;
+      }
+
+      // Cap at 1.0
+      relevance = Math.min(relevance, 1.0);
+
+      // Filter by minimum relevance
+      if (relevance < minRelevance) {
+        continue;
+      }
+
+      memories.push({
+        memoryId: row[memoryIdCol],
+        type: row[typeCol],
+        brand: row[brandCol],
+        eventTime: row[eventTimeCol],
+        importanceScore: parseFloat(row[importanceCol]),
+        currentRelevance: relevance,
+        summary: row[summaryCol],
+        tags: JSON.parse(row[tagsCol] || '[]'),
+        accessCount: parseInt(row[accessCountCol]) || 0,
+        isActive: row[isActiveCol] === 'TRUE' || row[isActiveCol] === true
+      });
+    }
+
+    // Sort by relevance (highest first)
+    memories.sort((a, b) => b.currentRelevance - a.currentRelevance);
+
+    // Limit results
+    memories = memories.slice(0, limit);
+
+    // Update access counts for retrieved memories
+    updateAccessStats(memories.map(m => m.memoryId));
+
+    const duration = Date.now() - startTime;
+
+    logAgentAction({
+      agent: 'AIMemorySystem',
+      action: 'retrieveMemories',
+      target: params.query || 'filter_query',
+      success: true,
+      duration_ms: duration,
+      metadata: { count: memories.length, limit: limit }
+    });
+
+    return {
+      success: true,
+      memories: memories,
+      count: memories.length,
+      total_matches: memories.length,
+      query_params: params,
+      duration_ms: duration
+    };
+
+  } catch (error) {
+    Logger.log('retrieveMemories error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Update access statistics for retrieved memories
+ * @param {string[]} memoryIds - Array of memory IDs to update
+ */
+function updateAccessStats(memoryIds) {
+  if (!memoryIds || memoryIds.length === 0) return;
+
+  try {
+    const sheet = initializeAIMemoryIndex();
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const memoryIdCol = headers.indexOf('Memory_ID');
+    const accessCountCol = headers.indexOf('Access_Count');
+    const lastAccessedCol = headers.indexOf('Last_Accessed');
+
+    const now = new Date().toISOString();
+
+    for (let i = 1; i < data.length; i++) {
+      if (memoryIds.includes(data[i][memoryIdCol])) {
+        // Update access count
+        const currentCount = parseInt(data[i][accessCountCol]) || 0;
+        sheet.getRange(i + 1, accessCountCol + 1).setValue(currentCount + 1);
+        // Update last accessed
+        sheet.getRange(i + 1, lastAccessedCol + 1).setValue(now);
+      }
+    }
+  } catch (error) {
+    Logger.log('updateAccessStats error: ' + error.toString());
+  }
+}
+
+/**
+ * Update an existing memory
+ *
+ * @param {string} memoryId - The memory ID to update
+ * @param {Object} updates - Fields to update
+ * @returns {Object} { success, updatedFields }
+ */
+function updateMemory(memoryId, updates) {
+  try {
+    if (!memoryId) {
+      return { success: false, error: 'Memory ID is required' };
+    }
+
+    const sheet = initializeAIMemoryIndex();
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const memoryIdCol = headers.indexOf('Memory_ID');
+    let targetRow = -1;
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][memoryIdCol] === memoryId) {
+        targetRow = i + 1; // +1 for 1-based indexing
+        break;
+      }
+    }
+
+    if (targetRow === -1) {
+      return { success: false, error: 'Memory not found: ' + memoryId };
+    }
+
+    const updatedFields = [];
+
+    // Update allowed fields
+    const allowedFields = [
+      'Summary', 'Importance_Score', 'Current_Relevance', 'Tags',
+      'Is_Active', 'Superseded_By', 'Cross_Brand_Relevant', 'Confidence'
+    ];
+
+    for (const field of allowedFields) {
+      const fieldKey = field.toLowerCase().replace(/_/g, '');
+      const updateKey = Object.keys(updates).find(k =>
+        k.toLowerCase().replace(/_/g, '') === fieldKey
+      );
+
+      if (updateKey !== undefined && updates[updateKey] !== undefined) {
+        const colIndex = headers.indexOf(field);
+        if (colIndex !== -1) {
+          let value = updates[updateKey];
+          // Convert arrays to JSON strings
+          if (Array.isArray(value)) {
+            value = JSON.stringify(value);
+          }
+          sheet.getRange(targetRow, colIndex + 1).setValue(value);
+          updatedFields.push(field);
+        }
+      }
+    }
+
+    // Log the update
+    logAgentAction({
+      agent: 'AIMemorySystem',
+      action: 'updateMemory',
+      target: memoryId,
+      success: true,
+      metadata: { updatedFields: updatedFields }
+    });
+
+    return {
+      success: true,
+      memoryId: memoryId,
+      updatedFields: updatedFields,
+      message: 'Memory updated successfully'
+    };
+
+  } catch (error) {
+    Logger.log('updateMemory error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get a single memory by ID with full details
+ *
+ * @param {string} memoryId - The memory ID
+ * @returns {Object} Full memory data
+ */
+function getMemoryById(memoryId) {
+  try {
+    if (!memoryId) {
+      return { success: false, error: 'Memory ID is required' };
+    }
+
+    const sheet = initializeAIMemoryIndex();
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const memoryIdCol = headers.indexOf('Memory_ID');
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][memoryIdCol] === memoryId) {
+        const memory = {};
+        headers.forEach((header, idx) => {
+          let value = data[i][idx];
+          // Parse JSON fields
+          if (['Tags'].includes(header) && typeof value === 'string') {
+            try { value = JSON.parse(value); } catch (e) { /* keep as string */ }
+          }
+          memory[header] = value;
+        });
+
+        // Get additional data based on type
+        if (memory.Memory_Type === 'EPISODIC') {
+          memory.episodeData = getEpisodeDataByMemoryId(memoryId);
+        } else if (memory.Memory_Type === 'SEMANTIC') {
+          memory.semanticData = getSemanticDataByMemoryId(memoryId);
+        }
+
+        // Update access stats
+        updateAccessStats([memoryId]);
+
+        return {
+          success: true,
+          memory: memory
+        };
+      }
+    }
+
+    return { success: false, error: 'Memory not found: ' + memoryId };
+
+  } catch (error) {
+    Logger.log('getMemoryById error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get episode data for a memory
+ * @param {string} memoryId - FK to AI_MEMORY_INDEX
+ */
+function getEpisodeDataByMemoryId(memoryId) {
+  try {
+    const sheet = initializeEpisodicMemory();
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const memoryIdCol = headers.indexOf('Memory_ID');
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][memoryIdCol] === memoryId) {
+        const episode = {};
+        headers.forEach((header, idx) => {
+          let value = data[i][idx];
+          // Parse JSON fields
+          if (['Related_Episodes', 'Photos_Drive_IDs', 'Crop_IDs', 'Customer_IDs'].includes(header) && typeof value === 'string') {
+            try { value = JSON.parse(value); } catch (e) { /* keep as string */ }
+          }
+          episode[header] = value;
+        });
+        return episode;
+      }
+    }
+    return null;
+  } catch (error) {
+    Logger.log('getEpisodeDataByMemoryId error: ' + error.toString());
+    return null;
+  }
+}
+
+/**
+ * Get semantic data for a memory
+ * @param {string} memoryId - FK to AI_MEMORY_INDEX
+ */
+function getSemanticDataByMemoryId(memoryId) {
+  try {
+    const sheet = initializeSemanticMemory();
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const memoryIdCol = headers.indexOf('Memory_ID');
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][memoryIdCol] === memoryId) {
+        const semantic = {};
+        headers.forEach((header, idx) => {
+          let value = data[i][idx];
+          // Parse JSON fields
+          if (['Source_Episodes', 'Structured_Form'].includes(header) && typeof value === 'string') {
+            try { value = JSON.parse(value); } catch (e) { /* keep as string */ }
+          }
+          semantic[header] = value;
+        });
+        return semantic;
+      }
+    }
+    return null;
+  } catch (error) {
+    Logger.log('getSemanticDataByMemoryId error: ' + error.toString());
+    return null;
+  }
+}
+
+/**
+ * Get memory system status and statistics
+ * @returns {Object} System status and counts
+ */
+function getMemorySystemStatus() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const status = {
+      success: true,
+      sheets: {},
+      counts: {},
+      lastUpdated: new Date().toISOString()
+    };
+
+    const sheetNames = [
+      'AI_MEMORY_INDEX',
+      'EPISODIC_MEMORY',
+      'SEMANTIC_MEMORY',
+      'ENTITIES',
+      'ENTITY_RELATIONSHIPS',
+      'TEMPORAL_EVENTS'
+    ];
+
+    for (const name of sheetNames) {
+      const sheet = ss.getSheetByName(name);
+      if (sheet) {
+        const rowCount = sheet.getLastRow() - 1; // Subtract header row
+        status.sheets[name] = true;
+        status.counts[name] = Math.max(0, rowCount);
+      } else {
+        status.sheets[name] = false;
+        status.counts[name] = 0;
+      }
+    }
+
+    status.totalMemories = status.counts.AI_MEMORY_INDEX || 0;
+    status.episodicCount = status.counts.EPISODIC_MEMORY || 0;
+    status.semanticCount = status.counts.SEMANTIC_MEMORY || 0;
+    status.entityCount = status.counts.ENTITIES || 0;
+    status.relationshipCount = status.counts.ENTITY_RELATIONSHIPS || 0;
+    status.temporalEventCount = status.counts.TEMPORAL_EVENTS || 0;
+
+    status.allSheetsInitialized = Object.values(status.sheets).every(v => v === true);
+
+    return status;
+
+  } catch (error) {
+    Logger.log('getMemorySystemStatus error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Create an entity in the knowledge graph
+ *
+ * @param {Object} params - Entity parameters
+ * @param {string} params.type - CROP, VARIETY, FIELD, BED, CUSTOMER, MARKET, etc.
+ * @param {string} params.name - Primary name
+ * @param {string[]} params.aliases - Alternative names
+ * @param {string[]} params.brandAffinity - FARM, FLEURS, FUNGI
+ * @param {Object} params.properties - Type-specific attributes
+ * @param {string} params.notes - Additional context
+ * @returns {Object} { success, entityId }
+ */
+function createEntity(params) {
+  try {
+    if (!params.name) {
+      return { success: false, error: 'Entity name is required' };
+    }
+
+    const entityType = (params.type || 'UNKNOWN').toUpperCase();
+    const entityId = generateEntityId(entityType);
+    const now = new Date();
+
+    const sheet = initializeEntities();
+    const row = [
+      entityId,                                          // Entity_ID
+      entityType,                                        // Entity_Type
+      params.name,                                       // Name
+      JSON.stringify(params.aliases || []),              // Aliases
+      JSON.stringify(params.brandAffinity || ['FARM']),  // Brand_Affinity
+      Utilities.formatDate(now, 'America/New_York', 'yyyy-MM-dd'), // Created_Date
+      Utilities.formatDate(now, 'America/New_York', 'yyyy-MM-dd'), // Last_Modified
+      JSON.stringify(params.properties || {}),           // Properties
+      '',                                                // Embedding_ID
+      'TRUE',                                            // Is_Active
+      params.notes || ''                                 // Notes
+    ];
+
+    sheet.appendRow(row);
+
+    logAgentAction({
+      agent: 'AIMemorySystem',
+      action: 'createEntity',
+      target: entityId,
+      success: true,
+      metadata: { type: entityType, name: params.name }
+    });
+
+    return {
+      success: true,
+      entityId: entityId,
+      type: entityType,
+      name: params.name
+    };
+
+  } catch (error) {
+    Logger.log('createEntity error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Create a relationship between two entities
+ *
+ * @param {Object} params - Relationship parameters
+ * @param {string} params.sourceEntityId - FK to ENTITIES
+ * @param {string} params.relationshipType - GROWS_IN, FOLLOWS, SUPPLIES, etc.
+ * @param {string} params.targetEntityId - FK to ENTITIES
+ * @param {number} params.strength - Relationship strength (0-1)
+ * @param {Object} params.properties - Additional data
+ * @returns {Object} { success, relationshipId }
+ */
+function createEntityRelationship(params) {
+  try {
+    if (!params.sourceEntityId || !params.targetEntityId) {
+      return { success: false, error: 'Source and target entity IDs are required' };
+    }
+
+    const relationshipId = generateRelationshipId();
+    const now = new Date();
+
+    const sheet = initializeEntityRelationships();
+    const row = [
+      relationshipId,                                     // Relationship_ID
+      params.sourceEntityId,                              // Source_Entity_ID
+      (params.relationshipType || 'RELATED_TO').toUpperCase(), // Relationship_Type
+      params.targetEntityId,                              // Target_Entity_ID
+      params.strength || 0.5,                             // Strength
+      params.temporalStart ? Utilities.formatDate(new Date(params.temporalStart), 'America/New_York', 'yyyy-MM-dd') : '', // Temporal_Start
+      params.temporalEnd ? Utilities.formatDate(new Date(params.temporalEnd), 'America/New_York', 'yyyy-MM-dd') : '',     // Temporal_End
+      JSON.stringify(params.evidenceEpisodes || []),      // Evidence_Episodes
+      JSON.stringify(params.properties || {}),            // Properties
+      params.notes || ''                                  // Notes
+    ];
+
+    sheet.appendRow(row);
+
+    logAgentAction({
+      agent: 'AIMemorySystem',
+      action: 'createEntityRelationship',
+      target: relationshipId,
+      success: true,
+      metadata: { type: params.relationshipType, source: params.sourceEntityId, target: params.targetEntityId }
+    });
+
+    return {
+      success: true,
+      relationshipId: relationshipId,
+      type: params.relationshipType
+    };
+
+  } catch (error) {
+    Logger.log('createEntityRelationship error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Search entities by name or type
+ *
+ * @param {Object} params - Search parameters
+ * @param {string} params.name - Search by name (partial match)
+ * @param {string} params.type - Filter by entity type
+ * @param {string} params.brand - Filter by brand affinity
+ * @param {number} params.limit - Max results
+ * @returns {Object} { success, entities, count }
+ */
+function searchEntities(params) {
+  try {
+    params = params || {};
+    const limit = parseInt(params.limit) || 20;
+
+    const sheet = initializeEntities();
+    const data = sheet.getDataRange().getValues();
+
+    if (data.length <= 1) {
+      return { success: true, entities: [], count: 0 };
+    }
+
+    const headers = data[0];
+    const entityIdCol = headers.indexOf('Entity_ID');
+    const typeCol = headers.indexOf('Entity_Type');
+    const nameCol = headers.indexOf('Name');
+    const aliasesCol = headers.indexOf('Aliases');
+    const brandCol = headers.indexOf('Brand_Affinity');
+    const isActiveCol = headers.indexOf('Is_Active');
+
+    const searchName = params.name ? params.name.toLowerCase() : null;
+    const searchType = params.type ? params.type.toUpperCase() : null;
+    const searchBrand = params.brand ? params.brand.toUpperCase() : null;
+
+    let entities = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+
+      // Skip inactive
+      if (row[isActiveCol] !== 'TRUE' && row[isActiveCol] !== true) {
+        continue;
+      }
+
+      // Filter by type
+      if (searchType && row[typeCol] !== searchType) {
+        continue;
+      }
+
+      // Filter by name (partial match)
+      if (searchName) {
+        const name = (row[nameCol] || '').toLowerCase();
+        const aliases = JSON.parse(row[aliasesCol] || '[]');
+        const aliasMatch = aliases.some(a => a.toLowerCase().includes(searchName));
+        if (!name.includes(searchName) && !aliasMatch) {
+          continue;
+        }
+      }
+
+      // Filter by brand
+      if (searchBrand) {
+        const brands = JSON.parse(row[brandCol] || '[]');
+        if (!brands.includes(searchBrand)) {
+          continue;
+        }
+      }
+
+      entities.push({
+        entityId: row[entityIdCol],
+        type: row[typeCol],
+        name: row[nameCol],
+        aliases: JSON.parse(row[aliasesCol] || '[]'),
+        brandAffinity: JSON.parse(row[brandCol] || '[]')
+      });
+
+      if (entities.length >= limit) break;
+    }
+
+    return {
+      success: true,
+      entities: entities,
+      count: entities.length
+    };
+
+  } catch (error) {
+    Logger.log('searchEntities error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get temporal events for "this time last year" queries
+ *
+ * @param {Object} params - Query parameters
+ * @param {number} params.year - Year to compare (defaults to last year)
+ * @param {number} params.weekRange - Number of weeks +/- to include (default 1)
+ * @param {string} params.brand - Filter by brand
+ * @returns {Object} { success, events, thisWeek, lastYear }
+ */
+function getThisTimeLastYearMemories(params) {
+  try {
+    params = params || {};
+    const now = new Date();
+    const currentWeek = getWeekNumber(now);
+    const currentYear = now.getFullYear();
+    const targetYear = parseInt(params.year) || currentYear - 1;
+    const weekRange = parseInt(params.weekRange) || 1;
+
+    const sheet = initializeTemporalEvents();
+    const data = sheet.getDataRange().getValues();
+
+    if (data.length <= 1) {
+      return { success: true, events: [], count: 0, thisWeek: currentWeek, targetYear: targetYear };
+    }
+
+    const headers = data[0];
+    const yearCol = headers.indexOf('Year');
+    const weekCol = headers.indexOf('Week');
+    const brandCol = headers.indexOf('Brand');
+    const descCol = headers.indexOf('Description');
+    const memoryIdCol = headers.indexOf('Memory_ID');
+    const eventTypeCol = headers.indexOf('Event_Type');
+    const dateCol = headers.indexOf('Date');
+
+    let events = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const eventYear = parseInt(row[yearCol]);
+      const eventWeek = parseInt(row[weekCol]);
+
+      // Check year match
+      if (eventYear !== targetYear) continue;
+
+      // Check week range
+      if (eventWeek < currentWeek - weekRange || eventWeek > currentWeek + weekRange) continue;
+
+      // Filter by brand
+      if (params.brand && row[brandCol] !== params.brand.toUpperCase() && row[brandCol] !== 'ALL') continue;
+
+      events.push({
+        date: row[dateCol],
+        week: eventWeek,
+        eventType: row[eventTypeCol],
+        brand: row[brandCol],
+        description: row[descCol],
+        memoryId: row[memoryIdCol]
+      });
+    }
+
+    return {
+      success: true,
+      events: events,
+      count: events.length,
+      thisWeek: currentWeek,
+      targetYear: targetYear,
+      weekRange: weekRange
+    };
+
+  } catch (error) {
+    Logger.log('getThisTimeLastYearMemories error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ULTIMATE AI MEMORY ARCHITECTURE - PHASE 1B: BRAND-SPECIFIC MEMORY SHEETS
+// Created: 2026-02-13
+// Architecture: docs/plans/ULTIMATE_AI_MEMORY_ARCHITECTURE.md
+// Coordinates with MEM-1 team (core sheets) - this handles brand-specific & support sheets
+// ═══════════════════════════════════════════════════════════════════════════
+
+// =============================================================================
+// SHEET NAMES AND HEADERS - Brand-Specific & Supporting Sheets
+// =============================================================================
+
+const MEMORY_BRAND_SHEETS = {
+  FARM_MEMORY: 'FARM_MEMORY',
+  FLEURS_MEMORY: 'FLEURS_MEMORY',
+  FUNGI_MEMORY: 'FUNGI_MEMORY',
+  MEMORY_EMBEDDINGS: 'MEMORY_EMBEDDINGS',
+  CORRECTIONS: 'MEMORY_CORRECTIONS',
+  CONSOLIDATION_LOG: 'CONSOLIDATION_LOG',
+  WORKING_MEMORY: 'WORKING_MEMORY',
+  MEMORY_STATS: 'MEMORY_STATS'
+};
+
+// FARM_MEMORY Categories: Vegetables, Soil, Irrigation, Pest_Management, Harvest, Storage, Sales
+const FARM_MEMORY_HEADERS = [
+  'Entry_ID',
+  'Memory_ID',
+  'Category',
+  'Subcategory',
+  'Content',
+  'Crop_Specific',
+  'Year',
+  'Season',
+  'Verified',
+  'Created_At',
+  'Updated_At'
+];
+
+// FLEURS_MEMORY Categories: Arrangements, Varieties, Vase_Life, Market_Performance, Wedding_Work, Design_Notes
+const FLEURS_MEMORY_HEADERS = [
+  'Entry_ID',
+  'Memory_ID',
+  'Category',
+  'Subcategory',
+  'Content',
+  'Crop_Specific',
+  'Year',
+  'Season',
+  'Verified',
+  'Created_At',
+  'Updated_At'
+];
+
+// FUNGI_MEMORY Categories: Strains, Substrates, Climate_Control, Contamination, Yields, Processing
+const FUNGI_MEMORY_HEADERS = [
+  'Entry_ID',
+  'Memory_ID',
+  'Category',
+  'Subcategory',
+  'Content',
+  'Strain_Specific',
+  'Year',
+  'Batch_ID',
+  'Verified',
+  'Created_At',
+  'Updated_At'
+];
+
+// MEMORY_EMBEDDINGS - Vector Storage
+const MEMORY_EMBEDDINGS_HEADERS = [
+  'Embedding_ID',
+  'Memory_ID',
+  'Text_Content',
+  'Model_Used',
+  'Dimensions',
+  'Embedding_Vector',
+  'Created_At',
+  'Chunk_Index',
+  'Total_Chunks'
+];
+
+// MEMORY_CORRECTIONS - Self-Correction Log
+const MEMORY_CORRECTIONS_HEADERS = [
+  'Correction_ID',
+  'Original_Memory_ID',
+  'Corrected_Memory_ID',
+  'Correction_Type',
+  'Error_Description',
+  'Correct_Information',
+  'Detected_By',
+  'Detection_Method',
+  'Correction_Date',
+  'Confidence_Before',
+  'Confidence_After',
+  'Learning_Applied'
+];
+
+// CONSOLIDATION_LOG - Episodic -> Semantic tracking
+const CONSOLIDATION_LOG_HEADERS = [
+  'Consolidation_ID',
+  'Run_Date',
+  'Brand',
+  'Scope',
+  'Episodes_Analyzed',
+  'Patterns_Identified',
+  'Patterns_Reinforced',
+  'Patterns_Weakened',
+  'New_Semantic_IDs',
+  'Updated_Semantic_IDs',
+  'Processing_Time_Sec',
+  'AI_Model_Used',
+  'Prompt_Version'
+];
+
+// WORKING_MEMORY - Session Context
+const WORKING_MEMORY_HEADERS = [
+  'Session_ID',
+  'Started_At',
+  'Last_Updated',
+  'User_ID',
+  'Brand_Focus',
+  'Task_Type',
+  'Active_Context',
+  'Recent_Retrievals',
+  'Conversation_Summary',
+  'Entities_In_Focus',
+  'Time_Focus',
+  'Pending_Actions',
+  'Session_Insights',
+  'Is_Active'
+];
+
+// MEMORY_STATS - System Metrics
+const MEMORY_STATS_HEADERS = [
+  'Date',
+  'Total_Memories',
+  'Episodic_Count',
+  'Semantic_Count',
+  'Procedural_Count',
+  'Factual_Count',
+  'Entity_Count',
+  'Relationship_Count',
+  'Farm_Memories',
+  'Fleurs_Memories',
+  'Fungi_Memories',
+  'Cross_Brand_Count',
+  'Avg_Importance',
+  'Avg_Relevance',
+  'Retrieval_Count',
+  'Consolidation_Runs',
+  'Corrections_Made',
+  'Storage_Bytes',
+  'Embedding_Count'
+];
+
+// =============================================================================
+// INITIALIZATION - PHASE 1B
+// =============================================================================
+
+/**
+ * Initialize all brand-specific and supporting memory sheets
+ * @returns {Object} { success, created, skipped, errors }
+ */
+function initializeBrandMemorySheets() {
+  var results = { success: true, created: [], skipped: [], errors: [] };
+
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+    var allSheets = [
+      { name: MEMORY_BRAND_SHEETS.FARM_MEMORY, headers: FARM_MEMORY_HEADERS, color: '#4CAF50' },
+      { name: MEMORY_BRAND_SHEETS.FLEURS_MEMORY, headers: FLEURS_MEMORY_HEADERS, color: '#E91E63' },
+      { name: MEMORY_BRAND_SHEETS.FUNGI_MEMORY, headers: FUNGI_MEMORY_HEADERS, color: '#795548' },
+      { name: MEMORY_BRAND_SHEETS.MEMORY_EMBEDDINGS, headers: MEMORY_EMBEDDINGS_HEADERS, color: '#9C27B0' },
+      { name: MEMORY_BRAND_SHEETS.CORRECTIONS, headers: MEMORY_CORRECTIONS_HEADERS, color: '#F44336' },
+      { name: MEMORY_BRAND_SHEETS.CONSOLIDATION_LOG, headers: CONSOLIDATION_LOG_HEADERS, color: '#2196F3' },
+      { name: MEMORY_BRAND_SHEETS.WORKING_MEMORY, headers: WORKING_MEMORY_HEADERS, color: '#FF9800' },
+      { name: MEMORY_BRAND_SHEETS.MEMORY_STATS, headers: MEMORY_STATS_HEADERS, color: '#607D8B' }
+    ];
+
+    for (var i = 0; i < allSheets.length; i++) {
+      var config = allSheets[i];
+      try {
+        var result = createSheetWithHeaders(ss, config.name, config.headers, config.color);
+        if (result.created) {
+          results.created.push(config.name);
+        } else {
+          results.skipped.push(config.name);
+        }
+      } catch (sheetError) {
+        results.errors.push({ sheet: config.name, error: sheetError.toString() });
+      }
+    }
+
+    results.success = results.errors.length === 0;
+    return results;
+
+  } catch (error) {
+    Logger.log('initializeBrandMemorySheets error: ' + error.toString());
+    return { success: false, error: error.toString(), created: [], skipped: [], errors: [] };
+  }
+}
+
+// =============================================================================
+// BRAND MEMORY ACCESS
+// =============================================================================
+
+/**
+ * Get brand-specific memory entries
+ * @param {string} brand - FARM, FLEURS, or FUNGI
+ * @param {Object} params - Query parameters
+ * @returns {Object} { success, memories, total }
+ */
+function getBrandMemory(brand, params) {
+  params = params || {};
+  try {
+    if (!brand || ['FARM', 'FLEURS', 'FUNGI'].indexOf(brand.toUpperCase()) === -1) {
+      return { success: false, error: 'Invalid brand. Must be FARM, FLEURS, or FUNGI' };
+    }
+
+    var sheetName = MEMORY_BRAND_SHEETS[brand.toUpperCase() + '_MEMORY'];
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName(sheetName);
+
+    if (!sheet) {
+      initializeBrandMemorySheets();
+      return { success: true, memories: [], total: 0, message: 'Sheet initialized, no data yet' };
+    }
+
+    var lastRow = sheet.getLastRow();
+    if (lastRow <= 1) {
+      return { success: true, memories: [], total: 0 };
+    }
+
+    var headers = brand.toUpperCase() === 'FARM' ? FARM_MEMORY_HEADERS :
+                  brand.toUpperCase() === 'FLEURS' ? FLEURS_MEMORY_HEADERS :
+                  FUNGI_MEMORY_HEADERS;
+
+    var data = sheet.getRange(2, 1, lastRow - 1, headers.length).getValues();
+
+    var memories = data.map(function(row) {
+      var obj = {};
+      headers.forEach(function(header, idx) {
+        var value = row[idx];
+        if (['Crop_Specific', 'Strain_Specific'].indexOf(header) !== -1 && typeof value === 'string' && value) {
+          try { value = JSON.parse(value); } catch (e) {}
+        }
+        obj[header] = value;
+      });
+      return obj;
+    });
+
+    if (params.category) {
+      memories = memories.filter(function(m) { return m.Category === params.category; });
+    }
+    if (params.subcategory) {
+      memories = memories.filter(function(m) { return m.Subcategory === params.subcategory; });
+    }
+    if (params.year) {
+      memories = memories.filter(function(m) { return m.Year === parseInt(params.year); });
+    }
+    if (params.season) {
+      memories = memories.filter(function(m) { return m.Season === params.season.toUpperCase(); });
+    }
+    if (params.verifiedOnly) {
+      memories = memories.filter(function(m) { return m.Verified === true || m.Verified === 'TRUE'; });
+    }
+
+    var total = memories.length;
+    var limit = parseInt(params.limit) || 50;
+    var offset = parseInt(params.offset) || 0;
+    memories = memories.slice(offset, offset + limit);
+
+    return {
+      success: true,
+      brand: brand.toUpperCase(),
+      memories: memories,
+      total: total,
+      limit: limit,
+      offset: offset,
+      hasMore: offset + memories.length < total
+    };
+
+  } catch (error) {
+    Logger.log('getBrandMemory error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Add a memory entry to a brand-specific sheet
+ * @param {string} brand - FARM, FLEURS, or FUNGI
+ * @param {Object} memoryData - Memory data
+ * @returns {Object} { success, entryId }
+ */
+function addBrandMemory(brand, memoryData) {
+  try {
+    if (!brand || ['FARM', 'FLEURS', 'FUNGI'].indexOf(brand.toUpperCase()) === -1) {
+      return { success: false, error: 'Invalid brand. Must be FARM, FLEURS, or FUNGI' };
+    }
+
+    var sheetName = MEMORY_BRAND_SHEETS[brand.toUpperCase() + '_MEMORY'];
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName(sheetName);
+
+    if (!sheet) {
+      initializeBrandMemorySheets();
+      sheet = ss.getSheetByName(sheetName);
+    }
+
+    var headers = brand.toUpperCase() === 'FARM' ? FARM_MEMORY_HEADERS :
+                  brand.toUpperCase() === 'FLEURS' ? FLEURS_MEMORY_HEADERS :
+                  FUNGI_MEMORY_HEADERS;
+
+    var now = new Date();
+    var dateStr = Utilities.formatDate(now, 'America/New_York', 'yyyyMMdd');
+    var timeStr = Utilities.formatDate(now, 'America/New_York', 'HHmmss');
+    var entryId = brand.toUpperCase() + '_' + dateStr + '_' + timeStr;
+
+    var rowData = headers.map(function(header) {
+      if (header === 'Entry_ID') return entryId;
+      if (header === 'Created_At') return now.toISOString();
+      if (header === 'Updated_At') return now.toISOString();
+      var value = memoryData[header];
+      if (['Crop_Specific', 'Strain_Specific'].indexOf(header) !== -1 && typeof value === 'object') {
+        value = JSON.stringify(value);
+      }
+      return value !== undefined ? value : '';
+    });
+
+    sheet.appendRow(rowData);
+
+    return { success: true, entryId: entryId, brand: brand.toUpperCase(), timestamp: now.toISOString() };
+
+  } catch (error) {
+    Logger.log('addBrandMemory error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+// =============================================================================
+// CORRECTION SYSTEM
+// =============================================================================
+
+/**
+ * Log a correction to the MEMORY_CORRECTIONS sheet
+ * @param {string} originalId - Memory_ID of the incorrect memory
+ * @param {Object} correction - Correction details
+ * @returns {Object} { success, correctionId }
+ */
+function logCorrection(originalId, correction) {
+  try {
+    if (!originalId) {
+      return { success: false, error: 'Original memory ID is required' };
+    }
+
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName(MEMORY_BRAND_SHEETS.CORRECTIONS);
+
+    if (!sheet) {
+      initializeBrandMemorySheets();
+      sheet = ss.getSheetByName(MEMORY_BRAND_SHEETS.CORRECTIONS);
+    }
+
+    var now = new Date();
+    var dateStr = Utilities.formatDate(now, 'America/New_York', 'yyyyMMdd');
+    var timeStr = Utilities.formatDate(now, 'America/New_York', 'HHmmss');
+    var correctionId = 'COR_' + dateStr + '_' + timeStr;
+
+    var rowData = [
+      correctionId,
+      originalId,
+      correction.correctedMemoryId || '',
+      correction.type || 'FACTUAL_ERROR',
+      correction.errorDescription || '',
+      correction.correctInfo || '',
+      correction.detectedBy || 'AI',
+      correction.detectionMethod || '',
+      now.toISOString(),
+      parseFloat(correction.confidenceBefore) || 0,
+      parseFloat(correction.confidenceAfter) || 0.8,
+      correction.learningApplied === true ? 'TRUE' : 'FALSE'
+    ];
+
+    sheet.appendRow(rowData);
+
+    return { success: true, correctionId: correctionId, originalMemoryId: originalId, timestamp: now.toISOString() };
+
+  } catch (error) {
+    Logger.log('logCorrection error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get recent corrections with optional filters
+ * @param {Object} params - Query parameters
+ * @returns {Object} { success, corrections }
+ */
+function getMemoryCorrections(params) {
+  params = params || {};
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName(MEMORY_BRAND_SHEETS.CORRECTIONS);
+
+    if (!sheet) {
+      return { success: true, corrections: [], total: 0 };
+    }
+
+    var lastRow = sheet.getLastRow();
+    if (lastRow <= 1) {
+      return { success: true, corrections: [], total: 0 };
+    }
+
+    var data = sheet.getRange(2, 1, lastRow - 1, MEMORY_CORRECTIONS_HEADERS.length).getValues();
+
+    var corrections = data.map(function(row) {
+      var obj = {};
+      MEMORY_CORRECTIONS_HEADERS.forEach(function(header, idx) {
+        obj[header] = row[idx];
+      });
+      return obj;
+    });
+
+    if (params.type) {
+      corrections = corrections.filter(function(c) { return c.Correction_Type === params.type; });
+    }
+    if (params.detectedBy) {
+      corrections = corrections.filter(function(c) { return c.Detected_By === params.detectedBy; });
+    }
+    if (params.days) {
+      var cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - parseInt(params.days));
+      corrections = corrections.filter(function(c) { return new Date(c.Correction_Date) >= cutoff; });
+    }
+
+    var total = corrections.length;
+    var limit = parseInt(params.limit) || 50;
+    corrections = corrections.slice(0, limit);
+
+    return { success: true, corrections: corrections, total: total };
+
+  } catch (error) {
+    Logger.log('getMemoryCorrections error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+// =============================================================================
+// MEMORY STATISTICS
+// =============================================================================
+
+/**
+ * Get current memory system statistics
+ * @returns {Object} { success, stats }
+ */
+function getMemoryStats() {
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var stats = {
+      timestamp: new Date().toISOString(),
+      date: Utilities.formatDate(new Date(), 'America/New_York', 'yyyy-MM-dd'),
+      brands: {}
+    };
+
+    var brands = ['FARM', 'FLEURS', 'FUNGI'];
+    var totalMemories = 0;
+
+    for (var i = 0; i < brands.length; i++) {
+      var brandName = brands[i];
+      var sheetName = MEMORY_BRAND_SHEETS[brandName + '_MEMORY'];
+      var sheet = ss.getSheetByName(sheetName);
+      var count = sheet ? Math.max(0, sheet.getLastRow() - 1) : 0;
+      stats.brands[brandName] = count;
+      totalMemories += count;
+    }
+
+    stats.totalBrandMemories = totalMemories;
+
+    var embSheet = ss.getSheetByName(MEMORY_BRAND_SHEETS.MEMORY_EMBEDDINGS);
+    stats.embeddingCount = embSheet ? Math.max(0, embSheet.getLastRow() - 1) : 0;
+
+    var corSheet = ss.getSheetByName(MEMORY_BRAND_SHEETS.CORRECTIONS);
+    stats.correctionsCount = corSheet ? Math.max(0, corSheet.getLastRow() - 1) : 0;
+
+    var conSheet = ss.getSheetByName(MEMORY_BRAND_SHEETS.CONSOLIDATION_LOG);
+    stats.consolidationRuns = conSheet ? Math.max(0, conSheet.getLastRow() - 1) : 0;
+
+    var wmSheet = ss.getSheetByName(MEMORY_BRAND_SHEETS.WORKING_MEMORY);
+    if (wmSheet && wmSheet.getLastRow() > 1) {
+      var wmData = wmSheet.getRange(2, 1, wmSheet.getLastRow() - 1, WORKING_MEMORY_HEADERS.length).getValues();
+      var isActiveCol = WORKING_MEMORY_HEADERS.indexOf('Is_Active');
+      stats.activeSessions = wmData.filter(function(row) { return row[isActiveCol] === true || row[isActiveCol] === 'TRUE'; }).length;
+    } else {
+      stats.activeSessions = 0;
+    }
+
+    var coreSheets = ['AI_MEMORY_INDEX', 'EPISODIC_MEMORY', 'SEMANTIC_MEMORY', 'ENTITIES', 'ENTITY_RELATIONSHIPS', 'TEMPORAL_EVENTS'];
+    stats.coreSheets = {};
+    for (var j = 0; j < coreSheets.length; j++) {
+      var coreSheetName = coreSheets[j];
+      var coreSheet = ss.getSheetByName(coreSheetName);
+      stats.coreSheets[coreSheetName] = coreSheet ? Math.max(0, coreSheet.getLastRow() - 1) : 'NOT_INITIALIZED';
+    }
+
+    return { success: true, stats: stats };
+
+  } catch (error) {
+    Logger.log('getMemoryStats error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Record daily memory stats snapshot
+ * @returns {Object} { success, recorded }
+ */
+function recordMemoryStatsSnapshot() {
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName(MEMORY_BRAND_SHEETS.MEMORY_STATS);
+
+    if (!sheet) {
+      initializeBrandMemorySheets();
+      sheet = ss.getSheetByName(MEMORY_BRAND_SHEETS.MEMORY_STATS);
+    }
+
+    var statsResult = getMemoryStats();
+    if (!statsResult.success) {
+      return { success: false, error: 'Failed to get stats: ' + statsResult.error };
+    }
+
+    var stats = statsResult.stats;
+    var today = stats.date;
+
+    var lastRow = sheet.getLastRow();
+    if (lastRow > 1) {
+      var lastDate = sheet.getRange(lastRow, 1).getValue();
+      if (lastDate === today) {
+        return { success: true, recorded: false, message: 'Already recorded today' };
+      }
+    }
+
+    var totalMemories = 0, episodicCount = 0, semanticCount = 0, entityCount = 0, relationshipCount = 0;
+    for (var sheetName in stats.coreSheets) {
+      var count = stats.coreSheets[sheetName];
+      if (typeof count === 'number') {
+        if (sheetName === 'AI_MEMORY_INDEX') totalMemories = count;
+        if (sheetName === 'EPISODIC_MEMORY') episodicCount = count;
+        if (sheetName === 'SEMANTIC_MEMORY') semanticCount = count;
+        if (sheetName === 'ENTITIES') entityCount = count;
+        if (sheetName === 'ENTITY_RELATIONSHIPS') relationshipCount = count;
+      }
+    }
+
+    var rowData = [
+      today, totalMemories || stats.totalBrandMemories, episodicCount, semanticCount, 0, 0,
+      entityCount, relationshipCount, stats.brands.FARM || 0, stats.brands.FLEURS || 0,
+      stats.brands.FUNGI || 0, 0, 0, 0, 0, stats.consolidationRuns || 0,
+      stats.correctionsCount || 0, 0, stats.embeddingCount || 0
+    ];
+
+    sheet.appendRow(rowData);
+    return { success: true, recorded: true, date: today };
+
+  } catch (error) {
+    Logger.log('recordMemoryStatsSnapshot error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+// =============================================================================
+// DAILY DECAY CALCULATION
+// =============================================================================
+
+/**
+ * Run daily memory decay calculation
+ * Updates current_relevance scores based on Ebbinghaus decay formula
+ * @returns {Object} { success, updated, skipped }
+ */
+function runDailyMemoryDecay() {
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var indexSheet = ss.getSheetByName('AI_MEMORY_INDEX');
+
+    if (!indexSheet) {
+      return {
+        success: false,
+        error: 'AI_MEMORY_INDEX sheet not found. Run MEM-1 initialization first.',
+        suggestion: 'The core memory sheets must be created by the MEM-1 team before decay can run.'
+      };
+    }
+
+    var lastRow = indexSheet.getLastRow();
+    if (lastRow <= 1) {
+      return { success: true, updated: 0, skipped: 0, message: 'No memories to process' };
+    }
+
+    var headers = indexSheet.getRange(1, 1, 1, indexSheet.getLastColumn()).getValues()[0];
+    var colMap = {};
+    headers.forEach(function(h, idx) { colMap[h] = idx; });
+
+    var requiredCols = ['Memory_ID', 'Importance_Score', 'Decay_Rate', 'Current_Relevance', 'Last_Accessed', 'Event_Time', 'Is_Active'];
+    var missingCols = requiredCols.filter(function(c) { return colMap[c] === undefined; });
+
+    if (missingCols.length > 0) {
+      return {
+        success: false,
+        error: 'Missing columns in AI_MEMORY_INDEX: ' + missingCols.join(', '),
+        suggestion: 'Ensure MEM-1 core sheets are properly initialized with all columns.'
+      };
+    }
+
+    var data = indexSheet.getRange(2, 1, lastRow - 1, headers.length).getValues();
+    var now = new Date();
+    var currentMonth = now.getMonth();
+    var currentWeek = getMemoryISOWeek(now);
+
+    var updated = 0, skipped = 0;
+
+    for (var i = 0; i < data.length; i++) {
+      var row = data[i];
+
+      if (row[colMap['Is_Active']] === false || row[colMap['Is_Active']] === 'FALSE') {
+        skipped++;
+        continue;
+      }
+
+      var baseImportance = parseFloat(row[colMap['Importance_Score']]) || 0.5;
+      var decayRate = parseFloat(row[colMap['Decay_Rate']]) || 0.997;
+      var lastAccessed = row[colMap['Last_Accessed']] ? new Date(row[colMap['Last_Accessed']]) : now;
+      var eventTime = row[colMap['Event_Time']] ? new Date(row[colMap['Event_Time']]) : now;
+
+      var daysSinceEvent = Math.floor((now - eventTime) / (1000 * 60 * 60 * 24));
+      var daysSinceAccess = Math.floor((now - lastAccessed) / (1000 * 60 * 60 * 24));
+
+      var eventDecay = Math.pow(decayRate, daysSinceEvent);
+
+      var accessBoost = 0;
+      if (daysSinceAccess < 7) accessBoost = 0.1;
+      else if (daysSinceAccess < 30) accessBoost = 0.05;
+
+      var eventMonth = eventTime.getMonth();
+      var eventWeek = getMemoryISOWeek(eventTime);
+      var seasonalBoost = 0;
+
+      if (Math.abs(eventWeek - currentWeek) <= 1) {
+        seasonalBoost = 0.2;
+      } else if (eventMonth === currentMonth) {
+        seasonalBoost = 0.1;
+      } else if (getMemorySeason(eventTime) === getMemorySeason(now)) {
+        seasonalBoost = 0.05;
+      }
+
+      var newRelevance = Math.min(baseImportance * eventDecay + accessBoost + seasonalBoost, 1.0);
+      row[colMap['Current_Relevance']] = newRelevance;
+      data[i] = row;
+      updated++;
+    }
+
+    if (updated > 0) {
+      indexSheet.getRange(2, 1, data.length, headers.length).setValues(data);
+    }
+
+    Logger.log('Memory decay completed: ' + updated + ' updated, ' + skipped + ' skipped');
+    return { success: true, updated: updated, skipped: skipped, timestamp: now.toISOString(), nextRun: '3:00 AM tomorrow' };
+
+  } catch (error) {
+    Logger.log('runDailyMemoryDecay error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get ISO week number for a date (Memory system)
+ */
+function getMemoryISOWeek(date) {
+  var d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  var dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+}
+
+/**
+ * Get season for a date (Northern Hemisphere farming)
+ */
+function getMemorySeason(date) {
+  var month = date.getMonth();
+  if (month >= 2 && month <= 4) return 'SPRING';
+  if (month >= 5 && month <= 7) return 'SUMMER';
+  if (month >= 8 && month <= 10) return 'FALL';
+  return 'WINTER';
+}
+
+// =============================================================================
+// TRIGGER SETUP
+// =============================================================================
+
+/**
+ * Set up time-based triggers for memory system
+ * @returns {Object} { success, triggers }
+ */
+function setupMemoryTriggers() {
+  try {
+    var triggers = [];
+
+    var existingTriggers = ScriptApp.getProjectTriggers();
+    for (var i = 0; i < existingTriggers.length; i++) {
+      var trigger = existingTriggers[i];
+      var handlerName = trigger.getHandlerFunction();
+      if (handlerName === 'runDailyMemoryDecay' || handlerName === 'recordMemoryStatsSnapshot') {
+        ScriptApp.deleteTrigger(trigger);
+      }
+    }
+
+    ScriptApp.newTrigger('runDailyMemoryDecay')
+      .timeBased()
+      .atHour(3)
+      .everyDays(1)
+      .create();
+    triggers.push({ function: 'runDailyMemoryDecay', schedule: '3:00 AM daily' });
+
+    ScriptApp.newTrigger('recordMemoryStatsSnapshot')
+      .timeBased()
+      .atHour(23)
+      .nearMinute(59)
+      .everyDays(1)
+      .create();
+    triggers.push({ function: 'recordMemoryStatsSnapshot', schedule: '11:59 PM daily' });
+
+    return { success: true, triggers: triggers, message: 'Memory system triggers configured successfully' };
+
+  } catch (error) {
+    Logger.log('setupMemoryTriggers error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+// =============================================================================
+// WORKING MEMORY SESSION MANAGEMENT
+// =============================================================================
+
+/**
+ * Create a new working memory session
+ */
+function createWorkingMemorySession(params) {
+  params = params || {};
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName(MEMORY_BRAND_SHEETS.WORKING_MEMORY);
+
+    if (!sheet) {
+      initializeBrandMemorySheets();
+      sheet = ss.getSheetByName(MEMORY_BRAND_SHEETS.WORKING_MEMORY);
+    }
+
+    var now = new Date();
+    var sessionId = 'WM_' + Utilities.formatDate(now, 'America/New_York', 'yyyyMMdd_HHmmss');
+
+    var rowData = [
+      sessionId, now.toISOString(), now.toISOString(), params.userId || 'anonymous',
+      params.brandFocus || 'ALL', params.taskType || 'general', JSON.stringify([]),
+      JSON.stringify([]), '', JSON.stringify([]), JSON.stringify({}),
+      JSON.stringify([]), '', 'TRUE'
+    ];
+
+    sheet.appendRow(rowData);
+    return { success: true, sessionId: sessionId, startedAt: now.toISOString() };
+
+  } catch (error) {
+    Logger.log('createWorkingMemorySession error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Update a working memory session
+ */
+function updateWorkingMemorySession(sessionId, updates) {
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName(MEMORY_BRAND_SHEETS.WORKING_MEMORY);
+
+    if (!sheet) {
+      return { success: false, error: 'WORKING_MEMORY sheet not found' };
+    }
+
+    var lastRow = sheet.getLastRow();
+    if (lastRow <= 1) {
+      return { success: false, error: 'No sessions found' };
+    }
+
+    var sessionIds = sheet.getRange(2, 1, lastRow - 1, 1).getValues().flat();
+    var rowIndex = sessionIds.indexOf(sessionId);
+
+    if (rowIndex === -1) {
+      return { success: false, error: 'Session not found' };
+    }
+
+    var rowNum = rowIndex + 2;
+    var row = sheet.getRange(rowNum, 1, 1, WORKING_MEMORY_HEADERS.length).getValues()[0];
+    var now = new Date().toISOString();
+
+    WORKING_MEMORY_HEADERS.forEach(function(header, idx) {
+      if (header === 'Last_Updated') {
+        row[idx] = now;
+      } else if (updates[header] !== undefined) {
+        if (['Active_Context', 'Recent_Retrievals', 'Entities_In_Focus', 'Time_Focus', 'Pending_Actions'].indexOf(header) !== -1) {
+          row[idx] = typeof updates[header] === 'string' ? updates[header] : JSON.stringify(updates[header]);
+        } else {
+          row[idx] = updates[header];
+        }
+      }
+    });
+
+    sheet.getRange(rowNum, 1, 1, WORKING_MEMORY_HEADERS.length).setValues([row]);
+    return { success: true, sessionId: sessionId, updatedAt: now };
+
+  } catch (error) {
+    Logger.log('updateWorkingMemorySession error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * End a working memory session
+ */
+function endWorkingMemorySession(sessionId, sessionInsights) {
+  return updateWorkingMemorySession(sessionId, {
+    Is_Active: 'FALSE',
+    Session_Insights: sessionInsights || ''
+  });
+}
+
+// =============================================================================
+// CONSOLIDATION LOG
+// =============================================================================
+
+/**
+ * Log a consolidation run
+ */
+function logConsolidationRun(params) {
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName(MEMORY_BRAND_SHEETS.CONSOLIDATION_LOG);
+
+    if (!sheet) {
+      initializeBrandMemorySheets();
+      sheet = ss.getSheetByName(MEMORY_BRAND_SHEETS.CONSOLIDATION_LOG);
+    }
+
+    var now = new Date();
+    var consolidationId = 'CON_' + Utilities.formatDate(now, 'America/New_York', 'yyyyMMdd_HHmmss');
+
+    var rowData = [
+      consolidationId, now.toISOString(), params.brand || 'ALL', params.scope || 'WEEK',
+      parseInt(params.episodesAnalyzed) || 0, parseInt(params.patternsIdentified) || 0,
+      parseInt(params.patternsReinforced) || 0, parseInt(params.patternsWeakened) || 0,
+      JSON.stringify(params.newSemanticIds || []), JSON.stringify(params.updatedSemanticIds || []),
+      parseFloat(params.processingTimeSec) || 0, params.aiModelUsed || 'claude-opus-4',
+      params.promptVersion || '1.0.0'
+    ];
+
+    sheet.appendRow(rowData);
+    return { success: true, consolidationId: consolidationId, timestamp: now.toISOString() };
+
+  } catch (error) {
+    Logger.log('logConsolidationRun error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+// =============================================================================
+// EMBEDDING MANAGEMENT
+// =============================================================================
+
+/**
+ * Store an embedding in the MEMORY_EMBEDDINGS sheet
+ */
+function storeMemoryEmbedding(params) {
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName(MEMORY_BRAND_SHEETS.MEMORY_EMBEDDINGS);
+
+    if (!sheet) {
+      initializeBrandMemorySheets();
+      sheet = ss.getSheetByName(MEMORY_BRAND_SHEETS.MEMORY_EMBEDDINGS);
+    }
+
+    var now = new Date();
+    var embeddingId = 'EMB_' + Utilities.formatDate(now, 'America/New_York', 'yyyyMMdd_HHmmss') + '_' + Math.random().toString(36).substring(2, 8);
+
+    var rowData = [
+      embeddingId, params.memoryId || '', params.textContent || '',
+      params.model || 'text-embedding-3-large', params.vector ? params.vector.length : 0,
+      JSON.stringify(params.vector || []), now.toISOString(),
+      parseInt(params.chunkIndex) || 0, parseInt(params.totalChunks) || 1
+    ];
+
+    sheet.appendRow(rowData);
+    return { success: true, embeddingId: embeddingId, memoryId: params.memoryId };
+
+  } catch (error) {
+    Logger.log('storeMemoryEmbedding error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get embedding for a memory
+ */
+function getMemoryEmbedding(memoryId) {
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName(MEMORY_BRAND_SHEETS.MEMORY_EMBEDDINGS);
+
+    if (!sheet) {
+      return { success: false, error: 'MEMORY_EMBEDDINGS sheet not found' };
+    }
+
+    var lastRow = sheet.getLastRow();
+    if (lastRow <= 1) {
+      return { success: false, error: 'No embeddings found' };
+    }
+
+    var data = sheet.getRange(2, 1, lastRow - 1, MEMORY_EMBEDDINGS_HEADERS.length).getValues();
+
+    for (var i = 0; i < data.length; i++) {
+      var row = data[i];
+      if (row[1] === memoryId) {
+        return {
+          success: true,
+          embedding: {
+            embeddingId: row[0], memoryId: row[1], textContent: row[2],
+            model: row[3], dimensions: row[4], vector: JSON.parse(row[5] || '[]'),
+            createdAt: row[6], chunkIndex: row[7], totalChunks: row[8]
+          }
+        };
+      }
+    }
+
+    return { success: false, error: 'Embedding not found for memory: ' + memoryId };
+
+  } catch (error) {
+    Logger.log('getMemoryEmbedding error: ' + error.toString());
     return { success: false, error: error.toString() };
   }
 }
