@@ -131933,49 +131933,7 @@ function getNextDayOfWeek(dayName, fromDate) {
   return result;
 }
 
-/**
- * Get writing responses for content pool (stub if main function doesn't exist)
- */
-function getWritingResponses(params) {
-  try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const sheet = ss.getSheetByName('WRITING_RESPONSES') || ss.getSheetByName('MARKETING_WritingResponses');
-
-    if (!sheet) {
-      return { success: true, responses: [] };
-    }
-
-    const data = sheet.getDataRange().getValues();
-    if (data.length <= 1) {
-      return { success: true, responses: [] };
-    }
-
-    const headers = data[0];
-    const responses = [];
-
-    for (let i = 1; i < data.length; i++) {
-      const response = {};
-      headers.forEach((h, j) => response[h.toLowerCase().replace(/\s+/g, '_')] = data[i][j]);
-
-      // Filter by status if specified
-      if (!params.status || response.status === params.status) {
-        responses.push({
-          id: response.response_id || response.id || 'WR-' + i,
-          prompt: response.prompt,
-          response: response.response || response.content,
-          respondedAt: response.responded_at || response.created_at,
-          status: response.status || 'PENDING'
-        });
-      }
-    }
-
-    return { success: true, responses: responses };
-
-  } catch (error) {
-    Logger.log('getWritingResponses error: ' + error.toString());
-    return { success: true, responses: [] }; // Return empty on error
-  }
-}
+// NOTE: getWritingResponses is defined earlier at line ~118638. Do not duplicate here.
 
 // ═══════════════════════════════════════════════════════════════════════════════════
 // PRE-FLIGHT VALIDATION SYSTEM
