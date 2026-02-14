@@ -129947,38 +129947,83 @@ function generateRotationRecommendations(conflicts, safeFamilies) {
 }
 
 /**
- * Delete a farm pic from Google Drive
+ * Delete a farm pic from Google Drive AND the MARKETING_FarmPics sheet
  * POST /api?action=deleteFarmPic
- * Body: { fileId: "google_drive_file_id" }
+ * Body: { fileId: "google_drive_file_id" } OR { picId: "PIC_123" }
  */
 function deleteFarmPic(data) {
   try {
-    if (!data.fileId) {
-      return jsonResponse({ success: false, error: 'Missing fileId parameter' }, 400);
+    const fileId = data.fileId;
+    const picId = data.picId || data.id;
+
+    if (!fileId && !picId) {
+      return jsonResponse({ success: false, error: 'Missing fileId or picId parameter' }, 400);
     }
 
-    const fileId = data.fileId;
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('MARKETING_FarmPics');
+    let rowDeleted = false;
+    let driveDeleted = false;
 
-    // Get the file from Drive
-    try {
-      const file = DriveApp.getFileById(fileId);
+    // Delete from sheet
+    if (sheet) {
+      const sheetData = sheet.getDataRange().getValues();
+      const headers = sheetData[0];
+      const picIdIdx = headers.indexOf('Pic_ID');
+      const fileIdIdx = headers.indexOf('File_ID');
+      const imageUrlIdx = headers.indexOf('Image_URL');
 
-      // Move to trash (safer than permanent delete)
-      file.setTrashed(true);
+      // Find the row to delete (search from bottom to handle multiple matches)
+      for (let i = sheetData.length - 1; i >= 1; i--) {
+        const row = sheetData[i];
+        let match = false;
 
-      Logger.log('Deleted farm pic: ' + fileId);
+        // Match by Pic_ID
+        if (picId && picIdIdx >= 0 && row[picIdIdx] === picId) {
+          match = true;
+        }
+        // Match by File_ID column
+        if (fileId && fileIdIdx >= 0 && row[fileIdIdx] === fileId) {
+          match = true;
+        }
+        // Match by fileId in Image_URL
+        if (fileId && imageUrlIdx >= 0 && row[imageUrlIdx] && row[imageUrlIdx].toString().includes(fileId)) {
+          match = true;
+        }
 
+        if (match) {
+          sheet.deleteRow(i + 1); // +1 because sheet rows are 1-indexed
+          rowDeleted = true;
+          Logger.log('Deleted row ' + (i + 1) + ' from MARKETING_FarmPics');
+          break; // Only delete one row per call
+        }
+      }
+    }
+
+    // Delete from Drive (if fileId provided)
+    if (fileId) {
+      try {
+        const file = DriveApp.getFileById(fileId);
+        file.setTrashed(true);
+        driveDeleted = true;
+        Logger.log('Trashed file in Drive: ' + fileId);
+      } catch (driveError) {
+        Logger.log('Drive delete error (file may not exist): ' + driveError.toString());
+        // Continue - sheet deletion is more important
+      }
+    }
+
+    if (rowDeleted || driveDeleted) {
       return jsonResponse({
         success: true,
-        message: 'Photo moved to trash',
-        fileId: fileId
+        message: 'Photo deleted' + (rowDeleted ? ' from sheet' : '') + (driveDeleted ? ' and Drive' : ''),
+        rowDeleted: rowDeleted,
+        driveDeleted: driveDeleted
       });
-    } catch (driveError) {
-      // File might not exist or already deleted
-      Logger.log('Drive delete error: ' + driveError.toString());
+    } else {
       return jsonResponse({
         success: false,
-        error: 'Could not find or delete file: ' + driveError.message
+        error: 'Photo not found in sheet or Drive'
       }, 404);
     }
   } catch (error) {

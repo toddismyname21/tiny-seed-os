@@ -17684,18 +17684,6 @@ Example format:
                 fileId = pic.fileId;
             }
 
-            if (!fileId) {
-                // Can't delete from Drive, just remove locally
-                const index = farmPicsData.findIndex(p => p.id === id);
-                if (index > -1) {
-                    farmPicsData.splice(index, 1);
-                    renderFarmPics();
-                    updateNewPicsBadge();
-                    showToast('Photo removed from library', 'info');
-                }
-                return;
-            }
-
             // Show loading state
             showToast('Deleting photo...', 'info');
 
@@ -17705,7 +17693,8 @@ Example format:
                     headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'deleteFarmPic',
-                        fileId: fileId
+                        fileId: fileId,
+                        picId: pic.id
                     })
                 });
 
