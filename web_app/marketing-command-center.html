@@ -17774,6 +17774,95 @@ Example format:
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
+        // UGC (USER-GENERATED CONTENT) - Customer Photos from Social Media
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        let ugcData = [];
+        let ugcFilter = 'pending';
+
+        function searchHashtags() {
+            showToast('Hashtag search requires Instagram API connection. Coming soon!', 'info');
+            // Future: Connect to Instagram Graph API to search for #TinySeedFarm mentions
+        }
+
+        function filterUGC(filter) {
+            ugcFilter = filter;
+            document.querySelectorAll('.ugc-filter-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.filter === filter);
+            });
+            renderUGC();
+        }
+
+        function renderUGC() {
+            const gallery = document.getElementById('ugcGallery');
+            if (!gallery) return;
+
+            const filtered = ugcData.filter(item => item.status === ugcFilter);
+
+            if (filtered.length === 0) {
+                gallery.innerHTML = `<div class="ugc-empty-state">
+                    <i class="fas fa-camera"></i>
+                    <p>No ${ugcFilter} customer photos.</p>
+                    <p style="font-size: 0.85rem; opacity: 0.7;">Customer photos will appear here when Instagram API is connected.</p>
+                </div>`;
+                return;
+            }
+
+            gallery.innerHTML = filtered.map(item => `
+                <div class="ugc-card">
+                    <div class="ugc-card-image">
+                        <img src="${item.imageUrl}" alt="Customer photo">
+                        <div class="ugc-platform-badge ${item.platform}"><i class="fab fa-${item.platform}"></i></div>
+                        <div class="ugc-permission-badge ${item.permission}">${item.permission}</div>
+                    </div>
+                    <div class="ugc-card-content">
+                        <div class="ugc-customer-info">
+                            <div class="ugc-customer-avatar">${item.handle.charAt(1).toUpperCase()}</div>
+                            <div class="ugc-customer-handle">${item.handle}</div>
+                        </div>
+                        <div class="ugc-caption-preview">${item.caption || ''}</div>
+                        <div class="ugc-actions">
+                            <button class="ugc-action-btn primary" onclick="requestUGCPermission('${item.id}')"><i class="fas fa-envelope"></i> Request</button>
+                            <button class="ugc-action-btn success" onclick="approveUGC('${item.id}')"><i class="fas fa-check"></i> Approve</button>
+                            <button class="ugc-action-btn repost" onclick="repostUGC('${item.id}')"><i class="fas fa-share"></i> Repost</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function requestUGCPermission(id) {
+            showToast('Permission request feature coming soon', 'info');
+        }
+
+        function approveUGC(id) {
+            const item = ugcData.find(u => u.id === id);
+            if (item) {
+                item.status = 'approved';
+                item.permission = 'granted';
+                renderUGC();
+                updateUGCCounts();
+                showToast('Photo approved for reposting', 'success');
+            }
+        }
+
+        function repostUGC(id) {
+            showToast('Repost feature coming soon - will open in Create tab', 'info');
+        }
+
+        function updateUGCCounts() {
+            const pending = ugcData.filter(u => u.status === 'pending').length;
+            const approved = ugcData.filter(u => u.status === 'approved').length;
+            const reposted = ugcData.filter(u => u.status === 'reposted').length;
+            const pendingEl = document.getElementById('ugcPendingCount');
+            const approvedEl = document.getElementById('ugcApprovedCount');
+            const repostedEl = document.getElementById('ugcRepostedCount');
+            if (pendingEl) pendingEl.textContent = pending;
+            if (approvedEl) approvedEl.textContent = approved;
+            if (repostedEl) repostedEl.textContent = reposted;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
         // CAMPAIGNS
         // ═══════════════════════════════════════════════════════════════════════════
 
