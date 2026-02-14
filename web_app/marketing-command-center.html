@@ -5816,12 +5816,97 @@
                             <button class="ai-caption-btn" onclick="enhanceCaptionWithAI()" style="background: rgba(34, 197, 94, 0.2); border-color: var(--success); color: var(--success);">
                                 <i class="fas fa-brain"></i> AI Enhance
                             </button>
+                            <button class="ai-caption-btn" onclick="toggleEmojiPicker()" style="background: rgba(255, 193, 7, 0.2); border-color: var(--warning); color: var(--warning);" title="Insert Emoji">
+                                <i class="fas fa-smile"></i> Emoji
+                            </button>
+                            <button class="ai-caption-btn" onclick="toggleTextStyler()" style="background: rgba(139, 92, 246, 0.2); border-color: var(--purple); color: var(--purple);" title="Bold/Italic Text">
+                                <i class="fas fa-bold"></i> Style
+                            </button>
                             <button class="draft-btn" id="draftBtn" onclick="saveDraft()">
                                 <i class="fas fa-save"></i> Save Draft
                             </button>
                             <button class="draft-btn" id="loadDraftBtn" onclick="loadDraft()" style="display: none;">
                                 <i class="fas fa-file-import"></i> Load Draft
                             </button>
+                        </div>
+                        <!-- Emoji Picker Panel (hidden by default) -->
+                        <div id="emojiPickerPanel" style="display: none; margin-top: 0.5rem; padding: 0.75rem; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; max-height: 200px; overflow-y: auto;">
+                            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; font-size: 1.5rem; cursor: pointer;">
+                                <span onclick="insertEmoji('🌱')" title="Seedling">🌱</span>
+                                <span onclick="insertEmoji('🥬')" title="Leafy Green">🥬</span>
+                                <span onclick="insertEmoji('🥕')" title="Carrot">🥕</span>
+                                <span onclick="insertEmoji('🍅')" title="Tomato">🍅</span>
+                                <span onclick="insertEmoji('🌽')" title="Corn">🌽</span>
+                                <span onclick="insertEmoji('🥦')" title="Broccoli">🥦</span>
+                                <span onclick="insertEmoji('🧅')" title="Onion">🧅</span>
+                                <span onclick="insertEmoji('🧄')" title="Garlic">🧄</span>
+                                <span onclick="insertEmoji('🥔')" title="Potato">🥔</span>
+                                <span onclick="insertEmoji('🍆')" title="Eggplant">🍆</span>
+                                <span onclick="insertEmoji('🌶️')" title="Pepper">🌶️</span>
+                                <span onclick="insertEmoji('🥒')" title="Cucumber">🥒</span>
+                                <span onclick="insertEmoji('🍓')" title="Strawberry">🍓</span>
+                                <span onclick="insertEmoji('🫐')" title="Blueberries">🫐</span>
+                                <span onclick="insertEmoji('🍎')" title="Apple">🍎</span>
+                                <span onclick="insertEmoji('🍑')" title="Peach">🍑</span>
+                                <span onclick="insertEmoji('💐')" title="Bouquet">💐</span>
+                                <span onclick="insertEmoji('🌸')" title="Blossom">🌸</span>
+                                <span onclick="insertEmoji('🌻')" title="Sunflower">🌻</span>
+                                <span onclick="insertEmoji('🌷')" title="Tulip">🌷</span>
+                                <span onclick="insertEmoji('🍄')" title="Mushroom">🍄</span>
+                                <span onclick="insertEmoji('🥚')" title="Egg">🥚</span>
+                                <span onclick="insertEmoji('🍞')" title="Bread">🍞</span>
+                                <span onclick="insertEmoji('🧀')" title="Cheese">🧀</span>
+                                <span onclick="insertEmoji('🍯')" title="Honey">🍯</span>
+                                <span onclick="insertEmoji('☀️')" title="Sun">☀️</span>
+                                <span onclick="insertEmoji('🌧️')" title="Rain">🌧️</span>
+                                <span onclick="insertEmoji('❄️')" title="Snow">❄️</span>
+                                <span onclick="insertEmoji('🚜')" title="Tractor">🚜</span>
+                                <span onclick="insertEmoji('👨‍🌾')" title="Farmer">👨‍🌾</span>
+                                <span onclick="insertEmoji('❤️')" title="Heart">❤️</span>
+                                <span onclick="insertEmoji('🙌')" title="Hands">🙌</span>
+                                <span onclick="insertEmoji('✨')" title="Sparkles">✨</span>
+                                <span onclick="insertEmoji('🔥')" title="Fire">🔥</span>
+                                <span onclick="insertEmoji('💪')" title="Strong">💪</span>
+                                <span onclick="insertEmoji('👇')" title="Point Down">👇</span>
+                                <span onclick="insertEmoji('👆')" title="Point Up">👆</span>
+                                <span onclick="insertEmoji('📍')" title="Pin">📍</span>
+                                <span onclick="insertEmoji('📦')" title="Box">📦</span>
+                                <span onclick="insertEmoji('🛒')" title="Cart">🛒</span>
+                            </div>
+                        </div>
+                        <!-- Text Styler Panel (hidden by default) -->
+                        <div id="textStylerPanel" style="display: none; margin-top: 0.5rem; padding: 0.75rem; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;">
+                            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Select text in caption, then click style:</div>
+                            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                <button onclick="applyTextStyle('bold')" class="btn btn-sm" style="background: rgba(139,92,246,0.2); border: 1px solid var(--purple); color: var(--purple);">
+                                    <strong>𝗕𝗼𝗹𝗱</strong>
+                                </button>
+                                <button onclick="applyTextStyle('italic')" class="btn btn-sm" style="background: rgba(236,72,153,0.2); border: 1px solid #ec4899; color: #ec4899;">
+                                    <em>𝘐𝘵𝘢𝘭𝘪𝘤</em>
+                                </button>
+                                <button onclick="applyTextStyle('bolditalic')" class="btn btn-sm" style="background: rgba(99,102,241,0.2); border: 1px solid var(--info); color: var(--info);">
+                                    𝘽𝙤𝙡𝙙+𝙄𝙩𝙖𝙡𝙞𝙘
+                                </button>
+                            </div>
+                            <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.5rem; opacity: 0.7;">Uses Unicode characters - works on all platforms!</div>
+                        </div>
+                        <!-- 5-3-2 Content Type Selector -->
+                        <div style="margin-top: 0.75rem; padding: 0.5rem; background: rgba(99,102,241,0.1); border-radius: 8px; border: 1px solid rgba(99,102,241,0.2);">
+                            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.4rem;"><i class="fas fa-chart-pie"></i> 5-3-2 Content Type:</div>
+                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                <label style="display: flex; align-items: center; gap: 0.3rem; cursor: pointer; font-size: 0.8rem; padding: 0.3rem 0.6rem; background: rgba(42,157,143,0.2); border-radius: 6px; border: 1px solid var(--success);">
+                                    <input type="radio" name="contentType532" value="curated" style="accent-color: var(--success);">
+                                    <span style="color: var(--success);">Curated (5)</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.3rem; cursor: pointer; font-size: 0.8rem; padding: 0.3rem 0.6rem; background: rgba(67,97,238,0.2); border-radius: 6px; border: 1px solid var(--info);">
+                                    <input type="radio" name="contentType532" value="original" checked style="accent-color: var(--info);">
+                                    <span style="color: var(--info);">Original (3)</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 0.3rem; cursor: pointer; font-size: 0.8rem; padding: 0.3rem 0.6rem; background: rgba(225,48,108,0.2); border-radius: 6px; border: 1px solid var(--instagram);">
+                                    <input type="radio" name="contentType532" value="personal" style="accent-color: var(--instagram);">
+                                    <span style="color: var(--instagram);">Personal (2)</span>
+                                </label>
+                            </div>
                         </div>
                     </div>
 
@@ -16825,6 +16910,108 @@ Example format:
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
+        // EMOJI PICKER & TEXT STYLING (Added 2026-02-13)
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        function toggleEmojiPicker() {
+            const panel = document.getElementById('emojiPickerPanel');
+            const stylerPanel = document.getElementById('textStylerPanel');
+            if (stylerPanel) stylerPanel.style.display = 'none';
+            if (panel) {
+                panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+        function insertEmoji(emoji) {
+            const textarea = document.getElementById('captionInput');
+            if (!textarea) return;
+
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const text = textarea.value;
+
+            textarea.value = text.substring(0, start) + emoji + text.substring(end);
+            textarea.selectionStart = textarea.selectionEnd = start + emoji.length;
+            textarea.focus();
+            updateCharCount();
+        }
+
+        function toggleTextStyler() {
+            const panel = document.getElementById('textStylerPanel');
+            const emojiPanel = document.getElementById('emojiPickerPanel');
+            if (emojiPanel) emojiPanel.style.display = 'none';
+            if (panel) {
+                panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+        // Unicode text transformations for social media
+        const unicodeStyles = {
+            bold: {
+                upper: '𝗔𝗕𝗖𝗗𝗘𝗙𝗚𝗛𝗜𝗝𝗞𝗟𝗠𝗡𝗢𝗣𝗤𝗥𝗦𝗧𝗨𝗩𝗪𝗫𝗬𝗭',
+                lower: '𝗮𝗯𝗰𝗱𝗲𝗳𝗴𝗵𝗶𝗷𝗸𝗹𝗺𝗻𝗼𝗽𝗾𝗿𝘀𝘁𝘂𝘃𝘄𝘅𝘆𝘇',
+                nums: '𝟬𝟭𝟮𝟯𝟰𝟱𝟲𝟳𝟴𝟵'
+            },
+            italic: {
+                upper: '𝘈𝘉𝘊𝘋𝘌𝘍𝘎𝘏𝘐𝘑𝘒𝘓𝘔𝘕𝘖𝘗𝘘𝘙𝘚𝘛𝘜𝘝𝘞𝘟𝘠𝘡',
+                lower: '𝘢𝘣𝘤𝘥𝘦𝘧𝘨𝘩𝘪𝘫𝘬𝘭𝘮𝘯𝘰𝘱𝘲𝘳𝘴𝘵𝘶𝘷𝘸𝘹𝘺𝘻',
+                nums: '0123456789'
+            },
+            bolditalic: {
+                upper: '𝘼𝘽𝘾𝘿𝙀𝙁𝙂𝙃𝙄𝙅𝙆𝙇𝙈𝙉𝙊𝙋𝙌𝙍𝙎𝙏𝙐𝙑𝙒𝙓𝙔𝙕',
+                lower: '𝙖𝙗𝙘𝙙𝙚𝙛𝙜𝙝𝙞𝙟𝙠𝙡𝙢𝙣𝙤𝙥𝙦𝙧𝙨𝙩𝙪𝙫𝙬𝙭𝙮𝙯',
+                nums: '𝟬𝟭𝟮𝟯𝟰𝟱𝟲𝟳𝟴𝟵'
+            }
+        };
+
+        function applyTextStyle(style) {
+            const textarea = document.getElementById('captionInput');
+            if (!textarea) return;
+
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+
+            if (start === end) {
+                showToast('Select some text first, then click a style', 'warning');
+                return;
+            }
+
+            const selectedText = textarea.value.substring(start, end);
+            const styledText = transformToUnicode(selectedText, style);
+
+            textarea.value = textarea.value.substring(0, start) + styledText + textarea.value.substring(end);
+            textarea.selectionStart = start;
+            textarea.selectionEnd = start + styledText.length;
+            textarea.focus();
+            updateCharCount();
+            showToast(`Applied ${style} style!`, 'success');
+        }
+
+        function transformToUnicode(text, style) {
+            const styleMap = unicodeStyles[style];
+            if (!styleMap) return text;
+
+            return text.split('').map(char => {
+                const upperIndex = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.indexOf(char);
+                if (upperIndex !== -1) return [...styleMap.upper][upperIndex];
+
+                const lowerIndex = 'abcdefghijklmnopqrstuvwxyz'.indexOf(char);
+                if (lowerIndex !== -1) return [...styleMap.lower][lowerIndex];
+
+                const numIndex = '0123456789'.indexOf(char);
+                if (numIndex !== -1) return [...styleMap.nums][numIndex];
+
+                return char;
+            }).join('');
+        }
+
+        // Get selected 5-3-2 content type
+        function getSelectedContentType() {
+            const selected = document.querySelector('input[name="contentType532"]:checked');
+            return selected ? selected.value : 'original';
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
         // DRAFT SAVING
         // ═══════════════════════════════════════════════════════════════════════════
 
@@ -16942,18 +17129,64 @@ Example format:
 
             const postResults = [];
             let uploadedImageUrl = null;
+            let carouselImageUrls = []; // For carousel posts
+            let isCarouselPost = false;
 
             try {
-                // STEP 1: Check for image - either from file upload or Farm Pics selection
+                // STEP 1: Check for media - carousel, file upload, or Farm Pics selection
                 if (socialPlatforms.includes('instagram') || socialPlatforms.includes('facebook')) {
 
-                    // Option A: Use Farm Pics URL if selected (already hosted on Drive)
-                    if (window.selectedFarmPicUrl) {
+                    // Option A: CAROUSEL - Use carousel builder slides
+                    if (window.currentCarousel && window.currentCarousel.length >= 2) {
+                        isCarouselPost = true;
+                        timer.innerHTML = `<i class="fas fa-images"></i> Uploading carousel (${window.currentCarousel.length} slides)...`;
+                        console.log('Processing carousel with', window.currentCarousel.length, 'slides');
+
+                        for (let i = 0; i < window.currentCarousel.length; i++) {
+                            const slide = window.currentCarousel[i];
+                            timer.innerHTML = `<i class="fas fa-cloud-upload-alt"></i> Uploading slide ${i + 1}/${window.currentCarousel.length}...`;
+
+                            try {
+                                const uploadResponse = await fetch(APPS_SCRIPT_URL, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'text/plain' },
+                                    body: JSON.stringify({
+                                        action: 'uploadSocialMediaImage',
+                                        base64: slide.dataUrl,
+                                        fileName: `carousel_${Date.now()}_${i}.jpg`,
+                                        mimeType: 'image/jpeg'
+                                    })
+                                });
+
+                                const uploadResult = await uploadResponse.json();
+                                if (uploadResult.success && uploadResult.imageUrl) {
+                                    carouselImageUrls.push(uploadResult.imageUrl);
+                                    console.log(`Slide ${i + 1} uploaded:`, uploadResult.imageUrl);
+                                } else {
+                                    console.error(`Failed to upload slide ${i + 1}:`, uploadResult.error);
+                                }
+                            } catch (slideError) {
+                                console.error(`Error uploading slide ${i + 1}:`, slideError);
+                            }
+                        }
+
+                        if (carouselImageUrls.length >= 2) {
+                            timer.innerHTML = `<i class="fas fa-check"></i> Carousel ready (${carouselImageUrls.length} slides)!`;
+                        } else {
+                            showToast('Not enough slides uploaded for carousel. Using first image only.', 'warning');
+                            isCarouselPost = false;
+                            if (carouselImageUrls.length > 0) {
+                                uploadedImageUrl = carouselImageUrls[0];
+                            }
+                        }
+                    }
+                    // Option B: Use Farm Pics URL if selected (already hosted on Drive)
+                    else if (window.selectedFarmPicUrl) {
                         uploadedImageUrl = window.selectedFarmPicUrl;
                         console.log('Using Farm Pics image:', uploadedImageUrl);
                         timer.innerHTML = '<i class="fas fa-images"></i> Using Farm Pics image...';
                     }
-                    // Option B: Upload new file if provided
+                    // Option C: Upload new file if provided
                     else if (selectedFile) {
                         timer.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Uploading image...';
 
@@ -16998,7 +17231,7 @@ Example format:
                     if (selectedAccountIndices.length === 0) {
                         showToast('Please select at least one Instagram account', 'warning');
                         postResults.push({ platform: 'instagram', success: false, error: 'No accounts selected' });
-                    } else if (uploadedImageUrl) {
+                    } else if (uploadedImageUrl || (isCarouselPost && carouselImageUrls.length >= 2)) {
                         const igPostType = getInstagramPostType();
 
                         // Post to each selected account
@@ -17006,20 +17239,33 @@ Example format:
                             const accountIndex = selectedAccountIndices[i];
                             const accountName = accountNames[accountIndex] || `Account ${accountIndex}`;
 
-                            timer.innerHTML = `<i class="fab fa-instagram"></i> Posting to ${accountName} (${i + 1}/${selectedAccountIndices.length})...`;
+                            const postTypeLabel = isCarouselPost ? 'carousel' : igPostType.toLowerCase();
+                            timer.innerHTML = `<i class="fab fa-instagram"></i> Posting ${postTypeLabel} to ${accountName} (${i + 1}/${selectedAccountIndices.length})...`;
 
                             try {
+                                // Build request body based on post type
+                                const requestBody = {
+                                    action: 'postToInstagram',
+                                    accountIndex: accountIndex,
+                                    postType: igPostType,
+                                    caption: caption
+                                };
+
+                                if (isCarouselPost && carouselImageUrls.length >= 2) {
+                                    // CAROUSEL post
+                                    requestBody.mediaType = 'CAROUSEL';
+                                    requestBody.imageUrls = carouselImageUrls;
+                                    console.log(`Posting carousel with ${carouselImageUrls.length} images to ${accountName}`);
+                                } else {
+                                    // Single IMAGE post
+                                    requestBody.mediaType = 'IMAGE';
+                                    requestBody.imageUrl = uploadedImageUrl;
+                                }
+
                                 const response = await fetch(APPS_SCRIPT_URL, {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'text/plain' },
-                                    body: JSON.stringify({
-                                        action: 'postToInstagram',
-                                        accountIndex: accountIndex,
-                                        mediaType: 'IMAGE',
-                                        postType: igPostType, // FEED, STORY, or REEL
-                                        imageUrl: uploadedImageUrl,
-                                        caption: caption
-                                    })
+                                    body: JSON.stringify(requestBody)
                                 });
                                 const result = await response.json();
                                 console.log(`Instagram post result (${accountName}):`, result);
@@ -17166,6 +17412,28 @@ Example format:
                 // Delete draft after successful publish (if at least one succeeded)
                 if (successCount > 0) {
                     deleteDraft();
+
+                    // Track 5-3-2 content type for successful posts
+                    const contentType = getSelectedContentType();
+                    if (contentType && typeof trackContentPost === 'function') {
+                        trackContentPost(contentType);
+                        console.log('5-3-2 tracked:', contentType);
+                    }
+
+                    // Clear carousel data
+                    if (window.currentCarousel) {
+                        window.currentCarousel = null;
+                        carouselSlides = [];
+                        const container = document.getElementById('carouselSlides');
+                        if (container) container.innerHTML = '';
+                        const countEl = document.getElementById('carouselSlideCount');
+                        if (countEl) countEl.textContent = '0';
+                        const buildBtn = document.getElementById('buildCarouselBtn');
+                        if (buildBtn) {
+                            buildBtn.disabled = true;
+                            buildBtn.innerHTML = '<i class="fas fa-check"></i> Use Carousel (0 slides)';
+                        }
+                    }
                 }
 
             } catch (error) {
