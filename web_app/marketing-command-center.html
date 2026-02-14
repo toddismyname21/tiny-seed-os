@@ -16653,6 +16653,61 @@ Example format:
             return Array.from(checkboxes).map(cb => parseInt(cb.value));
         }
 
+        /**
+         * AUTO UTM TRACKING
+         * Automatically adds UTM parameters to any links in the caption
+         * so you can track which posts drive traffic to your Shopify store
+         */
+        function addUTMToLinks(caption, platform = 'instagram', contentType = 'feed') {
+            if (!caption) return caption;
+
+            // Domains we want to track (your websites)
+            const trackableDomains = [
+                'tiny-seed-farmers-market.myshopify.com',
+                'tinyseedfarm.com',
+                'tinyseedfleurs.com',
+                'tinyseedfungi.com',
+                'toddismyname21.github.io'
+            ];
+
+            // URL regex pattern
+            const urlPattern = /(https?:\/\/[^\s]+)/gi;
+
+            // Get content type from 5-3-2 selector
+            const selectedContentType = document.querySelector('input[name="contentType532"]:checked')?.value || 'original';
+
+            // Generate campaign name from date and content type
+            const today = new Date();
+            const campaignDate = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`;
+            const campaignName = `${selectedContentType}_${campaignDate}`;
+
+            return caption.replace(urlPattern, (url) => {
+                try {
+                    const urlObj = new URL(url);
+                    const domain = urlObj.hostname.toLowerCase();
+
+                    // Only add UTM to our trackable domains
+                    const isTrackable = trackableDomains.some(d => domain.includes(d));
+                    if (!isTrackable) return url;
+
+                    // Don't add if UTM already exists
+                    if (urlObj.searchParams.has('utm_source')) return url;
+
+                    // Add UTM parameters
+                    urlObj.searchParams.set('utm_source', platform);
+                    urlObj.searchParams.set('utm_medium', 'social');
+                    urlObj.searchParams.set('utm_campaign', campaignName);
+                    urlObj.searchParams.set('utm_content', contentType);
+
+                    console.log('🔗 UTM added:', urlObj.toString());
+                    return urlObj.toString();
+                } catch (e) {
+                    // If URL parsing fails, return original
+                    return url;
+                }
+            });
+        }
+
         // Toggle all Instagram account checkboxes
         function toggleAllIgAccounts() {
             const checkboxes = document.querySelectorAll('input[name="igAccount"]');
@@ -17165,8 +17220,17 @@ Example format:
             const btn = document.getElementById('blastBtn');
             const timer = document.getElementById('postTimer');
             const startTime = Date.now();
-            const caption = document.getElementById('captionInput').value;
+            const rawCaption = document.getElementById('captionInput').value;
             const scheduleTime = isScheduled ? (document.getElementById('scheduleDateTimePicker')?.value || null) : null;
+
+            // AUTO UTM: Add tracking to any links in the caption
+            const igPostType = getInstagramPostType();
+            const caption = addUTMToLinks(rawCaption, 'instagram', igPostType.toLowerCase());
+
+            // Notify user if UTM was added
+            if (caption !== rawCaption) {
+                showToast('📊 UTM tracking added to links!', 'info');
+            }
 
             btn.disabled = true;
             btn.innerHTML = isScheduled
