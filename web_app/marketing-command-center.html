@@ -6613,44 +6613,10 @@
                             <i class="fas fa-list"></i> Next Up
                         </h5>
                         <div id="upcomingPostsList" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 200px; overflow-y: auto;">
-                            <!-- Example scheduled posts -->
-                            <div class="scheduled-post-item" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 8px; border-left: 3px solid var(--instagram);">
-                                <div style="width: 40px; height: 40px; background: rgba(225,48,108,0.2); border-radius: 6px; display: flex; align-items: center; justify-content: center;">
-                                    <i class="fab fa-instagram" style="color: var(--instagram);"></i>
-                                </div>
-                                <div style="flex: 1;">
-                                    <div style="font-size: 0.85rem; font-weight: 500;">Harvest update post</div>
-                                    <div style="font-size: 0.7rem; color: var(--text-secondary);">Today, 5:00 PM</div>
-                                </div>
-                                <div style="display: flex; gap: 0.25rem;">
-                                    <button onclick="editScheduledPost(1)" class="btn btn-sm" style="background: rgba(255,255,255,0.05); border: none; padding: 0.35rem 0.5rem;">
-                                        <i class="fas fa-edit" style="font-size: 0.75rem;"></i>
-                                    </button>
-                                    <button onclick="deleteScheduledPost(1)" class="btn btn-sm" style="background: rgba(239,68,68,0.1); border: none; padding: 0.35rem 0.5rem; color: #ef4444;">
-                                        <i class="fas fa-trash" style="font-size: 0.75rem;"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="scheduled-post-item" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 8px; border-left: 3px solid var(--success);">
-                                <div style="width: 40px; height: 40px; background: rgba(34,197,94,0.2); border-radius: 6px; display: flex; align-items: center; justify-content: center;">
-                                    <i class="fab fa-tiktok" style="color: var(--success);"></i>
-                                </div>
-                                <div style="flex: 1;">
-                                    <div style="font-size: 0.85rem; font-weight: 500;">Farm life BTS video</div>
-                                    <div style="font-size: 0.7rem; color: var(--text-secondary);">Tomorrow, 8:00 AM</div>
-                                </div>
-                                <div style="display: flex; gap: 0.25rem;">
-                                    <button onclick="editScheduledPost(2)" class="btn btn-sm" style="background: rgba(255,255,255,0.05); border: none; padding: 0.35rem 0.5rem;">
-                                        <i class="fas fa-edit" style="font-size: 0.75rem;"></i>
-                                    </button>
-                                    <button onclick="deleteScheduledPost(2)" class="btn btn-sm" style="background: rgba(239,68,68,0.1); border: none; padding: 0.35rem 0.5rem; color: #ef4444;">
-                                        <i class="fas fa-trash" style="font-size: 0.75rem;"></i>
-                                    </button>
-                                </div>
-                            </div>
+                            <!-- Dynamically populated by loadScheduledPosts() -->
                         </div>
                         <!-- Empty State (shown when no scheduled posts) -->
-                        <div id="noScheduledPostsMessage" style="display: none; text-align: center; padding: 1.5rem; color: var(--text-secondary);">
+                        <div id="noScheduledPostsMessage" style="text-align: center; padding: 1.5rem; color: var(--text-secondary);">
                             <i class="fas fa-calendar-times" style="font-size: 2rem; opacity: 0.5; margin-bottom: 0.5rem;"></i>
                             <p style="font-size: 0.85rem; margin: 0;">No scheduled posts</p>
                             <p style="font-size: 0.75rem; opacity: 0.7;">Schedule a post using the "Schedule Post" button above</p>
@@ -17873,8 +17839,12 @@ Example format:
 
         async function openFarmPicsPicker() {
             console.log('openFarmPicsPicker called');
-            document.getElementById('farmPicsPickerModal').classList.add('active');
+            const modal = document.getElementById('farmPicsPickerModal');
+            console.log('Modal element:', modal);
+            modal.classList.add('active');
+            console.log('Modal classes after add:', modal.className);
             const grid = document.getElementById('farmPicsPickerGrid');
+            console.log('Grid element:', grid);
 
             // Show loading state
             grid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 2rem;">
@@ -17885,14 +17855,18 @@ Example format:
             try {
                 // Use cached data if available, otherwise fetch
                 if (!pickerFarmPicsCache) {
+                    console.log('Fetching farm pics from API...');
                     const response = await fetch(`${API_URL}?action=getFarmPics`);
                     const data = await response.json();
+                    console.log('API response:', data);
                     if (data.success) {
                         pickerFarmPicsCache = data.farmPics.filter(p => p.Image_URL); // Only pics with images
+                        console.log('Filtered pics with images:', pickerFarmPicsCache.length);
                     }
                 }
 
                 if (pickerFarmPicsCache && pickerFarmPicsCache.length > 0) {
+                    console.log('Rendering', pickerFarmPicsCache.length, 'photos');
                     grid.innerHTML = pickerFarmPicsCache.map(pic => `
                         <div class="farm-pic-picker-item" onclick="selectFarmPic('${pic.Image_URL}', '${(pic.Caption || '').replace(/'/g, "\\'")}', this)"
                              style="cursor: pointer; border-radius: 12px; overflow: hidden; aspect-ratio: 1; position: relative; border: 3px solid transparent; transition: all 0.2s;">
