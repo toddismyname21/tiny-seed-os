@@ -18410,7 +18410,13 @@ function doPost(e) {
       case 'processWritingPromptReply':
         return jsonResponse(processWritingPromptReply(data.message, data.fromPhone));
       case 'generatePostsFromToddInput':
-        return jsonResponse(generatePostsFromToddInput(data.toddInput || data.input));
+        return jsonResponse(generatePostsFromToddInput(
+          data.toddInput || data.input,
+          data.account || data.targetAccount || 'farm',
+          data.senderName || 'Todd',
+          data.category || 'general',
+          data.source || 'web_journal'
+        ));
       case 'setupWeeklyPromptTrigger':
         return jsonResponse(setupWeeklyPromptTrigger());
       case 'getWritingResponses':

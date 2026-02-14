@@ -27460,21 +27460,44 @@ Would you like to test posting to Threads?`;
                 });
                 const data = await response.json();
 
+                console.log('📓 Journal API Response:', data);
+
                 if (data.success) {
-                    // SUCCESS - Close modal and show confirmation
-                    document.getElementById('journalEntryModal')?.remove();
+                    // SUCCESS - Show big confirmation, then close modal
                     localStorage.removeItem('tinyseed_last_journal_entry'); // Clear backup
 
-                    const postsMsg = data.postsGenerated ? ` ${data.postsGenerated} posts queued for your approval.` : '';
-                    showToast(`Entry saved!${postsMsg}`, 'success');
+                    const postsCount = data.postsGenerated || 0;
+                    const modal = document.getElementById('journalEntryModal');
+                    if (modal) {
+                        // Transform modal into success screen
+                        modal.querySelector('div').innerHTML = `
+                            <div style="text-align: center; padding: 2rem;">
+                                <div style="font-size: 4rem; margin-bottom: 1rem;">✅</div>
+                                <h2 style="color: var(--success); margin-bottom: 0.5rem;">Entry Saved!</h2>
+                                <p style="font-size: 1.1rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                                    ${postsCount > 0 ? `${postsCount} posts generated and queued for your approval.` : 'Your journal entry has been saved.'}
+                                </p>
+                                <p style="font-size: 0.85rem; color: var(--text-secondary);">
+                                    <i class="fas fa-brain"></i> AI is learning from this entry to create better content.
+                                </p>
+                                <button onclick="this.closest('#journalEntryModal').remove()" class="btn" style="margin-top: 1.5rem; background: var(--success);">
+                                    <i class="fas fa-check"></i> Got it!
+                                </button>
+                            </div>
+                        `;
+                    }
+
+                    showToast(`Entry saved! ${postsCount} posts generated.`, 'success');
 
                     // Refresh the journal entries list
                     loadJournalEntries();
                     loadCurrentWeekResponse();
                 } else {
                     // API returned error but didn't throw
-                    console.warn('Journal API response:', data);
-                    showToast(data.message || data.error || 'Entry may not have saved. Check Recent Entries.', 'warning');
+                    console.error('❌ Journal API Error:', data);
+                    const errorMsg = data.message || data.error || 'Unknown error occurred';
+                    showToast(`Error: ${errorMsg}`, 'error');
+                    alert(`Journal entry failed to save:\n\n${errorMsg}\n\nYour entry is saved locally. Try again or check the console for details.`);
                     // Re-enable button so user can try again
                     if (submitBtn) {
                         submitBtn.disabled = false;
@@ -27482,8 +27505,9 @@ Would you like to test posting to Threads?`;
                     }
                 }
             } catch (error) {
-                console.error('Error submitting journal:', error);
+                console.error('❌ Journal Network Error:', error);
                 showToast('Network error. Your entry is saved locally - try again.', 'error');
+                alert(`Network error while saving:\n\n${error.message}\n\nYour entry is saved locally. Check your connection and try again.`);
                 // Re-enable button
                 if (submitBtn) {
                     submitBtn.disabled = false;
