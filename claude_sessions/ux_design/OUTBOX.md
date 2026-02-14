@@ -1,7 +1,184 @@
 # OUTBOX: UX/Design Claude
 ## To: PM_Architect
 
-**Timestamp:** 2026-01-24
+**Timestamp:** 2026-02-14
+
+---
+
+## ✅ MCC CREATE TAB VISUAL POLISH - COMPLETE
+
+**Task:** Visual polish pass for Marketing Command Center CREATE tab
+**Status:** COMPLETE - 2026-02-14
+**Commit:** `81b7700` pushed to main
+**Scope:** CSS-only changes to `web_app/marketing-command-center.html`
+**Lines Added:** ~470 lines of CSS (scoped to CREATE tab)
+
+---
+
+### DESIGN DECISION: Keep MCC's Dark Creative Suite Identity
+
+The MCC is Todd's content creation power tool. Rather than aligning it with the Tiny Seed OS style guide's organic green (`--primary: #2d5a27`), I kept the MCC's existing dark creative suite identity (`--primary: #22c55e`, deep blue backgrounds). This was intentional:
+
+- **Content creation tools** (Canva, Buffer, Later) use dark themes for a reason: media previews pop against dark backgrounds, and creators spend extended time in these tools where dark mode reduces eye strain
+- **The MCC already has internal consistency** with its purple/pink accent palette borrowed from Instagram branding
+- **Changing the entire color system** would be structural, not polish - beyond scope
+
+Instead, I refined the existing palette for more premium feel within itself.
+
+---
+
+### WHAT WAS CHANGED (with line numbers)
+
+#### 1. Caption Textarea - HERO Element Treatment (line ~4930)
+**Before:** Basic `1px solid var(--border)` with flat background
+**After:**
+- `2px solid rgba(255, 255, 255, 0.08)` - Slightly more visible border at rest
+- Focus state: Pink glow (`box-shadow: 0 0 0 4px rgba(225, 48, 108, 0.08)`) + border color shifts to Instagram pink
+- Background brightens slightly on focus (`rgba(255, 255, 255, 0.05)`)
+- `min-height: 140px` (up from 120px) - More generous writing area
+- `line-height: 1.6` - Better readability while composing
+- Smooth 0.3s transitions on all properties
+**Why:** The textarea is where the work happens. It should feel like the most important element on the page - inviting, spacious, and responsive to interaction.
+
+#### 2. Post Controls Row - Hierarchy & Breathing Room (line ~4943)
+**Before:** Directly adjacent to char count, no visual separator
+**After:**
+- Added subtle `border-top: 1px solid rgba(255, 255, 255, 0.05)` separator
+- `margin-top: 0.75rem` + `padding-top: 0.75rem` - Creates breathing room
+- AI Caption buttons get `translateY(-1px)` hover lift + shadow
+- Draft buttons reduced to `opacity: 0.65` (clearly tertiary, hover restores to 1.0)
+**Why:** 6 controls in a row (Tone + AI Caption + Enhance + Emoji + Style + Draft) creates visual clutter. The separator line + opacity hierarchy helps users' eyes find the primary action (AI Caption) faster.
+
+#### 3. Tone Selector - Custom Styled Select (line ~4949)
+**Before:** Default browser `<select>` appearance (looks cheap on dark UI)
+**After:**
+- Removed native browser appearance (`appearance: none`)
+- Custom SVG dropdown arrow (subtle gray chevron)
+- Hover: Border shifts to Instagram pink
+- Focus: Full Instagram pink border + `box-shadow` ring
+- `border-radius: 10px` (matching other controls)
+**Why:** A default browser select element in a premium dark UI breaks the illusion. Custom styling makes it feel intentional and designed.
+
+#### 4. Caption Option Cards - Premium with Gradient Borders (line ~4982)
+**Before:** Flat `var(--bg-card)` background, basic `border-color: var(--success)` on hover
+**After:**
+- Rich dark glass background: `linear-gradient(135deg, rgba(22, 33, 62, 0.9), rgba(15, 52, 96, 0.6))`
+- Gradient border glow via `::before` pseudo-element (purple-to-pink gradient, `mask-composite: exclude` technique)
+- Hover: `translateY(-3px)` lift + expanded shadow + border glow intensifies
+- **CSS Counter numbered badges** (1, 2, 3) - Uses `counter-reset` / `counter-increment` + `::before` content on `.option-label` - No DOM changes needed!
+- Badge is a 22px circle with purple-to-pink gradient background
+- Use button gets gradient background (`linear-gradient(135deg, var(--success), #10b981)`) + scale(1.05) on hover
+- `cubic-bezier(0.4, 0, 0.2, 1)` easing for buttery-smooth transitions
+**Why:** These cards are the "wow" moment when a user generates 3 AI caption options. They need to feel premium and scannable. The numbered badges (CSS-only, no JS) make it immediately clear which option is which. The gradient border + hover lift technique is borrowed from Linear's card design language.
+
+#### 5. AI Predictions Bar - Glass Morphism (line ~5085)
+**Before:** Flat purple-tinted background, inline styles
+**After:**
+- `backdrop-filter: blur(10px)` - Glass morphism effect (content behind slightly blurs)
+- Gradient border glow via `::before` pseudo-element (purple-to-blue)
+- More refined spacing: `1rem 1.25rem` padding
+- Subtler background: `rgba(139, 92, 246, 0.06)`
+**Why:** The predictions bar sits between the content creation area and the publish buttons. It needs to feel like a distinct "intelligence layer" - not part of either section. Glass morphism creates that visual separation elegantly.
+
+#### 6. Publish CTAs - Dominant Buttons (line ~5107)
+**Before:** Clean gradients with basic hover
+**After:**
+- **Inner light gradient** via `::after` pseudo-element (`rgba(255, 255, 255, 0.08)` to transparent) - Adds subtle glass-like sheen
+- `translateY(-3px)` hover lift with expanded glow shadows (green for POST NOW, blue for SCHEDULE)
+- `cubic-bezier(0.4, 0, 0.2, 1)` easing
+- Disabled state: `opacity: 0.35` (was 0.5) - More clearly disabled
+- `border-radius: 14px` - Slightly more rounded, softer
+**Why:** POST NOW is the culmination of the entire workflow. It needs to feel satisfying to press - like a "launch" button. The inner light gradient technique is borrowed from Apple's button design.
+
+#### 7. Field Mode Container - Premium Solid Border (line ~5139)
+**Before:** `border: 2px dashed var(--instagram)` - Dashed borders look like placeholder/draft
+**After:**
+- `border: 1px solid rgba(225, 48, 108, 0.2)` - Subtle solid pink border
+- `box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12)` - Floating card effect
+- Richer gradient background
+**Why:** Dashed borders signal "drop zone" or "work in progress". For a polished production UI, solid borders with shadow convey permanence and quality.
+
+#### 8. Upload Zone (line ~5160)
+**Before:** Standard dashed border
+**After:**
+- Subtler dashed border: `rgba(255, 255, 255, 0.1)`
+- `scale(1.005)` on hover - Micro-expansion that feels alive
+- Smoother transition: `cubic-bezier(0.4, 0, 0.2, 1)`
+
+#### 9. Micro-Interactions & Animations (line ~5175)
+- All buttons and selects in #createTab get `cubic-bezier(0.4, 0, 0.2, 1)` transitions
+- `captionActionsReveal` keyframe animation: opacity 0 → 1, translateY(6px → 0) over 0.3s
+- Farm Pics button gets hover lift + shadow
+- Collapsible section headers get slightly brighter background on hover
+
+#### 10. Mobile Polish (line ~5192)
+**Under 768px:**
+- Sticky publish bar gets `backdrop-filter: blur(12px)` + `border-radius: 16px 16px 0 0` - Premium bottom sheet feel
+- Predictions bar stacks vertically (items align left, no wrapping issues)
+- Tone selector gets `min-height: 48px` for finger-friendly selection
+- Field container compact padding (1.25rem)
+
+**Under 480px:**
+- Char count spans get smaller font (0.68rem) + tighter spacing to prevent overflow
+
+#### 11. Bug Fix (line ~6371)
+- Fixed duplicate `display: none` in `captionAIActions` inline style
+- Before: `style="display: none; margin-top: 0.5rem; display: none; gap: 0.5rem;"`
+- After: `style="display: none; margin-top: 0.5rem; gap: 0.5rem;"`
+
+---
+
+### CSS TECHNIQUES USED
+
+| Technique | Where | Why |
+|-----------|-------|-----|
+| `::before` with `mask-composite: exclude` | Caption cards, predictions bar | Gradient border without extra DOM elements |
+| `::after` with gradient overlay | POST NOW, SCHEDULE buttons | Inner light sheen effect |
+| CSS Counters (`counter-reset/increment`) | Caption option cards | Numbered badges (1/2/3) without JS |
+| `backdrop-filter: blur()` | Predictions bar, mobile sticky bar | Glass morphism depth |
+| `cubic-bezier(0.4, 0, 0.2, 1)` | All transitions | Material Design's standard easing - feels natural |
+| `appearance: none` | Tone selector | Custom-styled native select |
+| `@keyframes` animation | Caption AI actions reveal | Smooth fadeSlideIn |
+
+---
+
+### TESTING CHECKLIST
+
+- [x] No JavaScript changes made
+- [x] No DOM structural changes
+- [x] All CSS scoped to #createTab or CREATE tab elements
+- [x] No platform brand icon colors changed
+- [x] Pre-commit hooks passed (API URLs, element refs, syntax)
+- [x] Pushed to main and deployed to GitHub Pages
+- [ ] **NEEDS USER VERIFICATION:** Visual appearance on live site
+- [ ] **NEEDS USER VERIFICATION:** Mobile view under 768px
+
+---
+
+### REMAINING POLISH SUGGESTIONS (Future Pass)
+
+1. **Loading spinner polish** - When "Generating 3 options..." shows, add a shimmer animation to the spinner (CSS `@keyframes shimmer` with `background-position` animation)
+2. **Schedule mode transition** - When POST NOW changes to SCHEDULE POST text, could add a subtle color transition animation on the button gradient
+3. **Voice note recording state** - The `.recording` animation exists but could use a more refined glow pulse
+4. **Emoji picker** - Could benefit from categorized sections with headers (Farm, Weather, Produce, etc.) instead of a flat grid
+5. **5-3-2 content type selector** - Could be elevated to chip/pill buttons instead of radio inputs for more premium feel
+
+---
+
+### COMMIT DETAILS
+
+```
+Commit: 81b7700
+Branch: main
+Author: UX_Design_Claude
+Files: web_app/marketing-command-center.html, CHANGE_LOG.md
+Pre-commit: All checks PASSED
+Push: Successful to origin/main
+```
+
+---
+
+*UX_Design_Claude - 2026-02-14 - Make it BEAUTIFUL*
 
 ---
 

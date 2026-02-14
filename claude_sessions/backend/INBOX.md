@@ -355,3 +355,343 @@ This is a test message to verify the A2A-Lite protocol is working correctly.
 **Requested Action:** verify_protocol
 
 **Confidence:** 90%
+
+---
+
+# 🚨 NEW PRIORITY TASKS - MCC BACKEND SUPPORT - 2026-02-14
+
+**From:** PM_Architect
+**Priority:** HIGH
+**Context:** Marketing Command Center API improvements
+
+---
+
+## Task 1: Research Social Media Tagging APIs
+
+**User Request:** "HOW CAN WE TAG FOLKS WITH THIS SYSTEM?"
+
+**Research Required:**
+
+### Instagram Graph API
+- @mentions in caption: Supported?
+- Photo tags (tag people in image): What endpoint?
+- Collaborators (shared posts): Requirements?
+- Location tags: What endpoint?
+
+### Facebook Pages API
+- @mentions in post: Format and permissions?
+- Page tags: How to tag other pages?
+- Location tags: What endpoint?
+
+### TikTok API
+- @mentions: Supported via API?
+- Location tags: Available?
+
+**Deliverables:**
+1. Document which tagging features each API supports
+2. Document required permissions/scopes
+3. Create specification for implementation
+
+---
+
+## Task 2: Verify AI Caption Generation Uses Tone
+
+**Context:** Priority 1 changes added tone dropdown to Quick Post frontend.
+
+**Verify:**
+1. Payload includes `tone` parameter
+2. AI prompt template uses tone value
+3. Response varies based on tone selection
+
+**Location:** generateAICaption or generateAICaptionFromImage functions in MERGED TOTAL.js
+
+---
+
+## Task 3: Expose AI_INTELLIGENCE Functions to Frontend - COMPLETED
+
+**Status:** DONE - Deployed v460 @627. All 3 endpoints live. See your OUTBOX for details.
+
+---
+
+# NEW TASK: Build Scheduled Post Publisher Trigger - 2026-02-14
+
+**From:** PM_Architect
+**Priority:** HIGH
+**Goal:** Complete the SCHEDULE flow in MCC CREATE tab. Desktop_Claude is fixing the frontend to call your `schedulePost` endpoint. You need to build the backend piece that actually publishes posts when their scheduled time arrives.
+**Depends on:** Desktop_Claude completing their frontend wiring (but you can build yours in parallel)
+
+---
+
+## CONTEXT
+
+Your OUTBOX identified this broken flow. Here's the full picture:
+
+```
+CURRENT (broken):
+User clicks SCHEDULE -> picks time -> nothing happens (Desktop_Claude fixing this)
+                                                        |
+                                                        v
+                                            schedulePost endpoint saves to sheet
+                                                        |
+                                                        v
+                                            SCHEDULED_POSTS sheet has row... forever
+                                            (NOBODY PUBLISHES IT) <-- YOUR TASK
+```
+
+```
+TARGET (working):
+User clicks SCHEDULE -> picks time -> Desktop_Claude sends to schedulePost
+                                                        |
+                                                        v
+                                            SCHEDULED_POSTS sheet: status = "scheduled"
+                                                        |
+                                                        v
+                                            YOUR TRIGGER runs every 5 min
+                                            Finds rows where scheduledFor <= now
+                                            AND status === "scheduled"
+                                                        |
+                                                        v
+                                            Calls postToInstagram / postToFacebook
+                                            for each platform in the row
+                                                        |
+                                                        v
+                                            Updates status to "published" + timestamp
+```
+
+---
+
+## YOUR TASKS
+
+### Task 1: Create `publishScheduledPosts()` function
+
+This function should:
+1. Read all rows from SCHEDULED_POSTS sheet where `Status === 'scheduled'`
+2. Filter for rows where `Scheduled_For <= now` (the scheduled time has passed or arrived)
+3. For each due post:
+   a. Read `Platforms`, `Caption`, `Media_Urls` from the row
+   b. Call the appropriate posting function for each platform (`postToInstagram`, `postToFacebook`, etc.)
+   c. On success: Update row status to `"published"`, set `Published_At` = now
+   d. On failure: Update row status to `"failed"`, set `Error` = error message, increment `Retry_Count`
+   e. If `Retry_Count >= 3`, set status to `"permanently_failed"` (don't keep retrying forever)
+4. Return summary: `{ processed: N, published: N, failed: N }`
+
+### Task 2: Create time-based trigger
+
+Create a setup function `setupScheduledPostTrigger()` that:
+1. Deletes any existing triggers for `publishScheduledPosts` (prevent duplicates)
+2. Creates a new time-driven trigger that runs `publishScheduledPosts()` every 5 minutes
+3. Logs the trigger creation
+
+```javascript
+function setupScheduledPostTrigger() {
+    // Delete existing triggers for this function
+    ScriptApp.getProjectTriggers().forEach(t => {
+        if (t.getHandlerFunction() === 'publishScheduledPosts') {
+            ScriptApp.deleteTrigger(t);
+        }
+    });
+    // Create new 5-minute trigger
+    ScriptApp.newTrigger('publishScheduledPosts')
+        .timeBased()
+        .everyMinutes(5)
+        .create();
+}
+```
+
+### Task 3: Verify SCHEDULED_POSTS sheet structure
+
+Confirm the sheet has these columns (create/add any missing):
+- `Schedule_ID` (SCH_xxx)
+- `Platforms` (comma-separated: instagram,facebook)
+- `Caption`
+- `Media_Urls` (comma-separated URLs)
+- `Scheduled_For` (ISO datetime)
+- `Status` (scheduled / publishing / published / failed / permanently_failed)
+- `Created_At`
+- `Created_By`
+- `Published_At`
+- `Error`
+- `Retry_Count`
+- `Campaign_ID` (optional)
+
+---
+
+## IMPORTANT NOTES
+
+- The `schedulePost` endpoint you already built saves to this sheet - just verify the column names match
+- Use the SAME posting functions that POST NOW uses (don't create duplicates)
+- The trigger needs to be set up once by running `setupScheduledPostTrigger()` in the Apps Script editor (same as how Instagram credentials were set up)
+- Add a `?action=getScheduledPosts` endpoint if it doesn't already exist, so the Calendar tab can show upcoming scheduled posts
+
+## DEPLOYMENT
+
+After implementing:
+1. `clasp push`
+2. `clasp deploy -i AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm -d "Add scheduled post publisher trigger"`
+3. Run `setupScheduledPostTrigger()` once in Apps Script editor to activate
+
+## DELIVERABLE
+- Update your OUTBOX with implementation details
+- Note any OWNER ACTIONS required (like running the setup function)
+- Mark as IMPLEMENTED
+
+---
+
+*PM_Architect - 2026-02-14 - Complete the SCHEDULE flow end-to-end*
+
+---
+
+# URGENT: Execute Setup Functions - 2026-02-14
+
+**From:** PM_Architect
+**Priority:** CRITICAL
+**Type:** Execute backend setup commands
+
+---
+
+## Context
+
+You already built these functions AND exposed them as API routes (@628). They just need to be **executed once** to activate. Nobody has run them yet.
+
+---
+
+## Task 1: Activate Scheduled Post Auto-Publisher
+
+**Function:** `setupScheduledPostTrigger()`
+**API Route:** `?action=setupScheduledPostTrigger`
+
+**What it does:** Creates a 5-minute time-driven trigger that runs `publishScheduledPosts()` automatically.
+
+**Execute via:**
+```bash
+curl -L "https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec?action=setupScheduledPostTrigger"
+```
+
+**Verify:** Response should confirm trigger created. If there's an auth error, try `clasp run setupScheduledPostTrigger` instead.
+
+---
+
+## Task 2: Store Instagram/Meta API Credentials
+
+**Function:** `setupInstagramCredentials_ONETIME()`
+
+**What it does:** Stores Meta API access tokens and Instagram Business Account IDs in Script Properties so the posting functions can use them.
+
+**Execute via:**
+```bash
+curl -L "https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec?action=setupInstagramCredentials_ONETIME"
+```
+
+**If no API route exists for this function:** Run it via `clasp run setupInstagramCredentials_ONETIME` or add a temporary route and redeploy.
+
+---
+
+## Deliverable
+
+1. Run both setup functions
+2. Verify each succeeded (capture response)
+3. Test the schedule flow end-to-end: call `?action=publishScheduledPosts` manually and confirm it reads from the SCHEDULED_POSTS sheet
+4. Report results in your OUTBOX
+
+**This is the last piece needed to complete the MCC CREATE tab. Get it done.**
+
+---
+
+*PM_Architect - 2026-02-14 - Execute setup functions to complete schedule flow*
+
+---
+
+# NEW: Tagging API Support - 2026-02-14
+
+**From:** PM_Architect
+**Priority:** HIGH
+**Context:** Desktop_Claude is building tagging UI. You need to provide these backend endpoints.
+
+---
+
+## Task 1: Facebook Places Search Endpoint
+
+**Create:** `?action=searchFacebookPlaces`
+
+**Parameters:** `query` (search text), `limit` (default 10)
+
+**Implementation:**
+```javascript
+function searchFacebookPlaces(params) {
+    var query = params.query || '';
+    var limit = params.limit || 10;
+    var token = getActivePageToken(); // Use any valid page token
+
+    var url = 'https://graph.facebook.com/v24.0/search'
+        + '?type=place'
+        + '&q=' + encodeURIComponent(query)
+        + '&fields=id,name,location,picture'
+        + '&limit=' + limit
+        + '&access_token=' + token;
+
+    var result = JSON.parse(UrlFetchApp.fetch(url, {muteHttpExceptions: true}).getContentText());
+    return { success: true, places: result.data || [] };
+}
+```
+
+**Wire to router:** Add `case 'searchFacebookPlaces': return searchFacebookPlaces(params);`
+
+---
+
+## Task 2: Post Instagram First Comment Endpoint
+
+**Create:** `?action=postInstagramComment`
+
+**Parameters:** `mediaId` (the Instagram post ID), `comment` (text), `accountIndex`
+
+**Implementation:**
+Use Instagram Graph API: `POST /{media-id}/comments?message={comment}&access_token={token}`
+
+This lets the frontend post hashtags as a first comment (industry best practice).
+
+---
+
+## Task 3: Add Location ID to postToInstagram
+
+**Modify:** `postToInstagram()` to accept optional `locationId` parameter.
+
+When creating the media container, if `locationId` is provided, include it:
+```
+POST /{ig-user-id}/media
+  ?image_url=...
+  &caption=...
+  &location_id={locationId}    <-- ADD THIS
+  &access_token=...
+```
+
+Same for `postToFacebook()` - add `place` parameter for location tagging.
+
+---
+
+## Task 4: Add User Tags to postToInstagram
+
+**Modify:** `postToInstagram()` to accept optional `userTags` parameter.
+
+When creating the media container for single images, if `userTags` is provided:
+```
+POST /{ig-user-id}/media
+  ?image_url=...
+  &caption=...
+  &user_tags=[{"username":"tinyseedfleurs","x":0.5,"y":0.5}]
+  &access_token=...
+```
+
+Note: `user_tags` requires `instagram_basic` and `instagram_manage_comments` permissions (already granted).
+
+---
+
+## DEPLOYMENT
+
+After implementing all tasks:
+1. `clasp push`
+2. `clasp deploy -i AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm -d "Add tagging APIs: places search, first comment, location + user tags"`
+3. Update OUTBOX with endpoint details
+
+---
+
+*PM_Architect - 2026-02-14 - Backend tagging API support*

@@ -305,3 +305,149 @@ claude --chrome
 ---
 
 *Social Media Claude - Now with browser superpowers*
+
+---
+
+# 🚨 NEW PRIORITY TASKS - MCC CREATE TAB RESEARCH - 2026-02-14
+
+**From:** PM_Architect
+**Priority:** HIGH
+**Context:** Marketing Command Center UX research to support Desktop_Claude implementation
+
+---
+
+## Task 1: Research Social Media Tagging UX Best Practices
+
+**User Request:** "HOW CAN WE TAG FOLKS WITH THIS SYSTEM?"
+Backend_Claude is researching API capabilities. You research the UX/UI side.
+
+**Research Questions:**
+
+1. **Tag Input UI Patterns**
+   - How do Later, Buffer, Hootsuite handle tag input?
+   - Autocomplete from followers list?
+   - @ symbol trigger?
+   - Inline vs separate field?
+
+2. **Location Tagging UX**
+   - Map picker vs search box?
+   - Recent locations?
+   - Save favorite locations?
+
+3. **Platform Differences**
+   - Which platforms support which tag types?
+   - How to show platform-specific options?
+
+**Deliverables:**
+Write to your OUTBOX.md:
+- UX recommendations for tag input
+- Mockup descriptions or wireframe concepts
+- Best practices from competitor analysis
+
+---
+
+## Task 2: Research "Generate 3 Options" UX (Priority 2.1)
+
+**Context:** From MCC_CREATE_TAB_REMAINING_TASKS.md:
+"Current: Quick Post generates 1 caption. Industry standard is 3+ options."
+
+**Research Questions:**
+
+1. **How do competitors display multiple options?**
+   - Cards side-by-side?
+   - Carousel/swipe?
+   - List with radio buttons?
+
+2. **Selection interaction**
+   - "Use This" button?
+   - Click to select?
+   - Drag to caption field?
+
+3. **Mobile considerations**
+   - Swipe between options?
+   - Stack vertically?
+
+**Deliverables:**
+Write to your OUTBOX.md:
+- Recommended UI pattern with justification
+- Mobile adaptation strategy
+- Implementation notes for Desktop_Claude
+
+---
+
+## Task 3: Research Trending Audio Integration
+
+**Context:** TikTok and Reels engagement improves with trending audio.
+
+**Research Questions:**
+
+1. What APIs provide trending audio data?
+2. How do tools like Later/Planoly show trending sounds?
+3. Legal considerations for suggesting audio?
+
+**Deliverables:**
+Write to your OUTBOX.md:
+- API availability findings
+- UX pattern recommendations
+- Implementation feasibility assessment
+
+---
+
+## Reference Documents
+
+- `docs/MCC_CREATE_TAB_REMAINING_TASKS.md` - Full task list with priorities
+- `docs/audits/CREATE_TAB_VERIFIED_TRUTH.md` - Verified feature inventory
+
+---
+
+# UPDATE FROM PM_ARCHITECT - 2026-02-14 EVENING
+
+**Priority:** READ THIS FIRST - task changes below
+
+---
+
+## TASK 2 IS DONE - DO NOT WORK ON IT
+
+**"Generate 3 Options" UX (Task 2 from earlier today) has been IMPLEMENTED and pushed live.**
+
+PM_Architect built it in commit `8a8fdb4`:
+- 3 caption variants (Concise, Detailed, Personal) displayed as selectable cards
+- "Use This" and "Copy" buttons on each card
+- Stacked vertically (works on mobile)
+- "Try Again" button also added
+
+**You do NOT need to research this anymore. Skip Task 2 entirely.**
+
+---
+
+## UPDATED PRIORITY ORDER
+
+### Priority 1: Social Media Tagging UX Research (Task 1 - still needed)
+Backend_Claude completed API research (`claude_sessions/backend/SOCIAL_MEDIA_TAGGING_API_RESEARCH.md`). Their findings:
+- Instagram: @mentions YES, photo tags YES, collaborators YES (max 3), location YES
+- Facebook: @mentions Pages only, photo tags RESTRICTED, location YES
+- TikTok: @mentions text only, no photo tags
+
+**We need YOUR UX research to design the frontend for this.** How should the tag input work in the MCC CREATE tab? This is the next feature to build after current push stabilizes.
+
+### Priority 2: Long-Lived Token Conversion (URGENT - from your own OUTBOX)
+Your OUTBOX says current Meta tokens expire in ~60 days. This needs to happen before they expire or posting breaks. Research and document the exact steps to:
+1. Exchange short-lived tokens for long-lived tokens (60 day -> never-expire page tokens)
+2. Set up automatic refresh trigger in Apps Script
+3. Which of the 3 accounts need this (tinyseedfarm, tinyseedfleurs, tinyseedfungi)
+
+### Priority 3: Trending Audio Research (Task 3 - still needed, lower priority)
+No rush on this one. Complete when Tasks 1 and 2 are done.
+
+---
+
+## DELIVERABLES
+
+Write all findings to your OUTBOX.md. Tag each section clearly so PM_Architect can find it:
+1. `## TAGGING UX RESEARCH` - for Task 1
+2. `## TOKEN CONVERSION PLAN` - for Priority 2
+3. `## TRENDING AUDIO RESEARCH` - for Task 3 (if time)
+
+---
+
+*PM_Architect - 2026-02-14 evening*

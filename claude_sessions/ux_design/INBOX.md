@@ -543,3 +543,211 @@ After adding:
 ### Report to OUTBOX.md when complete
 
 ---
+
+# PRIORITY MISSION: MCC CREATE TAB VISUAL POLISH - 2026-02-14
+
+**From:** PM_Architect
+**Priority:** CRITICAL
+**Owner Directive:** "This is going to work well, and it is going to LOOK GOOD while we are doing it"
+**Scope:** ONLY `web_app/marketing-command-center.html` - CREATE tab specifically
+**Goal:** Take CREATE tab from "functional" to "beautiful" - premium, professional, the kind of UI that makes people say "wow"
+
+---
+
+## CONTEXT
+
+The CREATE tab is now functionally complete:
+- Quick Post with AI Caption (1 or 3 options), tone selector, media upload, Farm Pics, carousel (20 slides)
+- Schedule flow fully wired (POST NOW + SCHEDULE POST)
+- AI predictions bar (engagement score + optimal time)
+- Caption length indicator (Too short / Good / Optimal / Long)
+- Celebration on successful post
+- Sticky POST NOW on mobile
+
+**Verifier confirmed all features PASS.** Now we need the VISUAL POLISH pass.
+
+---
+
+## YOUR RESOURCES
+
+Read these BEFORE starting:
+
+| Resource | Path | Why |
+|----------|------|-----|
+| Style Guide | `docs/STYLE_GUIDE.md` | Established design system, color vars, spacing rules |
+| UX Research | `shared_research/ux_design_2026/CORE_UX_PRINCIPLES.md` | Modern UX patterns |
+| Cognitive Load | `shared_research/ux_design_2026/COGNITIVE_LOAD.md` | Reduce overwhelm |
+| Progressive Disclosure | `shared_research/ux_design_2026/PROGRESSIVE_DISCLOSURE.md` | Hide complexity |
+| Competitor Insights | `shared_research/ux_design_2026/COMPETITOR_INSIGHTS.md` | What best looks like |
+| Verified Feature Map | `docs/audits/CREATE_TAB_VERIFIED_TRUTH.md` | Exact line numbers for every feature |
+| Mobile UX CSS | `web_app/mobile-farm-ux-styles.css` | Shared mobile styles (1031 lines) |
+
+---
+
+## SCOPE: ONLY THESE AREAS
+
+### 1. Color Variable Alignment
+
+MCC uses its own `:root` vars that DON'T match the style guide:
+
+| MCC Current | Style Guide | Issue |
+|-------------|-------------|-------|
+| `--primary: #22c55e` | `--primary: #2d5a27` | MCC green is neon, style guide is organic |
+| `--bg-dark: #1a1a2e` | `--bg-dark: #0f172a` | Different dark backgrounds |
+| `--bg-card: #16213e` | `--bg-card: #1e293b` | Different card backgrounds |
+| `--text-secondary: #8d99ae` | `--text-secondary: #94a3b8` | Slightly off |
+
+**Decision needed:** Should MCC match the style guide, or does it have its own identity as a marketing tool? Pick the one that looks MORE premium and professional. The MCC is a power tool for Todd - it should feel like a high-end creative suite (think Canva Pro, Later, Buffer). If the current dark theme works better for a content creation tool, keep it but make it CONSISTENT within itself.
+
+### 2. Typography & Visual Hierarchy (CREATE tab only)
+
+Audit and fix:
+- **Section headings** - Are they clearly differentiated from body text?
+- **Labels** (Tone selector, platform checkboxes, etc.) - Consistent size, weight, spacing
+- **The caption textarea** - Should feel like the HERO element, generous size, subtle glow or border
+- **Button hierarchy** - POST NOW/SCHEDULE should be the dominant visual. AI Caption, Enhance, Emoji, Style should be clearly secondary. Draft buttons tertiary.
+- **The 3-caption-option cards** (`.caption-option-card`) - These are new, need polish. Add subtle gradient borders, better hover state, maybe a numbered badge (1/2/3)
+
+### 3. Spacing & Breathing Room
+
+The CREATE tab has a lot packed in. Make it breathe:
+- Consistent `gap` and `margin` between sections
+- The post-controls row (tone + AI Caption + AI Enhance + Emoji + Style + Draft) - 6 items in a row can feel cramped on smaller screens. Consider wrapping gracefully.
+- Space between the char count row and the post controls
+- The AI predictions bar needs visual separation from the publish buttons below it
+
+### 4. Micro-Interactions & Transitions
+
+Add professional touches:
+- **Button hover states** - Subtle scale(1.02) or brightness shift, not jarring
+- **Caption option cards** - Hover should feel inviting (subtle lift, border glow)
+- **Tone selector dropdown** - Style it to not look like a default browser `<select>` (custom styling)
+- **Loading states** - When "Generating 3 options..." is showing, make the spinner look polished
+- **The "Try Again" / "Generate 3 Options" buttons** - These appear after first generation. The reveal should feel smooth (fadeIn, not abrupt)
+- **Schedule mode transition** - When POST NOW changes to SCHEDULE POST, animate the color change
+
+### 5. Mobile Polish (under 768px)
+
+- Sticky POST NOW bar - verify shadow and separation look clean
+- Post controls row - should stack or wrap nicely, not overflow
+- Caption option cards - full width, generous tap targets
+- Tone selector - large enough for finger selection
+- The char count + length hint row - readable, not cramped
+
+### 6. Specific Cosmetic Fix
+
+**Verifier flagged:** Line ~5902 has `style="display: none; margin-top: 0.5rem; display: none; gap: 0.5rem;"` - double `display: none`. Fix to: `style="display: none; margin-top: 0.5rem; gap: 0.5rem;"`
+
+---
+
+## WHAT NOT TO TOUCH
+
+- DO NOT change any JavaScript functionality
+- DO NOT move HTML elements or restructure the DOM
+- DO NOT add new features
+- DO NOT touch any tab besides CREATE
+- DO NOT add external CSS libraries or frameworks
+- DO NOT change the color of platform brand icons (Instagram pink, Facebook blue, etc.)
+
+**CSS and inline styles ONLY. Visual polish, nothing structural.**
+
+---
+
+## DESIGN INSPIRATION
+
+Think about what makes these tools feel premium:
+- **Canva** - Clean white space, smooth animations, clear hierarchy
+- **Linear** - Dark theme done RIGHT. Crisp typography, subtle gradients
+- **Notion** - Elegant simplicity, everything feels intentional
+- **Buffer** - Clean compose UI, the POST button feels satisfying
+- **Figma** - Professional dark UI, great micro-interactions
+
+The CREATE tab should feel like a **premium creative tool for a farmer who takes their brand seriously**. Dark, crisp, organic-feeling but modern. Not a toy, not a corporate SaaS - something in between that says "this farmer is sophisticated."
+
+---
+
+## DELIVERABLE
+
+1. Make your CSS changes to `web_app/marketing-command-center.html`
+2. Commit with descriptive message
+3. Push to main (goes live on GitHub Pages)
+4. Write full report to your OUTBOX:
+   - What you changed (with line numbers)
+   - Design decisions and why
+   - Before/after descriptions
+   - Any remaining polish suggestions for next pass
+
+---
+
+## TESTING CHECKLIST
+
+After your changes:
+- [ ] No JavaScript console errors
+- [ ] CREATE tab loads correctly
+- [ ] All buttons still function (don't break onclick handlers)
+- [ ] POST NOW and SCHEDULE flow still work
+- [ ] Mobile view (< 768px) renders cleanly
+- [ ] Caption option cards display and hover correctly
+- [ ] Tone selector is usable
+- [ ] Predictions bar is readable
+- [ ] Caption length indicator shows colors correctly
+
+---
+
+*PM_Architect - 2026-02-14 - Make it BEAUTIFUL*
+
+---
+
+# SECOND POLISH PASS: Tagging UI + Final Visual Audit - 2026-02-14
+
+**From:** PM_Architect
+**Priority:** HIGH
+**Context:** Desktop_Claude is implementing 5 new tagging features (mentions, location, hashtags, first comment, platform visibility). After they push their code, you need to do a visual polish pass on the new elements to match your existing aesthetic.
+
+---
+
+## WAIT FOR: Desktop_Claude to push tagging implementation
+
+Check their OUTBOX for completion. Once they've pushed:
+
+---
+
+## Task 1: Style New Tagging Elements
+
+Apply the same premium aesthetic you used in your first pass to these new elements:
+
+| New Element | Visual Treatment Needed |
+|-------------|------------------------|
+| @Mention dropdown | Glass morphism (`backdrop-filter: blur(10px)`), match existing dropdown styles |
+| @Mention chips/pills | Blue text with subtle glow, removable `x` button |
+| Location search field | Consistent with caption textarea border/focus style |
+| Location selected pill | Pin icon + pill with gradient border glow on hover |
+| Hashtag group popover | Glass card with group name + count badge (use CSS Counter technique from caption cards) |
+| Hashtag text in caption | Teal color, subtle differentiation from @mentions (blue) |
+| First comment textarea | Dashed border, slightly different background, clear "First Comment (IG)" label |
+| Platform-specific UI | Smooth show/hide transitions when platforms toggled |
+
+---
+
+## Task 2: Final Full-Page Visual Audit
+
+With ALL features now implemented, do one final sweep of the entire CREATE tab:
+
+1. **Consistency check** - Do all new elements match the existing polish (border radius, shadow depth, transition timing)?
+2. **Spacing audit** - Does the additional tagging UI make the page feel cramped? Add breathing room where needed.
+3. **Color harmony** - Blue mentions + teal hashtags + pink IG + green POST NOW - do they all work together?
+4. **Mobile check** - New tagging dropdowns and popovers should be touch-friendly (44px targets) and not overflow on small screens
+5. **Dark mode coherence** - All new elements should look correct on the dark theme
+
+---
+
+## DELIVERABLE
+
+1. CSS-only changes to `web_app/marketing-command-center.html`
+2. Commit and push to main
+3. Update OUTBOX with changes + line numbers
+4. Include "Owner Ready" declaration if everything looks polished
+
+---
+
+*PM_Architect - 2026-02-14 - Final visual polish before owner review*

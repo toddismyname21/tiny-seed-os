@@ -281,3 +281,373 @@ After each session, update your OUTBOX.md with:
 ## IMPORTANT: READ UNIVERSAL_ACCESS.md
 You have full MCP server access and can deploy code via `clasp push`.
 See: `/Users/samanthapollack/Documents/TIny_Seed_OS/claude_sessions/UNIVERSAL_ACCESS.md`
+
+---
+
+# 🚨 NEW PRIORITY TASKS - MCC CREATE TAB - 2026-02-14
+
+**From:** PM_Architect
+**Priority:** HIGH
+**Context:** Marketing Command Center improvements based on user feedback and industry research
+
+---
+
+## Task 1: Add Carousel Checkbox at Media Upload Point
+
+**User Feedback:** "I FEEL LIKE THE CAROUSEL SHOULD BE JUST A CHECKMARK AT THE UPLOAD POINT"
+
+**Location:**
+- `web_app/marketing-command-center.html`
+- Quick Post media upload section (~line 5933)
+
+**Implementation:**
+1. Add checkbox "Create Carousel" next to/below media upload button
+2. When checked, show thumbnail strip of uploaded images
+3. Allow drag-to-reorder thumbnails
+4. Connect to existing carousel logic (lines 31107-31206, maxSlides now 20)
+
+**Acceptance Criteria:**
+- [ ] Checkbox appears near media upload area
+- [ ] Checking it reveals thumbnail strip
+- [ ] Images can be reordered via drag
+- [ ] Carousel posts correctly when POST NOW clicked
+
+---
+
+## Task 2: Add "Check Post" Analysis Button
+
+**User Request:** "Can we have some sort of rating system before we post?"
+
+**Location:**
+- `web_app/marketing-command-center.html`
+- Above POST NOW button (~line 6414)
+
+**Implementation:**
+1. Add "Check Post" button that opens analysis modal
+2. Modal shows:
+   - Engagement prediction score (use predictEngagement, line 22506)
+   - Optimal posting time (use getOptimalPostingTime, line 22202)
+   - Caption length optimization
+   - Hashtag effectiveness
+   - Suggestions for improvement
+3. Include "Post Anyway" and "Optimize" buttons in modal
+
+**Acceptance Criteria:**
+- [ ] "Check Post" button appears above POST NOW
+- [ ] Modal opens with analysis results
+- [ ] Shows actionable suggestions
+
+---
+
+## Task 3: Make POST NOW Sticky on Mobile (Priority 2.4)
+
+**Context:** 624 lines between caption textarea and POST NOW button.
+
+**Implementation:**
+Add CSS media query:
+```css
+@media (max-width: 768px) {
+    .publish-actions {
+        position: sticky;
+        bottom: 0;
+        background: var(--bg-primary);
+        padding: 1rem;
+        z-index: 100;
+        border-top: 1px solid var(--border);
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    }
+}
+```
+
+**Acceptance Criteria:**
+- [ ] POST NOW button sticks to bottom on mobile (<768px)
+- [ ] Desktop layout unchanged
+
+---
+
+## Reference Documents
+
+- `docs/MCC_CREATE_TAB_REMAINING_TASKS.md` - Full task list with priorities
+- `docs/audits/CREATE_TAB_VERIFIED_TRUTH.md` - Verified feature inventory
+- `docs/audits/CREATE_TAB_UNIFIED_ANALYSIS.md` - Industry comparison
+
+---
+
+## Priority 1 Changes COMPLETED (2026-02-14)
+
+These changes are already implemented and need verification:
+- [x] maxSlides 10 → 20 (lines 31107, 31206)
+- [x] Tone dropdown in Quick Post
+- [x] Tone passed to generateAICaption
+- [x] Celebration triggers on post success
+- [x] AI predictions surfaced above POST NOW
+
+---
+
+# URGENT: FIX SCHEDULE FLOW IN MCC CREATE TAB - 2026-02-14
+
+**From:** PM_Architect
+**Priority:** CRITICAL
+**Goal:** Make the CREATE tab FLAWLESS - scheduling is currently broken
+**Discovered by:** Backend_Claude (see their OUTBOX for full analysis)
+
+---
+
+## THE PROBLEM
+
+The SCHEDULE button in Quick Post **does not actually schedule anything**. Three pieces exist but are disconnected:
+
+| Piece | Location | Status |
+|-------|----------|--------|
+| POST NOW -> `publishAll()` -> posts to Instagram | MCC line ~17555 | WORKS |
+| SCHEDULE button -> `openSchedulePicker()` -> date picker UI | MCC line ~25624 | UI ONLY |
+| `schedulePost` backend endpoint | MERGED TOTAL.js (deployed @627) | EXISTS but nothing calls it |
+
+---
+
+## YOUR 3 TASKS (all in `web_app/marketing-command-center.html`)
+
+### Task 1: Fix `setScheduleTime()` to actually enable scheduled mode
+
+**Current bug:** `setScheduleTime()` (line ~25647) updates the display label and shows a toast but NEVER sets `isScheduled = true`. It also never calls `toggleScheduleMode()`.
+
+**Fix:** After `setScheduleTime()` sets the display, it must:
+```javascript
+isScheduled = true;
+// Update UI to show user is in SCHEDULE mode, not POST NOW mode
+```
+
+Also make sure the POST NOW button text/style changes to indicate "SCHEDULE" mode when a time is picked. The user must clearly see they're scheduling, not posting immediately.
+
+### Task 2: Fix `publishAll()` to call `schedulePost` when `isScheduled === true`
+
+**Current bug:** `publishAll()` (line ~17555) reads `scheduleTime` at line ~17560 but then calls `postToInstagram` directly (immediate post). It NEVER sends `scheduleTime` to the backend.
+
+**Fix:** Add a check at the top of the publish flow:
+
+```javascript
+if (isScheduled && scheduleTime) {
+    // Call backend schedulePost endpoint instead of posting immediately
+    const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+            action: 'schedulePost',
+            platforms: selectedPlatforms,
+            caption: document.getElementById('captionInput').value,
+            mediaUrls: [/* collected media URLs */],
+            scheduledFor: scheduleTime,
+            createdBy: 'mcc_quick_post'
+        })
+    });
+    const result = await response.json();
+    if (result.success) {
+        showToast(`Scheduled for ${new Date(scheduleTime).toLocaleString()}!`, 'success');
+        showCelebration(1);
+        // Reset form
+    }
+    return; // Don't continue to immediate post
+}
+```
+
+**Backend `schedulePost` accepts:** `{ platforms, caption, mediaUrls, scheduledFor, createdBy, campaignId }`
+**Returns:** `{ success: true, scheduleId: "SCH_xxx" }`
+
+### Task 3: Show confirmation with scheduled time after scheduling
+
+After a successful schedule:
+1. Show a success toast with the scheduled date/time
+2. Trigger the celebration animation (same as POST NOW success)
+3. Optionally show a small banner: "Scheduled! View in Calendar tab" with a link/button to switch to the CALENDAR tab
+4. Reset the form (clear caption, media, set `isScheduled = false`)
+
+---
+
+## IMPORTANT CONTEXT
+
+- The backend `schedulePost` endpoint is **already deployed and live** at @627
+- It saves to a SCHEDULED_POSTS sheet with status "scheduled"
+- A `getScheduledPosts` endpoint also exists for reading back scheduled posts
+- Backend_Claude is building a separate time-trigger to publish when due (that's their task, not yours)
+- You ONLY need to fix the frontend wiring
+
+## TESTING
+
+After implementing:
+1. Open CREATE tab -> Quick Post
+2. Write a caption, add media, select platforms
+3. Click SCHEDULE -> pick a date/time
+4. Confirm the button changes to indicate SCHEDULE mode
+5. Click the schedule action -> verify toast shows scheduled time
+6. Check browser Network tab -> confirm `schedulePost` endpoint was called (not `postToInstagram`)
+
+## FILES TO MODIFY
+- `web_app/marketing-command-center.html` ONLY
+
+## DELIVERABLE
+- Push changes to main branch
+- Update your OUTBOX with what you changed + line numbers
+- Mark task as IMPLEMENTED (Verifier will verify)
+
+---
+
+*PM_Architect - 2026-02-14 - Make CREATE tab FLAWLESS*
+
+---
+
+# NEW: Implement Social Media Tagging UX - 2026-02-14
+
+**From:** PM_Architect
+**Priority:** HIGH
+**Context:** Social Media Claude completed comprehensive UX research. Backend Claude documented API capabilities. This is the frontend implementation task.
+**Research:** `claude_sessions/social_media/OUTBOX.md` → RESEARCH 1: Social Media Tagging UX Best Practices
+**Backend API Research:** `claude_sessions/backend/SOCIAL_MEDIA_TAGGING_API_RESEARCH.md`
+
+---
+
+## Task 1: @Mention Autocomplete with Local Favorites
+
+**Location:** `web_app/marketing-command-center.html` - Quick Post caption area
+
+**Implementation:**
+1. Detect `@` typed in the caption textarea
+2. Show a dropdown of **saved recent/favorite usernames** (NOT platform autocomplete - IG/TikTok APIs don't support it)
+3. Pre-populate favorites with these farm accounts:
+   - `@tinyseedfarm`, `@tinyseedfleurs`, `@tinyseedfungi`
+   - `@kretschmannfarm`
+4. Store recent mentions in `localStorage` under key `mcc_recent_mentions`
+5. Render @mentions as **blue text** (visual only - use CSS or inline styling)
+6. Show subtle note: "Verify spelling — Instagram does not support username lookup"
+7. Max 20 mentions for Instagram (platform limit)
+
+**UI Pattern:**
+```
+Caption textarea:
++--------------------------------------------------+
+| Had an amazing time at the farm with              |
+| @tinyseedfarm picking fresh veggies!              |
++--------------------------------------------------+
+  [dropdown when @ typed]
+  +---------------------------+
+  | Recent Mentions           |
+  |   @tinyseedfleurs         |
+  |   @tinyseedfungi          |
+  | Favorites                 |
+  |   @kretschmannfarm        |
+  |   @lawrencevillefm        |
+  +---------------------------+
+```
+
+---
+
+## Task 2: Location Tag Search with Saved Favorites
+
+**Implementation:**
+1. Add a location search field BELOW the caption area (NOT inline in caption)
+2. On search, call `?action=searchFacebookPlaces&query={search_text}` (Backend Claude building this)
+3. Pre-populate saved favorites with Todd's CSA stops:
+   - Rochester - Kretschmann Family Organic Farm
+   - Lawrenceville - Tuesday Farmer's Market
+   - Sewickley - Saturday Farmer's Market
+   - Oakmont - Today's Organic Market
+   - Highland Park - Bryant St. Market
+   - Bloomfield - Saturday Farmer's Market
+4. Store in `localStorage` under key `mcc_saved_locations`
+5. Selected location shown as a removable pill/chip with pin icon
+6. Show platform indicator: "Applies to IG + FB" (gray out when only TikTok selected)
+
+**UI Pattern:**
+```
+Location: [Search locations...        ] [pin icon]
+           +--------------------------+
+           | Saved Locations          |
+           |   Kretschmann Farm       |
+           |   Lawrenceville Market   |
+           |   Bryant St. Market      |
+           | Recent                   |
+           |   Sewickley FM           |
+           +--------------------------+
+
+Selected: [Kretschmann Farm  x]
+```
+
+---
+
+## Task 3: Hashtag Group Manager
+
+**Implementation:**
+1. Add `#` icon to caption toolbar (next to existing buttons)
+2. Clicking `#` opens a floating popover with saved hashtag groups
+3. Default groups to pre-create:
+   - **Farm Fresh** (8): `#organic #farmfresh #pittsburgh #localfood #farmtotable #CSA #organicfarm #sustainablefarming`
+   - **Markets** (5): `#farmersmarket #pittsburghfarmers #shoplocal #freshproduce #marketday`
+   - **Seasonal** (6): `#springharvest #farmlife #growyourown #eatlocal #seasonaleating #harvestseason`
+4. One-click group insertion into caption
+5. "AI Suggest" button that calls existing AI caption analysis to suggest hashtags
+6. Live counter: `X/30` for Instagram hashtag limit
+7. Store custom groups in `localStorage` under key `mcc_hashtag_groups`
+8. Allow user to create/edit/delete groups
+
+---
+
+## Task 4: First Comment Field (Instagram Best Practice)
+
+**Implementation:**
+1. Add a separate "First Comment" textarea that appears ONLY when Instagram is selected
+2. Label: "First Comment (Instagram)" with info tooltip: "Industry best practice: put hashtags in the first comment to keep your caption clean"
+3. Show subtle dashed border to distinguish from main caption
+4. Character counter for first comment
+5. When posting to Instagram, send first comment content as a separate API call after the main post publishes
+6. Add `?action=postInstagramComment` call after successful `postToInstagram` (Backend may need to add this endpoint)
+
+---
+
+## Task 5: Per-Platform Feature Visibility
+
+**Implementation:**
+Show/hide tagging features based on which platforms are selected:
+
+| Feature | Instagram | Facebook | TikTok |
+|---------|-----------|----------|--------|
+| @Mentions | YES (max 20) | YES | YES |
+| Location tags | YES | YES | HIDE field |
+| First comment | YES | HIDE | HIDE |
+| Hashtag limit counter | 30 max | Hide counter | Hide counter |
+
+Gray out or hide unsupported features when that platform is deselected.
+
+---
+
+## Visual Design Spec (Match UX Design Claude's Aesthetic)
+
+| Element | Visual Treatment |
+|---------|-----------------|
+| @Mention (in dropdown) | Blue chip/pill with subtle glow |
+| Hashtag (in caption) | Teal text |
+| Location tag (selected) | Pill with pin icon + `x` to remove |
+| Hashtag group card | Rounded card with group name + count badge |
+| First comment field | Dashed border, slightly lighter background |
+| Dropdown | Glass morphism (`backdrop-filter: blur(10px)`), consistent with existing UX polish |
+
+---
+
+## IMPORTANT NOTES
+
+- **Do NOT build platform autocomplete for Instagram** - the API doesn't support it. Use local favorites only.
+- Match the existing UX Design Claude aesthetic (glass morphism, gradient borders, micro-interactions)
+- All localStorage keys should be prefixed with `mcc_`
+- Test on mobile - dropdowns should be touch-friendly (44px min tap targets)
+- Commit and push to main when done
+
+---
+
+## DELIVERABLE
+
+1. Implement all 5 tasks in `web_app/marketing-command-center.html`
+2. Push to main branch
+3. Update OUTBOX with what you built + line numbers
+4. Mark as IMPLEMENTED
+
+---
+
+*PM_Architect - 2026-02-14 - Implement social media tagging in CREATE tab*
