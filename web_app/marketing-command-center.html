@@ -4847,6 +4847,27 @@
     </style>
 </head>
 <body>
+    <!-- FARM PICS PICKER MODAL - At root level for proper fixed positioning -->
+    <div class="modal-overlay" id="farmPicsPickerModal">
+        <div class="modal" style="max-width: 800px; max-height: 80vh;">
+            <div class="modal-header" style="background: linear-gradient(135deg, var(--instagram) 0%, var(--accent) 100%);">
+                <h2><i class="fas fa-images"></i> Select from Farm Pics</h2>
+                <button class="modal-close" onclick="closeFarmPicsPicker()">&times;</button>
+            </div>
+            <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+                <div id="farmPicsPickerGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem;">
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 2rem;">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--instagram);"></i>
+                        <p style="margin-top: 1rem;">Loading photos...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeFarmPicsPicker()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ACCESS CONTROL BANNER -->
     <div class="access-banner">
         <div class="access-badge">
@@ -12451,27 +12472,6 @@
                 <button class="btn btn-primary" onclick="confirmScheduleReminder()" style="background: linear-gradient(135deg, var(--info) 0%, var(--purple) 100%);">
                     <i class="fas fa-calendar-plus"></i> Schedule Reminder
                 </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- FARM PICS PICKER MODAL -->
-    <div class="modal-overlay" id="farmPicsPickerModal">
-        <div class="modal" style="max-width: 800px; max-height: 80vh;">
-            <div class="modal-header" style="background: linear-gradient(135deg, var(--instagram) 0%, var(--accent) 100%);">
-                <h2><i class="fas fa-images"></i> Select from Farm Pics</h2>
-                <button class="modal-close" onclick="closeFarmPicsPicker()">&times;</button>
-            </div>
-            <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
-                <div id="farmPicsPickerGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem;">
-                    <div style="grid-column: 1 / -1; text-align: center; padding: 2rem;">
-                        <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--instagram);"></i>
-                        <p style="margin-top: 1rem;">Loading photos...</p>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeFarmPicsPicker()">Cancel</button>
             </div>
         </div>
     </div>
