@@ -5098,16 +5098,6 @@
                         </div>
                     </div>
 
-                    <!-- Generated Posts from Input -->
-                    <div id="generatedPostsSection" style="background: rgba(67, 97, 238, 0.15); border-radius: 12px; padding: 1rem; margin-bottom: 1rem; border-left: 3px solid var(--info); display: none;">
-                        <h4 style="font-size: 0.9rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
-                            <i class="fas fa-magic" style="color: var(--info);"></i> Generated Posts
-                            <span id="postsGeneratedCount" class="badge" style="background: var(--info); font-size: 0.65rem;">0</span>
-                        </h4>
-                        <div id="generatedPostsList" style="max-height: 200px; overflow-y: auto;">
-                        </div>
-                    </div>
-
                     <!-- Recent Journal Entries -->
                     <div>
                         <h4 style="font-size: 0.9rem; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between;">
@@ -27207,10 +27197,9 @@ Would you like to test posting to Threads?`;
             await Promise.all([loadJournalEntries(), loadCurrentWeekResponse()]);
         }
 
-        // Load current week's response from Todd (Added 2026-02-13)
+        // Load current week's response from Todd (Updated 2026-02-13: Simplified, removed auto-post generation)
         async function loadCurrentWeekResponse() {
             const responseSection = document.getElementById('toddResponseSection');
-            const postsSection = document.getElementById('generatedPostsSection');
             if (!responseSection) return;
             try {
                 const response = await fetch(`${API_URL}?action=getWritingResponses&limit=1`);
@@ -27223,60 +27212,16 @@ Would you like to test posting to Threads?`;
                     weekAgo.setDate(weekAgo.getDate() - 7);
                     if (receivedAt > weekAgo) {
                         const content = latestResponse.Todd_Input || latestResponse.content || '';
-                        const postsGenerated = latestResponse.Posts_Generated || 0;
-                        const status = latestResponse.Status || '';
                         responseSection.style.display = 'block';
                         document.getElementById('toddResponseContent').textContent = content;
                         document.getElementById('responseTimestamp').textContent = receivedAt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
                         const lastDate = document.getElementById('lastEntryDate');
                         if (lastDate) lastDate.textContent = `Last: ${receivedAt.toLocaleDateString()}`;
-                        if (postsGenerated > 0 || status === 'posts_generated' || status === 'queued_for_approval') {
-                            postsSection.style.display = 'block';
-                            document.getElementById('postsGeneratedCount').textContent = postsGenerated || '?';
-                            await loadGeneratedPosts();
-                        }
-                        updateJournalBadge(status, postsGenerated);
                     } else {
                         responseSection.style.display = 'none';
-                        postsSection.style.display = 'none';
                     }
                 }
             } catch (error) { console.error('Error loading current week response:', error); }
-        }
-
-        // Load generated posts from writing prompt (Added 2026-02-13)
-        async function loadGeneratedPosts() {
-            const container = document.getElementById('generatedPostsList');
-            if (!container) return;
-            try {
-                const response = await fetch(`${API_URL}?action=getMarketingQueue&status=pending_approval&limit=10`);
-                const data = await response.json();
-                const posts = (data.items || []).filter(item => item.generated_by && item.generated_by.includes('writing_prompt'));
-                if (posts.length > 0) {
-                    const platformIcons = { 'instagram': 'fab fa-instagram', 'facebook': 'fab fa-facebook', 'gbp': 'fab fa-google', 'twitter': 'fab fa-twitter' };
-                    const platformColors = { 'instagram': 'var(--instagram)', 'facebook': 'var(--facebook)', 'gbp': 'var(--gbp)', 'twitter': 'var(--twitter)' };
-                    container.innerHTML = posts.map(post => `<div style="background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 8px; margin-bottom: 0.5rem; border-left: 2px solid ${platformColors[post.platform] || 'var(--border)'};">
-                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
-                            <i class="${platformIcons[post.platform] || 'fas fa-share'}" style="color: ${platformColors[post.platform] || 'var(--text-secondary)'};"></i>
-                            <span style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-secondary);">${post.platform}</span>
-                            <span class="badge" style="font-size: 0.6rem; background: var(--warning); color: #000;">Pending</span>
-                        </div>
-                        <div style="font-size: 0.8rem; color: var(--text-primary);">${(post.content || '').substring(0, 200)}${post.content?.length > 200 ? '...' : ''}</div>
-                    </div>`).join('');
-                    document.getElementById('postsGeneratedCount').textContent = posts.length;
-                } else {
-                    container.innerHTML = '<p style="color: var(--text-secondary); font-size: 0.8rem; text-align: center;">Posts generated - check Marketing Queue</p>';
-                }
-            } catch (error) { console.error('Error loading generated posts:', error); container.innerHTML = '<p style="color: var(--text-secondary); font-size: 0.8rem;">Could not load posts</p>'; }
-        }
-
-        // Update journal status badge (Added 2026-02-13)
-        function updateJournalBadge(status, postsGenerated) {
-            const badge = document.getElementById('journalStatusBadge');
-            if (!badge) return;
-            if (status === 'queued_for_approval' || status === 'posts_generated') { badge.style.background = 'var(--success)'; badge.style.color = '#fff'; badge.textContent = `${postsGenerated} Posts Ready`; }
-            else if (status === 'processing') { badge.style.background = 'var(--warning)'; badge.style.color = '#000'; badge.textContent = 'Processing...'; }
-            else { badge.style.background = 'var(--gold)'; badge.style.color = '#000'; badge.textContent = 'Sunday 11am'; }
         }
 
         // Send manual SMS prompt to Todd (Added 2026-02-13)
@@ -27327,7 +27272,7 @@ Would you like to test posting to Threads?`;
                         // Handle multiple response formats from different API versions
                         const content = entry.Todd_Input || entry.todd_input || entry.content || entry.response || '';
                         const date = entry.Received_At || entry.received_at || entry.date || entry.respondedAt || new Date().toISOString();
-                        const postsGenerated = entry.Posts_Generated || entry.posts_generated || 0;
+                        // Removed: postsGenerated tracking - was confusing, posts were never saved
                         const sender = entry.Sender || entry.sender || 'Todd';
                         const entryId = entry.Response_ID || entry.response_id || entry.id || '';
 
@@ -27346,10 +27291,7 @@ Would you like to test posting to Threads?`;
                                             ${sender !== 'Todd' ? `by ${sender} · ` : ''}${new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                         </span>
                                     </div>
-                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                        ${postsGenerated > 0 ? `<span style="font-size: 0.6rem; background: var(--info); padding: 0.1rem 0.4rem; border-radius: 8px;">${postsGenerated} posts</span>` : ''}
-                                        ${entryId ? `<button onclick="deleteJournalEntry('${entryId}')" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 0.2rem; font-size: 0.7rem; opacity: 0.6; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'; this.style.color='var(--danger)'" onmouseout="this.style.opacity='0.6'; this.style.color='var(--text-secondary)'" title="Delete entry"><i class="fas fa-trash"></i></button>` : ''}
-                                    </div>
+                                    ${entryId ? `<button onclick="deleteJournalEntry('${entryId}')" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 0.2rem; font-size: 0.7rem; opacity: 0.6; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'; this.style.color='var(--danger)'" onmouseout="this.style.opacity='0.6'; this.style.color='var(--text-secondary)'" title="Delete entry"><i class="fas fa-trash"></i></button>` : ''}
                                 </div>
                                 <div style="font-size: 0.8rem; color: var(--text-primary); line-height: 1.4;">
                                     ${content.substring(0, 120)}${content.length > 120 ? '...' : ''}
