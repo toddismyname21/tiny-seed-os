@@ -18488,6 +18488,10 @@ function doPost(e) {
         return jsonResponse(setupWeeklyPromptTrigger());
       case 'getWritingResponses':
         return jsonResponse(getWritingResponses(data));
+      case 'deleteJournalEntry':
+        return jsonResponse(deleteJournalEntry(data));
+      case 'saveJournalEntry':
+        return jsonResponse(saveJournalEntryOnly(data));
 
       // ============ UNIVERSAL DOCUMENT PARSER (POST) (2026-02-07) ============
       case 'parseUniversalDocument':
@@ -118045,6 +118049,54 @@ function initializeWritingResponsesSheet() {
 }
 
 /**
+ * Save a journal entry WITHOUT generating posts
+ * Added 2026-02-13: Human-in-the-loop approach - save memory, generate posts separately with approval
+ */
+function saveJournalEntryOnly(params) {
+  try {
+    const toddInput = params.input || params.toddInput || params.content || '';
+    const senderName = params.senderName || params.sender || 'Todd';
+    const targetAccount = params.account || 'farm';
+    const category = params.category || 'general';
+    const source = params.source || 'web_journal';
+
+    if (!toddInput || toddInput.trim().length < 10) {
+      return { success: false, error: 'Entry too short (minimum 10 characters)' };
+    }
+
+    const sheet = initializeWritingResponsesSheet();
+    const responseId = 'WR_' + Date.now();
+    const receivedAt = new Date().toISOString();
+
+    // Save the entry
+    sheet.appendRow([
+      responseId,
+      receivedAt,
+      toddInput.trim(),
+      0,  // Posts_Generated (none - this is just memory)
+      'saved',
+      senderName,
+      targetAccount,
+      category,
+      source
+    ]);
+
+    Logger.log('Saved journal entry (memory only): ' + responseId + ' from ' + senderName);
+
+    return {
+      success: true,
+      entryId: responseId,
+      message: 'Journal entry saved to farm memory',
+      savedAt: receivedAt
+    };
+
+  } catch (error) {
+    Logger.log('Error saving journal entry: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
  * Get current season and what's growing context for prompts
  */
 function getSeasonalContext() {
@@ -118751,6 +118803,64 @@ function getWritingResponses(params) {
       success: false,
       error: error.toString()
     };
+  }
+}
+
+/**
+ * Delete a journal/writing response entry
+ * API Route: deleteJournalEntry
+ * @param {Object} params - { entryId: string } - The Response_ID to delete
+ */
+function deleteJournalEntry(params) {
+  try {
+    const entryId = params.entryId || params.id || params.Response_ID;
+
+    if (!entryId) {
+      return { success: false, error: 'Missing entryId parameter' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(WRITING_RESPONSES_SHEET);
+
+    if (!sheet) {
+      return { success: false, error: 'Journal sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const idColIndex = headers.indexOf('Response_ID');
+
+    if (idColIndex === -1) {
+      return { success: false, error: 'Response_ID column not found' };
+    }
+
+    // Find the row with matching ID
+    let rowToDelete = -1;
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][idColIndex] === entryId) {
+        rowToDelete = i + 1; // +1 because sheet rows are 1-indexed
+        break;
+      }
+    }
+
+    if (rowToDelete === -1) {
+      return { success: false, error: 'Entry not found: ' + entryId };
+    }
+
+    // Delete the row
+    sheet.deleteRow(rowToDelete);
+
+    Logger.log('Deleted journal entry: ' + entryId);
+
+    return {
+      success: true,
+      message: 'Entry deleted successfully',
+      deletedId: entryId
+    };
+
+  } catch (error) {
+    Logger.log('Error deleting journal entry: ' + error.toString());
+    return { success: false, error: error.toString() };
   }
 }
 
