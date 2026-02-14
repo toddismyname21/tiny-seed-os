@@ -40,6 +40,35 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-02-13 - Backend_Claude (Farm Journal Delete + Human-in-Loop)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Added journal entry save and delete functions
+- `web_app/marketing-command-center.html` - Added delete buttons to journal entries
+
+### Functions Added
+- `saveJournalEntryOnly(params)` in MERGED TOTAL.js - Saves journal entry to memory WITHOUT generating posts (human-in-the-loop approach)
+- `deleteJournalEntry(id)` frontend function in marketing-command-center.html - Deletes journal entries with confirmation
+
+### API Routes Added
+- `saveJournalEntry` - POST endpoint for memory-only journal saves
+- `deleteJournalEntry` - POST endpoint for deleting journal entries
+
+### Changes Made
+- Farm Journal now saves entries to memory ONLY (no auto-post generation)
+- Added delete buttons (trash icon) on each journal entry
+- Changed API call from `generatePostsFromToddInput` to `saveJournalEntry`
+- Human-in-the-loop: Posts are created separately in the content creation section, not auto-generated from journal
+
+### Reason
+User requested ability to delete journal entries and clarified that Farm Journal should be "living memory" for AI - not auto-post generation. Human approval required before posting.
+
+### Duplicate Check
+- [x] Checked for existing save functions
+- [x] No duplicates created
+
+---
+
 ## 2026-02-13 - Backend_Claude (AI Rule Enforcement System)
 
 ### Files Modified

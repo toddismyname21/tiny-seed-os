@@ -27329,13 +27329,14 @@ Would you like to test posting to Threads?`;
                         const date = entry.Received_At || entry.received_at || entry.date || entry.respondedAt || new Date().toISOString();
                         const postsGenerated = entry.Posts_Generated || entry.posts_generated || 0;
                         const sender = entry.Sender || entry.sender || 'Todd';
+                        const entryId = entry.Response_ID || entry.response_id || entry.id || '';
 
                         // Detect category from content or use saved category
                         const category = entry.category || detectJournalCategory(content);
                         const catStyle = categoryConfig[category] || categoryConfig.general;
 
                         return `
-                            <div style="background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 8px; margin-bottom: 0.5rem; border-left: 3px solid ${catStyle.color};">
+                            <div style="background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 8px; margin-bottom: 0.5rem; border-left: 3px solid ${catStyle.color};" data-entry-id="${entryId}">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; flex-wrap: wrap; gap: 0.25rem;">
                                     <div style="display: flex; align-items: center; gap: 0.5rem;">
                                         <span style="font-size: 0.65rem; background: ${catStyle.color}; color: white; padding: 0.15rem 0.4rem; border-radius: 4px;">
@@ -27345,7 +27346,10 @@ Would you like to test posting to Threads?`;
                                             ${sender !== 'Todd' ? `by ${sender} · ` : ''}${new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                         </span>
                                     </div>
-                                    ${postsGenerated > 0 ? `<span style="font-size: 0.6rem; background: var(--info); padding: 0.1rem 0.4rem; border-radius: 8px;">${postsGenerated} posts</span>` : ''}
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        ${postsGenerated > 0 ? `<span style="font-size: 0.6rem; background: var(--info); padding: 0.1rem 0.4rem; border-radius: 8px;">${postsGenerated} posts</span>` : ''}
+                                        ${entryId ? `<button onclick="deleteJournalEntry('${entryId}')" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 0.2rem; font-size: 0.7rem; opacity: 0.6; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'; this.style.color='var(--danger)'" onmouseout="this.style.opacity='0.6'; this.style.color='var(--text-secondary)'" title="Delete entry"><i class="fas fa-trash"></i></button>` : ''}
+                                    </div>
                                 </div>
                                 <div style="font-size: 0.8rem; color: var(--text-primary); line-height: 1.4;">
                                     ${content.substring(0, 120)}${content.length > 120 ? '...' : ''}
@@ -27365,6 +27369,48 @@ Would you like to test posting to Threads?`;
             } catch (error) {
                 console.error('Error loading journal entries:', error);
                 container.innerHTML = '<p style="color: var(--danger); font-size: 0.85rem;">Failed to load entries</p>';
+            }
+        }
+
+        async function deleteJournalEntry(entryId) {
+            if (!entryId) {
+                showToast('Cannot delete: No entry ID', 'error');
+                return;
+            }
+
+            // Confirm deletion
+            if (!confirm('Delete this journal entry? This cannot be undone.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'deleteJournalEntry',
+                        entryId: entryId
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('Entry deleted', 'success');
+                    // Remove from DOM immediately
+                    const entryEl = document.querySelector(`[data-entry-id="${entryId}"]`);
+                    if (entryEl) {
+                        entryEl.style.transition = 'opacity 0.3s, transform 0.3s';
+                        entryEl.style.opacity = '0';
+                        entryEl.style.transform = 'translateX(-20px)';
+                        setTimeout(() => entryEl.remove(), 300);
+                    }
+                } else {
+                    showToast(data.error || 'Failed to delete entry', 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting entry:', error);
+                showToast('Failed to delete entry', 'error');
             }
         }
 
@@ -27447,15 +27493,16 @@ Would you like to test posting to Threads?`;
             showToast('Saving your entry...', 'info');
 
             try {
-                // Fixed 2026-02-13: Use text/plain Content-Type to match other API calls
-                const response = await fetch(`${API_URL}?action=generatePostsFromToddInput`, {
+                // Fixed 2026-02-13: Use saveJournalEntry (memory only) instead of generatePostsFromToddInput
+                // Human-in-the-loop: Save to memory, don't auto-generate posts
+                const response = await fetch(`${API_URL}?action=saveJournalEntry`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         input: text,
-                        toddInput: text,  // Backend checks both
                         account: selectedAccount || 'farm',
                         source: 'web_journal',
+                        senderName: 'Todd',
                         category: detectJournalCategory(text)
                     })
                 });
