@@ -5445,31 +5445,6 @@
                     </div>
                 </div>
                 <div id="algorithmPanelBody" class="card-body" style="display: none;">
-                    <!-- Engagement Health Indicator - REAL DATA -->
-                    <div id="engagementHealthSection" style="margin-bottom: 1.5rem; background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 12px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                            <div style="font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
-                                <i class="fas fa-heartbeat" style="color: var(--success);"></i> Your Engagement Health
-                            </div>
-                            <span id="engagementStatus" style="font-size: 0.8rem; padding: 0.25rem 0.75rem; border-radius: 12px; background: var(--success); color: white; font-weight: 600;">LOADING</span>
-                        </div>
-                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; text-align: center;">
-                            <div>
-                                <div style="font-size: 0.75rem; color: var(--text-secondary);">Engagement</div>
-                                <div id="engagementChange" style="font-size: 1.1rem; font-weight: 700; color: var(--text-secondary);">--</div>
-                            </div>
-                            <div>
-                                <div style="font-size: 0.75rem; color: var(--text-secondary);">Likes</div>
-                                <div id="likesChange" style="font-size: 1.1rem; font-weight: 700; color: var(--text-secondary);">--</div>
-                            </div>
-                            <div>
-                                <div style="font-size: 0.75rem; color: var(--text-secondary);">Comments</div>
-                                <div id="commentsChange" style="font-size: 1.1rem; font-weight: 700; color: var(--text-secondary);">--</div>
-                            </div>
-                        </div>
-                        <div id="engagementAlerts" style="margin-top: 0.75rem; display: none;"></div>
-                    </div>
-
                     <!-- Recent Algorithm Updates - REAL DATA -->
                     <div id="recentUpdatesSection" style="margin-bottom: 1.5rem;">
                         <div style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
@@ -24485,47 +24460,6 @@ Would you like to test posting to Threads?`;
                 lastUpdatedEl.innerHTML = `<i class="fas fa-clock"></i> Updated: ${updatedDate.toLocaleTimeString()}`;
             }
 
-            // Update Engagement Health Section
-            if (data.engagementHealth) {
-                const health = data.engagementHealth;
-                const statusEl = document.getElementById('engagementStatus');
-                const healthBadge = document.getElementById('algoHealthBadge');
-
-                if (statusEl) {
-                    if (health.status === 'HEALTHY') {
-                        statusEl.textContent = 'HEALTHY';
-                        statusEl.style.background = 'var(--success)';
-                        if (healthBadge) {
-                            healthBadge.textContent = 'HEALTHY';
-                            healthBadge.style.background = 'var(--success)';
-                        }
-                    } else {
-                        statusEl.textContent = 'NEEDS ATTENTION';
-                        statusEl.style.background = 'var(--warning)';
-                        if (healthBadge) {
-                            healthBadge.textContent = 'ALERT';
-                            healthBadge.style.background = 'var(--warning)';
-                        }
-                    }
-                }
-
-                // Update change indicators
-                updateChangeIndicator('engagementChange', health.change);
-
-                // Show alerts if any
-                if (health.alerts && health.alerts.length > 0) {
-                    const alertsEl = document.getElementById('engagementAlerts');
-                    if (alertsEl) {
-                        alertsEl.style.display = 'block';
-                        alertsEl.innerHTML = health.alerts.map(alert => `
-                            <div style="background: rgba(230, 57, 70, 0.2); border-left: 3px solid var(--danger); padding: 0.5rem; margin-top: 0.5rem; border-radius: 4px; font-size: 0.8rem;">
-                                <strong style="color: var(--danger);">${alert.severity === 'high' ? '!' : 'i'}</strong> ${alert.message}
-                            </div>
-                        `).join('');
-                    }
-                }
-            }
-
             // Update Algorithm Updates Section
             if (data.algorithmUpdates) {
                 const updates = data.algorithmUpdates;
@@ -24728,14 +24662,9 @@ Would you like to test posting to Threads?`;
             // Update non-time elements
             const sourceEl = document.getElementById('optimalTimeSource');
             const listEl = document.getElementById('algorithmUpdatesList');
-            const statusEl = document.getElementById('engagementStatus');
 
             if (sourceEl) sourceEl.innerHTML = 'Source: Industry Research (Buffer, Later)';
             if (listEl) listEl.innerHTML = '<div style="text-align: center; padding: 1rem; color: var(--text-secondary); font-size: 0.85rem;"><i class="fas fa-check-circle"></i> No major updates detected</div>';
-            if (statusEl) {
-                statusEl.textContent = 'OFFLINE';
-                statusEl.style.background = 'var(--text-secondary)';
-            }
 
             // Show fallback for Weekly Intelligence Brief with real local data
             displayWeeklyBriefFromLocal();
