@@ -27326,11 +27326,10 @@ Would you like to test posting to Threads?`;
             }
 
             try {
-                const response = await fetch(API_URL, {
+                const response = await fetch(`${API_URL}?action=deleteJournalEntry`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
-                        action: 'deleteJournalEntry',
                         entryId: entryId
                     })
                 });
