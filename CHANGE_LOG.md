@@ -40,6 +40,103 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-02-13 - Backend_Claude (AI Rule Enforcement System)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Added complete AI Rule Enforcement system
+
+### Functions Added
+- `initializeChiefOfStaffRulesSheet()` - Creates CHIEFOFSTAFF_Rules sheet with headers and default rules
+- `getChiefOfStaffRules()` - Retrieves active rules from sheet or Script Properties cache
+- `getRecentMemoryForRules(account, limit)` - Gets recent memory entries for context injection
+- `getActiveTriggersForRules()` - Gets active proactive alerts/triggers
+- `buildRulesSystemPromptSection(rulesData, memory, triggers)` - Builds the mandatory rules section for system prompts
+- `validateAgainstRules(response, rulesData, context)` - Post-validates AI responses against all rules
+- `retryWithCorrection(originalMessage, badResponse, validation, rulesData)` - Retries AI call with rule violation feedback
+- `logRuleViolation(validation, userMessage, badResponse, correctedResponse)` - Logs violations for analysis
+- `callChiefOfStaffAI(userMessage, context)` - Main wrapper function with full rule enforcement
+- `addChiefOfStaffRule(ruleData)` - Adds new rules to the sheet
+- `updateChiefOfStaffRule(ruleId, updates)` - Updates existing rules
+- `getRuleViolationStats()` - Returns statistics about rule violations
+
+### Functions Modified
+- `buildChiefOfStaffSystemPrompt(context)` - Now injects mandatory rules section automatically
+- `chatWithChiefOfStaffFast(userMessage)` - Now includes condensed critical rules in fast mode
+
+### API Endpoints Added
+- `getChiefOfStaffRules` - Get all active rules
+- `initializeChiefOfStaffRules` - Initialize rules sheet
+- `addChiefOfStaffRule` - Add a new rule
+- `updateChiefOfStaffRule` - Update an existing rule
+- `getRuleViolationStats` - Get violation statistics
+- `callChiefOfStaffAI` - Call AI with full rule enforcement wrapper
+
+### Sheets Created
+- `CHIEFOFSTAFF_Rules` - Stores AI enforcement rules with columns: Rule_ID, Rule_Name, Rule_Description, Priority, Active, Category, Violation_Action, Check_Pattern, Created_At, Last_Updated
+- `CHIEFOFSTAFF_RuleViolations` - Logs rule violations for analysis
+
+### Default Rules Added (10 total)
+1. No Fabrication (critical) - Never make up information
+2. Memory Check Before New Claims (critical) - Check context before claiming something is new
+3. No Destructive Actions Without Confirmation (critical) - Always ask before delete/archive/cancel
+4. Log Significant Decisions (high) - Record major changes
+5. Check Recent Context (high) - Reference memory and history
+6. Ask Before Sending (critical) - Show drafts before sending external communications
+7. Admit Uncertainty (high) - State uncertainty rather than presenting guesses as facts
+8. Use Real Data (critical) - Use provided context data, don't invent statistics
+9. Respect Business Rules (high) - Follow farm pricing, schedules, policies
+10. Identify Rule Application (medium) - State which rules apply when deciding
+
+### Reason
+User requested a system to enforce AI rules consistently across all Chief of Staff interactions. The wrapper ensures Claude:
+1. Always receives mandatory rules in the system prompt
+2. Gets relevant memory context to avoid contradicting past statements
+3. Has responses validated against rules before delivery
+4. Automatically retries with correction feedback if rules are violated
+5. Blocks completely for safety-critical violations
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (found COS_PROACTIVE_RULES which is for proactive alerts, not AI behavior rules)
+- [x] No duplicates created - this is a new rule enforcement layer
+
+---
+
+## 2026-02-13 - PM_Architect (PM Rules and Hooks System)
+
+### Files Created
+- `.pm_rules.json` - Enforceable PM rules with critical, high priority, and trigger definitions
+- `scripts/pm-preflight.sh` - Pre-flight check script for create/deploy/delete/modify actions
+- `scripts/pm-context-snapshot.sh` - Generates context snapshot for PM session continuity
+
+### Files Modified
+- `CLAUDE.md` - Added STEP 0B: PM Rules Loading section with enforcement instructions
+
+### What It Does
+Creates an enforcement system for Claude Code sessions:
+1. **Rules File (.pm_rules.json)** - JSON file containing critical rules (NO_DUPLICATE_FILES, READ_BEFORE_EDIT, NO_HALLUCINATION, VERIFY_BEFORE_DONE) and action triggers
+2. **Pre-Flight Script** - Validates actions before execution (duplicate check, manifest check, risk assessment)
+3. **Context Snapshot** - Generates session context with git activity, CHANGE_LOG entries, and active rules
+
+### Usage
+```bash
+# Before creating files
+./scripts/pm-preflight.sh create <filename>
+
+# Before deploying
+./scripts/pm-preflight.sh deploy
+
+# Generate context snapshot
+./scripts/pm-context-snapshot.sh
+```
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar scripts (pre-flight-check.sh exists but serves different purpose)
+- [x] No duplicates created (pm-preflight.sh is PM-specific complement to existing pre-flight-check.sh)
+
+---
+
 ## 2026-02-13 - PM_Architect (CREATE Tab: Auto UTM Tracking)
 
 ### Files Modified

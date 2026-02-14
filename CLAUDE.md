@@ -75,6 +75,71 @@ This file is auto-generated hourly and contains:
 
 ---
 
+## STEP 0B: LOAD PM RULES (ENFORCED)
+
+**MANDATORY:** Load the PM rules system at session start:
+
+```
+Read: .pm_rules.json
+```
+
+This JSON file contains enforceable rules that MUST be followed:
+
+### Critical Rules (BLOCKING)
+| ID | Rule |
+|----|------|
+| NO_DUPLICATE_FILES | Before creating ANY file, search for existing similar files |
+| READ_BEFORE_EDIT | Must read a file before editing it |
+| NO_HALLUCINATION | Never make up information - verify or ask |
+| VERIFY_BEFORE_DONE | Test/verify changes before claiming done |
+
+### High Priority Rules
+| ID | Rule |
+|----|------|
+| CHECK_MANIFEST | Check SYSTEM_MANIFEST.md before building new features |
+| UPDATE_CHANGELOG | Update CHANGE_LOG.md after modifications |
+| DEPLOY_BOTH | Frontend changes need backend check, and vice versa |
+
+### Action Triggers
+When you see these patterns in user requests, run the corresponding check:
+
+| Pattern | Action |
+|---------|--------|
+| `create file`, `new file`, `add file` | Run `./scripts/pm-preflight.sh create <filename>` |
+| `deploy`, `push`, `publish` | Run `./scripts/pm-preflight.sh deploy` |
+| `delete`, `remove`, `drop` | Run `./scripts/pm-preflight.sh delete <target>` - CONFIRM WITH USER |
+
+### PM Pre-Flight Script Usage
+
+```bash
+# Before creating any file
+./scripts/pm-preflight.sh create web_app/new-feature.html
+
+# Before deploying
+./scripts/pm-preflight.sh deploy
+
+# Before deleting (REQUIRES USER CONFIRMATION)
+./scripts/pm-preflight.sh delete old-file.html
+
+# Before modifying
+./scripts/pm-preflight.sh modify apps_script/Module.js
+```
+
+### PM Context Snapshot
+
+Generate a fresh context snapshot for session continuity:
+```bash
+./scripts/pm-context-snapshot.sh
+```
+
+This creates `/tmp/PM_CONTEXT.md` with:
+- Recent git activity
+- CHANGE_LOG entries
+- Active PM rules
+- System status summary
+
+---
+
 ## STEP 1: IDENTIFY YOUR ROLE
 
 You MUST identify which Claude role you are operating as:

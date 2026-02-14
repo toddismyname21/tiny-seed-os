@@ -1178,6 +1178,20 @@ function chatWithChiefOfStaffFast(userMessage) {
   const timeOfDay = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
   const dayOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][now.getDay()];
 
+  // Get critical rules for fast mode (condensed version)
+  let criticalRulesText = '';
+  try {
+    const rulesData = getChiefOfStaffRules();
+    if (rulesData && rulesData.rules) {
+      const critical = rulesData.rules.filter(r => r.priority === 'critical');
+      if (critical.length > 0) {
+        criticalRulesText = '\n\nCRITICAL RULES:\n' + critical.map(r => '- ' + r.name + ': ' + r.description.substring(0, 100)).join('\n');
+      }
+    }
+  } catch (e) {
+    // Continue without rules
+  }
+
   const systemPrompt = `You are the Chief of Staff AI for Tiny Seed Farm, a small organic farm in Rochester, PA.
 
 Current time: ${now.toLocaleString('en-US', { timeZone: 'America/New_York' })}
@@ -1187,7 +1201,7 @@ You help the owner (Todd) with quick questions and farm management. Be concise b
 If asked about specific data (exact weather, specific orders, etc.), say you can get details if needed.
 For quick questions, give your best answer based on general farm knowledge.
 
-Keep responses SHORT - this is for mobile/Telegram. 2-3 sentences max unless they ask for details.`;
+Keep responses SHORT - this is for mobile/Telegram. 2-3 sentences max unless they ask for details.${criticalRulesText}`;
 
   // Circuit breaker check - return graceful fallback if Claude is unavailable
   if (!checkCircuitBreaker('claude_api')) {
@@ -3921,6 +3935,22 @@ When team members are blocked or behind:
 - Offer to send check-in requests via SMS
 
 Remember: You're not just answering questions - you're actively helping Todd run a successful farm AND manage his team effectively. Be proactive. Be direct. Be helpful. Know what's happening in the field.`;
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INJECT MANDATORY RULES (Rule Enforcement System)
+  // ═══════════════════════════════════════════════════════════════════════════
+  try {
+    const rulesData = getChiefOfStaffRules();
+    const memory = getRecentMemoryForRules(context.brand || 'farm', 5);
+    const triggers = getActiveTriggersForRules();
+
+    if (rulesData && rulesData.rules && rulesData.rules.length > 0) {
+      prompt += buildRulesSystemPromptSection(rulesData, memory, triggers);
+    }
+  } catch (rulesError) {
+    Logger.log('buildChiefOfStaffSystemPrompt: Could not load rules: ' + rulesError.toString());
+    // Continue without rules - don't break the chat
+  }
 
   return prompt;
 }
@@ -14246,6 +14276,39 @@ function doGet(e) {
         return jsonResponse(typeof dismissAlert === 'function' ? dismissAlert(e.parameter.alertId, 'user', e.parameter.actionTaken, e.parameter.wasUseful === 'true') : { error: 'Not available' });
       case 'runProactiveScan':
         return jsonResponse(typeof runProactiveScanning === 'function' ? runProactiveScanning() : { error: 'Not available' });
+
+      // ============ AI RULE ENFORCEMENT ============
+      case 'getChiefOfStaffRules':
+        return jsonResponse(getChiefOfStaffRules());
+      case 'initializeChiefOfStaffRules':
+        return jsonResponse(initializeChiefOfStaffRulesSheet());
+      case 'addChiefOfStaffRule':
+        return jsonResponse(addChiefOfStaffRule({
+          name: e.parameter.name,
+          description: e.parameter.description,
+          priority: e.parameter.priority,
+          category: e.parameter.category,
+          violationAction: e.parameter.violationAction,
+          checkPattern: e.parameter.checkPattern,
+          active: e.parameter.active !== 'false'
+        }));
+      case 'updateChiefOfStaffRule':
+        return jsonResponse(updateChiefOfStaffRule(e.parameter.ruleId, {
+          name: e.parameter.name,
+          description: e.parameter.description,
+          priority: e.parameter.priority,
+          category: e.parameter.category,
+          violationAction: e.parameter.violationAction,
+          checkPattern: e.parameter.checkPattern,
+          active: e.parameter.active === 'true' || e.parameter.active === true
+        }));
+      case 'getRuleViolationStats':
+        return jsonResponse(getRuleViolationStats());
+      case 'callChiefOfStaffAI':
+        return jsonResponse(callChiefOfStaffAI(e.parameter.message || e.parameter.query, {
+          account: e.parameter.account,
+          conversationHistory: e.parameter.history ? JSON.parse(e.parameter.history) : []
+        }));
 
       // ============ STYLE MIMICRY ============
       case 'getStyleProfile':
@@ -136769,6 +136832,1016 @@ function getMemoryEmbedding(memoryId) {
 
   } catch (error) {
     Logger.log('getMemoryEmbedding error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// AI RULE ENFORCEMENT SYSTEM
+// Ensures Claude follows mandatory rules consistently across all interactions
+// Created: 2026-02-13
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const CHIEFOFSTAFF_RULES_SHEET = 'CHIEFOFSTAFF_Rules';
+const CHIEFOFSTAFF_RULES_HEADERS = [
+  'Rule_ID',           // Unique identifier: RULE_001, RULE_002, etc.
+  'Rule_Name',         // Short name for the rule
+  'Rule_Description',  // Full description of what the AI must do/not do
+  'Priority',          // critical, high, medium, low
+  'Active',            // TRUE or FALSE
+  'Category',          // safety, quality, consistency, business, memory
+  'Violation_Action',  // warn, retry, block
+  'Check_Pattern',     // Regex or keywords to detect violations
+  'Created_At',        // When the rule was created
+  'Last_Updated'       // Last modification date
+];
+
+const DEFAULT_CHIEFOFSTAFF_RULES = [
+  {
+    name: 'No Fabrication',
+    description: 'NEVER make up information, data, or facts. If you do not have specific information, say "I do not have that information" and ask for clarification.',
+    priority: 'critical',
+    category: 'safety',
+    violationAction: 'retry',
+    checkPattern: 'I think|probably|I assume|might be|I\'m guessing'
+  },
+  {
+    name: 'Memory Check Before New Claims',
+    description: 'ALWAYS check memory/context before claiming something is new or has not happened before. Reference the provided context data to verify claims.',
+    priority: 'critical',
+    category: 'memory',
+    violationAction: 'retry',
+    checkPattern: 'first time|never before|new to us|haven\'t done'
+  },
+  {
+    name: 'No Destructive Actions Without Confirmation',
+    description: 'NEVER take destructive actions (delete, archive, cancel, revoke) without explicit user confirmation. Always ask: "Are you sure you want to [action]?"',
+    priority: 'critical',
+    category: 'safety',
+    violationAction: 'block',
+    checkPattern: 'deleted|archived|cancelled|revoked|removed'
+  },
+  {
+    name: 'Log Significant Decisions',
+    description: 'ALWAYS log significant decisions and actions to the audit trail. Major changes should be recorded for accountability.',
+    priority: 'high',
+    category: 'quality',
+    violationAction: 'warn',
+    checkPattern: ''
+  },
+  {
+    name: 'Check Recent Context',
+    description: 'Always reference recent context (memory, triggers, conversation history) before responding to avoid contradicting previous statements or missing important context.',
+    priority: 'high',
+    category: 'consistency',
+    violationAction: 'warn',
+    checkPattern: ''
+  },
+  {
+    name: 'Ask Before Sending',
+    description: 'Before sending any email, SMS, or external communication, show the user the draft and get explicit approval. Never auto-send without confirmation.',
+    priority: 'critical',
+    category: 'safety',
+    violationAction: 'block',
+    checkPattern: ''
+  },
+  {
+    name: 'Admit Uncertainty',
+    description: 'When uncertain about something, explicitly state your uncertainty level. Say "I\'m not sure" rather than presenting guesses as facts.',
+    priority: 'high',
+    category: 'quality',
+    violationAction: 'warn',
+    checkPattern: ''
+  },
+  {
+    name: 'Use Real Data',
+    description: 'When data is provided in context (weather, tasks, calendar, customers), use THAT data. Do not invent statistics or numbers not in the context.',
+    priority: 'critical',
+    category: 'safety',
+    violationAction: 'retry',
+    checkPattern: ''
+  },
+  {
+    name: 'Respect Business Rules',
+    description: 'Follow farm business rules: CSA pricing, delivery schedules, customer tiers, discount policies. Never promise discounts or changes without checking.',
+    priority: 'high',
+    category: 'business',
+    violationAction: 'warn',
+    checkPattern: 'discount|free|waive|special price'
+  },
+  {
+    name: 'Identify Rule Application',
+    description: 'When making decisions, briefly identify which rules apply. This ensures conscious rule-following.',
+    priority: 'medium',
+    category: 'consistency',
+    violationAction: 'warn',
+    checkPattern: ''
+  }
+];
+
+/**
+ * Initialize the CHIEFOFSTAFF_Rules sheet with default rules
+ * @returns {Object} Result of initialization
+ */
+function initializeChiefOfStaffRulesSheet() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(CHIEFOFSTAFF_RULES_SHEET);
+
+    if (!sheet) {
+      sheet = ss.insertSheet(CHIEFOFSTAFF_RULES_SHEET);
+
+      // Set up headers
+      sheet.getRange(1, 1, 1, CHIEFOFSTAFF_RULES_HEADERS.length).setValues([CHIEFOFSTAFF_RULES_HEADERS]);
+      sheet.getRange(1, 1, 1, CHIEFOFSTAFF_RULES_HEADERS.length)
+        .setFontWeight('bold')
+        .setBackground('#B71C1C')
+        .setFontColor('white');
+      sheet.setFrozenRows(1);
+
+      // Set column widths
+      sheet.setColumnWidth(1, 100);  // Rule_ID
+      sheet.setColumnWidth(2, 200);  // Rule_Name
+      sheet.setColumnWidth(3, 400);  // Rule_Description
+      sheet.setColumnWidth(4, 80);   // Priority
+      sheet.setColumnWidth(5, 70);   // Active
+      sheet.setColumnWidth(6, 100);  // Category
+      sheet.setColumnWidth(7, 80);   // Violation_Action
+      sheet.setColumnWidth(8, 200);  // Check_Pattern
+
+      Logger.log('CHIEFOFSTAFF_Rules sheet created');
+    }
+
+    // Add default rules if sheet is empty
+    if (sheet.getLastRow() <= 1) {
+      const now = new Date().toISOString();
+      const rows = DEFAULT_CHIEFOFSTAFF_RULES.map((rule, index) => [
+        'RULE_' + String(index + 1).padStart(3, '0'),
+        rule.name,
+        rule.description,
+        rule.priority,
+        true, // Active
+        rule.category,
+        rule.violationAction,
+        rule.checkPattern || '',
+        now,
+        now
+      ]);
+
+      if (rows.length > 0) {
+        sheet.getRange(2, 1, rows.length, CHIEFOFSTAFF_RULES_HEADERS.length).setValues(rows);
+
+        // Color-code by priority
+        for (let i = 0; i < rows.length; i++) {
+          const priority = rows[i][3];
+          const row = i + 2;
+          if (priority === 'critical') {
+            sheet.getRange(row, 4).setBackground('#FFCDD2');
+          } else if (priority === 'high') {
+            sheet.getRange(row, 4).setBackground('#FFE0B2');
+          } else if (priority === 'medium') {
+            sheet.getRange(row, 4).setBackground('#FFF9C4');
+          }
+        }
+      }
+
+      Logger.log('Added ' + rows.length + ' default rules');
+    }
+
+    return { success: true, message: 'Rules sheet initialized with ' + (sheet.getLastRow() - 1) + ' rules' };
+
+  } catch (error) {
+    Logger.log('initializeChiefOfStaffRulesSheet error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get all active Chief of Staff rules
+ * @returns {Object} Object containing rules array and metadata
+ */
+function getChiefOfStaffRules() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(CHIEFOFSTAFF_RULES_SHEET);
+
+    // Initialize if doesn't exist
+    if (!sheet) {
+      initializeChiefOfStaffRulesSheet();
+      sheet = ss.getSheetByName(CHIEFOFSTAFF_RULES_SHEET);
+    }
+
+    if (!sheet || sheet.getLastRow() <= 1) {
+      // Return default rules from Script Properties as fallback
+      const cachedRules = PropertiesService.getScriptProperties().getProperty('CHIEFOFSTAFF_RULES_CACHE');
+      if (cachedRules) {
+        return JSON.parse(cachedRules);
+      }
+      // Return defaults if nothing else available
+      return {
+        rules: DEFAULT_CHIEFOFSTAFF_RULES.map((r, i) => ({
+          id: 'RULE_' + String(i + 1).padStart(3, '0'),
+          ...r,
+          active: true
+        })),
+        source: 'defaults',
+        timestamp: new Date().toISOString()
+      };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const rules = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const active = row[headers.indexOf('Active')];
+
+      // Only include active rules
+      if (active === true || active === 'TRUE' || active === 'true') {
+        rules.push({
+          id: row[headers.indexOf('Rule_ID')],
+          name: row[headers.indexOf('Rule_Name')],
+          description: row[headers.indexOf('Rule_Description')],
+          priority: row[headers.indexOf('Priority')],
+          category: row[headers.indexOf('Category')],
+          violationAction: row[headers.indexOf('Violation_Action')],
+          checkPattern: row[headers.indexOf('Check_Pattern')]
+        });
+      }
+    }
+
+    // Sort by priority: critical > high > medium > low
+    const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+    rules.sort((a, b) => (priorityOrder[a.priority] || 4) - (priorityOrder[b.priority] || 4));
+
+    const result = {
+      rules: rules,
+      source: 'sheet',
+      timestamp: new Date().toISOString(),
+      criticalCount: rules.filter(r => r.priority === 'critical').length,
+      totalActive: rules.length
+    };
+
+    // Cache in Script Properties for fast access
+    PropertiesService.getScriptProperties().setProperty(
+      'CHIEFOFSTAFF_RULES_CACHE',
+      JSON.stringify(result)
+    );
+
+    return result;
+
+  } catch (error) {
+    Logger.log('getChiefOfStaffRules error: ' + error.toString());
+    return { success: false, error: error.toString(), rules: [] };
+  }
+}
+
+/**
+ * Get recent memory entries for context
+ * @param {string} account - Brand/account filter (farm, fleurs, fungi)
+ * @param {number} limit - Maximum entries to return
+ * @returns {Array} Recent memory entries
+ */
+function getRecentMemoryForRules(account, limit) {
+  limit = limit || 10;
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('AI_MEMORY_INDEX');
+
+    if (!sheet || sheet.getLastRow() <= 1) {
+      return [];
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const memories = [];
+
+    const summaryCol = headers.indexOf('Summary');
+    const brandCol = headers.indexOf('Brand');
+    const typeCol = headers.indexOf('Memory_Type');
+    const activeCol = headers.indexOf('Is_Active');
+    const relevanceCol = headers.indexOf('Current_Relevance');
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const isActive = row[activeCol];
+      const brand = row[brandCol];
+
+      if (isActive === false || isActive === 'FALSE') continue;
+      if (account && brand && brand.toLowerCase() !== account.toLowerCase() && brand !== 'CROSS_BRAND') continue;
+
+      memories.push({
+        summary: row[summaryCol],
+        type: row[typeCol],
+        brand: brand,
+        relevance: row[relevanceCol]
+      });
+    }
+
+    // Sort by relevance and return top N
+    memories.sort((a, b) => (b.relevance || 0) - (a.relevance || 0));
+    return memories.slice(0, limit);
+
+  } catch (error) {
+    Logger.log('getRecentMemoryForRules error: ' + error.toString());
+    return [];
+  }
+}
+
+/**
+ * Get active triggers and alerts
+ * @returns {Array} Active triggers
+ */
+function getActiveTriggersForRules() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(PROACTIVE_ALERTS_SHEET);
+
+    if (!sheet || sheet.getLastRow() <= 1) {
+      return [];
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+    const triggers = [];
+
+    const statusCol = headers.indexOf('Status');
+    const typeCol = headers.indexOf('Alert_Type');
+    const titleCol = headers.indexOf('Title');
+    const messageCol = headers.indexOf('Message');
+    const priorityCol = headers.indexOf('Priority');
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const status = row[statusCol];
+
+      // Only active triggers
+      if (status === 'ACTIVE' || status === 'PENDING') {
+        triggers.push({
+          type: row[typeCol],
+          title: row[titleCol],
+          message: row[messageCol],
+          priority: row[priorityCol]
+        });
+      }
+    }
+
+    return triggers;
+
+  } catch (error) {
+    Logger.log('getActiveTriggersForRules error: ' + error.toString());
+    return [];
+  }
+}
+
+/**
+ * Build the rule enforcement section of the system prompt
+ * @param {Object} rulesData - Rules from getChiefOfStaffRules()
+ * @param {Array} memory - Recent memory entries
+ * @param {Array} triggers - Active triggers
+ * @returns {string} The rules section for the system prompt
+ */
+function buildRulesSystemPromptSection(rulesData, memory, triggers) {
+  let section = `
+═══════════════════════════════════════════════════════════════════════════════
+MANDATORY RULES - YOU MUST FOLLOW THESE
+═══════════════════════════════════════════════════════════════════════════════
+
+These rules are MANDATORY and CANNOT be violated. Before every response:
+1. Review the applicable rules
+2. Ensure your response complies
+3. If uncertain, ask for clarification rather than guess
+
+`;
+
+  // Add rules by priority
+  const criticalRules = rulesData.rules.filter(r => r.priority === 'critical');
+  const highRules = rulesData.rules.filter(r => r.priority === 'high');
+  const otherRules = rulesData.rules.filter(r => r.priority !== 'critical' && r.priority !== 'high');
+
+  if (criticalRules.length > 0) {
+    section += `CRITICAL RULES (Never violate):\n`;
+    criticalRules.forEach((rule, i) => {
+      section += `${i + 1}. [${rule.id}] ${rule.name}: ${rule.description}\n`;
+    });
+    section += `\n`;
+  }
+
+  if (highRules.length > 0) {
+    section += `HIGH PRIORITY RULES:\n`;
+    highRules.forEach((rule, i) => {
+      section += `${i + 1}. [${rule.id}] ${rule.name}: ${rule.description}\n`;
+    });
+    section += `\n`;
+  }
+
+  if (otherRules.length > 0) {
+    section += `ADDITIONAL RULES:\n`;
+    otherRules.forEach((rule, i) => {
+      section += `- ${rule.name}: ${rule.description}\n`;
+    });
+    section += `\n`;
+  }
+
+  // Add memory context
+  if (memory && memory.length > 0) {
+    section += `RECENT MEMORY (Reference before claiming something is new):\n`;
+    memory.slice(0, 5).forEach(m => {
+      section += `- [${m.type}] ${m.summary}\n`;
+    });
+    section += `\n`;
+  }
+
+  // Add active triggers
+  if (triggers && triggers.length > 0) {
+    section += `ACTIVE TRIGGERS/ALERTS (Be aware of these):\n`;
+    triggers.slice(0, 5).forEach(t => {
+      section += `- [${t.priority}] ${t.title}: ${t.message}\n`;
+    });
+    section += `\n`;
+  }
+
+  section += `
+RULE COMPLIANCE CHECKLIST (Run this before responding):
+[ ] Am I making any claims without data to support them?
+[ ] Did I check the provided context before claiming something is new?
+[ ] Am I asking for confirmation before any destructive action?
+[ ] Am I showing drafts before sending external communications?
+[ ] Am I being honest about any uncertainty?
+
+If you cannot comply with a critical rule, state: "I cannot complete this request because it would violate [RULE_ID]: [rule description]"
+
+`;
+
+  return section;
+}
+
+/**
+ * Validate an AI response against the rules
+ * @param {string} response - The AI's response text
+ * @param {Object} rulesData - Rules from getChiefOfStaffRules()
+ * @param {Object} context - Additional context for validation
+ * @returns {Object} Validation result
+ */
+function validateAgainstRules(response, rulesData, context) {
+  const violations = [];
+  const warnings = [];
+
+  if (!response || !rulesData || !rulesData.rules) {
+    return { passed: true, violations: [], warnings: [] };
+  }
+
+  const responseLower = response.toLowerCase();
+
+  for (const rule of rulesData.rules) {
+    let violated = false;
+    let reason = '';
+
+    // Check by pattern if defined
+    if (rule.checkPattern && rule.checkPattern.trim()) {
+      const patterns = rule.checkPattern.split('|').map(p => p.trim().toLowerCase());
+      for (const pattern of patterns) {
+        if (pattern && responseLower.includes(pattern)) {
+          // For some rules, finding the pattern is a warning, for others it's a violation
+          if (rule.category === 'safety' && rule.priority === 'critical') {
+            // Check if the response is about confirming/asking rather than doing
+            if (!responseLower.includes('are you sure') &&
+                !responseLower.includes('would you like') &&
+                !responseLower.includes('before i') &&
+                !responseLower.includes('confirm')) {
+              violated = true;
+              reason = `Found "${pattern}" without confirmation request`;
+            }
+          }
+        }
+      }
+    }
+
+    // Special checks for specific rules
+    if (rule.id === 'RULE_001' || rule.name === 'No Fabrication') {
+      // Check for hedging language that might indicate fabrication
+      const hedgingPhrases = ['i think', 'probably', 'i assume', 'might be', 'i\'m guessing', 'i believe'];
+      for (const phrase of hedgingPhrases) {
+        if (responseLower.includes(phrase)) {
+          // This is a warning, not necessarily a violation (could be appropriate uncertainty)
+          warnings.push({
+            ruleId: rule.id,
+            ruleName: rule.name,
+            reason: `Found hedging phrase "${phrase}" - ensure this reflects genuine uncertainty, not fabrication`
+          });
+          break;
+        }
+      }
+    }
+
+    if (rule.id === 'RULE_003' || rule.name === 'No Destructive Actions Without Confirmation') {
+      // Check for destructive actions without confirmation
+      const destructiveWords = ['deleted', 'archived', 'cancelled', 'removed', 'revoked', 'terminated'];
+      const confirmationWords = ['sure', 'confirm', 'would you like', 'do you want', 'approve'];
+
+      let hasDestructive = false;
+      let hasConfirmation = false;
+
+      for (const word of destructiveWords) {
+        if (responseLower.includes(word)) {
+          hasDestructive = true;
+          break;
+        }
+      }
+
+      for (const word of confirmationWords) {
+        if (responseLower.includes(word)) {
+          hasConfirmation = true;
+          break;
+        }
+      }
+
+      if (hasDestructive && !hasConfirmation) {
+        violated = true;
+        reason = 'Destructive action mentioned without asking for confirmation';
+      }
+    }
+
+    if (violated) {
+      violations.push({
+        ruleId: rule.id,
+        ruleName: rule.name,
+        priority: rule.priority,
+        violationAction: rule.violationAction,
+        reason: reason
+      });
+    }
+  }
+
+  // Determine if we should block, retry, or just warn
+  const criticalViolations = violations.filter(v => v.priority === 'critical');
+  const blockViolations = violations.filter(v => v.violationAction === 'block');
+  const retryViolations = violations.filter(v => v.violationAction === 'retry');
+
+  return {
+    passed: violations.length === 0,
+    violations: violations,
+    warnings: warnings,
+    shouldBlock: blockViolations.length > 0,
+    shouldRetry: retryViolations.length > 0 && blockViolations.length === 0,
+    criticalViolationCount: criticalViolations.length,
+    summary: violations.length > 0
+      ? `${violations.length} rule violation(s): ${violations.map(v => v.ruleId).join(', ')}`
+      : 'No violations detected'
+  };
+}
+
+/**
+ * Retry an AI call with correction feedback
+ * @param {string} originalMessage - The original user message
+ * @param {string} badResponse - The response that violated rules
+ * @param {Object} validation - The validation result
+ * @param {Object} rulesData - The rules data
+ * @returns {Object} New response or error
+ */
+function retryWithCorrection(originalMessage, badResponse, validation, rulesData) {
+  try {
+    const apiKey = CLAUDE_CONFIG.API_KEY;
+    if (!apiKey) {
+      return { success: false, error: 'API key not configured' };
+    }
+
+    const violatedRuleNames = validation.violations.map(v => `${v.ruleId} (${v.ruleName})`).join(', ');
+    const reasons = validation.violations.map(v => v.reason).filter(r => r).join('; ');
+
+    const correctionPrompt = `Your previous response violated these rules: ${violatedRuleNames}
+
+Reasons: ${reasons}
+
+IMPORTANT: You MUST follow ALL rules. Please try again, being careful to:
+${validation.violations.map(v => `- Follow ${v.ruleId}: ${v.ruleName}`).join('\n')}
+
+Original user request: ${originalMessage}
+
+Please provide a corrected response that follows all rules.`;
+
+    const payload = {
+      model: CLAUDE_CONFIG.MODEL,
+      max_tokens: 2000,
+      messages: [
+        {
+          role: 'user',
+          content: correctionPrompt
+        }
+      ]
+    };
+
+    const response = UrlFetchApp.fetch(CLAUDE_CONFIG.ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': CLAUDE_CONFIG.ANTHROPIC_VERSION,
+        'content-type': 'application/json'
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    });
+
+    const result = JSON.parse(response.getContentText());
+
+    if (result.error) {
+      return { success: false, error: result.error.message };
+    }
+
+    const textBlock = result.content.find(block => block.type === 'text');
+    const correctedResponse = textBlock ? textBlock.text : '';
+
+    // Log the retry for audit
+    logRuleViolation(validation, originalMessage, badResponse, correctedResponse);
+
+    return {
+      success: true,
+      message: correctedResponse,
+      wasRetried: true,
+      originalViolations: validation.violations
+    };
+
+  } catch (error) {
+    Logger.log('retryWithCorrection error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Log rule violations for analysis and improvement
+ * @param {Object} validation - The validation result
+ * @param {string} userMessage - The user's original message
+ * @param {string} badResponse - The violating response
+ * @param {string} correctedResponse - The corrected response (if any)
+ */
+function logRuleViolation(validation, userMessage, badResponse, correctedResponse) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName('CHIEFOFSTAFF_RuleViolations');
+
+    if (!sheet) {
+      sheet = ss.insertSheet('CHIEFOFSTAFF_RuleViolations');
+      const headers = ['Timestamp', 'User_Message', 'Violated_Rules', 'Reasons', 'Original_Response', 'Corrected_Response', 'Was_Retried'];
+      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+      sheet.getRange(1, 1, 1, headers.length)
+        .setFontWeight('bold')
+        .setBackground('#D32F2F')
+        .setFontColor('white');
+      sheet.setFrozenRows(1);
+    }
+
+    const violatedRules = validation.violations.map(v => v.ruleId).join(', ');
+    const reasons = validation.violations.map(v => v.reason).join('; ');
+
+    sheet.appendRow([
+      new Date().toISOString(),
+      (userMessage || '').substring(0, 500),
+      violatedRules,
+      reasons,
+      (badResponse || '').substring(0, 1000),
+      (correctedResponse || '').substring(0, 1000),
+      correctedResponse ? 'Yes' : 'No'
+    ]);
+
+  } catch (error) {
+    Logger.log('logRuleViolation error: ' + error.toString());
+  }
+}
+
+/**
+ * The main wrapper function for Chief of Staff AI calls
+ * Enforces rules, validates responses, and retries if needed
+ *
+ * @param {string} userMessage - The user's message
+ * @param {Object} context - Additional context (account, conversationHistory, etc.)
+ * @returns {Object} The AI response with rule enforcement
+ */
+function callChiefOfStaffAI(userMessage, context) {
+  context = context || {};
+
+  // MANDATORY: Load rules first
+  const rulesData = getChiefOfStaffRules();
+
+  // Get memory context
+  const memory = getRecentMemoryForRules(context.account || 'farm', 10);
+
+  // Get active triggers
+  const triggers = getActiveTriggersForRules();
+
+  // Build the rules section for the system prompt
+  const rulesSection = buildRulesSystemPromptSection(rulesData, memory, triggers);
+
+  // Build enhanced system prompt
+  const baseContext = gatherChiefOfStaffContext();
+  const basePrompt = buildChiefOfStaffSystemPrompt(baseContext);
+  const enhancedPrompt = basePrompt + '\n\n' + rulesSection;
+
+  // Check circuit breaker
+  if (!checkCircuitBreaker('claude_api')) {
+    const status = getCircuitBreakerStatus();
+    const retryAfter = status.breakers.claude_api.timeUntilRetrySeconds || 60;
+    return {
+      success: false,
+      error: 'AI service temporarily unavailable',
+      circuitBreakerTripped: true,
+      retryAfter: retryAfter,
+      message: 'I\'m temporarily unavailable due to connectivity issues. Please try again in ' + retryAfter + ' seconds.'
+    };
+  }
+
+  try {
+    const apiKey = CLAUDE_CONFIG.API_KEY;
+    if (!apiKey) {
+      return { success: false, error: 'API key not configured' };
+    }
+
+    // Build messages array
+    const messages = [];
+
+    // Add conversation history if provided
+    if (context.conversationHistory && Array.isArray(context.conversationHistory)) {
+      const recentHistory = context.conversationHistory.slice(-20);
+      for (const msg of recentHistory) {
+        messages.push({
+          role: msg.role === 'user' ? 'user' : 'assistant',
+          content: msg.content
+        });
+      }
+    }
+
+    // Add current user message
+    messages.push({
+      role: 'user',
+      content: userMessage
+    });
+
+    // Make the API call
+    const response = UrlFetchApp.fetch(CLAUDE_CONFIG.ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': CLAUDE_CONFIG.ANTHROPIC_VERSION,
+        'content-type': 'application/json'
+      },
+      payload: JSON.stringify({
+        model: CLAUDE_CONFIG.MODEL,
+        max_tokens: 2000,
+        system: enhancedPrompt,
+        messages: messages
+      }),
+      muteHttpExceptions: true
+    });
+
+    const responseCode = response.getResponseCode();
+    const result = JSON.parse(response.getContentText());
+
+    if (responseCode >= 500) {
+      recordFailure('claude_api', 'HTTP ' + responseCode);
+    } else if (responseCode >= 200 && responseCode < 300 && !result.error) {
+      recordSuccess('claude_api');
+    }
+
+    if (result.error) {
+      if (result.error.type === 'rate_limit_error' || result.error.type === 'overloaded_error') {
+        recordFailure('claude_api', result.error.message);
+      }
+      return {
+        success: false,
+        error: result.error.message,
+        message: 'I encountered an issue processing your request. Please try again.'
+      };
+    }
+
+    // Extract response text
+    const textBlock = result.content.find(block => block.type === 'text');
+    const aiResponse = textBlock ? textBlock.text : '';
+
+    // POST-VALIDATE against rules
+    const validation = validateAgainstRules(aiResponse, rulesData, context);
+
+    if (!validation.passed) {
+      Logger.log('Rule violation detected: ' + validation.summary);
+
+      // Should we block completely?
+      if (validation.shouldBlock) {
+        return {
+          success: false,
+          blocked: true,
+          message: 'I cannot complete this request because it would violate critical safety rules.',
+          violations: validation.violations
+        };
+      }
+
+      // Should we retry?
+      if (validation.shouldRetry) {
+        const retryResult = retryWithCorrection(userMessage, aiResponse, validation, rulesData);
+
+        if (retryResult.success) {
+          return {
+            success: true,
+            message: retryResult.message,
+            wasRetried: true,
+            originalViolations: validation.violations,
+            rulesApplied: rulesData.rules.map(r => r.id)
+          };
+        }
+      }
+    }
+
+    // Log warnings if any
+    if (validation.warnings && validation.warnings.length > 0) {
+      Logger.log('Rule warnings: ' + JSON.stringify(validation.warnings));
+    }
+
+    return {
+      success: true,
+      message: aiResponse,
+      rulesApplied: rulesData.rules.map(r => r.id),
+      ruleValidation: {
+        passed: validation.passed,
+        warnings: validation.warnings,
+        criticalCount: rulesData.criticalCount
+      }
+    };
+
+  } catch (error) {
+    Logger.log('callChiefOfStaffAI error: ' + error.toString());
+    return {
+      success: false,
+      error: error.toString(),
+      message: 'I encountered a technical issue. Please try again in a moment.'
+    };
+  }
+}
+
+/**
+ * Add a new rule to the Chief of Staff rules
+ * @param {Object} ruleData - The rule to add
+ * @returns {Object} Result of the operation
+ */
+function addChiefOfStaffRule(ruleData) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(CHIEFOFSTAFF_RULES_SHEET);
+
+    if (!sheet) {
+      initializeChiefOfStaffRulesSheet();
+      sheet = ss.getSheetByName(CHIEFOFSTAFF_RULES_SHEET);
+    }
+
+    // Generate new rule ID
+    const lastRow = sheet.getLastRow();
+    const ruleNum = lastRow; // Will be +1 from current last
+    const ruleId = 'RULE_' + String(ruleNum).padStart(3, '0');
+
+    const now = new Date().toISOString();
+
+    sheet.appendRow([
+      ruleId,
+      ruleData.name || 'Unnamed Rule',
+      ruleData.description || '',
+      ruleData.priority || 'medium',
+      ruleData.active !== false,
+      ruleData.category || 'quality',
+      ruleData.violationAction || 'warn',
+      ruleData.checkPattern || '',
+      now,
+      now
+    ]);
+
+    // Clear cache to force reload
+    PropertiesService.getScriptProperties().deleteProperty('CHIEFOFSTAFF_RULES_CACHE');
+
+    return { success: true, ruleId: ruleId, message: 'Rule added successfully' };
+
+  } catch (error) {
+    Logger.log('addChiefOfStaffRule error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Update an existing rule
+ * @param {string} ruleId - The rule ID to update
+ * @param {Object} updates - Fields to update
+ * @returns {Object} Result of the operation
+ */
+function updateChiefOfStaffRule(ruleId, updates) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(CHIEFOFSTAFF_RULES_SHEET);
+
+    if (!sheet) {
+      return { success: false, error: 'Rules sheet not found' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][headers.indexOf('Rule_ID')] === ruleId) {
+        // Update each provided field
+        if (updates.name !== undefined) {
+          sheet.getRange(i + 1, headers.indexOf('Rule_Name') + 1).setValue(updates.name);
+        }
+        if (updates.description !== undefined) {
+          sheet.getRange(i + 1, headers.indexOf('Rule_Description') + 1).setValue(updates.description);
+        }
+        if (updates.priority !== undefined) {
+          sheet.getRange(i + 1, headers.indexOf('Priority') + 1).setValue(updates.priority);
+        }
+        if (updates.active !== undefined) {
+          sheet.getRange(i + 1, headers.indexOf('Active') + 1).setValue(updates.active);
+        }
+        if (updates.category !== undefined) {
+          sheet.getRange(i + 1, headers.indexOf('Category') + 1).setValue(updates.category);
+        }
+        if (updates.violationAction !== undefined) {
+          sheet.getRange(i + 1, headers.indexOf('Violation_Action') + 1).setValue(updates.violationAction);
+        }
+        if (updates.checkPattern !== undefined) {
+          sheet.getRange(i + 1, headers.indexOf('Check_Pattern') + 1).setValue(updates.checkPattern);
+        }
+
+        // Update last updated timestamp
+        sheet.getRange(i + 1, headers.indexOf('Last_Updated') + 1).setValue(new Date().toISOString());
+
+        // Clear cache
+        PropertiesService.getScriptProperties().deleteProperty('CHIEFOFSTAFF_RULES_CACHE');
+
+        return { success: true, message: 'Rule ' + ruleId + ' updated' };
+      }
+    }
+
+    return { success: false, error: 'Rule not found: ' + ruleId };
+
+  } catch (error) {
+    Logger.log('updateChiefOfStaffRule error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get rule violation statistics
+ * @returns {Object} Statistics about rule violations
+ */
+function getRuleViolationStats() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('CHIEFOFSTAFF_RuleViolations');
+
+    if (!sheet || sheet.getLastRow() <= 1) {
+      return {
+        success: true,
+        totalViolations: 0,
+        retried: 0,
+        violationsByRule: {},
+        recentViolations: []
+      };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0];
+
+    const stats = {
+      totalViolations: data.length - 1,
+      retried: 0,
+      violationsByRule: {},
+      recentViolations: []
+    };
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const violatedRules = row[headers.indexOf('Violated_Rules')] || '';
+      const wasRetried = row[headers.indexOf('Was_Retried')] === 'Yes';
+
+      if (wasRetried) stats.retried++;
+
+      // Count by rule
+      violatedRules.split(',').forEach(ruleId => {
+        const trimmed = ruleId.trim();
+        if (trimmed) {
+          stats.violationsByRule[trimmed] = (stats.violationsByRule[trimmed] || 0) + 1;
+        }
+      });
+
+      // Get recent violations (last 10)
+      if (i > data.length - 11) {
+        stats.recentViolations.push({
+          timestamp: row[headers.indexOf('Timestamp')],
+          rules: violatedRules,
+          reasons: row[headers.indexOf('Reasons')]
+        });
+      }
+    }
+
+    stats.recentViolations.reverse();
+
+    return { success: true, ...stats };
+
+  } catch (error) {
+    Logger.log('getRuleViolationStats error: ' + error.toString());
     return { success: false, error: error.toString() };
   }
 }

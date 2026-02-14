@@ -1,0 +1,67 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2026-02-13",
+  "rules": {
+    "critical": [
+      {
+        "id": "NO_DUPLICATE_FILES",
+        "rule": "Before creating ANY file, search for existing similar files",
+        "check": "Run Glob search for similar filenames"
+      },
+      {
+        "id": "READ_BEFORE_EDIT",
+        "rule": "Must read a file before editing it",
+        "check": "Verify file was read in current context"
+      },
+      {
+        "id": "NO_HALLUCINATION",
+        "rule": "Never make up information - verify or ask",
+        "check": "Claims must be based on file reads or user input"
+      },
+      {
+        "id": "VERIFY_BEFORE_DONE",
+        "rule": "Test/verify changes before claiming done",
+        "check": "Evidence must be provided"
+      }
+    ],
+    "high": [
+      {
+        "id": "CHECK_MANIFEST",
+        "rule": "Check SYSTEM_MANIFEST.md before building new features",
+        "check": "Read manifest if building something"
+      },
+      {
+        "id": "UPDATE_CHANGELOG",
+        "rule": "Update CHANGE_LOG.md after modifications",
+        "check": "CHANGE_LOG.md should be modified"
+      },
+      {
+        "id": "DEPLOY_BOTH",
+        "rule": "Frontend changes need backend check, and vice versa",
+        "check": "If HTML changed, verify JS still works"
+      }
+    ],
+    "triggers": [
+      {
+        "pattern": "create.*file|new.*file|add.*file",
+        "action": "CHECK: Run Glob for similar files first"
+      },
+      {
+        "pattern": "deploy|push|publish",
+        "action": "CHECK: Verify changes tested, CHANGE_LOG updated"
+      },
+      {
+        "pattern": "delete|remove|drop",
+        "action": "CHECK: Confirm with user before destructive action"
+      }
+    ]
+  },
+  "memory": {
+    "recentErrors": [],
+    "recentSuccesses": [],
+    "userPreferences": {
+      "deploySafety": "high",
+      "verbosity": "concise"
+    }
+  }
+}
