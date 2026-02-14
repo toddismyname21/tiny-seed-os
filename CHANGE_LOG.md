@@ -40,6 +40,30 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-02-13 - PM_Architect (CREATE Tab: Instagram Post Edit/Delete)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Added Instagram post management backend functions
+- `web_app/marketing-command-center.html` - Published Posts Manager UI (already present)
+
+### Functions Added
+- `updateInstagramCaption(params)` in `MERGED TOTAL.js` - Update caption on Instagram posts (24hr limit)
+- `deleteInstagramPost(params)` in `MERGED TOTAL.js` - Permanently delete Instagram posts
+
+### API Endpoints Added
+- `updateInstagramCaption` (POST) - Edit caption within 24 hours of posting
+- `deleteInstagramPost` (POST) - Delete post permanently with confirmation
+
+### Reason
+User requested ability to UPDATE, DELETE, or CHANGE published posts directly from the CREATE tab. Instagram API allows caption edits within 24 hours; deletion is permanent.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions (none exist)
+- [x] No duplicates created
+
+---
+
 ## 2026-02-13 - PM_Architect (Brain Tab: Good Evening Boss POST NOW Button)
 
 ### Files Modified
