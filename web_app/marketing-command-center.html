@@ -3999,6 +3999,69 @@
             }
         }
 
+        @keyframes subtlePulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(193, 53, 132, 0.4); }
+            50% { box-shadow: 0 0 0 6px rgba(193, 53, 132, 0); }
+        }
+
+        /* Caption options cards for 3-option generation */
+        .caption-options-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+            margin-top: 0.75rem;
+            animation: fadeSlideIn 0.3s ease;
+        }
+        .caption-option-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .caption-option-card:hover {
+            border-color: var(--success);
+            background: rgba(34, 197, 94, 0.05);
+        }
+        .caption-option-card .option-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            margin-bottom: 0.4rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .caption-option-card .option-text {
+            font-size: 0.9rem;
+            line-height: 1.4;
+            color: var(--text-primary);
+        }
+        .caption-option-card .option-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        .caption-option-card .use-btn {
+            padding: 0.35rem 0.75rem;
+            background: var(--success);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .caption-option-card .copy-btn {
+            padding: 0.35rem 0.75rem;
+            background: rgba(141, 153, 174, 0.2);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
         .advanced-toggle-btn {
             display: flex;
             align-items: center;
@@ -5805,6 +5868,7 @@
                             <span id="charFb"><i class="fab fa-facebook"></i> 0/63206</span>
                             <span id="charYt"><i class="fab fa-youtube"></i> 0/5000</span>
                             <span id="charGbp" style="display: none;"><i class="fab fa-google" style="color: var(--gbp);"></i> 0/1500</span>
+                            <span id="captionLengthHint" style="margin-left: auto; font-size: 0.75rem; padding: 2px 8px; border-radius: 6px; font-weight: 600;"></span>
                         </div>
                         <div class="post-controls">
                             <!-- Quick Post Tone Selector (borrowed from AI Studio) -->
@@ -5834,6 +5898,17 @@
                                 <i class="fas fa-file-import"></i> Load Draft
                             </button>
                         </div>
+                        <!-- Caption AI Actions (shown after first AI generation) -->
+                        <div id="captionAIActions" style="display: none; margin-top: 0.5rem; display: none; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                            <button onclick="generateAICaption()" style="padding: 0.3rem 0.6rem; background: transparent; border: 1px solid var(--border); border-radius: 6px; color: var(--text-secondary); font-size: 0.8rem; cursor: pointer;">
+                                <i class="fas fa-redo"></i> Try Again
+                            </button>
+                            <button onclick="generate3CaptionOptions()" style="padding: 0.3rem 0.6rem; background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.3); border-radius: 6px; color: var(--purple); font-size: 0.8rem; font-weight: 600; cursor: pointer;">
+                                <i class="fas fa-layer-group"></i> Generate 3 Options
+                            </button>
+                        </div>
+                        <!-- Caption Options Cards (for 3-option generation) -->
+                        <div id="captionOptionsContainer" class="caption-options-container" style="display: none;"></div>
                         <!-- Emoji Picker Panel (hidden by default) -->
                         <div id="emojiPickerPanel" style="display: none; margin-top: 0.5rem; padding: 0.75rem; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; max-height: 200px; overflow-y: auto;">
                             <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; font-size: 1.5rem; cursor: pointer;">
@@ -7190,7 +7265,7 @@
                                     <button onclick="copyStudioPhotoCaption()" style="flex: 1; min-width: 100px; background: var(--success); color: white; border: none; padding: 0.6rem 0.75rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.85rem;">
                                         <i class="fas fa-copy"></i> Copy
                                     </button>
-                                    <button onclick="useStudioPhotoInQuickPost()" style="flex: 1; min-width: 100px; background: var(--instagram); color: white; border: none; padding: 0.6rem 0.75rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.85rem;">
+                                    <button onclick="useStudioPhotoInQuickPost()" style="flex: 1; min-width: 100px; background: var(--instagram); color: white; border: none; padding: 0.6rem 0.75rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.85rem; animation: subtlePulse 2s ease-in-out 3;" title="Send this caption directly to Quick Post for publishing">
                                         <i class="fas fa-paper-plane"></i> Use in Quick Post
                                     </button>
                                 </div>
@@ -16996,6 +17071,113 @@ Example format:
             updateBlastButton();
             updateEngagementPrediction();
             updateCharCount();
+
+            // Show AI action buttons after first generation
+            const aiActions = document.getElementById('captionAIActions');
+            if (aiActions) aiActions.style.display = 'flex';
+        }
+
+        // Generate 3 caption options and display as cards
+        async function generate3CaptionOptions() {
+            const container = document.getElementById('captionOptionsContainer');
+            if (!container) return;
+
+            container.style.display = 'grid';
+            container.innerHTML = '<div style="text-align: center; padding: 1.5rem; color: var(--text-secondary);"><i class="fas fa-spinner fa-spin"></i> Generating 3 options...</div>';
+
+            const platform = selectedPlatforms[0] || 'instagram';
+            const toneSelector = document.getElementById('quickPostTone');
+            const tone = toneSelector ? toneSelector.value : 'authentic';
+            const hasMedia = selectedFile !== null || window.selectedFarmPicUrl;
+
+            // Build image data if available
+            let imageBase64 = null;
+            if (selectedFile) {
+                const preview = document.getElementById('uploadPreview');
+                if (preview && preview.src && preview.src.startsWith('data:')) {
+                    imageBase64 = preview.src;
+                }
+            }
+
+            const toneLabels = { authentic: 'Authentic', educational: 'Educational', fun: 'Fun & Playful', promotional: 'Promotional', storytelling: 'Storytelling' };
+
+            try {
+                // Generate 3 variants by making 3 parallel API calls with slight tone variations
+                const tones = [tone, tone, tone];
+                const styleHints = ['concise and punchy', 'detailed and informative', 'emotional and personal'];
+
+                const promises = tones.map((t, i) => {
+                    const payload = {
+                        action: 'generateAICaptionFromImage',
+                        platform: platform,
+                        tone: t,
+                        styleHint: styleHints[i]
+                    };
+                    if (imageBase64) payload.imageBase64 = imageBase64;
+
+                    return fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain' },
+                        body: JSON.stringify(payload)
+                    }).then(r => r.json()).catch(() => null);
+                });
+
+                const results = await Promise.all(promises);
+
+                // Season-appropriate fallbacks
+                const month = new Date().getMonth();
+                const fallbacks = month >= 11 || month <= 1
+                    ? ["Even in the cold months, there's always something growing in the greenhouse. Fresh greens coming your way!", "Planning season is in full swing! Getting ready to bring you the best produce this year.", "Farmers market vibes with our winter storage crops. Root veggies and preserved goodies!"]
+                    : month >= 2 && month <= 4
+                    ? ["Spring is finally here! Seedlings are sprouting and the farm is waking up.", "Fresh spring greens coming in hot! Who's ready for the new season?", "The greenhouse is bursting with new life. Can't wait to share this season's bounty!"]
+                    : month >= 5 && month <= 7
+                    ? ["Peak summer goodness right here! Farm fresh and ready for your table.", "This is what summer tastes like! Fresh from our hands to your table.", "Another beautiful harvest day. We love what we do!"]
+                    : ["Fall harvest in full swing! Pumpkins, squash, and all the autumn goodness.", "These colors though! Fall on the farm never gets old.", "Root veggies and storage crops for the win. Stocking up for winter!"];
+
+                const captions = results.map((r, i) => {
+                    if (r && r.success && r.caption) return r.caption;
+                    return fallbacks[i] + ' #TinySeedFarm #FarmFresh #Pittsburgh';
+                });
+
+                const labels = ['Option A - Concise', 'Option B - Detailed', 'Option C - Personal'];
+                container.innerHTML = captions.map((cap, i) => `
+                    <div class="caption-option-card" onclick="useCaptionOption(${i})">
+                        <div class="option-label">${labels[i]}</div>
+                        <div class="option-text">${cap.substring(0, 200)}${cap.length > 200 ? '...' : ''}</div>
+                        <div class="option-actions">
+                            <button class="use-btn" onclick="event.stopPropagation(); useCaptionOption(${i})"><i class="fas fa-check"></i> Use This</button>
+                            <button class="copy-btn" onclick="event.stopPropagation(); copyCaptionOption(${i})"><i class="fas fa-copy"></i> Copy</button>
+                        </div>
+                    </div>
+                `).join('');
+
+                // Store captions for selection
+                window._captionOptions = captions;
+                showToast('3 caption options ready!', 'success');
+
+            } catch (error) {
+                console.error('Error generating 3 options:', error);
+                container.innerHTML = '<div style="text-align: center; padding: 1rem; color: var(--text-secondary);">Could not generate options. Try AI Caption instead.</div>';
+            }
+        }
+
+        function useCaptionOption(index) {
+            if (window._captionOptions && window._captionOptions[index]) {
+                document.getElementById('captionInput').value = window._captionOptions[index];
+                updateCharCount();
+                updateBlastButton();
+                updateEngagementPrediction();
+                document.getElementById('captionOptionsContainer').style.display = 'none';
+                showToast('Caption selected!', 'success');
+            }
+        }
+
+        function copyCaptionOption(index) {
+            if (window._captionOptions && window._captionOptions[index]) {
+                navigator.clipboard.writeText(window._captionOptions[index]).then(() => {
+                    showToast('Copied to clipboard!', 'success');
+                });
+            }
         }
 
         function updateBlastButton() {
@@ -17103,6 +17285,35 @@ Example format:
                     }
                 }
             });
+
+            // Caption length optimization hint
+            const hint = document.getElementById('captionLengthHint');
+            if (hint) {
+                if (len === 0) {
+                    hint.textContent = '';
+                    hint.style.background = 'transparent';
+                } else if (len < 80) {
+                    hint.textContent = 'Too short';
+                    hint.style.background = 'rgba(239,68,68,0.2)';
+                    hint.style.color = '#ef4444';
+                } else if (len >= 80 && len < 150) {
+                    hint.textContent = 'Good';
+                    hint.style.background = 'rgba(245,158,11,0.2)';
+                    hint.style.color = '#f59e0b';
+                } else if (len >= 150 && len <= 250) {
+                    hint.textContent = 'Optimal';
+                    hint.style.background = 'rgba(34,197,94,0.2)';
+                    hint.style.color = '#22c55e';
+                } else if (len > 250 && len <= 500) {
+                    hint.textContent = 'Long';
+                    hint.style.background = 'rgba(245,158,11,0.2)';
+                    hint.style.color = '#f59e0b';
+                } else {
+                    hint.textContent = 'Consider shortening';
+                    hint.style.background = 'rgba(239,68,68,0.2)';
+                    hint.style.color = '#ef4444';
+                }
+            }
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -22569,7 +22780,7 @@ Would you like to test posting to Threads?`;
                         action: 'enhanceCaption',
                         caption: caption,
                         platform: 'instagram',
-                        tone: 'authentic farm voice'
+                        tone: (document.getElementById('quickPostTone')?.value || 'authentic') + ' farm voice'
                     })
                 });
                 const result = await response.json();

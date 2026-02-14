@@ -38,6 +38,70 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-14 - PM_Architect (MCC Priority 2+3 Improvements)
+
+### Files Modified
+- `web_app/marketing-command-center.html` - 5 CREATE tab improvements
+
+### Features Added
+1. **Generate 3 Caption Options** - New "Generate 3 Options" button in Quick Post creates 3 caption variants (Concise, Detailed, Personal) displayed as selectable cards with "Use This" and "Copy" buttons
+2. **AI Enhance uses tone selector** - AI Enhance button now reads from Quick Post tone dropdown instead of hardcoded "authentic farm voice"
+3. **Try Again button** - After first AI Caption generation, shows "Try Again" and "Generate 3 Options" action buttons
+4. **Caption length optimization indicator** - Real-time badge shows Too short / Good / Optimal / Long / Consider shortening based on character count
+5. **"Use in Quick Post" discoverability** - Photo Analysis "Use in Quick Post" button now pulses 3x on render with tooltip
+
+### Functions Added
+- `generate3CaptionOptions()` - Generates 3 parallel AI caption variants with different style hints
+- `useCaptionOption(index)` - Selects a caption from the 3 options into the textarea
+- `copyCaptionOption(index)` - Copies a caption option to clipboard
+
+### CSS Added
+- `@keyframes subtlePulse` - Subtle glow pulse for discoverability
+- `.caption-options-container` / `.caption-option-card` - Card grid for 3-option display
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
+## 2026-02-14 - Backend_Claude (MCC AI Intelligence Endpoints + Tone Fix)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Added tone parameter to generateAICaptionFromImage, added 3 new AI intelligence endpoints + 3 helper functions
+
+### Files Created
+- `claude_sessions/backend/SOCIAL_MEDIA_TAGGING_API_RESEARCH.md` - Social media tagging API research for Instagram, Facebook, TikTok
+
+### Functions Modified
+- `generateAICaptionFromImage()` in `MERGED TOTAL.js` - Now extracts `tone` from params and uses `CONTENT_TONES` config to vary AI prompt based on tone selection (authentic, educational, fun, promotional, storytelling)
+
+### Functions Added
+- `predictEngagement(params)` in `MERGED TOTAL.js` - Scores caption 0-100 based on length, hashtags, emojis, CTA, questions, voice, image, seasonal relevance
+- `getOptimalPostingTime(params)` in `MERGED TOTAL.js` - Returns platform-specific optimal posting times (weekday/weekend), tries personalized Instagram data first
+- `analyzeCaption(params)` in `MERGED TOTAL.js` - Comprehensive post analysis combining engagement + timing + hashtags + tone detection + suggestions
+- `detectContentType(caption)` in `MERGED TOTAL.js` - Classifies caption content type (market, recipe, csa, flowers, farm_update)
+- `detectTone(caption)` in `MERGED TOTAL.js` - Scores caption against all 5 CONTENT_TONES, returns dominant tone
+- `getRecommendedHashtags(caption, platform)` in `MERGED TOTAL.js` - Suggests hashtags based on caption content and platform
+
+### API Routes Added
+- `?action=predictEngagement` (POST)
+- `?action=getOptimalPostingTime` (POST)
+- `?action=analyzeCaption` (POST)
+
+### Reason
+1. Frontend MCC Quick Post sends `tone` parameter but backend ignored it - fixed
+2. Desktop_Claude needs "Check Post" analysis endpoints for MCC CREATE tab
+3. User asked "HOW CAN WE TAG FOLKS WITH THIS SYSTEM?" - research completed
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions - `calculateOptimalPostingTimes` and `suggestOptimalPostTime` exist but serve different purposes (personalized Instagram data vs general research-based times). New `getOptimalPostingTime` wraps both.
+- [x] No duplicates created
+
+---
+
 ## 2026-02-14 - Desktop_Claude
 
 ### Files Modified
