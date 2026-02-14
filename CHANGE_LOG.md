@@ -38,6 +38,43 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-14 - Desktop_Claude (Session 7b - SCHEDULE flow fix)
+
+### Files Modified
+- `web_app/marketing-command-center.html` - Fixed broken SCHEDULE flow (3 fixes)
+
+### Functions Modified
+- `setScheduleTime()` - Now sets `isScheduled = true` and changes POST NOW button to "SCHEDULE POST" with blue gradient
+- `postNow()` - Now routes to `publishAll()` without clearing schedule when in schedule mode
+- `publishAll()` - Added schedule intercept: when `isScheduled && scheduleTime`, calls backend `schedulePost` endpoint instead of posting immediately. Includes celebration, form reset, error handling.
+
+### Reason
+SCHEDULE button flow was broken: user could pick a time but clicking POST NOW would always post immediately. The three pieces (UI, state, backend call) were disconnected. Now wired end-to-end.
+
+### Duplicate Check
+- [x] Verified `schedulePost` backend endpoint exists (deployed @627)
+- [x] No duplicate schedule logic created
+- [x] Uses existing `clearScheduledTime()`, `showCelebration()`, `logMarketingActivity()`
+
+---
+
+## 2026-02-14 - Desktop_Claude (Session 7a - POST NOW sticky mobile)
+
+### Files Modified
+- `web_app/marketing-command-center.html` - Added sticky mobile CSS for `.publish-actions`
+
+### CSS Added
+- `.publish-actions` sticky rule inside `@media (max-width: 768px)` block
+
+### Reason
+POST NOW button was 624 lines below caption textarea on mobile. Sticky positioning keeps it accessible.
+
+### Duplicate Check
+- [x] Checked existing 768px media queries - no prior rule
+- [x] No duplicates created
+
+---
+
 ## 2026-02-14 - PM_Architect (MCC Priority 2+3 Improvements)
 
 ### Files Modified

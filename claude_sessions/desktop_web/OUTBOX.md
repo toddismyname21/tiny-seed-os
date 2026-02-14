@@ -43,6 +43,38 @@ Added to `web_app/marketing-command-center.html` inside existing `@media (max-wi
 
 ---
 
+## SCHEDULE FLOW FIX (URGENT Task from INBOX)
+
+### Problem
+SCHEDULE button opened a date picker, but:
+1. Picking a time never set `isScheduled = true`
+2. POST NOW button always posted immediately (never called `schedulePost` backend)
+3. The three pieces (UI, state, backend call) were completely disconnected
+
+### 3 Fixes Applied
+
+| Fix | Function | What Changed |
+|-----|----------|-------------|
+| 1 | `setScheduleTime()` (~line 25770) | Now sets `isScheduled = true`, changes POST NOW button text to "SCHEDULE POST" with blue gradient |
+| 2 | `postNow()` (~line 25620) | When `isScheduled` is true, routes to `publishAll()` WITHOUT clearing schedule state |
+| 3 | `publishAll()` (~line 17577) | New schedule intercept at top: calls `schedulePost` backend endpoint, shows celebration, resets form |
+
+### Backend Contract
+- Endpoint: `schedulePost` (deployed @627, already live)
+- Payload: `{ action, platforms, caption, mediaUrls, scheduledFor, createdBy }`
+- Response: `{ success: true, scheduleId: "SCH_xxx" }`
+
+### User Flow After Fix
+1. Write caption, add media, select platforms
+2. Click SCHEDULE -> pick date/time
+3. POST NOW button changes to "SCHEDULE POST" (blue)
+4. Click SCHEDULE POST -> calls `schedulePost` backend
+5. Success toast + celebration + form reset
+
+### Status: IMPLEMENTED (needs user verification)
+
+---
+
 ## PREVIOUS SESSION REPORT
 
 ---

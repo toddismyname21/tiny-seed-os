@@ -17574,6 +17574,122 @@ Example format:
                 : '<i class="fas fa-spinner fa-spin"></i> Publishing...';
             timer.innerHTML = '<i class="fas fa-stopwatch"></i> Working...';
 
+            // ═══════════════════════════════════════════════════════════════
+            // SCHEDULE MODE: Route to backend schedulePost endpoint
+            // ═══════════════════════════════════════════════════════════════
+            if (isScheduled && scheduleTime) {
+                try {
+                    timer.innerHTML = '<i class="fas fa-calendar-check"></i> Scheduling post...';
+
+                    // Collect media URLs for scheduled post
+                    let mediaUrls = [];
+                    if (window.currentCarousel && window.currentCarousel.length >= 2) {
+                        mediaUrls = window.currentCarousel.map(s => s.src);
+                    } else if (window.selectedFarmPicUrl) {
+                        mediaUrls = [window.selectedFarmPicUrl];
+                    } else if (selectedFile) {
+                        const preview = document.getElementById('uploadPreview');
+                        if (preview && preview.src && preview.src.startsWith('data:')) {
+                            mediaUrls = [preview.src];
+                        }
+                    }
+
+                    const response = await fetch(APPS_SCRIPT_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain' },
+                        body: JSON.stringify({
+                            action: 'schedulePost',
+                            platforms: selectedPlatforms,
+                            caption: caption,
+                            mediaUrls: mediaUrls,
+                            scheduledFor: scheduleTime,
+                            createdBy: 'mcc_quick_post'
+                        })
+                    });
+                    const result = await response.json();
+
+                    if (result.success) {
+                        const scheduledDate = new Date(scheduleTime);
+                        const formatted = scheduledDate.toLocaleString('en-US', {
+                            weekday: 'short', month: 'short', day: 'numeric',
+                            hour: 'numeric', minute: '2-digit'
+                        });
+
+                        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+                        timer.innerHTML = `<i class="fas fa-check"></i> ${elapsed}s`;
+                        timer.style.background = 'var(--info)';
+                        btn.innerHTML = '<i class="fas fa-calendar-check"></i> SCHEDULED!';
+                        showToast(`Scheduled for ${formatted}!`, 'success');
+
+                        // Trigger celebration
+                        if (typeof showCelebration === 'function') {
+                            showCelebration(1);
+                        }
+
+                        // Log activity
+                        logMarketingActivity('social_schedule', {
+                            platforms: selectedPlatforms,
+                            scheduledFor: scheduleTime,
+                            caption: caption.substring(0, 50),
+                            scheduleId: result.scheduleId
+                        });
+
+                        // Delete draft
+                        deleteDraft();
+
+                        // Reset form after delay
+                        setTimeout(() => {
+                            btn.disabled = false;
+                            btn.innerHTML = '<i class="fas fa-paper-plane"></i> POST NOW';
+                            btn.style.background = '';
+                            timer.innerHTML = '<i class="fas fa-stopwatch"></i> Ready';
+                            timer.style.background = 'var(--success)';
+                            isScheduled = false;
+                            selectedFile = null;
+                            window.selectedFarmPicUrl = null;
+                            document.getElementById('uploadPreview').classList.remove('visible');
+                            document.getElementById('uploadIcon').style.display = 'block';
+                            document.getElementById('uploadText').textContent = 'Drop media here or tap to upload';
+                            document.getElementById('uploadSubtext').textContent = 'Photos and videos up to 100MB';
+                            document.getElementById('captionInput').value = '';
+                            updateCharCount();
+                            updateBlastButton();
+                            clearScheduledTime();
+                        }, 5000);
+                    } else {
+                        timer.innerHTML = '<i class="fas fa-times"></i> Failed';
+                        timer.style.background = 'var(--danger)';
+                        btn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> SCHEDULE FAILED';
+                        showToast('Schedule failed: ' + (result.error || 'Unknown error'), 'error');
+
+                        setTimeout(() => {
+                            btn.disabled = false;
+                            btn.innerHTML = '<i class="fas fa-calendar-check"></i> SCHEDULE POST';
+                            timer.innerHTML = '<i class="fas fa-stopwatch"></i> Ready';
+                            timer.style.background = 'var(--success)';
+                        }, 3000);
+                    }
+                } catch (scheduleError) {
+                    console.error('Schedule error:', scheduleError);
+                    timer.innerHTML = '<i class="fas fa-times"></i> Error';
+                    timer.style.background = 'var(--danger)';
+                    btn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ERROR';
+                    showToast('Schedule error: ' + scheduleError.message, 'error');
+
+                    setTimeout(() => {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fas fa-calendar-check"></i> SCHEDULE POST';
+                        timer.innerHTML = '<i class="fas fa-stopwatch"></i> Ready';
+                        timer.style.background = 'var(--success)';
+                    }, 3000);
+                }
+                return; // Don't continue to immediate post
+            }
+
+            // ═══════════════════════════════════════════════════════════════
+            // IMMEDIATE POST MODE (original flow below)
+            // ═══════════════════════════════════════════════════════════════
+
             // Filter social platforms (exclude appfeed, sms which are internal)
             const socialPlatforms = selectedPlatforms.filter(p =>
                 ['tiktok', 'instagram', 'facebook', 'youtube', 'pinterest', 'threads'].includes(p)
@@ -25494,9 +25610,18 @@ Would you like to test posting to Threads?`;
         // POST NOW & SCHEDULING FUNCTIONS - For Redesigned UI (2026-02-13)
         // ═══════════════════════════════════════════════════════════════════════════
 
-        // Post immediately without scheduling
+        // Post immediately or schedule depending on mode
         function postNow() {
-            // Clear any scheduled time
+            if (isScheduled) {
+                // In schedule mode - don't clear schedule, route to publishAll
+                // which will call the schedulePost backend endpoint
+                if (typeof publishAll === 'function') {
+                    publishAll();
+                }
+                return;
+            }
+
+            // Immediate post mode - clear any lingering schedule state
             const picker = document.getElementById('scheduleDateTimePicker');
             const display = document.getElementById('scheduledTimeDisplay');
             const btn = document.getElementById('scheduleBtn');
@@ -25510,7 +25635,6 @@ Would you like to test posting to Threads?`;
                 publishAll();
             } else {
                 showToast('Publishing...', 'info');
-                // Fallback - look for other publish functions
                 console.log('Publishing immediately');
             }
         }
@@ -25647,6 +25771,7 @@ Would you like to test posting to Threads?`;
         function setScheduleTime(value) {
             const display = document.getElementById('scheduledTimeDisplay');
             const btn = document.getElementById('scheduleBtn');
+            const blastBtn = document.getElementById('blastBtn');
 
             if (value) {
                 const date = new Date(value);
@@ -25657,6 +25782,9 @@ Would you like to test posting to Threads?`;
                     minute: '2-digit'
                 });
 
+                // Activate schedule mode
+                isScheduled = true;
+
                 if (display) {
                     display.textContent = formatted;
                     display.style.display = 'block';
@@ -25665,7 +25793,13 @@ Would you like to test posting to Threads?`;
                     btn.classList.add('has-time');
                 }
 
-                showToast(`Scheduled for ${formatted}`, 'success');
+                // Change POST NOW button to SCHEDULE POST
+                if (blastBtn) {
+                    blastBtn.innerHTML = '<i class="fas fa-calendar-check"></i> SCHEDULE POST';
+                    blastBtn.style.background = 'linear-gradient(135deg, var(--info) 0%, #6366f1 100%)';
+                }
+
+                showToast(`Will schedule for ${formatted}`, 'info');
             }
         }
 
