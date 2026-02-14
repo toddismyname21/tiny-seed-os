@@ -27324,9 +27324,10 @@ Would you like to test posting to Threads?`;
 
                 if (entries.length > 0) {
                     container.innerHTML = entries.map(entry => {
-                        const content = entry.Todd_Input || entry.content || '';
-                        const date = entry.Received_At || entry.date;
-                        const postsGenerated = entry.Posts_Generated || 0;
+                        // Handle multiple response formats from different API versions
+                        const content = entry.Todd_Input || entry.todd_input || entry.content || entry.response || '';
+                        const date = entry.Received_At || entry.received_at || entry.date || entry.respondedAt || new Date().toISOString();
+                        const postsGenerated = entry.Posts_Generated || entry.posts_generated || 0;
                         const sender = entry.Sender || entry.sender || 'Todd';
 
                         // Detect category from content or use saved category
