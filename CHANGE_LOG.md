@@ -38,6 +38,23 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-14 - Desktop_Claude
+
+### Files Modified
+- `web_app/marketing-command-center.html` - Added sticky mobile CSS for publish-actions (Check/POST NOW/Schedule buttons)
+
+### CSS Added
+- `.publish-actions` sticky rule inside `@media (max-width: 768px)` block - Makes post action buttons stick above the bottom tab-nav on mobile, solving the 624-line scroll distance between caption and POST NOW
+
+### Reason
+MCC CREATE tab Priority 2.4: POST NOW button was 624 lines below the caption textarea, requiring 7+ scroll pages on mobile. Sticky positioning keeps it accessible while scrolling. Tasks 1 (carousel checkbox) and 2 (Check Post button) were verified as already implemented.
+
+### Duplicate Check
+- [x] Checked existing 768px media queries - no prior publish-actions sticky rule
+- [x] No duplicates created
+
+---
+
 ---
 
 ## 2026-02-13 - Backend_Claude (Farm Journal Delete + Human-in-Loop)
