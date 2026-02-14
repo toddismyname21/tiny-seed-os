@@ -17835,16 +17835,10 @@ Example format:
         // FARM PICS PICKER FUNCTIONS
         // ═══════════════════════════════════════════════════════════════════════════
 
-        let pickerFarmPicsCache = null;
-
         async function openFarmPicsPicker() {
-            console.log('openFarmPicsPicker called');
             const modal = document.getElementById('farmPicsPickerModal');
-            console.log('Modal element:', modal);
             modal.classList.add('active');
-            console.log('Modal classes after add:', modal.className);
             const grid = document.getElementById('farmPicsPickerGrid');
-            console.log('Grid element:', grid);
 
             // Show loading state
             grid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 2rem;">
@@ -17853,26 +17847,17 @@ Example format:
             </div>`;
 
             try {
-                // Use cached data if available, otherwise fetch
-                if (!pickerFarmPicsCache) {
-                    console.log('Fetching farm pics from API...');
-                    const response = await fetch(`${API_URL}?action=getFarmPics`);
-                    const data = await response.json();
-                    console.log('API response:', data);
-                    if (data.success) {
-                        pickerFarmPicsCache = data.farmPics.filter(p => p.Image_URL); // Only pics with images
-                        console.log('Filtered pics with images:', pickerFarmPicsCache.length);
-                    }
+                // Use farmPicsData (already loaded with converted URLs from Photos tab)
+                if (!farmPicsData || farmPicsData.length === 0) {
+                    await loadFarmPics();
                 }
 
-                if (pickerFarmPicsCache && pickerFarmPicsCache.length > 0) {
-                    console.log('Rendering', pickerFarmPicsCache.length, 'photos');
-                    console.log('First pic URL:', pickerFarmPicsCache[0].Thumbnail_URL || pickerFarmPicsCache[0].Image_URL);
-
-                    grid.innerHTML = pickerFarmPicsCache.map((pic, idx) => `
+                const picsWithUrls = farmPicsData.filter(pic => pic.url);
+                if (picsWithUrls.length > 0) {
+                    grid.innerHTML = picsWithUrls.map((pic, idx) => `
                         <div class="farm-pic-picker-item" data-pic-index="${idx}"
                              style="cursor: pointer; border-radius: 12px; overflow: hidden; aspect-ratio: 1; position: relative; border: 3px solid var(--border); transition: all 0.2s; background: var(--bg-light); min-height: 150px;">
-                            <img src="${pic.Thumbnail_URL || pic.Image_URL}"
+                            <img src="${pic.url}"
                                  style="width: 100%; height: 100%; object-fit: cover; pointer-events: none;"
                                  loading="lazy"
                                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
@@ -17880,22 +17865,19 @@ Example format:
                                 <i class="fas fa-image" style="font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.5;"></i>
                                 <span>Image unavailable</span>
                             </div>
-                            ${pic.Caption ? `<div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.8)); padding: 0.5rem; font-size: 0.7rem; color: white; pointer-events: none;">${pic.Caption.substring(0, 50)}${pic.Caption.length > 50 ? '...' : ''}</div>` : ''}
-                            <div style="position: absolute; top: 0.5rem; right: 0.5rem; background: ${pic.Status === 'approved' ? 'var(--success)' : 'var(--warning)'}; padding: 0.2rem 0.4rem; border-radius: 4px; font-size: 0.6rem; text-transform: uppercase; pointer-events: none;">${pic.Status || 'new'}</div>
+                            ${pic.caption ? `<div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.8)); padding: 0.5rem; font-size: 0.7rem; color: white; pointer-events: none;">${pic.caption.substring(0, 50)}${pic.caption.length > 50 ? '...' : ''}</div>` : ''}
+                            <div style="position: absolute; top: 0.5rem; right: 0.5rem; background: ${pic.status === 'approved' ? 'var(--success)' : 'var(--warning)'}; padding: 0.2rem 0.4rem; border-radius: 4px; font-size: 0.6rem; text-transform: uppercase; pointer-events: none;">${pic.status || 'new'}</div>
                         </div>
                     `).join('');
 
-                    // Add click handlers using event delegation
+                    // Add click handlers
                     grid.querySelectorAll('.farm-pic-picker-item').forEach(item => {
                         item.addEventListener('click', function() {
                             const idx = parseInt(this.dataset.picIndex);
-                            const pic = pickerFarmPicsCache[idx];
-                            console.log('Clicked pic:', idx, pic.Image_URL);
-                            selectFarmPic(pic.Image_URL, pic.Caption || '', this);
+                            const pic = picsWithUrls[idx];
+                            selectFarmPic(pic.url, pic.caption || '', this);
                         });
                     });
-
-                    console.log('Grid innerHTML set, items:', grid.querySelectorAll('.farm-pic-picker-item').length);
                 } else {
                     grid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: var(--text-secondary);">
                         <i class="fas fa-images" style="font-size: 3rem; opacity: 0.5;"></i>
