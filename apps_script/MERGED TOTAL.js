@@ -17366,6 +17366,8 @@ function doGet(e) {
         return jsonResponse(deleteJournalEntry(e.parameter));
       case 'saveJournalEntry':
         return jsonResponse(saveJournalEntryOnly(e.parameter));
+      case 'deleteFarmPic':
+        return deleteFarmPic(e.parameter);
 
       // ============ ULTIMATE AI MEMORY SYSTEM - PHASE 1 (2026-02-13) ============
       // Institutional memory for the entire Tiny Seed OS - accessible from all systems

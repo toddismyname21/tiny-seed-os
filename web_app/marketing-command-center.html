@@ -17722,16 +17722,14 @@ Example format:
             showToast('Deleting photo...', 'info');
 
             try {
-                const response = await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify({
-                        action: 'deleteFarmPic',
-                        fileId: fileId,
-                        picId: pic.id
-                    })
+                // Use GET to avoid CORS preflight issues
+                const params = new URLSearchParams({
+                    action: 'deleteFarmPic',
+                    picId: pic.id
                 });
+                if (fileId) params.append('fileId', fileId);
 
+                const response = await fetch(`${API_URL}?${params.toString()}`);
                 const result = await response.json();
 
                 if (result.success) {
