@@ -5879,6 +5879,7 @@
                         <i class="fas fa-cloud-upload-alt" id="uploadIcon"></i>
                         <h4 id="uploadText">Drop media here or tap to upload</h4>
                         <p id="uploadSubtext">Photos and videos up to 100MB</p>
+                        <button id="clearUploadBtn" onclick="event.stopPropagation(); clearUploadZone();" style="display: none; position: absolute; top: 0.5rem; right: 0.5rem; background: rgba(0,0,0,0.7); color: white; border: none; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 1rem;"><i class="fas fa-times"></i></button>
                     </div>
                     <!-- Pick from Farm Pics Button -->
                     <button class="btn btn-secondary farm-pics-btn" onclick="console.log('Farm Pics clicked'); openFarmPicsPicker()" style="margin-top: 0.75rem; width: 100%; min-height: 56px; font-size: 1rem; font-weight: 600;">
@@ -16462,6 +16463,31 @@ Example format:
         let isRecording = false;
         let mediaRecorder = null;
 
+        function clearUploadZone() {
+            selectedFile = null;
+            window.selectedFarmPicUrl = null;
+            const preview = document.getElementById('uploadPreview');
+            const uploadIcon = document.getElementById('uploadIcon');
+            const uploadText = document.getElementById('uploadText');
+            const uploadSubtext = document.getElementById('uploadSubtext');
+            const fileInput = document.getElementById('fileInput');
+            const clearBtn = document.getElementById('clearUploadBtn');
+            if (preview) { preview.src = ''; preview.classList.remove('visible'); }
+            if (uploadIcon) uploadIcon.style.display = 'block';
+            if (uploadText) uploadText.textContent = 'Drop media here or tap to upload';
+            if (uploadSubtext) uploadSubtext.textContent = 'Photos and videos up to 100MB';
+            if (fileInput) fileInput.value = '';
+            if (clearBtn) clearBtn.style.display = 'none';
+            const mediaToolsSection = document.getElementById('mediaToolsSection');
+            if (mediaToolsSection) mediaToolsSection.style.display = 'none';
+            updateBlastButton();
+        }
+
+        function showClearButton() {
+            const clearBtn = document.getElementById('clearUploadBtn');
+            if (clearBtn) clearBtn.style.display = 'block';
+        }
+
         function handleFileSelect(event) {
             const file = event.target.files[0];
             if (file) {
@@ -16475,6 +16501,7 @@ Example format:
                     document.getElementById('uploadText').textContent = file.name;
                     document.getElementById('uploadSubtext').textContent = `${(file.size / 1024 / 1024).toFixed(2)} MB`;
                     updateBlastButton();
+                    showClearButton();
 
                     // Show media tools section when media is uploaded
                     showMediaToolsSection();
@@ -17615,11 +17642,17 @@ Example format:
             const pic = farmPicsData.find(p => p.id == id);
             if (!pic) { showToast('Photo not found', 'error'); return; }
 
+            // Validate photo has real URL (not placeholder SVG)
+            if (!pic.url || pic.url.includes('data:image/svg') || pic.url.includes('No Image')) {
+                showToast('This photo has no valid image. Please upload a new photo.', 'error');
+                return;
+            }
+
             pic.status = 'used';
             renderFarmPics();
             updateNewPicsBadge();
 
-            // Switch to field mode
+            // Switch to CREATE tab
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.querySelector('.tab-btn[onclick*="fieldmode"]')?.classList.add('active');
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
@@ -17632,6 +17665,7 @@ Example format:
             if (uploadIcon) uploadIcon.style.display = 'none';
             const uploadText = document.getElementById('uploadText');
             if (uploadText) uploadText.textContent = 'Farm pic by ' + pic.author;
+            showClearButton();
 
             selectedFile = {
                 name: 'farm_pic_' + id + '.jpg',
@@ -17978,7 +18012,12 @@ Example format:
         }
 
         async function selectFarmPic(imageUrl, caption, element) {
-            console.log('selectFarmPic called with:', imageUrl);
+            // Validate URL is not a placeholder
+            if (!imageUrl || imageUrl.includes('data:image/svg') || imageUrl.includes('No Image')) {
+                showToast('This photo has no valid image.', 'error');
+                return;
+            }
+
             // Visual feedback - highlight selected
             document.querySelectorAll('.farm-pic-picker-item').forEach(el => {
                 el.style.border = '3px solid transparent';
@@ -18001,6 +18040,7 @@ Example format:
                 uploadIcon.style.display = 'none';
                 uploadText.textContent = 'Image selected from Farm Pics';
                 uploadSubtext.textContent = 'Click to change';
+                showClearButton();
 
                 // Store the URL for posting (we'll use this instead of uploading)
                 window.selectedFarmPicUrl = imageUrl;
