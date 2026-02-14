@@ -2540,6 +2540,23 @@
         .hashtag-set-btn { padding: 0.5rem 1rem; background: rgba(67, 97, 238, 0.2); border: 1px solid var(--info); border-radius: 8px; color: var(--info); font-size: 0.8rem; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 0.4rem; }
         .hashtag-set-btn:hover { background: rgba(67, 97, 238, 0.3); transform: translateY(-1px); }
 
+        /* SOCIAL MEDIA TAGGING UX */
+        .composer-section { position: relative; }
+        .mention-item { padding: 0.5rem 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; transition: background 0.15s; }
+        .mention-item:hover { background: rgba(67, 97, 238, 0.2); }
+        .mention-item .mention-handle { color: var(--info); font-weight: 600; }
+        .mention-item .mention-label { color: var(--text-secondary); font-size: 0.75rem; }
+        .mention-section-header { padding: 0.3rem 0.75rem; font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+        .location-item { padding: 0.5rem 0.75rem; cursor: pointer; transition: background 0.15s; }
+        .location-item:hover { background: rgba(225, 48, 108, 0.15); }
+        .location-item .location-name { font-size: 0.85rem; font-weight: 500; }
+        .location-item .location-address { font-size: 0.7rem; color: var(--text-secondary); }
+        .hashtag-group-card { padding: 0.6rem 0.75rem; background: rgba(20, 184, 166, 0.1); border: 1px solid rgba(20, 184, 166, 0.25); border-radius: 8px; cursor: pointer; transition: all 0.2s; }
+        .hashtag-group-card:hover { background: rgba(20, 184, 166, 0.2); transform: translateY(-1px); }
+        .hashtag-group-card .group-name { font-size: 0.85rem; font-weight: 600; color: #14b8a6; display: flex; align-items: center; justify-content: space-between; }
+        .hashtag-group-card .group-tags { font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .hashtag-group-card .group-count { font-size: 0.65rem; background: rgba(20,184,166,0.3); padding: 0.1rem 0.4rem; border-radius: 10px; }
+
         /* P1 FEATURES: MARKET DAY QUICK SCHEDULE */
         .market-day-scheduler { background: linear-gradient(135deg, rgba(244, 162, 97, 0.2), rgba(231, 111, 81, 0.1)); border: 1px solid var(--secondary); border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
         .market-day-scheduler h4 { display: flex; align-items: center; gap: 0.5rem; color: var(--secondary); margin: 0 0 1rem 0; }
@@ -6360,6 +6377,9 @@
                             <button class="ai-caption-btn" onclick="toggleTextStyler()" style="background: rgba(139, 92, 246, 0.2); border-color: var(--purple); color: var(--purple);" title="Bold/Italic Text">
                                 <i class="fas fa-bold"></i> Style
                             </button>
+                            <button class="ai-caption-btn" onclick="toggleHashtagGroupManager()" style="background: rgba(20, 184, 166, 0.2); border-color: #14b8a6; color: #14b8a6;" title="Hashtag Groups" id="hashtagGroupBtn">
+                                <i class="fas fa-hashtag"></i> #Tags
+                            </button>
                             <button class="draft-btn" id="draftBtn" onclick="saveDraft()">
                                 <i class="fas fa-save"></i> Save Draft
                             </button>
@@ -6439,6 +6459,88 @@
                             </div>
                             <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.5rem; opacity: 0.7;">Uses Unicode characters - works on all platforms!</div>
                         </div>
+                        <!-- @Mention Autocomplete Dropdown (positioned relative to composer) -->
+                        <div id="mentionDropdown" style="display: none; position: absolute; z-index: 200; background: rgba(22, 33, 62, 0.95); backdrop-filter: blur(10px); border: 1px solid var(--border); border-radius: 12px; max-height: 220px; overflow-y: auto; width: 260px; box-shadow: 0 8px 32px rgba(0,0,0,0.4);">
+                            <div style="padding: 0.5rem 0.75rem; font-size: 0.7rem; color: var(--text-secondary); border-bottom: 1px solid var(--border);">Recent & Favorites</div>
+                            <div id="mentionList"></div>
+                            <div style="padding: 0.4rem 0.75rem; font-size: 0.65rem; color: var(--text-secondary); border-top: 1px solid var(--border); opacity: 0.7;">
+                                <i class="fas fa-info-circle"></i> Verify spelling — IG does not support username lookup
+                            </div>
+                        </div>
+
+                        <!-- Hashtag Group Manager Popover (hidden by default) -->
+                        <div id="hashtagGroupPopover" style="display: none; margin-top: 0.5rem; padding: 1rem; background: rgba(22, 33, 62, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(20, 184, 166, 0.3); border-radius: 12px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                                <span style="font-weight: 600; font-size: 0.9rem; color: #14b8a6;"><i class="fas fa-hashtag"></i> Hashtag Groups</span>
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <span id="hashtagLiveCounter" style="font-size: 0.8rem; font-weight: 600; color: var(--success);">0/30</span>
+                                    <button onclick="toggleHashtagGroupManager()" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 1rem;">&times;</button>
+                                </div>
+                            </div>
+                            <div id="hashtagGroupCards" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 240px; overflow-y: auto;"></div>
+                            <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
+                                <button onclick="suggestHashtagsAI()" class="btn btn-sm" style="flex: 1; background: rgba(139,92,246,0.2); border: 1px solid var(--purple); color: var(--purple);">
+                                    <i class="fas fa-magic"></i> AI Suggest
+                                </button>
+                                <button onclick="showCreateHashtagGroup()" class="btn btn-sm" style="flex: 1; background: rgba(20,184,166,0.2); border: 1px solid #14b8a6; color: #14b8a6;">
+                                    <i class="fas fa-plus"></i> New Group
+                                </button>
+                            </div>
+                            <!-- Create/Edit Group Form (hidden) -->
+                            <div id="hashtagGroupForm" style="display: none; margin-top: 0.75rem; padding: 0.75rem; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                                <input type="text" id="hashtagGroupNameInput" placeholder="Group name" style="width: 100%; padding: 0.5rem; margin-bottom: 0.5rem; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-size: 0.85rem;">
+                                <textarea id="hashtagGroupTagsInput" placeholder="#tag1 #tag2 #tag3..." rows="2" style="width: 100%; padding: 0.5rem; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-size: 0.85rem; resize: vertical;"></textarea>
+                                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                                    <button onclick="saveHashtagGroup()" class="btn btn-sm" style="flex: 1; background: #14b8a6; color: white;">Save</button>
+                                    <button onclick="cancelHashtagGroup()" class="btn btn-sm" style="flex: 1; background: transparent; border: 1px solid var(--border); color: var(--text-secondary);">Cancel</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Location Tag Search (IG + FB only) -->
+                        <div id="locationTagSection" class="tagging-feature" data-platforms="instagram,facebook" style="margin-top: 0.75rem; display: none;">
+                            <div style="position: relative;">
+                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem;">
+                                    <i class="fas fa-map-marker-alt" style="color: var(--instagram); font-size: 0.85rem;"></i>
+                                    <span style="font-size: 0.8rem; font-weight: 600;">Location Tag</span>
+                                    <span style="font-size: 0.65rem; color: var(--text-secondary); background: rgba(255,255,255,0.05); padding: 0.1rem 0.4rem; border-radius: 4px;">IG + FB</span>
+                                </div>
+                                <div style="position: relative;">
+                                    <input type="text" id="locationSearchInput" placeholder="Search locations..." oninput="searchLocations(this.value)" onfocus="showLocationDropdown()" style="width: 100%; padding: 0.6rem 0.6rem 0.6rem 2rem; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 0.85rem;">
+                                    <i class="fas fa-search" style="position: absolute; left: 0.7rem; top: 50%; transform: translateY(-50%); color: var(--text-secondary); font-size: 0.8rem;"></i>
+                                </div>
+                                <!-- Location dropdown -->
+                                <div id="locationDropdown" style="display: none; position: absolute; z-index: 200; background: rgba(22, 33, 62, 0.95); backdrop-filter: blur(10px); border: 1px solid var(--border); border-radius: 12px; max-height: 220px; overflow-y: auto; width: 100%; margin-top: 0.25rem; box-shadow: 0 8px 32px rgba(0,0,0,0.4);">
+                                    <div id="locationList"></div>
+                                </div>
+                            </div>
+                            <!-- Selected location pill -->
+                            <div id="selectedLocationPill" style="display: none; margin-top: 0.5rem;">
+                                <span style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.75rem; background: rgba(225, 48, 108, 0.15); border: 1px solid rgba(225, 48, 108, 0.4); border-radius: 20px; font-size: 0.8rem;">
+                                    <i class="fas fa-map-pin" style="color: var(--instagram);"></i>
+                                    <span id="selectedLocationName"></span>
+                                    <button onclick="clearSelectedLocation()" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 0.9rem; padding: 0; line-height: 1;">&times;</button>
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- First Comment Field (Instagram only) -->
+                        <div id="firstCommentSection" class="tagging-feature" data-platforms="instagram" style="margin-top: 0.75rem; display: none;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem;">
+                                <i class="fab fa-instagram" style="color: var(--instagram); font-size: 0.85rem;"></i>
+                                <span style="font-size: 0.8rem; font-weight: 600;">First Comment</span>
+                                <span style="font-size: 0.65rem; color: var(--text-secondary); background: rgba(255,255,255,0.05); padding: 0.1rem 0.4rem; border-radius: 4px;">IG only</span>
+                                <span title="Industry best practice: put hashtags in the first comment to keep your caption clean" style="cursor: help; color: var(--text-secondary); font-size: 0.75rem;"><i class="fas fa-info-circle"></i></span>
+                            </div>
+                            <textarea id="firstCommentInput" placeholder="Add hashtags or extra context here... (posted as first comment)" oninput="updateFirstCommentCount()" style="width: 100%; min-height: 60px; padding: 0.75rem; background: rgba(255,255,255,0.03); border: 2px dashed rgba(225, 48, 108, 0.3); border-radius: 10px; color: var(--text-primary); font-size: 0.85rem; resize: vertical;"></textarea>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.25rem;">
+                                <span id="firstCommentCharCount" style="font-size: 0.7rem; color: var(--text-secondary);">0/2200</span>
+                                <button onclick="moveHashtagsToFirstComment()" style="font-size: 0.7rem; padding: 0.2rem 0.5rem; background: rgba(225,48,108,0.15); border: 1px solid rgba(225,48,108,0.3); border-radius: 6px; color: var(--instagram); cursor: pointer;">
+                                    <i class="fas fa-arrow-down"></i> Move #tags from caption
+                                </button>
+                            </div>
+                        </div>
+
                         <!-- 5-3-2 Content Type Selector -->
                         <div style="margin-top: 0.75rem; padding: 0.5rem; background: rgba(99,102,241,0.1); border-radius: 8px; border: 1px solid rgba(99,102,241,0.2);">
                             <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.4rem;"><i class="fas fa-chart-pie"></i> 5-3-2 Content Type:</div>
@@ -17259,6 +17361,11 @@ Example format:
                 }
                 updateCharCount(); // Update to show GBP limit
             }
+
+            // Update tagging feature visibility on platform change
+            if (typeof updateTaggingFeatureVisibility === 'function') {
+                updateTaggingFeatureVisibility();
+            }
         }
 
         // Get selected Instagram post type
@@ -18285,7 +18392,8 @@ Example format:
                                     action: 'postToInstagram',
                                     accountIndex: accountIndex,
                                     postType: igPostType,
-                                    caption: caption
+                                    caption: caption,
+                                    locationId: selectedLocation ? selectedLocation.id : undefined
                                 };
 
                                 if (isCarouselPost && carouselImageUrls.length >= 2) {
@@ -18311,6 +18419,26 @@ Example format:
                                 if (result.success) {
                                     postResults.push({ platform: `instagram_${accountIndex}`, accountName: accountName, success: true, mediaId: result.mediaId });
                                     showToast(`Posted to ${accountName}!`, 'success');
+
+                                    // Post first comment if provided (Instagram best practice)
+                                    const firstCommentText = document.getElementById('firstCommentInput')?.value?.trim();
+                                    if (firstCommentText && result.mediaId) {
+                                        try {
+                                            await fetch(APPS_SCRIPT_URL, {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'text/plain' },
+                                                body: JSON.stringify({
+                                                    action: 'postInstagramComment',
+                                                    mediaId: result.mediaId,
+                                                    accountIndex: accountIndex,
+                                                    comment: firstCommentText
+                                                })
+                                            });
+                                            console.log(`First comment posted to ${accountName}`);
+                                        } catch (commentErr) {
+                                            console.warn(`First comment failed for ${accountName}:`, commentErr.message);
+                                        }
+                                    }
                                 } else {
                                     postResults.push({ platform: `instagram_${accountIndex}`, accountName: accountName, success: false, error: result.error });
                                     // Show specific error message
@@ -31973,6 +32101,488 @@ Would you like to test posting to Threads?`;
                 '#CleanEating', '#NoGMO', '#ChemicalFree', '#NaturalFood', '#HealthyEating'
             ]
         };
+
+        // =============================================================================
+        // SOCIAL MEDIA TAGGING UX (5 features)
+        // =============================================================================
+
+        // --- Feature 1: @Mention Autocomplete ---
+        const DEFAULT_MENTIONS = [
+            { handle: '@tinyseedfarm', label: 'Tiny Seed Farm' },
+            { handle: '@tinyseedfleurs', label: 'Tiny Seed Fleurs' },
+            { handle: '@tinyseedfungi', label: 'Tiny Seed Fungi' },
+            { handle: '@kretschmannfarm', label: 'Kretschmann Farm' }
+        ];
+
+        let mentionSearchActive = false;
+        let mentionStartPos = -1;
+
+        function getRecentMentions() {
+            try { return JSON.parse(localStorage.getItem('mcc_recent_mentions') || '[]'); }
+            catch { return []; }
+        }
+
+        function saveRecentMention(handle) {
+            let recent = getRecentMentions();
+            recent = recent.filter(m => m !== handle);
+            recent.unshift(handle);
+            if (recent.length > 15) recent = recent.slice(0, 15);
+            localStorage.setItem('mcc_recent_mentions', JSON.stringify(recent));
+        }
+
+        function setupMentionAutocomplete() {
+            const textarea = document.getElementById('captionInput');
+            if (!textarea) return;
+
+            textarea.addEventListener('input', function(e) {
+                const val = this.value;
+                const pos = this.selectionStart;
+
+                // Find the @ before cursor
+                let atPos = -1;
+                for (let i = pos - 1; i >= 0; i--) {
+                    if (val[i] === '@') { atPos = i; break; }
+                    if (val[i] === ' ' || val[i] === '\n') break;
+                }
+
+                if (atPos >= 0) {
+                    const query = val.substring(atPos + 1, pos).toLowerCase();
+                    mentionStartPos = atPos;
+                    showMentionDropdown(query, textarea);
+                } else {
+                    hideMentionDropdown();
+                }
+            });
+
+            textarea.addEventListener('keydown', function(e) {
+                if (!mentionSearchActive) return;
+                const dropdown = document.getElementById('mentionDropdown');
+                const items = dropdown.querySelectorAll('.mention-item');
+                const active = dropdown.querySelector('.mention-item.active-item');
+
+                if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    let idx = Array.from(items).indexOf(active);
+                    if (active) active.classList.remove('active-item');
+                    idx = e.key === 'ArrowDown' ? Math.min(idx + 1, items.length - 1) : Math.max(idx - 1, 0);
+                    if (items[idx]) { items[idx].classList.add('active-item'); items[idx].style.background = 'rgba(67,97,238,0.2)'; }
+                } else if (e.key === 'Enter' && active) {
+                    e.preventDefault();
+                    insertMention(active.dataset.handle);
+                } else if (e.key === 'Escape') {
+                    hideMentionDropdown();
+                }
+            });
+
+            // Close on click outside
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('#mentionDropdown') && e.target.id !== 'captionInput') {
+                    hideMentionDropdown();
+                }
+            });
+        }
+
+        function showMentionDropdown(query, textarea) {
+            const dropdown = document.getElementById('mentionDropdown');
+            const list = document.getElementById('mentionList');
+            if (!dropdown || !list) return;
+
+            // Merge favorites + recent
+            const recent = getRecentMentions();
+            const recentObjects = recent.map(h => ({ handle: h, label: '' }));
+            const allMentions = [...DEFAULT_MENTIONS];
+            recentObjects.forEach(r => {
+                if (!allMentions.some(m => m.handle === r.handle)) {
+                    allMentions.unshift(r);
+                }
+            });
+
+            // Filter by query
+            const filtered = query.length === 0
+                ? allMentions.slice(0, 8)
+                : allMentions.filter(m => m.handle.toLowerCase().includes(query));
+
+            if (filtered.length === 0) { hideMentionDropdown(); return; }
+
+            list.innerHTML = filtered.map(m =>
+                `<div class="mention-item" data-handle="${m.handle}" onclick="insertMention('${m.handle}')">
+                    <span class="mention-handle">${m.handle}</span>
+                    ${m.label ? `<span class="mention-label">${m.label}</span>` : ''}
+                </div>`
+            ).join('');
+
+            // Position near textarea
+            const rect = textarea.getBoundingClientRect();
+            const composerRect = textarea.closest('.composer-section').getBoundingClientRect();
+            dropdown.style.left = '0';
+            dropdown.style.top = (textarea.offsetTop + textarea.offsetHeight + 4) + 'px';
+            dropdown.style.display = 'block';
+            mentionSearchActive = true;
+        }
+
+        function hideMentionDropdown() {
+            const dropdown = document.getElementById('mentionDropdown');
+            if (dropdown) dropdown.style.display = 'none';
+            mentionSearchActive = false;
+        }
+
+        function insertMention(handle) {
+            const textarea = document.getElementById('captionInput');
+            if (!textarea || mentionStartPos < 0) return;
+
+            const val = textarea.value;
+            const pos = textarea.selectionStart;
+            const before = val.substring(0, mentionStartPos);
+            const after = val.substring(pos);
+            textarea.value = before + handle + ' ' + after;
+            textarea.selectionStart = textarea.selectionEnd = mentionStartPos + handle.length + 1;
+            textarea.focus();
+
+            saveRecentMention(handle);
+            hideMentionDropdown();
+            updateCharCount();
+
+            // Check max 20 mentions for Instagram
+            const mentionCount = (textarea.value.match(/@\w+/g) || []).length;
+            if (mentionCount > 20 && selectedPlatforms.includes('instagram')) {
+                showToast('Instagram allows max 20 @mentions per post', 'warning');
+            }
+        }
+
+        // --- Feature 2: Location Tag Search ---
+        const DEFAULT_LOCATIONS = [
+            { name: 'Kretschmann Family Organic Farm', address: 'Rochester, PA', id: 'kretschmann' },
+            { name: 'Tuesday Farmer\'s Market', address: 'Lawrenceville, Pittsburgh', id: 'lawrenceville_fm' },
+            { name: 'Saturday Farmer\'s Market', address: 'Sewickley, PA', id: 'sewickley_fm' },
+            { name: 'Today\'s Organic Market', address: 'Oakmont, PA', id: 'oakmont' },
+            { name: 'Bryant St. Market', address: 'Highland Park, Pittsburgh', id: 'bryant_st' },
+            { name: 'Saturday Farmer\'s Market', address: 'Bloomfield, Pittsburgh', id: 'bloomfield_fm' }
+        ];
+
+        let selectedLocation = null;
+        let locationSearchTimeout = null;
+
+        function getSavedLocations() {
+            try { return JSON.parse(localStorage.getItem('mcc_saved_locations') || '[]'); }
+            catch { return []; }
+        }
+
+        function saveRecentLocation(loc) {
+            let saved = getSavedLocations();
+            saved = saved.filter(l => l.id !== loc.id);
+            saved.unshift(loc);
+            if (saved.length > 10) saved = saved.slice(0, 10);
+            localStorage.setItem('mcc_saved_locations', JSON.stringify(saved));
+        }
+
+        function showLocationDropdown() {
+            const dropdown = document.getElementById('locationDropdown');
+            const list = document.getElementById('locationList');
+            if (!dropdown || !list) return;
+
+            const saved = getSavedLocations();
+            const allLocations = [...DEFAULT_LOCATIONS];
+            saved.forEach(s => {
+                if (!allLocations.some(l => l.id === s.id)) allLocations.unshift(s);
+            });
+
+            renderLocationList(allLocations.slice(0, 8), 'Saved Locations');
+            dropdown.style.display = 'block';
+
+            // Close on click outside
+            setTimeout(() => {
+                document.addEventListener('click', closeLocationOnOutsideClick);
+            }, 100);
+        }
+
+        function closeLocationOnOutsideClick(e) {
+            if (!e.target.closest('#locationTagSection')) {
+                document.getElementById('locationDropdown').style.display = 'none';
+                document.removeEventListener('click', closeLocationOnOutsideClick);
+            }
+        }
+
+        function renderLocationList(locations, headerText) {
+            const list = document.getElementById('locationList');
+            if (!list) return;
+
+            let html = headerText ? `<div class="mention-section-header">${headerText}</div>` : '';
+            html += locations.map(loc =>
+                `<div class="location-item" onclick="selectLocation(${JSON.stringify(loc).replace(/"/g, '&quot;')})">
+                    <div class="location-name"><i class="fas fa-map-pin" style="color: var(--instagram); margin-right: 0.3rem;"></i>${loc.name}</div>
+                    ${loc.address ? `<div class="location-address">${loc.address}</div>` : ''}
+                </div>`
+            ).join('');
+
+            if (locations.length === 0) {
+                html += '<div style="padding: 1rem; text-align: center; color: var(--text-secondary); font-size: 0.8rem;">No locations found</div>';
+            }
+            list.innerHTML = html;
+        }
+
+        function searchLocations(query) {
+            clearTimeout(locationSearchTimeout);
+            if (!query || query.length < 2) {
+                showLocationDropdown();
+                return;
+            }
+
+            // Filter local favorites first
+            const allLocations = [...DEFAULT_LOCATIONS, ...getSavedLocations()];
+            const localResults = allLocations.filter(l =>
+                l.name.toLowerCase().includes(query.toLowerCase()) ||
+                (l.address && l.address.toLowerCase().includes(query.toLowerCase()))
+            );
+
+            renderLocationList(localResults, 'Matching Locations');
+            document.getElementById('locationDropdown').style.display = 'block';
+
+            // Debounced API search
+            locationSearchTimeout = setTimeout(async () => {
+                try {
+                    const response = await fetch(APPS_SCRIPT_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain' },
+                        body: JSON.stringify({ action: 'searchFacebookPlaces', query: query })
+                    });
+                    const result = await response.json();
+                    if (result.success && result.places) {
+                        const apiPlaces = result.places.map(p => ({
+                            name: p.name, address: p.location || '', id: p.id || p.name
+                        }));
+                        const combined = [...localResults, ...apiPlaces.filter(ap => !localResults.some(lr => lr.id === ap.id))];
+                        renderLocationList(combined.slice(0, 10), 'Search Results');
+                    }
+                } catch (e) {
+                    console.log('Location search API not available:', e.message);
+                }
+            }, 500);
+        }
+
+        function selectLocation(loc) {
+            selectedLocation = loc;
+            document.getElementById('selectedLocationPill').style.display = 'block';
+            document.getElementById('selectedLocationName').textContent = loc.name;
+            document.getElementById('locationDropdown').style.display = 'none';
+            document.getElementById('locationSearchInput').value = '';
+            saveRecentLocation(loc);
+        }
+
+        function clearSelectedLocation() {
+            selectedLocation = null;
+            document.getElementById('selectedLocationPill').style.display = 'none';
+            document.getElementById('selectedLocationName').textContent = '';
+        }
+
+        // --- Feature 3: Hashtag Group Manager ---
+        const DEFAULT_HASHTAG_GROUPS = [
+            { name: 'Farm Fresh', tags: '#organic #farmfresh #pittsburgh #localfood #farmtotable #CSA #organicfarm #sustainablefarming' },
+            { name: 'Markets', tags: '#farmersmarket #pittsburghfarmers #shoplocal #freshproduce #marketday' },
+            { name: 'Seasonal', tags: '#springharvest #farmlife #growyourown #eatlocal #seasonaleating #harvestseason' },
+            { name: 'Flowers', tags: '#flowerfarm #freshflowers #bouquet #pittsburghflowers #localflowers' },
+            { name: 'Mushrooms', tags: '#mushrooms #gourmetmushrooms #lionsmane #oyster #fungi #mushroomgrowing' }
+        ];
+
+        let editingGroupIndex = -1;
+
+        function getHashtagGroups() {
+            try {
+                const saved = JSON.parse(localStorage.getItem('mcc_hashtag_groups'));
+                return saved && saved.length > 0 ? saved : DEFAULT_HASHTAG_GROUPS;
+            } catch { return DEFAULT_HASHTAG_GROUPS; }
+        }
+
+        function saveHashtagGroups(groups) {
+            localStorage.setItem('mcc_hashtag_groups', JSON.stringify(groups));
+        }
+
+        function toggleHashtagGroupManager() {
+            const popover = document.getElementById('hashtagGroupPopover');
+            if (!popover) return;
+            const isVisible = popover.style.display !== 'none';
+            popover.style.display = isVisible ? 'none' : 'block';
+            if (!isVisible) renderHashtagGroups();
+        }
+
+        function renderHashtagGroups() {
+            const container = document.getElementById('hashtagGroupCards');
+            if (!container) return;
+            const groups = getHashtagGroups();
+            updateHashtagCounter();
+
+            container.innerHTML = groups.map((g, i) => {
+                const tagCount = (g.tags.match(/#\w+/g) || []).length;
+                return `<div class="hashtag-group-card" onclick="insertHashtagGroup(${i})">
+                    <div class="group-name">
+                        <span>${g.name}</span>
+                        <div style="display: flex; gap: 0.4rem; align-items: center;">
+                            <span class="group-count">${tagCount} tags</span>
+                            <button onclick="event.stopPropagation(); editHashtagGroup(${i})" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 0.75rem; padding: 0.15rem;"><i class="fas fa-pen"></i></button>
+                            <button onclick="event.stopPropagation(); deleteHashtagGroup(${i})" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 0.75rem; padding: 0.15rem;"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                    <div class="group-tags">${g.tags}</div>
+                </div>`;
+            }).join('');
+        }
+
+        function insertHashtagGroup(index) {
+            const groups = getHashtagGroups();
+            if (!groups[index]) return;
+            const textarea = document.getElementById('captionInput');
+            if (!textarea) return;
+
+            const tags = groups[index].tags;
+            const currentHashtags = (textarea.value.match(/#\w+/g) || []).length;
+            const newHashtags = (tags.match(/#\w+/g) || []).length;
+
+            if (selectedPlatforms.includes('instagram') && currentHashtags + newHashtags > 30) {
+                showToast(`Would exceed Instagram's 30 hashtag limit (${currentHashtags + newHashtags}/30)`, 'warning');
+            }
+
+            textarea.value = textarea.value.trimEnd() + '\n\n' + tags;
+            textarea.focus();
+            updateCharCount();
+            updateHashtagCounter();
+            showToast(`Added "${groups[index].name}" hashtags`, 'success');
+        }
+
+        function updateHashtagCounter() {
+            const textarea = document.getElementById('captionInput');
+            const counter = document.getElementById('hashtagLiveCounter');
+            if (!textarea || !counter) return;
+            const count = (textarea.value.match(/#\w+/g) || []).length;
+            const max = selectedPlatforms.includes('instagram') ? 30 : 999;
+            counter.textContent = selectedPlatforms.includes('instagram') ? `${count}/30` : `${count} tags`;
+            counter.style.color = count > max ? 'var(--danger)' : count > max * 0.8 ? 'var(--warning)' : 'var(--success)';
+        }
+
+        function showCreateHashtagGroup() {
+            editingGroupIndex = -1;
+            document.getElementById('hashtagGroupForm').style.display = 'block';
+            document.getElementById('hashtagGroupNameInput').value = '';
+            document.getElementById('hashtagGroupTagsInput').value = '';
+            document.getElementById('hashtagGroupNameInput').focus();
+        }
+
+        function editHashtagGroup(index) {
+            const groups = getHashtagGroups();
+            if (!groups[index]) return;
+            editingGroupIndex = index;
+            document.getElementById('hashtagGroupForm').style.display = 'block';
+            document.getElementById('hashtagGroupNameInput').value = groups[index].name;
+            document.getElementById('hashtagGroupTagsInput').value = groups[index].tags;
+        }
+
+        function saveHashtagGroup() {
+            const name = document.getElementById('hashtagGroupNameInput').value.trim();
+            const tags = document.getElementById('hashtagGroupTagsInput').value.trim();
+            if (!name || !tags) { showToast('Name and tags are required', 'warning'); return; }
+
+            const groups = getHashtagGroups();
+            if (editingGroupIndex >= 0) {
+                groups[editingGroupIndex] = { name, tags };
+            } else {
+                groups.push({ name, tags });
+            }
+            saveHashtagGroups(groups);
+            cancelHashtagGroup();
+            renderHashtagGroups();
+            showToast(editingGroupIndex >= 0 ? 'Group updated' : 'Group created', 'success');
+        }
+
+        function deleteHashtagGroup(index) {
+            const groups = getHashtagGroups();
+            if (!groups[index]) return;
+            groups.splice(index, 1);
+            saveHashtagGroups(groups);
+            renderHashtagGroups();
+            showToast('Group deleted', 'info');
+        }
+
+        function cancelHashtagGroup() {
+            document.getElementById('hashtagGroupForm').style.display = 'none';
+            editingGroupIndex = -1;
+        }
+
+        function suggestHashtagsAI() {
+            const caption = document.getElementById('captionInput').value;
+            if (!caption) { showToast('Write a caption first for AI suggestions', 'info'); return; }
+            generateAICaption(); // Reuse existing AI caption which includes hashtag suggestions
+            showToast('AI is analyzing your caption for hashtag suggestions...', 'info');
+        }
+
+        // --- Feature 4: First Comment Field ---
+        function updateFirstCommentCount() {
+            const input = document.getElementById('firstCommentInput');
+            const counter = document.getElementById('firstCommentCharCount');
+            if (!input || !counter) return;
+            counter.textContent = `${input.value.length}/2200`;
+            counter.style.color = input.value.length > 2200 ? 'var(--danger)' : 'var(--text-secondary)';
+        }
+
+        function moveHashtagsToFirstComment() {
+            const caption = document.getElementById('captionInput');
+            const firstComment = document.getElementById('firstCommentInput');
+            if (!caption || !firstComment) return;
+
+            const hashtags = caption.value.match(/#\w+/g);
+            if (!hashtags || hashtags.length === 0) {
+                showToast('No hashtags found in caption', 'info');
+                return;
+            }
+
+            // Move hashtags to first comment
+            const hashtagStr = hashtags.join(' ');
+            firstComment.value = firstComment.value ? firstComment.value + ' ' + hashtagStr : hashtagStr;
+
+            // Remove hashtags from caption
+            let cleanCaption = caption.value;
+            hashtags.forEach(tag => {
+                cleanCaption = cleanCaption.replace(new RegExp(tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*', 'g'), '');
+            });
+            caption.value = cleanCaption.trim();
+
+            updateCharCount();
+            updateFirstCommentCount();
+            updateHashtagCounter();
+            showToast(`Moved ${hashtags.length} hashtags to first comment`, 'success');
+        }
+
+        // --- Feature 5: Per-Platform Feature Visibility ---
+        function updateTaggingFeatureVisibility() {
+            const features = document.querySelectorAll('.tagging-feature');
+            features.forEach(feature => {
+                const platforms = (feature.dataset.platforms || '').split(',');
+                const isVisible = platforms.some(p => selectedPlatforms.includes(p.trim()));
+                feature.style.display = isVisible ? 'block' : 'none';
+            });
+
+            // Update hashtag counter visibility
+            updateHashtagCounter();
+        }
+
+        // Hook into existing togglePlatform to update tagging visibility
+        const _origTogglePlatform = typeof togglePlatform === 'function' ? togglePlatform : null;
+
+        // Initialize tagging features on page load
+        function initTaggingFeatures() {
+            setupMentionAutocomplete();
+            updateTaggingFeatureVisibility();
+
+            // Listen for caption changes to update hashtag counter
+            const captionInput = document.getElementById('captionInput');
+            if (captionInput) {
+                captionInput.addEventListener('input', updateHashtagCounter);
+            }
+        }
+
+        // Run init after DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initTaggingFeatures);
+        } else {
+            setTimeout(initTaggingFeatures, 500);
+        }
 
         let hashtagSetsExpanded = false;
         let seoKeywordsExpanded = false;

@@ -2,7 +2,67 @@
 ## To: PM_Architect, All Claudes
 
 **Updated:** 2026-02-14
-**Session:** 7 - MCC CREATE TAB TASKS VERIFIED & COMPLETED
+**Session:** 7c - SOCIAL MEDIA TAGGING UX COMPLETE
+
+---
+
+## SESSION 7c: Social Media Tagging UX - 5 Features IMPLEMENTED
+
+### All 5 Features Built
+
+| # | Feature | Status | Key Lines |
+|---|---------|--------|-----------|
+| 1 | @Mention Autocomplete | IMPLEMENTED | JS: 32110-32240, HTML: 6446-6456 |
+| 2 | Location Tag Search | IMPLEMENTED | JS: 32242-32370, HTML: 6489-6520 |
+| 3 | Hashtag Group Manager | IMPLEMENTED | JS: 32372-32515, HTML: 6458-6487 |
+| 4 | First Comment (IG only) | IMPLEMENTED | JS: 32517-32550, HTML: 6522-6542 |
+| 5 | Per-Platform Visibility | IMPLEMENTED | JS: 32553-32580, Hook: 17363 |
+
+### Feature Details
+
+**1. @Mention Autocomplete**
+- Detects `@` typed in caption textarea
+- Shows dropdown with saved favorites: @tinyseedfarm, @tinyseedfleurs, @tinyseedfungi, @kretschmannfarm
+- Recent mentions saved to localStorage (`mcc_recent_mentions`)
+- Keyboard navigation (arrow keys + Enter)
+- Warns at 20 mentions (Instagram limit)
+
+**2. Location Tag Search**
+- Search field below caption with pin icon
+- Pre-populated with Todd's CSA stops (Kretschmann, Lawrenceville FM, Sewickley FM, etc.)
+- Debounced API search via `searchFacebookPlaces` (Backend Claude)
+- Selected location shown as removable pill
+- Saved to localStorage (`mcc_saved_locations`)
+- Platform indicator: shows only when IG/FB selected
+
+**3. Hashtag Group Manager**
+- `#Tags` button added to caption toolbar (teal color)
+- Opens popover with saved groups: Farm Fresh, Markets, Seasonal, Flowers, Mushrooms
+- One-click insertion into caption
+- Live counter: X/30 for Instagram
+- Create/edit/delete custom groups
+- Groups saved to localStorage (`mcc_hashtag_groups`)
+
+**4. First Comment Field (IG only)**
+- Dashed-border textarea below caption
+- "Move #tags from caption" button auto-migrates hashtags
+- Character counter (0/2200)
+- After successful IG post, sends first comment via `postInstagramComment` API
+- Industry best practice tooltip
+
+**5. Per-Platform Feature Visibility**
+- Location tag: shown for IG + FB, hidden for TikTok-only
+- First comment: shown for IG only
+- Hashtag counter: shows X/30 for IG, just count for others
+- Hooked into `togglePlatform()` at line 17363
+
+### Backend Dependencies
+- `searchFacebookPlaces` - Backend Claude building this for location search
+- `postInstagramComment` - Backend may need to add this for first comment posting
+- Both degrade gracefully (catch errors, log warnings)
+
+### Files Modified
+- `web_app/marketing-command-center.html` (+611 lines)
 
 ---
 

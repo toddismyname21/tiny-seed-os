@@ -38,6 +38,75 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-14 - Backend_Claude (Session cont. - Tagging APIs + Setup Execution)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Added tagging API endpoints, exposed setup triggers via GET
+
+### Functions Added
+- `searchFacebookPlaces(params)` in MERGED TOTAL.js - Facebook Graph API v24.0 Places search for location tagging
+- `postInstagramComment(params)` in MERGED TOTAL.js - Post first comment on IG media (hashtag-in-first-comment strategy)
+
+### Functions Modified
+- `postToInstagram(params)` - Added `locationId` and `userTags` parameter support for location tagging and photo user tags
+- GET router (doGet) - Added routes for `setupScheduledPostTrigger`, `removeScheduledPostTrigger`, `publishScheduledPosts`, `setupInstagramCredentials_ONETIME`, `searchFacebookPlaces`
+- POST router (doPost) - Added routes for `searchFacebookPlaces`, `postInstagramComment`
+
+### Setup Functions Executed
+- `setupScheduledPostTrigger()` - 5-minute auto-publisher trigger ACTIVATED
+- `setupInstagramCredentials_ONETIME()` - 3 Instagram accounts configured
+- `publishScheduledPosts()` - Tested manually, returned 0 due posts (correct - none scheduled yet)
+
+### Deployment
+- Deployed @629
+
+### Reason
+Complete the MCC CREATE tab scheduled post auto-publisher and build backend tagging API endpoints for Desktop_Claude's tagging UI.
+
+### Duplicate Check
+- [x] Checked for existing postInstagramComment - none found
+- [x] Checked for existing searchFacebookPlaces - none found
+- [x] No duplicates created
+
+---
+
+## 2026-02-14 - Desktop_Claude (Session 7c - Social Media Tagging UX)
+
+### Files Modified
+- `web_app/marketing-command-center.html` - Added 5 social media tagging features (+611 lines)
+
+### Functions Added
+- `setupMentionAutocomplete()` - Detects `@` in caption, shows dropdown of saved/favorite usernames
+- `showMentionDropdown()` / `hideMentionDropdown()` / `insertMention()` - @mention lifecycle
+- `searchLocations()` / `selectLocation()` / `clearSelectedLocation()` - Location tag search with API + local favorites
+- `toggleHashtagGroupManager()` / `renderHashtagGroups()` / `insertHashtagGroup()` - Hashtag group manager
+- `saveHashtagGroup()` / `editHashtagGroup()` / `deleteHashtagGroup()` - CRUD for custom hashtag groups
+- `updateHashtagCounter()` - Live hashtag counter (X/30 for Instagram)
+- `moveHashtagsToFirstComment()` - Moves #tags from caption to first comment field
+- `updateFirstCommentCount()` - Character counter for first comment
+- `updateTaggingFeatureVisibility()` - Shows/hides features based on selected platforms
+- `initTaggingFeatures()` - Initializes all tagging features on page load
+
+### HTML Added
+- @Mention autocomplete dropdown (glass morphism, positioned relative to caption)
+- Location tag search field with saved favorites dropdown + selected pill
+- Hashtag group manager popover with create/edit/delete + AI suggest
+- First comment textarea (dashed border, IG only) with "Move #tags" button
+- `#Tags` button added to caption toolbar
+
+### CSS Added
+- `.composer-section`, `.mention-item`, `.location-item`, `.hashtag-group-card` and related classes
+
+### Reason
+Implementation of Social Media Tagging UX features per PM_Architect INBOX task, based on Social Media Claude research + Backend Claude API research.
+
+### Duplicate Check
+- [x] Checked existing hashtag section (lines 6755-6789) - not duplicated, new groups manager is separate popover
+- [x] No duplicate functions created
+- [x] All localStorage keys prefixed with `mcc_`
+
+---
+
 ## 2026-02-14 - UX_Design_Claude (CREATE Tab Visual Polish)
 
 ### Files Modified
