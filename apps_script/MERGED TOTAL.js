@@ -17296,6 +17296,10 @@ function doGet(e) {
         // Alias for analyzeVoiceMatch
         return jsonResponse(analyzeVoiceMatch(e.parameter));
 
+      // ============ FARM JOURNAL / WRITING RESPONSES (GET) ============
+      case 'getWritingResponses':
+        return jsonResponse(getWritingResponses(e.parameter));
+
       // ============ ULTIMATE AI MEMORY SYSTEM - PHASE 1 (2026-02-13) ============
       // Institutional memory for the entire Tiny Seed OS - accessible from all systems
       // See: /docs/plans/ULTIMATE_AI_MEMORY_ARCHITECTURE.md
