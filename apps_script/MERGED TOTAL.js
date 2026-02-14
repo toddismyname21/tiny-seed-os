@@ -63246,7 +63246,7 @@ function logEngagement(params) {
 
 function postToInstagram(params) {
     try {
-        const { accountIndex, mediaType, postType, imageUrl, videoUrl, caption } = params;
+        const { accountIndex, mediaType, postType, imageUrl, videoUrl, caption, carouselUrls } = params;
         const props = PropertiesService.getScriptProperties();
         const accounts = JSON.parse(props.getProperty('instagram_accounts') || '[]');
         if (accounts.length === 0) return { success: false, error: 'Instagram not configured. Set up Meta Developer App first.', setup_required: true };
@@ -63259,15 +63259,113 @@ function postToInstagram(params) {
         const baseUrl = accessToken.startsWith('IGAA') ? 'https://graph.instagram.com' : 'https://graph.facebook.com/v24.0';
 
         // Determine the actual media type based on postType parameter
-        // postType: FEED (default), STORY, REEL
-        // mediaType: IMAGE (legacy), STORIES (legacy), REELS (legacy)
+        // postType: FEED (default), STORY, REEL, CAROUSEL
+        // mediaType: IMAGE (legacy), STORIES (legacy), REELS (legacy), CAROUSEL
         let actualMediaType = mediaType || 'IMAGE';
         if (postType === 'STORY') actualMediaType = 'STORIES';
         else if (postType === 'REEL') actualMediaType = 'REELS';
+        else if (postType === 'CAROUSEL' || (carouselUrls && carouselUrls.length >= 2)) actualMediaType = 'CAROUSEL';
         else if (postType === 'FEED') actualMediaType = 'IMAGE';
 
         Logger.log('postToInstagram: postType=' + postType + ', actualMediaType=' + actualMediaType);
 
+        // ═══════════════════════════════════════════════════════════════════════════
+        // CAROUSEL POST - Multiple images in one post (2-10 images)
+        // ═══════════════════════════════════════════════════════════════════════════
+        if (actualMediaType === 'CAROUSEL') {
+            const urls = carouselUrls || [];
+            if (urls.length < 2) {
+                return { success: false, error: 'Carousel requires at least 2 images. Got: ' + urls.length };
+            }
+            if (urls.length > 10) {
+                return { success: false, error: 'Carousel supports max 10 images. Got: ' + urls.length };
+            }
+
+            Logger.log('Creating carousel with ' + urls.length + ' images');
+
+            // Step 1: Create a container for each image (is_carousel_item=true)
+            const childContainerIds = [];
+            for (let i = 0; i < urls.length; i++) {
+                const childPayload = {
+                    image_url: urls[i],
+                    is_carousel_item: true,
+                    access_token: accessToken
+                };
+                Logger.log('Creating carousel child ' + (i + 1) + ': ' + urls[i].substring(0, 50) + '...');
+
+                const childResponse = UrlFetchApp.fetch(`${baseUrl}/${account.igUserId}/media`, {
+                    method: 'POST',
+                    payload: childPayload,
+                    muteHttpExceptions: true
+                });
+                const childResult = JSON.parse(childResponse.getContentText());
+
+                if (childResult.error) {
+                    Logger.log('Carousel child error: ' + JSON.stringify(childResult.error));
+                    return { success: false, error: 'Failed to create carousel item ' + (i + 1) + ': ' + childResult.error.message };
+                }
+                childContainerIds.push(childResult.id);
+                Logger.log('Carousel child ' + (i + 1) + ' created: ' + childResult.id);
+            }
+
+            // Step 2: Create the carousel container with all children
+            const carouselPayload = {
+                media_type: 'CAROUSEL',
+                children: childContainerIds.join(','),
+                caption: caption || '',
+                access_token: accessToken
+            };
+            Logger.log('Creating carousel container with children: ' + childContainerIds.join(','));
+
+            const carouselResponse = UrlFetchApp.fetch(`${baseUrl}/${account.igUserId}/media`, {
+                method: 'POST',
+                payload: carouselPayload,
+                muteHttpExceptions: true
+            });
+            const carouselResult = JSON.parse(carouselResponse.getContentText());
+
+            if (carouselResult.error) {
+                Logger.log('Carousel container error: ' + JSON.stringify(carouselResult.error));
+                return { success: false, error: 'Failed to create carousel: ' + carouselResult.error.message };
+            }
+
+            // Step 3: Wait for processing
+            Utilities.sleep(10000);
+
+            // Step 4: Publish the carousel
+            const publishResult = JSON.parse(UrlFetchApp.fetch(`${baseUrl}/${account.igUserId}/media_publish`, {
+                method: 'POST',
+                payload: { creation_id: carouselResult.id, access_token: accessToken },
+                muteHttpExceptions: true
+            }).getContentText());
+
+            if (publishResult.error) {
+                return { success: false, error: 'Failed to publish carousel: ' + publishResult.error.message };
+            }
+
+            logSocialPost({
+                account: account.name,
+                mediaType: 'CAROUSEL',
+                postType: 'Carousel',
+                caption: caption,
+                mediaId: publishResult.id,
+                slideCount: urls.length,
+                timestamp: new Date().toISOString()
+            });
+
+            return {
+                success: true,
+                mediaId: publishResult.id,
+                account: account.name,
+                postType: 'Carousel',
+                mediaType: 'CAROUSEL',
+                slideCount: urls.length
+            };
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // SINGLE IMAGE / STORY / REEL POST
+        // ═══════════════════════════════════════════════════════════════════════════
         let containerPayload = { access_token: accessToken };
 
         // Stories don't support captions via API - only mentions and hashtags in image

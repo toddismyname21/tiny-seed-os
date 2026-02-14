@@ -16466,6 +16466,7 @@ Example format:
         function clearUploadZone() {
             selectedFile = null;
             window.selectedFarmPicUrl = null;
+            window.currentCarousel = null;
             const preview = document.getElementById('uploadPreview');
             const uploadIcon = document.getElementById('uploadIcon');
             const uploadText = document.getElementById('uploadText');
@@ -16480,6 +16481,8 @@ Example format:
             if (clearBtn) clearBtn.style.display = 'none';
             const mediaToolsSection = document.getElementById('mediaToolsSection');
             if (mediaToolsSection) mediaToolsSection.style.display = 'none';
+            // Also clear carousel builder
+            if (typeof clearCarouselSlides === 'function') clearCarouselSlides();
             updateBlastButton();
         }
 
@@ -17215,7 +17218,7 @@ Example format:
                                     headers: { 'Content-Type': 'text/plain' },
                                     body: JSON.stringify({
                                         action: 'uploadSocialMediaImage',
-                                        base64: slide.dataUrl,
+                                        base64: slide.src,
                                         fileName: `carousel_${Date.now()}_${i}.jpg`,
                                         mimeType: 'image/jpeg'
                                     })
@@ -17317,7 +17320,8 @@ Example format:
                                 if (isCarouselPost && carouselImageUrls.length >= 2) {
                                     // CAROUSEL post
                                     requestBody.mediaType = 'CAROUSEL';
-                                    requestBody.imageUrls = carouselImageUrls;
+                                    requestBody.postType = 'CAROUSEL';
+                                    requestBody.carouselUrls = carouselImageUrls;
                                     console.log(`Posting carousel with ${carouselImageUrls.length} images to ${accountName}`);
                                 } else {
                                     // Single IMAGE post
@@ -31146,9 +31150,37 @@ Would you like to test posting to Threads?`;
                 showToast('Need at least 2 slides for a carousel', 'warning');
                 return;
             }
-            showToast(`Carousel ready with ${carouselSlides.length} slides!`, 'success');
+
             // Store carousel for posting
-            window.currentCarousel = carouselSlides;
+            window.currentCarousel = carouselSlides.map(slide => ({
+                id: slide.id,
+                src: slide.src,
+                name: slide.name
+            }));
+
+            // Update main upload zone to show carousel is ready
+            const preview = document.getElementById('uploadPreview');
+            const uploadIcon = document.getElementById('uploadIcon');
+            const uploadText = document.getElementById('uploadText');
+            const uploadSubtext = document.getElementById('uploadSubtext');
+
+            if (preview) {
+                preview.src = carouselSlides[0].src;
+                preview.classList.add('visible');
+            }
+            if (uploadIcon) uploadIcon.style.display = 'none';
+            if (uploadText) uploadText.innerHTML = `<i class="fas fa-images" style="color: #8b5cf6;"></i> Carousel Ready (${carouselSlides.length} slides)`;
+            if (uploadSubtext) uploadSubtext.textContent = 'Swipe through ' + carouselSlides.length + ' photos';
+
+            showClearButton();
+            updateBlastButton();
+            showToast(`Carousel ready with ${carouselSlides.length} slides! Add caption and post.`, 'success');
+
+            // Collapse media tools after building carousel
+            const body = document.getElementById('mediaToolsBody');
+            const icon = document.getElementById('mediaToolsToggleIcon');
+            if (body) body.style.display = 'none';
+            if (icon) icon.style.transform = 'rotate(0)';
         }
 
         // =============================================================================
