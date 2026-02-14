@@ -4918,6 +4918,475 @@
             padding-top: 1rem;
             border-top: 1px solid var(--border);
         }
+
+        /* ============================================= */
+        /* VISUAL POLISH PASS - CREATE TAB               */
+        /* UX_Design Claude - 2026-02-14                  */
+        /* Premium Creative Suite Aesthetic                */
+        /* Inspired by: Linear, Figma, Canva Pro          */
+        /* ============================================= */
+
+        /* --- Caption Textarea: The HERO Element --- */
+        #createTab .caption-input {
+            min-height: 140px;
+            padding: 1.25rem;
+            font-size: 1rem;
+            line-height: 1.6;
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+        }
+
+        #createTab .caption-input:focus {
+            border-color: rgba(225, 48, 108, 0.5);
+            box-shadow: 0 0 0 4px rgba(225, 48, 108, 0.08), 0 0 20px rgba(225, 48, 108, 0.04);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        #createTab .caption-input::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.6;
+        }
+
+        /* --- Post Controls: Hierarchy & Breathing Room --- */
+        #createTab .post-controls {
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            gap: 0.5rem;
+        }
+
+        /* Tone selector - custom styled select */
+        #quickPostTone {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238d99ae' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E") !important;
+            background-repeat: no-repeat !important;
+            background-position: right 0.75rem center !important;
+            padding-right: 2rem !important;
+            background-color: rgba(255, 255, 255, 0.04) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            border-radius: 10px !important;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        #quickPostTone:hover {
+            border-color: rgba(225, 48, 108, 0.35) !important;
+            background-color: rgba(255, 255, 255, 0.07) !important;
+        }
+
+        #quickPostTone:focus {
+            border-color: var(--instagram) !important;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(225, 48, 108, 0.12);
+        }
+
+        /* AI Caption button - primary action in post controls */
+        #createTab .ai-caption-btn {
+            border-radius: 10px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            letter-spacing: 0.01em;
+        }
+
+        #createTab .ai-caption-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        #createTab .ai-caption-btn:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+
+        /* Draft buttons - clearly tertiary, recede visually */
+        #createTab .draft-btn {
+            opacity: 0.65;
+            font-size: 0.8rem;
+            border-radius: 10px;
+            transition: all 0.2s ease;
+        }
+
+        #createTab .draft-btn:hover {
+            opacity: 1;
+            transform: translateY(-1px);
+        }
+
+        /* --- Caption Option Cards: Premium with Gradient Borders --- */
+        #createTab .caption-options-container {
+            counter-reset: caption-option;
+            gap: 0.85rem;
+            margin-top: 1rem;
+        }
+
+        #createTab .caption-option-card {
+            counter-increment: caption-option;
+            background: linear-gradient(135deg, rgba(22, 33, 62, 0.9), rgba(15, 52, 96, 0.6));
+            border: 1px solid rgba(139, 92, 246, 0.15);
+            border-radius: 14px;
+            padding: 1rem 1.25rem;
+            position: relative;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+        }
+
+        /* Gradient border glow on hover */
+        #createTab .caption-option-card::before {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            border-radius: 15px;
+            padding: 1px;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(225, 48, 108, 0.15));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+            opacity: 0.5;
+        }
+
+        #createTab .caption-option-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(139, 92, 246, 0.12), 0 4px 12px rgba(0, 0, 0, 0.15);
+            border-color: rgba(139, 92, 246, 0.3);
+        }
+
+        #createTab .caption-option-card:hover::before {
+            opacity: 1;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.5), rgba(225, 48, 108, 0.35));
+        }
+
+        /* Numbered badge via CSS counter */
+        #createTab .caption-option-card .option-label::before {
+            content: counter(caption-option);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            min-width: 22px;
+            background: linear-gradient(135deg, var(--purple), var(--instagram));
+            border-radius: 50%;
+            font-size: 0.65rem;
+            color: white;
+            font-weight: 700;
+            letter-spacing: 0;
+            text-transform: none;
+        }
+
+        #createTab .caption-option-card .option-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--purple);
+            letter-spacing: 0.8px;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        #createTab .caption-option-card .option-text {
+            font-size: 0.9rem;
+            line-height: 1.55;
+            color: var(--text-primary);
+        }
+
+        #createTab .caption-option-card .use-btn {
+            padding: 0.4rem 1rem;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            background: linear-gradient(135deg, var(--success), #10b981);
+        }
+
+        #createTab .caption-option-card .use-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+        }
+
+        #createTab .caption-option-card .copy-btn {
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        #createTab .caption-option-card .copy-btn:hover {
+            background: rgba(141, 153, 174, 0.3);
+            color: var(--text-primary);
+        }
+
+        /* --- Char Count: Better Spacing & Readability --- */
+        #createTab .char-count {
+            margin-top: 0.5rem;
+            padding: 0.35rem 0;
+            gap: 0.6rem;
+            align-items: center;
+        }
+
+        #createTab .char-count span {
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            font-weight: 500;
+            background: rgba(255, 255, 255, 0.04);
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+
+        /* Caption length hint - smooth color transitions */
+        #captionLengthHint {
+            transition: all 0.3s ease;
+        }
+
+        /* --- AI Predictions Bar: Glass Morphism --- */
+        #quickPostPredictions {
+            background: rgba(139, 92, 246, 0.06) !important;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(139, 92, 246, 0.15) !important;
+            border-radius: 14px !important;
+            padding: 1rem 1.25rem !important;
+            margin-top: 1.25rem !important;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        #quickPostPredictions::before {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            border-radius: 15px;
+            padding: 1px;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(67, 97, 238, 0.12));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+
+        /* --- Publish Actions: Dominant CTAs --- */
+        #createTab .btn-post-now {
+            font-size: 1.05rem;
+            font-weight: 700;
+            border-radius: 14px;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 14px rgba(34, 197, 94, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        #createTab .btn-post-now::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        #createTab .btn-post-now:hover:not(:disabled) {
+            transform: translateY(-3px) !important;
+            box-shadow: 0 8px 28px rgba(34, 197, 94, 0.35) !important;
+        }
+
+        #createTab .btn-post-now:active:not(:disabled) {
+            transform: translateY(-1px) !important;
+        }
+
+        #createTab .btn-post-now:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        #createTab .btn-schedule {
+            font-weight: 700;
+            border-radius: 14px;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 14px rgba(59, 130, 246, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        #createTab .btn-schedule::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        #createTab .btn-schedule:hover {
+            transform: translateY(-3px) !important;
+            box-shadow: 0 8px 28px rgba(59, 130, 246, 0.35) !important;
+        }
+
+        /* --- Field Mode Container: Premium Solid Border --- */
+        #quickPostMode .field-mode-container {
+            border: 1px solid rgba(225, 48, 108, 0.2);
+            border-radius: 20px;
+            background: linear-gradient(135deg, rgba(15, 52, 96, 0.5) 0%, rgba(22, 33, 62, 0.85) 100%);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+        }
+
+        /* --- Section Headings: Crisp Hierarchy --- */
+        #quickPostMode .field-mode-title h2 {
+            font-size: 1.35rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+
+        #quickPostMode .field-mode-title .subtitle {
+            font-size: 0.85rem;
+            opacity: 0.75;
+            letter-spacing: 0.01em;
+        }
+
+        /* Timer badge - refined */
+        #quickPostMode .timer-badge {
+            font-size: 0.8rem;
+            padding: 0.4rem 0.85rem;
+            border-radius: 24px;
+            letter-spacing: 0.02em;
+        }
+
+        /* --- Upload Zone: Refined --- */
+        #createTab .upload-zone {
+            border: 2px dashed rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.015);
+            min-height: 200px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        #createTab .upload-zone:hover,
+        #createTab .upload-zone.dragover {
+            border-color: rgba(225, 48, 108, 0.4);
+            background: rgba(225, 48, 108, 0.04);
+            transform: scale(1.005);
+        }
+
+        /* --- Collapsible Section Headers: Hover polish --- */
+        #createTab .power-tools-header:hover,
+        #createTab .media-tools-header:hover {
+            background: rgba(139, 92, 246, 0.12) !important;
+        }
+
+        /* --- Advanced Toggle: Better feel --- */
+        #createTab .advanced-toggle-btn {
+            border-radius: 10px;
+            transition: all 0.25s ease;
+            font-weight: 500;
+        }
+
+        #createTab .advanced-toggle-btn:hover {
+            transform: translateX(4px);
+            border-style: solid;
+        }
+
+        /* --- Emoji/Style Panels: Softer borders --- */
+        #createTab #emojiPickerPanel,
+        #createTab #textStylerPanel {
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+            border-color: rgba(255, 255, 255, 0.08) !important;
+        }
+
+        /* --- Caption AI Actions: Smooth reveal animation --- */
+        #captionAIActions {
+            animation: captionActionsReveal 0.3s ease forwards;
+        }
+
+        @keyframes captionActionsReveal {
+            from {
+                opacity: 0;
+                transform: translateY(6px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* --- Farm Pics Button: Match premium style --- */
+        #createTab .farm-pics-btn {
+            border-radius: 14px;
+            transition: all 0.2s ease;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        #createTab .farm-pics-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        /* --- Create Mode Toggle: Segmented control polish --- */
+        #createTab .create-mode-toggle {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+        }
+
+        /* --- Global smooth transitions for CREATE tab --- */
+        #createTab button,
+        #createTab select {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* --- Mobile Polish (under 768px) --- */
+        @media (max-width: 768px) {
+            /* Sticky POST NOW bar - premium feel */
+            #createTab .publish-actions {
+                border-radius: 16px 16px 0 0 !important;
+                box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.2) !important;
+                border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+                padding: 0.875rem !important;
+                background: rgba(22, 33, 62, 0.97) !important;
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+            }
+
+            /* Post controls - tighter on mobile */
+            #createTab .post-controls {
+                gap: 0.4rem !important;
+            }
+
+            /* Caption option cards - comfortable touch */
+            #createTab .caption-option-card {
+                padding: 1rem !important;
+            }
+
+            /* Tone selector - finger-friendly */
+            #quickPostTone {
+                min-height: 48px !important;
+                font-size: 0.95rem !important;
+            }
+
+            /* Field container - compact padding */
+            #quickPostMode .field-mode-container {
+                padding: 1.25rem !important;
+                border-radius: 16px !important;
+            }
+
+            /* Predictions bar - stack vertically */
+            #quickPostPredictions {
+                flex-direction: column !important;
+                gap: 0.5rem !important;
+                align-items: flex-start !important;
+            }
+        }
+
+        /* Small mobile (under 480px) */
+        @media (max-width: 480px) {
+            /* Char count - compact */
+            #createTab .char-count {
+                gap: 0.35rem;
+            }
+
+            #createTab .char-count span {
+                font-size: 0.68rem;
+                padding: 0.2rem 0.4rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -5899,7 +6368,7 @@
                             </button>
                         </div>
                         <!-- Caption AI Actions (shown after first AI generation) -->
-                        <div id="captionAIActions" style="display: none; margin-top: 0.5rem; display: none; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                        <div id="captionAIActions" style="display: none; margin-top: 0.5rem; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
                             <button onclick="generateAICaption()" style="padding: 0.3rem 0.6rem; background: transparent; border: 1px solid var(--border); border-radius: 6px; color: var(--text-secondary); font-size: 0.8rem; cursor: pointer;">
                                 <i class="fas fa-redo"></i> Try Again
                             </button>

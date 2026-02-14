@@ -38,6 +38,45 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-14 - UX_Design_Claude (CREATE Tab Visual Polish)
+
+### Files Modified
+- `web_app/marketing-command-center.html` - Added ~470 lines of CSS visual polish for CREATE tab
+
+### CSS Added (all scoped to #createTab / CREATE tab only)
+- **Caption textarea hero treatment** - Larger min-height, 2px border, pink glow on focus, smooth transitions
+- **Post controls hierarchy** - Subtle separator line, refined spacing, AI Caption buttons with hover lift
+- **Caption option cards** - Gradient border glow effect (::before pseudo-element), CSS counter numbered badges (1/2/3), hover lift with shadow, premium dark glass background
+- **Custom tone selector** - Removed browser default appearance, custom SVG dropdown arrow, hover/focus states
+- **AI predictions bar** - Glass morphism with backdrop-filter blur, gradient border glow, refined spacing
+- **Publish CTAs** - POST NOW and SCHEDULE buttons with inner light gradient (::after), hover lift with glow shadows, disabled state with lower opacity
+- **Field mode container** - Changed dashed border to solid, added box-shadow, richer gradient background
+- **Upload zone** - Subtler dashed border, scale(1.005) on hover
+- **Draft buttons** - Reduced opacity for tertiary hierarchy, hover to full opacity
+- **Micro-interactions** - All buttons/selects get cubic-bezier transitions, caption AI actions get fadeSlideIn animation
+- **Mobile polish (768px)** - Sticky publish bar with backdrop-blur, predictions bar stacked vertically, compact field container
+- **Small mobile (480px)** - Compact char count, stacked layout adjustments
+
+### Bug Fix
+- Fixed duplicate `display: none` in captionAIActions inline style (line ~6371)
+
+### Reason
+Owner directive: "This is going to LOOK GOOD while we are doing it." CREATE tab was functionally complete (all features verified PASS). This is the visual polish pass to make it feel premium - like a high-end creative suite (Canva Pro, Linear, Figma aesthetic). CSS-only changes, no JS or structural changes.
+
+### Design Decisions
+- **Kept MCC's dark creative suite identity** rather than aligning with style guide's organic green. The content creation tool benefits from a Linear/Figma-style dark UI with purple/pink accents.
+- **Caption textarea as hero** - Largest, most prominent element with glow focus state, because it's where the work happens
+- **Button hierarchy** - POST NOW/SCHEDULE dominant (glow shadows), AI Caption secondary (hover lift), Draft tertiary (reduced opacity)
+- **Caption option cards** - Gradient border + numbered badges make them feel premium and scannable
+- **Glass morphism predictions bar** - Backdrop blur creates depth separation from publish buttons below
+
+### Duplicate Check
+- [x] No new files created
+- [x] CSS-only additions, scoped to CREATE tab
+- [x] No duplicate styles - all use #createTab prefix for specificity
+
+---
+
 ## 2026-02-14 - Desktop_Claude (Session 7b - SCHEDULE flow fix)
 
 ### Files Modified
@@ -99,6 +138,32 @@ POST NOW button was 624 lines below caption textarea on mobile. Sticky positioni
 ### Duplicate Check
 - [x] Checked SYSTEM_MANIFEST.md
 - [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
+## 2026-02-14 - Backend_Claude (Scheduled Post Publisher Trigger)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Added scheduled post publisher system, updated schedulePost with new columns
+
+### Functions Added
+- `publishScheduledPosts()` - Time-trigger: finds due posts in SCHEDULED_POSTS sheet, publishes via postToInstagram, updates status (retry max 3)
+- `setupScheduledPostTrigger()` - Creates 5-min time-driven trigger (OWNER runs once)
+- `removeScheduledPostTrigger()` - Removes the trigger
+- `logPostToHistory()` - Logs published posts to POST_HISTORY sheet
+
+### Functions Modified
+- `schedulePost()` - Added columns: Published_At, Error, Retry_Count, Account_Indices, Post_Type
+
+### API Routes Added
+- `?action=publishScheduledPosts`, `?action=setupScheduledPostTrigger`, `?action=removeScheduledPostTrigger`
+
+### Reason
+SCHEDULE button in MCC Quick Post had no backend publisher. Posts sat in sheet forever. Now auto-publishes every 5 minutes.
+
+### Duplicate Check
+- [x] Uses existing `postToInstagram` - no new posting logic
 - [x] No duplicates created
 
 ---
