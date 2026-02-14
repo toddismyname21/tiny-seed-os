@@ -27406,7 +27406,7 @@ Would you like to test posting to Threads?`;
                     <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border);">
                         <button onclick="this.closest('#journalEntryModal').remove()" class="btn btn-secondary">Cancel</button>
                         <button onclick="submitJournalEntry()" class="btn" style="background: var(--gold); color: #000;">
-                            <i class="fas fa-save"></i> Save Entry & Generate Posts
+                            <i class="fas fa-save"></i> Save Entry
                         </button>
                     </div>
                 </div>
@@ -27466,28 +27466,24 @@ Would you like to test posting to Threads?`;
                     // SUCCESS - Show big confirmation, then close modal
                     localStorage.removeItem('tinyseed_last_journal_entry'); // Clear backup
 
-                    const postsCount = data.postsGenerated || 0;
                     const modal = document.getElementById('journalEntryModal');
                     if (modal) {
                         // Transform modal into success screen
-                        modal.querySelector('div').innerHTML = `
-                            <div style="text-align: center; padding: 2rem;">
+                        modal.innerHTML = `
+                            <div style="background: var(--bg-card); padding: 2rem; border-radius: 16px; max-width: 400px; width: 100%; text-align: center;">
                                 <div style="font-size: 4rem; margin-bottom: 1rem;">✅</div>
                                 <h2 style="color: var(--success); margin-bottom: 0.5rem;">Entry Saved!</h2>
-                                <p style="font-size: 1.1rem; color: var(--text-secondary); margin-bottom: 1rem;">
-                                    ${postsCount > 0 ? `${postsCount} posts generated and queued for your approval.` : 'Your journal entry has been saved.'}
+                                <p style="font-size: 1rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                                    Your journal entry has been saved to the farm's memory.
                                 </p>
-                                <p style="font-size: 0.85rem; color: var(--text-secondary);">
-                                    <i class="fas fa-brain"></i> AI is learning from this entry to create better content.
-                                </p>
-                                <button onclick="this.closest('#journalEntryModal').remove()" class="btn" style="margin-top: 1.5rem; background: var(--success);">
+                                <button onclick="document.getElementById('journalEntryModal').remove()" class="btn" style="margin-top: 1rem; background: var(--success); color: #fff;">
                                     <i class="fas fa-check"></i> Got it!
                                 </button>
                             </div>
                         `;
                     }
 
-                    showToast(`Entry saved! ${postsCount} posts generated.`, 'success');
+                    showToast('Entry saved!', 'success');
 
                     // Refresh the journal entries list
                     loadJournalEntries();
@@ -27501,7 +27497,7 @@ Would you like to test posting to Threads?`;
                     // Re-enable button so user can try again
                     if (submitBtn) {
                         submitBtn.disabled = false;
-                        submitBtn.innerHTML = '<i class="fas fa-save"></i> Save Entry & Generate Posts';
+                        submitBtn.innerHTML = '<i class="fas fa-save"></i> Save Entry';
                     }
                 }
             } catch (error) {
@@ -27511,7 +27507,7 @@ Would you like to test posting to Threads?`;
                 // Re-enable button
                 if (submitBtn) {
                     submitBtn.disabled = false;
-                    submitBtn.innerHTML = '<i class="fas fa-save"></i> Save Entry & Generate Posts';
+                    submitBtn.innerHTML = '<i class="fas fa-save"></i> Save Entry';
                 }
             }
         }
