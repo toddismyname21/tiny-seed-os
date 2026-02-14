@@ -17362,6 +17362,10 @@ function doGet(e) {
       // ============ FARM JOURNAL / WRITING RESPONSES (GET) ============
       case 'getWritingResponses':
         return jsonResponse(getWritingResponses(e.parameter));
+      case 'deleteJournalEntry':
+        return jsonResponse(deleteJournalEntry(e.parameter));
+      case 'saveJournalEntry':
+        return jsonResponse(saveJournalEntryOnly(e.parameter));
 
       // ============ ULTIMATE AI MEMORY SYSTEM - PHASE 1 (2026-02-13) ============
       // Institutional memory for the entire Tiny Seed OS - accessible from all systems
