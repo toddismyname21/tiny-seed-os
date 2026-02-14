@@ -4851,10 +4851,17 @@
     <div class="modal-overlay" id="farmPicsPickerModal">
         <div class="modal" style="max-width: 800px; max-height: 80vh;">
             <div class="modal-header" style="background: linear-gradient(135deg, var(--instagram) 0%, var(--accent) 100%);">
-                <h2><i class="fas fa-images"></i> Select from Farm Pics</h2>
+                <h2 id="farmPicsPickerTitle"><i class="fas fa-images"></i> Select from Farm Pics</h2>
                 <button class="modal-close" onclick="closeFarmPicsPicker()">&times;</button>
             </div>
             <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+                <!-- Carousel mode instruction bar -->
+                <div id="carouselModeBar" style="display: none; background: linear-gradient(135deg, #8b5cf6, #E1306C); padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; color: white;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span><i class="fas fa-layer-group"></i> Select 2-10 photos for your carousel</span>
+                        <span id="carouselModeCount" style="background: rgba(255,255,255,0.2); padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.85rem;">0 selected</span>
+                    </div>
+                </div>
                 <div id="farmPicsPickerGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem;">
                     <div style="grid-column: 1 / -1; text-align: center; padding: 2rem;">
                         <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--instagram);"></i>
@@ -4862,8 +4869,11 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer" style="display: flex; gap: 0.5rem; justify-content: flex-end;">
                 <button class="btn btn-secondary" onclick="closeFarmPicsPicker()">Cancel</button>
+                <button id="carouselDoneBtn" class="btn" style="display: none; background: linear-gradient(135deg, #8b5cf6, #E1306C); color: white;" onclick="finishCarouselSelection()">
+                    <i class="fas fa-check"></i> Done (<span id="carouselDoneBtnCount">0</span> slides)
+                </button>
             </div>
         </div>
     </div>
@@ -17954,6 +17964,23 @@ Example format:
             modal.classList.add('active');
             const grid = document.getElementById('farmPicsPickerGrid');
 
+            // Setup carousel mode UI if applicable
+            const isCarouselMode = window.farmPicsPickerMode === 'carousel';
+            const carouselModeBar = document.getElementById('carouselModeBar');
+            const carouselDoneBtn = document.getElementById('carouselDoneBtn');
+            const title = document.getElementById('farmPicsPickerTitle');
+
+            if (isCarouselMode) {
+                carouselModeBar.style.display = 'block';
+                carouselDoneBtn.style.display = 'inline-flex';
+                title.innerHTML = '<i class="fas fa-layer-group"></i> Select Photos for Carousel';
+                updateCarouselPickerCount();
+            } else {
+                carouselModeBar.style.display = 'none';
+                carouselDoneBtn.style.display = 'none';
+                title.innerHTML = '<i class="fas fa-images"></i> Select from Farm Pics';
+            }
+
             // Show loading state
             grid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 2rem;">
                 <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--instagram);"></i>
@@ -17984,12 +18011,19 @@ Example format:
                         </div>
                     `).join('');
 
-                    // Add click handlers
+                    // Add click handlers - different behavior for carousel mode
                     grid.querySelectorAll('.farm-pic-picker-item').forEach(item => {
                         item.addEventListener('click', function() {
                             const idx = parseInt(this.dataset.picIndex);
                             const pic = picsWithUrls[idx];
-                            selectFarmPic(pic.url, pic.caption || '', this);
+
+                            if (window.farmPicsPickerMode === 'carousel') {
+                                // Carousel mode - multi-select
+                                addFarmPicToCarouselSlides(pic.url, this);
+                            } else {
+                                // Normal mode - single select
+                                selectFarmPic(pic.url, pic.caption || '', this);
+                            }
                         });
                     });
                 } else {
@@ -18011,6 +18045,26 @@ Example format:
 
         function closeFarmPicsPicker() {
             document.getElementById('farmPicsPickerModal').classList.remove('active');
+            // Reset carousel mode
+            window.farmPicsPickerMode = null;
+        }
+
+        function updateCarouselPickerCount() {
+            const count = carouselSlides.length;
+            const countEl = document.getElementById('carouselModeCount');
+            const btnCountEl = document.getElementById('carouselDoneBtnCount');
+            if (countEl) countEl.textContent = `${count} selected`;
+            if (btnCountEl) btnCountEl.textContent = count;
+        }
+
+        function finishCarouselSelection() {
+            if (carouselSlides.length < 2) {
+                showToast('Select at least 2 photos for a carousel', 'warning');
+                return;
+            }
+            closeFarmPicsPicker();
+            renderCarouselSlides();
+            showToast(`${carouselSlides.length} photos added to carousel!`, 'success');
         }
 
         async function selectFarmPic(imageUrl, caption, element) {
@@ -31141,8 +31195,49 @@ Would you like to test posting to Threads?`;
         }
 
         function pickFromFarmPicsForCarousel() {
-            showToast('Opening Farm Pics picker for carousel...', 'info');
-            // TODO: Integrate with Farm Pics modal
+            // Set carousel mode flag
+            window.farmPicsPickerMode = 'carousel';
+            window.carouselPickerSelectedUrls = [];
+            openFarmPicsPicker();
+        }
+
+        // Handle selection in carousel mode
+        function addFarmPicToCarouselSlides(imageUrl, element) {
+            const maxSlides = 10;
+            const remainingSlots = maxSlides - carouselSlides.length;
+
+            if (remainingSlots <= 0) {
+                showToast('Carousel is full (10 slides max)', 'warning');
+                return;
+            }
+
+            // Check if already added
+            if (carouselSlides.some(s => s.src === imageUrl)) {
+                // Remove it (toggle off)
+                const idx = carouselSlides.findIndex(s => s.src === imageUrl);
+                carouselSlides.splice(idx, 1);
+                element.style.border = '3px solid var(--border)';
+                element.querySelector('.carousel-check-mark')?.remove();
+                showToast(`Removed from carousel (${carouselSlides.length} slides)`, 'info');
+            } else {
+                // Add it
+                carouselSlides.push({
+                    id: Date.now() + carouselSlides.length,
+                    src: imageUrl,
+                    name: 'farm_pic_' + carouselSlides.length + '.jpg'
+                });
+                element.style.border = '3px solid var(--success)';
+                // Add checkmark overlay
+                const checkMark = document.createElement('div');
+                checkMark.className = 'carousel-check-mark';
+                checkMark.style.cssText = 'position: absolute; top: 0.5rem; left: 0.5rem; background: var(--success); width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.75rem; z-index: 10;';
+                checkMark.innerHTML = '<i class="fas fa-check"></i>';
+                element.appendChild(checkMark);
+                showToast(`Added to carousel (${carouselSlides.length} slides)`, 'success');
+            }
+
+            renderCarouselSlides();
+            updateCarouselPickerCount();
         }
 
         function buildCarousel() {
