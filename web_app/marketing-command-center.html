@@ -11421,7 +11421,7 @@
                         <button class="btn btn-primary" onclick="addToQueue()">
                             <i class="fas fa-plus"></i> Add to Queue
                         </button>
-                        <button class="btn" onclick="generateAIContent()" style="background: linear-gradient(135deg, var(--purple), var(--instagram)); color: white;">
+                        <button class="btn" onclick="generateAIContentForQueue()" style="background: linear-gradient(135deg, var(--purple), var(--instagram)); color: white;">
                             <i class="fas fa-robot"></i> Generate AI Content
                         </button>
                         <button class="btn btn-secondary" onclick="postImmediately()">
@@ -13668,7 +13668,7 @@
             showToast('Use the Auto-Pilot tab to add content to the queue', 'info');
         }
 
-        function generateAIContentForQueue() {
+        function generateAIContentQuick() {
             showToast('Generating AI content...', 'info');
             const platform = 'instagram';
             const contentType = 'post';
@@ -30043,7 +30043,7 @@ Would you like to test posting to Threads?`;
             }
         }
 
-        async function generateAIContent() {
+        async function generateAIContentForQueue() {
             const platform = document.getElementById('queuePlatform').value;
             const contentType = document.getElementById('queueContentType').value;
 
