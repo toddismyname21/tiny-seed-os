@@ -17897,6 +17897,7 @@ Example format:
         }
 
         async function selectFarmPic(imageUrl, caption, element) {
+            console.log('selectFarmPic called with:', imageUrl);
             // Visual feedback - highlight selected
             document.querySelectorAll('.farm-pic-picker-item').forEach(el => {
                 el.style.border = '3px solid transparent';
@@ -30933,15 +30934,30 @@ Would you like to test posting to Threads?`;
                 showToast(`Can only add ${remainingSlots} more slides (max 10)`, 'warning');
             }
 
-            Array.from(files).slice(0, remainingSlots).forEach(file => {
+            // Read files in order - wait for all to complete before adding
+            const filesToProcess = Array.from(files).slice(0, remainingSlots);
+            const startIndex = carouselSlides.length;
+            const pendingSlides = new Array(filesToProcess.length).fill(null);
+            let completed = 0;
+
+            filesToProcess.forEach((file, idx) => {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    carouselSlides.push({
-                        id: Date.now() + Math.random(),
+                    // Store at correct index to maintain order
+                    pendingSlides[idx] = {
+                        id: Date.now() + idx,
                         src: e.target.result,
                         name: file.name
-                    });
-                    renderCarouselSlides();
+                    };
+                    completed++;
+
+                    // When all files are read, add them in order
+                    if (completed === filesToProcess.length) {
+                        pendingSlides.forEach(slide => {
+                            if (slide) carouselSlides.push(slide);
+                        });
+                        renderCarouselSlides();
+                    }
                 };
                 reader.readAsDataURL(file);
             });
