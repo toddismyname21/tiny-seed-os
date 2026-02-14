@@ -5088,16 +5088,6 @@
                         </div>
                     </div>
 
-                    <!-- Team Responses (Todd, Loren, etc.) -->
-                    <div id="toddResponseSection" style="background: rgba(42, 157, 143, 0.15); border-radius: 12px; padding: 1rem; margin-bottom: 1rem; border-left: 3px solid var(--success); display: none;">
-                        <h4 style="font-size: 0.9rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
-                            <i class="fas fa-comment-dots" style="color: var(--success);"></i> Latest Team Entry
-                            <span id="responseTimestamp" style="font-size: 0.7rem; color: var(--text-secondary);"></span>
-                        </h4>
-                        <div id="toddResponseContent" style="font-size: 0.85rem; color: var(--text-primary); font-style: italic; padding: 0.5rem; background: rgba(0,0,0,0.2); border-radius: 8px;">
-                        </div>
-                    </div>
-
                     <!-- Recent Journal Entries -->
                     <div>
                         <h4 style="font-size: 0.9rem; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between;">
@@ -27192,36 +27182,9 @@ Would you like to test posting to Threads?`;
             if (icon) icon.style.transform = weekReviewExpanded ? 'rotate(180deg)' : 'rotate(0)';
         }
 
-        // Load all weekly journal data (Added 2026-02-13)
+        // Load all weekly journal data (Updated 2026-02-13: Simplified)
         async function loadWeeklyJournal() {
-            await Promise.all([loadJournalEntries(), loadCurrentWeekResponse()]);
-        }
-
-        // Load current week's response from Todd (Updated 2026-02-13: Simplified, removed auto-post generation)
-        async function loadCurrentWeekResponse() {
-            const responseSection = document.getElementById('toddResponseSection');
-            if (!responseSection) return;
-            try {
-                const response = await fetch(`${API_URL}?action=getWritingResponses&limit=1`);
-                const data = await response.json();
-                const responses = data.responses || data.entries || [];
-                if (responses.length > 0) {
-                    const latestResponse = responses[0];
-                    const receivedAt = new Date(latestResponse.Received_At || latestResponse.date);
-                    const weekAgo = new Date();
-                    weekAgo.setDate(weekAgo.getDate() - 7);
-                    if (receivedAt > weekAgo) {
-                        const content = latestResponse.Todd_Input || latestResponse.content || '';
-                        responseSection.style.display = 'block';
-                        document.getElementById('toddResponseContent').textContent = content;
-                        document.getElementById('responseTimestamp').textContent = receivedAt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-                        const lastDate = document.getElementById('lastEntryDate');
-                        if (lastDate) lastDate.textContent = `Last: ${receivedAt.toLocaleDateString()}`;
-                    } else {
-                        responseSection.style.display = 'none';
-                    }
-                }
-            } catch (error) { console.error('Error loading current week response:', error); }
+            await loadJournalEntries();
         }
 
         // Send manual SMS prompt to Todd (Added 2026-02-13)
