@@ -40,6 +40,28 @@ Brief explanation of why these changes were made.
 
 ---
 
+## 2026-02-13 - PM_Architect (CREATE Tab: Auto UTM Tracking)
+
+### Files Modified
+- `web_app/marketing-command-center.html` - Added automatic UTM link tracking
+
+### Functions Added
+- `addUTMToLinks(caption, platform, contentType)` - Detects URLs and adds UTM parameters
+
+### What It Does
+When you post a link to your Shopify store, the system automatically adds tracking:
+- `utm_source=instagram`
+- `utm_medium=social`
+- `utm_campaign=original_20260213` (content type + date)
+- `utm_content=feed` (post type)
+
+Now Shopify Analytics shows which Instagram posts drive sales.
+
+### Duplicate Check
+- [x] No duplicates created
+
+---
+
 ## 2026-02-13 - PM_Architect (CREATE Tab: Instagram Post Edit/Delete)
 
 ### Files Modified
