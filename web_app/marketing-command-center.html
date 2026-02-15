@@ -5815,16 +5815,28 @@
             transition: all 0.2s ease;
         }
 
-        /* --- 4. Voice Note Button: Refined --- */
+        /* --- 4. Voice Note Button: Desktop = Compact, Mobile = Field-Friendly --- */
         #voiceNoteBtn {
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
-            box-shadow: 0 4px 14px rgba(34, 197, 94, 0.15);
             border: 1px solid rgba(255, 255, 255, 0.05) !important;
+            /* Desktop: subdued so it doesn't compete with POST NOW */
+            min-height: 52px !important;
+            font-size: 0.95rem !important;
+            padding: 0.75rem 1.5rem !important;
+            background: rgba(34, 197, 94, 0.15) !important;
+            color: var(--success) !important;
+            border-color: rgba(34, 197, 94, 0.3) !important;
+            box-shadow: none;
+        }
+
+        #voiceNoteBtn i {
+            font-size: 1.1rem !important;
         }
 
         #voiceNoteBtn:hover {
             transform: translateY(-2px) !important;
-            box-shadow: 0 8px 24px rgba(34, 197, 94, 0.25) !important;
+            box-shadow: 0 6px 20px rgba(34, 197, 94, 0.2) !important;
+            background: rgba(34, 197, 94, 0.25) !important;
         }
 
         #voiceNoteBtn:active {
@@ -6008,9 +6020,19 @@
                 justify-content: center;
             }
 
-            /* Voice note - full width on small screens */
+            /* Voice note - RESTORE big field-friendly style on mobile */
             #voiceNoteBtn {
                 border-radius: 14px !important;
+                min-height: 68px !important;
+                font-size: 1.1rem !important;
+                padding: 1rem 1.5rem !important;
+                background: linear-gradient(135deg, var(--success) 0%, var(--accent, #e76f51) 100%) !important;
+                color: white !important;
+                box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3) !important;
+            }
+
+            #voiceNoteBtn i {
+                font-size: 1.5rem !important;
             }
 
             /* UTM section inputs - better mobile spacing */
@@ -7468,39 +7490,39 @@
                             </label>
                             <select id="captionTemplateSelect" onchange="insertCaptionTemplate(this.value)" style="width: 100%; padding: 0.75rem 1rem; min-height: 56px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 12px; color: var(--text-primary); font-size: 0.95rem; cursor: pointer;">
                                 <option value="">Select a template...</option>
-                                <optgroup label="Harvest">
+                                <optgroup label="Harvest" data-tones="authentic,storytelling,educational">
                                     <option value="harvest_1">Fresh picked! Just harvested these beauties...</option>
                                     <option value="harvest_2">What's in the fields today? Take a look...</option>
                                     <option value="harvest_3">Peak season flavor alert! These are ready...</option>
                                     <option value="harvest_4">From our hands to your kitchen table...</option>
                                     <option value="harvest_5">This morning's harvest is INCREDIBLE...</option>
                                 </optgroup>
-                                <optgroup label="Market">
+                                <optgroup label="Market" data-tones="authentic,promotional">
                                     <option value="market_1">See you at the market tomorrow!</option>
                                     <option value="market_2">Market day countdown! We'll have...</option>
                                     <option value="market_3">Thank you to everyone who stopped by today!</option>
                                     <option value="market_4">Fresh from the farm to our booth...</option>
                                 </optgroup>
-                                <optgroup label="Weather">
+                                <optgroup label="Weather" data-tones="authentic,educational,storytelling">
                                     <option value="weather_1">This rain is exactly what the crops needed!</option>
                                     <option value="weather_2">Perfect growing weather out here today...</option>
                                     <option value="weather_3">Working through the heat because...</option>
                                     <option value="weather_4">The forecast is looking great for...</option>
                                 </optgroup>
-                                <optgroup label="CSA">
+                                <optgroup label="CSA" data-tones="promotional,educational,authentic">
                                     <option value="csa_1">This week's CSA box is packed with...</option>
                                     <option value="csa_2">CSA spots are filling up fast!</option>
                                     <option value="csa_3">A peek inside this week's share...</option>
                                     <option value="csa_4">Join our farm family! CSA signup open...</option>
                                 </optgroup>
-                                <optgroup label="Behind the Scenes">
+                                <optgroup label="Behind the Scenes" data-tones="storytelling,authentic,fun">
                                     <option value="bts_1">Early morning on the farm looks like this...</option>
                                     <option value="bts_2">Ever wonder what we do all day?</option>
                                     <option value="bts_3">The work you don't see: prepping for...</option>
                                     <option value="bts_4">Farm life isn't always pretty, but...</option>
                                     <option value="bts_5">A day in the life of a farmer...</option>
                                 </optgroup>
-                                <optgroup label="Engagement">
+                                <optgroup label="Engagement" data-tones="fun,authentic,promotional">
                                     <option value="engage_1">What's your favorite way to prepare...?</option>
                                     <option value="engage_2">Poll time! Which should we grow more of?</option>
                                     <option value="engage_3">Tag someone who needs fresh veggies!</option>
@@ -14986,11 +15008,7 @@
             else if (sectionId === 'automation' && typeof loadAutoPilotStatusForSettings === 'function') loadAutoPilotStatusForSettings();
         }
 
-        function loadTrainingCount() {
-            const countEl = document.getElementById('settingsTrainingCount');
-            const existingCount = document.getElementById('trainingCount');
-            if (existingCount && countEl) countEl.textContent = existingCount.textContent;
-        }
+        // loadTrainingCount - consolidated: async API version in Brand Voice section below
 
         function loadAutoPilotStatusForSettings() {
             const ids = [['queueStatus', 'settingsQueueStatus'], ['pendingPostsCount', 'settingsPendingPostsCount'], ['postedThisWeek', 'settingsPostedThisWeek'], ['failedPostsCount', 'settingsFailedPostsCount']];
@@ -15630,7 +15648,7 @@
         function getSentimentColor(s) { var v = parseFloat(s) || 0.5; return v >= 0.7 ? 'var(--success)' : v < 0.4 ? 'var(--danger)' : 'var(--warning)'; }
         function getSentimentLabel(s) { var v = parseFloat(s) || 0.5; return v >= 0.7 ? 'Positive' : v < 0.4 ? 'Negative' : 'Neutral'; }
         function getPriorityColor(p) { return p === 'high' ? 'var(--danger)' : p === 'medium' ? 'var(--warning)' : 'var(--text-secondary)'; }
-        function formatNumber(n) { if (!n) return '0'; return n >= 1000000 ? (n/1000000).toFixed(1) + 'M' : n >= 1000 ? (n/1000).toFixed(1) + 'K' : n.toString(); }
+        function formatNumber(num) { if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M'; if (num >= 1000) return (num / 1000).toFixed(1) + 'K'; return num?.toLocaleString() || '0'; }
         function formatTimeAgo(t) { if (!t) return ''; var diff = Date.now() - new Date(t).getTime(); var m = Math.floor(diff/60000), h = Math.floor(diff/3600000), d = Math.floor(diff/86400000); return m < 1 ? 'just now' : m < 60 ? m + 'm ago' : h < 24 ? h + 'h ago' : d < 7 ? d + 'd ago' : new Date(t).toLocaleDateString(); }
 
 
@@ -16399,6 +16417,32 @@ Vote in comments!
             }
         }
 
+        // Filter caption templates by selected tone
+        function filterTemplatesByTone(tone) {
+            const select = document.getElementById('captionTemplateSelect');
+            if (!select) return;
+            const groups = select.querySelectorAll('optgroup');
+            let visibleCount = 0;
+            groups.forEach(group => {
+                const tones = (group.dataset.tones || '').split(',');
+                const match = !tone || tone === 'authentic' || tones.includes(tone);
+                group.style.display = match ? '' : 'none';
+                group.querySelectorAll('option').forEach(opt => opt.style.display = match ? '' : 'none');
+                if (match) visibleCount++;
+            });
+            select.value = '';
+        }
+
+        // Wire tone selector to template filter
+        (function() {
+            const toneEl = document.getElementById('quickPostTone');
+            if (toneEl) {
+                toneEl.addEventListener('change', function() {
+                    filterTemplatesByTone(this.value);
+                });
+            }
+        })();
+
         // ═══════════════════════════════════════════════════════════════════════════
         // CONTENT REPURPOSING PIPELINE FUNCTIONS
         // ═══════════════════════════════════════════════════════════════════════════
@@ -16940,6 +16984,7 @@ From our farm to your table with love. Every bite tells a story of dedication, h
 
         // Escape HTML for safe display
         function escapeHtml(text) {
+            if (!text) return '';
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
@@ -22832,11 +22877,7 @@ Would you like to test posting to Threads?`;
             return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         }
 
-        function formatNumber(num) {
-            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-            return num.toLocaleString();
-        }
+        // formatNumber - consolidated: single definition above
 
         // ═══════════════════════════════════════════════════════════════════════════
         // MARKETING INTELLIGENCE FUNCTIONS
@@ -26553,12 +26594,7 @@ Would you like to test posting to Threads?`;
             return icons[platform] || 'globe';
         }
 
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
+        // escapeHtml - consolidated: single definition above (with null guard)
 
         function showFallbackAlgorithmData() {
             // Updated 2026-02-13: Use MARKETING_STATE for unified time display instead of hardcoded "4:00 PM"
@@ -26578,14 +26614,7 @@ Would you like to test posting to Threads?`;
             displayWeeklyBriefFromLocal();
         }
 
-        // Get week number for display
-        function getWeekNumber(date) {
-            const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-            const dayNum = d.getUTCDay() || 7;
-            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-            return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-        }
+        // getWeekNumber - consolidated: single definition above
 
         // Gather weekly post summary from localStorage 5-3-2 tracker
         function getWeeklyPostSummaryFromLocal() {
@@ -27783,11 +27812,7 @@ Would you like to test posting to Threads?`;
             console.log('Weather error (deprecated):', message);
         }
 
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
+        // escapeHtml - consolidated: single definition above
 
         // ═══════════════════════════════════════════════════════════════════════════
         // AEO (ANSWER ENGINE OPTIMIZATION) - CRITICAL FOR 2026 VISIBILITY
@@ -29869,6 +29894,40 @@ Would you like to test posting to Threads?`;
             const message = document.getElementById('celebrationMessage');
             if (message) { const estimatedReach = postCount * 200; message.textContent = `${postCount} posts scheduled, est. reach ${estimatedReach.toLocaleString()}`; }
             if (overlay) { overlay.classList.add('active'); createConfetti(); }
+            playCelebrationSound();
+        }
+
+        // Optional celebration chime using Web Audio API (no files needed)
+        function playCelebrationSound() {
+            if (localStorage.getItem('mcc_celebration_sound') === 'off') return;
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6 - major arpeggio
+                notes.forEach((freq, i) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.12);
+                    gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + i * 0.12 + 0.02);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.4);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(ctx.currentTime + i * 0.12);
+                    osc.stop(ctx.currentTime + i * 0.12 + 0.5);
+                });
+                setTimeout(() => ctx.close(), 2000);
+            } catch (e) { /* Audio not supported - silent fallback */ }
+        }
+
+        function toggleCelebrationSound() {
+            const isOff = localStorage.getItem('mcc_celebration_sound') === 'off';
+            localStorage.setItem('mcc_celebration_sound', isOff ? 'on' : 'off');
+            const icon = document.getElementById('celebrationSoundIcon');
+            const label = document.getElementById('celebrationSoundLabel');
+            if (icon) icon.className = isOff ? 'fas fa-volume-up' : 'fas fa-volume-mute';
+            if (label) label.textContent = isOff ? 'Sound on' : 'Sound off';
+            if (isOff) playCelebrationSound(); // Play preview when turning on
         }
 
         function closeCelebration() {
@@ -30019,9 +30078,7 @@ Would you like to test posting to Threads?`;
             }
         }
 
-        function generateLocalContent(prompt) {
-            return `${prompt}\n\nFrom our farm to your table with love. Every bite tells a story of dedication, hard work, and passion for quality.\n\n#TinySeedFarm #FarmFresh #LocalFood #Pittsburgh #SupportLocal`;
-        }
+        // generateLocalContent - consolidated: single definition above
 
         function copyGeneratedContent() {
             navigator.clipboard.writeText(generatedContentText);
@@ -31725,11 +31782,7 @@ Would you like to test posting to Threads?`;
             }
         }
 
-        function formatNumber(num) {
-            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-            return num?.toLocaleString() || '0';
-        }
+        // formatNumber - consolidated: single definition above
 
         // ═══════════════════════════════════════════════════════════════════════════
         // AUTO-PILOT TAB FUNCTIONALITY
@@ -31803,7 +31856,7 @@ Would you like to test posting to Threads?`;
                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 12px; border-left: 3px solid ${getPlatformColor(post.platform)};">
                     <div style="flex: 1;">
                         <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
-                            <i class="${getPlatformIcon(post.platform)}" style="color: ${getPlatformColor(post.platform)};"></i>
+                            <i class="${getPlatformIconClass(post.platform)}" style="color: ${getPlatformColor(post.platform)};"></i>
                             <span style="font-weight: 600; text-transform: capitalize;">${post.platform}</span>
                             <span style="font-size: 0.8rem; color: var(--text-secondary); padding: 0.25rem 0.5rem; background: rgba(255,255,255,0.1); border-radius: 4px;">${post.type || 'general'}</span>
                         </div>
@@ -31833,7 +31886,7 @@ Would you like to test posting to Threads?`;
 
             container.innerHTML = posts.map(post => `
                 <div style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem; background: rgba(34, 197, 94, 0.1); border-radius: 8px;">
-                    <i class="${getPlatformIcon(post.platform)}" style="color: ${getPlatformColor(post.platform)};"></i>
+                    <i class="${getPlatformIconClass(post.platform)}" style="color: ${getPlatformColor(post.platform)};"></i>
                     <div style="flex: 1;">
                         <p style="font-size: 0.85rem; color: var(--text-primary);">${post.contentPreview}</p>
                         <p style="font-size: 0.75rem; color: var(--success);">
@@ -31844,16 +31897,7 @@ Would you like to test posting to Threads?`;
             `).join('');
         }
 
-        function getPlatformIcon(platform) {
-            const icons = {
-                'instagram': 'fab fa-instagram',
-                'facebook': 'fab fa-facebook',
-                'gbp': 'fab fa-google',
-                'tiktok': 'fab fa-tiktok',
-                'twitter': 'fab fa-twitter'
-            };
-            return icons[platform] || 'fas fa-globe';
-        }
+        // getPlatformIconClass - consolidated: single definition above (with threads + null safety)
 
         function getPlatformColor(platform) {
             const colors = {
@@ -33941,17 +33985,8 @@ Would you like to test posting to Threads?`;
             // TODO: Update grid based on period
         }
 
-        function editScheduledPost(postId) {
-            showToast(`Editing scheduled post #${postId}`, 'info');
-            // TODO: Open editor for scheduled post
-        }
-
-        function deleteScheduledPost(postId) {
-            if (confirm('Delete this scheduled post?')) {
-                showToast(`Scheduled post #${postId} deleted`, 'success');
-                // TODO: Remove from scheduledPosts array and refresh
-            }
-        }
+        // editScheduledPost - consolidated: real implementation above (takes post object, pre-fills autopilot form)
+        // deleteScheduledPost - consolidated: real implementation above (takes post object, calls API)
 
         function openBulkScheduler() {
             showToast('Bulk scheduler opening...', 'info');
@@ -36428,6 +36463,9 @@ Would you like to test posting to Threads?`;
             <div class="celebration-subtitle" id="celebrationMessage">6 posts scheduled, est. reach 1,200</div>
             <button class="btn btn-primary btn-lg" onclick="closeCelebration()">
                 <i class="fas fa-check"></i> Awesome!
+            </button>
+            <button onclick="toggleCelebrationSound()" style="margin-top: 0.75rem; background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 0.8rem; opacity: 0.7;" title="Toggle celebration sound">
+                <i id="celebrationSoundIcon" class="fas fa-volume-up"></i> <span id="celebrationSoundLabel">Sound on</span>
             </button>
         </div>
     </div>

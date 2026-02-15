@@ -38,6 +38,62 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-15 - UX_Design_Claude (Third Pass - Voice Note Fix + Code Quality + Competitor Analysis)
+
+### Files Modified
+- `web_app/marketing-command-center.html` - Voice note hierarchy fix, 8 duplicate functions consolidated, celebration sound, template-tone filter
+- `claude_sessions/ux_design/OUTBOX.md` - Full competitor gap analysis report
+
+### CSS Changes
+- Voice note button: Desktop subdued (outline style, 52px), Mobile restored (68px gradient, field-friendly)
+- Voice note hover: subtle shadow instead of dramatic lift
+
+### JS Changes
+- Consolidated 8 duplicate function definitions (escapeHtml 3x→1x, formatNumber 3x→1x, getWeekNumber 2x→1x, etc.)
+- Added `filterTemplatesByTone()` - filters caption templates by selected tone
+- Added `playCelebrationSound()` - Web Audio API chime (C major arpeggio) on post success
+- Added `toggleCelebrationSound()` - localStorage-persistent mute toggle
+- Added celebration sound toggle button in overlay HTML
+
+### Reason
+Fix visual hierarchy issue (voice note competing with POST NOW on desktop), resolve Verifier E.2 duplicate function FAIL, implement two remaining nice-to-have features (P3.3 template-tone filter, P3.5 celebration sound), and conduct competitor gap analysis against Later/Buffer/Hootsuite/Sprout Social/Canva.
+
+### Duplicate Check
+- [x] No new files created
+- [x] 8 duplicate functions REMOVED (consolidated to single definitions)
+- [x] No duplicates created
+
+---
+
+## 2026-02-15 - UX_Design_Claude (Second Polish Pass - Final Visual Audit)
+
+### Files Modified
+- `web_app/marketing-command-center.html` - Added 318 lines of CSS for final visual polish
+
+### Changes Made (CSS-only, no JS or DOM changes)
+- Caption AI Actions buttons: hover transitions, backdrop blur, premium lift effects
+- Create Mode Toggle: inactive button hover glow states, active button shadow depth
+- 5-3-2 Content Type Selector: hover lift, brightness boost, `:has()` pseudo-class styling
+- Voice Note Button: refined shadow, border, hover/active transitions
+- Carousel Mode Toggle: hover background tint + border reveal
+- Section spacing: consistent rhythm, `border-top` separators between tagging sections
+- "Check" button: cohesive with POST NOW/SCHEDULE (matching border-radius, inner gradient)
+- Emoji picker: `scale(1.25)` hover animation on emoji spans
+- Upload zone: icon float on hover
+- Platform toggles: active shadow depth, inactive opacity hierarchy
+- Mobile 768px: tighter toggle padding, full-width AI actions, touch targets
+- Mobile 480px: 2x2 CSS Grid for mode toggle, stacked publish buttons, vertical 5-3-2
+
+### Reason
+Final visual polish before owner review. All CREATE tab features verified by Verifier (31/33 PASS). This pass addresses raw inline-styled elements lacking hover polish, inconsistent spacing rhythm, and mobile layout gaps for the 5 new tagging features.
+
+### Duplicate Check
+- [x] No new files created
+- [x] CSS-only additions, no duplicate functions
+- [x] No duplicates created
+
+---
+
 ## 2026-02-14 - Backend_Claude (Session cont. - Tagging APIs + Setup Execution)
 
 ### Files Modified
