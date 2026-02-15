@@ -114,28 +114,42 @@ echo -e "${BLUE}[CHECK 1]${NC} Duplicate Detection..."
 if [ "$ACTION" = "create" ]; then
     # Extract basename and create search pattern
     BASENAME=$(basename "$FILE_NAME")
-    # Remove extension and split on common delimiters
-    SEARCH_TERM=$(echo "$BASENAME" | sed 's/\.[^.]*$//' | sed 's/[._-]/ /g')
 
-    # Search for similar files
-    echo "  Searching for similar files matching: $SEARCH_TERM"
-
-    # Use find to search for similar files
-    SIMILAR=$(cd "$BASE_DIR" && find . -type f \( -name "*.html" -o -name "*.js" -o -name "*.md" \) 2>/dev/null | xargs -I {} sh -c 'echo "$1" | grep -i "'"$SEARCH_TERM"'"' _ {} 2>/dev/null | head -10 || true)
-
-    # Also check for exact basename matches
-    EXACT_MATCH=$(cd "$BASE_DIR" && find . -iname "*${BASENAME}*" -type f 2>/dev/null | head -5 || true)
-
-    if [ -n "$EXACT_MATCH" ]; then
-        echo -e "  ${RED}CRITICAL: Exact or near-exact match found:${NC}"
-        echo "$EXACT_MATCH" | while read -r line; do echo "    - $line"; done
-        ((CRITICAL++))
-    elif [ -n "$SIMILAR" ]; then
-        echo -e "  ${YELLOW}WARNING: Similar files found - verify these don't duplicate your intent:${NC}"
-        echo "$SIMILAR" | while read -r line; do echo "    - $line"; done
-        ((WARNINGS++))
+    # Whitelist standard terminal coordination files (every terminal has these)
+    WHITELISTED_NAMES="INBOX.md OUTBOX.md INSTRUCTIONS.md"
+    IS_WHITELISTED=false
+    for WL in $WHITELISTED_NAMES; do
+        if [ "$BASENAME" = "$WL" ]; then
+            IS_WHITELISTED=true
+            break
+        fi
+    done
+    if [ "$IS_WHITELISTED" = true ]; then
+        echo -e "  ${GREEN}SKIP: '$BASENAME' is a standard terminal coordination file${NC}"
     else
-        echo -e "  ${GREEN}PASS: No similar files found${NC}"
+        # Remove extension and split on common delimiters
+        SEARCH_TERM=$(echo "$BASENAME" | sed 's/\.[^.]*$//' | sed 's/[._-]/ /g')
+
+        # Search for similar files
+        echo "  Searching for similar files matching: $SEARCH_TERM"
+
+        # Use find to search for similar files
+        SIMILAR=$(cd "$BASE_DIR" && find . -type f \( -name "*.html" -o -name "*.js" -o -name "*.md" \) 2>/dev/null | xargs -I {} sh -c 'echo "$1" | grep -i "'"$SEARCH_TERM"'"' _ {} 2>/dev/null | head -10 || true)
+
+        # Also check for exact basename matches (exclude the file itself)
+        EXACT_MATCH=$(cd "$BASE_DIR" && find . -iname "*${BASENAME}*" -type f 2>/dev/null | grep -v "^\./${FILE_NAME}$" | head -5 || true)
+
+        if [ -n "$EXACT_MATCH" ]; then
+            echo -e "  ${RED}CRITICAL: Exact or near-exact match found:${NC}"
+            echo "$EXACT_MATCH" | while read -r line; do echo "    - $line"; done
+            ((CRITICAL++))
+        elif [ -n "$SIMILAR" ]; then
+            echo -e "  ${YELLOW}WARNING: Similar files found - verify these don't duplicate your intent:${NC}"
+            echo "$SIMILAR" | while read -r line; do echo "    - $line"; done
+            ((WARNINGS++))
+        else
+            echo -e "  ${GREEN}PASS: No similar files found${NC}"
+        fi
     fi
 else
     echo -e "  ${GREEN}SKIP: Not a create action${NC}"
