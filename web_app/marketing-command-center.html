@@ -5302,6 +5302,344 @@
             border-style: solid;
         }
 
+        /* ═══════════════════════════════════════════════════════════════════════════ */
+        /* TAGGING FEATURES: Premium Visual Polish (UX Design Claude)                  */
+        /* ═══════════════════════════════════════════════════════════════════════════ */
+
+        /* --- @Mention Dropdown: Glass Morphism --- */
+        #mentionDropdown {
+            background: rgba(22, 33, 62, 0.95) !important;
+            backdrop-filter: blur(16px) !important;
+            -webkit-backdrop-filter: blur(16px) !important;
+            border: 1px solid rgba(59, 130, 246, 0.2) !important;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(59, 130, 246, 0.1) inset !important;
+        }
+
+        #mentionDropdown .mention-item {
+            padding: 0.6rem 0.75rem;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            border-left: 3px solid transparent;
+        }
+
+        #mentionDropdown .mention-item:hover,
+        #mentionDropdown .mention-item.selected {
+            background: rgba(59, 130, 246, 0.15);
+            border-left-color: #3b82f6;
+        }
+
+        #mentionDropdown .mention-item .mention-handle {
+            color: #3b82f6;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        #mentionDropdown .mention-item .mention-name {
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            margin-left: 0.5rem;
+        }
+
+        /* --- @Mention in Caption: Blue Highlight --- */
+        .mention-highlight {
+            color: #3b82f6;
+            font-weight: 500;
+        }
+
+        /* --- Hashtag in Caption: Teal Highlight --- */
+        .hashtag-highlight {
+            color: #14b8a6;
+        }
+
+        /* --- Location Dropdown: Consistent Glass --- */
+        #locationDropdown {
+            background: rgba(22, 33, 62, 0.95) !important;
+            backdrop-filter: blur(16px) !important;
+            -webkit-backdrop-filter: blur(16px) !important;
+            border: 1px solid rgba(225, 48, 108, 0.2) !important;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(225, 48, 108, 0.1) inset !important;
+        }
+
+        #locationDropdown .location-item {
+            padding: 0.65rem 0.85rem;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        #locationDropdown .location-item:last-child {
+            border-bottom: none;
+        }
+
+        #locationDropdown .location-item:hover {
+            background: rgba(225, 48, 108, 0.12);
+        }
+
+        #locationDropdown .location-item i {
+            color: var(--instagram);
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+
+        #locationDropdown .location-item:hover i {
+            opacity: 1;
+        }
+
+        #locationDropdown .location-item .location-name {
+            font-size: 0.85rem;
+            color: var(--text-primary);
+        }
+
+        #locationDropdown .location-item .location-type {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            margin-left: auto;
+        }
+
+        /* --- Location Search Input: Polished --- */
+        #locationSearchInput {
+            background: rgba(255, 255, 255, 0.04) !important;
+            border: 1px solid rgba(225, 48, 108, 0.15) !important;
+            border-radius: 10px !important;
+            transition: all 0.2s ease !important;
+        }
+
+        #locationSearchInput:focus {
+            border-color: rgba(225, 48, 108, 0.4) !important;
+            box-shadow: 0 0 0 3px rgba(225, 48, 108, 0.08) !important;
+            outline: none !important;
+        }
+
+        /* --- Selected Location Pill: Gradient Glow --- */
+        #selectedLocationPill span {
+            background: linear-gradient(135deg, rgba(225, 48, 108, 0.12), rgba(225, 48, 108, 0.08)) !important;
+            border: 1px solid rgba(225, 48, 108, 0.35) !important;
+            transition: all 0.2s ease !important;
+        }
+
+        #selectedLocationPill span:hover {
+            background: linear-gradient(135deg, rgba(225, 48, 108, 0.2), rgba(225, 48, 108, 0.12)) !important;
+            border-color: rgba(225, 48, 108, 0.5) !important;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(225, 48, 108, 0.15);
+        }
+
+        #selectedLocationPill button:hover {
+            color: var(--instagram) !important;
+            transform: scale(1.2);
+        }
+
+        /* --- Hashtag Group Popover: Premium Card --- */
+        #hashtagGroupPopover {
+            background: rgba(22, 33, 62, 0.97) !important;
+            backdrop-filter: blur(20px) !important;
+            -webkit-backdrop-filter: blur(20px) !important;
+            border: 1px solid rgba(20, 184, 166, 0.25) !important;
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(20, 184, 166, 0.08) inset !important;
+            animation: slideDownFade 0.2s ease;
+        }
+
+        @keyframes slideDownFade {
+            from {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* --- Hashtag Group Cards: Hover Lift --- */
+        .hashtag-group-card {
+            background: rgba(20, 184, 166, 0.06);
+            border: 1px solid rgba(20, 184, 166, 0.15);
+            border-radius: 10px;
+            padding: 0.65rem 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .hashtag-group-card:hover {
+            background: rgba(20, 184, 166, 0.12);
+            border-color: rgba(20, 184, 166, 0.35);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(20, 184, 166, 0.12);
+        }
+
+        .hashtag-group-card .group-name {
+            font-weight: 600;
+            color: #14b8a6;
+            font-size: 0.85rem;
+        }
+
+        .hashtag-group-card .group-count {
+            background: rgba(20, 184, 166, 0.2);
+            color: #14b8a6;
+            padding: 0.15rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .hashtag-group-card .group-actions {
+            display: flex;
+            gap: 0.4rem;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+        }
+
+        .hashtag-group-card:hover .group-actions {
+            opacity: 1;
+        }
+
+        .hashtag-group-card .group-actions button {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 0.2rem;
+            font-size: 0.75rem;
+            transition: color 0.15s ease;
+        }
+
+        .hashtag-group-card .group-actions button:hover {
+            color: #14b8a6;
+        }
+
+        /* --- First Comment Textarea: Dashed Premium --- */
+        #firstCommentInput {
+            background: rgba(225, 48, 108, 0.03) !important;
+            border: 2px dashed rgba(225, 48, 108, 0.25) !important;
+            border-radius: 12px !important;
+            transition: all 0.2s ease !important;
+        }
+
+        #firstCommentInput:focus {
+            border-color: rgba(225, 48, 108, 0.5) !important;
+            background: rgba(225, 48, 108, 0.05) !important;
+            box-shadow: 0 0 0 3px rgba(225, 48, 108, 0.08) !important;
+            outline: none !important;
+        }
+
+        #firstCommentInput::placeholder {
+            color: rgba(225, 48, 108, 0.4);
+        }
+
+        /* --- First Comment "Move Tags" Button: Subtle Animation --- */
+        #firstCommentSection button[onclick*="moveHashtags"] {
+            transition: all 0.2s ease !important;
+        }
+
+        #firstCommentSection button[onclick*="moveHashtags"]:hover {
+            background: rgba(225, 48, 108, 0.25) !important;
+            border-color: rgba(225, 48, 108, 0.5) !important;
+            transform: translateY(-1px);
+        }
+
+        /* --- Tagging Section Labels: Crisp Typography --- */
+        .tagging-feature > div:first-child span[style*="font-weight: 600"] {
+            letter-spacing: 0.02em;
+        }
+
+        /* --- Platform Badge Pills: Refined --- */
+        .tagging-feature span[style*="background: rgba(255,255,255,0.05)"] {
+            background: rgba(255, 255, 255, 0.08) !important;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 6px !important;
+            font-weight: 500 !important;
+            letter-spacing: 0.02em;
+        }
+
+        /* --- Hashtag Live Counter: Color States --- */
+        #hashtagLiveCounter {
+            transition: all 0.25s ease;
+        }
+
+        #hashtagLiveCounter.warning {
+            color: var(--warning) !important;
+        }
+
+        #hashtagLiveCounter.danger {
+            color: var(--danger) !important;
+        }
+
+        /* --- Tagging Feature Show/Hide Animation --- */
+        .tagging-feature {
+            transition: all 0.25s ease;
+            animation: fadeSlideIn 0.25s ease;
+        }
+
+        @keyframes fadeSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-6px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* --- Hashtag Group Form: Polish --- */
+        #hashtagGroupForm input,
+        #hashtagGroupForm textarea {
+            background: rgba(255, 255, 255, 0.06) !important;
+            border: 1px solid rgba(20, 184, 166, 0.2) !important;
+            transition: all 0.2s ease !important;
+        }
+
+        #hashtagGroupForm input:focus,
+        #hashtagGroupForm textarea:focus {
+            border-color: rgba(20, 184, 166, 0.5) !important;
+            box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.1) !important;
+            outline: none !important;
+        }
+
+        /* --- #Tags Button in Toolbar: Teal Accent --- */
+        #hashtagGroupBtn {
+            transition: all 0.2s ease !important;
+        }
+
+        #hashtagGroupBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(20, 184, 166, 0.2);
+        }
+
+        #hashtagGroupBtn.active {
+            background: rgba(20, 184, 166, 0.3) !important;
+            border-color: #14b8a6 !important;
+        }
+
+        /* --- Mobile Optimizations for Tagging --- */
+        @media (max-width: 768px) {
+            #mentionDropdown,
+            #locationDropdown {
+                width: calc(100vw - 2rem) !important;
+                max-width: 320px !important;
+            }
+
+            #hashtagGroupPopover {
+                margin-left: -0.5rem;
+                margin-right: -0.5rem;
+                border-radius: 16px 16px 0 0 !important;
+            }
+
+            .hashtag-group-card .group-actions {
+                opacity: 1;
+            }
+
+            #firstCommentInput {
+                min-height: 80px !important;
+            }
+        }
+
         /* --- Emoji/Style Panels: Softer borders --- */
         #createTab #emojiPickerPanel,
         #createTab #textStylerPanel {
