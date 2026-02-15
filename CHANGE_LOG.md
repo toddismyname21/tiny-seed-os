@@ -38,6 +38,61 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-15 - UX_Design_Claude (Phase 1 Sub-Tab Visual Polish)
+
+### Files Modified
+- `web_app/marketing-command-center.html` - ~230 lines CSS for sub-tab visual consistency
+
+### Changes Made (CSS-only, no JS or DOM changes)
+- Create mode toggle: smoother 0.3s transitions, hover lift, active elevation, press feedback
+- AI Content Studio: studio-tab-btn hover/active states, quick action hover lifts, template card glow, generate button premium hover, result card glass styling, shimmer loading skeleton
+- CSA Box Visual: quick-add button scale+lift, selected item gradient pills, canvas placeholder with floating icon, generate button hover, export card lifts, color swatch zoom
+- Repurpose: card glass morphism + backdrop-filter, URL/Content toggle hover, generate button hover glows, result card glass styling, high performers hover tint
+
+### Reason
+Phase 1 INBOX tasks - CSS-only polish for 3 non-Quick-Post CREATE sub-tabs plus create mode toggle animation.
+
+### Duplicate Check
+- [x] No new files created
+- [x] CSS-only, no duplicates
+
+---
+
+## 2026-02-15 - Backend_Claude (Token Conversion + CREATE Sub-Tab Endpoints + CSRF)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Added token conversion functions, CREATE sub-tab endpoints, CSRF system
+
+### Functions Added
+- `exchangeForPermanentPageTokens()` - One-time exchange of short-lived Meta token → permanent page tokens
+- `checkTokenHealth()` - Weekly health check testing all 3 account tokens, emails owner on failure
+- `refreshAllIGAATokens()` - Fallback IGAA token refresh for tokens not yet converted to permanent
+- `analyzePhoto(params)` - AI photo analysis using GPT-4o or Claude vision for caption generation
+- `generateABVariants(params)` - Generate A/B test caption variants with tone variations
+- `generateCSRFToken()` - Generate one-time CSRF token with 1-hour CacheService expiry
+- `validateCSRFToken(token)` - Validate and consume CSRF token
+
+### Router Entries Added
+**GET:** `checkTokenHealth`, `exchangeForPermanentPageTokens`, `refreshAllIGAATokens`, `getCSRFToken`, `getContentTemplates`
+**POST:** `exchangeForPermanentPageTokens`, `checkTokenHealth`, `refreshAllIGAATokens`, `analyzePhoto`, `generateABVariants`, `getContentTemplates`, `repurposeBlogToSocial`, `repurposeSocialToBlog`
+
+### CSRF Integration
+- Added CSRF validation to doPost() before switch statement (backward-compatible: only validates when csrfToken present)
+- Exempt actions: webhooks, health checks, scheduled triggers
+
+### Deployment
+- Deployed @630
+
+### Reason
+INBOX priorities: (1) Token conversion for 60-day IGAA expiry, (2) Missing endpoints for Desktop_Claude CREATE sub-tabs, (3) CSRF protection
+
+### Duplicate Check
+- [x] Checked for existing token conversion/health functions - none found
+- [x] Checked for existing CSRF system - none found
+- [x] No duplicates created
+
+---
+
 ## 2026-02-15 - UX_Design_Claude (Third Pass - Voice Note Fix + Code Quality + Competitor Analysis)
 
 ### Files Modified

@@ -5,6 +5,60 @@
 
 ---
 
+## PHASE 1 VISUAL POLISH: Sub-Tab Consistency (Tasks 1-4)
+
+**Task:** CSS-only polish for AI Content Studio, CSA Box Visual, Repurpose tabs + create mode toggle
+**Status:** COMPLETE - 2026-02-15
+**Scope:** CSS-only additions to `web_app/marketing-command-center.html`
+**No HTML/JS structure changes (confirmed)**
+
+---
+
+### CSS Changes Made
+
+| Change | Selector/Line | What Changed |
+|--------|--------------|-------------|
+| Create mode toggle transition | `.create-mode-btn` | `0.3s cubic-bezier` transition, `overflow: hidden` |
+| Inactive toggle hover | `.create-mode-btn:not(.active):hover` | `translateY(-2px)`, `box-shadow`, subtle bg tint |
+| Active toggle elevation | `.create-mode-btn.active` | `box-shadow: 0 6px 20px` pink glow, slight lift |
+| Toggle press feedback | `.create-mode-btn:active` | `scale(0.98)` tactile press |
+| Studio tab buttons | `.studio-tab-btn` | `0.25s cubic-bezier` transition |
+| Studio inactive hover | `.studio-tab-btn:not(.active):hover` | Indigo tint bg, text brightens, lift |
+| Studio active glow | `.studio-tab-btn.active` | `box-shadow: 0 4px 14px` indigo glow |
+| Quick action hover | `#studioGenerateTab .btn-sm:hover` | `translateY(-2px)`, `brightness(1.15)` |
+| Template card hover | `#studioTemplatesTab .btn-secondary:hover` | Lift + indigo border glow |
+| Generate button hover | `#studioGenerateBtn:hover` | `-2px` lift, expanded indigo shadow |
+| Generated results cards | `#generatedPostsGrid > div` | Glass gradient bg, indigo border, hover lift |
+| Shimmer skeleton | `.studio-loading-skeleton` | Shimmer animation for AI loading states |
+| Toggle option pills | `label:has(input[type="checkbox"]):hover` | Lift + brightness boost |
+| CSA quick-add buttons | `#csaVisualizerMode .btn-sm:hover` | `scale(1.03)`, lift, `brightness(1.2)` |
+| CSA selected item pills | `#csaSelectedItems > *` | Green-orange gradient pill, rounded, hover scale |
+| Canvas placeholder | `#csaCanvasPlaceholder` | Radial gradient bg, icon float on hover |
+| CSA generate hover | `#csaGenerateBtn:hover` | Lift + green shadow bloom |
+| CSA export cards | `#csaExportOptions .btn-secondary:hover` | `-3px` lift + shadow |
+| Color palette swatches | `#csaPaletteBody div[style*="width: 30px"]:hover` | `scale(1.3)` zoom on hover |
+| Repurpose cards | `#repurposeMode > .card` | `backdrop-filter: blur(6px)`, hover lift |
+| URL/Content toggle | `#repurposeUrlTab:hover` | Blue tint on hover |
+| Blog-to-Social button | `.btn[onclick*="generateBlogToSocial"]:hover` | Lift + blue shadow |
+| Social-to-Blog button | `.btn[onclick*="generateSocialToBlog"]:hover` | Lift + green shadow |
+| Repurpose result cards | `#blogToSocialVariations > div` | Glass gradient, blue border, hover lift |
+| High performers hover | `#highPerformersList > div:hover` | Green tint on hover |
+| Platform checkbox hover | `#repurposeMode label:has(checkbox):hover` | Lift + brightness |
+| Mobile studio tabs | `@media 768px .studio-tab-btn` | Smaller font, 44px min-height |
+
+### No HTML/JS Structure Changes (confirmed)
+### Awaiting Code Audit + Verifier Review
+
+### Screenshots Verified
+- `/tmp/mcc-p1-quickpost.png` - Quick Post mode with polished toggle
+- `/tmp/mcc-p1-aistudio.png` - AI Content Studio with active purple glow
+- `/tmp/mcc-p1-csavisual.png` - CSA Box Visual with green-orange active state
+- `/tmp/mcc-p1-repurpose.png` - Repurpose with blue-purple active state
+
+*UX_Design_Claude - 2026-02-15 - Phase 1 Sub-Tab Polish COMPLETE*
+
+---
+
 ## THIRD POLISH PASS + COMPETITOR GAP ANALYSIS + CODE QUALITY FIXES
 
 **Task:** Voice note button fix, duplicate function cleanup, celebration sound, template-tone filter, competitor gap analysis

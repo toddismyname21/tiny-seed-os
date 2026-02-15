@@ -15,6 +15,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Fabric.js for Design Studio -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+    <!-- DOMPurify for XSS protection -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.4/purify.min.js"></script>
     <!-- Google Fonts for Design Studio -->
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Pacifico&display=swap" rel="stylesheet">
     <style>
@@ -6082,6 +6084,261 @@
                 min-height: 90px !important;
             }
         }
+
+        /* ═══════════════════════════════════════════════════════════════════
+           PHASE 1 POLISH: Sub-Tab Visual Consistency
+           Tasks 1-4 from UX_Design_Claude INBOX 2026-02-15
+           CSS-only. No HTML/JS structure changes.
+           ═══════════════════════════════════════════════════════════════════ */
+
+        /* --- TASK 4: Create Mode Toggle - Smoother Transitions --- */
+        .create-mode-btn {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .create-mode-btn:not(.active):hover {
+            background: rgba(255, 255, 255, 0.08) !important;
+            color: var(--text-primary) !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .create-mode-btn.active {
+            box-shadow: 0 6px 20px rgba(225, 48, 108, 0.35) !important;
+            transform: translateY(-1px);
+        }
+
+        .create-mode-btn:active {
+            transform: translateY(0) scale(0.98) !important;
+        }
+
+        /* --- TASK 1: AI Content Studio Tab Polish --- */
+        .studio-tab-btn {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            position: relative;
+        }
+
+        .studio-tab-btn:not(.active):hover {
+            background: rgba(99, 102, 241, 0.12) !important;
+            color: var(--text-primary) !important;
+            transform: translateY(-1px);
+        }
+
+        .studio-tab-btn.active {
+            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35) !important;
+        }
+
+        #studioGenerateTab .btn-sm,
+        #studioTemplatesTab .btn-secondary {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+
+        #studioGenerateTab .btn-sm:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+            filter: brightness(1.15);
+        }
+
+        #studioTemplatesTab .btn-secondary:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 4px 16px rgba(99, 102, 241, 0.15) !important;
+            border-color: rgba(99, 102, 241, 0.3) !important;
+        }
+
+        #studioGenerateBtn:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 8px 24px rgba(99, 102, 241, 0.5) !important;
+        }
+
+        #studioGenerateBtn:active {
+            transform: translateY(0) !important;
+        }
+
+        #generatedPostsGrid > div {
+            background: linear-gradient(135deg, rgba(22, 33, 62, 0.9), rgba(15, 52, 96, 0.6)) !important;
+            border: 1px solid rgba(99, 102, 241, 0.15) !important;
+            border-radius: 14px !important;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        #generatedPostsGrid > div:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.15);
+            border-color: rgba(99, 102, 241, 0.3) !important;
+        }
+
+        @keyframes studioShimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        .studio-loading-skeleton {
+            background: linear-gradient(90deg, rgba(99, 102, 241, 0.05) 25%, rgba(99, 102, 241, 0.12) 50%, rgba(99, 102, 241, 0.05) 75%);
+            background-size: 200% 100%;
+            animation: studioShimmer 1.5s ease-in-out infinite;
+            border-radius: 12px;
+            min-height: 80px;
+        }
+
+        #studioGenerateTab label:has(input[type="checkbox"]) {
+            transition: all 0.2s ease;
+        }
+
+        #studioGenerateTab label:has(input[type="checkbox"]):hover {
+            transform: translateY(-1px);
+            filter: brightness(1.2);
+        }
+
+        /* --- TASK 2: CSA Box Visual Tab Polish --- */
+        #csaVisualizerMode .btn-sm {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+
+        #csaVisualizerMode .btn-sm:hover {
+            transform: translateY(-2px) scale(1.03) !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+            filter: brightness(1.2);
+        }
+
+        #csaVisualizerMode .btn-sm:active {
+            transform: translateY(0) scale(0.97) !important;
+        }
+
+        #csaSelectedItems > * {
+            background: linear-gradient(135deg, rgba(74, 124, 89, 0.2), rgba(255, 140, 0, 0.15)) !important;
+            border: 1px solid rgba(74, 124, 89, 0.35) !important;
+            border-radius: 20px !important;
+            padding: 0.35rem 0.75rem !important;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+        }
+
+        #csaSelectedItems > *:hover {
+            background: linear-gradient(135deg, rgba(74, 124, 89, 0.3), rgba(255, 140, 0, 0.25)) !important;
+            transform: scale(1.02);
+        }
+
+        #csaCanvasPlaceholder {
+            background: radial-gradient(ellipse at center, rgba(74, 124, 89, 0.08) 0%, transparent 70%);
+        }
+
+        #csaCanvasPlaceholder i {
+            transition: transform 0.3s ease;
+        }
+
+        #csaCanvasWrapper:hover #csaCanvasPlaceholder i {
+            transform: translateY(-4px);
+        }
+
+        #csaGenerateBtn:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 8px 24px rgba(74, 124, 89, 0.4) !important;
+        }
+
+        #csaGenerateBtn:active {
+            transform: translateY(0) !important;
+        }
+
+        #csaExportOptions .btn-secondary {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+
+        #csaExportOptions .btn-secondary:hover {
+            transform: translateY(-3px) !important;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2) !important;
+        }
+
+        #csaPaletteBody div[style*="width: 30px"] {
+            transition: transform 0.2s ease;
+            cursor: pointer;
+        }
+
+        #csaPaletteBody div[style*="width: 30px"]:hover {
+            transform: scale(1.3);
+        }
+
+        /* --- TASK 3: Repurpose Tab Polish --- */
+        #repurposeMode > .card {
+            backdrop-filter: blur(6px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        #repurposeMode > .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
+        }
+
+        #repurposeUrlTab,
+        #repurposeContentTab {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+
+        #repurposeUrlTab:hover,
+        #repurposeContentTab:hover {
+            background: rgba(52, 152, 219, 0.15) !important;
+        }
+
+        #repurposeMode .btn[onclick*="generateBlogToSocial"]:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 8px 24px rgba(52, 152, 219, 0.4) !important;
+        }
+
+        #repurposeMode .btn[onclick*="generateBlogToSocial"]:active,
+        #repurposeMode .btn[onclick*="generateSocialToBlog"]:active {
+            transform: translateY(0) !important;
+        }
+
+        #repurposeMode .btn[onclick*="generateSocialToBlog"]:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 8px 24px rgba(46, 204, 113, 0.4) !important;
+        }
+
+        #blogToSocialVariations > div,
+        #blogIdeasList > div {
+            background: linear-gradient(135deg, rgba(22, 33, 62, 0.9), rgba(15, 52, 96, 0.6)) !important;
+            border: 1px solid rgba(52, 152, 219, 0.15) !important;
+            border-radius: 14px !important;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        #blogToSocialVariations > div:hover,
+        #blogIdeasList > div:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.15);
+            border-color: rgba(52, 152, 219, 0.3) !important;
+        }
+
+        #highPerformersList > div:not(:only-child) {
+            transition: all 0.2s ease;
+        }
+
+        #highPerformersList > div:not(:only-child):hover {
+            background: rgba(46, 204, 113, 0.08) !important;
+        }
+
+        #repurposeMode label:has(input[type="checkbox"]) {
+            transition: all 0.2s ease;
+        }
+
+        #repurposeMode label:has(input[type="checkbox"]):hover {
+            transform: translateY(-1px);
+            filter: brightness(1.15);
+        }
+
+        @media (max-width: 768px) {
+            .studio-tab-btn {
+                font-size: 0.75rem !important;
+                padding: 0.6rem 0.5rem !important;
+                min-height: 44px;
+            }
+
+            #csaVisualizerMode .btn-sm {
+                min-height: 44px !important;
+            }
+        }
+
     </style>
 </head>
 <body>
@@ -14585,6 +14842,11 @@
         const API_URL = TINY_SEED_API.MAIN_API;
         const APPS_SCRIPT_URL = API_URL; // Alias for social posting functions
 
+        // XSS Protection helper - wraps DOMPurify for safe innerHTML assignments
+        function safeHTML(html) {
+            return typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(html) : html;
+        }
+
         // ═══════════════════════════════════════════════════════════════════════════
         // DUAL-CONTEXT MODE - Field Mode & Office Mode
         // UX Research: Field (60px targets, glove-friendly, 30-60s tasks)
@@ -15034,7 +15296,7 @@
             if (!content.trim()) { showToast('Please enter content to analyze', 'warning'); return; }
             showToast('Analyzing voice match...', 'info');
             fetch(API_URL + '?action=analyzeVoice', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ content }) })
-            .then(r => r.json()).then(data => { if (data.success) { document.getElementById('settingsVoiceAnalysisResult').style.display = 'block'; document.getElementById('settingsVoiceScoreValue').textContent = data.score + '%'; document.getElementById('settingsVoiceFeedback').innerHTML = '<p>' + (data.feedback || 'Analysis complete') + '</p>'; } else showToast('Analysis failed', 'error'); })
+            .then(r => r.json()).then(data => { if (data.success) { document.getElementById('settingsVoiceAnalysisResult').style.display = 'block'; document.getElementById('settingsVoiceScoreValue').textContent = data.score + '%'; document.getElementById('settingsVoiceFeedback').textContent = data.feedback || 'Analysis complete'; } else showToast('Analysis failed', 'error'); })
             .catch(() => showToast('Error analyzing voice', 'error'));
         }
 
@@ -15514,7 +15776,15 @@
         function renderMonitoredHashtags(hashtags) {
             var container = document.getElementById('monitoredHashtagsContainer');
             if (!container || !hashtags) return;
-            container.innerHTML = hashtags.slice(0, 12).map(function(tag) { return '<button onclick="loadHashtagFeed(\'' + tag + '\')" style="padding: 0.4rem 0.8rem; background: rgba(225, 48, 108, 0.15); border: 1px solid var(--instagram); border-radius: 20px; color: var(--instagram); font-size: 0.85rem; cursor: pointer;">' + tag + '</button>'; }).join('');
+            container.innerHTML = '';
+            hashtags.slice(0, 12).forEach(function(tag) {
+                var safeTag = tag.replace(/[^a-zA-Z0-9_#]/g, '');
+                var btn = document.createElement('button');
+                btn.style.cssText = 'padding: 0.4rem 0.8rem; background: rgba(225, 48, 108, 0.15); border: 1px solid var(--instagram); border-radius: 20px; color: var(--instagram); font-size: 0.85rem; cursor: pointer;';
+                btn.textContent = safeTag;
+                btn.addEventListener('click', function() { loadHashtagFeed(safeTag); });
+                container.appendChild(btn);
+            });
             document.getElementById('listenHashtagCount').textContent = hashtags.length;
         }
 
@@ -15537,7 +15807,7 @@
                 html += '<div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 12px; border-left: 4px solid var(--instagram);"><div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;"><div><i class="fab fa-instagram" style="color: var(--instagram);"></i> <strong>' + (post.authorHandle || post.author || 'Unknown') + '</strong> <span style="color: var(--text-secondary); font-size: 0.75rem;">' + formatTimeAgo(post.timestamp) + '</span></div><span style="background: ' + getSentimentColor(post.sentiment) + '; color: white; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.7rem;">' + getSentimentLabel(post.sentiment) + '</span></div><p style="font-size: 0.9rem; margin-bottom: 0.5rem;">' + (post.caption || post.content || '').substring(0, 200) + '</p><div style="font-size: 0.8rem; color: var(--text-secondary);"><i class="fas fa-heart"></i> ' + (post.likes || 0) + ' <i class="fas fa-comment" style="margin-left: 0.5rem;"></i> ' + (post.comments || 0) + '</div></div>';
             });
             html += '</div>';
-            container.innerHTML = html;
+            container.innerHTML = safeHTML(html);
         }
 
         function renderMentionsFeed(mentions) {
@@ -15548,7 +15818,7 @@
                 html += '<div class="mention-card" data-platform="' + m.platform + '" data-priority="' + m.priority + '" style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 12px; border-left: 4px solid ' + getPriorityColor(m.priority) + ';"><div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;"><div><i class="' + (m.platform === 'facebook' ? 'fab fa-facebook' : 'fab fa-instagram') + '" style="color: ' + (m.platform === 'facebook' ? 'var(--facebook)' : 'var(--instagram)') + ';"></i> <strong>' + (m.authorHandle || m.author) + '</strong> <span style="font-size: 0.7rem; background: rgba(255,255,255,0.1); padding: 0.15rem 0.4rem; border-radius: 4px;">' + (m.type || 'mention') + '</span> <span style="color: var(--text-secondary); font-size: 0.75rem;">' + formatTimeAgo(m.timestamp) + '</span></div><span style="background: ' + getPriorityColor(m.priority) + '; color: white; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.7rem; text-transform: uppercase;">' + (m.priority || 'low') + '</span></div><p style="font-size: 0.9rem;">' + (m.content || '').substring(0, 200) + '</p><div style="margin-top: 0.75rem;"><button onclick="replyToMention(\'' + (m.authorHandle || '') + '\')" class="btn btn-sm btn-secondary" style="font-size: 0.75rem;"><i class="fas fa-reply"></i> Reply</button></div></div>';
             });
             html += '</div>';
-            container.innerHTML = html;
+            container.innerHTML = safeHTML(html);
         }
 
         function updateListeningAlerts(alerts) {
@@ -15566,7 +15836,7 @@
                     var html = '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">';
                     data.competitors.forEach(function(c) { html += '<div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 12px;"><h4 style="margin: 0 0 0.75rem 0;">' + c.name + ' <span style="font-size: 0.75rem; color: var(--text-secondary);">@' + (c.handle || 'N/A') + '</span></h4><div style="display: grid; grid-template-columns: repeat(3, 1fr); text-align: center;"><div><div style="font-weight: 600;">' + formatNumber(c.followers) + '</div><div style="font-size: 0.7rem; color: var(--text-secondary);">Followers</div></div><div><div style="font-weight: 600;">' + (c.avgEngagement || 'N/A') + '%</div><div style="font-size: 0.7rem; color: var(--text-secondary);">Engagement</div></div><div><div style="font-weight: 600; color: ' + (c.engagementTrend && c.engagementTrend.indexOf('+') === 0 ? 'var(--success)' : 'var(--danger)') + ';">' + (c.engagementTrend || 'N/A') + '</div><div style="font-size: 0.7rem; color: var(--text-secondary);">Trend</div></div></div></div>'; });
                     html += '</div>';
-                    container.innerHTML = html;
+                    container.innerHTML = safeHTML(html);
                 } else { container.innerHTML = '<p style="color: var(--text-secondary); text-align: center;">No competitors configured.</p>'; }
             } catch (e) { container.innerHTML = '<p style="color: var(--danger);">Failed to load</p>'; }
         }
@@ -15607,7 +15877,18 @@
                 if (data.success && data.mentions && data.mentions.length > 0) {
                     renderInstagramMentions(data.mentions, data.account);
                 } else if (data.error) {
-                    container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);"><i class="fab fa-instagram" style="font-size: 2rem; color: var(--instagram); margin-bottom: 1rem; display: block;"></i><p>' + (data.error || 'No mentions found') + '</p><p style="font-size: 0.85rem; margin-top: 0.5rem;">Connect Instagram in Settings to enable mention tracking.</p></div>';
+                    var errorMsg = document.createElement('div');
+                    errorMsg.style.cssText = 'text-align: center; padding: 2rem; color: var(--text-secondary);';
+                    errorMsg.innerHTML = '<i class="fab fa-instagram" style="font-size: 2rem; color: var(--instagram); margin-bottom: 1rem; display: block;"></i>';
+                    var errorP = document.createElement('p');
+                    errorP.textContent = data.error || 'No mentions found';
+                    errorMsg.appendChild(errorP);
+                    var helpP = document.createElement('p');
+                    helpP.style.cssText = 'font-size: 0.85rem; margin-top: 0.5rem;';
+                    helpP.textContent = 'Connect Instagram in Settings to enable mention tracking.';
+                    errorMsg.appendChild(helpP);
+                    container.innerHTML = '';
+                    container.appendChild(errorMsg);
                 } else {
                     container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);"><i class="fas fa-check-circle" style="font-size: 2rem; color: var(--success); margin-bottom: 1rem; display: block;"></i><p>No new mentions found</p><p style="font-size: 0.85rem; margin-top: 0.5rem;">Check back later for tagged posts</p></div>';
                 }
@@ -15642,7 +15923,7 @@
                 html += '</div></div></div>';
             });
             html += '</div>';
-            container.innerHTML = html;
+            container.innerHTML = safeHTML(html);
         }
 
         function getSentimentColor(s) { var v = parseFloat(s) || 0.5; return v >= 0.7 ? 'var(--success)' : v < 0.4 ? 'var(--danger)' : 'var(--warning)'; }
@@ -15767,7 +16048,7 @@
 
             document.getElementById('engageSingleSentimentLabel').textContent = label;
             document.getElementById('engageSingleSentimentScore').style.color = color;
-            document.getElementById('engageSingleSentimentFeedback').innerHTML = '<p style="color: var(--text-secondary);">This message appears to be <strong style="color: ' + color + ';">' + label.toLowerCase() + '</strong>. ' + (scorePercent >= 70 ? 'Great engagement opportunity!' : scorePercent < 40 ? 'Consider a careful, empathetic response.' : 'Standard response recommended.') + '</p>';
+            document.getElementById('engageSingleSentimentFeedback').innerHTML = safeHTML('<p style="color: var(--text-secondary);">This message appears to be <strong style="color: ' + color + ';">' + label.toLowerCase() + '</strong>. ' + (scorePercent >= 70 ? 'Great engagement opportunity!' : scorePercent < 40 ? 'Consider a careful, empathetic response.' : 'Standard response recommended.') + '</p>');
         // Evergreen Functions for Engage tab
         async function loadEvergreenLibraryEngage() {
             // Load evergreen content from backend API
@@ -15781,7 +16062,7 @@
                 const data = await response.json();
 
                 if (data.success && data.content && data.content.length > 0) {
-                    container.innerHTML = '<div style="display: grid; gap: 1rem;">' + data.content.map(item => {
+                    container.innerHTML = safeHTML('<div style="display: grid; gap: 1rem;">' + data.content.map(item => {
                         // Determine status badge based on days since last used
                         const daysAgo = item.daysSinceUsed || 999;
                         let statusBadge = '';
@@ -15814,7 +16095,7 @@
                                 </div>
                             </div>
                         `;
-                    }).join('') + '</div>';
+                    }).join('') + '</div>');
                 } else {
                     container.innerHTML = `
                         <div style="text-align: center; padding: 3rem; color: var(--text-secondary);">
@@ -30031,7 +30312,7 @@ Would you like to test posting to Threads?`;
                     const score = data.score || 75;
                     scoreEl.textContent = score + '%';
                     scoreEl.style.color = score >= 70 ? 'var(--success)' : score >= 40 ? 'var(--warning)' : 'var(--danger)';
-                    document.getElementById('voiceFeedback').innerHTML = data.feedback || 'Good match with your brand voice!';
+                    document.getElementById('voiceFeedback').textContent = data.feedback || 'Good match with your brand voice!';
                 }
             } catch (error) {
                 showToast('Error analyzing voice', 'error');
@@ -30121,7 +30402,7 @@ Would you like to test posting to Threads?`;
                 const data = await response.json();
 
                 if (data.success && data.comments && data.comments.length > 0) {
-                    container.innerHTML = data.comments.map(comment => `
+                    container.innerHTML = safeHTML(data.comments.map(comment => `
                         <div style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; border-left: 3px solid ${comment.priority === 'high' ? 'var(--danger)' : 'var(--info)'};">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
                                 <strong>@${comment.author || 'user'}</strong>
@@ -30145,7 +30426,7 @@ Would you like to test posting to Threads?`;
                                 </button>
                             </div>
                         </div>
-                    `).join('');
+                    `).join(''));
 
                     // Update badge
                     const badge = document.getElementById('engageBadge');
@@ -30193,7 +30474,7 @@ Would you like to test posting to Threads?`;
                 const data = await response.json();
 
                 if (data.success && data.content && data.content.length > 0) {
-                    container.innerHTML = data.content.map(item => `
+                    container.innerHTML = safeHTML(data.content.map(item => `
                         <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem;">
                             <div style="flex: 1;">
                                 <p style="font-size: 0.9rem; white-space: pre-wrap;">${item.content}</p>
@@ -30207,7 +30488,7 @@ Would you like to test posting to Threads?`;
                                 <i class="fas fa-recycle"></i> Use Now
                             </button>
                         </div>
-                    `).join('');
+                    `).join(''));
                 } else {
                     container.innerHTML = `
                         <div style="text-align: center; padding: 3rem; color: var(--text-secondary);">
@@ -30600,7 +30881,11 @@ Would you like to test posting to Threads?`;
                 } else {
                     resultDiv.style.background = 'rgba(239, 68, 68, 0.2)';
                     resultDiv.style.border = '1px solid var(--danger)';
-                    resultDiv.innerHTML = '<i class="fas fa-times-circle" style="color: var(--danger);"></i> <strong>Connection Failed:</strong> ' + (data.error || 'Could not connect to Claude');
+                    resultDiv.textContent = '';
+                    resultDiv.innerHTML = '<i class="fas fa-times-circle" style="color: var(--danger);"></i> <strong>Connection Failed:</strong> ';
+                    var errorSpan = document.createElement('span');
+                    errorSpan.textContent = data.error || 'Could not connect to Claude';
+                    resultDiv.appendChild(errorSpan);
                 }
             } catch (error) {
                 resultDiv.style.background = 'rgba(239, 68, 68, 0.2)';
@@ -31422,9 +31707,9 @@ Would you like to test posting to Threads?`;
                 const response = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: 'generateCompetitorInsights' }) });
                 const data = await response.json();
                 if (data.success && data.contentGaps) {
-                    contentGaps.innerHTML = data.contentGaps.map(gap => `<div style="margin-bottom: 0.5rem; padding: 0.5rem; background: rgba(0,0,0,0.2); border-radius: 4px;"><i class="fas fa-lightbulb" style="color: var(--gold);"></i> ${gap}</div>`).join('');
-                    topContent.innerHTML = data.topContent.map(theme => `<div style="margin-bottom: 0.5rem; padding: 0.5rem; background: rgba(0,0,0,0.2); border-radius: 4px;"><i class="fas fa-fire" style="color: var(--danger);"></i> ${theme}</div>`).join('');
-                    strategyRecs.innerHTML = data.strategies.map((s, i) => `<div style="margin-bottom: 0.5rem; padding: 0.5rem; background: rgba(0,0,0,0.2); border-radius: 4px;"><strong style="color: var(--gold);">${i + 1}.</strong> ${s}</div>`).join('');
+                    contentGaps.innerHTML = safeHTML(data.contentGaps.map(gap => `<div style="margin-bottom: 0.5rem; padding: 0.5rem; background: rgba(0,0,0,0.2); border-radius: 4px;"><i class="fas fa-lightbulb" style="color: var(--gold);"></i> ${gap}</div>`).join(''));
+                    topContent.innerHTML = safeHTML(data.topContent.map(theme => `<div style="margin-bottom: 0.5rem; padding: 0.5rem; background: rgba(0,0,0,0.2); border-radius: 4px;"><i class="fas fa-fire" style="color: var(--danger);"></i> ${theme}</div>`).join(''));
+                    strategyRecs.innerHTML = safeHTML(data.strategies.map((s, i) => `<div style="margin-bottom: 0.5rem; padding: 0.5rem; background: rgba(0,0,0,0.2); border-radius: 4px;"><strong style="color: var(--gold);">${i + 1}.</strong> ${s}</div>`).join(''));
                 } else { useDefaultInsights(); }
             } catch (error) { useDefaultInsights(); }
 
@@ -31549,7 +31834,7 @@ Would you like to test posting to Threads?`;
                 scoreEl.textContent = score.toFixed(2);
                 scoreEl.style.color = score > 0.3 ? 'var(--success)' : score < -0.3 ? 'var(--danger)' : 'var(--warning)';
                 document.getElementById('singleSentimentLabel').textContent = score > 0.3 ? 'Positive' : score < -0.3 ? 'Negative' : 'Neutral';
-                document.getElementById('singleSentimentFeedback').innerHTML = data.feedback || '';
+                document.getElementById('singleSentimentFeedback').textContent = data.feedback || '';
             } catch (error) {
                 showToast('Analysis complete', 'success');
                 document.getElementById('sentimentResult').style.display = 'block';
