@@ -5742,6 +5742,324 @@
                 padding: 0.2rem 0.4rem;
             }
         }
+
+        /* ═══════════════════════════════════════════════════════════════════════════ */
+        /* SECOND POLISH PASS - UX_Design Claude - 2026-02-15                         */
+        /* Final visual refinements: spacing, rhythm, hover states, consistency        */
+        /* ═══════════════════════════════════════════════════════════════════════════ */
+
+        /* --- 1. Caption AI Actions: Premium Button Styles --- */
+        #captionAIActions button {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            backdrop-filter: blur(4px);
+        }
+
+        #captionAIActions button:first-child {
+            /* "Try Again" button */
+            border-color: rgba(255, 255, 255, 0.12) !important;
+        }
+
+        #captionAIActions button:first-child:hover {
+            background: rgba(255, 255, 255, 0.08) !important;
+            border-color: rgba(255, 255, 255, 0.25) !important;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        #captionAIActions button:last-child:hover {
+            /* "Generate 3 Options" button */
+            background: rgba(139, 92, 246, 0.25) !important;
+            border-color: rgba(139, 92, 246, 0.5) !important;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(139, 92, 246, 0.2);
+        }
+
+        /* --- 2. Create Mode Toggle: Inactive Button Hover --- */
+        .create-mode-btn:not(.active) {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+
+        .create-mode-btn:not(.active):hover {
+            background: rgba(255, 255, 255, 0.06) !important;
+            color: var(--text-primary) !important;
+            transform: translateY(-1px);
+        }
+
+        .create-mode-btn.active {
+            box-shadow: 0 4px 16px rgba(225, 48, 108, 0.3);
+        }
+
+        /* --- 3. 5-3-2 Content Type Selector: Polish --- */
+        #createTab [name="contentType532"] + span {
+            transition: all 0.2s ease;
+        }
+
+        #createTab label:has([name="contentType532"]) {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+
+        #createTab label:has([name="contentType532"]):hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            filter: brightness(1.15);
+        }
+
+        #createTab label:has([name="contentType532"]:checked) {
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+            filter: brightness(1.1);
+        }
+
+        /* 5-3-2 container - refined visual treatment */
+        .composer-section > div[style*="chart-pie"] {
+            transition: all 0.2s ease;
+        }
+
+        /* --- 4. Voice Note Button: Refined --- */
+        #voiceNoteBtn {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            box-shadow: 0 4px 14px rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.05) !important;
+        }
+
+        #voiceNoteBtn:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 8px 24px rgba(34, 197, 94, 0.25) !important;
+        }
+
+        #voiceNoteBtn:active {
+            transform: translateY(0) !important;
+        }
+
+        /* --- 5. Carousel Mode Toggle: Subtle upgrade --- */
+        #carouselModeToggle {
+            transition: all 0.15s ease;
+        }
+
+        label:has(#carouselModeToggle) {
+            padding: 0.5rem 0.75rem;
+            border-radius: 10px;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+
+        label:has(#carouselModeToggle):hover {
+            background: rgba(225, 48, 108, 0.06);
+            border-color: rgba(225, 48, 108, 0.15);
+        }
+
+        /* --- 6. Section Spacing & Visual Rhythm --- */
+        /* Consistent vertical rhythm inside the composer */
+        .composer-section > .tagging-feature {
+            padding-top: 0.75rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        /* Visual separator before 5-3-2 Content Type */
+        .composer-section > div[style*="rgba(99,102,241"] {
+            margin-top: 1rem !important;
+            border-radius: 12px !important;
+        }
+
+        /* Better gap between caption AI actions and caption options */
+        #captionOptionsContainer {
+            margin-top: 0.75rem !important;
+        }
+
+        /* Upload zone - breathing room */
+        .upload-zone {
+            margin-top: 0.5rem;
+        }
+
+        /* UTM section - refined spacing */
+        #utmLinkSection {
+            border-radius: 14px !important;
+            transition: all 0.2s ease;
+        }
+
+        #utmLinkSection:hover {
+            border-color: rgba(67, 97, 238, 0.4) !important;
+        }
+
+        /* Predictions bar to publish actions gap */
+        #quickPostPredictions + .publish-actions,
+        .publish-actions {
+            margin-top: 1rem !important;
+        }
+
+        /* --- 7. "Check" Button: Cohesive with POST NOW/SCHEDULE --- */
+        .publish-actions button[onclick*="showPostAnalysis"] {
+            border-radius: 14px !important;
+            font-size: 0.9rem;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .publish-actions button[onclick*="showPostAnalysis"]::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        .publish-actions button[onclick*="showPostAnalysis"]:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.25) !important;
+            background: rgba(139, 92, 246, 0.3) !important;
+        }
+
+        /* --- 8. Emoji & Style Panel Hover Polish --- */
+        #emojiPickerPanel span[onclick],
+        #textStylerPanel button {
+            transition: all 0.15s ease !important;
+        }
+
+        #emojiPickerPanel span[onclick]:hover {
+            transform: scale(1.25);
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+        }
+
+        /* --- 9. Upload Zone: Better Empty State --- */
+        .upload-zone #uploadIcon {
+            transition: all 0.3s ease;
+        }
+
+        .upload-zone:hover #uploadIcon {
+            transform: translateY(-4px);
+        }
+
+        /* --- 10. Power Tools Header: Refined --- */
+        .power-tools-header {
+            transition: all 0.2s ease;
+        }
+
+        .power-tools-header:active {
+            background: rgba(139, 92, 246, 0.18) !important;
+        }
+
+        /* --- 11. Carousel Thumbnail Strip: Polish --- */
+        #carouselThumbnailStrip {
+            border-radius: 14px !important;
+            transition: all 0.2s ease;
+        }
+
+        /* --- 12. Intelligence Drawer Toggle: Premium Pulse --- */
+        .intel-drawer-toggle {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .intel-drawer-toggle:hover {
+            transform: scale(1.08);
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3);
+        }
+
+        /* --- 13. Platform Toggle Chips: Better Active State --- */
+        .platform-toggle.active {
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .platform-toggle:not(.active) {
+            opacity: 0.7;
+            transition: all 0.2s ease;
+        }
+
+        .platform-toggle:not(.active):hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        /* --- MOBILE: Second Polish Pass (under 768px) --- */
+        @media (max-width: 768px) {
+            /* Create mode toggle - scroll hint */
+            .create-mode-toggle {
+                padding: 0.35rem !important;
+                gap: 0.25rem;
+            }
+
+            .create-mode-btn {
+                padding: 0.75rem 1rem !important;
+                font-size: 0.85rem !important;
+                white-space: nowrap;
+            }
+
+            /* Tagging features - comfortable touch */
+            .tagging-feature {
+                padding: 0.75rem 0 !important;
+            }
+
+            /* 5-3-2 labels - easier tapping */
+            #createTab label:has([name="contentType532"]) {
+                padding: 0.5rem 0.8rem !important;
+                min-height: 44px;
+            }
+
+            /* Caption AI actions - full width buttons */
+            #captionAIActions {
+                flex-direction: column !important;
+            }
+
+            #captionAIActions button {
+                width: 100% !important;
+                padding: 0.5rem 0.75rem !important;
+                min-height: 44px !important;
+                justify-content: center;
+            }
+
+            /* Voice note - full width on small screens */
+            #voiceNoteBtn {
+                border-radius: 14px !important;
+            }
+
+            /* UTM section inputs - better mobile spacing */
+            #utmLinkBody input {
+                min-height: 44px !important;
+            }
+
+            /* Location and First Comment - generous spacing */
+            #locationTagSection,
+            #firstCommentSection {
+                padding-left: 0.25rem;
+                padding-right: 0.25rem;
+            }
+        }
+
+        /* --- MOBILE: Extra small (under 480px) --- */
+        @media (max-width: 480px) {
+            /* Create mode toggle - 2x2 grid on tiny screens */
+            .create-mode-toggle {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr;
+                gap: 0.35rem;
+            }
+
+            .create-mode-btn {
+                font-size: 0.8rem !important;
+                padding: 0.65rem 0.5rem !important;
+                min-height: 48px !important;
+            }
+
+            /* Publish buttons stack vertically */
+            .publish-actions {
+                flex-direction: column !important;
+            }
+
+            .publish-actions button {
+                width: 100% !important;
+            }
+
+            /* 5-3-2 stack vertically */
+            .composer-section div[style*="display: flex; gap: 0.5rem; flex-wrap"] {
+                flex-direction: column !important;
+            }
+
+            /* First comment - more generous height */
+            #firstCommentInput {
+                min-height: 90px !important;
+            }
+        }
     </style>
 </head>
 <body>
