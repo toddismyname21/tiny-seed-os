@@ -14848,6 +14848,46 @@
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
+        // MISSING FUNCTION STUBS - Prevent onclick runtime errors
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        function editEvergreen(id) {
+            showToast('Evergreen editing coming soon', 'info');
+        }
+
+        function import52WeekTemplate() {
+            showToast('52-week template import coming soon', 'info');
+        }
+
+        function loadSharedContentCalendar() {
+            showToast('Loading shared calendar...', 'info');
+            fetch(API_URL + '?action=getSharedContentCalendar')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        showToast('Shared calendar loaded!', 'success');
+                    } else {
+                        showToast('Shared calendar not available yet', 'warning');
+                    }
+                })
+                .catch(function() {
+                    showToast('Shared calendar not available yet', 'warning');
+                });
+        }
+
+        function open52WeekImportModal() {
+            showToast('52-week import coming soon', 'info');
+        }
+
+        function openAddCalendarEntryModal() {
+            showToast('Calendar entry coming soon', 'info');
+        }
+
+        function openSharedContentEntryModal() {
+            showToast('Shared content entry coming soon', 'info');
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
         // DUAL-CONTEXT MODE - Field Mode & Office Mode
         // UX Research: Field (60px targets, glove-friendly, 30-60s tasks)
         //              Office (keyboard nav, dense display, 30min sessions)
@@ -17583,7 +17623,7 @@ From our farm to your table with love. Every bite tells a story of dedication, h
             if (data.produce && data.produce.length > 0) {
                 idList.innerHTML = data.produce.map(p =>
                     `<span style="display: inline-block; background: rgba(34, 197, 94, 0.2); padding: 0.3rem 0.6rem; border-radius: 15px; margin: 0.2rem; font-size: 0.85rem;">
-                        <i class="fas fa-check" style="color: var(--success);"></i> ${p}
+                        <i class="fas fa-check" style="color: var(--success);"></i> ${safeHTML(p)}
                     </span>`
                 ).join('');
             } else {
@@ -17601,7 +17641,7 @@ From our farm to your table with love. Every bite tells a story of dedication, h
                     <h6 style="margin-bottom: 0.5rem; color: var(--text-secondary);">Alternative Captions:</h6>
                     ${data.alternates.map((alt, i) => `
                         <div style="background: rgba(255,255,255,0.05); padding: 0.5rem; border-radius: 6px; margin-bottom: 0.5rem; font-size: 0.85rem;">
-                            <span style="color: var(--text-secondary);">${i + 1}.</span> ${alt}
+                            <span style="color: var(--text-secondary);">${i + 1}.</span> ${safeHTML(alt)}
                             <button onclick="useStudioPhotoAlternate(${i})" style="float: right; background: none; border: none; color: var(--info); cursor: pointer; font-size: 0.75rem;">Use</button>
                         </div>
                     `).join('')}
@@ -17613,8 +17653,8 @@ From our farm to your table with love. Every bite tells a story of dedication, h
             if (data.recipes && data.recipes.length > 0) {
                 recipesList.innerHTML = data.recipes.map(r => `
                     <div style="background: rgba(255,255,255,0.05); padding: 0.75rem; border-radius: 8px; margin-bottom: 0.5rem;">
-                        <h6 style="margin: 0 0 0.5rem 0; color: var(--success);"><i class="fas fa-utensils"></i> ${r.name || r}</h6>
-                        ${r.description ? `<p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0;">${r.description}</p>` : ''}
+                        <h6 style="margin: 0 0 0.5rem 0; color: var(--success);"><i class="fas fa-utensils"></i> ${safeHTML(r.name || r)}</h6>
+                        ${r.description ? `<p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0;">${safeHTML(r.description)}</p>` : ''}
                     </div>
                 `).join('');
             } else {
@@ -17623,11 +17663,11 @@ From our farm to your table with love. Every bite tells a story of dedication, h
 
             // Nutrition
             const nutritionBox = document.getElementById('studioPhotoNutritionBox');
-            nutritionBox.innerHTML = data.nutrition || '<p style="color: var(--text-secondary);">No nutrition info available</p>';
+            nutritionBox.innerHTML = safeHTML(data.nutrition || '<p style="color: var(--text-secondary);">No nutrition info available</p>');
 
             // Storage
             const storageBox = document.getElementById('studioPhotoStorageBox');
-            storageBox.innerHTML = data.storage || '<p style="color: var(--text-secondary);">No storage tips available</p>';
+            storageBox.innerHTML = safeHTML(data.storage || '<p style="color: var(--text-secondary);">No storage tips available</p>');
         }
 
         function switchStudioPhotoResultTab(tabName) {
@@ -17764,7 +17804,7 @@ From our farm to your table with love. Every bite tells a story of dedication, h
 
         function displayABTestVariants(variants) {
             const grid = document.getElementById('abTestVariantsGrid');
-            grid.innerHTML = variants.map((v, i) => `
+            grid.innerHTML = safeHTML(variants.map((v, i) => `
                 <div style="background: rgba(0,0,0,0.2); border-radius: 10px; padding: 1rem; border-left: 4px solid ${i === 0 ? '#ec4899' : i === 1 ? '#8b5cf6' : '#06b6d4'};">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                         <span style="font-weight: 600; color: ${i === 0 ? '#ec4899' : i === 1 ? '#8b5cf6' : '#06b6d4'};">
@@ -17784,7 +17824,7 @@ From our farm to your table with love. Every bite tells a story of dedication, h
                         </button>
                     </div>
                 </div>
-            `).join('');
+            `).join(''));
         }
 
         function copyABVariant(index) {
@@ -19715,16 +19755,21 @@ Example format:
             updateNewPicsBadge();
             showToast('Approving ' + newPics.length + ' photos...', 'info');
 
-            // Sync with backend in parallel
-            const results = await Promise.allSettled(
-                newPics.map(pic => fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify({ action: 'approveFarmPic', picId: pic.id, approved: true, approvedBy: 'Admin' })
-                }))
-            );
-            const successCount = results.filter(r => r.status === 'fulfilled').length;
-            showToast(successCount + '/' + newPics.length + ' photos approved!', 'success');
+            try {
+                // Sync with backend in parallel
+                const results = await Promise.allSettled(
+                    newPics.map(pic => fetch(APPS_SCRIPT_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain' },
+                        body: JSON.stringify({ action: 'approveFarmPic', picId: pic.id, approved: true, approvedBy: 'Admin' })
+                    }))
+                );
+                const successCount = results.filter(r => r.status === 'fulfilled').length;
+                showToast(successCount + '/' + newPics.length + ' photos approved!', 'success');
+            } catch (error) {
+                console.error('Batch approval error:', error);
+                showToast('Error approving photos. They are saved locally.', 'error');
+            }
         }
 
         // Use photo in social post - includes SEO metadata
@@ -19873,8 +19918,8 @@ Example format:
                 document.body.appendChild(modal);
             }
             document.getElementById('photoPreviewImg').src = pic.url;
-            document.getElementById('photoPreviewTitle').innerHTML = '<i class="fas fa-image"></i> Photo by ' + pic.author;
-            document.getElementById('photoPreviewMeta').innerHTML = '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;"><div><div style="font-size:0.75rem;color:var(--text-secondary);">Status</div><span class="gallery-item-status ' + pic.status + '">' + pic.status + '</span></div><div><div style="font-size:0.75rem;color:var(--text-secondary);">Category</div>' + (pic.category || 'General') + '</div><div><div style="font-size:0.75rem;color:var(--text-secondary);">Uploaded</div>' + (pic.date || 'Unknown') + '</div><div><div style="font-size:0.75rem;color:var(--text-secondary);">By</div>' + pic.author + '</div></div>' + (pic.caption ? '<div style="margin-top:1rem;"><div style="font-size:0.75rem;color:var(--text-secondary);">Caption (SEO)</div><p>' + pic.caption + '</p></div>' : '');
+            document.getElementById('photoPreviewTitle').innerHTML = '<i class="fas fa-image"></i> Photo by ' + safeHTML(pic.author);
+            document.getElementById('photoPreviewMeta').innerHTML = '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;"><div><div style="font-size:0.75rem;color:var(--text-secondary);">Status</div><span class="gallery-item-status ' + safeHTML(pic.status) + '">' + safeHTML(pic.status) + '</span></div><div><div style="font-size:0.75rem;color:var(--text-secondary);">Category</div>' + safeHTML(pic.category || 'General') + '</div><div><div style="font-size:0.75rem;color:var(--text-secondary);">Uploaded</div>' + safeHTML(pic.date || 'Unknown') + '</div><div><div style="font-size:0.75rem;color:var(--text-secondary);">By</div>' + safeHTML(pic.author) + '</div></div>' + (pic.caption ? '<div style="margin-top:1rem;"><div style="font-size:0.75rem;color:var(--text-secondary);">Caption (SEO)</div><p>' + safeHTML(pic.caption) + '</p></div>' : '');
             document.getElementById('photoPreviewActions').innerHTML = (pic.status === 'new' ? '<button class="btn btn-success" onclick="approvePic(\'' + pic.id + '\');closePhotoPreview();"><i class="fas fa-check"></i> Approve</button>' : '') + '<button class="btn btn-primary" onclick="usePicInPost(\'' + pic.id + '\');closePhotoPreview();"><i class="fas fa-share"></i> Use in Post</button><button class="btn btn-secondary" onclick="window.open(\'' + pic.url + '\',\'_blank\')"><i class="fas fa-external-link-alt"></i> Full Size</button><button class="btn btn-danger" onclick="deletePic(\'' + pic.id + '\');closePhotoPreview();"><i class="fas fa-trash"></i> Delete</button>';
             modal.classList.add('active');
         }
@@ -20367,7 +20412,7 @@ Example format:
                     metaAdsConfigured = true;
                     titleEl.textContent = 'Meta Ads Connected';
                     titleEl.style.color = 'var(--success)';
-                    statusEl.innerHTML = `<i class="fas fa-check-circle" style="color: var(--success);"></i> Ad Account: ${data.adAccountId}`;
+                    statusEl.innerHTML = `<i class="fas fa-check-circle" style="color: var(--success);"></i> Ad Account: ${safeHTML(data.adAccountId)}`;
                     createBtn.disabled = false;
 
                     // Update stats
@@ -20426,10 +20471,10 @@ Example format:
                     container.innerHTML = data.campaigns.map(campaign => `
                         <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: rgba(0,0,0,0.2); border-radius: 12px; margin-bottom: 0.75rem; border-left: 3px solid ${campaign.status === 'ACTIVE' ? 'var(--success)' : 'var(--warning)'};">
                             <div>
-                                <div style="font-weight: 600; margin-bottom: 0.25rem;">${campaign.name}</div>
+                                <div style="font-weight: 600; margin-bottom: 0.25rem;">${safeHTML(campaign.name)}</div>
                                 <div style="font-size: 0.85rem; color: var(--text-secondary);">
-                                    <span style="background: ${campaign.status === 'ACTIVE' ? 'var(--success)' : 'var(--warning)'}; color: ${campaign.status === 'ACTIVE' ? 'white' : '#000'}; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.7rem; text-transform: uppercase;">${campaign.status}</span>
-                                    <span style="margin-left: 0.5rem;">${campaign.objective || 'Sales'}</span>
+                                    <span style="background: ${campaign.status === 'ACTIVE' ? 'var(--success)' : 'var(--warning)'}; color: ${campaign.status === 'ACTIVE' ? 'white' : '#000'}; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.7rem; text-transform: uppercase;">${safeHTML(campaign.status)}</span>
+                                    <span style="margin-left: 0.5rem;">${safeHTML(campaign.objective || 'Sales')}</span>
                                 </div>
                             </div>
                             <div style="text-align: right;">
@@ -21263,7 +21308,7 @@ Example format:
             if (focusDiv) focusDiv.textContent = data.themes.focus;
             if (hashtagsDiv && data.hashtags) {
                 hashtagsDiv.innerHTML = data.hashtags.map(tag =>
-                    `<span style="background: rgba(34, 197, 94, 0.2); padding: 0.2rem 0.5rem; border-radius: 10px; font-size: 0.7rem; color: var(--success);">${tag}</span>`
+                    `<span style="background: rgba(34, 197, 94, 0.2); padding: 0.2rem 0.5rem; border-radius: 10px; font-size: 0.7rem; color: var(--success);">${safeHTML(tag)}</span>`
                 ).join('');
             }
 
@@ -21273,7 +21318,7 @@ Example format:
                 topicsList.innerHTML = data.contentIdeas.slice(0, 5).map(idea =>
                     `<div style="display: flex; align-items: flex-start; gap: 0.5rem; font-size: 0.85rem;">
                         <i class="fas fa-check-circle" style="color: var(--success); margin-top: 0.2rem;"></i>
-                        <span style="color: var(--text-primary);">${idea}</span>
+                        <span style="color: var(--text-primary);">${safeHTML(idea)}</span>
                     </div>`
                 ).join('');
             }
@@ -21286,7 +21331,7 @@ Example format:
                         const urgencyColor = event.urgency === 'high' ? 'var(--danger)' :
                                              event.urgency === 'medium' ? 'var(--warning)' : 'var(--text-secondary)';
                         return `<div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; padding: 0.25rem 0;">
-                            <span style="color: var(--text-primary);">${event.name}</span>
+                            <span style="color: var(--text-primary);">${safeHTML(event.name)}</span>
                             <span style="color: ${urgencyColor}; font-weight: 600;">${event.daysUntil === 0 ? 'TODAY' : event.daysUntil + ' days'}</span>
                         </div>`;
                     }).join('');
@@ -21304,7 +21349,7 @@ Example format:
                     cropSection.style.display = 'block';
                     cropList.innerHTML = data.cropReminders.slice(0, 3).map(reminder =>
                         `<span style="background: rgba(139, 92, 246, 0.2); padding: 0.3rem 0.6rem; border-radius: 8px; font-size: 0.8rem; color: var(--purple); border: 1px solid rgba(139, 92, 246, 0.3);">
-                            <i class="fas fa-leaf"></i> ${reminder}
+                            <i class="fas fa-leaf"></i> ${safeHTML(reminder)}
                         </span>`
                     ).join('');
                 }
@@ -21696,11 +21741,7 @@ Example format:
             return [...new Set(posts.map(p => p.platform?.toLowerCase()).filter(Boolean))];
         }
 
-        function truncateText(text, maxLength) {
-            if (!text) return '';
-            if (text.length <= maxLength) return text;
-            return text.substring(0, maxLength) + '...';
-        }
+        // truncateText defined later (single definition) - removed duplicate
 
         // ═══════════════════════════════════════════════════════════════════════════
         // PHOTO LIBRARY INTEGRATION
@@ -21836,7 +21877,7 @@ Example format:
                         postsList.innerHTML = result.generatedPosts.map(post => `
                             <div class="generated-post-item">
                                 <i class="${getPlatformIconClass(post.platform)}" style="color: ${getPlatformColorValue(post.platform)};"></i>
-                                <div style="flex: 1; font-size: 0.85rem; color: var(--text-secondary);">${truncateText(post.content, 60)}</div>
+                                <div style="flex: 1; font-size: 0.85rem; color: var(--text-secondary);">${safeHTML(truncateText(post.content, 60))}</div>
                                 <span style="font-size: 0.7rem; color: ${post.status === 'posted' ? 'var(--success)' : 'var(--warning)'};">
                                     ${post.status === 'posted' ? 'Posted' : 'Queued'}
                                 </span>
@@ -25113,7 +25154,7 @@ Would you like to test posting to Threads?`;
             // PERSIST selection so it's remembered on page reload
             localStorage.setItem('selectedMixTrackerAccount', account);
 
-            // Update tab UI
+            // Update tab UI via CSS classes
             document.querySelectorAll('.account-mix-tab').forEach(tab => {
                 tab.classList.remove('active');
             });
@@ -25121,6 +25162,38 @@ Would you like to test posting to Threads?`;
 
             // Update tracker display
             updateContentMixUI();
+
+            // Re-render Instagram posts for new account
+            if (typeof igSyncedPosts !== 'undefined' && igSyncedPosts.length > 0) {
+                renderIgRecentPosts(igSyncedPosts);
+                // Recalculate weekly summary for display
+                var weeklySummary = {
+                    farm: { curated: 0, original: 0, personal: 0, total: 0 },
+                    fleurs: { curated: 0, original: 0, personal: 0, total: 0 },
+                    fungi: { curated: 0, original: 0, personal: 0, total: 0 }
+                };
+                var now = new Date();
+                var dayOfWeek = now.getDay();
+                var weekStart = new Date(now);
+                weekStart.setDate(now.getDate() - dayOfWeek);
+                weekStart.setHours(0, 0, 0, 0);
+                var weekEnd = new Date(weekStart);
+                weekEnd.setDate(weekStart.getDate() + 7);
+                igSyncedPosts.forEach(function(post) {
+                    var postDate = new Date(post.timestamp);
+                    if (postDate >= weekStart && postDate < weekEnd) {
+                        var acc = post.account || 'farm';
+                        var cat = post.category || 'original';
+                        if (weeklySummary[acc]) {
+                            weeklySummary[acc][cat]++;
+                            weeklySummary[acc].total++;
+                        }
+                    }
+                });
+                if (typeof updateIg532Progress === 'function') {
+                    updateIg532Progress(weeklySummary);
+                }
+            }
         }
 
         // Track a post for the selected account
@@ -25914,55 +25987,7 @@ Would you like to test posting to Threads?`;
             }
         }
 
-        // Override selectMixTrackerAccount to also update Instagram display
-        const originalSelectMixTrackerAccount = selectMixTrackerAccount;
-        selectMixTrackerAccount = function(account) {
-            originalSelectMixTrackerAccount(account);
-            // Re-render posts for new account
-            if (igSyncedPosts.length > 0) {
-                renderIgRecentPosts(igSyncedPosts);
-                // Recalculate weekly summary for display
-                const weeklySummary = {
-                    farm: { curated: 0, original: 0, personal: 0, total: 0 },
-                    fleurs: { curated: 0, original: 0, personal: 0, total: 0 },
-                    fungi: { curated: 0, original: 0, personal: 0, total: 0 }
-                };
-
-                const now = new Date();
-                const dayOfWeek = now.getDay();
-                const weekStart = new Date(now);
-                weekStart.setDate(now.getDate() - dayOfWeek);
-                weekStart.setHours(0, 0, 0, 0);
-                const weekEnd = new Date(weekStart);
-                weekEnd.setDate(weekStart.getDate() + 7);
-
-                igSyncedPosts.forEach(post => {
-                    const postDate = new Date(post.timestamp);
-                    if (postDate >= weekStart && postDate < weekEnd) {
-                        const acc = post.account || 'farm';
-                        const cat = post.category || 'original';
-                        if (weeklySummary[acc]) {
-                            weeklySummary[acc][cat]++;
-                            weeklySummary[acc].total++;
-                        }
-                    }
-                });
-
-                updateIg532Progress(weeklySummary);
-            }
-            // Update tab styling
-            document.querySelectorAll('.account-mix-tab').forEach(tab => {
-                if (tab.dataset.mixAccount === account) {
-                    tab.style.background = 'rgba(225, 48, 108, 0.2)';
-                    tab.style.borderColor = 'var(--instagram)';
-                    tab.style.color = 'var(--text-primary)';
-                } else {
-                    tab.style.background = 'transparent';
-                    tab.style.borderColor = 'var(--border)';
-                    tab.style.color = 'var(--text-secondary)';
-                }
-            });
-        };
+        // selectMixTrackerAccount override removed - logic merged into main definition
 
         function updateTimeOfDay() {
             const hour = new Date().getHours();
@@ -28225,7 +28250,7 @@ Would you like to test posting to Threads?`;
             listEl.innerHTML = aeoData.brandMentionAlerts.slice(0, 5).map(alert => {
                 const platform = platformIcons[alert.platform] || { icon: 'fa-robot', color: '#888' };
                 const isNew = alert.isNew;
-                return '<div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem; background: rgba(0,0,0,0.2); border-radius: 8px; margin-bottom: 0.25rem; ' + (isNew ? 'border-left: 3px solid var(--success);' : '') + '"><i class="fas ' + platform.icon + '" style="color: ' + platform.color + ';"></i><div style="flex: 1;"><div style="font-size: 0.8rem; font-weight: 500;">"' + alert.query + '"</div><div style="font-size: 0.7rem; color: var(--text-secondary);">' + alert.platform + ' - ' + (alert.position || 'mentioned') + '</div></div>' + (isNew ? '<span style="font-size: 0.65rem; background: var(--success); padding: 0.1rem 0.4rem; border-radius: 4px; color: white;">NEW</span>' : '') + '</div>';
+                return '<div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem; background: rgba(0,0,0,0.2); border-radius: 8px; margin-bottom: 0.25rem; ' + (isNew ? 'border-left: 3px solid var(--success);' : '') + '"><i class="fas ' + platform.icon + '" style="color: ' + platform.color + ';"></i><div style="flex: 1;"><div style="font-size: 0.8rem; font-weight: 500;">"' + safeHTML(alert.query) + '"</div><div style="font-size: 0.7rem; color: var(--text-secondary);">' + safeHTML(alert.platform) + ' - ' + safeHTML(alert.position || 'mentioned') + '</div></div>' + (isNew ? '<span style="font-size: 0.65rem; background: var(--success); padding: 0.1rem 0.4rem; border-radius: 4px; color: white;">NEW</span>' : '') + '</div>';
             }).join('');
         }
 
@@ -28239,7 +28264,7 @@ Would you like to test posting to Threads?`;
             }
             if (container) container.style.display = 'block';
 
-            listEl.innerHTML = aeoData.citedContent.slice(0, 3).map(item => '<div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: linear-gradient(135deg, rgba(225, 48, 108, 0.15), rgba(155, 89, 182, 0.1)); border-radius: 8px; border-left: 3px solid var(--instagram);"><i class="fas fa-share-alt" style="color: var(--instagram);"></i><div style="flex: 1;"><div style="font-size: 0.8rem; font-weight: 500;">"' + item.query + '"</div><div style="font-size: 0.7rem; color: var(--instagram);">' + item.recommendation + '</div></div><button onclick="shareAICitedContent(\'' + encodeURIComponent(item.query) + '\')" class="btn btn-sm" style="background: var(--instagram); color: white; font-size: 0.7rem;"><i class="fas fa-share"></i> Share</button></div>').join('');
+            listEl.innerHTML = aeoData.citedContent.slice(0, 3).map(item => '<div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: linear-gradient(135deg, rgba(225, 48, 108, 0.15), rgba(155, 89, 182, 0.1)); border-radius: 8px; border-left: 3px solid var(--instagram);"><i class="fas fa-share-alt" style="color: var(--instagram);"></i><div style="flex: 1;"><div style="font-size: 0.8rem; font-weight: 500;">"' + safeHTML(item.query) + '"</div><div style="font-size: 0.7rem; color: var(--instagram);">' + safeHTML(item.recommendation) + '</div></div><button onclick="shareAICitedContent(\'' + encodeURIComponent(item.query) + '\')" class="btn btn-sm" style="background: var(--instagram); color: white; font-size: 0.7rem;"><i class="fas fa-share"></i> Share</button></div>').join('');
         }
 
         function renderAEORecommendations() {
@@ -28260,7 +28285,7 @@ Would you like to test posting to Threads?`;
 
             listEl.innerHTML = aeoData.recommendations.slice(0, 3).map(rec => {
                 const style = priorityStyles[rec.priority] || priorityStyles.medium;
-                return '<div style="padding: 0.75rem; background: ' + style.bg + '; border-radius: 8px; border-left: 3px solid ' + style.border + ';"><div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;"><i class="fas ' + style.icon + '" style="color: ' + style.border + ';"></i><span style="font-size: 0.85rem; font-weight: 600;">' + rec.title + '</span></div><div style="font-size: 0.75rem; color: var(--text-secondary);">' + rec.description + '</div>' + (rec.action ? '<button onclick="handleAEOAction(\'' + rec.type + '\')" class="btn btn-sm" style="margin-top: 0.5rem; background: ' + style.border + '; color: white; font-size: 0.7rem;"><i class="fas fa-arrow-right"></i> ' + rec.action + '</button>' : '') + '</div>';
+                return '<div style="padding: 0.75rem; background: ' + style.bg + '; border-radius: 8px; border-left: 3px solid ' + style.border + ';"><div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;"><i class="fas ' + style.icon + '" style="color: ' + style.border + ';"></i><span style="font-size: 0.85rem; font-weight: 600;">' + safeHTML(rec.title) + '</span></div><div style="font-size: 0.75rem; color: var(--text-secondary);">' + safeHTML(rec.description) + '</div>' + (rec.action ? '<button onclick="handleAEOAction(\'' + rec.type + '\')" class="btn btn-sm" style="margin-top: 0.5rem; background: ' + style.border + '; color: white; font-size: 0.7rem;"><i class="fas fa-arrow-right"></i> ' + safeHTML(rec.action) + '</button>' : '') + '</div>';
             }).join('');
         }
 
@@ -30948,8 +30973,8 @@ Would you like to test posting to Threads?`;
                     banner.style.display = 'block';
                     document.getElementById('adAlertContent').innerHTML = data.alerts.map(alert => `
                         <div style="background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 8px; margin-top: 0.5rem;">
-                            <strong>${alert.competitorName}</strong> is running ads on ${alert.platform}!
-                            <div style="font-size: 0.85rem; color: var(--text-secondary);">${alert.adDetails || 'Check their page for details'}</div>
+                            <strong>${safeHTML(alert.competitorName)}</strong> is running ads on ${safeHTML(alert.platform)}!
+                            <div style="font-size: 0.85rem; color: var(--text-secondary);">${safeHTML(alert.adDetails || 'Check their page for details')}</div>
                         </div>
                     `).join('');
                     showToast(`Found ${data.alerts.length} competitor ads!`, 'warning');
@@ -31617,9 +31642,9 @@ Would you like to test posting to Threads?`;
                     content.innerHTML = data.alerts.map(alert => `
                         <div style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px; margin-top: 0.75rem; border-left: 4px solid var(--danger);">
                             <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                                <div><strong style="font-size: 1.1rem;">${alert.competitorName}</strong>
-                                <div style="color: var(--text-secondary); margin-top: 0.25rem;">Running ads on <strong>${alert.platform}</strong></div>
-                                ${alert.adDetails ? `<div style="margin-top: 0.5rem; font-size: 0.9rem;">${alert.adDetails}</div>` : ''}</div>
+                                <div><strong style="font-size: 1.1rem;">${safeHTML(alert.competitorName)}</strong>
+                                <div style="color: var(--text-secondary); margin-top: 0.25rem;">Running ads on <strong>${safeHTML(alert.platform)}</strong></div>
+                                ${alert.adDetails ? `<div style="margin-top: 0.5rem; font-size: 0.9rem;">${safeHTML(alert.adDetails)}</div>` : ''}</div>
                                 <a href="https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=US&q=${encodeURIComponent(alert.competitorName)}" target="_blank" class="btn btn-sm" style="background: var(--danger);"><i class="fas fa-external-link-alt"></i> View</a>
                             </div>
                         </div>
@@ -35190,8 +35215,8 @@ Would you like to test posting to Threads?`;
                         const url = pic.Image_URL || pic.url || '';
                         const convertedUrl = convertDriveUrl(url);
                         return `
-                            <div class="farm-pic-item" onclick="selectFarmPicForDesign('${convertedUrl}')">
-                                <img src="${convertedUrl}" alt="${pic.Caption || 'Farm photo'}" loading="lazy">
+                            <div class="farm-pic-item" onclick="selectFarmPicForDesign('${safeHTML(convertedUrl)}')">
+                                <img src="${safeHTML(convertedUrl)}" alt="${safeHTML(pic.Caption || 'Farm photo')}" loading="lazy">
                             </div>
                         `;
                     }).join('');
@@ -35878,27 +35903,32 @@ Would you like to test posting to Threads?`;
 
         // Save to server
         async function saveFieldCaptureToServer(postData) {
-            // Convert image to base64 for upload
-            const response = await fetch(`${API_URL}?action=addToMarketingQueue`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain' },
-                body: JSON.stringify({
-                    action: 'addToMarketingQueue',
-                    platform: 'instagram', // Default to Instagram for farm photos
-                    contentType: 'photo',
-                    content: postData.caption,
-                    mediaUrl: postData.imageData,
-                    scheduledDate: postData.scheduledFor,
-                    source: 'field_capture'
-                })
-            });
+            try {
+                const response = await fetch(`${API_URL}?action=addToMarketingQueue`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'addToMarketingQueue',
+                        platform: 'instagram',
+                        contentType: 'photo',
+                        content: postData.caption,
+                        mediaUrl: postData.imageData,
+                        scheduledDate: postData.scheduledFor,
+                        source: 'field_capture'
+                    })
+                });
 
-            const result = await response.json();
-            if (!result.success) {
-                throw new Error(result.error || 'Failed to queue post');
+                const result = await response.json();
+                if (!result.success) {
+                    throw new Error(result.error || 'Failed to queue post');
+                }
+                return result;
+            } catch (error) {
+                console.error('Field capture server save error:', error);
+                showToast('Could not save to server. Saving locally instead.', 'warning');
+                saveFieldCaptureLocally(postData);
+                throw error;
             }
-
-            return result;
         }
 
         // Save locally for offline use
