@@ -14735,11 +14735,13 @@
                     `${AppState.employee.First_Name || ''} ${AppState.employee.Last_Name || ''}`.trim() || 'Employee';
 
                 // Load permissions from employee data (from Google Sheet)
+                // Admin/Owner gets all permissions automatically
+                const isAdmin = AppState.employee.Role === 'Admin' || AppState.employee.Role === 'Owner' || AppState.employee.Role === 'Manager';
                 AppState.permissions = {
-                    tractor: AppState.employee.Tractor_Mode === true || AppState.employee.Tractor_Mode === 'TRUE',
-                    garage: AppState.employee.Garage_Mode === true || AppState.employee.Garage_Mode === 'TRUE',
-                    inventory: AppState.employee.Inventory_Mode === true || AppState.employee.Inventory_Mode === 'TRUE',
-                    costing: AppState.employee.Costing_Mode === true || AppState.employee.Costing_Mode === 'TRUE'
+                    tractor: isAdmin || AppState.employee.Tractor_Mode === true || AppState.employee.Tractor_Mode === 'TRUE',
+                    garage: isAdmin || AppState.employee.Garage_Mode === true || AppState.employee.Garage_Mode === 'TRUE',
+                    inventory: isAdmin || AppState.employee.Inventory_Mode === true || AppState.employee.Inventory_Mode === 'TRUE',
+                    costing: isAdmin || AppState.employee.Costing_Mode === true || AppState.employee.Costing_Mode === 'TRUE'
                 };
             }
 
@@ -15676,9 +15678,10 @@
             document.getElementById('inventoryMode')?.classList.remove('active');
             document.getElementById('costingMode')?.classList.remove('active');
 
-            // For full-screen modes, check if clocked in first
+            // For full-screen modes, check if clocked in first (admins bypass)
+            const userIsAdmin = AppState.employee && (AppState.employee.Role === 'Admin' || AppState.employee.Role === 'Owner' || AppState.employee.Role === 'Manager');
             if (FULL_SCREEN_MODES.includes(mode)) {
-                if (!AppState.isClockedIn) {
+                if (!AppState.isClockedIn && !userIsAdmin) {
                     // Stay on home screen, show clock in prompt
                     document.getElementById('fieldNav').style.display = 'flex';
                     switchTab('home');
