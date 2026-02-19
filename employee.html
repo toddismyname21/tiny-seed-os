@@ -11557,21 +11557,22 @@
 
             <!-- Seeds Tab -->
             <div id="inventorySeedsTab" class="inventory-panel">
-                <div style="padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+                <!-- Action Cards -->
+                <div id="seedActionCards" style="padding: 16px; display: flex; flex-direction: column; gap: 12px;">
                     <!-- Capture Seed Packet -->
-                    <a href="inventory_capture.html" style="display: flex; align-items: center; gap: 14px; padding: 18px 16px; background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(245, 158, 11, 0.05)); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 14px; color: var(--text-primary); text-decoration: none;">
+                    <div onclick="captureSeedPacket()" style="display: flex; align-items: center; gap: 14px; padding: 18px 16px; background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(245, 158, 11, 0.05)); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 14px; cursor: pointer;">
                         <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(245, 158, 11, 0.2); display: flex; align-items: center; justify-content: center; font-size: 22px; color: #f59e0b; flex-shrink: 0;">
                             <i class="fas fa-camera"></i>
                         </div>
                         <div>
                             <div style="font-weight: 700; font-size: 16px; margin-bottom: 2px;">Capture Seed Packet</div>
-                            <div style="font-size: 13px; color: var(--text-secondary);">Photo &rarr; AI reads label &rarr; auto-logs to inventory</div>
+                            <div style="font-size: 13px; color: var(--text-secondary);">Photo → AI reads label → auto-logs to inventory</div>
                         </div>
                         <i class="fas fa-chevron-right" style="margin-left: auto; color: var(--text-secondary);"></i>
-                    </a>
+                    </div>
 
                     <!-- View Seed Inventory -->
-                    <a href="seed_inventory_PRODUCTION.html" style="display: flex; align-items: center; gap: 14px; padding: 18px 16px; background: linear-gradient(135deg, rgba(42, 157, 143, 0.15), rgba(42, 157, 143, 0.05)); border: 1px solid rgba(42, 157, 143, 0.3); border-radius: 14px; color: var(--text-primary); text-decoration: none;">
+                    <div onclick="window.location.href='seed_inventory_PRODUCTION.html'" style="display: flex; align-items: center; gap: 14px; padding: 18px 16px; background: linear-gradient(135deg, rgba(42, 157, 143, 0.15), rgba(42, 157, 143, 0.05)); border: 1px solid rgba(42, 157, 143, 0.3); border-radius: 14px; cursor: pointer;">
                         <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(42, 157, 143, 0.2); display: flex; align-items: center; justify-content: center; font-size: 22px; color: #2a9d8f; flex-shrink: 0;">
                             <i class="fas fa-seedling"></i>
                         </div>
@@ -11580,19 +11581,85 @@
                             <div style="font-size: 13px; color: var(--text-secondary);">View stock, print QR labels, track usage</div>
                         </div>
                         <i class="fas fa-chevron-right" style="margin-left: auto; color: var(--text-secondary);"></i>
-                    </a>
+                    </div>
 
-                    <!-- Upload Receipt -->
-                    <a href="seed_inventory_PRODUCTION.html#add" style="display: flex; align-items: center; gap: 14px; padding: 18px 16px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(99, 102, 241, 0.05)); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 14px; color: var(--text-primary); text-decoration: none;">
+                    <!-- Upload Receipt / Cert -->
+                    <div onclick="uploadSeedReceipt()" style="display: flex; align-items: center; gap: 14px; padding: 18px 16px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(99, 102, 241, 0.05)); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 14px; cursor: pointer;">
                         <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(99, 102, 241, 0.2); display: flex; align-items: center; justify-content: center; font-size: 22px; color: #6366f1; flex-shrink: 0;">
                             <i class="fas fa-receipt"></i>
                         </div>
                         <div>
                             <div style="font-weight: 700; font-size: 16px; margin-bottom: 2px;">Upload Receipt / Cert</div>
-                            <div style="font-size: 13px; color: var(--text-secondary);">Attach purchase receipts &amp; organic certificates</div>
+                            <div style="font-size: 13px; color: var(--text-secondary);">Take photo or upload from device → AI parses</div>
                         </div>
                         <i class="fas fa-chevron-right" style="margin-left: auto; color: var(--text-secondary);"></i>
-                    </a>
+                    </div>
+                </div>
+
+                <!-- Seed Capture Result Area (hidden until photo taken) -->
+                <div id="seedCaptureArea" style="display: none; padding: 16px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                        <h3 style="font-size: 16px; font-weight: 700;">New Seed Lot</h3>
+                        <button onclick="closeSeedCapture()" style="background: none; border: none; color: var(--text-secondary); font-size: 20px; cursor: pointer;"><i class="fas fa-times"></i></button>
+                    </div>
+                    <!-- Photo preview -->
+                    <div id="seedPhotoPreview" style="margin-bottom: 14px; border-radius: 12px; overflow: hidden; max-height: 200px; display: none;">
+                        <img id="seedPhotoImg" style="width: 100%; object-fit: cover;" />
+                    </div>
+                    <!-- Seed form fields -->
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <input id="seedFormCrop" placeholder="Crop (e.g. Tomato)" style="padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-size: 15px;" />
+                        <input id="seedFormVariety" placeholder="Variety (e.g. Cherokee Purple)" style="padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-size: 15px;" />
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <input id="seedFormVendor" placeholder="Vendor" style="padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-size: 15px;" />
+                            <input id="seedFormLotNumber" placeholder="Lot #" style="padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-size: 15px;" />
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                            <input id="seedFormQty" type="number" placeholder="Packets" value="1" style="padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-size: 15px;" />
+                            <input id="seedFormGermRate" type="number" placeholder="Germ %" style="padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-size: 15px;" />
+                            <select id="seedFormOrganic" style="padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-size: 15px;">
+                                <option value="">Organic?</option>
+                                <option value="yes">Yes</option>
+                                <option value="no">No</option>
+                            </select>
+                        </div>
+                        <input id="seedFormNotes" placeholder="Notes (optional)" style="padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-size: 15px;" />
+                        <button onclick="submitSeedFromCapture()" style="padding: 14px; background: linear-gradient(135deg, #2d5a27, #4a7c43); border: none; border-radius: 12px; color: white; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 4px;">
+                            <i class="fas fa-seedling"></i> Save to Seed Inventory
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Receipt Upload Area (hidden until triggered) -->
+                <div id="receiptUploadArea" style="display: none; padding: 16px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                        <h3 style="font-size: 16px; font-weight: 700;">Upload Receipt / Certificate</h3>
+                        <button onclick="closeReceiptUpload()" style="background: none; border: none; color: var(--text-secondary); font-size: 20px; cursor: pointer;"><i class="fas fa-times"></i></button>
+                    </div>
+                    <!-- Photo choice buttons -->
+                    <div id="receiptChoiceButtons" style="display: flex; gap: 10px; margin-bottom: 14px;">
+                        <button onclick="captureReceiptPhoto()" style="flex: 1; padding: 16px; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 12px; color: var(--text-primary); font-size: 14px; font-weight: 600; cursor: pointer;">
+                            <i class="fas fa-camera" style="display: block; font-size: 24px; color: #6366f1; margin-bottom: 6px;"></i> Take Photo
+                        </button>
+                        <button onclick="pickReceiptFile()" style="flex: 1; padding: 16px; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 12px; color: var(--text-primary); font-size: 14px; font-weight: 600; cursor: pointer;">
+                            <i class="fas fa-folder-open" style="display: block; font-size: 24px; color: #6366f1; margin-bottom: 6px;"></i> From Device
+                        </button>
+                    </div>
+                    <!-- Receipt preview + parsed info -->
+                    <div id="receiptPreviewArea" style="display: none;">
+                        <div style="margin-bottom: 14px; border-radius: 12px; overflow: hidden; max-height: 200px;">
+                            <img id="receiptPhotoImg" style="width: 100%; object-fit: cover;" />
+                        </div>
+                        <div id="receiptParsedInfo" style="background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 12px; padding: 14px; margin-bottom: 14px;"></div>
+                        <select id="receiptDocType" style="width: 100%; padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-size: 15px; margin-bottom: 10px;">
+                            <option value="receipt">Purchase Receipt</option>
+                            <option value="organic_cert">Organic Certificate</option>
+                        </select>
+                        <input id="receiptSeedLotId" placeholder="Seed Lot ID (e.g. S-TOM-260218-001)" style="width: 100%; padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-size: 15px; margin-bottom: 10px;" />
+                        <button onclick="submitReceiptUpload()" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #4f46e5, #6366f1); border: none; border-radius: 12px; color: white; font-size: 16px; font-weight: 700; cursor: pointer;">
+                            <i class="fas fa-upload"></i> Upload &amp; Attach
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -15994,6 +16061,226 @@
                 updateInventoryReportStats();
             } else if (tab === 'qr') {
                 updateBulkQRCount();
+            }
+        }
+
+        // ========== SEED PACKET CAPTURE ==========
+        let seedCapturePhoto = null;
+
+        function captureSeedPacket() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.capture = 'environment';
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                showSeedProcessingOverlay('Reading Seed Packet...');
+                const reader = new FileReader();
+                reader.onload = async (event) => {
+                    const compressed = await compressPhoto(event.target.result, 1200);
+                    seedCapturePhoto = compressed;
+                    try {
+                        const response = await fetch(CONFIG.API_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'text/plain' },
+                            body: JSON.stringify({ action: 'analyzeSeedPacket', image: compressed })
+                        });
+                        const result = await response.json();
+                        hideSeedProcessingOverlay();
+                        if (result.success && result.data) {
+                            showSeedCaptureForm(result.data, compressed);
+                            showToast('Seed packet detected! Review details below.', 'success');
+                        } else {
+                            showSeedCaptureForm({}, compressed);
+                            showToast('Could not read packet. Fill details manually.', 'warning');
+                        }
+                    } catch (err) {
+                        hideSeedProcessingOverlay();
+                        showSeedCaptureForm({}, compressed);
+                        showToast('AI connection error. Fill details manually.', 'warning');
+                    }
+                };
+                reader.readAsDataURL(file);
+            };
+            input.click();
+        }
+
+        function showSeedProcessingOverlay(text) {
+            const overlay = document.createElement('div');
+            overlay.id = 'seedProcessingOverlay';
+            overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:10000;';
+            overlay.innerHTML = '<div style="width:48px;height:48px;border:4px solid rgba(245,158,11,0.3);border-top-color:#f59e0b;border-radius:50%;animation:spin 1s linear infinite;"></div>' +
+                '<div style="color:white;font-size:18px;font-weight:600;margin-top:16px;">' + (text || 'Processing...') + '</div>' +
+                '<div style="color:rgba(255,255,255,0.6);font-size:14px;margin-top:6px;">AI is analyzing the photo</div>';
+            document.body.appendChild(overlay);
+        }
+
+        function hideSeedProcessingOverlay() {
+            const el = document.getElementById('seedProcessingOverlay');
+            if (el) el.remove();
+        }
+
+        function showSeedCaptureForm(data, photoBase64) {
+            document.getElementById('seedActionCards').style.display = 'none';
+            const area = document.getElementById('seedCaptureArea');
+            area.style.display = 'block';
+            if (photoBase64) {
+                document.getElementById('seedPhotoImg').src = photoBase64;
+                document.getElementById('seedPhotoPreview').style.display = 'block';
+            }
+            if (data.crop) document.getElementById('seedFormCrop').value = data.crop;
+            if (data.variety) document.getElementById('seedFormVariety').value = data.variety;
+            if (data.vendor) document.getElementById('seedFormVendor').value = data.vendor;
+            if (data.lotNumber) document.getElementById('seedFormLotNumber').value = data.lotNumber;
+            if (data.quantity) document.getElementById('seedFormQty').value = data.quantity;
+            if (data.germRate) document.getElementById('seedFormGermRate').value = data.germRate;
+            if (data.organic) document.getElementById('seedFormOrganic').value = 'yes';
+        }
+
+        function closeSeedCapture() {
+            document.getElementById('seedCaptureArea').style.display = 'none';
+            document.getElementById('seedActionCards').style.cssText = 'padding:16px;display:flex;flex-direction:column;gap:12px;';
+            document.getElementById('seedPhotoPreview').style.display = 'none';
+            seedCapturePhoto = null;
+            // Clear form
+            ['seedFormCrop','seedFormVariety','seedFormVendor','seedFormLotNumber','seedFormQty','seedFormGermRate','seedFormNotes'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            document.getElementById('seedFormOrganic').value = '';
+        }
+
+        async function submitSeedFromCapture() {
+            const crop = document.getElementById('seedFormCrop').value.trim();
+            const variety = document.getElementById('seedFormVariety').value.trim();
+            if (!crop) { showToast('Crop name is required', 'error'); return; }
+
+            showSeedProcessingOverlay('Saving to inventory...');
+            try {
+                let photoUrl = '';
+                if (seedCapturePhoto) {
+                    const photoResp = await fetch(CONFIG.API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain' },
+                        body: JSON.stringify({ action: 'uploadFarmInventoryPhoto', base64: seedCapturePhoto, fileName: 'seed_' + Date.now() + '.jpg' })
+                    });
+                    const photoData = await photoResp.json();
+                    if (photoData.success) photoUrl = photoData.url;
+                }
+                const response = await fetch(CONFIG.API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'addSeedLot',
+                        crop: crop,
+                        variety: variety,
+                        vendor: document.getElementById('seedFormVendor').value.trim(),
+                        lotNumber: document.getElementById('seedFormLotNumber').value.trim(),
+                        quantity: parseInt(document.getElementById('seedFormQty').value) || 1,
+                        germRate: parseInt(document.getElementById('seedFormGermRate').value) || 0,
+                        organic: document.getElementById('seedFormOrganic').value === 'yes',
+                        notes: document.getElementById('seedFormNotes').value.trim(),
+                        photoUrl: photoUrl
+                    })
+                });
+                const result = await response.json();
+                hideSeedProcessingOverlay();
+                if (result.success) {
+                    const lotId = result.seedLotId || result.lotId || '';
+                    showToast('Seed lot saved! ' + (lotId ? 'ID: ' + lotId : ''), 'success');
+                    closeSeedCapture();
+                } else {
+                    showToast('Error: ' + (result.error || 'Failed to save'), 'error');
+                }
+            } catch (err) {
+                hideSeedProcessingOverlay();
+                showToast('Connection error. Try again.', 'error');
+            }
+        }
+
+        // ========== RECEIPT / CERT UPLOAD ==========
+        let receiptPhoto = null;
+
+        function uploadSeedReceipt() {
+            document.getElementById('seedActionCards').style.display = 'none';
+            document.getElementById('receiptUploadArea').style.display = 'block';
+            document.getElementById('receiptPreviewArea').style.display = 'none';
+            document.getElementById('receiptChoiceButtons').style.display = 'flex';
+        }
+
+        function closeReceiptUpload() {
+            document.getElementById('receiptUploadArea').style.display = 'none';
+            document.getElementById('seedActionCards').style.cssText = 'padding:16px;display:flex;flex-direction:column;gap:12px;';
+            receiptPhoto = null;
+            document.getElementById('receiptSeedLotId').value = '';
+        }
+
+        function captureReceiptPhoto() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.capture = 'environment';
+            input.onchange = (e) => handleReceiptFile(e.target.files[0]);
+            input.click();
+        }
+
+        function pickReceiptFile() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = (e) => handleReceiptFile(e.target.files[0]);
+            input.click();
+        }
+
+        async function handleReceiptFile(file) {
+            if (!file) return;
+            showSeedProcessingOverlay('Analyzing receipt...');
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                const compressed = await compressPhoto(event.target.result, 1200);
+                receiptPhoto = compressed;
+                hideSeedProcessingOverlay();
+                document.getElementById('receiptPhotoImg').src = compressed;
+                document.getElementById('receiptChoiceButtons').style.display = 'none';
+                document.getElementById('receiptPreviewArea').style.display = 'block';
+                document.getElementById('receiptParsedInfo').innerHTML =
+                    '<div style="font-weight:600;margin-bottom:6px;color:#a5b4fc;"><i class="fas fa-check-circle"></i> Photo captured</div>' +
+                    '<div style="font-size:13px;color:var(--text-secondary);">Enter the Seed Lot ID to attach this document, then tap Upload.</div>';
+                showToast('Receipt photo ready. Enter seed lot ID to attach.', 'success');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function submitReceiptUpload() {
+            const lotId = document.getElementById('receiptSeedLotId').value.trim();
+            const docType = document.getElementById('receiptDocType').value;
+            if (!lotId) { showToast('Enter the Seed Lot ID', 'error'); return; }
+            if (!receiptPhoto) { showToast('Take or select a photo first', 'error'); return; }
+
+            showSeedProcessingOverlay('Uploading...');
+            try {
+                const response = await fetch(CONFIG.API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'uploadSeedPhoto',
+                        seedLotId: lotId,
+                        photoType: docType,
+                        base64: receiptPhoto
+                    })
+                });
+                const result = await response.json();
+                hideSeedProcessingOverlay();
+                if (result.success) {
+                    showToast('Document uploaded and attached to ' + lotId, 'success');
+                    closeReceiptUpload();
+                } else {
+                    showToast('Error: ' + (result.error || 'Upload failed'), 'error');
+                }
+            } catch (err) {
+                hideSeedProcessingOverlay();
+                showToast('Connection error. Try again.', 'error');
             }
         }
 
