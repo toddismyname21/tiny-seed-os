@@ -16218,22 +16218,28 @@
                     const photoData = await photoResp.json();
                     if (photoData.success) photoUrl = photoData.url;
                 }
+                const isOrganic = document.getElementById('seedFormOrganic').value === 'yes';
+                const seedData = {
+                    action: 'addSeedLot',
+                    crop: crop,
+                    variety: variety,
+                    vendor: document.getElementById('seedFormVendor').value.trim(),
+                    lotNumber: document.getElementById('seedFormLotNumber').value.trim(),
+                    quantity: parseInt(document.getElementById('seedFormQty').value) || 1,
+                    seedsPerPacket: parseInt(document.getElementById('seedFormSeedsPerPacket').value) || 0,
+                    germRate: parseInt(document.getElementById('seedFormGermRate').value) || 0,
+                    organic: isOrganic,
+                    notes: document.getElementById('seedFormNotes').value.trim(),
+                    receiptPhotoUrl: photoUrl
+                };
+                // If organic, the seed packet photo also serves as organic certification
+                if (isOrganic && photoUrl) {
+                    seedData.organicCertPhotoUrl = photoUrl;
+                }
                 const response = await fetch(CONFIG.API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify({
-                        action: 'addSeedLot',
-                        crop: crop,
-                        variety: variety,
-                        vendor: document.getElementById('seedFormVendor').value.trim(),
-                        lotNumber: document.getElementById('seedFormLotNumber').value.trim(),
-                        quantity: parseInt(document.getElementById('seedFormQty').value) || 1,
-                        seedsPerPacket: parseInt(document.getElementById('seedFormSeedsPerPacket').value) || 0,
-                        germRate: parseInt(document.getElementById('seedFormGermRate').value) || 0,
-                        organic: document.getElementById('seedFormOrganic').value === 'yes',
-                        notes: document.getElementById('seedFormNotes').value.trim(),
-                        photoUrl: photoUrl
-                    })
+                    body: JSON.stringify(seedData)
                 });
                 const result = await response.json();
                 hideSeedProcessingOverlay();
@@ -25468,8 +25474,9 @@
                     document.body.appendChild(toggle);
                 }
 
-                // Check if first time user
-                if (!localStorage.getItem('tsf_tutorial_completed')) {
+                // Check if first time for THIS employee
+                const empId = (AppState.employee && AppState.employee.Employee_ID) || 'default';
+                if (!localStorage.getItem('tsf_tutorial_completed_' + empId)) {
                     setTimeout(() => this.start(), 2000);
                 }
             },
@@ -25575,7 +25582,8 @@
 
             complete() {
                 this.active = false;
-                localStorage.setItem('tsf_tutorial_completed', 'true');
+                const empId = (AppState.employee && AppState.employee.Employee_ID) || 'default';
+                localStorage.setItem('tsf_tutorial_completed_' + empId, 'true');
 
                 document.getElementById('tutorialOverlay').classList.remove('active');
                 document.getElementById('tutorialBubble').classList.remove('active');
@@ -25589,7 +25597,8 @@
             },
 
             reset() {
-                localStorage.removeItem('tsf_tutorial_completed');
+                const empId = (AppState.employee && AppState.employee.Employee_ID) || 'default';
+                localStorage.removeItem('tsf_tutorial_completed_' + empId);
                 this.start();
             }
         };
