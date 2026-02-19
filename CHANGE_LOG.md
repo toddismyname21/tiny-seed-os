@@ -38,6 +38,56 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-19 - PM_Architect (CRITICAL: Seed Column Shift Bug Fix)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Fixed column migration + header-aware addSeedLot
+- `claude_sessions/desktop_web/INBOX.md` - Priority 9: Complete employee app frontend audit
+- `claude_sessions/backend/INBOX.md` - Priority 6: Complete employee app backend audit
+- `claude_sessions/pm_architect/OUTBOX.md` - Full overnight audit report
+
+### Functions Modified
+- `initSeedInventorySheet()` in `MERGED TOTAL.js` - Added Seeds_Per_Packet to auto-migration code (inserts column after Unit)
+- `addSeedLot()` in `MERGED TOTAL.js` - Rebuilt to use header-position-aware row building (maps values by column name, not hardcoded array index)
+
+### Reason
+CRITICAL BUG: Seeds_Per_Packet column was added to SEED_INVENTORY_HEADERS at position 9 but the migration code didn't add it to existing sheets. This caused all data from position 9 onward to be shifted by one column — seedsPerPacket (5000) wrote into Germination_Rate, germRate wrote into Germ_Test_Date, etc. Owner reported germination rate showing 5000 and total seeds showing 0.
+
+### Deployment
+@642
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+
+---
+
+## 2026-02-18 - Backend_Claude (Priority 5: Employee App Backend Audit)
+
+### Files Modified
+- `claude_sessions/backend/OUTBOX.md` — Full audit report added
+
+### What Was Done
+- **Audit only — no code changes deployed**
+- Audited `authenticateEmployee`, `clockIn`, `clockOut`, `getClockStatus` functions and router entries
+- Verified employee permission columns (Role, Inventory_Mode, Tractor_Mode, Garage_Mode, Costing_Mode)
+- Verified all 4 seed endpoints still working post-Priority 4 (@638)
+- Spot-checked `getMyWorkOrder`, `getMorningBrief`, `submitInventoryCount`
+
+### Key Findings
+- 6 functional bugs found (clockOut partial writes, missing mode param, inconsistent auth response shapes)
+- 4 security concerns (PIN via GET, no rate limiting, sample PINs, state changes via GET)
+- `submitInventoryCount` endpoint is completely missing (no function, no route)
+- EMPLOYEES sheet missing permission columns (Tractor_Mode, Garage_Mode, etc.)
+- `getMyWorkOrder` has dead-code duplicate route at line 16765
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created (audit only)
+
+---
+
 ## 2026-02-18 - Desktop_Claude (Session 9: Priority 8 Seed Inventory Full Flow Wiring)
 
 **Files Modified:**

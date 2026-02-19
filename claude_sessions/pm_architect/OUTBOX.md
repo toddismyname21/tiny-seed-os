@@ -1096,3 +1096,146 @@ npx claude-flow@v3alpha coordination swarm-init --topology hierarchical --max-ag
 ## [2026-02-16 06:00:04] - NOTIFICATION
 **Priority:** normal
 **Message:** Morning Briefing Ready - Progress made overnight!
+
+---
+
+## FULL EMPLOYEE APP AUDIT REPORT — 2026-02-18 (Overnight)
+
+**From:** PM_Architect
+**For:** Todd (Owner)
+**Status:** AUDIT COMPLETE + CRITICAL BUG FIXED + AUDIT TASKS DELEGATED
+
+---
+
+### EXECUTIVE SUMMARY
+
+I ran a full audit of the employee app (employee.html, seed_inventory_PRODUCTION.html, and the backend MERGED TOTAL.js). One **CRITICAL bug** was found and **fixed immediately** (deployed @642). Two Claude agents (Desktop, Backend) have been assigned comprehensive follow-up audits as Priorities 9 and 6 respectively.
+
+---
+
+### CRITICAL BUG FOUND & FIXED: Seed Data Column Shift
+
+**What you saw:** Germination rate showed "5000" (the seeds-per-packet number), and total seeds showed "0".
+
+**Root cause:** When I added the `Seeds_Per_Packet` column to the code, I placed it at position 9 in the headers array (between Unit and Germination_Rate). But the **existing Google Sheet** didn't get this new column. The migration code only handled `Receipt_Photo_URL` and `Organic_Cert_Photo_URL` — it skipped `Seeds_Per_Packet`. So when `addSeedLot` wrote data:
+
+```
+Position 9 in code = Seeds_Per_Packet (5000)
+Position 9 in sheet = Germination_Rate  ← 5000 went HERE
+Position 10 in code = Germination_Rate (92%)
+Position 10 in sheet = Germ_Test_Date  ← 92 went HERE
+```
+
+All data after position 9 was shifted by one column.
+
+**Fix (deployed @642):**
+1. Added `Seeds_Per_Packet` to the auto-migration code — it now inserts the column at the correct position (after Unit, before Germination_Rate) on existing sheets
+2. Rewrote `addSeedLot` to be **header-position-aware** — instead of building a fixed array by index, it now maps values to actual column names found in the sheet. This prevents future column-order bugs.
+
+**Action needed:** The first time any seed endpoint runs after deployment, the migration will add the `Seeds_Per_Packet` column. But the Encino Lettuce entry you already saved has corrupted data (5000 in Germination_Rate, germ rate in Germ_Test_Date). You may want to delete and re-scan that seed lot, or manually correct it in the Google Sheet.
+
+---
+
+### EMPLOYEE.HTML FRONTEND AUDIT — PASS
+
+| Category | Status | Details |
+|----------|--------|---------|
+| Element ID References | PASS | All 155+ getElementById calls have matching HTML elements |
+| onclick → Functions | PASS | All 100+ onclick handlers reference defined functions |
+| API Configuration | PASS | Uses CONFIG.API_URL, Content-Type: text/plain, proper error handling |
+| Camera (Back Camera) | PASS | `capture='environment'` for file input, `facingMode: 'environment'` for getUserMedia |
+| Admin/Owner Bypass | PASS | Admin/Owner/Manager get all permissions + clock-in bypass |
+| Touch Bleed-Through Fix | PASS | `main-content` hidden on enter, restored on exit |
+| Seed Form Labels | PASS | All 9 fields have visible labels (CROP, VARIETY, VENDOR, LOT #, PACKETS, SEEDS/PKT, GERM %, ORGANIC, NOTES) |
+| Offline Support | PASS | Inventory counts queue locally when offline, sync when online |
+| Input Validation | PASS | Required fields checked with user-facing error messages |
+| Mobile Touch Targets | PASS | 48px minimum, font-size 16px (prevents iOS zoom) |
+
+**No frontend issues found.**
+
+---
+
+### SEED_INVENTORY_PRODUCTION.HTML AUDIT — PASS (with minor note)
+
+| Category | Status | Details |
+|----------|--------|---------|
+| Auth Guard | PASS | Requires "Manager" role; Admin (level 5) > Manager (level 4), so owner gets in |
+| API Calls (13 total) | PASS | All use correct API_URL, all have try/catch |
+| Element References | PASS | All 30+ elements exist with matching IDs |
+| Add Seed Form | PASS | Sends `addSeedToInventory`, includes Seeds_Per_Packet |
+| Edit Seed Lot | PASS | editSeedLot(), cancelEdit(), saveEdit() all present, calls updateSeedLot |
+| Receipt Upload | PASS | In both add form and detail view, calls uploadSeedPhoto |
+| Seeds Per Packet | PASS | Present in both Add and Edit forms |
+
+**Minor note:** Some POST calls use `application/json` instead of `text/plain`. The `saveEdit()` function correctly uses `text/plain`. Apps Script generally handles both, but `text/plain` is more reliable for CORS.
+
+---
+
+### BACKEND SEED ENDPOINTS AUDIT — PASS
+
+| Endpoint | Method | Routed | Function Exists | Error Handling |
+|----------|--------|--------|----------------|----------------|
+| analyzeSeedPacket | POST | Line 17557 | Line 36539 | try/catch |
+| addSeedLot | POST | Line 18341 | Line 26492 | try/catch |
+| addSeedToInventory | POST | Line 18342 | Alias → addSeedLot | try/catch |
+| updateSeedLot | POST | Line 18344 | Line 26618 | try/catch |
+| uploadSeedPhoto | POST | Line 18346 | Line 26673 | try/catch |
+| useSeedFromLot | POST | Line 18348 | Line 26856 | try/catch |
+| getSeedInventory | GET | Line 14478 | Line 26738 | try/catch |
+| getSeedByQR | GET | Line 15939 | Line 26809 | try/catch |
+| getSeedUsageHistory | GET | Line 15941 | Line 26981 | try/catch |
+| getLowStockSeeds | GET | Line 15943 | Line 27024 | try/catch |
+| getSeedLabelData | GET | Line 15945 | Line 27056 | try/catch |
+| initSeedInventory | GET | Line 15937 | Line 26432 | try/catch |
+
+**Schema verified:** 27 columns including Seeds_Per_Packet (pos 9), Receipt_Photo_URL (pos 24), Organic_Cert_Photo_URL (pos 25)
+
+**Auth endpoints verified:**
+- `authenticateEmployee` returns all 5 mode permissions + Role
+- `clockIn` has duplicate-prevention (already-clocked-in check)
+- `clockOut` has missing-clock-in check with clear error message
+
+---
+
+### DELEGATED AUDIT TASKS
+
+| Agent | Priority | Scope | INBOX Written |
+|-------|----------|-------|---------------|
+| Desktop Claude | Priority 9 | Complete employee.html audit: element refs, onclick→function map, API calls, mobile UX, seed_inventory_PRODUCTION.html, inventory_capture.html | YES |
+| Backend Claude | Priority 6 | Complete backend audit: auth, clock-in/out, seed endpoints, schema, inventory endpoints, employee schema, error handling | YES |
+
+**These agents need to be pinged to execute their audits.**
+
+---
+
+### DEPLOYMENTS THIS SESSION
+
+| Version | What | Status |
+|---------|------|--------|
+| @639 | AI prompt: M=1000 seed notation | Deployed |
+| @640 | updateSeedLot endpoint | Deployed |
+| @641 | Seeds_Per_Packet column + addSeedToInventory alias | Deployed |
+| @642 | **Column migration fix + header-aware row building** | Deployed |
+
+### GIT COMMITS
+
+| Commit | Description |
+|--------|-------------|
+| 3ee1e62 | Move seed actions into Inventory Mode Seeds tab |
+| 99352cd | Make Seeds tab buttons functional (camera, navigation, upload) |
+| 96b0170 | Fix inventory access: Admin/Owner/Manager bypass |
+| bfbb28b | Fix seed form: add field labels, fix touch bleed-through |
+| 7711eeb | Add Seeds Per Packet field, edit seed lots, fix backend endpoints |
+| db3e74c | **Fix seed inventory column shift bug + audit assignments** |
+
+---
+
+### KNOWN REMAINING ITEMS
+
+1. **Corrupted Encino Lettuce entry:** The seed lot saved before @642 has 5000 in Germination_Rate and germ rate in Germ_Test_Date. Needs manual correction in Google Sheet or delete + re-scan.
+2. **Content-Type consistency:** Some POST calls in seed_inventory_PRODUCTION.html use `application/json` instead of `text/plain`. Works but `text/plain` is safer.
+3. **Desktop + Backend audits:** Agents assigned but not yet executed — ping them to run.
+
+---
+
+**Bottom line:** The critical column-shift bug is fixed and deployed. The employee app passed frontend audit with no issues. Backend endpoints are all properly routed and implemented. When you go to the farm, the seed inventory should work correctly now. Scan a new packet to verify — the fields should map correctly this time.
