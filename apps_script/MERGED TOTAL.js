@@ -18339,7 +18339,10 @@ function doPost(e) {
 
       // ============ SEED INVENTORY & TRACEABILITY ============
       case 'addSeedLot':
+      case 'addSeedToInventory':
         return jsonResponse(addSeedLot(data));
+      case 'updateSeedLot':
+        return jsonResponse(updateSeedLot(data));
       case 'uploadSeedPhoto':
         return jsonResponse(uploadSeedPhoto(data));
       case 'useSeedFromLot':
@@ -26417,7 +26420,7 @@ function getGreenhouseSeedings() {
 
 const SEED_INVENTORY_HEADERS = [
   'Seed_Lot_ID', 'QR_Code_URL', 'Crop', 'Variety', 'Supplier', 'Supplier_Lot',
-  'Quantity_Original', 'Quantity_Remaining', 'Unit', 'Germination_Rate', 'Germ_Test_Date',
+  'Quantity_Original', 'Quantity_Remaining', 'Unit', 'Seeds_Per_Packet', 'Germination_Rate', 'Germ_Test_Date',
   'Pack_Date', 'Expiration_Date', 'Organic_Certified', 'Certifier', 'Seed_Treatment',
   'Purchase_Date', 'Purchase_Price', 'Storage_Location', 'Notes', 'Status',
   'Created_At', 'Last_Used', 'Receipt_Photo_URL', 'Organic_Cert_Photo_URL'
@@ -26488,6 +26491,19 @@ function generateSeedQRCode(seedLotId) {
  */
 function addSeedLot(data) {
   try {
+    // Accept both camelCase and PascalCase field names
+    if (data.Crop && !data.crop) data.crop = data.Crop;
+    if (data.Variety && !data.variety) data.variety = data.Variety;
+    if (data.Supplier && !data.vendor) data.vendor = data.Supplier;
+    if (data.Supplier_Lot && !data.lotNumber) data.lotNumber = data.Supplier_Lot;
+    if (data.Quantity_Remaining && !data.quantity) data.quantity = data.Quantity_Remaining;
+    if (data.Seeds_Per_Packet && !data.seedsPerPacket) data.seedsPerPacket = data.Seeds_Per_Packet;
+    if (data.Germination_Rate && !data.germRate) data.germRate = data.Germination_Rate;
+    if (data.Organic_Certified && !data.organic) data.organic = data.Organic_Certified;
+    if (data.Seed_Lot_ID && !data.seedLotId) data.seedLotId = data.Seed_Lot_ID;
+    if (data.Receipt_Photo_URL && !data.receiptPhotoUrl) data.receiptPhotoUrl = data.Receipt_Photo_URL;
+    if (data.Organic_Cert_Photo_URL && !data.organicCertPhotoUrl) data.organicCertPhotoUrl = data.Organic_Cert_Photo_URL;
+
     if (!data.crop) {
       return { success: false, error: 'Crop name is required' };
     }
@@ -26503,6 +26519,7 @@ function addSeedLot(data) {
     const quantity = data.quantity || data.quantity_original || 0;
     const supplier = data.supplier || data.vendor || '';
     const supplierLot = data.supplierLot || data.supplier_lot || data.lotNumber || '';
+    const seedsPerPacket = data.seedsPerPacket || data.seeds_per_packet || 0;
     const germRate = data.germinationRate || data.germination_rate || data.germRate || '';
     const germTestDate = data.germTestDate || data.germ_test_date || '';
     const packDate = data.packDate || data.pack_date || '';
@@ -26527,7 +26544,8 @@ function addSeedLot(data) {
       supplierLot,
       quantity,
       quantity, // Remaining starts same as original
-      data.unit || 'seeds',
+      data.unit || 'packets',
+      seedsPerPacket,
       germRate,
       germTestDate,
       packDate,
@@ -26562,6 +26580,65 @@ function addSeedLot(data) {
       }
     };
 
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Update an existing seed lot row by Seed_Lot_ID.
+ * Accepts any subset of fields to update.
+ */
+function updateSeedLot(data) {
+  try {
+    var seedLotId = data.seedLotId;
+    if (!seedLotId) return { success: false, error: 'seedLotId is required' };
+
+    var sheet = initSeedInventorySheet();
+    var rows = sheet.getDataRange().getValues();
+    var headers = rows[0];
+    var idCol = headers.indexOf('Seed_Lot_ID');
+    if (idCol === -1) return { success: false, error: 'Seed_Lot_ID column not found' };
+
+    // Find the row
+    var rowIndex = -1;
+    for (var r = 1; r < rows.length; r++) {
+      if (rows[r][idCol] === seedLotId) { rowIndex = r; break; }
+    }
+    if (rowIndex === -1) return { success: false, error: 'Seed lot not found: ' + seedLotId };
+
+    // Map of allowed field names to column headers
+    var fieldMap = {
+      crop: 'Crop', variety: 'Variety', vendor: 'Supplier', supplier: 'Supplier',
+      lotNumber: 'Supplier_Lot', supplierLot: 'Supplier_Lot',
+      quantity: 'Quantity_Original', quantityRemaining: 'Quantity_Remaining',
+      unit: 'Unit', germRate: 'Germination_Rate', germinationRate: 'Germination_Rate',
+      germTestDate: 'Germ_Test_Date', packDate: 'Pack_Date', expirationDate: 'Expiration_Date',
+      organic: 'Organic_Certified', certifier: 'Certifier', seedTreatment: 'Seed_Treatment',
+      purchaseDate: 'Purchase_Date', purchasePrice: 'Purchase_Price',
+      storageLocation: 'Storage_Location', notes: 'Notes', status: 'Status',
+      seedsPerPacket: 'Seeds_Per_Packet',
+      Receipt_Photo_URL: 'Receipt_Photo_URL', Organic_Cert_Photo_URL: 'Organic_Cert_Photo_URL',
+      receiptPhotoUrl: 'Receipt_Photo_URL', organicCertPhotoUrl: 'Organic_Cert_Photo_URL'
+    };
+
+    var updated = [];
+    for (var key in data) {
+      if (key === 'seedLotId' || key === 'action') continue;
+      var colName = fieldMap[key] || key;
+      var colIdx = headers.indexOf(colName);
+      if (colIdx === -1) continue;
+
+      var value = data[key];
+      // Normalize organic boolean
+      if (colName === 'Organic_Certified') {
+        value = (value === true || value === 'true' || value === 'yes' || value === 'Yes') ? 'Yes' : 'No';
+      }
+      sheet.getRange(rowIndex + 1, colIdx + 1).setValue(value);
+      updated.push(colName);
+    }
+
+    return { success: true, message: 'Seed lot updated', seedLotId: seedLotId, updatedFields: updated };
   } catch (error) {
     return { success: false, error: error.toString() };
   }
@@ -36484,13 +36561,13 @@ function analyzeSeedPacket(params) {
   "variety": "the specific variety name",
   "vendor": "the seed company/brand name",
   "lotNumber": "lot number if visible",
-  "seedsPerPacket": number of seeds per packet if listed (just the number),
+  "seedsPerPacket": number of seeds per packet as a plain integer (IMPORTANT: In the seed industry "M" means 1,000. So "5M" = 5000 seeds, "1M" = 1000 seeds, "2.5M" = 2500 seeds, "10M" = 10000 seeds. Always convert M notation to the actual number),
   "germRate": germination rate percentage if listed (just the number, e.g., 95),
-  "organic": true if certified organic, false otherwise,
+  "organic": true if certified organic or USDA Organic logo visible, false otherwise,
   "dtm": days to maturity if listed (just the number),
   "plantingDepth": planting depth if listed,
   "spacing": plant spacing if listed,
-  "notes": any other relevant info from the packet
+  "notes": any other relevant info from the packet (weight, pelleted/raw, treated/untreated, etc.)
 }
 
 Only include fields where you can clearly see the information. Use null for fields you cannot determine.

@@ -11626,10 +11626,14 @@
                                 <input id="seedFormLotNumber" placeholder="From packet" style="width: 100%; padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-size: 15px;" />
                             </div>
                         </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                             <div>
                                 <label style="display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Packets</label>
                                 <input id="seedFormQty" type="number" placeholder="1" value="1" style="width: 100%; padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-size: 15px;" />
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Seeds / Packet</label>
+                                <input id="seedFormSeedsPerPacket" type="number" placeholder="e.g. 5000" style="width: 100%; padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-size: 15px;" />
                             </div>
                             <div>
                                 <label style="display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Germ %</label>
@@ -16166,6 +16170,7 @@
             if (data.vendor) document.getElementById('seedFormVendor').value = data.vendor;
             if (data.lotNumber) document.getElementById('seedFormLotNumber').value = data.lotNumber;
             if (data.quantity) document.getElementById('seedFormQty').value = data.quantity;
+            if (data.seedsPerPacket) document.getElementById('seedFormSeedsPerPacket').value = data.seedsPerPacket;
             if (data.germRate) document.getElementById('seedFormGermRate').value = data.germRate;
             if (data.organic) document.getElementById('seedFormOrganic').value = 'yes';
         }
@@ -16176,7 +16181,7 @@
             document.getElementById('seedPhotoPreview').style.display = 'none';
             seedCapturePhoto = null;
             // Clear form
-            ['seedFormCrop','seedFormVariety','seedFormVendor','seedFormLotNumber','seedFormQty','seedFormGermRate','seedFormNotes'].forEach(id => {
+            ['seedFormCrop','seedFormVariety','seedFormVendor','seedFormLotNumber','seedFormQty','seedFormSeedsPerPacket','seedFormGermRate','seedFormNotes'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
             });
@@ -16210,6 +16215,7 @@
                         vendor: document.getElementById('seedFormVendor').value.trim(),
                         lotNumber: document.getElementById('seedFormLotNumber').value.trim(),
                         quantity: parseInt(document.getElementById('seedFormQty').value) || 1,
+                        seedsPerPacket: parseInt(document.getElementById('seedFormSeedsPerPacket').value) || 0,
                         germRate: parseInt(document.getElementById('seedFormGermRate').value) || 0,
                         organic: document.getElementById('seedFormOrganic').value === 'yes',
                         notes: document.getElementById('seedFormNotes').value.trim(),
