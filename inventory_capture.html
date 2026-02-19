@@ -1291,6 +1291,70 @@
                     <label class="form-label">Notes</label>
                     <textarea class="form-textarea" id="notes" placeholder="Any additional details..."></textarea>
                 </div>
+
+                <!-- AI + Seed Mode Badges -->
+                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                    <span id="aiFillBadge" style="display: none; align-items: center; gap: 0.25rem; background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">
+                        <i class="fas fa-robot"></i> Analyzing...
+                    </span>
+                    <span id="seedModeBadge" style="display: none; align-items: center; gap: 0.25rem; background: rgba(245, 158, 11, 0.15); color: #f59e0b; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">
+                        <i class="fas fa-seedling"></i> Seed Mode
+                    </span>
+                </div>
+
+                <!-- Seed-Specific Fields (hidden until AI detects seed or user toggles) -->
+                <div id="seedSpecificFields" style="display: none; margin-top: 1rem; padding: 1rem; background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 12px;">
+                    <div style="font-weight: 600; color: #f59e0b; margin-bottom: 0.75rem; font-size: 0.85rem;">
+                        <i class="fas fa-seedling"></i> Seed Packet Details
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Crop</label>
+                            <input type="text" class="form-input" id="seedCrop" placeholder="e.g. Tomato">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Variety</label>
+                            <input type="text" class="form-input" id="seedVariety" placeholder="e.g. Cherokee Purple">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Vendor / Supplier</label>
+                            <input type="text" class="form-input" id="seedVendor" placeholder="e.g. Johnny's Seeds">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Lot Number</label>
+                            <input type="text" class="form-input" id="seedLotNumber" placeholder="From packet">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Germ Rate (%)</label>
+                            <input type="number" class="form-input" id="seedGermRate" placeholder="85" min="0" max="100">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Seeds/Packet</label>
+                            <input type="number" class="form-input" id="seedSeedsPerPacket" placeholder="50">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Days to Maturity</label>
+                            <input type="number" class="form-input" id="seedDaysToMaturity" placeholder="75">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Organic?</label>
+                            <select class="form-input" id="seedOrganic">
+                                <option value="">Unknown</option>
+                                <option value="yes">Yes - Certified</option>
+                                <option value="no">No</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="button" onclick="isSeedMode = false; document.getElementById('seedSpecificFields').style.display='none'; document.getElementById('seedModeBadge').style.display='none'; showToast('Switched to general inventory mode');" style="background: none; border: none; color: var(--text-muted); font-size: 0.75rem; cursor: pointer; margin-top: 0.5rem;">
+                        <i class="fas fa-times"></i> Not a seed — switch to general mode
+                    </button>
+                </div>
             </div>
 
             <button class="submit-btn" onclick="submitItem()" id="submitBtn">
@@ -1568,6 +1632,9 @@
         }
 
         // Photo handling
+        // Track whether we're in seed mode (auto-detected by AI or manual)
+        let isSeedMode = false;
+
         function handlePhoto(input) {
             if (input.files && input.files[0]) {
                 const file = input.files[0];
@@ -1581,11 +1648,81 @@
                         const preview = document.getElementById('photoPreview');
                         preview.innerHTML = `<img src="${compressed}" alt="Preview">`;
                         preview.classList.add('has-photo');
+
+                        // Auto-parse with AI after photo capture
+                        parsePhotoWithAI(currentPhotoBase64);
                     });
                 };
 
                 reader.readAsDataURL(file);
             }
+        }
+
+        // AI-powered seed packet / item parsing
+        async function parsePhotoWithAI(base64Image) {
+            const aiBadge = document.getElementById('aiFillBadge');
+            try {
+                showToast('Analyzing photo with AI...');
+                if (aiBadge) aiBadge.style.display = 'inline-flex';
+
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'analyzeSeedPacket',
+                        image: base64Image
+                    })
+                });
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    const data = result.data;
+                    const isSeed = !!(data.crop || data.variety || data.seedsPerPacket);
+
+                    if (isSeed) {
+                        // Switch to seed mode
+                        enableSeedMode();
+                        // Auto-fill seed fields
+                        const nameVal = (data.crop || '') + (data.variety ? ' - ' + data.variety : '');
+                        if (nameVal.trim()) document.getElementById('itemName').value = nameVal.trim();
+                        document.getElementById('category').value = 'Seeds & Transplants';
+                        if (data.quantity) document.getElementById('quantity').value = data.quantity;
+                        if (data.vendor) document.getElementById('notes').value = 'Vendor: ' + data.vendor + (data.lotNumber ? '\nLot #: ' + data.lotNumber : '') + (data.organic ? '\nOrganic: Yes' : '');
+                        // Fill seed-specific fields
+                        if (data.crop) document.getElementById('seedCrop').value = data.crop;
+                        if (data.variety) document.getElementById('seedVariety').value = data.variety;
+                        if (data.vendor) document.getElementById('seedVendor').value = data.vendor;
+                        if (data.lotNumber) document.getElementById('seedLotNumber').value = data.lotNumber;
+                        if (data.germRate) document.getElementById('seedGermRate').value = data.germRate;
+                        if (data.seedsPerPacket) document.getElementById('seedSeedsPerPacket').value = data.seedsPerPacket;
+                        if (data.daysToMaturity) document.getElementById('seedDaysToMaturity').value = data.daysToMaturity;
+                        if (data.organic) document.getElementById('seedOrganic').value = 'yes';
+                        showToast('Seed packet detected! Fields auto-filled ✓');
+                    } else {
+                        // General item - fill what we can
+                        if (data.itemName) document.getElementById('itemName').value = data.itemName;
+                        if (data.category) document.getElementById('category').value = data.category;
+                        showToast('Item detected! Check the details below');
+                    }
+                    if (aiBadge) aiBadge.textContent = 'AI-filled ✓';
+                } else {
+                    if (aiBadge) aiBadge.style.display = 'none';
+                    showToast('Could not read photo — fill details manually');
+                }
+            } catch (err) {
+                console.warn('AI parsing failed:', err);
+                if (aiBadge) aiBadge.style.display = 'none';
+                showToast('AI analysis unavailable — fill details manually');
+            }
+        }
+
+        // Toggle seed-specific fields
+        function enableSeedMode() {
+            isSeedMode = true;
+            const seedFields = document.getElementById('seedSpecificFields');
+            if (seedFields) seedFields.style.display = 'block';
+            const seedBadge = document.getElementById('seedModeBadge');
+            if (seedBadge) seedBadge.style.display = 'inline-flex';
         }
 
         function compressImage(dataUrl, maxWidth, quality, callback) {
@@ -1649,21 +1786,49 @@
                     }
                 }
 
-                // Save item
-                const itemData = {
-                    action: 'addFarmInventoryItem',
-                    itemName,
-                    category,
-                    quantity: parseInt(quantity) || 1,
-                    condition,
-                    location,
-                    estValue: parseFloat(estValue) || 0,
-                    serialModel,
-                    notes,
-                    photoUrl,
-                    gpsLat: gpsCoords?.lat || '',
-                    gpsLon: gpsCoords?.lon || ''
-                };
+                let itemData;
+                let successMsg;
+
+                if (isSeedMode) {
+                    // Seed lot submission
+                    itemData = {
+                        action: 'addSeedLot',
+                        crop: document.getElementById('seedCrop').value.trim() || itemName,
+                        variety: document.getElementById('seedVariety').value.trim(),
+                        vendor: document.getElementById('seedVendor').value.trim(),
+                        lotNumber: document.getElementById('seedLotNumber').value.trim(),
+                        quantity: parseInt(quantity) || 1,
+                        seedsPerPacket: parseInt(document.getElementById('seedSeedsPerPacket').value) || 0,
+                        germRate: parseInt(document.getElementById('seedGermRate').value) || 0,
+                        daysToMaturity: parseInt(document.getElementById('seedDaysToMaturity').value) || 0,
+                        organic: document.getElementById('seedOrganic').value === 'yes',
+                        location,
+                        notes,
+                        photoUrl,
+                        gpsLat: gpsCoords?.lat || '',
+                        gpsLon: gpsCoords?.lon || ''
+                    };
+                    const crop = itemData.crop;
+                    const variety = itemData.variety;
+                    successMsg = `Seed lot "${crop}${variety ? ' - ' + variety : ''}" added to inventory`;
+                } else {
+                    // General inventory item
+                    itemData = {
+                        action: 'addFarmInventoryItem',
+                        itemName,
+                        category,
+                        quantity: parseInt(quantity) || 1,
+                        condition,
+                        location,
+                        estValue: parseFloat(estValue) || 0,
+                        serialModel,
+                        notes,
+                        photoUrl,
+                        gpsLat: gpsCoords?.lat || '',
+                        gpsLon: gpsCoords?.lon || ''
+                    };
+                    successMsg = `"${itemName}" added to ${location}`;
+                }
 
                 const response = await fetch(API_URL, {
                     method: 'POST',
@@ -1675,8 +1840,7 @@
                 showLoading(false);
 
                 if (result.success) {
-                    document.getElementById('modalText').textContent =
-                        `"${itemName}" added to ${location}`;
+                    document.getElementById('modalText').textContent = successMsg;
                     document.getElementById('successModal').classList.add('active');
                     loadInventory(); // Refresh data
                 } else {
@@ -1698,6 +1862,22 @@
             document.getElementById('serialModel').value = '';
             document.getElementById('notes').value = '';
             currentPhotoBase64 = null;
+
+            // Reset seed mode
+            isSeedMode = false;
+            const seedFields = document.getElementById('seedSpecificFields');
+            if (seedFields) seedFields.style.display = 'none';
+            const seedBadge = document.getElementById('seedModeBadge');
+            if (seedBadge) seedBadge.style.display = 'none';
+            const aiBadge = document.getElementById('aiFillBadge');
+            if (aiBadge) { aiBadge.style.display = 'none'; aiBadge.textContent = 'Analyzing...'; }
+            // Clear seed fields
+            ['seedCrop','seedVariety','seedVendor','seedLotNumber','seedGermRate','seedSeedsPerPacket','seedDaysToMaturity'].forEach(function(id) {
+                var el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            var orgEl = document.getElementById('seedOrganic');
+            if (orgEl) orgEl.value = '';
 
             const preview = document.getElementById('photoPreview');
             preview.innerHTML = `<i class="fas fa-camera"></i><span>Tap to take photo</span>`;

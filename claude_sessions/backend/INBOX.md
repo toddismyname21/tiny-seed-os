@@ -127,4 +127,90 @@ Version: vXXX @YYY
 
 ---
 
+---
+
+## PRIORITY 4: SEED INVENTORY BACKEND UPGRADES (From PM_Architect - 2026-02-18)
+
+**Context:** Owner received seed orders and is setting up seed-to-sale traceability. The seed inventory backend is mostly built but missing receipt/certificate photo storage. Desktop Claude is wiring the frontend in parallel.
+
+**File:** `apps_script/MERGED TOTAL.js`
+
+---
+
+### Fix 4A: ADD RECEIPT & CERTIFICATE PHOTO FIELDS TO SEED INVENTORY (CRITICAL)
+
+**Problem:** The `SEED_INVENTORY` sheet has no columns for storing receipt photos or organic certificate photos. The owner needs to photograph purchase receipts and organic certs for audit trail.
+
+**Current schema** (line ~26416, `SEED_INVENTORY_HEADERS`):
+```
+Seed_Lot_ID, QR_Code_URL, Crop, Variety, Supplier, Supplier_Lot,
+Quantity_Original, Quantity_Remaining, Unit, Germination_Rate,
+Germ_Test_Date, Pack_Date, Expiration_Date, Organic_Certified,
+Certifier, Seed_Treatment, Purchase_Date, Purchase_Price,
+Storage_Location, Notes, Status, Created_At, Last_Used
+```
+
+**Fix:**
+1. Add 2 new columns to `SEED_INVENTORY_HEADERS`:
+   - `Receipt_Photo_URL` — URL to purchase receipt image in Google Drive
+   - `Organic_Cert_Photo_URL` — URL to organic certificate image in Google Drive
+2. Update `addSeedLot()` (line ~26477) to accept and store these two new fields:
+   - `data.receiptPhotoUrl` → `Receipt_Photo_URL` column
+   - `data.organicCertPhotoUrl` → `Organic_Cert_Photo_URL` column
+3. Update `getSeedInventory()` and `getSeedByQR()` to return these fields in responses
+
+**Important:** Use the same Google Drive upload pattern as `uploadFarmInventoryPhoto()` (line ~34663). Create a subfolder called "Seed_Receipts" in the farm Drive.
+
+---
+
+### Fix 4B: ADD RECEIPT PHOTO UPLOAD ENDPOINT (CRITICAL)
+
+**Problem:** No dedicated endpoint for uploading seed receipt/cert photos.
+
+**Fix:**
+1. Create `uploadSeedPhoto(data)` function that:
+   - Accepts `data.photo` (base64), `data.seedLotId`, `data.photoType` ('receipt' or 'organic_cert')
+   - Uploads to Google Drive folder "Seed_Receipts/{seedLotId}/"
+   - Returns the Drive file URL with sharing enabled
+   - Updates the appropriate column (`Receipt_Photo_URL` or `Organic_Cert_Photo_URL`) on the matching seed lot row
+2. Route it in POST router: `case 'uploadSeedPhoto': return jsonResponse(uploadSeedPhoto(data));`
+
+**Reuse pattern from:** `uploadFarmInventoryPhoto()` at line ~34663 — same Drive folder creation, blob conversion, sharing permissions.
+
+---
+
+### Fix 4C: ENSURE analyzeSeedPacket IS ROUTED (VERIFY)
+
+**Problem:** Desktop Claude will be calling `analyzeSeedPacket` from the inventory capture UI. Verify it's properly routed.
+
+**Verify:**
+1. `analyzeSeedPacket` exists in POST router (should be around line ~17557)
+2. The function at line ~36360 accepts `data.image` (base64) and returns parsed seed data
+3. Test with a simple curl to confirm it responds
+
+If NOT routed, add: `case 'analyzeSeedPacket': return jsonResponse(analyzeSeedPacket(data));`
+
+---
+
+## OUTBOX REQUIREMENTS FOR PRIORITY 4
+
+```markdown
+## PRIORITY 4 COMPLETE: Seed Inventory Backend - [Date]
+
+### Changes Made
+| Fix | Function | Line | What Changed |
+|-----|----------|------|-------------|
+| 4A: Schema update | SEED_INVENTORY_HEADERS | ~26416 | Added Receipt_Photo_URL, Organic_Cert_Photo_URL |
+| 4A: addSeedLot | addSeedLot() | ~26477 | Stores receipt and cert photo URLs |
+| 4B: Upload endpoint | uploadSeedPhoto() | ~NEW | Upload receipt/cert photo to Drive |
+| 4C: Route verify | POST router | ~17557 | Confirmed analyzeSeedPacket routed |
+
+### Deployment
+Version: vXXX @YYY
+
+### Awaiting Code Audit + Verifier Review
+```
+
+---
+
 *Backend Claude - Build it, deploy it, test it. Code Audit and Verifier will verify.*

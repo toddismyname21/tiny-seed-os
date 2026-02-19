@@ -769,6 +769,29 @@
                     <label>Low Stock Threshold</label>
                     <input type="number" id="newThreshold" value="3" min="1">
                 </div>
+
+                <!-- Receipt Photo Upload -->
+                <div class="form-group">
+                    <label>Purchase Receipt (optional)</label>
+                    <div onclick="document.getElementById('receiptInput').click()" style="border: 2px dashed rgba(233, 196, 106, 0.4); border-radius: 8px; padding: 12px; text-align: center; cursor: pointer; background: rgba(233, 196, 106, 0.05);">
+                        <i class="fas fa-receipt" style="font-size: 1.2em; color: var(--warning); margin-bottom: 4px;"></i>
+                        <div style="font-size: 12px; color: var(--text-secondary);" id="receiptLabel">Tap to photograph receipt</div>
+                    </div>
+                    <input type="file" id="receiptInput" accept="image/*" capture="environment" style="display:none" onchange="handleReceiptPhoto(this)">
+                    <img id="receiptPreview" style="display:none; max-width: 100%; max-height: 120px; border-radius: 8px; margin-top: 8px; object-fit: contain;">
+                </div>
+
+                <!-- Organic Certificate Photo Upload (conditional) -->
+                <div class="form-group" id="organicCertGroup" style="display: none;">
+                    <label>Organic Certificate</label>
+                    <div onclick="document.getElementById('organicCertInput').click()" style="border: 2px dashed rgba(42, 157, 143, 0.4); border-radius: 8px; padding: 12px; text-align: center; cursor: pointer; background: rgba(42, 157, 143, 0.05);">
+                        <i class="fas fa-certificate" style="font-size: 1.2em; color: var(--success); margin-bottom: 4px;"></i>
+                        <div style="font-size: 12px; color: var(--text-secondary);" id="certLabel">Tap to photograph organic cert</div>
+                    </div>
+                    <input type="file" id="organicCertInput" accept="image/*" capture="environment" style="display:none" onchange="handleCertPhoto(this)">
+                    <img id="certPreview" style="display:none; max-width: 100%; max-height: 120px; border-radius: 8px; margin-top: 8px; object-fit: contain;">
+                </div>
+
                 <div class="modal-buttons">
                     <button type="button" class="btn btn-secondary" onclick="closeAddSeed()">Cancel</button>
                     <button type="submit" class="btn btn-success">Add Seed</button>
@@ -1317,7 +1340,82 @@
             }
         }
         
+        // Photo upload state for receipts and certs
+        let receiptPhotoBase64 = null;
+        let organicCertPhotoBase64 = null;
+
+        function handleReceiptPhoto(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    receiptPhotoBase64 = e.target.result.split(',')[1];
+                    const preview = document.getElementById('receiptPreview');
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                    document.getElementById('receiptLabel').textContent = 'Receipt captured ✓';
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function handleCertPhoto(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    organicCertPhotoBase64 = e.target.result.split(',')[1];
+                    const preview = document.getElementById('certPreview');
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                    document.getElementById('certLabel').textContent = 'Certificate captured ✓';
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        // Show/hide organic cert upload when organic select changes
+        document.addEventListener('DOMContentLoaded', function() {
+            var organicSelect = document.getElementById('newOrganic');
+            if (organicSelect) {
+                organicSelect.addEventListener('change', function() {
+                    var certGroup = document.getElementById('organicCertGroup');
+                    if (certGroup) certGroup.style.display = this.value === 'yes' ? 'block' : 'none';
+                });
+            }
+        });
+
+        async function uploadSeedPhoto(base64, prefix) {
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'uploadSeedPhoto',
+                        base64: base64,
+                        fileName: prefix + '_' + Date.now() + '.jpg'
+                    })
+                });
+                const result = await response.json();
+                return result.success ? result.url : '';
+            } catch (err) {
+                console.warn('Photo upload failed:', err);
+                return '';
+            }
+        }
+
         function openAddSeed() {
+            // Reset photo state
+            receiptPhotoBase64 = null;
+            organicCertPhotoBase64 = null;
+            var rp = document.getElementById('receiptPreview');
+            if (rp) { rp.style.display = 'none'; rp.src = ''; }
+            var cp = document.getElementById('certPreview');
+            if (cp) { cp.style.display = 'none'; cp.src = ''; }
+            var rl = document.getElementById('receiptLabel');
+            if (rl) rl.textContent = 'Tap to photograph receipt';
+            var cl = document.getElementById('certLabel');
+            if (cl) cl.textContent = 'Tap to photograph organic cert';
+            var cg = document.getElementById('organicCertGroup');
+            if (cg) cg.style.display = document.getElementById('newOrganic').value === 'yes' ? 'block' : 'none';
             document.getElementById('addSeedModal').classList.add('active');
         }
         
@@ -1344,6 +1442,18 @@
             // Generate a seed lot ID if not provided
             newSeed.seedLotId = `S-${newSeed.crop.substring(0,3).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
 
+            // Upload photos if captured
+            let receiptUrl = '';
+            let organicCertUrl = '';
+            if (receiptPhotoBase64) {
+                showToast('Uploading receipt...', 'info');
+                receiptUrl = await uploadSeedPhoto(receiptPhotoBase64, 'receipt');
+            }
+            if (organicCertPhotoBase64 && newSeed.organic) {
+                showToast('Uploading organic certificate...', 'info');
+                organicCertUrl = await uploadSeedPhoto(organicCertPhotoBase64, 'cert');
+            }
+
             try {
                 // Try to save to backend
                 const response = await fetch(API_URL, {
@@ -1361,6 +1471,8 @@
                         Germination_Rate: newSeed.germRate,
                         Organic_Certified: newSeed.organic ? 'Yes' : 'No',
                         Reorder_Threshold: newSeed.threshold,
+                        Receipt_Photo_URL: receiptUrl,
+                        Organic_Cert_Photo_URL: organicCertUrl,
                         Unit: 'packets',
                         Purchase_Date: new Date().toISOString().split('T')[0]
                     })
@@ -1621,6 +1733,12 @@
                                 <div style="font-weight: 600; color: var(--text-primary);">${seed.lotNumber || 'N/A'}</div>
                             </div>
                         </div>
+
+                        <!-- Documents Section -->
+                        <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);">
+                            <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 8px;">Documents</div>
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap;" id="seedDocLinks"></div>
+                        </div>
                     </div>
                     <div style="text-align: center;">
                         <img src="${getQRCodeUrl(seed)}" style="width: 120px; height: 120px; border-radius: 8px; background: white; padding: 5px;">
@@ -1630,11 +1748,74 @@
             `;
 
             document.getElementById('seedDetailModal').classList.add('active');
+
+            // Populate document links (avoids quote-escaping issues in template)
+            var docLinksEl = document.getElementById('seedDocLinks');
+            if (docLinksEl) {
+                var html = '';
+                var btnStyle = 'display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; border: none;';
+                if (seed.receiptPhotoUrl) {
+                    html += '<a href="' + seed.receiptPhotoUrl + '" target="_blank" style="' + btnStyle + ' background: rgba(233, 196, 106, 0.15); color: var(--warning); text-decoration: none;"><i class="fas fa-receipt"></i> Receipt</a>';
+                } else {
+                    html += '<button onclick="uploadDocForSeed(\'receipt\')" style="' + btnStyle + ' background: rgba(255,255,255,0.05); border: 1px dashed rgba(255,255,255,0.2); color: var(--text-secondary);"><i class="fas fa-receipt"></i> Add Receipt</button>';
+                }
+                if (seed.organic) {
+                    if (seed.organicCertPhotoUrl) {
+                        html += '<a href="' + seed.organicCertPhotoUrl + '" target="_blank" style="' + btnStyle + ' background: rgba(42, 157, 143, 0.15); color: var(--success); text-decoration: none;"><i class="fas fa-certificate"></i> Organic Cert</a>';
+                    } else {
+                        html += '<button onclick="uploadDocForSeed(\'cert\')" style="' + btnStyle + ' background: rgba(255,255,255,0.05); border: 1px dashed rgba(255,255,255,0.2); color: var(--text-secondary);"><i class="fas fa-certificate"></i> Add Cert</button>';
+                    }
+                }
+                docLinksEl.innerHTML = html;
+            }
         }
 
         function closeSeedDetail() {
             document.getElementById('seedDetailModal').classList.remove('active');
             currentDetailSeed = null;
+        }
+
+        function uploadDocForSeed(type) {
+            if (!currentDetailSeed) return;
+            var input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.capture = 'environment';
+            input.onchange = async function() {
+                if (!input.files || !input.files[0]) return;
+                var reader = new FileReader();
+                reader.onload = async function(e) {
+                    var base64 = e.target.result.split(',')[1];
+                    showToast('Uploading ' + type + '...', 'info');
+                    var url = await uploadSeedPhoto(base64, type);
+                    if (url) {
+                        // Update seed in backend
+                        var fieldName = type === 'receipt' ? 'Receipt_Photo_URL' : 'Organic_Cert_Photo_URL';
+                        try {
+                            await fetch(API_URL, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    action: 'updateSeedLot',
+                                    seedLotId: currentDetailSeed.seedLotId,
+                                    [fieldName]: url
+                                })
+                            });
+                            // Update local data
+                            if (type === 'receipt') currentDetailSeed.receiptPhotoUrl = url;
+                            else currentDetailSeed.organicCertPhotoUrl = url;
+                            showSeedDetail(currentDetailSeed); // Refresh view
+                            showToast(type === 'receipt' ? 'Receipt uploaded ✓' : 'Certificate uploaded ✓', 'success');
+                        } catch (err) {
+                            showToast('Failed to save — try again', 'error');
+                        }
+                    } else {
+                        showToast('Upload failed — try again', 'error');
+                    }
+                };
+                reader.readAsDataURL(input.files[0]);
+            };
+            input.click();
         }
 
         function printLabel(seedLotId) {

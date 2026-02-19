@@ -1,7 +1,116 @@
 # OUTBOX: UX/Design Claude
 ## To: PM_Architect
 
-**Timestamp:** 2026-02-15
+**Timestamp:** 2026-02-18
+
+---
+
+## PHASE 2 COMPLETE: External UX Audit Visual Fixes - 2026-02-18
+
+**North Star:** "If posting from the MCC is not EASIER than opening Instagram and hitting post, what is the point?"
+
+### CSS Changes Made
+
+| Task | Selector/Line | What Changed |
+|------|--------------|-------------|
+| P2-1: Sub-tab hierarchy | `.studio-tab-btn` | Smaller (0.82rem), underline active state, no box-shadow. Clearly secondary vs `.create-mode-btn` (0.95rem, bold 700, 52px min-height) |
+| P2-2: Floating bar polish | `.publish-actions` | Glass morphism (blur 16px, rgba 0.85 bg), rounded top corners, subtle border-top glow |
+| P2-2: POST NOW | `.btn-post-now, #blastBtn` | 1.1rem, 800 weight, uppercase, green gradient 3-stop, inset highlight, flex: 1.3 (larger than SCHEDULE) |
+| P2-2: SCHEDULE | `.btn-schedule, #scheduleBtn` | Outlined/muted: rgba bg, 1.5px border, blue text, no box-shadow. Secondary treatment |
+| P2-2: Check button | `.publish-actions button[onclick="showPostAnalysis()"]` | Ghost/tertiary: transparent bg, thin border, flex: 0 0 auto |
+| P2-3: CSA empty state | `#csaCanvasPlaceholder i.fa-box-open` | Gradient text (green→orange), floating animation (3s bounce), 4.5rem size |
+| P2-3: CSA empty state text | `#csaCanvasPlaceholder p` | First paragraph bold 1.15rem, second paragraph muted 0.85rem |
+| P2-3: CSA item pills | `#csaSelectedItems > *` | 24px border-radius, inline-flex, 0.82rem bold, backdrop-filter |
+| P2-3: CSA remove buttons | `#csaSelectedItems > * button` | opacity 0.3 → 1 on hover, red on hover |
+| P2-4: Button consistency | `#csaGenerateBtn` | Kept green→orange gradient (CSA identity) |
+| P2-4: Button consistency | `#templateBuilderGenerateBtn` | Purple gradient (AI Studio identity) |
+| P2-4: Button consistency | `#repurposeMode .btn[onclick*="generate"]` | Blue gradient (Repurpose identity) |
+| P2-4: Secondary buttons | `#createTab .btn-secondary` | Unified: transparent bg, border, muted text, 10px radius |
+| P2-5: Tone selector | `#quickPostTone` | Pill/chip style: 24px radius, green tint bg, green border, custom SVG chevron, 600 weight. Visible badge instead of hidden dropdown |
+| P2-6: Save Draft | `.draft-btn` | Outlined secondary: 1.5px border, 10px radius, 600 weight. `::after` shows `⌘S` keyboard hint. `.has-draft` gets green dot indicator |
+| P2-10: Intel toggle | `.intel-drawer-toggle` | 36px (smaller), opacity 0.45 (semi-transparent), grows to 40px on hover, purple glow on hover |
+| P2-10: Intel drawer | `.intel-drawer` (≤1200px) | Smooth slide: 0.35s cubic-bezier transition, shadow depth on open, overlay fade transition |
+| P2-10: Char count | `.char-count` | padding-right: 3rem to prevent toggle overlap |
+| P2-8: Mobile 768px | `.create-mode-toggle` | flex-wrap, 2-column layout, 48px min-height buttons |
+| P2-8: Mobile 768px | `.publish-actions` | Flex column stack, POST NOW 56px, SCHEDULE 48px |
+| P2-8: Mobile 768px | `.intel-drawer-toggle` | Moved to bottom: 100px from bottom, no overlap |
+| P2-8: Mobile 480px | `.create-mode-toggle` | CSS Grid 2x2, 52px min-height per button |
+| P2-8: Mobile 480px | `.btn-post-now` | 1.15rem font, 62px min-height (dominant) |
+| P2-8: Mobile 480px | `.draft-btn::after` | Hidden (no keyboard hint on mobile) |
+| P2-8: Tablet 769-1024 | `.publish-actions` | Flex row, POST NOW flex 1.2, SCHEDULE flex 1 |
+
+### Screenshot Evidence
+
+| View | Before | After |
+|------|--------|-------|
+| Desktop Quick Post | `/tmp/phase2-BEFORE-quickpost.png` | `/tmp/phase2-AFTER-quickpost.png` |
+| Desktop Publish Bar | - | `/tmp/phase2-AFTER-publishbar.png` |
+| Desktop AI Studio | `/tmp/phase2-BEFORE-aistudio.png` | `/tmp/phase2-AFTER-aistudio.png` |
+| Desktop CSA | `/tmp/phase2-BEFORE-csa.png` | `/tmp/phase2-AFTER-csa.png` |
+| Desktop CSA Empty State | - | `/tmp/phase2-AFTER-csa-emptystate.png` |
+| Desktop Repurpose | `/tmp/phase2-BEFORE-repurpose.png` | `/tmp/phase2-AFTER-repurpose.png` |
+| Mobile (375px) | - | `/tmp/phase2-AFTER-mobile.png` |
+| Mobile Publish Bar | - | `/tmp/phase2-AFTER-mobile-publishbar.png` |
+| Tablet (768px) | - | `/tmp/phase2-AFTER-tablet.png` |
+
+### HTML Structure Requests (for Desktop Claude)
+
+**P2-7: Icon Language Consistency**
+Replace emoji characters in these UI elements with Font Awesome icons:
+- `#quickPostTone` option text: Replace emoji prefixes (🌱, 📚, 🎉, 📣, 📖) with FA icons
+- Any other button/tab labels using emoji instead of FA icons
+- Exception: CSA quick-add chips can keep emoji for warmth (per INBOX)
+
+**P2-9: Onboarding Card HTML Structure**
+Insert this HTML at the TOP of `#quickPostMode` (right after `<div id="quickPostMode" class="create-mode-content">`):
+```html
+<div class="onboarding-card" id="onboardingCard">
+    <button class="onboarding-dismiss" onclick="dismissOnboarding()">&times; Don't show again</button>
+    <h4><i class="fas fa-seedling"></i> Welcome to Quick Post</h4>
+    <div class="onboarding-steps">
+        <div class="onboarding-step">
+            <span class="step-number">1</span>
+            Write your caption
+            <span class="step-arrow"><i class="fas fa-arrow-right"></i></span>
+        </div>
+        <div class="onboarding-step">
+            <span class="step-number">2</span>
+            Add a photo
+            <span class="step-arrow"><i class="fas fa-arrow-right"></i></span>
+        </div>
+        <div class="onboarding-step">
+            <span class="step-number">3</span>
+            Hit Post Now
+        </div>
+    </div>
+</div>
+```
+JavaScript needed:
+```javascript
+function dismissOnboarding() {
+    localStorage.setItem('mcc_onboarding_dismissed', 'true');
+    document.getElementById('onboardingCard').classList.add('hidden');
+}
+// On page load: check localStorage
+if (localStorage.getItem('mcc_onboarding_dismissed') === 'true') {
+    document.getElementById('onboardingCard')?.classList.add('hidden');
+}
+```
+CSS is already written and ready (`.onboarding-card` class with glass morphism, gradient top bar, numbered steps, responsive mobile layout).
+
+### No Functional/JS Changes (confirmed)
+All changes are CSS-only in the `<style>` block.
+
+### Strengths Preserved (confirmed)
+- Voice note recording: untouched
+- Multi-platform character counters: untouched (added padding-right only)
+- AI awareness banner: untouched
+- 5-3-2 content tracker: untouched
+- "Move #tags" automation: untouched
+- Grid Preview: untouched
+- A/B caption testing: untouched
+
+### Awaiting Code Audit + Verifier Review
 
 ---
 

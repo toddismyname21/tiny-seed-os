@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seed Traceability | Tiny Seed Farm</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌱</text></svg>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f4f0;
+            color: #1a2e1a;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .header {
+            width: 100%;
+            background: linear-gradient(135deg, #2d5016, #4a7c29);
+            padding: 1.25rem 1rem;
+            text-align: center;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .header small {
+            font-size: 0.75rem;
+            opacity: 0.8;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+            margin: 1.25rem 1rem;
+            max-width: 440px;
+            width: calc(100% - 2rem);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 1.25rem 1.25rem 0.75rem;
+            border-bottom: 1px solid #e8ede8;
+        }
+
+        .crop-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2d5016;
+        }
+
+        .variety-name {
+            font-size: 1rem;
+            color: #5a7a5a;
+            margin-top: 2px;
+        }
+
+        .badges {
+            display: flex; gap: 8px; margin-top: 0.75rem; flex-wrap: wrap;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-organic {
+            background: rgba(34, 139, 34, 0.12);
+            color: #228b22;
+        }
+
+        .badge-status-good {
+            background: rgba(34, 139, 34, 0.12);
+            color: #228b22;
+        }
+
+        .badge-status-low {
+            background: rgba(218, 165, 32, 0.15);
+            color: #b8860b;
+        }
+
+        .badge-status-empty {
+            background: rgba(178, 34, 34, 0.12);
+            color: #b22222;
+        }
+
+        .details {
+            padding: 1rem 1.25rem;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.6rem 0;
+            border-bottom: 1px solid #f0f4f0;
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            font-size: 0.8rem;
+            color: #6b8a6b;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            font-weight: 600;
+        }
+
+        .detail-value {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #1a2e1a;
+            text-align: right;
+        }
+
+        .lot-id {
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            background: #f0f4f0;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 1.5rem 1rem 2rem;
+            color: #6b8a6b;
+            font-size: 0.75rem;
+        }
+
+        .footer .farm-name {
+            font-weight: 700;
+            color: #2d5016;
+            font-size: 0.85rem;
+        }
+
+        .footer .powered {
+            margin-top: 0.5rem;
+            opacity: 0.6;
+        }
+
+        /* Loading state */
+        .loading {
+            text-align: center;
+            padding: 3rem 1rem;
+        }
+
+        .loading i {
+            font-size: 2rem;
+            color: #4a7c29;
+            animation: spin 1s linear infinite;
+        }
+
+        .loading p {
+            margin-top: 0.75rem;
+            color: #6b8a6b;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Error state */
+        .error-state {
+            text-align: center;
+            padding: 3rem 1.5rem;
+        }
+
+        .error-state i {
+            font-size: 2.5rem;
+            color: #ccc;
+        }
+
+        .error-state h2 {
+            margin-top: 1rem;
+            font-size: 1.1rem;
+            color: #666;
+        }
+
+        .error-state p {
+            margin-top: 0.5rem;
+            color: #999;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1><i class="fas fa-seedling"></i> Seed Traceability</h1>
+        <small>Tiny Seed Farm &mdash; Rochester, PA</small>
+    </div>
+
+    <div class="card" id="seedCard">
+        <div class="loading" id="loadingState">
+            <i class="fas fa-spinner"></i>
+            <p>Looking up seed lot...</p>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div class="farm-name"><i class="fas fa-leaf"></i> Tiny Seed Farm</div>
+        <div>257 Zeigler Rd, Rochester, PA 15074</div>
+        <div class="powered">Traced with Tiny Seed OS</div>
+    </div>
+
+    <script src="web_app/api-config.js"></script>
+    <script>
+        var API_URL = (typeof TINY_SEED_API !== 'undefined') ? TINY_SEED_API.MAIN_API : 'https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec';
+
+        document.addEventListener('DOMContentLoaded', function() {
+            var params = new URLSearchParams(window.location.search);
+            var seedLotId = params.get('id');
+
+            if (!seedLotId) {
+                showError('No Seed Lot ID', 'Scan a QR code on a seed label to view traceability info.');
+                return;
+            }
+
+            lookupSeed(seedLotId);
+        });
+
+        async function lookupSeed(seedLotId) {
+            try {
+                var response = await fetch(API_URL + '?action=getSeedByQR&seedLotId=' + encodeURIComponent(seedLotId));
+                var result = await response.json();
+
+                if (result.success && result.data) {
+                    renderSeed(result.data);
+                } else {
+                    showError('Seed Lot Not Found', 'No record found for ID: ' + seedLotId);
+                }
+            } catch (err) {
+                console.error('Lookup error:', err);
+                showError('Connection Error', 'Unable to reach the farm database. Please try again.');
+            }
+        }
+
+        function renderSeed(seed) {
+            var card = document.getElementById('seedCard');
+            var status = getStatus(seed);
+            var statusClass = status === 'Active' ? 'good' : (status === 'Low' ? 'low' : 'empty');
+
+            var html = '';
+            html += '<div class="card-header">';
+            html += '  <div class="crop-name">' + escapeHtml(seed.crop || seed.Crop || 'Unknown Crop') + '</div>';
+            html += '  <div class="variety-name">' + escapeHtml(seed.variety || seed.Variety || '') + '</div>';
+            html += '  <div class="badges">';
+
+            if (seed.organic || seed.Organic_Certified === 'Yes') {
+                html += '    <span class="badge badge-organic"><i class="fas fa-certificate"></i> Organic Certified</span>';
+            }
+
+            html += '    <span class="badge badge-status-' + statusClass + '"><i class="fas fa-circle"></i> ' + status + '</span>';
+            html += '  </div>';
+            html += '</div>';
+
+            html += '<div class="details">';
+
+            var lotId = seed.seedLotId || seed.Seed_Lot_ID || seed.lotNumber || 'N/A';
+            html += detailRow('Seed Lot ID', '<span class="lot-id">' + escapeHtml(lotId) + '</span>');
+            html += detailRow('Supplier', escapeHtml(seed.vendor || seed.Supplier || 'N/A'));
+
+            if (seed.lotNumber || seed.Supplier_Lot) {
+                html += detailRow('Supplier Lot', escapeHtml(seed.lotNumber || seed.Supplier_Lot));
+            }
+
+            if (seed.certifier || seed.Certifier) {
+                html += detailRow('Certifier', escapeHtml(seed.certifier || seed.Certifier));
+            }
+
+            if (seed.germRate || seed.Germination_Rate) {
+                html += detailRow('Germination Rate', (seed.germRate || seed.Germination_Rate) + '%');
+            }
+
+            if (seed.seedsPerPacket || seed.Seeds_Per_Packet) {
+                html += detailRow('Seeds/Packet', seed.seedsPerPacket || seed.Seeds_Per_Packet);
+            }
+
+            if (seed.daysToMaturity || seed.Days_To_Maturity) {
+                html += detailRow('Days to Maturity', seed.daysToMaturity || seed.Days_To_Maturity);
+            }
+
+            if (seed.packDate || seed.Purchase_Date) {
+                html += detailRow('Pack/Purchase Date', escapeHtml(seed.packDate || seed.Purchase_Date));
+            }
+
+            if (seed.expirationDate || seed.Expiration_Date) {
+                html += detailRow('Expiration', escapeHtml(seed.expirationDate || seed.Expiration_Date));
+            }
+
+            html += '</div>';
+
+            card.innerHTML = html;
+        }
+
+        function detailRow(label, value) {
+            return '<div class="detail-row"><span class="detail-label">' + label + '</span><span class="detail-value">' + value + '</span></div>';
+        }
+
+        function getStatus(seed) {
+            var qty = seed.quantity || seed.Quantity_Remaining || 0;
+            var threshold = seed.threshold || seed.Reorder_Threshold || 3;
+            if (qty <= 0) return 'Empty';
+            if (qty <= threshold) return 'Low';
+            return 'Active';
+        }
+
+        function showError(title, message) {
+            var card = document.getElementById('seedCard');
+            card.innerHTML = '<div class="error-state"><i class="fas fa-search"></i><h2>' + escapeHtml(title) + '</h2><p>' + escapeHtml(message) + '</p></div>';
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            var div = document.createElement('div');
+            div.textContent = String(text);
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>

@@ -18340,6 +18340,8 @@ function doPost(e) {
       // ============ SEED INVENTORY & TRACEABILITY ============
       case 'addSeedLot':
         return jsonResponse(addSeedLot(data));
+      case 'uploadSeedPhoto':
+        return jsonResponse(uploadSeedPhoto(data));
       case 'useSeedFromLot':
         return jsonResponse(useSeedFromLot(data));
 
@@ -26418,7 +26420,7 @@ const SEED_INVENTORY_HEADERS = [
   'Quantity_Original', 'Quantity_Remaining', 'Unit', 'Germination_Rate', 'Germ_Test_Date',
   'Pack_Date', 'Expiration_Date', 'Organic_Certified', 'Certifier', 'Seed_Treatment',
   'Purchase_Date', 'Purchase_Price', 'Storage_Location', 'Notes', 'Status',
-  'Created_At', 'Last_Used'
+  'Created_At', 'Last_Used', 'Receipt_Photo_URL', 'Organic_Cert_Photo_URL'
 ];
 
 /**
@@ -26441,6 +26443,16 @@ function initSeedInventorySheet() {
     sheet.setColumnWidth(2, 200); // QR_Code_URL
     sheet.setColumnWidth(3, 120); // Crop
     sheet.setColumnWidth(4, 150); // Variety
+  } else {
+    // Auto-migrate: add missing columns to existing sheets
+    var existingHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    var newCols = ['Receipt_Photo_URL', 'Organic_Cert_Photo_URL'];
+    newCols.forEach(function(col) {
+      if (existingHeaders.indexOf(col) === -1) {
+        var nextCol = sheet.getLastColumn() + 1;
+        sheet.getRange(1, nextCol).setValue(col).setFontWeight('bold').setBackground('#4a7c59');
+      }
+    });
   }
 
   return sheet;
@@ -26529,7 +26541,9 @@ function addSeedLot(data) {
       data.notes || '',
       status,
       new Date(),
-      ''
+      '',
+      data.receiptPhotoUrl || data.receipt_photo_url || '',
+      data.organicCertPhotoUrl || data.organic_cert_photo_url || ''
     ];
 
     sheet.appendRow(rowData);
@@ -26549,6 +26563,94 @@ function addSeedLot(data) {
     };
 
   } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Upload a seed receipt or organic certificate photo to Google Drive
+ * and update the corresponding seed lot row.
+ * @param {Object} data - { photo (base64), seedLotId, photoType ('receipt' or 'organic_cert') }
+ */
+function uploadSeedPhoto(data) {
+  try {
+    if (!data.photo) return { success: false, error: 'photo (base64) is required' };
+    if (!data.seedLotId) return { success: false, error: 'seedLotId is required' };
+    if (!data.photoType || ['receipt', 'organic_cert'].indexOf(data.photoType) === -1) {
+      return { success: false, error: 'photoType must be "receipt" or "organic_cert"' };
+    }
+
+    // Get or create the Seed_Receipts folder in Drive
+    var folderName = 'Seed_Receipts';
+    var folder;
+    var folders = DriveApp.getFoldersByName(folderName);
+    if (folders.hasNext()) {
+      folder = folders.next();
+    } else {
+      folder = DriveApp.createFolder(folderName);
+    }
+
+    // Create subfolder per seed lot
+    var subFolderName = data.seedLotId;
+    var subFolder;
+    var subFolders = folder.getFoldersByName(subFolderName);
+    if (subFolders.hasNext()) {
+      subFolder = subFolders.next();
+    } else {
+      subFolder = folder.createFolder(subFolderName);
+    }
+
+    // Decode and upload
+    var imageData = Utilities.base64Decode(data.photo);
+    var fileName = data.photoType + '_' + data.seedLotId + '_' + Date.now() + '.jpg';
+    var blob = Utilities.newBlob(imageData, 'image/jpeg', fileName);
+    var file = subFolder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    var fileUrl = file.getUrl();
+
+    // Update the seed lot row with the photo URL
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName('SEED_INVENTORY');
+    if (sheet) {
+      var sheetData = sheet.getDataRange().getValues();
+      var headers = sheetData[0];
+      var lotIdCol = headers.indexOf('Seed_Lot_ID');
+      var targetCol = data.photoType === 'receipt'
+        ? headers.indexOf('Receipt_Photo_URL')
+        : headers.indexOf('Organic_Cert_Photo_URL');
+
+      if (targetCol === -1) {
+        // Column doesn't exist yet — trigger migration
+        initSeedInventorySheet();
+        // Re-read headers after migration
+        sheetData = sheet.getDataRange().getValues();
+        headers = sheetData[0];
+        targetCol = data.photoType === 'receipt'
+          ? headers.indexOf('Receipt_Photo_URL')
+          : headers.indexOf('Organic_Cert_Photo_URL');
+      }
+
+      if (targetCol !== -1) {
+        for (var i = 1; i < sheetData.length; i++) {
+          if (String(sheetData[i][lotIdCol]).trim() === String(data.seedLotId).trim()) {
+            sheet.getRange(i + 1, targetCol + 1).setValue(fileUrl);
+            break;
+          }
+        }
+      }
+    }
+
+    return {
+      success: true,
+      url: fileUrl,
+      fileId: file.getId(),
+      fileName: file.getName(),
+      seedLotId: data.seedLotId,
+      photoType: data.photoType,
+      message: (data.photoType === 'receipt' ? 'Receipt' : 'Organic certificate') + ' photo uploaded and linked to seed lot'
+    };
+  } catch (error) {
+    Logger.log('uploadSeedPhoto error: ' + error.toString());
     return { success: false, error: error.toString() };
   }
 }

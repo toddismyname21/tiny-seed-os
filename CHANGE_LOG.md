@@ -38,6 +38,200 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-18 - Desktop_Claude (Session 9: Priority 8 Seed Inventory Full Flow Wiring)
+
+**Files Modified:**
+- `inventory_capture.html` — Wired AI parsing: photo → analyzeSeedPacket API → auto-fill form; added seed-specific fields (crop, variety, vendor, lot#, germ rate, seeds/pkt, days to maturity, organic); submitItem() branches to addSeedLot in seed mode; AI badge + seed mode badge
+- `employee.html` — Added "Capture Seed Packet" + "Seed Inventory" quick-action links in inventory mode, above tabs
+- `seed_inventory_PRODUCTION.html` — Added receipt photo + organic cert photo upload fields to add-seed form; uploadSeedPhoto() helper; uploadDocForSeed() for existing lots in detail view; addSeed() now passes Receipt_Photo_URL and Organic_Cert_Photo_URL
+
+**Files Created:**
+- `seed_track.html` (NEW, 227 lines) — Public QR scan landing page. Reads ?id= from URL, calls getSeedByQR API, displays seed lot info (crop, variety, supplier, organic badge, status, germ rate, dates). Mobile-first, green earthy design, no auth required. Required by existing QR codes from generateSeedQRCode().
+
+**Why:** Owner has seed orders arriving NOW — the backend was fully built but frontend disconnected. This wires the complete flow: photograph seed packet → AI reads → auto-fill → save → QR label → scan for traceability.
+
+---
+
+## 2026-02-18 - Backend_Claude (Seed Inventory: Receipt + Cert Photo Support)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` - Seed inventory schema upgrade + photo upload endpoint
+
+### Functions Added
+- `uploadSeedPhoto(data)` - Upload receipt/cert photo to Google Drive "Seed_Receipts/{seedLotId}/" folder, update seed lot row with URL
+
+### Functions Modified
+- `SEED_INVENTORY_HEADERS` - Added `Receipt_Photo_URL`, `Organic_Cert_Photo_URL` columns
+- `addSeedLot()` - Now accepts and stores `receiptPhotoUrl` and `organicCertPhotoUrl`
+- `initSeedInventorySheet()` - Auto-migrates existing sheets to add missing columns
+
+### Router Entries Added
+- POST: `case 'uploadSeedPhoto'`
+
+### Verified
+- `analyzeSeedPacket` already routed at line 17557 (no change needed)
+- `getSeedInventory` confirmed returning data
+- Deployed @638
+
+### Duplicate Check
+- [x] No existing uploadSeedPhoto function found
+- [x] No duplicates created
+
+---
+
+## 2026-02-18 - UX_Design_Claude (Phase 2: External UX Audit Visual Fixes)
+
+### Files Modified
+- `web_app/marketing-command-center.html` - ~300 lines of Phase 2 CSS added before `</style>`
+
+### Changes Summary (9 tasks from external UX audit)
+1. **P2-1**: Sub-tab visual hierarchy - `.studio-tab-btn` smaller/underline vs `.create-mode-btn` large/bold
+2. **P2-2**: Floating action bar polish - glass morphism, POST NOW dominant green, SCHEDULE outlined blue
+3. **P2-3**: CSA empty state - gradient icon with float animation, warm text styling, polished item pills
+4. **P2-4**: Button consistency - Primary/Secondary/Tertiary hierarchy across all 4 sub-tabs
+5. **P2-5**: Tone selector - pill/chip style with green tint, custom SVG chevron, visible badge
+6. **P2-6**: Save Draft - outlined secondary style, `⌘S` keyboard hint, green dot for saved drafts
+7. **P2-8**: Mobile responsiveness - 768px/480px/tablet breakpoints, 2x2 grid, stacked buttons
+8. **P2-9**: Onboarding card CSS ready (HTML needs Desktop Claude)
+9. **P2-10**: Intelligence Panel toggle smaller/transparent when closed, smooth slide animation
+
+### Reason
+Phase 2 GREEN LIGHT received. All 4 CREATE sub-tabs passed Code Audit + Verifier. External UX audit identified 10 visual improvements. 9 of 10 implemented as CSS-only (P2-7 icon language requires HTML changes from Desktop Claude).
+
+### Duplicate Check
+- [x] No new files created
+- [x] CSS-only additions to existing style block
+- [x] No duplicates created
+
+---
+
+## 2026-02-18 - Desktop_Claude (Session 9: Priority 7 Owner-Found Bugs)
+
+### Files Modified
+- `web_app/marketing-command-center.html` - 2 bug fixes from live browser testing
+
+### Bug Fixes
+1. **7A: "More platforms" toggle dead** — Root cause: inline `style="display: none;"` overrode CSS `.expanded { display: flex }`. Removed inline style. Also added Threads + Twitter/X as "Coming Soon" disabled entries.
+2. **7B: Carousel rejects video** — Changed carousel file input accept to include `video/mp4,video/quicktime,video/webm`. Slide objects now track media type. Video slides show play icon overlay. Build button shows breakdown: "3 slides (2 photos, 1 video)".
+
+### Functions Modified
+- `handleCarouselFiles()` - Detects video MIME type, stores on slide object
+- `renderCarouselSlides()` - Video slides render with `<video>` + play icon overlay
+- `renderCarouselThumbnails()` - Video slides render with `<video>` + play icon overlay
+
+### Reason
+Owner tested CREATE tab in live browser and found these real bugs.
+
+### Duplicate Check
+- [x] No duplicates created
+
+---
+
+## 2026-02-18 - Desktop_Claude (Session 9: Priority 6 External UX Audit Fixes)
+
+### Files Modified
+- `web_app/marketing-command-center.html` - 14 UX audit fixes (6A-6N)
+
+### Changes Summary (14 fixes)
+1. **6A**: Desktop sticky action bar - POST NOW always visible while scrolling (CSS `position: sticky`)
+2. **6B**: POST NOW disabled state shows WHY ("Add a caption or media", "Select at least one platform")
+3. **6C**: Failure auto-save - draft saved on post failure with retry guidance toast
+4. **6D**: Predicted engagement empty state - "--%" replaced with "Enter content to calculate"
+5. **6E**: CSA Box item count display + enhanced empty state instructions
+6. **6F**: AI Studio results placeholder ("Your generated content will appear here")
+7. **6G**: Repurpose prominent empty state + disabled Generate Blog Ideas when no posts
+8. **6H**: "Check" button renamed to "Validate" with descriptive tooltip
+9. **6I**: 5-3-2 content type explainer tooltip added (? icon)
+10. **6J**: Character counter platform text labels (TT, IG, FB, YT, GBP)
+11. **6K**: "AI Content Studio" tab shortened to "AI Studio"
+12. **6L**: Intelligence panel tooltip enhanced with description
+13. **6M**: "Optimal: Calculating..." → "Enter content first" (content-dependent)
+14. **6N**: First comment border changed from red dashed to teal dashed
+
+### Functions Modified
+- `updateBlastButton()` - Now updates helper text for disabled state reason
+- `updateEngagementPrediction()` - Content-dependent empty states for score and optimal time
+- `updateCSAItemTags()` - Updates item count display
+- `updateCharCount()` - Includes platform text labels
+- `loadHighPerformers()` - Enhanced empty state, disables/enables blog button
+- `publishAll()` - Failure path auto-saves draft
+
+### Reason
+External UX audit identified 14 functional issues across all 4 CREATE sub-tabs. All P1 CRITICAL, P2 MODERATE, and P3 MINOR fixes implemented.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
+## 2026-02-18 - Desktop_Claude (Session 8: Priority 5 Quick Post UX Fixes)
+
+### Files Modified
+- `web_app/marketing-command-center.html` - Quick Post UX improvements
+
+### Functions Added
+- `updateIgAccountCounter()` - Badge showing selected IG account count
+- Keyboard listener for Cmd/Ctrl+Enter → postNow()
+
+### Functions Modified
+- `toggleAllIgAccounts()` - Now updates account counter badge
+- `toggleMediaTools()` - Tracks manual collapse state
+- `showMediaToolsSection()` - Auto-expands body on upload, shows Edit tab
+
+### HTML Changes
+- IG accounts: Only account 0 checked by default (was all 3)
+- TikTok toggle: Disabled with "Coming Soon" badge
+- Added "⌘+Enter to post" hint under publish actions
+
+### Reason
+Quick Post UX fixes per PM_Architect audit. North Star: posting must be EASIER than opening Instagram directly.
+
+### Duplicate Check
+- [x] No duplicates created
+
+---
+
+## 2026-02-15 - Desktop_Claude (Session 8: Priority 1 Security Fixes)
+
+### Files Modified
+- `web_app/marketing-command-center.html` - All security fixes applied
+
+### Functions Added
+- `safeHTML()` - DOMPurify wrapper for XSS protection
+- `editEvergreen()` - Stub for evergreen editing onclick
+- `import52WeekTemplate()` - Stub for 52-week template import
+- `loadSharedContentCalendar()` - Stub with API call for shared calendar
+- `open52WeekImportModal()` - Stub for 52-week import modal
+- `openAddCalendarEntryModal()` - Stub for calendar entry modal
+- `openSharedContentEntryModal()` - Stub for shared content entry
+
+### Functions Modified
+- `selectMixTrackerAccount()` - Merged igSyncedPosts re-render logic from override
+- `renderHashtagFeed()` - innerHTML wrapped in safeHTML()
+- `renderMentionsFeed()` - innerHTML wrapped in safeHTML()
+- `renderInstagramMentions()` - innerHTML wrapped in safeHTML()
+- `loadCompetitorActivity()` - innerHTML wrapped in safeHTML()
+- `renderMonitoredHashtags()` - Replaced innerHTML onclick with addEventListener
+- `approveAllPics()` - Added try/catch with error toast
+- `saveFieldCaptureToServer()` - Added try/catch with toast + local fallback
+- Multiple innerHTML assignments changed to textContent for plain text data
+
+### Removed
+- `truncateText()` duplicate at line ~21744 (kept second at ~29999)
+- `selectMixTrackerAccount` override function (merged into main)
+
+### Reason
+CRITICAL security fixes per PM_Architect INBOX. Added DOMPurify CDN, fixed 15+ XSS innerHTML vulnerabilities, added try/catch to unhandled fetches, implemented 6 missing stub functions, consolidated duplicate function definitions.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created - removed 2 duplicates
+
+---
+
 ## 2026-02-15 - UX_Design_Claude (Phase 1 Sub-Tab Visual Polish)
 
 ### Files Modified
