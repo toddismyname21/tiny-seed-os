@@ -11607,24 +11607,48 @@
                         <img id="seedPhotoImg" style="width: 100%; object-fit: cover;" />
                     </div>
                     <!-- Seed form fields -->
-                    <div style="display: flex; flex-direction: column; gap: 10px;">
-                        <input id="seedFormCrop" placeholder="Crop (e.g. Tomato)" style="padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-size: 15px;" />
-                        <input id="seedFormVariety" placeholder="Variety (e.g. Cherokee Purple)" style="padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-size: 15px;" />
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <div>
+                            <label style="display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Crop *</label>
+                            <input id="seedFormCrop" placeholder="e.g. Tomato" style="width: 100%; padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-size: 15px;" />
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Variety</label>
+                            <input id="seedFormVariety" placeholder="e.g. Cherokee Purple" style="width: 100%; padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-size: 15px;" />
+                        </div>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                            <input id="seedFormVendor" placeholder="Vendor" style="padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-size: 15px;" />
-                            <input id="seedFormLotNumber" placeholder="Lot #" style="padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-size: 15px;" />
+                            <div>
+                                <label style="display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Vendor</label>
+                                <input id="seedFormVendor" placeholder="e.g. Johnny's" style="width: 100%; padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-size: 15px;" />
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Lot #</label>
+                                <input id="seedFormLotNumber" placeholder="From packet" style="width: 100%; padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-size: 15px;" />
+                            </div>
                         </div>
                         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
-                            <input id="seedFormQty" type="number" placeholder="Packets" value="1" style="padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-size: 15px;" />
-                            <input id="seedFormGermRate" type="number" placeholder="Germ %" style="padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-size: 15px;" />
-                            <select id="seedFormOrganic" style="padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-size: 15px;">
-                                <option value="">Organic?</option>
-                                <option value="yes">Yes</option>
-                                <option value="no">No</option>
-                            </select>
+                            <div>
+                                <label style="display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Packets</label>
+                                <input id="seedFormQty" type="number" placeholder="1" value="1" style="width: 100%; padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-size: 15px;" />
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Germ %</label>
+                                <input id="seedFormGermRate" type="number" placeholder="85" style="width: 100%; padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-size: 15px;" />
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Organic</label>
+                                <select id="seedFormOrganic" style="width: 100%; padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-size: 15px;">
+                                    <option value="">Select...</option>
+                                    <option value="yes">Yes</option>
+                                    <option value="no">No</option>
+                                </select>
+                            </div>
                         </div>
-                        <input id="seedFormNotes" placeholder="Notes (optional)" style="padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-size: 15px;" />
-                        <button onclick="submitSeedFromCapture()" style="padding: 14px; background: linear-gradient(135deg, #2d5a27, #4a7c43); border: none; border-radius: 12px; color: white; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 4px;">
+                        <div>
+                            <label style="display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Notes</label>
+                            <input id="seedFormNotes" placeholder="Optional" style="width: 100%; padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); font-size: 15px;" />
+                        </div>
+                        <button id="seedSaveBtn" onclick="submitSeedFromCapture()" style="padding: 16px; background: linear-gradient(135deg, #2d5a27, #4a7c43); border: none; border-radius: 12px; color: white; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 4px; position: relative; z-index: 10;">
                             <i class="fas fa-seedling"></i> Save to Seed Inventory
                         </button>
                     </div>
@@ -15689,7 +15713,9 @@
                     return;
                 }
 
-                // Clocked in - show full screen mode
+                // Clocked in (or admin bypass) - show full screen mode
+                // Hide main content to prevent touch bleed-through on mobile
+                document.querySelector('.main-content').style.display = 'none';
                 if (mode === 'driver') {
                     document.getElementById('driverMode').classList.add('active');
                     loadDriverRoute();
@@ -15738,6 +15764,9 @@
             document.getElementById('garageMode')?.classList.remove('active');
             document.getElementById('inventoryMode')?.classList.remove('active');
             document.getElementById('costingMode')?.classList.remove('active');
+
+            // Restore main content (was hidden to prevent touch bleed-through)
+            document.querySelector('.main-content').style.display = '';
 
             // Show home with field nav (allows mode switching)
             document.getElementById('fieldNav').style.display = 'flex';
