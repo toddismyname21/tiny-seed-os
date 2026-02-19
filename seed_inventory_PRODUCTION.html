@@ -850,7 +850,7 @@
             <div id="seedDetailContent">Loading...</div>
             <div class="modal-buttons">
                 <button class="btn btn-secondary" onclick="closeSeedDetail()">Close</button>
-                <button class="btn btn-qr" onclick="printSeedLabel()">🏷️ Print Label</button>
+                <button class="btn btn-qr" onclick="if(currentDetailSeed) printLabel(currentDetailSeed.seedLotId || currentDetailSeed.lotNumber)">🏷️ Print Label</button>
                 <button class="btn btn-primary" onclick="viewUsageHistory()">📋 View History</button>
             </div>
         </div>
@@ -1065,16 +1065,21 @@
                         lotNumber: item.Supplier_Lot || item.Lot_Number || '',
                         quantity: Number(item.Quantity_Remaining) || 0,
                         seedsPerPacket: Number(item.Seeds_Per_Packet) || 0,
-                        germRate: Number(item.Germination_Rate) || 85,
+                        germRate: Number(item.Germination_Rate) || 0,
                         organic: String(item.Organic_Certified).toLowerCase() === 'yes',
-                        threshold: Number(item.Reorder_Threshold) || 3,
+                        threshold: Number(item.Reorder_Threshold) || 0,
                         used: Number(item.Total_Used) || 0,
                         unit: item.Unit || 'packets',
                         status: item.Status || '',
                         purchaseDate: item.Purchase_Date || '',
                         expirationDate: item.Expiration_Date || '',
-                        notes: item.Notes || ''
+                        notes: item.Notes || '',
+                        receiptPhotoUrl: item.Receipt_Photo_URL || '',
+                        organicCertPhotoUrl: item.Organic_Cert_Photo_URL || '',
+                        qrCodeUrl: item.QR_Code_URL || ''
                     }));
+                    // Filter out deleted seeds
+                    seedInventory = seedInventory.filter(s => s.status !== 'Deleted');
                 } else if (result.success && result.data === undefined) {
                     // Empty inventory is valid
                     seedInventory = [];
@@ -1135,12 +1140,15 @@
                 const totalSeeds = seed.quantity * seed.seedsPerPacket;
                 
                 return `
-                    <div class="seed-card ${status === 'low' ? 'low-stock' : ''} ${status === 'depleted' ? 'depleted' : ''}">
+                    <div class="seed-card ${status === 'low' ? 'low-stock' : ''} ${status === 'depleted' ? 'depleted' : ''}" onclick="showSeedDetailById('${seed.seedLotId}')" style="cursor:pointer;">
                         <div class="seed-info">
                             <div class="seed-header">
-                                <div>
-                                    <div class="seed-name">${seed.crop}</div>
-                                    <div class="seed-variety">${seed.variety}</div>
+                                <div style="display:flex;align-items:center;gap:10px;">
+                                    ${seed.receiptPhotoUrl ? `<img src="${seed.receiptPhotoUrl}" alt="Seed packet" style="width:48px;height:48px;border-radius:6px;object-fit:cover;border:1px solid var(--border);flex-shrink:0;" onerror="this.style.display='none'">` : ''}
+                                    <div>
+                                        <div class="seed-name">${seed.crop}</div>
+                                        <div class="seed-variety">${seed.variety}</div>
+                                    </div>
                                 </div>
                                 <div>
                                     <span class="status-badge badge-${status}">${status.toUpperCase()}</span>
@@ -1158,11 +1166,11 @@
                                 </div>
                                 <div class="detail-item">
                                     <div class="detail-label">Germination Rate</div>
-                                    <div class="detail-value">${seed.germRate}%</div>
+                                    <div class="detail-value">${seed.germRate ? seed.germRate + '%' : '—'}</div>
                                 </div>
                                 <div class="detail-item">
                                     <div class="detail-label">Total Seeds</div>
-                                    <div class="detail-value">${totalSeeds.toLocaleString()}</div>
+                                    <div class="detail-value">${totalSeeds ? totalSeeds.toLocaleString() : '—'}</div>
                                 </div>
                             </div>
                         </div>
@@ -1681,6 +1689,11 @@
 
         let currentDetailSeed = null;
 
+        function showSeedDetailById(seedLotId) {
+            const seed = seedInventory.find(s => s.seedLotId === seedLotId);
+            if (seed) showSeedDetail(seed);
+        }
+
         function showSeedDetail(seed) {
             currentDetailSeed = seed;
             const content = document.getElementById('seedDetailContent');
@@ -1740,13 +1753,30 @@
                             <div style="display: flex; gap: 10px; flex-wrap: wrap;" id="seedDocLinks"></div>
                         </div>
 
+                        <!-- Seed Packet Photo -->
+                        ${seed.receiptPhotoUrl ? `
+                        <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);">
+                            <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 8px;">Seed Packet Photo</div>
+                            <img src="${seed.receiptPhotoUrl}" alt="Seed packet" style="width: 100%; max-width: 300px; border-radius: 8px; border: 1px solid var(--border); cursor: pointer;" onclick="window.open('${seed.receiptPhotoUrl}', '_blank')" onerror="this.parentElement.style.display='none'">
+                        </div>
+                        ` : ''}
+
+                        <!-- Documents Section -->
+                        <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);">
+                            <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 8px;">Documents</div>
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap;" id="seedDocLinks"></div>
+                        </div>
+
                         <!-- Action Buttons -->
-                        <div style="margin-top: 16px; display: flex; gap: 10px;">
-                            <button onclick="editSeedLot()" style="flex: 1; padding: 10px; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 8px; color: #a5b4fc; font-weight: 600; font-size: 14px; cursor: pointer;">
+                        <div style="margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button onclick="editSeedLot()" style="flex: 1; min-width: 100px; padding: 10px; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 8px; color: #a5b4fc; font-weight: 600; font-size: 14px; cursor: pointer;">
                                 <i class="fas fa-edit"></i> Edit
                             </button>
-                            <button onclick="uploadDocForSeed('receipt')" style="flex: 1; padding: 10px; background: rgba(233, 196, 106, 0.15); border: 1px solid rgba(233, 196, 106, 0.3); border-radius: 8px; color: var(--warning); font-weight: 600; font-size: 14px; cursor: pointer;">
+                            <button onclick="uploadDocForSeed('receipt')" style="flex: 1; min-width: 100px; padding: 10px; background: rgba(233, 196, 106, 0.15); border: 1px solid rgba(233, 196, 106, 0.3); border-radius: 8px; color: var(--warning); font-weight: 600; font-size: 14px; cursor: pointer;">
                                 <i class="fas fa-receipt"></i> Add Receipt
+                            </button>
+                            <button onclick="deleteSeedLot()" style="flex: 1; min-width: 100px; padding: 10px; background: rgba(230, 57, 70, 0.15); border: 1px solid rgba(230, 57, 70, 0.3); border-radius: 8px; color: var(--danger); font-weight: 600; font-size: 14px; cursor: pointer;">
+                                <i class="fas fa-trash"></i> Delete
                             </button>
                         </div>
                     </div>
@@ -1935,9 +1965,45 @@
                     currentDetailSeed.notes = payload.notes;
                     document.getElementById('seedEditForm').style.display = 'none';
                     showSeedDetail(currentDetailSeed);
-                    loadSeeds(); // Refresh list
+                    renderInventory(); // Refresh list
                 } else {
                     showToast('Error: ' + (result.error || 'Save failed'), 'error');
+                }
+            } catch (err) {
+                showToast('Connection error — try again', 'error');
+            }
+        }
+
+        async function deleteSeedLot() {
+            if (!currentDetailSeed || !currentDetailSeed.seedLotId) {
+                showToast('No seed lot selected', 'error');
+                return;
+            }
+            if (!confirm('Delete ' + currentDetailSeed.crop + ' ' + currentDetailSeed.variety + ' (' + currentDetailSeed.seedLotId + ')? This cannot be undone.')) {
+                return;
+            }
+            showToast('Deleting...', 'info');
+            try {
+                var response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'updateSeedLot',
+                        seedLotId: currentDetailSeed.seedLotId,
+                        status: 'Deleted'
+                    })
+                });
+                var result = await response.json();
+                if (result.success) {
+                    showToast('Seed lot deleted ✓', 'success');
+                    // Remove from local array
+                    seedInventory = seedInventory.filter(s => s.seedLotId !== currentDetailSeed.seedLotId);
+                    currentDetailSeed = null;
+                    document.getElementById('seedDetailModal').style.display = 'none';
+                    renderInventory();
+                    updateStats();
+                } else {
+                    showToast('Error: ' + (result.error || 'Delete failed'), 'error');
                 }
             } catch (err) {
                 showToast('Connection error — try again', 'error');
