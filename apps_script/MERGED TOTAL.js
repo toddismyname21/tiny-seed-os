@@ -26449,29 +26449,8 @@ function initSeedInventorySheet() {
   } else {
     // Auto-migrate: add missing columns to existing sheets
     var existingHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-    // Add Seeds_Per_Packet in correct position (after Unit, before Germination_Rate)
-    if (existingHeaders.indexOf('Seeds_Per_Packet') === -1) {
-      var unitIdx = existingHeaders.indexOf('Unit');
-      var germIdx = existingHeaders.indexOf('Germination_Rate');
-      if (unitIdx !== -1 && germIdx !== -1 && germIdx === unitIdx + 1) {
-        // Insert column between Unit and Germination_Rate
-        sheet.insertColumnAfter(unitIdx + 1); // 1-indexed
-        sheet.getRange(1, unitIdx + 2).setValue('Seeds_Per_Packet').setFontWeight('bold').setBackground('#4a7c59');
-        // Refresh headers after insert
-        existingHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-      } else if (unitIdx !== -1) {
-        // Unit exists but Germination_Rate not right after - add after Unit
-        sheet.insertColumnAfter(unitIdx + 1);
-        sheet.getRange(1, unitIdx + 2).setValue('Seeds_Per_Packet').setFontWeight('bold').setBackground('#4a7c59');
-        existingHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-      } else {
-        // Fallback: add at end
-        var nextCol = sheet.getLastColumn() + 1;
-        sheet.getRange(1, nextCol).setValue('Seeds_Per_Packet').setFontWeight('bold').setBackground('#4a7c59');
-        existingHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-      }
-    }
-    var newCols = ['Receipt_Photo_URL', 'Organic_Cert_Photo_URL'];
+    // Add missing columns at end (safe - no column insertion/shifting)
+    var newCols = ['Seeds_Per_Packet', 'Receipt_Photo_URL', 'Organic_Cert_Photo_URL'];
     newCols.forEach(function(col) {
       if (existingHeaders.indexOf(col) === -1) {
         var nextCol = sheet.getLastColumn() + 1;
@@ -26763,14 +26742,14 @@ function uploadSeedPhoto(data) {
  */
 function getSeedInventory(params) {
   try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    let sheet = ss.getSheetByName('SEED_INVENTORY');
+    // Trigger auto-migration to ensure schema is up to date
+    const sheet = initSeedInventorySheet();
 
-    if (!sheet) {
+    if (!sheet || sheet.getLastRow() < 2) {
       return {
         success: true,
         data: [],
-        message: 'No seed inventory yet - add your first seed lot!'
+        message: sheet ? 'Seed inventory is empty' : 'No seed inventory yet - add your first seed lot!'
       };
     }
 
@@ -26838,8 +26817,8 @@ function getSeedByQR(seedLotId) {
       return { success: false, error: 'Seed Lot ID required' };
     }
 
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const sheet = ss.getSheetByName('SEED_INVENTORY');
+    // Trigger auto-migration to ensure schema is up to date
+    const sheet = initSeedInventorySheet();
 
     if (!sheet) {
       return { success: false, error: 'Seed inventory not found' };
@@ -50169,14 +50148,25 @@ function getClockStatus(employeeId) {
 
     // Find most recent entry for this employee
     for (let i = data.length - 1; i >= 1; i--) {
-      if (data[i][empCol] === employeeId) {
+      // Use loose comparison (==) to handle number vs string mismatch from spreadsheet
+      if (String(data[i][empCol]).trim() == String(employeeId).trim()) {
         const clockIn = data[i][clockInCol];
         const clockOut = data[i][clockOutCol];
 
         if (clockIn && !clockOut) {
+          // Ensure clockInTime is always a valid ISO string
+          var clockInISO;
+          if (clockIn instanceof Date) {
+            clockInISO = clockIn.toISOString();
+          } else if (typeof clockIn === 'number') {
+            // Google Sheets serial date number — convert to Date
+            clockInISO = new Date((clockIn - 25569) * 86400000).toISOString();
+          } else {
+            clockInISO = String(clockIn);
+          }
           return {
             isClockedIn: true,
-            clockInTime: clockIn instanceof Date ? clockIn.toISOString() : clockIn,
+            clockInTime: clockInISO,
             entryRow: i + 1
           };
         }
@@ -50209,7 +50199,6 @@ function clockIn(params) {
     // Check geofence (optional - can be enabled later)
     const inGeofence = isInGeofence(lat, lng);
 
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = getOrCreateEmployeeSheet(EMPLOYEE_SHEETS.TIME_CLOCK);
 
     const now = new Date();
@@ -50261,18 +50250,39 @@ function clockOut(params) {
 
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(EMPLOYEE_SHEETS.TIME_CLOCK);
+    if (!sheet) {
+      return { success: false, error: 'TIME_CLOCK sheet not found' };
+    }
     const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
 
-    const now = new Date();
-    const clockIn = new Date(status.clockInTime);
-    const hoursWorked = (now - clockIn) / 1000 / 60 / 60;
+    // Validate all required columns exist before writing
+    const clockOutCol = headers.indexOf('Clock_Out');
+    const hoursCol = headers.indexOf('Hours_Worked');
+    const gpsOutLatCol = headers.indexOf('GPS_Out_Lat');
+    const gpsOutLngCol = headers.indexOf('GPS_Out_Lng');
+    if (clockOutCol === -1 || hoursCol === -1) {
+      return { success: false, error: 'TIME_CLOCK sheet is missing required columns (Clock_Out or Hours_Worked)' };
+    }
 
-    // Update the row
+    const now = new Date();
+    const clockInDate = new Date(status.clockInTime);
+    // Protect against NaN if clockInTime didn't parse correctly
+    if (isNaN(clockInDate.getTime())) {
+      return { success: false, error: 'Could not parse clock-in time: ' + status.clockInTime };
+    }
+    const hoursWorked = (now - clockInDate) / 1000 / 60 / 60;
+    if (hoursWorked < 0) {
+      return { success: false, error: 'Clock-in time is in the future. Check system clock.' };
+    }
+
+    // Batch update: read entire row, update in memory, write back at once
     const row = status.entryRow;
-    sheet.getRange(row, headers.indexOf('Clock_Out') + 1).setValue(now.toISOString());
-    sheet.getRange(row, headers.indexOf('Hours_Worked') + 1).setValue(hoursWorked.toFixed(2));
-    sheet.getRange(row, headers.indexOf('GPS_Out_Lat') + 1).setValue(lat);
-    sheet.getRange(row, headers.indexOf('GPS_Out_Lng') + 1).setValue(lng);
+    const rowData = sheet.getRange(row, 1, 1, headers.length).getValues()[0];
+    rowData[clockOutCol] = now.toISOString();
+    rowData[hoursCol] = parseFloat(hoursWorked.toFixed(2));
+    if (gpsOutLatCol !== -1) rowData[gpsOutLatCol] = lat;
+    if (gpsOutLngCol !== -1) rowData[gpsOutLngCol] = lng;
+    sheet.getRange(row, 1, 1, headers.length).setValues([rowData]);
 
     return {
       success: true,
