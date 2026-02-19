@@ -26449,6 +26449,28 @@ function initSeedInventorySheet() {
   } else {
     // Auto-migrate: add missing columns to existing sheets
     var existingHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    // Add Seeds_Per_Packet in correct position (after Unit, before Germination_Rate)
+    if (existingHeaders.indexOf('Seeds_Per_Packet') === -1) {
+      var unitIdx = existingHeaders.indexOf('Unit');
+      var germIdx = existingHeaders.indexOf('Germination_Rate');
+      if (unitIdx !== -1 && germIdx !== -1 && germIdx === unitIdx + 1) {
+        // Insert column between Unit and Germination_Rate
+        sheet.insertColumnAfter(unitIdx + 1); // 1-indexed
+        sheet.getRange(1, unitIdx + 2).setValue('Seeds_Per_Packet').setFontWeight('bold').setBackground('#4a7c59');
+        // Refresh headers after insert
+        existingHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+      } else if (unitIdx !== -1) {
+        // Unit exists but Germination_Rate not right after - add after Unit
+        sheet.insertColumnAfter(unitIdx + 1);
+        sheet.getRange(1, unitIdx + 2).setValue('Seeds_Per_Packet').setFontWeight('bold').setBackground('#4a7c59');
+        existingHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+      } else {
+        // Fallback: add at end
+        var nextCol = sheet.getLastColumn() + 1;
+        sheet.getRange(1, nextCol).setValue('Seeds_Per_Packet').setFontWeight('bold').setBackground('#4a7c59');
+        existingHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+      }
+    }
     var newCols = ['Receipt_Photo_URL', 'Organic_Cert_Photo_URL'];
     newCols.forEach(function(col) {
       if (existingHeaders.indexOf(col) === -1) {
@@ -26534,35 +26556,39 @@ function addSeedLot(data) {
       if (expDateObj < new Date()) status = 'Expired';
     }
 
-    // Build row data
-    const rowData = [
-      seedLotId,
-      qrCodeUrl,
-      data.crop || '',
-      data.variety || '',
-      supplier,
-      supplierLot,
-      quantity,
-      quantity, // Remaining starts same as original
-      data.unit || 'packets',
-      seedsPerPacket,
-      germRate,
-      germTestDate,
-      packDate,
-      expDate,
-      organicStr,
-      data.certifier || '',
-      data.seedTreatment || data.seed_treatment || 'Untreated',
-      data.purchaseDate || data.purchase_date || new Date(),
-      data.purchasePrice || data.purchase_price || '',
-      data.storageLocation || data.storage_location || '',
-      data.notes || '',
-      status,
-      new Date(),
-      '',
-      data.receiptPhotoUrl || data.receipt_photo_url || '',
-      data.organicCertPhotoUrl || data.organic_cert_photo_url || ''
-    ];
+    // Build row data using actual header positions (handles column migration)
+    const actualHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const valueMap = {
+      'Seed_Lot_ID': seedLotId,
+      'QR_Code_URL': qrCodeUrl,
+      'Crop': data.crop || '',
+      'Variety': data.variety || '',
+      'Supplier': supplier,
+      'Supplier_Lot': supplierLot,
+      'Quantity_Original': quantity,
+      'Quantity_Remaining': quantity,
+      'Unit': data.unit || 'packets',
+      'Seeds_Per_Packet': seedsPerPacket,
+      'Germination_Rate': germRate,
+      'Germ_Test_Date': germTestDate,
+      'Pack_Date': packDate,
+      'Expiration_Date': expDate,
+      'Organic_Certified': organicStr,
+      'Certifier': data.certifier || '',
+      'Seed_Treatment': data.seedTreatment || data.seed_treatment || 'Untreated',
+      'Purchase_Date': data.purchaseDate || data.purchase_date || new Date(),
+      'Purchase_Price': data.purchasePrice || data.purchase_price || '',
+      'Storage_Location': data.storageLocation || data.storage_location || '',
+      'Notes': data.notes || '',
+      'Status': status,
+      'Created_At': new Date(),
+      'Last_Used': '',
+      'Receipt_Photo_URL': data.receiptPhotoUrl || data.receipt_photo_url || '',
+      'Organic_Cert_Photo_URL': data.organicCertPhotoUrl || data.organic_cert_photo_url || ''
+    };
+    const rowData = actualHeaders.map(function(header) {
+      return valueMap.hasOwnProperty(header) ? valueMap[header] : '';
+    });
 
     sheet.appendRow(rowData);
 

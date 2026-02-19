@@ -785,4 +785,151 @@ Create `seed_track.html` in the project root. This is a PUBLIC page (no auth req
 
 ---
 
+---
+
+## PRIORITY 9: COMPLETE EMPLOYEE APP AUDIT (From PM_Architect - 2026-02-18)
+
+**CRITICAL — Owner says this is the LAST ATTEMPT. The app did NOT work at the farm.**
+
+**Files:** `employee.html`, `seed_inventory_PRODUCTION.html`, `inventory_capture.html`
+
+**Context:** The owner has been actively testing the employee app and finding bugs. Seeds tab buttons didn't work, clock-in/out had issues, inventory mode was blocked, fields had no labels, save buttons didn't work. PM_Architect fixed many of these, but the app needs a COMPREHENSIVE audit before the owner takes it to the farm again. If it doesn't work this time, we lose credibility.
+
+---
+
+### 9A: COMPLETE ELEMENT REFERENCE AUDIT (employee.html)
+
+**Every `getElementById()` call in the Inventory and Seed sections MUST reference an existing HTML element.**
+
+Audit procedure:
+1. Find ALL `getElementById('...')` calls in the inventory mode and seed-related JavaScript
+2. For EACH one, confirm the matching `id="..."` exists in the HTML
+3. Flag any orphaned references (JS calls to elements that don't exist)
+4. Flag any orphaned elements (HTML elements with IDs that no JS references)
+
+**Focus areas:**
+- `seedCaptureArea`, `seedActionCards`, `receiptUploadArea` — these are the seed tab panels
+- `seedCapturePhoto`, `seedCapturePreview`, `seedCropField`, `seedVarietyField`, `seedVendorField`, etc.
+- `receiptPreview`, `receiptPhotoData`, `receiptLotId`
+- All inventory mode elements: `inventoryModeOverlay`, `inventoryTable`, etc.
+- `fullScreenOverlay`, `fullScreenTitle`, `fullScreenContent`
+
+### 9B: COMPLETE ONCLICK → FUNCTION AUDIT (employee.html)
+
+**Every `onclick="functionName()"` in the HTML MUST reference a defined JavaScript function.**
+
+1. Find ALL `onclick` handlers in the employee.html
+2. For EACH one, confirm the function exists in `<script>` tags
+3. Pay special attention to seed-related functions:
+   - `captureSeedPacket()` — opens camera for seed packet photo
+   - `closeSeedCapture()` — closes the capture form
+   - `submitSeedFromCapture()` — submits seed data to backend
+   - `uploadSeedReceipt()` — opens receipt upload flow
+   - `closeReceiptUpload()` — closes receipt upload
+   - `captureReceiptPhoto()` — takes receipt photo
+   - `pickReceiptFile()` — opens file picker
+   - `submitReceiptUpload()` — submits receipt to backend
+4. Check the inventory mode functions too:
+   - `enterFullScreenMode('inventory')`
+   - `exitFullScreenMode()`
+   - `switchInventoryTab(tabName)`
+   - All count/submit inventory functions
+
+### 9C: FETCH/API CALL AUDIT (employee.html)
+
+**Every `fetch()` call MUST use the correct API URL pattern and action name.**
+
+Check each API call:
+1. Uses `CONFIG.API_URL` (not hardcoded URL)
+2. POST body uses `Content-Type: 'text/plain'` (NOT 'application/json' — Apps Script CORS issue)
+3. Action name exists in the backend router
+4. Response parsing handles errors properly (try/catch, JSON parse)
+
+**Critical API calls to verify:**
+| Function | Action Called | Method |
+|----------|-------------|--------|
+| `captureSeedPacket()` | `analyzeSeedPacket` | POST |
+| `submitSeedFromCapture()` | `addSeedToInventory` | POST |
+| `submitReceiptUpload()` | `uploadSeedPhoto` | POST |
+| `authenticateEmployee()` | `authenticateEmployee` | GET |
+| `clockIn()` | `clockIn` | GET |
+| `clockOut()` | `clockOut` | GET |
+| `loadInventoryData()` | `getInventoryItems` or similar | GET |
+| `submitInventoryCount()` | `submitInventoryCount` | POST |
+
+### 9D: MOBILE UX AUDIT (employee.html)
+
+**The app is used on phones at the farm. Mobile UX must be flawless.**
+
+Check:
+1. **Camera access**: Does `captureSeedPacket()` use `navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })` to use the BACK camera? Farm workers need to photograph seed packets.
+2. **Touch targets**: Are all buttons at least 44x44px? Farm workers have dirty/gloved hands.
+3. **Overlay z-index**: The inventory mode overlay uses z-index 5000. Confirm no other elements sit above it that could intercept touches.
+4. **Touch bleed-through fix**: PM added `document.querySelector('.main-content').style.display = 'none'` when entering full-screen modes. Verify this is in `enterFullScreenMode()` and reversed in `exitFullScreenMode()`.
+5. **Seed form field labels**: All seed capture fields should have visible labels ABOVE the inputs (not just placeholders). Check for `<label>` or `<div>` labels above each field.
+6. **Loading states**: Do camera capture and AI parsing show a loading indicator? Users at the farm with slow data need feedback.
+
+### 9E: SEED INVENTORY PRODUCTION PAGE AUDIT (seed_inventory_PRODUCTION.html)
+
+**This page is the seed inventory management interface. Audit it completely.**
+
+1. **Auth guard**: Page has `data-required-role="Manager"`. The owner's role is "Admin" — does the auth guard accept "Admin" as sufficient? CHECK THE AUTH LOGIC.
+2. **Add Seed form**: Does the `addSeed()` function call the correct API action? It should use `addSeedToInventory` or `addSeedLot`.
+3. **Content-Type**: Check if fetch calls use `text/plain` (required for Apps Script CORS).
+4. **Edit seed lot**: `editSeedLot()`, `cancelEdit()`, `saveEdit()` functions — verify they exist and call `updateSeedLot` API action.
+5. **Receipt upload in detail view**: Action button for uploading receipt — does it trigger a working upload flow?
+6. **Seeds Per Packet field**: Verify the "New Seed Lot" form includes a Seeds Per Packet input field.
+7. **QR code display**: Verify `generateQRCode()` displays QR codes for seed lots.
+
+### 9F: INVENTORY CAPTURE PAGE AUDIT (inventory_capture.html)
+
+1. **AI parsing wired**: After photo capture, does it call `analyzeSeedPacket` API?
+2. **Form auto-fill**: Do AI results populate the form fields?
+3. **Navigable from employee app**: Can users reach this page from employee.html?
+
+---
+
+### Output Format
+
+Write results to your OUTBOX.md:
+```markdown
+## PRIORITY 9: COMPLETE EMPLOYEE APP AUDIT - [Date]
+**Status:** COMPLETE
+
+### 9A: Element References
+| Element ID | JS References | HTML Exists | Status |
+|-----------|--------------|-------------|--------|
+
+### 9B: onclick → Function Map
+| onclick Handler | Function Defined | Status |
+|----------------|-----------------|--------|
+
+### 9C: API Calls
+| Function | Action | Content-Type | Backend Exists | Status |
+|----------|--------|-------------|---------------|--------|
+
+### 9D: Mobile UX
+| Check | Status | Notes |
+|-------|--------|-------|
+
+### 9E: seed_inventory_PRODUCTION.html
+| Check | Status | Notes |
+|-------|--------|-------|
+
+### 9F: inventory_capture.html
+| Check | Status | Notes |
+|-------|--------|-------|
+
+### CRITICAL ISSUES FOUND
+[Numbered list — these MUST be fixed before the owner goes to the farm]
+
+### MINOR ISSUES
+[Can be fixed later]
+
+### FIXES APPLIED
+[List any fixes you made, with line numbers]
+```
+
+---
+
 *Desktop Web Claude - Build it right. Code Audit and Verifier will check your work.*
