@@ -1186,9 +1186,9 @@
                                      style="width: ${percentRemaining}%"></div>
                             </div>
                             <div class="action-buttons">
-                                <button class="btn btn-primary btn-small" onclick="useSeed(${seed.id})">📤 Use</button>
-                                <button class="btn btn-success btn-small" onclick="restock(${seed.id})">➕ Restock</button>
-                                <button class="btn btn-qr btn-small" onclick="printLabel('${seed.seedLotId || seed.lotNumber}')">🏷️ Print</button>
+                                <button class="btn btn-primary btn-small" onclick="event.stopPropagation(); useSeed(${seed.id})">📤 Use</button>
+                                <button class="btn btn-success btn-small" onclick="event.stopPropagation(); restock(${seed.id})">➕ Restock</button>
+                                <button class="btn btn-qr btn-small" onclick="event.stopPropagation(); printLabel('${seed.seedLotId || seed.lotNumber}')">🏷️ Print</button>
                             </div>
                         </div>
                     </div>
@@ -1999,7 +1999,7 @@
                     // Remove from local array
                     seedInventory = seedInventory.filter(s => s.seedLotId !== currentDetailSeed.seedLotId);
                     currentDetailSeed = null;
-                    document.getElementById('seedDetailModal').style.display = 'none';
+                    document.getElementById('seedDetailModal').classList.remove('active');
                     renderInventory();
                     updateStats();
                 } else {

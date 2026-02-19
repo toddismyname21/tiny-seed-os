@@ -16106,49 +16106,61 @@
         let seedCapturePhoto = null;
 
         function captureSeedPacket() {
-            const input = document.createElement('input');
+            var input = document.createElement('input');
             input.type = 'file';
             input.accept = 'image/*';
             input.capture = 'environment';
-            input.onchange = async (e) => {
-                const file = e.target.files[0];
+            input.onchange = function(e) {
+                var file = e.target.files[0];
                 if (!file) return;
                 showSeedProcessingOverlay('Reading Seed Packet...');
-                const reader = new FileReader();
-                reader.onload = async (event) => {
-                    try {
-                        const compressed = await compressPhoto(event.target.result, 1200);
+                var reader = new FileReader();
+                reader.onload = function(event) {
+                    var rawPhoto = event.target.result;
+                    seedCapturePhoto = rawPhoto;
+                    // Always show the form first, then try AI in background
+                    compressPhoto(rawPhoto, 1200).then(function(compressed) {
                         seedCapturePhoto = compressed;
-                        try {
-                            const controller = new AbortController();
-                            const timeout = setTimeout(() => controller.abort(), 45000);
-                            const response = await fetch(CONFIG.API_URL, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'text/plain' },
-                                body: JSON.stringify({ action: 'analyzeSeedPacket', image: compressed }),
-                                signal: controller.signal
-                            });
-                            clearTimeout(timeout);
-                            const result = await response.json();
+                        // Try AI analysis - but form shows regardless
+                        fetch(CONFIG.API_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'text/plain' },
+                            body: JSON.stringify({ action: 'analyzeSeedPacket', image: compressed })
+                        }).then(function(resp) {
+                            return resp.json();
+                        }).then(function(result) {
                             hideSeedProcessingOverlay();
                             if (result.success && result.data) {
                                 showSeedCaptureForm(result.data, compressed);
-                                showToast('Seed packet detected! Review details below.', 'success');
+                                showToast('Seed packet detected!', 'success');
                             } else {
                                 showSeedCaptureForm({}, compressed);
-                                showToast('Could not read packet. Fill details manually.', 'warning');
+                                showToast('Could not read packet. Fill manually.', 'warning');
                             }
-                        } catch (fetchErr) {
+                        }).catch(function() {
                             hideSeedProcessingOverlay();
-                            showSeedCaptureForm({}, seedCapturePhoto || event.target.result);
-                            showToast('AI connection error. Fill details manually.', 'warning');
-                        }
-                    } catch (outerErr) {
+                            showSeedCaptureForm({}, compressed);
+                            showToast('AI unavailable. Fill manually.', 'warning');
+                        });
+                        // Safety: if AI takes more than 30 seconds, show form anyway
+                        setTimeout(function() {
+                            if (document.getElementById('seedProcessingOverlay')) {
+                                hideSeedProcessingOverlay();
+                                showSeedCaptureForm({}, compressed);
+                                showToast('AI timed out. Fill manually.', 'warning');
+                            }
+                        }, 30000);
+                    }).catch(function() {
+                        // Compression failed, use raw photo
                         hideSeedProcessingOverlay();
-                        seedCapturePhoto = event.target.result;
-                        showSeedCaptureForm({}, event.target.result);
-                        showToast('Photo processing error. Fill details manually.', 'warning');
-                    }
+                        showSeedCaptureForm({}, rawPhoto);
+                        showToast('Fill details manually.', 'warning');
+                    });
+                };
+                reader.onerror = function() {
+                    hideSeedProcessingOverlay();
+                    showSeedCaptureForm({}, null);
+                    showToast('Could not read photo. Fill manually.', 'warning');
                 };
                 reader.readAsDataURL(file);
             };
