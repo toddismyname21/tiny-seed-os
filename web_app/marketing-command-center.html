@@ -18418,46 +18418,35 @@ From our farm to your table with love. Every bite tells a story of dedication, h
                 'engagement': 'asking a question or encouraging comments'
             };
 
-            const prompt = `You are writing social media captions for Tiny Seed Farm, a small organic farm in Rochester, PA near Pittsburgh. The farm is run by Todd and has 3 Instagram accounts (@tinyseedfarm, @tinyseedfleurs, @tinyseedfungi).
-
-The user's inspiration: "${inspiration}"
-
-Create exactly 3 different caption templates that cleverly connect this inspiration to ${typeContext[contentType]}.
-
-Guidelines:
-- Length: ${lengthGuide[length]}
-- Mood: ${moodGuide[mood]}
-- Make the pop culture/inspiration reference clear but natural
-- End with a call-to-action or question when appropriate
-- Include relevant emoji naturally (not forced)
-- Match the authentic, hardworking, slightly quirky farm voice
-
-Return ONLY a JSON array with 3 objects, each having:
-- "caption": the full caption text
-- "angle": 2-3 words describing the creative angle used
-- "hashtags": array of 3-5 relevant hashtags (without #)
-
-Example format:
-[
-  {"caption": "...", "angle": "humor comparison", "hashtags": ["farmlife", "organic"]},
-  {"caption": "...", "angle": "emotional tie-in", "hashtags": ["csa", "freshfood"]},
-  {"caption": "...", "angle": "educational twist", "hashtags": ["farming", "pittsburgh"]}
-]`;
+            const prompt = `Write 3 ${moodGuide[mood]} posts about ${typeContext[contentType]} inspired by: "${inspiration}". Length: ${lengthGuide[length]} each. Connect the inspiration to farming naturally — be creative but keep it real.`;
 
             try {
                 const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
-                        action: 'generateAIContent',
+                        action: 'generateAdvancedContent',
                         prompt: prompt,
-                        model: 'gpt-4o'
+                        count: 3,
+                        tone: mood === 'playful' || mood === 'witty' ? 'fun' : mood === 'warm' ? 'storytelling' : 'authentic',
+                        platform: 'instagram'
                     })
                 });
 
                 const data = await response.json();
 
-                if (data.success && data.content) {
+                if (data.success && data.posts && data.posts.length > 0) {
+                    // Convert posts format to templates format
+                    const templates = data.posts.map(function(p) {
+                        return {
+                            caption: p.content || '',
+                            angle: p.contentType || 'creative tie-in',
+                            hashtags: (p.hashtags || ['farmlife', 'tinyseedfarm', 'organic']).map(function(h) { return h.replace(/^#/, ''); })
+                        };
+                    });
+                    displayGeneratedTemplates(templates, inspiration);
+                    showToast('Templates generated! Pick your favorite.', 'success');
+                } else if (data.success && data.content) {
                     // Parse the JSON response
                     let templates;
                     try {

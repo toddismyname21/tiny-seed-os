@@ -69580,7 +69580,9 @@ function generateAdvancedContent(params) {
         muteHttpExceptions: true
       });
       var result = JSON.parse(response.getContentText());
-      if (result.content && result.content[0]) {
+      if (result.error) {
+        Logger.log('Claude API error in generateAdvancedContent: ' + JSON.stringify(result.error));
+      } else if (result.content && result.content[0]) {
         content = result.content[0].text;
         method = 'claude';
       }
@@ -69673,61 +69675,42 @@ function generateAdvancedContent(params) {
  * Build advanced system prompt for AI generation
  */
 function buildAdvancedSystemPrompt(toneConfig, farmContext, seoKeywords, platform, count) {
-  var prompt = 'You are the social media content creator for Tiny Seed Farm, a beloved small organic farm in Pittsburgh, PA.\n\n';
-  prompt += 'FARM IDENTITY:\n';
-  prompt += '- Name: Tiny Seed Farm\n';
-  prompt += '- Location: Rochester, PA (greater Pittsburgh area)\n';
-  prompt += '- Type: Small organic farm specializing in CSA shares, farmers markets, organic produce, cut flowers\n';
-  prompt += '- Voice: Authentic, warm, community-focused\n';
-  prompt += '- Owner: Todd\n\n';
+  var prompt = 'You write social media posts for Tiny Seed Farm — a small certified organic farm in Rochester, PA (Pittsburgh area) run by Todd. The farm does CSA shares, farmers markets, cut flowers, and direct-to-consumer sales.\n\n';
 
-  prompt += 'PLATFORM: ' + platform.toUpperCase() + '\n';
-  if (platform === 'instagram') prompt += '- Max 2200 characters. Use 5-10 strategic hashtags.\n';
-  if (platform === 'facebook') prompt += '- Can be longer, more conversational. Hashtags optional.\n';
-  if (platform === 'tiktok') prompt += '- Short, punchy, trend-aware. 3-5 hashtags.\n';
-  if (platform === 'threads') prompt += '- Max 500 characters. Conversational, minimal hashtags.\n';
+  prompt += 'YOUR #1 RULE: Sound like a REAL farmer posting, not a marketing agency. No corporate jargon. No "elevate your plate" or "journey from farm to table." Write like Todd would actually talk — casual, warm, sometimes funny, always genuine.\n\n';
 
-  prompt += '\nTONE: ' + toneConfig.name + '\n';
-  prompt += toneConfig.description + '\n';
-  prompt += 'Characteristics: ' + toneConfig.characteristics.join(', ') + '\n';
-  prompt += 'Example phrases: ' + toneConfig.phrases.slice(0, 3).join(' | ') + '\n';
-  prompt += 'Emoji style: ' + toneConfig.emojiStyle + '\n';
-  prompt += 'AVOID these words: ' + toneConfig.avoidWords.join(', ') + '\n';
+  prompt += 'GOOD examples of voice:\n';
+  prompt += '- "Just pulled these beauties out of the ground. Not bad for a Tuesday."\n';
+  prompt += '- "The greenhouse smells incredible right now. Tomato leaves and damp soil. Best perfume on earth."\n';
+  prompt += '- "Real talk: we lost an entire row of lettuce to that storm. Farming humbles you fast."\n';
+  prompt += '- "CSA boxes are PACKED this week. You\'re gonna need a bigger fridge."\n\n';
+
+  prompt += 'BAD examples (NEVER write like this):\n';
+  prompt += '- "Embark on a culinary journey with our farm-fresh selections"\n';
+  prompt += '- "We are thrilled to present this week\'s bountiful harvest"\n';
+  prompt += '- "Nourish your body and soul with nature\'s finest offerings"\n';
+  prompt += '- Any sentence a real farmer would never say out loud\n\n';
+
+  prompt += 'Platform: ' + platform.toUpperCase() + '\n';
+  if (platform === 'instagram') prompt += 'Keep captions punchy. 5-8 hashtags at the end.\n';
+  else if (platform === 'facebook') prompt += 'Conversational. No hashtag walls.\n';
+  else if (platform === 'tiktok') prompt += 'Short, hook-first. Trend-aware.\n';
+
+  prompt += '\nTone: ' + toneConfig.name + ' — ' + toneConfig.description + '\n';
 
   if (farmContext) {
-    prompt += '\nCURRENT CONTEXT (USE THIS!):\n';
-    prompt += '- Date: ' + farmContext.date + '\n';
-    prompt += '- Season: ' + farmContext.seasonCapitalized + '\n';
-    prompt += '- Weather: ' + (farmContext.weather ? farmContext.weather.summary : 'Variable') + '\n';
-    prompt += '- Time of day: ' + farmContext.timeOfDay + '\n';
-    if (farmContext.isMarketDay) prompt += '- TODAY IS MARKET DAY!\n';
-    if (farmContext.isTomorrowMarket) prompt += '- Tomorrow is market day - great for reminder posts!\n';
-    prompt += '- In-season crops: ' + farmContext.inSeasonCrops.join(', ') + '\n';
-    prompt += '- Current activities: ' + farmContext.currentActivities.join(', ') + '\n';
+    prompt += '\nRIGHT NOW:\n';
+    prompt += '- ' + (farmContext.date || 'Today') + ' (' + (farmContext.seasonCapitalized || 'Winter') + ')\n';
+    if (farmContext.weather) prompt += '- Weather: ' + farmContext.weather.summary + '\n';
+    if (farmContext.isMarketDay) prompt += '- TODAY IS MARKET DAY\n';
+    if (farmContext.isTomorrowMarket) prompt += '- Tomorrow is market day\n';
+    if (farmContext.inSeasonCrops) prompt += '- In season: ' + farmContext.inSeasonCrops.slice(0, 8).join(', ') + '\n';
+    if (farmContext.currentActivities) prompt += '- Activities: ' + farmContext.currentActivities.slice(0, 4).join(', ') + '\n';
   }
 
-  if (seoKeywords && seoKeywords.length > 0) {
-    prompt += '\nSEO KEYWORDS TO NATURALLY INCORPORATE:\n';
-    seoKeywords.forEach(function(k) { prompt += '- ' + k + '\n'; });
-    prompt += '(Weave these naturally into the content, don\'t force them)\n';
-  }
-
-  prompt += '\nFARM VOCABULARY (use these authentic terms):\n';
-  prompt += '- Crops: ' + FARM_VOCABULARY.crops.slice(0, 15).join(', ') + '\n';
-  prompt += '- Actions: ' + FARM_VOCABULARY.farmActions.slice(0, 8).join(', ') + '\n';
-  prompt += '- Authentic phrases: ' + FARM_VOCABULARY.authenticPhrases.slice(0, 6).join(', ') + '\n';
-
-  prompt += '\nOUTPUT FORMAT:\n';
-  prompt += 'Return ONLY valid JSON with this structure:\n';
-  prompt += '{\n  "posts": [\n    {\n      "content": "The full post caption with hashtags",\n';
-  prompt += '      "hashtags": ["#Tag1", "#Tag2"],\n      "seoKeywords": ["keyword1", "keyword2"],\n';
-  prompt += '      "contentType": "harvest|market|csa|educational|behind-scenes|flowers",\n';
-  prompt += '      "suggestedTime": "10:00 AM|2:00 PM|6:00 PM",\n';
-  prompt += '      "engagementPrediction": "high|medium|low",\n';
-  prompt += '      "callToAction": "Visit us at market!",\n';
-  prompt += '      "alternateVersions": ["Shorter version", "More casual version"]\n    }\n  ]\n}\n\n';
-
-  prompt += 'Generate ' + count + ' post' + (count > 1 ? 's' : '') + ' with VARIETY - different angles, hooks, and approaches.';
+  prompt += '\nReturn ONLY valid JSON:\n';
+  prompt += '{"posts": [{"content": "full caption with hashtags", "hashtags": ["tag1"], "contentType": "harvest|market|csa|educational|behind-scenes", "engagementPrediction": "high|medium"}]}\n';
+  prompt += 'Generate ' + count + ' post' + (count > 1 ? 's' : '') + '. Each must have a DIFFERENT hook and angle.';
 
   return prompt;
 }
@@ -69736,25 +69719,13 @@ function buildAdvancedSystemPrompt(toneConfig, farmContext, seoKeywords, platfor
  * Build advanced user prompt
  */
 function buildAdvancedUserPrompt(prompt, count, toneConfig, farmContext, platform) {
-  var userPrompt = 'Generate ' + count + ' ' + toneConfig.name.toLowerCase() + ' ' + platform + ' post' + (count > 1 ? 's' : '') + ' based on this request:\n\n';
-  userPrompt += '"' + prompt + '"';
-
-  if (farmContext) {
-    userPrompt += '\n\nRemember it\'s ' + farmContext.month + ' (' + farmContext.seasonCapitalized + ') and the weather is ' + (farmContext.weather ? farmContext.weather.summary : 'nice') + '.';
-
-    if (farmContext.isMarketDay) {
-      userPrompt += ' TODAY IS MARKET DAY - incorporate this if relevant!';
-    }
-  }
+  var userPrompt = prompt + '\n\nWrite ' + count + ' ' + platform + ' post' + (count > 1 ? 's' : '') + '.';
 
   if (count > 1) {
-    userPrompt += '\n\nMake each post DIFFERENT:\n';
-    userPrompt += '- Different opening hooks\n';
-    userPrompt += '- Different angles on the topic\n';
-    userPrompt += '- Different calls to action\n';
-    userPrompt += '- Vary the length slightly\n\n';
-    userPrompt += 'This batch should work well posted over ' + (count === 2 ? 'two days' : count + ' days') + '.';
+    userPrompt += ' Each must start with a DIFFERENT hook — vary the opening line, angle, and length. They should feel like posts from different days, not variations of the same post.';
   }
+
+  userPrompt += '\n\nRemember: sound like Todd the farmer actually writing this, not an AI. Keep it real.';
 
   return userPrompt;
 }
