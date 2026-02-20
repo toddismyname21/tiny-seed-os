@@ -14477,6 +14477,10 @@ function doGet(e) {
         return getGreenhouseSeedings();
       case 'getSeedInventory':
         return jsonResponse(getSeedInventory(e.parameter));
+      case 'getSeedOrders':
+        return jsonResponse(getSeedOrders(e.parameter));
+      case 'getSeedOrderDetail':
+        return jsonResponse(getSeedOrderDetail(e.parameter));
       case 'getFieldTasks':
         return getFieldTasks();
       case 'getDTMLearningData':
@@ -18347,6 +18351,12 @@ function doPost(e) {
         return jsonResponse(uploadSeedPhoto(data));
       case 'useSeedFromLot':
         return jsonResponse(useSeedFromLot(data));
+      case 'createSeedOrder':
+        return jsonResponse(createSeedOrder(data));
+      case 'updateSeedOrder':
+        return jsonResponse(updateSeedOrder(data));
+      case 'linkSeedToOrder':
+        return jsonResponse(linkSeedToOrder(data));
 
       // ============ FARM INVENTORY POST ENDPOINTS (Asset Tracking) ============
       case 'addFarmInventoryItem':
@@ -26424,7 +26434,7 @@ const SEED_INVENTORY_HEADERS = [
   'Pack_Date', 'Expiration_Date', 'Organic_Certified', 'Certifier', 'Seed_Treatment',
   'Purchase_Date', 'Purchase_Price', 'Storage_Location', 'Notes', 'Status',
   'Created_At', 'Last_Used', 'Receipt_Photo_URL', 'Organic_Cert_Photo_URL',
-  'Days_To_Maturity', 'Plant_Family', 'Latin_Name'
+  'Days_To_Maturity', 'Plant_Family', 'Latin_Name', 'Order_ID'
 ];
 
 /**
@@ -26451,7 +26461,7 @@ function initSeedInventorySheet() {
     // Auto-migrate: add missing columns to existing sheets
     var existingHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
     // Add missing columns at end (safe - no column insertion/shifting)
-    var newCols = ['Seeds_Per_Packet', 'Receipt_Photo_URL', 'Organic_Cert_Photo_URL', 'Days_To_Maturity', 'Plant_Family', 'Latin_Name'];
+    var newCols = ['Seeds_Per_Packet', 'Receipt_Photo_URL', 'Organic_Cert_Photo_URL', 'Days_To_Maturity', 'Plant_Family', 'Latin_Name', 'Order_ID'];
     newCols.forEach(function(col) {
       if (existingHeaders.indexOf(col) === -1) {
         var nextCol = sheet.getLastColumn() + 1;
@@ -26570,13 +26580,29 @@ function addSeedLot(data) {
       'Organic_Cert_Photo_URL': data.organicCertPhotoUrl || data.organic_cert_photo_url || '',
       'Days_To_Maturity': data.dtm || data.daysToMaturity || data.days_to_maturity || '',
       'Plant_Family': data.plantFamily || data.plant_family || '',
-      'Latin_Name': data.latinName || data.latin_name || ''
+      'Latin_Name': data.latinName || data.latin_name || '',
+      'Order_ID': data.orderId || data.order_id || ''
     };
     const rowData = actualHeaders.map(function(header) {
       return valueMap.hasOwnProperty(header) ? valueMap[header] : '';
     });
 
     sheet.appendRow(rowData);
+
+    // Auto-link to matching order if no orderId provided
+    if (!valueMap['Order_ID'] && valueMap['Supplier']) {
+      try {
+        var orderMatch = findMatchingSeedOrder(valueMap['Supplier'], valueMap['Crop'], valueMap['Variety']);
+        if (orderMatch) {
+          var orderIdCol = actualHeaders.indexOf('Order_ID');
+          if (orderIdCol >= 0) {
+            sheet.getRange(sheet.getLastRow(), orderIdCol + 1).setValue(orderMatch.orderId);
+          }
+          // Mark line item as received in the order
+          markOrderLineReceived(orderMatch.orderId, orderMatch.lineIndex, seedLotId);
+        }
+      } catch (e) { /* auto-link is best-effort */ }
+    }
 
     return {
       success: true,
@@ -26633,7 +26659,8 @@ function updateSeedLot(data) {
       dtm: 'Days_To_Maturity', daysToMaturity: 'Days_To_Maturity',
       plantFamily: 'Plant_Family', latinName: 'Latin_Name',
       Receipt_Photo_URL: 'Receipt_Photo_URL', Organic_Cert_Photo_URL: 'Organic_Cert_Photo_URL',
-      receiptPhotoUrl: 'Receipt_Photo_URL', organicCertPhotoUrl: 'Organic_Cert_Photo_URL'
+      receiptPhotoUrl: 'Receipt_Photo_URL', organicCertPhotoUrl: 'Organic_Cert_Photo_URL',
+      orderId: 'Order_ID'
     };
 
     var updated = [];
@@ -26656,6 +26683,271 @@ function updateSeedLot(data) {
   } catch (error) {
     return { success: false, error: error.toString() };
   }
+}
+
+// ========================================
+// SEED ORDERS - Purchase Order Management
+// ========================================
+
+const SEED_ORDER_HEADERS = [
+  'Order_ID', 'Supplier', 'Order_Date', 'Expected_Delivery', 'Status',
+  'Total_Cost', 'Notes', 'Line_Items', 'Created_At'
+];
+
+function initSeedOrdersSheet() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('SEED_ORDERS');
+  if (!sheet) {
+    sheet = ss.insertSheet('SEED_ORDERS');
+    sheet.appendRow(SEED_ORDER_HEADERS);
+    sheet.setFrozenRows(1);
+    sheet.getRange(1, 1, 1, SEED_ORDER_HEADERS.length)
+      .setBackground('#2d5a27').setFontColor('#ffffff').setFontWeight('bold');
+  }
+  return sheet;
+}
+
+function createSeedOrder(data) {
+  try {
+    var sheet = initSeedOrdersSheet();
+    var orderId = 'ORD-' + Date.now().toString(36).toUpperCase();
+    var lineItems = data.lineItems || [];
+
+    // Validate line items
+    if (!Array.isArray(lineItems) || lineItems.length === 0) {
+      return { success: false, error: 'lineItems array is required' };
+    }
+
+    var row = [
+      orderId,
+      data.supplier || '',
+      data.orderDate || new Date().toISOString().split('T')[0],
+      data.expectedDelivery || '',
+      'ORDERED',
+      data.totalCost || 0,
+      data.notes || '',
+      JSON.stringify(lineItems),
+      new Date().toISOString()
+    ];
+
+    sheet.appendRow(row);
+    return { success: true, orderId: orderId, lineCount: lineItems.length };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getSeedOrders(data) {
+  try {
+    var sheet = initSeedOrdersSheet();
+    var rows = sheet.getDataRange().getValues();
+    if (rows.length <= 1) return { success: true, orders: [] };
+
+    var headers = rows[0];
+    var orders = [];
+    for (var i = 1; i < rows.length; i++) {
+      var order = {};
+      for (var j = 0; j < headers.length; j++) {
+        order[headers[j]] = rows[i][j];
+      }
+      // Parse line items JSON
+      try { order.Line_Items = JSON.parse(order.Line_Items || '[]'); } catch (e) { order.Line_Items = []; }
+
+      // Count received vs total
+      var total = order.Line_Items.length;
+      var received = order.Line_Items.filter(function(li) { return li.received; }).length;
+      order.receivedCount = received;
+      order.totalCount = total;
+      order.percentReceived = total > 0 ? Math.round(received / total * 100) : 0;
+
+      orders.push(order);
+    }
+
+    // Sort newest first
+    orders.sort(function(a, b) { return (b.Created_At || '').localeCompare(a.Created_At || ''); });
+    return { success: true, orders: orders };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function getSeedOrderDetail(data) {
+  try {
+    if (!data.orderId) return { success: false, error: 'orderId is required' };
+    var sheet = initSeedOrdersSheet();
+    var rows = sheet.getDataRange().getValues();
+    var headers = rows[0];
+    var idCol = headers.indexOf('Order_ID');
+
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i][idCol] === data.orderId) {
+        var order = {};
+        for (var j = 0; j < headers.length; j++) {
+          order[headers[j]] = rows[i][j];
+        }
+        try { order.Line_Items = JSON.parse(order.Line_Items || '[]'); } catch (e) { order.Line_Items = []; }
+
+        // For each line item, look up linked seed lot details
+        var invSheet = initSeedInventorySheet();
+        var invRows = invSheet.getDataRange().getValues();
+        var invHeaders = invRows[0];
+        var invOrderCol = invHeaders.indexOf('Order_ID');
+        var invIdCol = invHeaders.indexOf('Seed_Lot_ID');
+
+        if (invOrderCol >= 0) {
+          var linkedLots = [];
+          for (var r = 1; r < invRows.length; r++) {
+            if (invRows[r][invOrderCol] === data.orderId) {
+              var lot = {};
+              for (var c = 0; c < invHeaders.length; c++) {
+                lot[invHeaders[c]] = invRows[r][c];
+              }
+              linkedLots.push(lot);
+            }
+          }
+          order.linkedLots = linkedLots;
+        }
+
+        return { success: true, order: order };
+      }
+    }
+    return { success: false, error: 'Order not found: ' + data.orderId };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function linkSeedToOrder(data) {
+  try {
+    if (!data.seedLotId || !data.orderId) {
+      return { success: false, error: 'seedLotId and orderId required' };
+    }
+    // Update seed lot's Order_ID
+    var invSheet = initSeedInventorySheet();
+    var invRows = invSheet.getDataRange().getValues();
+    var invHeaders = invRows[0];
+    var idCol = invHeaders.indexOf('Seed_Lot_ID');
+    var orderCol = invHeaders.indexOf('Order_ID');
+    if (idCol === -1 || orderCol === -1) return { success: false, error: 'Column not found' };
+
+    for (var r = 1; r < invRows.length; r++) {
+      if (invRows[r][idCol] === data.seedLotId) {
+        invSheet.getRange(r + 1, orderCol + 1).setValue(data.orderId);
+        break;
+      }
+    }
+
+    // Mark line item as received in order if lineIndex provided
+    if (typeof data.lineIndex === 'number') {
+      markOrderLineReceived(data.orderId, data.lineIndex, data.seedLotId);
+    }
+
+    return { success: true, message: 'Seed lot linked to order' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function updateSeedOrder(data) {
+  try {
+    if (!data.orderId) return { success: false, error: 'orderId is required' };
+    var sheet = initSeedOrdersSheet();
+    var rows = sheet.getDataRange().getValues();
+    var headers = rows[0];
+    var idCol = headers.indexOf('Order_ID');
+
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i][idCol] === data.orderId) {
+        if (data.status) {
+          var statusCol = headers.indexOf('Status');
+          if (statusCol >= 0) sheet.getRange(i + 1, statusCol + 1).setValue(data.status);
+        }
+        if (data.lineItems) {
+          var liCol = headers.indexOf('Line_Items');
+          if (liCol >= 0) sheet.getRange(i + 1, liCol + 1).setValue(JSON.stringify(data.lineItems));
+        }
+        if (data.notes) {
+          var notesCol = headers.indexOf('Notes');
+          if (notesCol >= 0) sheet.getRange(i + 1, notesCol + 1).setValue(data.notes);
+        }
+        return { success: true, message: 'Order updated' };
+      }
+    }
+    return { success: false, error: 'Order not found' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+function findMatchingSeedOrder(supplier, crop, variety) {
+  try {
+    var sheet = initSeedOrdersSheet();
+    var rows = sheet.getDataRange().getValues();
+    if (rows.length <= 1) return null;
+    var headers = rows[0];
+    var supplierCol = headers.indexOf('Supplier');
+    var statusCol = headers.indexOf('Status');
+    var liCol = headers.indexOf('Line_Items');
+    var idCol = headers.indexOf('Order_ID');
+
+    var supplierLower = (supplier || '').toLowerCase();
+    var cropLower = (crop || '').toLowerCase();
+    var varietyLower = (variety || '').toLowerCase();
+
+    for (var i = 1; i < rows.length; i++) {
+      var orderSupplier = (rows[i][supplierCol] || '').toLowerCase();
+      var orderStatus = rows[i][statusCol] || '';
+      if (orderStatus === 'COMPLETE') continue; // skip completed orders
+
+      if (orderSupplier && supplierLower.indexOf(orderSupplier) >= 0 || orderSupplier.indexOf(supplierLower) >= 0) {
+        var lineItems = [];
+        try { lineItems = JSON.parse(rows[i][liCol] || '[]'); } catch (e) {}
+
+        for (var li = 0; li < lineItems.length; li++) {
+          if (lineItems[li].received) continue; // already received
+          var liCrop = (lineItems[li].crop || '').toLowerCase();
+          var liVariety = (lineItems[li].variety || '').toLowerCase();
+          if (liCrop === cropLower && (!varietyLower || !liVariety || liVariety === varietyLower)) {
+            return { orderId: rows[i][idCol], lineIndex: li };
+          }
+        }
+      }
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function markOrderLineReceived(orderId, lineIndex, seedLotId) {
+  try {
+    var sheet = initSeedOrdersSheet();
+    var rows = sheet.getDataRange().getValues();
+    var headers = rows[0];
+    var idCol = headers.indexOf('Order_ID');
+    var liCol = headers.indexOf('Line_Items');
+    var statusCol = headers.indexOf('Status');
+
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i][idCol] === orderId) {
+        var lineItems = [];
+        try { lineItems = JSON.parse(rows[i][liCol] || '[]'); } catch (e) {}
+        if (lineIndex >= 0 && lineIndex < lineItems.length) {
+          lineItems[lineIndex].received = true;
+          lineItems[lineIndex].seedLotId = seedLotId;
+          lineItems[lineIndex].receivedDate = new Date().toISOString().split('T')[0];
+          sheet.getRange(i + 1, liCol + 1).setValue(JSON.stringify(lineItems));
+
+          // Check if all items received → mark order COMPLETE
+          var allReceived = lineItems.every(function(li) { return li.received; });
+          if (allReceived) {
+            sheet.getRange(i + 1, statusCol + 1).setValue('COMPLETE');
+          }
+        }
+        return;
+      }
+    }
+  } catch (e) { /* best effort */ }
 }
 
 /**
