@@ -6502,6 +6502,11 @@
                 if (existingStats) existingStats.remove();
                 briefSection.insertAdjacentHTML('beforeend', statsHtml);
 
+                // If loadTodaysTasks already finished, overwrite with real overdue count
+                if (typeof syncBriefOverdueCount === 'function') {
+                    syncBriefOverdueCount();
+                }
+
             } catch (error) {
                 console.error('Morning Brief error:', error);
                 briefSection.innerHTML = '<div class="brief-loading">Could not load Morning Brief</div>';
@@ -7217,10 +7222,31 @@
         // ========================================
         // OVERDUE TASKS
         // ========================================
+
+        // Keeps Morning Brief stat card in sync with actual overdue count
+        function syncBriefOverdueCount() {
+            var count = overdueTasks.length;
+            // Find the Overdue stat by its label text
+            var allLabels = document.querySelectorAll('.brief-stats .stat-label');
+            for (var i = 0; i < allLabels.length; i++) {
+                if (allLabels[i].textContent.trim() === 'Overdue') {
+                    var valueEl = allLabels[i].parentElement.querySelector('.stat-value');
+                    if (valueEl) {
+                        valueEl.textContent = count;
+                        valueEl.style.color = count > 0 ? '#ef4444' : '#22c55e';
+                    }
+                    break;
+                }
+            }
+        }
+
         function renderOverdueTasks() {
             const container = document.getElementById('overdueTasks');
             const listContainer = document.getElementById('overdueList');
             const countBadge = document.getElementById('overdueCountBadge');
+
+            // Always sync the Morning Brief stat card
+            syncBriefOverdueCount();
 
             if (overdueTasks.length === 0) {
                 container.classList.remove('visible');
@@ -7279,16 +7305,6 @@
             }).join('');
 
             updateOverdueSelectionUI();
-
-            // Sync Morning Brief stat card with actual overdue count
-            const briefStats = document.querySelector('.brief-stats');
-            if (briefStats) {
-                const overdueStatValue = briefStats.querySelectorAll('.stat-item')[1]?.querySelector('.stat-value');
-                if (overdueStatValue && parseInt(overdueStatValue.textContent) !== overdueTasks.length) {
-                    overdueStatValue.textContent = overdueTasks.length;
-                    overdueStatValue.style.color = overdueTasks.length > 0 ? '#ef4444' : '#22c55e';
-                }
-            }
         }
 
         function toggleOverdueSelection(taskId) {
