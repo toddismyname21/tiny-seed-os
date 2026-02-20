@@ -3428,7 +3428,7 @@
 
         // ============ SEED ORDERS MANAGEMENT ============
         var seedOrders = [];
-        var currentOrderView = 'list'; // list, create, detail
+        var invoicePhotoBase64 = null; // Stored between parse and submit
 
         function openSeedOrders() {
             document.getElementById('seedOrdersModal').classList.add('active');
@@ -3458,18 +3458,23 @@
 
         function renderOrdersList() {
             var content = document.getElementById('seedOrdersContent');
-            var html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">' +
-                '<div style="color:var(--text-secondary);">' + seedOrders.length + ' order' + (seedOrders.length !== 1 ? 's' : '') + '</div>' +
-                '<button class="btn btn-success" onclick="showCreateOrder()" style="padding:8px 16px;"><i class="fas fa-plus"></i> New Order</button>' +
+            var html = '<div style="display:flex;gap:10px;margin-bottom:15px;">' +
+                '<button class="btn" style="flex:1;padding:14px;background:linear-gradient(135deg,#0ea5e9,#0284c7);color:white;font-weight:700;font-size:15px;" onclick="showInvoiceUpload()">' +
+                    '<i class="fas fa-camera"></i> Upload Invoice' +
+                '</button>' +
+                '<button class="btn" style="padding:14px 18px;background:rgba(255,255,255,0.08);border:1px solid var(--border);color:var(--text-secondary);" onclick="showCreateOrder()" title="Enter manually">' +
+                    '<i class="fas fa-keyboard"></i>' +
+                '</button>' +
                 '</div>';
 
             if (seedOrders.length === 0) {
-                html += '<div style="text-align:center;padding:40px;color:var(--text-secondary);">' +
-                    '<i class="fas fa-box-open" style="font-size:48px;margin-bottom:12px;display:block;opacity:0.3;"></i>' +
-                    '<div style="font-size:16px;margin-bottom:8px;">No seed orders yet</div>' +
-                    '<div style="font-size:13px;">Upload your seed orders here. When you scan packets, they auto-link to matching orders.</div>' +
+                html += '<div style="text-align:center;padding:30px;color:var(--text-secondary);">' +
+                    '<i class="fas fa-file-invoice" style="font-size:40px;margin-bottom:12px;display:block;opacity:0.3;"></i>' +
+                    '<div style="font-size:15px;margin-bottom:6px;">No seed orders yet</div>' +
+                    '<div style="font-size:13px;">Snap a photo of your invoice or packing slip.<br>AI reads it, creates the order, and auto-links your scanned packets.</div>' +
                     '</div>';
             } else {
+                html += '<div style="color:var(--text-secondary);font-size:13px;margin-bottom:10px;">' + seedOrders.length + ' order' + (seedOrders.length !== 1 ? 's' : '') + '</div>';
                 html += seedOrders.map(function(order) {
                     var pct = order.percentReceived || 0;
                     var statusColor = order.Status === 'COMPLETE' ? '#10b981' : order.Status === 'ORDERED' ? '#f59e0b' : '#8b5cf6';
@@ -3491,12 +3496,164 @@
             content.innerHTML = html;
         }
 
+        // ---- INVOICE UPLOAD (PRIMARY FLOW) ----
+
+        function showInvoiceUpload() {
+            var content = document.getElementById('seedOrdersContent');
+            content.innerHTML = '<div style="margin-bottom:15px;">' +
+                '<button onclick="renderOrdersList()" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:14px;"><i class="fas fa-arrow-left"></i> Back to Orders</button>' +
+                '</div>' +
+                '<h3 style="margin-bottom:6px;font-size:16px;">Upload Invoice / Packing Slip</h3>' +
+                '<p style="color:var(--text-secondary);font-size:13px;margin-bottom:20px;">Take a photo or upload an image. AI will read every line item automatically.</p>' +
+                '<div style="display:flex;gap:10px;margin-bottom:20px;">' +
+                    '<button class="btn" style="flex:1;padding:18px;background:linear-gradient(135deg,#0ea5e9,#0284c7);color:white;font-weight:700;font-size:16px;" onclick="invoiceTakePhoto()">' +
+                        '<i class="fas fa-camera" style="font-size:20px;display:block;margin-bottom:4px;"></i> Take Photo' +
+                    '</button>' +
+                    '<button class="btn" style="flex:1;padding:18px;background:rgba(255,255,255,0.08);border:1px solid var(--border);color:var(--text-primary);font-weight:600;font-size:16px;" onclick="invoicePickFile()">' +
+                        '<i class="fas fa-upload" style="font-size:20px;display:block;margin-bottom:4px;"></i> Upload File' +
+                    '</button>' +
+                '</div>' +
+                '<div id="invoicePreview" style="display:none;margin-bottom:15px;text-align:center;">' +
+                    '<img id="invoicePreviewImg" style="max-width:100%;max-height:300px;border-radius:8px;border:1px solid var(--border);">' +
+                '</div>' +
+                '<div id="invoiceParseStatus" style="display:none;"></div>' +
+                '<input type="file" id="invoiceFileInput" accept="image/*" style="display:none;" onchange="handleInvoiceFile(this.files[0])">' +
+                '<input type="file" id="invoiceCameraInput" accept="image/*" capture="environment" style="display:none;" onchange="handleInvoiceFile(this.files[0])">';
+        }
+
+        function invoiceTakePhoto() {
+            document.getElementById('invoiceCameraInput').click();
+        }
+
+        function invoicePickFile() {
+            document.getElementById('invoiceFileInput').click();
+        }
+
+        function handleInvoiceFile(file) {
+            if (!file) return;
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var dataUrl = e.target.result;
+                // Show preview
+                document.getElementById('invoicePreviewImg').src = dataUrl;
+                document.getElementById('invoicePreview').style.display = 'block';
+                // Compress then parse
+                compressInvoice(dataUrl, function(compressed) {
+                    invoicePhotoBase64 = compressed;
+                    parseInvoiceImage(compressed);
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function compressInvoice(dataUrl, callback) {
+            var img = new Image();
+            img.onload = function() {
+                var canvas = document.createElement('canvas');
+                var maxW = 1200; // Invoices need more resolution for text
+                var scale = img.width > maxW ? maxW / img.width : 1;
+                canvas.width = img.width * scale;
+                canvas.height = img.height * scale;
+                var ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                callback(canvas.toDataURL('image/jpeg', 0.8));
+            };
+            img.src = dataUrl;
+        }
+
+        async function parseInvoiceImage(base64) {
+            var statusEl = document.getElementById('invoiceParseStatus');
+            statusEl.style.display = 'block';
+            statusEl.innerHTML = '<div style="text-align:center;padding:20px;">' +
+                '<div style="width:30px;height:30px;border:3px solid rgba(14,165,233,0.3);border-top-color:#0ea5e9;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 12px;"></div>' +
+                '<div style="color:#7dd3fc;font-weight:600;">AI is reading your invoice...</div>' +
+                '<div style="color:var(--text-secondary);font-size:12px;margin-top:4px;">This takes ~15 seconds</div>' +
+                '</div>';
+
+            try {
+                var response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({ action: 'parseSeedInvoice', image: base64 })
+                });
+                var result = await response.json();
+                if (result.success && result.data) {
+                    showParsedInvoice(result.data);
+                } else {
+                    statusEl.innerHTML = '<div style="padding:15px;background:rgba(230,57,70,0.1);border:1px solid rgba(230,57,70,0.3);border-radius:8px;color:var(--danger);">' +
+                        '<strong>Could not read invoice.</strong> ' + (result.error || '') +
+                        '<div style="margin-top:10px;"><button class="btn btn-primary" onclick="showInvoiceUpload()" style="padding:6px 14px;font-size:13px;">Try Again</button>' +
+                        ' <button class="btn btn-secondary" onclick="showCreateOrder()" style="padding:6px 14px;font-size:13px;">Enter Manually</button></div>' +
+                        '</div>';
+                }
+            } catch (err) {
+                statusEl.innerHTML = '<div style="color:var(--danger);padding:15px;">Connection error. <button class="btn btn-primary" onclick="showInvoiceUpload()" style="padding:4px 12px;font-size:12px;">Retry</button></div>';
+            }
+        }
+
+        function showParsedInvoice(data) {
+            var content = document.getElementById('seedOrdersContent');
+            var lineItems = data.lineItems || [];
+
+            var html = '<div style="margin-bottom:15px;">' +
+                '<button onclick="showInvoiceUpload()" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:14px;"><i class="fas fa-arrow-left"></i> Re-upload</button>' +
+                '</div>' +
+                '<div style="display:flex;align-items:center;gap:8px;margin-bottom:15px;">' +
+                    '<i class="fas fa-check-circle" style="color:#10b981;font-size:20px;"></i>' +
+                    '<h3 style="font-size:16px;margin:0;">Invoice Parsed — Review & Save</h3>' +
+                '</div>';
+
+            // Editable header fields
+            html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px;">' +
+                '<div><label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">Supplier</label>' +
+                '<input id="orderSupplier" class="form-control" value="' + (data.supplier || '').replace(/"/g, '&quot;') + '" style="width:100%;"></div>' +
+                '<div><label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">Order Date</label>' +
+                '<input id="orderDate" type="date" class="form-control" value="' + (data.orderDate || new Date().toISOString().split('T')[0]) + '" style="width:100%;"></div>' +
+                '<div><label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">Order / Invoice #</label>' +
+                '<input id="orderNotes" class="form-control" value="' + (data.orderNumber || '').replace(/"/g, '&quot;') + '" style="width:100%;"></div>' +
+                '<div><label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">Total Cost ($)</label>' +
+                '<input id="orderTotalCost" type="number" step="0.01" class="form-control" value="' + (data.totalCost || '') + '" style="width:100%;"></div>' +
+                '</div>';
+
+            // Hidden fields for submit
+            html += '<input type="hidden" id="orderExpDelivery" value="">';
+
+            // Line items - editable
+            html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
+                '<label style="font-size:14px;font-weight:600;">' + lineItems.length + ' Line Items Found</label>' +
+                '<button class="btn btn-primary" onclick="addOrderLineItem()" style="padding:4px 12px;font-size:12px;"><i class="fas fa-plus"></i> Add</button>' +
+                '</div>';
+            html += '<div id="orderLineItems">';
+
+            // Pre-populate line items from AI
+            lineItems.forEach(function(li, idx) {
+                html += '<div id="orderLine' + (idx + 1) + '" style="display:grid;grid-template-columns:2fr 2fr 1fr 1fr auto;gap:8px;margin-bottom:8px;align-items:center;">' +
+                    '<input class="form-control ol-crop" placeholder="Crop" value="' + (li.crop || '').replace(/"/g, '&quot;') + '" style="width:100%;padding:8px;">' +
+                    '<input class="form-control ol-variety" placeholder="Variety" value="' + (li.variety || '').replace(/"/g, '&quot;') + '" style="width:100%;padding:8px;">' +
+                    '<input class="form-control ol-qty" type="number" placeholder="Qty" value="' + (li.quantity || 1) + '" style="width:100%;padding:8px;">' +
+                    '<input class="form-control ol-price" type="number" step="0.01" placeholder="$" value="' + (li.price || '') + '" style="width:100%;padding:8px;">' +
+                    '<button onclick="this.parentElement.remove()" style="background:rgba(230,57,70,0.15);border:1px solid rgba(230,57,70,0.3);border-radius:6px;color:var(--danger);padding:6px 10px;cursor:pointer;font-size:12px;"><i class="fas fa-times"></i></button>' +
+                    '</div>';
+            });
+            html += '</div>';
+
+            html += '<div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end;">' +
+                '<button class="btn btn-secondary" onclick="renderOrdersList()">Cancel</button>' +
+                '<button class="btn btn-success" onclick="submitSeedOrder()" style="padding:10px 24px;font-size:15px;font-weight:700;"><i class="fas fa-check"></i> Save Order</button>' +
+                '</div>';
+
+            orderLineCount = lineItems.length;
+            content.innerHTML = html;
+        }
+
+        // ---- MANUAL CREATE ORDER ----
+
         function showCreateOrder() {
             var content = document.getElementById('seedOrdersContent');
             content.innerHTML = '<div style="margin-bottom:15px;">' +
                 '<button onclick="renderOrdersList()" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:14px;"><i class="fas fa-arrow-left"></i> Back to Orders</button>' +
                 '</div>' +
-                '<h3 style="margin-bottom:15px;font-size:16px;">Create New Order</h3>' +
+                '<h3 style="margin-bottom:15px;font-size:16px;">Create Order Manually</h3>' +
                 '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px;">' +
                     '<div><label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">Supplier</label>' +
                     '<input id="orderSupplier" class="form-control" placeholder="e.g. Johnny\'s Selected Seeds" style="width:100%;"></div>' +
@@ -3507,8 +3664,8 @@
                     '<div><label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">Total Cost ($)</label>' +
                     '<input id="orderTotalCost" type="number" step="0.01" class="form-control" placeholder="0.00" style="width:100%;"></div>' +
                 '</div>' +
-                '<label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">Notes</label>' +
-                '<textarea id="orderNotes" class="form-control" rows="2" placeholder="Order number, confirmation #, etc." style="width:100%;margin-bottom:15px;"></textarea>' +
+                '<label style="display:block;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">Notes / Order #</label>' +
+                '<input id="orderNotes" class="form-control" placeholder="Order number, confirmation #, etc." style="width:100%;margin-bottom:15px;">' +
                 '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
                     '<label style="font-size:14px;font-weight:600;">Line Items</label>' +
                     '<button class="btn btn-primary" onclick="addOrderLineItem()" style="padding:4px 12px;font-size:12px;"><i class="fas fa-plus"></i> Add Item</button>' +
@@ -3518,7 +3675,8 @@
                     '<button class="btn btn-secondary" onclick="renderOrdersList()" style="margin-right:8px;">Cancel</button>' +
                     '<button class="btn btn-success" onclick="submitSeedOrder()">Create Order</button>' +
                 '</div>';
-            // Add initial line item
+            orderLineCount = 0;
+            invoicePhotoBase64 = null;
             addOrderLineItem();
         }
 
@@ -3543,7 +3701,7 @@
             lineItemEls.forEach(function(el) {
                 var crop = el.querySelector('.ol-crop').value.trim();
                 var variety = el.querySelector('.ol-variety').value.trim();
-                var qty = parseInt(el.querySelector('.ol-qty').value) || 0;
+                var qty = parseInt(el.querySelector('.ol-qty').value) || 1;
                 var price = parseFloat(el.querySelector('.ol-price').value) || 0;
                 if (crop) {
                     lineItems.push({ crop: crop, variety: variety, quantity: qty, price: price, received: false });
@@ -3559,11 +3717,16 @@
                 action: 'createSeedOrder',
                 supplier: document.getElementById('orderSupplier').value.trim(),
                 orderDate: document.getElementById('orderDate').value,
-                expectedDelivery: document.getElementById('orderExpDelivery').value,
+                expectedDelivery: (document.getElementById('orderExpDelivery') || {}).value || '',
                 totalCost: parseFloat(document.getElementById('orderTotalCost').value) || 0,
                 notes: document.getElementById('orderNotes').value.trim(),
                 lineItems: lineItems
             };
+
+            // Include invoice photo if captured
+            if (invoicePhotoBase64) {
+                payload.invoicePhoto = invoicePhotoBase64;
+            }
 
             showToast('Creating order...', 'info');
             try {
@@ -3574,7 +3737,12 @@
                 });
                 var result = await response.json();
                 if (result.success) {
-                    showToast('Order created: ' + result.orderId + ' (' + result.lineCount + ' items)', 'success');
+                    var msg = 'Order created: ' + result.orderId + ' (' + result.lineCount + ' items)';
+                    if (result.autoLinked && result.autoLinked.length > 0) {
+                        msg += ' — ' + result.autoLinked.length + ' seed' + (result.autoLinked.length > 1 ? 's' : '') + ' auto-linked!';
+                    }
+                    showToast(msg, 'success');
+                    invoicePhotoBase64 = null;
                     loadSeedOrders();
                 } else {
                     showToast('Error: ' + (result.error || 'Unknown'), 'error');
@@ -3583,6 +3751,8 @@
                 showToast('Connection error', 'error');
             }
         }
+
+        // ---- ORDER DETAIL VIEW ----
 
         async function viewOrderDetail(orderId) {
             var content = document.getElementById('seedOrdersContent');
@@ -3628,9 +3798,22 @@
                     '</div>' +
                 '</div>';
 
-            if (order.Notes) {
-                html += '<div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:10px;margin-bottom:15px;font-size:13px;color:var(--text-secondary);">' + order.Notes + '</div>';
+            // Invoice photo
+            if (order.Invoice_Photo_URL) {
+                html += '<div style="margin-bottom:15px;">' +
+                    '<div style="font-size:11px;color:var(--text-secondary);text-transform:uppercase;margin-bottom:6px;">Invoice Photo</div>' +
+                    '<img src="' + order.Invoice_Photo_URL + '" style="max-width:100%;max-height:200px;border-radius:8px;border:1px solid var(--border);cursor:pointer;" onclick="window.open(\'' + order.Invoice_Photo_URL + '\',\'_blank\')" onerror="this.style.display=\'none\'">' +
+                    '</div>';
             }
+
+            if (order.Notes) {
+                html += '<div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:10px;margin-bottom:15px;font-size:13px;color:var(--text-secondary);"><strong>Order #:</strong> ' + order.Notes + '</div>';
+            }
+
+            // Progress bar
+            html += '<div style="margin-bottom:12px;background:rgba(255,255,255,0.05);border-radius:4px;height:8px;overflow:hidden;">' +
+                '<div style="width:' + pct + '%;height:100%;background:' + (pct === 100 ? '#10b981' : '#0ea5e9') + ';border-radius:4px;transition:width 0.3s;"></div>' +
+                '</div>';
 
             html += '<div style="margin-bottom:8px;font-weight:600;font-size:14px;">Line Items</div>';
             html += lineItems.map(function(li, idx) {
@@ -3644,14 +3827,15 @@
                         '<div style="font-size:12px;color:var(--text-secondary);">' +
                             (li.quantity ? li.quantity + ' qty' : '') +
                             (li.price ? ' &middot; $' + parseFloat(li.price).toFixed(2) : '') +
+                            (li.sku ? ' &middot; SKU: ' + li.sku : '') +
                             (isReceived ? ' &middot; Received ' + (li.receivedDate || '') : '') +
                         '</div>' +
                     '</div>' +
-                    (isReceived && li.seedLotId ? '<a onclick="closeSeedOrders();showSeedDetail(seedInventory.find(function(s){return s.seedLotId===\'' + li.seedLotId + '\'}))" style="color:#0ea5e9;font-size:12px;cursor:pointer;">View Lot</a>' : '') +
+                    (isReceived && li.seedLotId ? '<a onclick="closeSeedOrders();var s=seedInventory.find(function(x){return x.seedLotId===\'' + li.seedLotId + '\'});if(s)showSeedDetail(s);" style="color:#0ea5e9;font-size:12px;cursor:pointer;">View Lot</a>' : '') +
                 '</div>';
             }).join('');
 
-            // Linked seed lots not in line items
+            // Linked seed lots
             if (order.linkedLots && order.linkedLots.length > 0) {
                 html += '<div style="margin-top:15px;margin-bottom:8px;font-weight:600;font-size:14px;">Linked Seed Lots (' + order.linkedLots.length + ')</div>';
                 html += order.linkedLots.map(function(lot) {

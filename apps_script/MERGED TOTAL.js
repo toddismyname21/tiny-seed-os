@@ -18357,6 +18357,8 @@ function doPost(e) {
         return jsonResponse(updateSeedOrder(data));
       case 'linkSeedToOrder':
         return jsonResponse(linkSeedToOrder(data));
+      case 'parseSeedInvoice':
+        return jsonResponse(parseSeedInvoice(data));
 
       // ============ FARM INVENTORY POST ENDPOINTS (Asset Tracking) ============
       case 'addFarmInventoryItem':
@@ -26689,9 +26691,14 @@ function updateSeedLot(data) {
 // SEED ORDERS - Purchase Order Management
 // ========================================
 
+function getOrCreateDriveFolder(folderName) {
+  var folders = DriveApp.getFoldersByName(folderName);
+  return folders.hasNext() ? folders.next() : DriveApp.createFolder(folderName);
+}
+
 const SEED_ORDER_HEADERS = [
   'Order_ID', 'Supplier', 'Order_Date', 'Expected_Delivery', 'Status',
-  'Total_Cost', 'Notes', 'Line_Items', 'Created_At'
+  'Total_Cost', 'Notes', 'Line_Items', 'Created_At', 'Invoice_Photo_URL'
 ];
 
 function initSeedOrdersSheet() {
@@ -26703,6 +26710,14 @@ function initSeedOrdersSheet() {
     sheet.setFrozenRows(1);
     sheet.getRange(1, 1, 1, SEED_ORDER_HEADERS.length)
       .setBackground('#2d5a27').setFontColor('#ffffff').setFontWeight('bold');
+  } else {
+    // Migration: add Invoice_Photo_URL if missing
+    var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    if (headers.indexOf('Invoice_Photo_URL') === -1) {
+      var nextCol = sheet.getLastColumn() + 1;
+      sheet.getRange(1, nextCol).setValue('Invoice_Photo_URL')
+        .setBackground('#2d5a27').setFontColor('#ffffff').setFontWeight('bold');
+    }
   }
   return sheet;
 }
@@ -26718,6 +26733,22 @@ function createSeedOrder(data) {
       return { success: false, error: 'lineItems array is required' };
     }
 
+    // Upload invoice photo to Drive if provided
+    var invoicePhotoUrl = '';
+    if (data.invoicePhoto) {
+      try {
+        var photoData = data.invoicePhoto;
+        if (photoData.startsWith('data:')) photoData = photoData.split(',')[1];
+        var blob = Utilities.newBlob(Utilities.base64Decode(photoData), 'image/jpeg', 'invoice_' + orderId + '.jpg');
+        var folder = getOrCreateDriveFolder('TinySeed_Invoices');
+        var file = folder.createFile(blob);
+        file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+        invoicePhotoUrl = 'https://drive.google.com/uc?id=' + file.getId();
+      } catch (photoErr) {
+        Logger.log('Invoice photo upload error: ' + photoErr.toString());
+      }
+    }
+
     var row = [
       orderId,
       data.supplier || '',
@@ -26727,11 +26758,72 @@ function createSeedOrder(data) {
       data.totalCost || 0,
       data.notes || '',
       JSON.stringify(lineItems),
-      new Date().toISOString()
+      new Date().toISOString(),
+      invoicePhotoUrl
     ];
 
     sheet.appendRow(row);
-    return { success: true, orderId: orderId, lineCount: lineItems.length };
+
+    // Auto-link existing inventory items to this order
+    var autoLinked = [];
+    try {
+      var invSheet = initSeedInventorySheet();
+      var invRows = invSheet.getDataRange().getValues();
+      var invHeaders = invRows[0];
+      var invSupplierCol = invHeaders.indexOf('Supplier');
+      var invCropCol = invHeaders.indexOf('Crop');
+      var invVarietyCol = invHeaders.indexOf('Variety');
+      var invOrderCol = invHeaders.indexOf('Order_ID');
+      var invIdCol = invHeaders.indexOf('Seed_Lot_ID');
+
+      if (invOrderCol >= 0 && invSupplierCol >= 0 && invCropCol >= 0) {
+        var supplierLower = (data.supplier || '').toLowerCase();
+        for (var r = 1; r < invRows.length; r++) {
+          // Skip if already linked to an order
+          if (invRows[r][invOrderCol]) continue;
+
+          var lotSupplier = (invRows[r][invSupplierCol] || '').toLowerCase();
+          // Check supplier match (fuzzy)
+          if (!supplierLower || !lotSupplier) continue;
+          if (lotSupplier.indexOf(supplierLower) === -1 && supplierLower.indexOf(lotSupplier) === -1) continue;
+
+          var lotCrop = (invRows[r][invCropCol] || '').toLowerCase();
+          var lotVariety = (invRows[r][invVarietyCol] || '').toLowerCase();
+
+          // Try to match to a line item
+          for (var li = 0; li < lineItems.length; li++) {
+            if (lineItems[li].received) continue;
+            var liCrop = (lineItems[li].crop || '').toLowerCase();
+            var liVariety = (lineItems[li].variety || '').toLowerCase();
+
+            if (liCrop === lotCrop && (!liVariety || !lotVariety || liVariety === lotVariety)) {
+              // Link this lot to the order
+              invSheet.getRange(r + 1, invOrderCol + 1).setValue(orderId);
+              lineItems[li].received = true;
+              lineItems[li].seedLotId = invRows[r][invIdCol];
+              lineItems[li].receivedDate = new Date().toISOString().split('T')[0];
+              autoLinked.push({ seedLotId: invRows[r][invIdCol], crop: invRows[r][invCropCol] });
+              break;
+            }
+          }
+        }
+        // Update line items with auto-link info
+        var liCol = sheet.getDataRange().getValues()[0].indexOf('Line_Items');
+        if (liCol >= 0) {
+          sheet.getRange(sheet.getLastRow(), liCol + 1).setValue(JSON.stringify(lineItems));
+        }
+        // Auto-complete if all received
+        var allReceived = lineItems.every(function(li) { return li.received; });
+        if (allReceived) {
+          var statusCol = sheet.getDataRange().getValues()[0].indexOf('Status');
+          if (statusCol >= 0) sheet.getRange(sheet.getLastRow(), statusCol + 1).setValue('COMPLETE');
+        }
+      }
+    } catch (linkErr) {
+      Logger.log('Auto-link error: ' + linkErr.toString());
+    }
+
+    return { success: true, orderId: orderId, lineCount: lineItems.length, autoLinked: autoLinked, invoicePhotoUrl: invoicePhotoUrl };
   } catch (error) {
     return { success: false, error: error.toString() };
   }
@@ -36946,6 +37038,79 @@ Return ONLY the JSON object, no other text.`;
 
   } catch (error) {
     Logger.log('analyzeSeedPacket error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Parse a seed invoice/order confirmation image using Claude Vision.
+ * Extracts supplier, line items (crop, variety, qty, price), total, order #, etc.
+ */
+function parseSeedInvoice(params) {
+  try {
+    var imageBase64 = params && params.image;
+    if (!imageBase64) return { success: false, error: 'image is required' };
+
+    if (imageBase64.startsWith('data:')) {
+      imageBase64 = imageBase64.split(',')[1];
+    }
+
+    var apiKey = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
+    if (!apiKey) {
+      return { success: false, error: 'ANTHROPIC_API_KEY not configured' };
+    }
+
+    var prompt = 'Analyze this seed order invoice/receipt/packing slip. Extract ALL line items and order details.\n\nReturn a JSON object with:\n{\n  "supplier": "the seed company name (e.g., Johnny\'s Selected Seeds, High Mowing, Fedco, Baker Creek)",\n  "orderNumber": "the order/invoice number if visible",\n  "orderDate": "YYYY-MM-DD format if visible, or null",\n  "totalCost": total order cost as a number (just digits and decimal, no $),\n  "lineItems": [\n    {\n      "crop": "crop name (e.g., Tomato, Lettuce, Pepper)",\n      "variety": "variety name",\n      "quantity": number of packets/units ordered (integer),\n      "price": unit price as number,\n      "sku": "item/SKU number if visible"\n    }\n  ],\n  "notes": "any other relevant info (shipping, discounts, etc.)"\n}\n\nIMPORTANT:\n- Extract EVERY line item, even partial ones\n- Separate crop from variety (e.g., "Tomato - Cherokee Purple" → crop: "Tomato", variety: "Cherokee Purple")\n- If quantity is not visible, default to 1\n- Convert any "M" notation in seed counts: "5M" = 5000 seeds\n- Return ONLY the JSON object, no other text';
+
+    var response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      payload: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4096,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: { type: 'base64', media_type: 'image/jpeg', data: imageBase64 }
+            },
+            { type: 'text', text: prompt }
+          ]
+        }]
+      }),
+      muteHttpExceptions: true
+    });
+
+    var result = JSON.parse(response.getContentText());
+    if (result.error) {
+      return { success: false, error: result.error.message };
+    }
+
+    var claudeResponse = result.content[0].text;
+    var parsedData;
+    try {
+      var jsonMatch = claudeResponse.match(/\{[\s\S]*\}/);
+      parsedData = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+    } catch (parseError) {
+      return { success: false, error: 'Could not parse invoice data', raw: claudeResponse };
+    }
+
+    if (!parsedData) {
+      return { success: false, error: 'No data extracted from invoice' };
+    }
+
+    return {
+      success: true,
+      data: parsedData,
+      source: 'claude-vision',
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
     return { success: false, error: error.toString() };
   }
 }
