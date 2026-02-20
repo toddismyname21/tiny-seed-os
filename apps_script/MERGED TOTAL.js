@@ -18142,6 +18142,8 @@ function doPost(e) {
         return jsonResponse(configureStabilityAI(data));
       case 'configurePhotoroom':
         return jsonResponse(configurePhotoroom(data));
+      case 'removeImageBackground':
+        return jsonResponse(removeImageBackground(data));
 
       // ============ AUTONOMOUS SOCIAL BRAIN (POST) ============
       case 'generateDailyBriefing':
@@ -67800,18 +67802,42 @@ function processImageOutpaint(params) {
 
 function removeImageBackground(params) {
     try {
-        const props = PropertiesService.getScriptProperties();
-        const apiKey = props.getProperty('PHOTOROOM_API_KEY');
-        if (!apiKey) return { success: false, error: 'Photoroom API key not configured. Add PHOTOROOM_API_KEY to script properties.' };
+        var props = PropertiesService.getScriptProperties();
+        var apiKey = props.getProperty('PHOTOROOM_API_KEY');
+        if (!apiKey) return { success: false, error: 'Photoroom API key not configured' };
 
-        // This would call Photoroom's background removal endpoint
-        return {
-            success: true,
-            message: 'Background removal ready',
-            instructions: 'Upload image via the dashboard. Photoroom will remove the background.',
-            apiConfigured: true
-        };
+        var imageBase64 = params.imageBase64;
+        if (!imageBase64) return { success: false, error: 'No image provided' };
+
+        // Call Photoroom API v2 segment endpoint
+        var imageBlob = Utilities.newBlob(
+            Utilities.base64Decode(imageBase64),
+            'image/png',
+            'produce.png'
+        );
+
+        var response = UrlFetchApp.fetch('https://sdk.photoroom.com/v2/edit', {
+            method: 'POST',
+            headers: {
+                'x-api-key': apiKey
+            },
+            payload: {
+                'imageFile': imageBlob,
+                'background.color': '00000000'
+            },
+            muteHttpExceptions: true
+        });
+
+        if (response.getResponseCode() === 200) {
+            var processedBlob = response.getBlob();
+            var processedBase64 = Utilities.base64Encode(processedBlob.getBytes());
+            return { success: true, processedImage: processedBase64 };
+        } else {
+            Logger.log('Photoroom API error: ' + response.getResponseCode() + ' ' + response.getContentText().substring(0, 300));
+            return { success: false, error: 'Photoroom API error: ' + response.getResponseCode() };
+        }
     } catch (error) {
+        Logger.log('removeImageBackground error: ' + error.toString());
         return { success: false, error: error.toString() };
     }
 }

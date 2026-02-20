@@ -9375,6 +9375,8 @@
                                     <i class="fas fa-plus"></i> Add
                                 </button>
                             </div>
+                            <!-- Hidden file input for CSA item photos -->
+                            <input type="file" id="csaItemPhotoInput" accept="image/*" capture="environment" style="display: none" onchange="handleCSAItemPhoto(event)">
                         </div>
 
                         <!-- Quick Add Common Items -->
@@ -9420,6 +9422,14 @@
                                     <i class="fas fa-spa"></i> Flowers
                                 </button>
                             </div>
+                        </div>
+
+                        <!-- Photo Tips -->
+                        <div style="margin-top: 0.75rem; padding: 0.75rem; background: rgba(74,124,89,0.08); border-radius: 8px; border-left: 3px solid var(--success);">
+                            <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0;">
+                                <i class="fas fa-lightbulb" style="color: var(--gold);"></i>
+                                <strong>Pro tip:</strong> Tap the <i class="fas fa-camera"></i> icon on each item to upload a real photo. Place produce on a white surface for best background removal.
+                            </p>
                         </div>
 
                         <!-- Background & Style Selection -->
@@ -18485,26 +18495,7 @@ From our farm to your table with love. Every bite tells a story of dedication, h
             }
         }
 
-        function generateDemoTemplates(inspiration, contentType, mood) {
-            // Fallback demo templates when API fails
-            return [
-                {
-                    caption: `Just like ${inspiration.substring(0, 30)}... our farm has its own kind of magic happening. Fresh picks ready for you! 🌱`,
-                    angle: "direct comparison",
-                    hashtags: ["farmlife", "organic", "pittsburgh", "tinyseedfarm"]
-                },
-                {
-                    caption: `You know that feeling from ${inspiration.substring(0, 25)}? That's how we feel every harvest morning. Pure joy in every box. 📦✨`,
-                    angle: "emotional connection",
-                    hashtags: ["csabox", "farmfresh", "localfood"]
-                },
-                {
-                    caption: `If ${inspiration.substring(0, 20)} taught us anything, it's that the best things take time. Like these beauties. 🍅`,
-                    angle: "lesson learned",
-                    hashtags: ["slowfood", "farmtotable", "organic"]
-                }
-            ];
-        }
+        // generateDemoTemplates removed — was producing garbage output by truncating user input
 
         function displayGeneratedTemplates(templates, inspiration) {
             const container = document.getElementById('generatedTemplatesGrid');
@@ -36757,12 +36748,12 @@ Would you like to test posting to Threads?`;
 
         // ═══════════════════════════════════════════════════════════════════════════
         // CSA BOX VISUALIZER - "What's In Your Box" Social Graphic Generator
-        // Uses golden ratio spiral positioning and farm color palettes from research
+        // Professional grid layout with per-item photo upload and background removal
         // ═══════════════════════════════════════════════════════════════════════════
 
         let csaCanvas = null;
-        let csaSelectedItems = [];
-        const PHI = (1 + Math.sqrt(5)) / 2; // Golden ratio
+        let csaSelectedItems = []; // Array of {name, rawPhoto, processedPhoto, photoStatus}
+        let csaPhotoTargetIndex = -1; // Which item is being photographed
 
         // Produce PNG library - placeholder URLs (in production, these would be real PNGs)
         const PRODUCE_LIBRARY = {
@@ -36882,14 +36873,12 @@ Would you like to test posting to Threads?`;
         function addCSAItem() {
             const input = document.getElementById('csaItemInput');
             const itemName = input.value.trim().toLowerCase();
-
             if (!itemName) return;
-            if (csaSelectedItems.includes(itemName)) {
+            if (csaSelectedItems.some(item => item.name === itemName)) {
                 showToast('Item already added', 'warning');
                 return;
             }
-
-            csaSelectedItems.push(itemName);
+            csaSelectedItems.push({ name: itemName, rawPhoto: null, processedPhoto: null, photoStatus: 'none' });
             updateCSAItemTags();
             input.value = '';
             input.focus();
@@ -36897,21 +36886,157 @@ Would you like to test posting to Threads?`;
 
         // Quick add item
         function quickAddCSAItem(itemName) {
-            if (csaSelectedItems.includes(itemName)) {
+            if (csaSelectedItems.some(item => item.name === itemName)) {
                 showToast('Item already added', 'warning');
                 return;
             }
-            csaSelectedItems.push(itemName);
+            csaSelectedItems.push({ name: itemName, rawPhoto: null, processedPhoto: null, photoStatus: 'none' });
             updateCSAItemTags();
         }
 
         // Remove CSA item
         function removeCSAItem(itemName) {
-            csaSelectedItems = csaSelectedItems.filter(item => item !== itemName);
+            csaSelectedItems = csaSelectedItems.filter(item => item.name !== itemName);
             updateCSAItemTags();
         }
 
-        // Update the item tags display
+        // Trigger photo upload for a specific item
+        function triggerCSAItemPhoto(itemIndex) {
+            csaPhotoTargetIndex = itemIndex;
+            document.getElementById('csaItemPhotoInput').click();
+        }
+
+        // Handle photo file selection
+        async function handleCSAItemPhoto(event) {
+            const file = event.target.files[0];
+            if (!file || csaPhotoTargetIndex < 0 || csaPhotoTargetIndex >= csaSelectedItems.length) return;
+
+            const item = csaSelectedItems[csaPhotoTargetIndex];
+            item.photoStatus = 'uploading';
+            updateCSAItemTags();
+
+            try {
+                const dataUrl = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.readAsDataURL(file);
+                });
+
+                // Compress to 800px max for grid cell usage
+                const compressed = typeof TinySeedUtils !== 'undefined' && TinySeedUtils.compressImage
+                    ? await TinySeedUtils.compressImage(dataUrl, 800, 0.85)
+                    : dataUrl;
+                item.rawPhoto = compressed;
+                item.photoStatus = 'processing';
+                updateCSAItemTags();
+                showToast('Removing background...', 'info');
+
+                const processed = await removeCSAItemBackground(compressed);
+                item.processedPhoto = processed;
+                item.photoStatus = 'ready';
+                updateCSAItemTags();
+                showToast('Photo added for ' + item.name + '!', 'success');
+            } catch (error) {
+                console.error('Photo processing error:', error);
+                item.processedPhoto = item.rawPhoto;
+                item.photoStatus = 'ready';
+                updateCSAItemTags();
+                showToast('Photo added (bg removal unavailable)', 'warning');
+            }
+
+            event.target.value = '';
+        }
+
+        // Client-side background removal (samples corners, removes similar colors)
+        async function removeCSAItemBackground(dataUrl) {
+            // Try backend Photoroom API first
+            try {
+                const apiResult = await removeCSAItemBackgroundViaAPI(dataUrl);
+                if (apiResult) return apiResult;
+            } catch (e) {
+                console.log('Backend bg removal unavailable, using client-side');
+            }
+
+            // Client-side fallback
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const data = imageData.data;
+                    const w = canvas.width;
+                    const h = canvas.height;
+
+                    // Sample background color from edges (more reliable than just corners)
+                    const samples = [];
+                    const sampleStep = 5;
+                    for (let x = 0; x < w; x += sampleStep) {
+                        samples.push(csaGetPixel(data, w, x, 0));
+                        samples.push(csaGetPixel(data, w, x, h - 1));
+                    }
+                    for (let y = 0; y < h; y += sampleStep) {
+                        samples.push(csaGetPixel(data, w, 0, y));
+                        samples.push(csaGetPixel(data, w, w - 1, y));
+                    }
+
+                    const bgR = Math.round(samples.reduce((s, c) => s + c.r, 0) / samples.length);
+                    const bgG = Math.round(samples.reduce((s, c) => s + c.g, 0) / samples.length);
+                    const bgB = Math.round(samples.reduce((s, c) => s + c.b, 0) / samples.length);
+
+                    const threshold = 55;
+                    const feather = threshold * 0.5;
+
+                    for (let i = 0; i < data.length; i += 4) {
+                        const dr = data[i] - bgR;
+                        const dg = data[i + 1] - bgG;
+                        const db = data[i + 2] - bgB;
+                        const distance = Math.sqrt(dr * dr + dg * dg + db * db);
+
+                        if (distance < threshold) {
+                            data[i + 3] = 0;
+                        } else if (distance < threshold + feather) {
+                            const alpha = Math.round(((distance - threshold) / feather) * 255);
+                            data[i + 3] = Math.min(data[i + 3], alpha);
+                        }
+                    }
+
+                    ctx.putImageData(imageData, 0, 0);
+                    resolve(canvas.toDataURL('image/png'));
+                };
+                img.src = dataUrl;
+            });
+        }
+
+        function csaGetPixel(data, width, x, y) {
+            const idx = (y * width + x) * 4;
+            return { r: data[idx], g: data[idx + 1], b: data[idx + 2] };
+        }
+
+        // Backend Photoroom API background removal
+        async function removeCSAItemBackgroundViaAPI(dataUrl) {
+            try {
+                const base64 = dataUrl.split(',')[1];
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({ action: 'removeImageBackground', imageBase64: base64 })
+                });
+                const result = await response.json();
+                if (result.success && result.processedImage) {
+                    return 'data:image/png;base64,' + result.processedImage;
+                }
+                return null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // Update the item tags display (with camera icons and photo status)
         function updateCSAItemTags() {
             const container = document.getElementById('csaSelectedItems');
             const countEl = document.getElementById('csaItemCount');
@@ -36921,149 +37046,312 @@ Would you like to test posting to Threads?`;
                 if (countEl) countEl.style.display = 'none';
                 return;
             }
-            if (countEl) { countEl.style.display = 'block'; }
-            if (countNum) { countNum.textContent = csaSelectedItems.length; }
+            if (countEl) countEl.style.display = 'block';
+            if (countNum) countNum.textContent = csaSelectedItems.length;
 
-            container.innerHTML = csaSelectedItems.map(item => {
-                const itemData = PRODUCE_LIBRARY[item] || PRODUCE_LIBRARY['default'];
-                return `
-                    <div style="display: inline-flex; align-items: center; gap: 0.5rem; background: ${itemData.color}33; border: 1px solid ${itemData.color}; padding: 0.4rem 0.75rem; border-radius: 20px; font-size: 0.85rem;">
-                        <span style="text-transform: capitalize;">${item}</span>
-                        <button onclick="removeCSAItem('${item}')" style="background: none; border: none; color: ${itemData.color}; cursor: pointer; padding: 0; font-size: 0.9rem;">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                `;
+            container.innerHTML = csaSelectedItems.map(function(item, idx) {
+                var itemData = PRODUCE_LIBRARY[item.name] || PRODUCE_LIBRARY['default'];
+                var hasPhoto = item.processedPhoto || item.rawPhoto;
+                var statusIcon = item.photoStatus === 'processing' || item.photoStatus === 'uploading'
+                    ? '<i class="fas fa-spinner fa-spin" style="color: var(--warning); font-size: 0.75rem;"></i>'
+                    : hasPhoto
+                        ? '<i class="fas fa-check-circle" style="color: var(--success); font-size: 0.75rem;"></i>'
+                        : '';
+                return '<div style="display: inline-flex; align-items: center; gap: 0.4rem; background: ' + itemData.color + '33; border: 1px solid ' + itemData.color + '; padding: 0.35rem 0.7rem; border-radius: 20px; font-size: 0.85rem;">'
+                    + '<span style="text-transform: capitalize;">' + item.name + '</span>'
+                    + statusIcon
+                    + '<button onclick="triggerCSAItemPhoto(' + idx + ')" title="Upload photo" style="background: none; border: none; color: ' + (hasPhoto ? 'var(--success)' : itemData.color) + '; cursor: pointer; padding: 0 2px; font-size: 0.85rem;"><i class="fas fa-camera"></i></button>'
+                    + '<button onclick="removeCSAItem(\'' + item.name + '\')" style="background: none; border: none; color: ' + itemData.color + '; cursor: pointer; padding: 0; font-size: 0.85rem;"><i class="fas fa-times"></i></button>'
+                    + '</div>';
             }).join('');
         }
 
-        // Calculate golden ratio spiral positions
-        function calculateGoldenSpiralPositions(itemCount, canvasWidth, canvasHeight) {
-            const positions = [];
-            const centerX = canvasWidth / 2;
-            const centerY = canvasHeight / 2;
-            const maxRadius = Math.min(canvasWidth, canvasHeight) * 0.35;
-
-            for (let i = 0; i < itemCount; i++) {
-                // Golden angle in radians
-                const angle = i * 2 * Math.PI / PHI;
-                // Radius increases with square root for even distribution
-                const r = maxRadius * Math.sqrt((i + 1) / itemCount);
-
-                // Add some randomness for natural look
-                const randomOffset = 0.1;
-                const rx = (Math.random() - 0.5) * 2 * randomOffset * r;
-                const ry = (Math.random() - 0.5) * 2 * randomOffset * r;
-
-                positions.push({
-                    x: centerX + r * Math.cos(angle) + rx,
-                    y: centerY + r * Math.sin(angle) + ry,
-                    rotation: Math.random() * 30 - 15, // -15 to +15 degrees
-                    scale: 0.9 + Math.random() * 0.3 // 0.9 to 1.2 scale variation
-                });
+        // Helper: split header text into lines
+        function csaSplitHeader(text, maxChars) {
+            if (text.length <= maxChars) return [text];
+            var words = text.split(' ');
+            var lines = [];
+            var current = '';
+            for (var i = 0; i < words.length; i++) {
+                var test = current ? current + ' ' + words[i] : words[i];
+                if (test.length > maxChars && current) {
+                    lines.push(current);
+                    current = words[i];
+                } else {
+                    current = test;
+                }
             }
-
-            return positions;
+            if (current) lines.push(current);
+            return lines;
         }
 
-        // Generate CSA Box Visual
+        // Helper: formatted week range
+        function csaWeekRange() {
+            var now = new Date();
+            var monday = new Date(now);
+            monday.setDate(now.getDate() - now.getDay() + 1);
+            var sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+            var opts = { month: 'short', day: 'numeric' };
+            return 'Week of ' + monday.toLocaleDateString('en-US', opts) + ' \u2013 ' + sunday.toLocaleDateString('en-US', opts);
+        }
+
+        // Add circular-clipped photo to canvas
+        function addCircularPhotoToCanvas(photoSrc, centerX, centerY, radius, scale) {
+            return new Promise(function(resolve) {
+                fabric.Image.fromURL(photoSrc, function(img) {
+                    var diameter = radius * 2;
+                    var imgScale = Math.max(
+                        (diameter * scale) / img.width,
+                        (diameter * scale) / img.height
+                    );
+                    img.set({
+                        left: centerX * scale,
+                        top: centerY * scale,
+                        scaleX: imgScale,
+                        scaleY: imgScale,
+                        originX: 'center',
+                        originY: 'center',
+                        selectable: false,
+                        clipPath: new fabric.Circle({
+                            radius: radius * scale,
+                            originX: 'center',
+                            originY: 'center'
+                        }),
+                        shadow: new fabric.Shadow({
+                            color: 'rgba(0,0,0,0.2)',
+                            blur: 15 * scale,
+                            offsetX: 0,
+                            offsetY: 5 * scale
+                        })
+                    });
+                    csaCanvas.add(img);
+
+                    // Add a subtle circle border around the photo
+                    var border = new fabric.Circle({
+                        left: centerX * scale,
+                        top: centerY * scale,
+                        radius: (radius + 2) * scale,
+                        fill: 'transparent',
+                        stroke: 'rgba(255,255,255,0.3)',
+                        strokeWidth: 2 * scale,
+                        originX: 'center',
+                        originY: 'center',
+                        selectable: false
+                    });
+                    csaCanvas.add(border);
+
+                    resolve(img);
+                }, { crossOrigin: 'anonymous' });
+            });
+        }
+
+        // Generate CSA Box Visual - Professional grid layout
         async function generateCSABoxVisual() {
             if (csaSelectedItems.length === 0) {
                 showToast('Please add at least one item to your box', 'warning');
                 return;
             }
 
-            // Initialize canvas if needed
-            if (!csaCanvas) {
-                initializeCSACanvas();
-            }
+            if (!csaCanvas) initializeCSACanvas();
 
-            // Show loading state
-            const btn = document.getElementById('csaGenerateBtn');
+            var btn = document.getElementById('csaGenerateBtn');
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
             btn.disabled = true;
 
             try {
-                // Clear existing canvas
                 csaCanvas.clear();
 
-                // Get settings
-                const bgKey = document.getElementById('csaBackground').value;
-                const seasonKey = document.getElementById('csaSeason').value;
-                const headerText = document.getElementById('csaHeaderText').value;
+                var W = csaCanvas.actualWidth;   // 1080
+                var H = csaCanvas.actualHeight;  // 1350
+                var S = csaCanvas.displayScale;  // ~0.37
 
-                const background = BACKGROUNDS[bgKey];
-                const palette = SEASON_PALETTES[seasonKey];
+                var bgKey = document.getElementById('csaBackground').value;
+                var seasonKey = document.getElementById('csaSeason').value;
+                var headerText = document.getElementById('csaHeaderText').value;
 
-                // Set background
+                var background = BACKGROUNDS[bgKey];
+                var palette = SEASON_PALETTES[seasonKey];
+                var isLightBg = (bgKey === 'marble_white' || bgKey === 'linen_cream');
+
+                // --- BACKGROUND ---
                 csaCanvas.backgroundColor = background.color;
 
-                // Calculate positions using golden ratio spiral
-                const positions = calculateGoldenSpiralPositions(
-                    csaSelectedItems.length,
-                    csaCanvas.actualWidth,
-                    csaCanvas.actualHeight
-                );
-
-                // Add items to canvas
-                for (let i = 0; i < csaSelectedItems.length; i++) {
-                    const itemName = csaSelectedItems[i];
-                    const position = positions[i];
-                    const itemData = PRODUCE_LIBRARY[itemName] || PRODUCE_LIBRARY['default'];
-
-                    await addProduceItemToCanvas(itemData.url, position, itemData.scale);
+                // Subtle texture for wood/burlap backgrounds
+                if (bgKey === 'wooden_rustic' || bgKey === 'burlap') {
+                    for (var li = 0; li < 25; li++) {
+                        var line = new fabric.Line(
+                            [0, li * 56 * S, W * S, (li * 56 - 100) * S],
+                            { stroke: 'rgba(0,0,0,0.025)', strokeWidth: 1.5 * S, selectable: false }
+                        );
+                        csaCanvas.add(line);
+                    }
                 }
 
-                // Add header text
-                const headerTextObj = new fabric.Text(headerText, {
-                    left: csaCanvas.actualWidth / 2 * csaCanvas.displayScale,
-                    top: 40 * csaCanvas.displayScale,
-                    fontSize: 72 * csaCanvas.displayScale,
-                    fontFamily: 'Montserrat, sans-serif',
+                // --- TOP ACCENT BAR ---
+                csaCanvas.add(new fabric.Rect({
+                    left: 0, top: 0,
+                    width: W * S, height: 8 * S,
+                    fill: palette.primary, selectable: false
+                }));
+
+                // --- HEADER ZONE (0-230px) ---
+                var titleLines = csaSplitHeader(headerText, 24);
+                var titleY = 55;
+                for (var tl = 0; tl < titleLines.length; tl++) {
+                    csaCanvas.add(new fabric.Text(titleLines[tl], {
+                        left: (W / 2) * S,
+                        top: titleY * S,
+                        fontSize: 54 * S,
+                        fontFamily: 'Georgia, serif',
+                        fontWeight: '700',
+                        fill: isLightBg ? '#2d3436' : '#ffffff',
+                        textAlign: 'center',
+                        originX: 'center',
+                        selectable: false,
+                        shadow: isLightBg ? null : new fabric.Shadow({
+                            color: 'rgba(0,0,0,0.25)', blur: 8 * S, offsetX: 0, offsetY: 2 * S
+                        })
+                    }));
+                    titleY += 62;
+                }
+
+                // Decorative divider
+                csaCanvas.add(new fabric.Line(
+                    [(W * 0.3) * S, (titleY + 10) * S, (W * 0.7) * S, (titleY + 10) * S],
+                    { stroke: palette.primary, strokeWidth: 3 * S, selectable: false }
+                ));
+
+                // Week date
+                csaCanvas.add(new fabric.Text(csaWeekRange(), {
+                    left: (W / 2) * S,
+                    top: (titleY + 25) * S,
+                    fontSize: 22 * S,
+                    fontFamily: 'Arial, sans-serif',
+                    fontWeight: '400',
+                    fill: isLightBg ? '#636e72' : '#bbbbbb',
+                    textAlign: 'center',
+                    originX: 'center',
+                    selectable: false
+                }));
+
+                var gridTop = titleY + 65;
+
+                // --- GRID ZONE ---
+                var gridBottom = 1080;
+                var gridPadding = 60;
+                var itemCount = csaSelectedItems.length;
+                var cols = itemCount <= 4 ? 2 : 3;
+                var rows = Math.ceil(itemCount / cols);
+
+                var cellWidth = (W - gridPadding * 2) / cols;
+                var maxCellHeight = (gridBottom - gridTop) / rows;
+                var cellHeight = Math.min(maxCellHeight, 320);
+                var circleRadius = Math.min(cellWidth * 0.33, cellHeight * 0.33, 115);
+
+                // Center grid vertically in available space
+                var totalGridHeight = rows * cellHeight;
+                var gridStartY = gridTop + ((gridBottom - gridTop) - totalGridHeight) / 2;
+
+                for (var gi = 0; gi < itemCount; gi++) {
+                    var item = csaSelectedItems[gi];
+                    var col = gi % cols;
+                    var row = Math.floor(gi / cols);
+
+                    var cellCenterX = gridPadding + col * cellWidth + cellWidth / 2;
+                    var cellCenterY = gridStartY + row * cellHeight + cellHeight / 2 - 20;
+
+                    var itemData = PRODUCE_LIBRARY[item.name] || PRODUCE_LIBRARY['default'];
+                    var photoSrc = item.processedPhoto || item.rawPhoto;
+
+                    if (photoSrc) {
+                        // Real photo in circular clip
+                        await addCircularPhotoToCanvas(photoSrc, cellCenterX, cellCenterY, circleRadius, S);
+                    } else {
+                        // Styled placeholder: colored circle with initial letter
+                        csaCanvas.add(new fabric.Circle({
+                            left: cellCenterX * S,
+                            top: cellCenterY * S,
+                            radius: circleRadius * S,
+                            fill: itemData.color + '22',
+                            stroke: itemData.color,
+                            strokeWidth: 3 * S,
+                            originX: 'center',
+                            originY: 'center',
+                            selectable: false,
+                            shadow: new fabric.Shadow({
+                                color: 'rgba(0,0,0,0.12)', blur: 12 * S, offsetX: 0, offsetY: 4 * S
+                            })
+                        }));
+                        csaCanvas.add(new fabric.Text(item.name.charAt(0).toUpperCase(), {
+                            left: cellCenterX * S,
+                            top: cellCenterY * S,
+                            fontSize: (circleRadius * 0.85) * S,
+                            fontFamily: 'Georgia, serif',
+                            fontWeight: '700',
+                            fill: itemData.color,
+                            originX: 'center',
+                            originY: 'center',
+                            selectable: false
+                        }));
+                    }
+
+                    // Item label directly beneath the circle
+                    var labelY = cellCenterY + circleRadius + 18;
+                    csaCanvas.add(new fabric.Text(
+                        item.name.charAt(0).toUpperCase() + item.name.slice(1),
+                        {
+                            left: cellCenterX * S,
+                            top: labelY * S,
+                            fontSize: 26 * S,
+                            fontFamily: 'Arial, Helvetica, sans-serif',
+                            fontWeight: '600',
+                            fill: isLightBg ? '#2d3436' : '#f0f0f0',
+                            textAlign: 'center',
+                            originX: 'center',
+                            selectable: false
+                        }
+                    ));
+                }
+
+                // --- FOOTER ZONE (1080-1350px) ---
+                csaCanvas.add(new fabric.Line(
+                    [(W * 0.15) * S, 1100 * S, (W * 0.85) * S, 1100 * S],
+                    { stroke: (isLightBg ? '#ddd' : palette.primary + '66'), strokeWidth: 2 * S, selectable: false }
+                ));
+
+                csaCanvas.add(new fabric.Text('TINY SEED FARM', {
+                    left: (W / 2) * S,
+                    top: 1145 * S,
+                    fontSize: 40 * S,
+                    fontFamily: 'Arial, Helvetica, sans-serif',
                     fontWeight: '700',
-                    fill: bgKey === 'marble_white' || bgKey === 'linen_cream' ? '#333333' : '#ffffff',
+                    fill: isLightBg ? '#2d3436' : '#ffffff',
                     textAlign: 'center',
                     originX: 'center',
-                    shadow: new fabric.Shadow({
-                        color: 'rgba(0,0,0,0.3)',
-                        blur: 10 * csaCanvas.displayScale,
-                        offsetX: 2 * csaCanvas.displayScale,
-                        offsetY: 2 * csaCanvas.displayScale
-                    })
-                });
-                csaCanvas.add(headerTextObj);
+                    charSpacing: 400,
+                    selectable: false
+                }));
 
-                // Add item list at bottom
-                const itemListText = csaSelectedItems.map(item =>
-                    item.charAt(0).toUpperCase() + item.slice(1)
-                ).join(' | ');
-
-                const itemListObj = new fabric.Text(itemListText, {
-                    left: csaCanvas.actualWidth / 2 * csaCanvas.displayScale,
-                    top: (csaCanvas.actualHeight - 60) * csaCanvas.displayScale,
-                    fontSize: 28 * csaCanvas.displayScale,
-                    fontFamily: 'Inter, sans-serif',
-                    fontWeight: '500',
-                    fill: bgKey === 'marble_white' || bgKey === 'linen_cream' ? '#666666' : '#eeeeee',
+                csaCanvas.add(new fabric.Text('Farm Fresh  \u2022  Locally Grown  \u2022  Delivered to You', {
+                    left: (W / 2) * S,
+                    top: 1205 * S,
+                    fontSize: 20 * S,
+                    fontFamily: 'Arial, sans-serif',
+                    fontWeight: '400',
+                    fontStyle: 'italic',
+                    fill: isLightBg ? '#636e72' : '#aaaaaa',
                     textAlign: 'center',
                     originX: 'center',
-                    opacity: 0.9
-                });
-                csaCanvas.add(itemListObj);
+                    selectable: false
+                }));
 
-                // Add farm branding
-                const brandingObj = new fabric.Text('TINY SEED FARM', {
-                    left: csaCanvas.actualWidth / 2 * csaCanvas.displayScale,
-                    top: (csaCanvas.actualHeight - 30) * csaCanvas.displayScale,
-                    fontSize: 18 * csaCanvas.displayScale,
-                    fontFamily: 'Montserrat, sans-serif',
-                    fontWeight: '600',
-                    fill: bgKey === 'marble_white' || bgKey === 'linen_cream' ? '#888888' : '#cccccc',
-                    textAlign: 'center',
-                    originX: 'center',
-                    letterSpacing: 200
-                });
-                csaCanvas.add(brandingObj);
+                // Bottom accent bar
+                csaCanvas.add(new fabric.Rect({
+                    left: 0, top: (H - 8) * S,
+                    width: W * S, height: 8 * S,
+                    fill: palette.secondary, selectable: false
+                }));
 
                 csaCanvas.renderAll();
 
@@ -37076,39 +37364,11 @@ Would you like to test posting to Threads?`;
 
             } catch (error) {
                 console.error('Error generating CSA visual:', error);
-                showToast('Error generating visual. Please try again.', 'error');
+                showToast('Error generating visual: ' + error.message, 'error');
             } finally {
                 btn.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i> Generate Box Visual';
                 btn.disabled = false;
             }
-        }
-
-        // Add produce item to canvas
-        function addProduceItemToCanvas(imageUrl, position, baseScale) {
-            return new Promise((resolve) => {
-                fabric.Image.fromURL(imageUrl, function(img) {
-                    const scale = position.scale * baseScale * 1.5 * csaCanvas.displayScale;
-
-                    img.set({
-                        left: position.x * csaCanvas.displayScale,
-                        top: position.y * csaCanvas.displayScale,
-                        scaleX: scale,
-                        scaleY: scale,
-                        angle: position.rotation,
-                        originX: 'center',
-                        originY: 'center',
-                        shadow: new fabric.Shadow({
-                            color: 'rgba(0,0,0,0.2)',
-                            blur: 15 * csaCanvas.displayScale,
-                            offsetX: 5 * csaCanvas.displayScale,
-                            offsetY: 5 * csaCanvas.displayScale
-                        })
-                    });
-
-                    csaCanvas.add(img);
-                    resolve(img);
-                }, { crossOrigin: 'anonymous' });
-            });
         }
 
         // Download CSA Visual
@@ -37192,9 +37452,9 @@ Would you like to test posting to Threads?`;
             document.getElementById('blastBtn').disabled = false;
 
             // Pre-fill caption
-            const itemList = csaSelectedItems.map(item =>
-                item.charAt(0).toUpperCase() + item.slice(1)
-            ).join(', ');
+            const itemList = csaSelectedItems.map(function(item) {
+                return item.name.charAt(0).toUpperCase() + item.name.slice(1);
+            }).join(', ');
 
             const headerText = document.getElementById('csaHeaderText').value;
             document.getElementById('captionInput').value = `${headerText}:\n\n${itemList}\n\nFresh from the farm to your table!\n\n#CSA #FarmFresh #TinySeedFarm #LocalFood #Pittsburgh`;
