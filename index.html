@@ -6471,7 +6471,8 @@
 
                 // Add stats footer - widgets are only clickable when count > 0
                 const totalTasks = taskSection.count || allTasks.length;
-                const actualOverdueCount = overdueCount || apiData.must_do_today?.length || 0;
+                // Use global overdueTasks array if already loaded (most accurate), else fallback to API data
+                const actualOverdueCount = (typeof overdueTasks !== 'undefined' && overdueTasks.length > 0) ? overdueTasks.length : (overdueCount || apiData.must_do_today?.length || 0);
 
                 // Helper to create stat item - only clickable if count > 0
                 const createStatItem = (count, label, href, color = 'inherit') => {
@@ -7278,6 +7279,16 @@
             }).join('');
 
             updateOverdueSelectionUI();
+
+            // Sync Morning Brief stat card with actual overdue count
+            const briefStats = document.querySelector('.brief-stats');
+            if (briefStats) {
+                const overdueStatValue = briefStats.querySelectorAll('.stat-item')[1]?.querySelector('.stat-value');
+                if (overdueStatValue && parseInt(overdueStatValue.textContent) !== overdueTasks.length) {
+                    overdueStatValue.textContent = overdueTasks.length;
+                    overdueStatValue.style.color = overdueTasks.length > 0 ? '#ef4444' : '#22c55e';
+                }
+            }
         }
 
         function toggleOverdueSelection(taskId) {
