@@ -5420,7 +5420,7 @@ Priority Rules:
         'anthropic-version': '2023-06-01'
       },
       payload: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-5-20250929',
         max_tokens: 1000,
         messages: [{ role: 'user', content: prompt }]
       }),
@@ -10649,7 +10649,7 @@ function callClaudeAPI(prompt, temperature = 0.3) {
       'anthropic-version': '2023-06-01'
     },
     payload: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-5-20250929',
       max_tokens: 2000,
       temperature: temperature,
       messages: [{
@@ -34735,7 +34735,7 @@ Respond in valid JSON format only:
     Logger.log('parseInventoryLabel: Processing image, base64 length: ' + base64Content.length);
 
     const payload = {
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-5-20250929',
       max_tokens: 1000,
       messages: [
         {
@@ -36907,7 +36907,7 @@ function analyzeEquipmentPhoto(params) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
       payload: JSON.stringify({
-        model: 'claude-sonnet-4-20250514', max_tokens: 1024,
+        model: 'claude-sonnet-4-5-20250929', max_tokens: 1024,
         messages: [{ role: 'user', content: [
           { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: imageBase64 } },
           { type: 'text', text: `Analyze this farm equipment photo (${itemName}). Respond in JSON: { "overallCondition": "Good/Fair/Poor/Needs Repair", "conditionScore": 1-5, "visibleIssues": [], "rustLevel": "None/Light/Moderate/Severe", "maintenancePriority": "Low/Medium/High/Critical", "recommendedActions": [] }` }
@@ -36982,7 +36982,7 @@ Return ONLY the JSON object, no other text.`;
         'anthropic-version': '2023-06-01'
       },
       payload: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-5-20250929',
         max_tokens: 1024,
         messages: [{
           role: 'user',
@@ -37070,7 +37070,7 @@ function parseSeedInvoice(params) {
         'anthropic-version': '2023-06-01'
       },
       payload: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-5-20250929',
         max_tokens: 4096,
         messages: [{
           role: 'user',
@@ -67519,7 +67519,7 @@ Provide exactly 5 specific, actionable recommendations to grow Tiny Seed Farm's 
                         'Content-Type': 'application/json'
                     },
                     payload: JSON.stringify({
-                        model: 'claude-sonnet-4-20250514',
+                        model: 'claude-sonnet-4-5-20250929',
                         max_tokens: 500,
                         messages: [{ role: 'user', content: prompt }]
                     }),
@@ -67747,7 +67747,7 @@ Return your analysis as JSON in this exact format:
                 'Content-Type': 'application/json'
             },
             payload: JSON.stringify({
-                model: 'claude-sonnet-4-20250514',
+                model: 'claude-sonnet-4-5-20250929',
                 max_tokens: 1024,
                 system: systemPrompt,
                 messages: [
@@ -68187,7 +68187,7 @@ function getNextBestPost(params) {
                     'Content-Type': 'application/json'
                 },
                 payload: JSON.stringify({
-                    model: 'claude-sonnet-4-20250514',
+                    model: 'claude-sonnet-4-5-20250929',
                     max_tokens: 1000,
                     messages: [{
                         role: 'user',
@@ -68530,7 +68530,7 @@ Return JSON array of 7 days:
                     'Content-Type': 'application/json'
                 },
                 payload: JSON.stringify({
-                    model: 'claude-sonnet-4-20250514',
+                    model: 'claude-sonnet-4-5-20250929',
                     max_tokens: 2000,
                     messages: [{ role: 'user', content: prompt }]
                 }),
@@ -69572,7 +69572,7 @@ function generateAdvancedContent(params) {
           'anthropic-version': '2023-06-01'
         },
         payload: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-sonnet-4-5-20250929',
           max_tokens: 4000,
           system: systemPrompt,
           messages: [{ role: 'user', content: userPrompt }]
@@ -69973,7 +69973,7 @@ ${additionalContext ? `ADDITIONAL CONTEXT: ${additionalContext}
                     'anthropic-version': '2023-06-01'
                 },
                 payload: JSON.stringify({
-                    model: 'claude-sonnet-4-20250514',
+                    model: 'claude-sonnet-4-5-20250929',
                     max_tokens: 500,
                     messages: [{
                         role: 'user',
@@ -103117,7 +103117,7 @@ function scrapeLenderRequirements(params) {
     }
 
     const claudePayload = {
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-5-20250929',
       max_tokens: 2000,
       messages: [{
         role: 'user',
@@ -104553,7 +104553,7 @@ Return ONLY valid JSON:
 }`;
 
     const claudePayload = {
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-5-20250929',
       max_tokens: 2000,
       messages: [{ role: 'user', content: prompt }]
     };
@@ -121099,7 +121099,7 @@ IMPORTANT: Use the ACTUAL revenue numbers provided above throughout the plan. Sh
         'anthropic-version': '2023-06-01'
       },
       payload: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-5-20250929',
         max_tokens: 8000,
         messages: [{
           role: 'user',
@@ -121316,7 +121316,7 @@ Use the real farm data provided. Make projections realistic but compelling. Show
         'anthropic-version': '2023-06-01'
       },
       payload: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-5-20250929',
         max_tokens: 8000,
         messages: [{
           role: 'user',

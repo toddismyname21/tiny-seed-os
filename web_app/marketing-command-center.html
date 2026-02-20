@@ -18434,6 +18434,7 @@ From our farm to your table with love. Every bite tells a story of dedication, h
                 });
 
                 const data = await response.json();
+                console.log('Template AI response:', data.success, data.method || 'no-method', data.error || '');
 
                 if (data.success && data.posts && data.posts.length > 0) {
                     // Convert posts format to templates format
@@ -18475,11 +18476,9 @@ From our farm to your table with love. Every bite tells a story of dedication, h
                 }
             } catch (error) {
                 console.error('Template generation error:', error);
-                showToast('Error generating templates. Try again!', 'error');
-
-                // Show demo templates as fallback
-                const demoTemplates = generateDemoTemplates(inspiration, contentType, mood);
-                displayGeneratedTemplates(demoTemplates, inspiration);
+                showToast('AI generation failed: ' + (error.message || 'Unknown error') + '. Check that your Claude API key is configured.', 'error');
+                document.getElementById('templateBuilderResults').style.display = 'block';
+                document.getElementById('generatedTemplatesGrid').innerHTML = '<div style="text-align:center; padding:2rem; color:var(--text-secondary);"><i class="fas fa-exclamation-triangle" style="font-size:2rem; color:var(--warning); margin-bottom:0.75rem; display:block;"></i><p>AI content generation failed.</p><p style="font-size:0.85rem; margin-top:0.5rem;">Make sure your Claude or OpenAI API key is configured in Settings.</p></div>';
             } finally {
                 btn.innerHTML = originalHTML;
                 btn.disabled = false;
