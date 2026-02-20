@@ -26423,7 +26423,8 @@ const SEED_INVENTORY_HEADERS = [
   'Quantity_Original', 'Quantity_Remaining', 'Unit', 'Seeds_Per_Packet', 'Germination_Rate', 'Germ_Test_Date',
   'Pack_Date', 'Expiration_Date', 'Organic_Certified', 'Certifier', 'Seed_Treatment',
   'Purchase_Date', 'Purchase_Price', 'Storage_Location', 'Notes', 'Status',
-  'Created_At', 'Last_Used', 'Receipt_Photo_URL', 'Organic_Cert_Photo_URL'
+  'Created_At', 'Last_Used', 'Receipt_Photo_URL', 'Organic_Cert_Photo_URL',
+  'Days_To_Maturity', 'Plant_Family', 'Latin_Name'
 ];
 
 /**
@@ -26450,7 +26451,7 @@ function initSeedInventorySheet() {
     // Auto-migrate: add missing columns to existing sheets
     var existingHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
     // Add missing columns at end (safe - no column insertion/shifting)
-    var newCols = ['Seeds_Per_Packet', 'Receipt_Photo_URL', 'Organic_Cert_Photo_URL'];
+    var newCols = ['Seeds_Per_Packet', 'Receipt_Photo_URL', 'Organic_Cert_Photo_URL', 'Days_To_Maturity', 'Plant_Family', 'Latin_Name'];
     newCols.forEach(function(col) {
       if (existingHeaders.indexOf(col) === -1) {
         var nextCol = sheet.getLastColumn() + 1;
@@ -26504,6 +26505,9 @@ function addSeedLot(data) {
     if (data.Seed_Lot_ID && !data.seedLotId) data.seedLotId = data.Seed_Lot_ID;
     if (data.Receipt_Photo_URL && !data.receiptPhotoUrl) data.receiptPhotoUrl = data.Receipt_Photo_URL;
     if (data.Organic_Cert_Photo_URL && !data.organicCertPhotoUrl) data.organicCertPhotoUrl = data.Organic_Cert_Photo_URL;
+    if (data.Days_To_Maturity && !data.dtm) data.dtm = data.Days_To_Maturity;
+    if (data.Plant_Family && !data.plantFamily) data.plantFamily = data.Plant_Family;
+    if (data.Latin_Name && !data.latinName) data.latinName = data.Latin_Name;
 
     if (!data.crop) {
       return { success: false, error: 'Crop name is required' };
@@ -26563,7 +26567,10 @@ function addSeedLot(data) {
       'Created_At': new Date(),
       'Last_Used': '',
       'Receipt_Photo_URL': data.receiptPhotoUrl || data.receipt_photo_url || '',
-      'Organic_Cert_Photo_URL': data.organicCertPhotoUrl || data.organic_cert_photo_url || ''
+      'Organic_Cert_Photo_URL': data.organicCertPhotoUrl || data.organic_cert_photo_url || '',
+      'Days_To_Maturity': data.dtm || data.daysToMaturity || data.days_to_maturity || '',
+      'Plant_Family': data.plantFamily || data.plant_family || '',
+      'Latin_Name': data.latinName || data.latin_name || ''
     };
     const rowData = actualHeaders.map(function(header) {
       return valueMap.hasOwnProperty(header) ? valueMap[header] : '';
@@ -26623,6 +26630,8 @@ function updateSeedLot(data) {
       purchaseDate: 'Purchase_Date', purchasePrice: 'Purchase_Price',
       storageLocation: 'Storage_Location', notes: 'Notes', status: 'Status',
       seedsPerPacket: 'Seeds_Per_Packet',
+      dtm: 'Days_To_Maturity', daysToMaturity: 'Days_To_Maturity',
+      plantFamily: 'Plant_Family', latinName: 'Latin_Name',
       Receipt_Photo_URL: 'Receipt_Photo_URL', Organic_Cert_Photo_URL: 'Organic_Cert_Photo_URL',
       receiptPhotoUrl: 'Receipt_Photo_URL', organicCertPhotoUrl: 'Organic_Cert_Photo_URL'
     };
@@ -36569,13 +36578,16 @@ function analyzeSeedPacket(params) {
   "seedsPerPacket": number of seeds per packet as a plain integer (IMPORTANT: In the seed industry "M" means 1,000. So "5M" = 5000 seeds, "1M" = 1000 seeds, "2.5M" = 2500 seeds, "10M" = 10000 seeds. Always convert M notation to the actual number),
   "germRate": germination rate percentage if listed (just the number, e.g., 95),
   "organic": true if certified organic or USDA Organic logo visible, false otherwise,
-  "dtm": days to maturity if listed (just the number),
+  "dtm": days to maturity if listed (just the number, e.g., 75),
+  "plantFamily": "the botanical plant family (e.g., Solanaceae, Brassicaceae, Cucurbitaceae, Fabaceae, Apiaceae, Asteraceae, Amaranthaceae, Amaryllidaceae, Poaceae, Lamiaceae). Determine from the crop even if not on packet.",
+  "latinName": "the Latin/botanical species name (e.g., Solanum lycopersicum for Tomato, Lactuca sativa for Lettuce, Capsicum annuum for Pepper). Determine from the crop even if not on packet.",
   "plantingDepth": planting depth if listed,
   "spacing": plant spacing if listed,
   "notes": any other relevant info from the packet (weight, pelleted/raw, treated/untreated, etc.)
 }
 
 Only include fields where you can clearly see the information. Use null for fields you cannot determine.
+ALWAYS provide plantFamily and latinName based on the crop name even if not printed on the packet.
 Return ONLY the JSON object, no other text.`;
 
     const response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {

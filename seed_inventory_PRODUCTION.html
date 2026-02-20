@@ -609,15 +609,41 @@
 
             .sidebar {
                 width: 100%;
-                max-height: 200px;
+                max-height: none;
                 overflow-x: auto;
                 border-right: none;
                 border-bottom: 1px solid var(--border);
+                display: none; /* Hide sidebar on mobile - show controls inline */
+            }
+
+            .header {
+                padding: 12px 16px;
+            }
+
+            .header h1 {
+                font-size: 1.3em;
             }
 
             .controls {
                 flex-direction: column;
-                gap: 15px;
+                gap: 10px;
+                padding: 12px;
+            }
+
+            .controls h2 {
+                font-size: 1.1em !important;
+            }
+
+            .scan-btn-group {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+                width: 100%;
+            }
+
+            .scan-btn-group .btn {
+                padding: 10px 8px;
+                font-size: 13px;
             }
 
             .controls > div {
@@ -627,6 +653,7 @@
 
             .seed-card {
                 grid-template-columns: 1fr;
+                padding: 12px;
             }
 
             .qr-section {
@@ -634,13 +661,23 @@
                 flex-direction: row;
                 justify-content: space-between;
             }
+
+            .modal {
+                width: 95%;
+                padding: 16px;
+                max-height: 95vh;
+            }
+
+            .main-panel {
+                padding: 12px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="header">
-        <a href="index.html" class="back-btn">
-            ← Dashboard
+        <a href="javascript:void(0)" class="back-btn" onclick="if(document.referrer.includes('employee')) window.location.href='employee.html'; else window.location.href='index.html';">
+            ← Back
         </a>
         <div class="header-content">
             <h1>Seed Inventory Management</h1>
@@ -694,6 +731,16 @@
                         <option value="no">Non-Organic</option>
                     </select>
                 </div>
+                <div class="filter-group">
+                    <label>Sort By</label>
+                    <select id="sortBy" onchange="changeSortBy(this.value)">
+                        <option value="family" selected>Plant Family</option>
+                        <option value="crop">Crop Name (A-Z)</option>
+                        <option value="dtm">Days to Maturity</option>
+                        <option value="status">Stock Status</option>
+                        <option value="date">Date Added (Newest)</option>
+                    </select>
+                </div>
             </div>
         </div>
         
@@ -701,6 +748,9 @@
             <div class="controls">
                 <h2 style="font-size: 1.3em; color: var(--text-primary);">Seed Inventory</h2>
                 <div class="scan-btn-group">
+                    <button class="btn" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; font-weight: 700;" onclick="openRapidScan()" title="Rapid-fire scan: snap packet after packet, AI processes in background">
+                        <span>Rapid Scan</span>
+                    </button>
                     <button class="btn scan-btn" onclick="openQRScanner()" title="Scan existing seed QR code">
                         <span>Scan QR</span>
                     </button>
@@ -713,8 +763,8 @@
                     <button class="btn btn-primary" onclick="openSeedCalculator()" title="Calculate seeds needed">
                         <span>Calculator</span>
                     </button>
-                    <button class="btn" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white;" onclick="openProductionPlanner()" title="Plan seed needs for date range">
-                        <span>Production Planner</span>
+                    <button class="btn" style="background: linear-gradient(135deg, #f59e0b80, #d9770680); color: white;" onclick="openProductionPlanner()" title="Plan seed needs for date range">
+                        <span>Planner</span>
                     </button>
                 </div>
             </div>
@@ -756,7 +806,11 @@
                 </div>
                 <div class="form-group">
                     <label>Germination Rate (%)</label>
-                    <input type="number" id="newGermRate" min="0" max="100" value="95">
+                    <input type="number" id="newGermRate" min="0" max="100">
+                </div>
+                <div class="form-group">
+                    <label>Days to Maturity</label>
+                    <input type="number" id="newDTM" min="0" max="365" placeholder="e.g. 75">
                 </div>
                 <div class="form-group">
                     <label>Organic Certified</label>
@@ -1020,6 +1074,45 @@
         </div>
     </div>
 
+    <!-- Rapid Scan Modal - Batch process seed packets fast -->
+    <div class="modal-overlay" id="rapidScanModal">
+        <div class="modal" style="max-width: 700px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <div class="modal-header" style="margin-bottom: 0;">Rapid Scan</div>
+                <button class="btn btn-secondary" onclick="closeRapidScan()" style="padding: 8px 14px;">Done</button>
+            </div>
+            <p style="color: var(--text-secondary); margin-bottom: 15px; font-size: 14px;">
+                Snap packet after packet. Each processes in the background while you keep scanning. ~15 sec per packet.
+            </p>
+
+            <!-- Take Photo Button -->
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <button class="btn" style="flex:1; padding: 16px; background: linear-gradient(135deg, #f59e0b, #d97706); color: white; font-size: 16px; font-weight: 700;" onclick="rapidScanTakePhoto()">
+                    <i class="fas fa-camera"></i> Snap Next Packet
+                </button>
+                <label class="btn btn-secondary" style="flex:0; padding: 16px; cursor: pointer; display: flex; align-items: center;">
+                    <i class="fas fa-folder-open"></i>
+                    <input type="file" accept="image/*" multiple onchange="rapidScanHandleFiles(event)" style="display: none;">
+                </label>
+            </div>
+
+            <!-- Scan Queue -->
+            <div id="rapidScanQueue" style="display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto;">
+                <div style="text-align: center; padding: 30px; color: var(--text-secondary);">
+                    <div style="font-size: 36px; opacity: 0.4; margin-bottom: 8px;">📷</div>
+                    <div>No packets scanned yet. Tap "Snap Next Packet" to begin.</div>
+                </div>
+            </div>
+
+            <!-- Summary bar -->
+            <div id="rapidScanSummary" style="display: none; margin-top: 15px; padding: 12px; background: rgba(42,157,143,0.15); border: 1px solid rgba(42,157,143,0.3); border-radius: 8px; text-align: center;">
+                <span id="rapidScanCount" style="font-weight: 700; color: var(--success);">0</span> packets scanned &middot;
+                <span id="rapidScanSaved" style="font-weight: 700; color: var(--success);">0</span> saved &middot;
+                <span id="rapidScanProcessing" style="font-weight: 700; color: var(--secondary);">0</span> processing
+            </div>
+        </div>
+    </div>
+
     <!-- Include QR Scanner Library -->
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
@@ -1031,6 +1124,106 @@
         const API_URL = (typeof TINY_SEED_API !== 'undefined') ? TINY_SEED_API.MAIN_API : 'https://script.google.com/macros/s/AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm/exec';
 
         let seedInventory = [];
+        let currentSortBy = 'family'; // Default sort by plant family
+
+        // Plant family lookup - maps lowercase crop names to family info
+        const PLANT_FAMILIES = {
+            'tomato': { family: 'Solanaceae', latin: 'Solanum lycopersicum', common: 'Nightshade' },
+            'pepper': { family: 'Solanaceae', latin: 'Capsicum annuum', common: 'Nightshade' },
+            'hot pepper': { family: 'Solanaceae', latin: 'Capsicum annuum', common: 'Nightshade' },
+            'sweet pepper': { family: 'Solanaceae', latin: 'Capsicum annuum', common: 'Nightshade' },
+            'eggplant': { family: 'Solanaceae', latin: 'Solanum melongena', common: 'Nightshade' },
+            'potato': { family: 'Solanaceae', latin: 'Solanum tuberosum', common: 'Nightshade' },
+            'tomatillo': { family: 'Solanaceae', latin: 'Physalis philadelphica', common: 'Nightshade' },
+            'ground cherry': { family: 'Solanaceae', latin: 'Physalis pruinosa', common: 'Nightshade' },
+            'broccoli': { family: 'Brassicaceae', latin: 'Brassica oleracea var. italica', common: 'Cabbage/Mustard' },
+            'cauliflower': { family: 'Brassicaceae', latin: 'Brassica oleracea var. botrytis', common: 'Cabbage/Mustard' },
+            'cabbage': { family: 'Brassicaceae', latin: 'Brassica oleracea var. capitata', common: 'Cabbage/Mustard' },
+            'kale': { family: 'Brassicaceae', latin: 'Brassica oleracea var. sabellica', common: 'Cabbage/Mustard' },
+            'collards': { family: 'Brassicaceae', latin: 'Brassica oleracea var. viridis', common: 'Cabbage/Mustard' },
+            'brussels sprouts': { family: 'Brassicaceae', latin: 'Brassica oleracea var. gemmifera', common: 'Cabbage/Mustard' },
+            'kohlrabi': { family: 'Brassicaceae', latin: 'Brassica oleracea var. gongylodes', common: 'Cabbage/Mustard' },
+            'turnip': { family: 'Brassicaceae', latin: 'Brassica rapa var. rapa', common: 'Cabbage/Mustard' },
+            'radish': { family: 'Brassicaceae', latin: 'Raphanus sativus', common: 'Cabbage/Mustard' },
+            'arugula': { family: 'Brassicaceae', latin: 'Eruca vesicaria', common: 'Cabbage/Mustard' },
+            'mustard': { family: 'Brassicaceae', latin: 'Brassica juncea', common: 'Cabbage/Mustard' },
+            'pak choi': { family: 'Brassicaceae', latin: 'Brassica rapa var. chinensis', common: 'Cabbage/Mustard' },
+            'bok choy': { family: 'Brassicaceae', latin: 'Brassica rapa var. chinensis', common: 'Cabbage/Mustard' },
+            'cucumber': { family: 'Cucurbitaceae', latin: 'Cucumis sativus', common: 'Gourd' },
+            'squash': { family: 'Cucurbitaceae', latin: 'Cucurbita spp.', common: 'Gourd' },
+            'summer squash': { family: 'Cucurbitaceae', latin: 'Cucurbita pepo', common: 'Gourd' },
+            'winter squash': { family: 'Cucurbitaceae', latin: 'Cucurbita maxima', common: 'Gourd' },
+            'zucchini': { family: 'Cucurbitaceae', latin: 'Cucurbita pepo', common: 'Gourd' },
+            'pumpkin': { family: 'Cucurbitaceae', latin: 'Cucurbita maxima', common: 'Gourd' },
+            'melon': { family: 'Cucurbitaceae', latin: 'Cucumis melo', common: 'Gourd' },
+            'watermelon': { family: 'Cucurbitaceae', latin: 'Citrullus lanatus', common: 'Gourd' },
+            'cantaloupe': { family: 'Cucurbitaceae', latin: 'Cucumis melo var. cantalupensis', common: 'Gourd' },
+            'gourd': { family: 'Cucurbitaceae', latin: 'Cucurbita spp.', common: 'Gourd' },
+            'bean': { family: 'Fabaceae', latin: 'Phaseolus vulgaris', common: 'Legume' },
+            'beans': { family: 'Fabaceae', latin: 'Phaseolus vulgaris', common: 'Legume' },
+            'green bean': { family: 'Fabaceae', latin: 'Phaseolus vulgaris', common: 'Legume' },
+            'snap bean': { family: 'Fabaceae', latin: 'Phaseolus vulgaris', common: 'Legume' },
+            'lima bean': { family: 'Fabaceae', latin: 'Phaseolus lunatus', common: 'Legume' },
+            'pea': { family: 'Fabaceae', latin: 'Pisum sativum', common: 'Legume' },
+            'peas': { family: 'Fabaceae', latin: 'Pisum sativum', common: 'Legume' },
+            'snow pea': { family: 'Fabaceae', latin: 'Pisum sativum var. saccharatum', common: 'Legume' },
+            'soybean': { family: 'Fabaceae', latin: 'Glycine max', common: 'Legume' },
+            'carrot': { family: 'Apiaceae', latin: 'Daucus carota', common: 'Carrot/Parsley' },
+            'celery': { family: 'Apiaceae', latin: 'Apium graveolens', common: 'Carrot/Parsley' },
+            'parsley': { family: 'Apiaceae', latin: 'Petroselinum crispum', common: 'Carrot/Parsley' },
+            'dill': { family: 'Apiaceae', latin: 'Anethum graveolens', common: 'Carrot/Parsley' },
+            'fennel': { family: 'Apiaceae', latin: 'Foeniculum vulgare', common: 'Carrot/Parsley' },
+            'cilantro': { family: 'Apiaceae', latin: 'Coriandrum sativum', common: 'Carrot/Parsley' },
+            'coriander': { family: 'Apiaceae', latin: 'Coriandrum sativum', common: 'Carrot/Parsley' },
+            'parsnip': { family: 'Apiaceae', latin: 'Pastinaca sativa', common: 'Carrot/Parsley' },
+            'lettuce': { family: 'Asteraceae', latin: 'Lactuca sativa', common: 'Daisy/Aster' },
+            'sunflower': { family: 'Asteraceae', latin: 'Helianthus annuus', common: 'Daisy/Aster' },
+            'artichoke': { family: 'Asteraceae', latin: 'Cynara cardunculus', common: 'Daisy/Aster' },
+            'endive': { family: 'Asteraceae', latin: 'Cichorium endivia', common: 'Daisy/Aster' },
+            'chicory': { family: 'Asteraceae', latin: 'Cichorium intybus', common: 'Daisy/Aster' },
+            'radicchio': { family: 'Asteraceae', latin: 'Cichorium intybus', common: 'Daisy/Aster' },
+            'beet': { family: 'Amaranthaceae', latin: 'Beta vulgaris', common: 'Amaranth' },
+            'beets': { family: 'Amaranthaceae', latin: 'Beta vulgaris', common: 'Amaranth' },
+            'chard': { family: 'Amaranthaceae', latin: 'Beta vulgaris var. cicla', common: 'Amaranth' },
+            'swiss chard': { family: 'Amaranthaceae', latin: 'Beta vulgaris var. cicla', common: 'Amaranth' },
+            'spinach': { family: 'Amaranthaceae', latin: 'Spinacia oleracea', common: 'Amaranth' },
+            'amaranth': { family: 'Amaranthaceae', latin: 'Amaranthus spp.', common: 'Amaranth' },
+            'onion': { family: 'Amaryllidaceae', latin: 'Allium cepa', common: 'Allium' },
+            'garlic': { family: 'Amaryllidaceae', latin: 'Allium sativum', common: 'Allium' },
+            'leek': { family: 'Amaryllidaceae', latin: 'Allium ampeloprasum', common: 'Allium' },
+            'chives': { family: 'Amaryllidaceae', latin: 'Allium schoenoprasum', common: 'Allium' },
+            'shallot': { family: 'Amaryllidaceae', latin: 'Allium cepa var. aggregatum', common: 'Allium' },
+            'scallion': { family: 'Amaryllidaceae', latin: 'Allium fistulosum', common: 'Allium' },
+            'corn': { family: 'Poaceae', latin: 'Zea mays', common: 'Grass' },
+            'sweet corn': { family: 'Poaceae', latin: 'Zea mays var. saccharata', common: 'Grass' },
+            'wheat': { family: 'Poaceae', latin: 'Triticum aestivum', common: 'Grass' },
+            'oats': { family: 'Poaceae', latin: 'Avena sativa', common: 'Grass' },
+            'basil': { family: 'Lamiaceae', latin: 'Ocimum basilicum', common: 'Mint' },
+            'mint': { family: 'Lamiaceae', latin: 'Mentha spp.', common: 'Mint' },
+            'oregano': { family: 'Lamiaceae', latin: 'Origanum vulgare', common: 'Mint' },
+            'sage': { family: 'Lamiaceae', latin: 'Salvia officinalis', common: 'Mint' },
+            'thyme': { family: 'Lamiaceae', latin: 'Thymus vulgaris', common: 'Mint' },
+            'rosemary': { family: 'Lamiaceae', latin: 'Salvia rosmarinus', common: 'Mint' },
+            'okra': { family: 'Malvaceae', latin: 'Abelmoschus esculentus', common: 'Mallow' },
+            'flower': { family: 'Various', latin: '', common: 'Flowers' },
+            'zinnia': { family: 'Asteraceae', latin: 'Zinnia elegans', common: 'Daisy/Aster' },
+            'marigold': { family: 'Asteraceae', latin: 'Tagetes spp.', common: 'Daisy/Aster' },
+            'nasturtium': { family: 'Tropaeolaceae', latin: 'Tropaeolum majus', common: 'Nasturtium' },
+            'cosmos': { family: 'Asteraceae', latin: 'Cosmos bipinnatus', common: 'Daisy/Aster' },
+            'sweet potato': { family: 'Convolvulaceae', latin: 'Ipomoea batatas', common: 'Morning Glory' },
+            'asparagus': { family: 'Asparagaceae', latin: 'Asparagus officinalis', common: 'Asparagus' }
+        };
+
+        function lookupPlantFamily(cropName) {
+            if (!cropName) return { family: 'Unknown', latin: '', common: '' };
+            const key = cropName.toLowerCase().trim();
+            if (PLANT_FAMILIES[key]) return PLANT_FAMILIES[key];
+            // Partial match - check if crop starts with or contains a known name
+            for (const [name, info] of Object.entries(PLANT_FAMILIES)) {
+                if (key.includes(name) || name.includes(key)) return info;
+            }
+            return { family: 'Unknown', latin: '', common: '' };
+        }
 
         async function init() {
             showLoadingState();
@@ -1056,28 +1249,35 @@
 
                 if (result.success && result.data) {
                     // Map backend column names to frontend property names
-                    seedInventory = result.data.map(item => ({
-                        id: item.rowIndex || item.Seed_Lot_ID,
-                        seedLotId: item.Seed_Lot_ID || '',
-                        crop: item.Crop || '',
-                        variety: item.Variety || '',
-                        vendor: item.Supplier || item.Vendor || '',
-                        lotNumber: item.Supplier_Lot || item.Lot_Number || '',
-                        quantity: Number(item.Quantity_Remaining) || 0,
-                        seedsPerPacket: Number(item.Seeds_Per_Packet) || 0,
-                        germRate: Number(item.Germination_Rate) || 0,
-                        organic: String(item.Organic_Certified).toLowerCase() === 'yes',
-                        threshold: Number(item.Reorder_Threshold) || 0,
-                        used: Number(item.Total_Used) || 0,
-                        unit: item.Unit || 'packets',
-                        status: item.Status || '',
-                        purchaseDate: item.Purchase_Date || '',
-                        expirationDate: item.Expiration_Date || '',
-                        notes: item.Notes || '',
-                        receiptPhotoUrl: item.Receipt_Photo_URL || '',
-                        organicCertPhotoUrl: item.Organic_Cert_Photo_URL || '',
-                        qrCodeUrl: item.QR_Code_URL || ''
-                    }));
+                    seedInventory = result.data.map(item => {
+                        const crop = item.Crop || '';
+                        const familyInfo = lookupPlantFamily(crop);
+                        return {
+                            id: item.rowIndex || item.Seed_Lot_ID,
+                            seedLotId: item.Seed_Lot_ID || '',
+                            crop: crop,
+                            variety: item.Variety || '',
+                            vendor: item.Supplier || item.Vendor || '',
+                            lotNumber: item.Supplier_Lot || item.Lot_Number || '',
+                            quantity: Number(item.Quantity_Remaining) || 0,
+                            seedsPerPacket: Number(item.Seeds_Per_Packet) || 0,
+                            germRate: Number(item.Germination_Rate) || 0,
+                            organic: String(item.Organic_Certified).toLowerCase() === 'yes',
+                            threshold: Number(item.Reorder_Threshold) || 0,
+                            used: Number(item.Total_Used) || 0,
+                            unit: item.Unit || 'packets',
+                            status: item.Status || '',
+                            purchaseDate: item.Purchase_Date || '',
+                            expirationDate: item.Expiration_Date || '',
+                            notes: item.Notes || '',
+                            receiptPhotoUrl: item.Receipt_Photo_URL || '',
+                            organicCertPhotoUrl: item.Organic_Cert_Photo_URL || '',
+                            qrCodeUrl: item.QR_Code_URL || '',
+                            dtm: Number(item.Days_To_Maturity) || 0,
+                            plantFamily: item.Plant_Family || familyInfo.family,
+                            latinName: item.Latin_Name || familyInfo.latin
+                        };
+                    });
                     // Filter out deleted seeds
                     seedInventory = seedInventory.filter(s => s.status !== 'Deleted');
                 } else if (result.success && result.data === undefined) {
@@ -1106,6 +1306,94 @@
             `;
         }
         
+        function sortSeeds(seeds) {
+            const sorted = [...seeds];
+            switch (currentSortBy) {
+                case 'family':
+                    sorted.sort((a, b) => (a.plantFamily || 'ZZZ').localeCompare(b.plantFamily || 'ZZZ') || a.crop.localeCompare(b.crop));
+                    break;
+                case 'dtm':
+                    sorted.sort((a, b) => (a.dtm || 999) - (b.dtm || 999) || a.crop.localeCompare(b.crop));
+                    break;
+                case 'crop':
+                    sorted.sort((a, b) => a.crop.localeCompare(b.crop));
+                    break;
+                case 'date':
+                    sorted.sort((a, b) => {
+                        const da = a.purchaseDate ? new Date(a.purchaseDate) : new Date(0);
+                        const db = b.purchaseDate ? new Date(b.purchaseDate) : new Date(0);
+                        return db - da;
+                    });
+                    break;
+                case 'status':
+                    const statusOrder = { depleted: 0, low: 1, good: 2 };
+                    sorted.sort((a, b) => (statusOrder[getStatus(a)] || 2) - (statusOrder[getStatus(b)] || 2));
+                    break;
+            }
+            return sorted;
+        }
+
+        function renderSeedCard(seed) {
+            const status = getStatus(seed);
+            const percentRemaining = (seed.quantity / (seed.quantity + seed.used)) * 100 || 0;
+            const totalSeeds = seed.quantity * seed.seedsPerPacket;
+
+            return `
+                <div class="seed-card ${status === 'low' ? 'low-stock' : ''} ${status === 'depleted' ? 'depleted' : ''}" onclick="showSeedDetailById('${seed.seedLotId}')" style="cursor:pointer;">
+                    <div class="seed-info">
+                        <div class="seed-header">
+                            <div style="display:flex;align-items:center;gap:10px;">
+                                ${seed.receiptPhotoUrl ? `<img src="${seed.receiptPhotoUrl}" alt="Seed packet" style="width:48px;height:48px;border-radius:6px;object-fit:cover;border:1px solid var(--border);flex-shrink:0;" onerror="this.style.display='none'">` : ''}
+                                <div>
+                                    <div class="seed-name">${seed.crop}</div>
+                                    <div class="seed-variety">${seed.variety}${seed.dtm ? ' <span style="color:var(--secondary);font-size:11px;">' + seed.dtm + ' days</span>' : ''}</div>
+                                </div>
+                            </div>
+                            <div>
+                                <span class="status-badge badge-${status}">${status.toUpperCase()}</span>
+                                ${seed.organic ? '<span class="status-badge badge-organic">ORGANIC</span>' : ''}
+                            </div>
+                        </div>
+                        <div class="seed-details">
+                            <div class="detail-item">
+                                <div class="detail-label">Vendor</div>
+                                <div class="detail-value">${seed.vendor || '—'}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">DTM</div>
+                                <div class="detail-value">${seed.dtm ? seed.dtm + ' days' : '—'}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Germination</div>
+                                <div class="detail-value">${seed.germRate ? seed.germRate + '%' : '—'}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Total Seeds</div>
+                                <div class="detail-value">${totalSeeds ? totalSeeds.toLocaleString() : '—'}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="qr-section">
+                        <img class="qr-code" src="${getQRCodeUrl(seed)}" alt="QR Code" onerror="this.style.display='none'">
+                        <div class="qr-id">${seed.seedLotId || seed.lotNumber}</div>
+                    </div>
+                    <div class="seed-actions">
+                        <div class="quantity-display">${seed.quantity}</div>
+                        <div class="quantity-label">packets remaining</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill ${status === 'low' ? 'low' : ''} ${status === 'depleted' ? 'depleted' : ''}"
+                                 style="width: ${percentRemaining}%"></div>
+                        </div>
+                        <div class="action-buttons">
+                            <button class="btn btn-primary btn-small" onclick="event.stopPropagation(); useSeed(${seed.id})">📤 Use</button>
+                            <button class="btn btn-success btn-small" onclick="event.stopPropagation(); restock(${seed.id})">➕ Restock</button>
+                            <button class="btn btn-qr btn-small" onclick="event.stopPropagation(); printLabel('${seed.seedLotId || seed.lotNumber}')">🏷️ Print</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
         function renderInventory(filtered = null) {
             const seeds = filtered || seedInventory;
             const grid = document.getElementById('inventoryGrid');
@@ -1133,69 +1421,32 @@
                 `;
                 return;
             }
-            
-            const html = seeds.map(seed => {
-                const status = getStatus(seed);
-                const percentRemaining = (seed.quantity / (seed.quantity + seed.used)) * 100 || 0;
-                const totalSeeds = seed.quantity * seed.seedsPerPacket;
-                
-                return `
-                    <div class="seed-card ${status === 'low' ? 'low-stock' : ''} ${status === 'depleted' ? 'depleted' : ''}" onclick="showSeedDetailById('${seed.seedLotId}')" style="cursor:pointer;">
-                        <div class="seed-info">
-                            <div class="seed-header">
-                                <div style="display:flex;align-items:center;gap:10px;">
-                                    ${seed.receiptPhotoUrl ? `<img src="${seed.receiptPhotoUrl}" alt="Seed packet" style="width:48px;height:48px;border-radius:6px;object-fit:cover;border:1px solid var(--border);flex-shrink:0;" onerror="this.style.display='none'">` : ''}
-                                    <div>
-                                        <div class="seed-name">${seed.crop}</div>
-                                        <div class="seed-variety">${seed.variety}</div>
-                                    </div>
-                                </div>
-                                <div>
-                                    <span class="status-badge badge-${status}">${status.toUpperCase()}</span>
-                                    ${seed.organic ? '<span class="status-badge badge-organic">ORGANIC</span>' : ''}
-                                </div>
+
+            const sorted = sortSeeds(seeds);
+
+            // Group by plant family when sorting by family
+            if (currentSortBy === 'family') {
+                let html = '';
+                let currentFamily = '';
+                for (const seed of sorted) {
+                    const family = seed.plantFamily || 'Unknown';
+                    if (family !== currentFamily) {
+                        currentFamily = family;
+                        const latinDisplay = seed.latinName ? ` <span style="font-style:italic;color:var(--text-secondary);font-weight:400;">(${family})</span>` : ` <span style="font-style:italic;color:var(--text-secondary);font-weight:400;">(${family})</span>`;
+                        const familyInfo = Object.values(PLANT_FAMILIES).find(f => f.family === family);
+                        const commonName = familyInfo ? familyInfo.common : '';
+                        html += `
+                            <div style="padding: 12px 16px; margin-top: 12px; background: linear-gradient(135deg, rgba(45,90,39,0.2), rgba(74,124,67,0.1)); border-left: 4px solid var(--primary-light); border-radius: 4px; font-weight: 700; font-size: 15px; color: var(--primary-light);">
+                                ${commonName ? commonName + ' — ' : ''}${family}
                             </div>
-                            <div class="seed-details">
-                                <div class="detail-item">
-                                    <div class="detail-label">Vendor</div>
-                                    <div class="detail-value">${seed.vendor}</div>
-                                </div>
-                                <div class="detail-item">
-                                    <div class="detail-label">Lot Number</div>
-                                    <div class="detail-value">${seed.lotNumber}</div>
-                                </div>
-                                <div class="detail-item">
-                                    <div class="detail-label">Germination Rate</div>
-                                    <div class="detail-value">${seed.germRate ? seed.germRate + '%' : '—'}</div>
-                                </div>
-                                <div class="detail-item">
-                                    <div class="detail-label">Total Seeds</div>
-                                    <div class="detail-value">${totalSeeds ? totalSeeds.toLocaleString() : '—'}</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="qr-section">
-                            <img class="qr-code" src="${getQRCodeUrl(seed)}" alt="QR Code" onerror="this.style.display='none'">
-                            <div class="qr-id">${seed.seedLotId || seed.lotNumber}</div>
-                        </div>
-                        <div class="seed-actions">
-                            <div class="quantity-display">${seed.quantity}</div>
-                            <div class="quantity-label">packets remaining</div>
-                            <div class="progress-bar">
-                                <div class="progress-fill ${status === 'low' ? 'low' : ''} ${status === 'depleted' ? 'depleted' : ''}"
-                                     style="width: ${percentRemaining}%"></div>
-                            </div>
-                            <div class="action-buttons">
-                                <button class="btn btn-primary btn-small" onclick="event.stopPropagation(); useSeed(${seed.id})">📤 Use</button>
-                                <button class="btn btn-success btn-small" onclick="event.stopPropagation(); restock(${seed.id})">➕ Restock</button>
-                                <button class="btn btn-qr btn-small" onclick="event.stopPropagation(); printLabel('${seed.seedLotId || seed.lotNumber}')">🏷️ Print</button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-            
-            grid.innerHTML = html;
+                        `;
+                    }
+                    html += renderSeedCard(seed);
+                }
+                grid.innerHTML = html;
+            } else {
+                grid.innerHTML = sorted.map(seed => renderSeedCard(seed)).join('');
+            }
         }
         
         function getStatus(seed) {
@@ -1241,7 +1492,9 @@
                     (seed.crop && seed.crop.toLowerCase().includes(search)) ||
                     (seed.variety && seed.variety.toLowerCase().includes(search)) ||
                     (seed.vendor && seed.vendor.toLowerCase().includes(search)) ||
-                    (seed.seedLotId && seed.seedLotId.toLowerCase().includes(search));
+                    (seed.seedLotId && seed.seedLotId.toLowerCase().includes(search)) ||
+                    (seed.plantFamily && seed.plantFamily.toLowerCase().includes(search)) ||
+                    (seed.latinName && seed.latinName.toLowerCase().includes(search));
 
                 const statusMatch = status === 'all' || getStatus(seed) === status;
 
@@ -1253,6 +1506,11 @@
             });
 
             renderInventory(filtered);
+        }
+
+        function changeSortBy(value) {
+            currentSortBy = value;
+            filterInventory();
         }
 
         function clearFilters() {
@@ -1395,7 +1653,7 @@
             try {
                 const response = await fetch(API_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'uploadSeedPhoto',
                         base64: base64,
@@ -1434,16 +1692,21 @@
         async function addSeed(event) {
             event.preventDefault();
 
+            const cropVal = document.getElementById('newCrop').value;
+            const familyInfo = lookupPlantFamily(cropVal);
             const newSeed = {
-                crop: document.getElementById('newCrop').value,
+                crop: cropVal,
                 variety: document.getElementById('newVariety').value,
                 vendor: document.getElementById('newVendor').value,
                 lotNumber: document.getElementById('newLotNumber').value,
                 quantity: parseInt(document.getElementById('newQuantity').value) || 1,
                 seedsPerPacket: parseInt(document.getElementById('newSeedsPerPacket').value) || 0,
-                germRate: parseInt(document.getElementById('newGermRate').value) || 85,
+                germRate: parseInt(document.getElementById('newGermRate').value) || 0,
+                dtm: parseInt(document.getElementById('newDTM').value) || 0,
                 organic: document.getElementById('newOrganic').value === 'yes',
                 threshold: parseInt(document.getElementById('newThreshold').value) || 3,
+                plantFamily: familyInfo.family,
+                latinName: familyInfo.latin,
                 used: 0
             };
 
@@ -1466,7 +1729,7 @@
                 // Try to save to backend
                 const response = await fetch(API_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'addSeedToInventory',
                         Crop: newSeed.crop,
@@ -1477,6 +1740,9 @@
                         Quantity_Remaining: newSeed.quantity,
                         Seeds_Per_Packet: newSeed.seedsPerPacket,
                         Germination_Rate: newSeed.germRate,
+                        Days_To_Maturity: newSeed.dtm,
+                        Plant_Family: newSeed.plantFamily,
+                        Latin_Name: newSeed.latinName,
                         Organic_Certified: newSeed.organic ? 'Yes' : 'No',
                         Reorder_Threshold: newSeed.threshold,
                         Receipt_Photo_URL: receiptUrl,
@@ -1716,7 +1982,11 @@
                             </span>
                             ${seed.organic ? '<span style="padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 700; background: rgba(42, 157, 143, 0.2); color: var(--success);">ORGANIC</span>' : ''}
                         </div>
-                        <p style="color: var(--text-secondary); margin-bottom: 15px;">${seed.variety || ''}</p>
+                        <p style="color: var(--text-secondary); margin-bottom: 4px;">${seed.variety || ''}</p>
+                        ${seed.plantFamily && seed.plantFamily !== 'Unknown' ? `
+                        <p style="color: var(--primary-light); font-size: 13px; margin-bottom: 15px;">
+                            <strong>${seed.plantFamily}</strong>${seed.latinName ? ' — <em>' + seed.latinName + '</em>' : ''}
+                        </p>` : '<div style="margin-bottom: 15px;"></div>'}
 
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                             <div>
@@ -1734,8 +2004,12 @@
                                 </div>
                             </div>
                             <div>
+                                <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase;">Days to Maturity</div>
+                                <div style="font-weight: 600; color: var(--secondary);">${seed.dtm ? seed.dtm + ' days' : 'N/A'}</div>
+                            </div>
+                            <div>
                                 <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase;">Germination</div>
-                                <div style="font-weight: 600; color: var(--text-primary);">${seed.germRate || 'N/A'}%</div>
+                                <div style="font-weight: 600; color: var(--text-primary);">${seed.germRate ? seed.germRate + '%' : 'N/A'}</div>
                             </div>
                             <div>
                                 <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase;">Seeds/Packet</div>
@@ -1744,6 +2018,10 @@
                             <div>
                                 <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase;">Supplier Lot</div>
                                 <div style="font-weight: 600; color: var(--text-primary);">${seed.lotNumber || 'N/A'}</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase;">Plant Family</div>
+                                <div style="font-weight: 600; color: var(--text-primary);">${seed.plantFamily && seed.plantFamily !== 'Unknown' ? seed.plantFamily : 'N/A'}</div>
                             </div>
                         </div>
 
@@ -1819,6 +2097,10 @@
                             <input id="editSeedsPerPacket" type="number" style="width: 100%; padding: 8px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-size: 14px;">
                         </div>
                         <div>
+                            <label style="display: block; font-size: 11px; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 3px;">Days to Maturity</label>
+                            <input id="editDTM" type="number" style="width: 100%; padding: 8px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-size: 14px;">
+                        </div>
+                        <div>
                             <label style="display: block; font-size: 11px; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 3px;">Organic</label>
                             <select id="editOrganic" style="width: 100%; padding: 8px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-size: 14px;">
                                 <option value="yes">Yes</option>
@@ -1884,7 +2166,7 @@
                         try {
                             await fetch(API_URL, {
                                 method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
+                                headers: { 'Content-Type': 'text/plain' },
                                 body: JSON.stringify({
                                     action: 'updateSeedLot',
                                     seedLotId: currentDetailSeed.seedLotId,
@@ -1919,6 +2201,7 @@
             document.getElementById('editQuantity').value = currentDetailSeed.quantity || '';
             document.getElementById('editGermRate').value = currentDetailSeed.germRate || '';
             document.getElementById('editSeedsPerPacket').value = currentDetailSeed.seedsPerPacket || '';
+            document.getElementById('editDTM').value = currentDetailSeed.dtm || '';
             document.getElementById('editOrganic').value = currentDetailSeed.organic ? 'yes' : 'no';
             document.getElementById('editNotes').value = currentDetailSeed.notes || '';
             form.scrollIntoView({ behavior: 'smooth' });
@@ -1930,16 +2213,21 @@
 
         async function saveEdit() {
             if (!currentDetailSeed) return;
+            var editCrop = document.getElementById('editCrop').value.trim();
+            var editFamilyInfo = lookupPlantFamily(editCrop);
             var payload = {
                 action: 'updateSeedLot',
                 seedLotId: currentDetailSeed.seedLotId,
-                crop: document.getElementById('editCrop').value.trim(),
+                crop: editCrop,
                 variety: document.getElementById('editVariety').value.trim(),
                 vendor: document.getElementById('editVendor').value.trim(),
                 lotNumber: document.getElementById('editLotNumber').value.trim(),
                 quantity: parseInt(document.getElementById('editQuantity').value) || 0,
                 germRate: parseInt(document.getElementById('editGermRate').value) || 0,
                 seedsPerPacket: parseInt(document.getElementById('editSeedsPerPacket').value) || 0,
+                dtm: parseInt(document.getElementById('editDTM').value) || 0,
+                plantFamily: editFamilyInfo.family,
+                latinName: editFamilyInfo.latin,
                 organic: document.getElementById('editOrganic').value,
                 notes: document.getElementById('editNotes').value.trim()
             };
@@ -1961,6 +2249,9 @@
                     currentDetailSeed.quantity = payload.quantity;
                     currentDetailSeed.germRate = payload.germRate;
                     currentDetailSeed.seedsPerPacket = payload.seedsPerPacket;
+                    currentDetailSeed.dtm = payload.dtm;
+                    currentDetailSeed.plantFamily = payload.plantFamily;
+                    currentDetailSeed.latinName = payload.latinName;
                     currentDetailSeed.organic = payload.organic === 'yes';
                     currentDetailSeed.notes = payload.notes;
                     document.getElementById('seedEditForm').style.display = 'none';
@@ -2622,7 +2913,7 @@
             try {
                 const response = await fetch(API_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify(taskData)
                 });
 
@@ -2747,8 +3038,8 @@
             const ctx = canvas.getContext('2d');
             ctx.drawImage(video, 0, 0);
 
-            // Convert to data URL
-            capturedPacketImage = canvas.toDataURL('image/jpeg', 0.8);
+            // Convert to data URL at reduced quality for faster upload
+            capturedPacketImage = canvas.toDataURL('image/jpeg', 0.6);
 
             // Show preview
             preview.src = capturedPacketImage;
@@ -2770,18 +3061,31 @@
 
             const reader = new FileReader();
             reader.onload = function(e) {
-                capturedPacketImage = e.target.result;
-
-                const preview = document.getElementById('packetPreview');
-                preview.src = capturedPacketImage;
-                preview.style.display = 'block';
-
-                document.getElementById('packetPlaceholder').style.display = 'none';
-                document.getElementById('packetVideo').style.display = 'none';
-                document.getElementById('startCameraBtn').style.display = 'none';
-                document.getElementById('captureBtn').style.display = 'none';
-                document.getElementById('retakeBtn').style.display = 'inline-block';
-                document.getElementById('analyzeBtn').style.display = 'inline-block';
+                // Compress to 800px for faster upload + AI analysis
+                compressForAI(e.target.result, 800).then(function(compressed) {
+                    capturedPacketImage = compressed;
+                    var preview = document.getElementById('packetPreview');
+                    preview.src = compressed;
+                    preview.style.display = 'block';
+                    document.getElementById('packetPlaceholder').style.display = 'none';
+                    document.getElementById('packetVideo').style.display = 'none';
+                    document.getElementById('startCameraBtn').style.display = 'none';
+                    document.getElementById('captureBtn').style.display = 'none';
+                    document.getElementById('retakeBtn').style.display = 'inline-block';
+                    document.getElementById('analyzeBtn').style.display = 'inline-block';
+                }).catch(function() {
+                    // Fallback to raw image
+                    capturedPacketImage = e.target.result;
+                    var preview = document.getElementById('packetPreview');
+                    preview.src = capturedPacketImage;
+                    preview.style.display = 'block';
+                    document.getElementById('packetPlaceholder').style.display = 'none';
+                    document.getElementById('packetVideo').style.display = 'none';
+                    document.getElementById('startCameraBtn').style.display = 'none';
+                    document.getElementById('captureBtn').style.display = 'none';
+                    document.getElementById('retakeBtn').style.display = 'inline-block';
+                    document.getElementById('analyzeBtn').style.display = 'inline-block';
+                });
             };
             reader.readAsDataURL(file);
         }
@@ -2804,10 +3108,10 @@
 
             try {
                 // Send image to backend for AI analysis
-                const response = await fetch(`${API_URL}?action=analyzeSeedPacket`, {
+                const response = await fetch(API_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ image: capturedPacketImage })
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({ action: 'analyzeSeedPacket', image: capturedPacketImage })
                 });
 
                 const result = await response.json();
@@ -2840,8 +3144,10 @@
                 { label: 'Lot Number', value: data.lotNumber, key: 'lotNumber' },
                 { label: 'Seeds/Packet', value: data.seedsPerPacket, key: 'seedsPerPacket' },
                 { label: 'Germination %', value: data.germRate, key: 'germRate' },
-                { label: 'Organic', value: data.organic ? 'Yes' : 'No', key: 'organic' },
-                { label: 'Days to Maturity', value: data.dtm, key: 'dtm' }
+                { label: 'Days to Maturity', value: data.dtm, key: 'dtm' },
+                { label: 'Plant Family', value: data.plantFamily, key: 'plantFamily' },
+                { label: 'Latin Name', value: data.latinName, key: 'latinName' },
+                { label: 'Organic', value: data.organic ? 'Yes' : 'No', key: 'organic' }
             ];
 
             resultsDiv.innerHTML = fields.map(f => `
@@ -2870,12 +3176,242 @@
                 if (parsedPacketData.lotNumber) document.getElementById('newLotNumber').value = parsedPacketData.lotNumber;
                 if (parsedPacketData.seedsPerPacket) document.getElementById('newSeedsPerPacket').value = parsedPacketData.seedsPerPacket;
                 if (parsedPacketData.germRate) document.getElementById('newGermRate').value = parsedPacketData.germRate;
+                if (parsedPacketData.dtm) document.getElementById('newDTM').value = parsedPacketData.dtm;
                 if (parsedPacketData.organic !== undefined) document.getElementById('newOrganic').value = parsedPacketData.organic ? 'yes' : 'no';
 
                 // Default quantity to 1 packet
                 document.getElementById('newQuantity').value = 1;
             }, 100);
         }
+
+        // ============ RAPID SCAN - BATCH PROCESS SEED PACKETS ============
+        // Takes photo after photo, each processes in background (compress → AI → auto-save)
+
+        let rapidScanItems = []; // { id, status, photo, data, error }
+        let rapidScanStats = { total: 0, saved: 0, processing: 0 };
+
+        function openRapidScan() {
+            rapidScanItems = [];
+            rapidScanStats = { total: 0, saved: 0, processing: 0 };
+            document.getElementById('rapidScanModal').classList.add('active');
+            updateRapidScanUI();
+        }
+
+        function closeRapidScan() {
+            document.getElementById('rapidScanModal').classList.remove('active');
+            // Reload inventory to show newly added seeds
+            if (rapidScanStats.saved > 0) {
+                loadInventory().then(() => { renderInventory(); updateStats(); });
+            }
+        }
+
+        function rapidScanTakePhoto() {
+            var input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.capture = 'environment';
+            input.onchange = function(e) {
+                if (e.target.files && e.target.files[0]) {
+                    processRapidScanFile(e.target.files[0]);
+                }
+            };
+            input.click();
+        }
+
+        function rapidScanHandleFiles(event) {
+            var files = event.target.files;
+            for (var i = 0; i < files.length; i++) {
+                processRapidScanFile(files[i]);
+            }
+            event.target.value = ''; // Reset for next selection
+        }
+
+        function processRapidScanFile(file) {
+            var itemId = Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+            var item = { id: itemId, status: 'reading', photo: null, data: null, error: null, fileName: file.name };
+            rapidScanItems.unshift(item); // Add to top
+            rapidScanStats.total++;
+            rapidScanStats.processing++;
+            updateRapidScanUI();
+
+            var reader = new FileReader();
+            reader.onload = function(event) {
+                item.status = 'compressing';
+                updateRapidScanUI();
+                compressForAI(event.target.result, 800).then(function(compressed) {
+                    item.photo = compressed;
+                    item.status = 'analyzing';
+                    updateRapidScanUI();
+                    return analyzeAndSave(item, compressed);
+                }).catch(function(err) {
+                    item.status = 'error';
+                    item.error = 'Compression failed';
+                    rapidScanStats.processing--;
+                    updateRapidScanUI();
+                });
+            };
+            reader.onerror = function() {
+                item.status = 'error';
+                item.error = 'Could not read file';
+                rapidScanStats.processing--;
+                updateRapidScanUI();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function compressForAI(dataUrl, maxWidth) {
+            return new Promise(function(resolve, reject) {
+                var img = new Image();
+                var timeout = setTimeout(function() { reject('Timeout'); }, 10000);
+                img.onload = function() {
+                    clearTimeout(timeout);
+                    var w = img.width, h = img.height;
+                    if (w > maxWidth) { h = h * (maxWidth / w); w = maxWidth; }
+                    var canvas = document.createElement('canvas');
+                    canvas.width = w;
+                    canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                    resolve(canvas.toDataURL('image/jpeg', 0.7));
+                };
+                img.onerror = function() { clearTimeout(timeout); reject('Load failed'); };
+                img.src = dataUrl;
+            });
+        }
+
+        function analyzeAndSave(item, compressed) {
+            // Step 1: AI analyze
+            return fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({ action: 'analyzeSeedPacket', image: compressed })
+            })
+            .then(function(resp) { return resp.json(); })
+            .then(function(result) {
+                if (result.success && result.data) {
+                    item.data = result.data;
+                    item.status = 'saving';
+                    updateRapidScanUI();
+
+                    // Step 2: Auto-save with AI data + plant family lookup
+                    var crop = result.data.crop || 'Unknown';
+                    var familyInfo = lookupPlantFamily(crop);
+                    var savePayload = {
+                        action: 'addSeedLot',
+                        crop: crop,
+                        variety: result.data.variety || '',
+                        vendor: result.data.vendor || '',
+                        lotNumber: result.data.lotNumber || '',
+                        quantity: 1,
+                        seedsPerPacket: result.data.seedsPerPacket || 0,
+                        germRate: result.data.germRate || 0,
+                        dtm: result.data.dtm || 0,
+                        organic: result.data.organic || false,
+                        plantFamily: result.data.plantFamily || familyInfo.family,
+                        latinName: result.data.latinName || familyInfo.latin,
+                        notes: result.data.notes || ''
+                    };
+
+                    return fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain' },
+                        body: JSON.stringify(savePayload)
+                    })
+                    .then(function(resp) { return resp.json(); })
+                    .then(function(saveResult) {
+                        if (saveResult.success) {
+                            item.status = 'saved';
+                            item.seedLotId = saveResult.seedLotId || '';
+                            rapidScanStats.saved++;
+                        } else {
+                            item.status = 'save_error';
+                            item.error = saveResult.error || 'Save failed';
+                        }
+                        rapidScanStats.processing--;
+                        updateRapidScanUI();
+                    });
+                } else {
+                    item.status = 'ai_failed';
+                    item.error = result.error || 'AI could not read packet';
+                    rapidScanStats.processing--;
+                    updateRapidScanUI();
+                }
+            })
+            .catch(function(err) {
+                item.status = 'error';
+                item.error = 'Network error';
+                rapidScanStats.processing--;
+                updateRapidScanUI();
+            });
+        }
+
+        function retryRapidItem(itemId) {
+            var item = rapidScanItems.find(function(i) { return i.id === itemId; });
+            if (!item || !item.photo) return;
+            item.status = 'analyzing';
+            item.error = null;
+            rapidScanStats.processing++;
+            updateRapidScanUI();
+            analyzeAndSave(item, item.photo);
+        }
+
+        function updateRapidScanUI() {
+            var queue = document.getElementById('rapidScanQueue');
+            var summary = document.getElementById('rapidScanSummary');
+
+            if (rapidScanItems.length === 0) {
+                queue.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-secondary);"><div style="font-size:36px;opacity:0.4;margin-bottom:8px;">📷</div><div>No packets scanned yet. Tap "Snap Next Packet" to begin.</div></div>';
+                summary.style.display = 'none';
+                return;
+            }
+
+            summary.style.display = 'block';
+            document.getElementById('rapidScanCount').textContent = rapidScanStats.total;
+            document.getElementById('rapidScanSaved').textContent = rapidScanStats.saved;
+            document.getElementById('rapidScanProcessing').textContent = rapidScanStats.processing;
+
+            var statusIcons = {
+                reading: '<span style="color:#60a5fa;">Reading...</span>',
+                compressing: '<span style="color:#60a5fa;">Compressing...</span>',
+                analyzing: '<span style="color:#f59e0b;">AI analyzing...</span>',
+                saving: '<span style="color:#f59e0b;">Saving...</span>',
+                saved: '<span style="color:#10b981;">Saved</span>',
+                error: '<span style="color:#ef4444;">Error</span>',
+                save_error: '<span style="color:#ef4444;">Save failed</span>',
+                ai_failed: '<span style="color:#ef4444;">AI failed</span>'
+            };
+
+            queue.innerHTML = rapidScanItems.map(function(item) {
+                var icon = statusIcons[item.status] || item.status;
+                var cropLabel = item.data ? (item.data.crop || '') + (item.data.variety ? ' - ' + item.data.variety : '') : '';
+                var isProcessing = ['reading','compressing','analyzing','saving'].indexOf(item.status) !== -1;
+                var canRetry = ['error','save_error','ai_failed'].indexOf(item.status) !== -1;
+
+                return '<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--bg-light);border-radius:8px;border:1px solid var(--border);">' +
+                    (item.photo ? '<img src="' + item.photo + '" style="width:40px;height:40px;border-radius:6px;object-fit:cover;flex-shrink:0;">' : '<div style="width:40px;height:40px;border-radius:6px;background:rgba(255,255,255,0.05);flex-shrink:0;display:flex;align-items:center;justify-content:center;">📦</div>') +
+                    '<div style="flex:1;min-width:0;">' +
+                        '<div style="font-weight:600;font-size:13px;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (cropLabel || 'Processing...') + '</div>' +
+                        '<div style="font-size:12px;">' + icon + (item.seedLotId ? ' <span style="color:var(--text-secondary);font-family:monospace;font-size:10px;">' + item.seedLotId + '</span>' : '') + '</div>' +
+                        (item.error ? '<div style="font-size:11px;color:#ef4444;">' + item.error + '</div>' : '') +
+                    '</div>' +
+                    (isProcessing ? '<div style="width:20px;height:20px;border:2px solid rgba(245,158,11,0.3);border-top-color:#f59e0b;border-radius:50%;animation:spin 1s linear infinite;flex-shrink:0;"></div>' : '') +
+                    (canRetry ? '<button onclick="retryRapidItem(\'' + item.id + '\')" style="background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);border-radius:6px;color:#a5b4fc;padding:4px 8px;font-size:11px;cursor:pointer;flex-shrink:0;">Retry</button>' : '') +
+                    (item.status === 'saved' ? '<span style="color:#10b981;font-size:16px;flex-shrink:0;">✓</span>' : '') +
+                '</div>';
+            }).join('');
+        }
+
+        // ============ URL PARAMETER HANDLING ============
+        // Supports: ?mode=rapidscan, ?mode=add
+        (function handleUrlParams() {
+            var params = new URLSearchParams(window.location.search);
+            var mode = params.get('mode');
+            if (mode === 'rapidscan') {
+                // Wait for page init, then open rapid scan
+                setTimeout(function() { openRapidScan(); }, 500);
+            } else if (mode === 'add') {
+                setTimeout(function() { openAddSeed(); }, 500);
+            }
+        })();
     </script>
 </body>
 </html>
