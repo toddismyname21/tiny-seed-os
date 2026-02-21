@@ -18492,6 +18492,9 @@ function doPost(e) {
         return jsonResponse({ success: true, message: 'Posted to app feed', postId: 'POST-' + Date.now() });
       case 'saveQuickBooksCredentials':
         PropertiesService.getScriptProperties().setProperty('QUICKBOOKS_CREDENTIALS', JSON.stringify(data));
+        if (data.companyId) {
+          PropertiesService.getUserProperties().setProperty('QB_REALM_ID', data.companyId);
+        }
         return jsonResponse({ success: true, message: 'QuickBooks credentials saved' });
       case 'configureClaudeAPI':
         PropertiesService.getScriptProperties().setProperty('CLAUDE_API_KEY', data.apiKey || '');
@@ -76306,13 +76309,14 @@ function createSEOPage(params) {
 }
 
 const QUICKBOOKS_CONFIG = {
-  // Replace with your QuickBooks credentials
+  // Credentials are loaded from Script Properties (saved via dashboard setup wizard)
+  // These placeholders are fallbacks only - real credentials come from saveQuickBooksCredentials
   CLIENT_ID: 'YOUR_QB_CLIENT_ID',
   CLIENT_SECRET: 'YOUR_QB_CLIENT_SECRET',
   COMPANY_ID: 'YOUR_QB_COMPANY_ID',        // Also called Realm ID
-  ENVIRONMENT: 'sandbox',                   // 'sandbox' or 'production'
+  ENVIRONMENT: 'production',                // Production QuickBooks API
   SCOPES: 'com.intuit.quickbooks.accounting',
-  ENABLED: false  // Set to true after configuring credentials
+  ENABLED: true                             // Integration enabled - credentials via Script Properties
 };
 
 // OAuth2 URLs
@@ -77507,17 +77511,36 @@ function getCapitalTrackingStatus() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function getQuickBooksOAuthService() {
+  // Bridge: check for credentials saved via dashboard setup wizard (Script Properties)
+  var clientId = QUICKBOOKS_CONFIG.CLIENT_ID;
+  var clientSecret = QUICKBOOKS_CONFIG.CLIENT_SECRET;
+
+  try {
+    var savedCreds = PropertiesService.getScriptProperties().getProperty('QUICKBOOKS_CREDENTIALS');
+    if (savedCreds) {
+      var parsed = JSON.parse(savedCreds);
+      if (parsed.clientId && parsed.clientId !== 'YOUR_QB_CLIENT_ID') {
+        clientId = parsed.clientId;
+      }
+      if (parsed.clientSecret && parsed.clientSecret !== 'YOUR_QB_CLIENT_SECRET') {
+        clientSecret = parsed.clientSecret;
+      }
+    }
+  } catch(e) {
+    Logger.log('Error reading saved QB credentials: ' + e.toString());
+  }
+
   return OAuth2.createService('QuickBooks')
     .setAuthorizationBaseUrl(OAUTH_URLS.QUICKBOOKS.AUTH)
     .setTokenUrl(OAUTH_URLS.QUICKBOOKS.TOKEN)
-    .setClientId(QUICKBOOKS_CONFIG.CLIENT_ID)
-    .setClientSecret(QUICKBOOKS_CONFIG.CLIENT_SECRET)
+    .setClientId(clientId)
+    .setClientSecret(clientSecret)
     .setCallbackFunction('quickBooksAuthCallback')
     .setPropertyStore(PropertiesService.getUserProperties())
     .setScope(QUICKBOOKS_CONFIG.SCOPES)
     .setParam('response_type', 'code')
     .setTokenHeaders({
-      'Authorization': 'Basic ' + Utilities.base64Encode(QUICKBOOKS_CONFIG.CLIENT_ID + ':' + QUICKBOOKS_CONFIG.CLIENT_SECRET)
+      'Authorization': 'Basic ' + Utilities.base64Encode(clientId + ':' + clientSecret)
     });
 }
 
