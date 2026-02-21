@@ -38,6 +38,38 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-21 — Alpaca Trading Integration: Real API Connection
+**Role:** PM_Architect
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Added full Alpaca trading integration: `ALPACA_CONFIG` constant, `getAlpacaCredentials()`, `saveAlpacaCredentials()`, `getAlpacaConfig()`, `saveAlpacaConfig()`, `alpacaApiCall()` (authenticated API wrapper), `getAlpacaAccount()`, `getAlpacaPositions()`, `getAlpacaPortfolioHistory()`, `getAlpacaDashboard()` (aggregated endpoint). Added 4 new route handlers (getAlpacaAccount, getAlpacaPositions, getAlpacaPortfolioHistory, getAlpacaDashboard) + POST handler for saveAlpacaCredentials.
+- `web_app/financial-dashboard.html` — Replaced Alpaca UI-only stub with real API integration: `connectAlpaca()` now saves keys server-side via `saveToSheet('saveAlpacaCredentials')` and verifies with `getAlpacaAccount`; `AlpacaManager.load()` fetches real dashboard data; added `renderAccount()`, `renderPositions()`, `renderAllocationChart()`, `renderPortfolioHistory()` methods; replaced hardcoded allocation chart with live position data; added account summary cards (equity, cash, buying power, day P&L); Alpaca equity feeds into FinancialState net worth calculation.
+
+### Functions Added
+- `ALPACA_CONFIG` in MERGED TOTAL.js — Config constant with Script Properties getters
+- `getAlpacaCredentials()` in MERGED TOTAL.js — Read from Script Properties
+- `saveAlpacaCredentials()` in MERGED TOTAL.js — Secure server-side key storage
+- `alpacaApiCall()` in MERGED TOTAL.js — Authenticated API wrapper with logging
+- `getAlpacaAccount()` in MERGED TOTAL.js — Account equity, cash, buying power
+- `getAlpacaPositions()` in MERGED TOTAL.js — Holdings with P&L
+- `getAlpacaPortfolioHistory()` in MERGED TOTAL.js — Equity over time for charting
+- `getAlpacaDashboard()` in MERGED TOTAL.js — Single aggregated endpoint
+- `AlpacaManager.loadDashboard()` in financial-dashboard.html — Fetch and render live data
+- `AlpacaManager.renderAccount()` in financial-dashboard.html — Display account summary
+- `AlpacaManager.renderPositions()` in financial-dashboard.html — Display real holdings
+- `AlpacaManager.renderAllocationChart()` in financial-dashboard.html — Dynamic allocation from positions
+- `AlpacaManager.renderPortfolioHistory()` in financial-dashboard.html — 1M return display
+
+### Reason
+User's Alpaca account was connected via UI but was a UI-only shell — saved masked key to localStorage, showed "Connected" badge, never called Alpaca API. All portfolio data was hardcoded. Built real integration: secure server-side key storage, live account/positions/history fetching, dynamic allocation chart from real holdings.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] No duplicate Alpaca functions exist
+- [x] Route handlers extend existing stubs at line 15803
+
+---
+
 ## 2026-02-21 — QuickBooks + Delivery Invoice Pipeline: Production Readiness
 **Role:** PM_Architect
 

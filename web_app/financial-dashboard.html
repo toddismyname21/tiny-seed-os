@@ -243,11 +243,18 @@
             padding: 1.5rem;
             border: 1px solid var(--border);
             transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
         }
 
         .stat-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            border-color: var(--primary);
+        }
+
+        /* Plaid Link iframe must sit above all our elements */
+        #plaid-link-iframe-1, [id^="plaid-link"] {
+            z-index: 99999 !important;
         }
 
         /* Document Card Styles */
@@ -1374,7 +1381,7 @@
 
             <!-- Quick Stats -->
             <div class="stats-grid">
-                <div class="stat-card">
+                <div class="stat-card" onclick="showTab('banking')" title="Go to Banking & Bills">
                     <div class="stat-card-header">
                         <div>
                             <div class="stat-label">Emergency Fund</div>
@@ -1395,7 +1402,7 @@
                     </div>
                 </div>
 
-                <div class="stat-card">
+                <div class="stat-card" onclick="showTab('investments')" title="Go to Investments">
                     <div class="stat-card-header">
                         <div>
                             <div class="stat-label">Investment Portfolio</div>
@@ -1410,7 +1417,7 @@
                     </div>
                 </div>
 
-                <div class="stat-card">
+                <div class="stat-card" onclick="showTab('debt')" title="Go to Debt Destroyer">
                     <div class="stat-card-header">
                         <div>
                             <div class="stat-label">Total Debt Remaining</div>
@@ -1425,7 +1432,7 @@
                     </div>
                 </div>
 
-                <div class="stat-card">
+                <div class="stat-card" onclick="showTab('roundups')" title="Go to Round-Ups">
                     <div class="stat-card-header">
                         <div>
                             <div class="stat-label">Round-Up Savings</div>
@@ -1436,7 +1443,7 @@
                         </div>
                     </div>
                     <div class="stat-change neutral">
-                        <span>Feature coming soon</span>
+                        <span>Click to manage round-ups</span>
                     </div>
                 </div>
             </div>
@@ -1488,7 +1495,7 @@
         <!-- ============================================= -->
         <div id="tab-debt" class="tab-content">
             <div class="stats-grid">
-                <div class="stat-card debt-card">
+                <div class="stat-card debt-card" onclick="document.getElementById('debt-table-body')?.scrollIntoView({behavior:'smooth'})" title="View debt details">
                     <div class="stat-card-header">
                         <div>
                             <div class="stat-label">Total Debt</div>
@@ -1503,7 +1510,7 @@
                     </div>
                 </div>
 
-                <div class="stat-card">
+                <div class="stat-card" onclick="document.getElementById('payoff-timeline')?.scrollIntoView({behavior:'smooth'})" title="View payoff timeline">
                     <div class="stat-card-header">
                         <div>
                             <div class="stat-label">Monthly Minimum</div>
@@ -1513,12 +1520,12 @@
                             <i class="fas fa-calendar-check"></i>
                         </div>
                     </div>
-                    <div class="stat-change neutral">
+                    <div class="stat-change neutral" id="monthly-min-status">
                         <span>Based on connected accounts</span>
                     </div>
                 </div>
 
-                <div class="stat-card">
+                <div class="stat-card" onclick="connectBankWithPlaid()" title="Connect credit cards to track utilization">
                     <div class="stat-card-header">
                         <div>
                             <div class="stat-label">Credit Utilization</div>
@@ -1533,7 +1540,7 @@
                     </div>
                 </div>
 
-                <div class="stat-card">
+                <div class="stat-card" onclick="openModal('addDebtModal')" title="Add or connect debt accounts">
                     <div class="stat-card-header">
                         <div>
                             <div class="stat-label">Accounts Tracked</div>
@@ -1544,7 +1551,7 @@
                         </div>
                     </div>
                     <div class="stat-change neutral" id="debt-accounts-status">
-                        <span>Add debts to track</span>
+                        <span>Click to add debts</span>
                     </div>
                 </div>
             </div>
@@ -1935,21 +1942,45 @@
             <!-- Alpaca Connection Card -->
             <div class="card" style="margin-bottom: 1.5rem;" id="alpaca-setup-card">
                 <div class="card-header">
-                    <h3><i class="fas fa-plug" style="color: var(--success);"></i> Connect Investment Account</h3>
-                    <span id="alpaca-status" class="badge" style="background: var(--text-secondary);">Not Connected</span>
+                    <h3><i class="fas fa-chart-line" style="color: var(--success);"></i> Alpaca Investment Account</h3>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <span id="alpaca-env-badge" class="badge" style="background: var(--text-secondary); font-size: 0.7rem;">--</span>
+                        <span id="alpaca-status" class="badge" style="background: var(--text-secondary);">Not Connected</span>
+                    </div>
                 </div>
                 <div class="card-body">
+                    <!-- Account Summary (shown when connected) -->
+                    <div id="alpaca-account-summary" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+                        <div style="background: var(--bg-card); padding: 1rem; border-radius: 8px; border: 1px solid var(--border);">
+                            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Total Equity</div>
+                            <div id="alpaca-equity" style="font-size: 1.25rem; font-weight: 700;">--</div>
+                        </div>
+                        <div style="background: var(--bg-card); padding: 1rem; border-radius: 8px; border: 1px solid var(--border);">
+                            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Cash</div>
+                            <div id="alpaca-cash" style="font-size: 1.25rem; font-weight: 700;">--</div>
+                        </div>
+                        <div style="background: var(--bg-card); padding: 1rem; border-radius: 8px; border: 1px solid var(--border);">
+                            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Buying Power</div>
+                            <div id="alpaca-buying-power" style="font-size: 1.25rem; font-weight: 700;">--</div>
+                        </div>
+                        <div style="background: var(--bg-card); padding: 1rem; border-radius: 8px; border: 1px solid var(--border);">
+                            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Day P&L</div>
+                            <div id="alpaca-day-pl" style="font-size: 1.25rem; font-weight: 700;">--</div>
+                        </div>
+                    </div>
+
+                    <!-- Connection prompt (shown when not connected) -->
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: center;">
                         <div>
                             <h4 style="margin-bottom: 0.5rem;">Alpaca - Commission-Free Investing</h4>
                             <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">
-                                Research-backed choice: $1 minimum, fractional shares, full API automation. Perfect for automated wealth building.
+                                Real brokerage API connection. Live account data, positions, and portfolio history.
                             </p>
                             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                                 <span style="padding: 0.25rem 0.5rem; background: rgba(42, 157, 143, 0.2); border-radius: 4px; font-size: 0.75rem; color: var(--success);">$0 Commission</span>
                                 <span style="padding: 0.25rem 0.5rem; background: rgba(67, 97, 238, 0.2); border-radius: 4px; font-size: 0.75rem; color: var(--info);">$1 Minimum</span>
                                 <span style="padding: 0.25rem 0.5rem; background: rgba(155, 89, 182, 0.2); border-radius: 4px; font-size: 0.75rem; color: var(--purple);">Fractional Shares</span>
-                                <span style="padding: 0.25rem 0.5rem; background: rgba(255, 215, 0, 0.2); border-radius: 4px; font-size: 0.75rem; color: var(--gold);">Auto-Invest API</span>
+                                <span style="padding: 0.25rem 0.5rem; background: rgba(255, 215, 0, 0.2); border-radius: 4px; font-size: 0.75rem; color: var(--gold);">Live API Data</span>
                             </div>
                         </div>
                         <div style="text-align: center;">
@@ -4038,9 +4069,9 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
             </div>
             <div class="modal-body">
                 <div class="alert alert-info" style="margin-bottom: 1rem;">
-                    <i class="fas fa-info-circle"></i>
+                    <i class="fas fa-shield-alt"></i>
                     <div>
-                        <strong>Secure API Connection:</strong> Your API keys are encrypted and stored securely. Alpaca uses OAuth 2.0 for authentication.
+                        <strong>Secure Server-Side Storage:</strong> Your API keys are sent directly to the backend and stored in Google Script Properties. They are never saved in your browser.
                     </div>
                 </div>
 
@@ -4401,9 +4432,78 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
         }
 
         function recalculatePayoff() {
-            // This would recalculate the payoff timeline based on strategy
-            console.log('Recalculating payoff with strategy:', currentStrategy);
-            // In production, this would call the Google Sheets API
+            // Get debt accounts from FinancialState
+            const debtAccounts = (FinancialState.plaidAccounts || []).filter(acc => {
+                const sub = (acc.subtype || '').toLowerCase();
+                const type = (acc.type || '').toLowerCase();
+                return sub === 'credit card' || type === 'credit' || type === 'loan' || sub === 'loan' || sub === 'mortgage' || sub === 'student';
+            });
+
+            if (debtAccounts.length === 0) return;
+
+            // Sort based on strategy
+            const sorted = [...debtAccounts].sort((a, b) => {
+                const balA = Math.abs(a.balance_current || 0);
+                const balB = Math.abs(b.balance_current || 0);
+                if (currentStrategy === 'snowball') return balA - balB; // smallest first
+                // Avalanche: no APR from Plaid, so fall back to balance (highest first as proxy)
+                return balB - balA;
+            });
+
+            const totalDebt = sorted.reduce((s, a) => s + Math.abs(a.balance_current || 0), 0);
+            // Estimate minimum payment as 2% of balance or $25, whichever is higher
+            const totalMinPayment = sorted.reduce((s, a) => s + Math.max(25, Math.abs(a.balance_current || 0) * 0.02), 0);
+            const monthsToPayoff = totalMinPayment > 0 ? Math.ceil(totalDebt / totalMinPayment) : 0;
+            const payoffDate = new Date();
+            payoffDate.setMonth(payoffDate.getMonth() + monthsToPayoff);
+
+            // Update monthly min display
+            const minEl = document.getElementById('debt-monthly-min');
+            if (minEl) minEl.textContent = '$' + Math.round(totalMinPayment).toLocaleString();
+            const minStatusEl = document.getElementById('monthly-min-status');
+            if (minStatusEl) minStatusEl.innerHTML = '<span>Estimated from account balances</span>';
+
+            // Update strategy labels
+            const avEl = document.getElementById('avalanche-savings');
+            const snEl = document.getElementById('snowball-estimate');
+            if (avEl) avEl.textContent = 'Saves ~$' + Math.round(totalDebt * 0.08).toLocaleString() + ' in interest';
+            if (snEl) snEl.textContent = 'First win in ~' + Math.ceil(Math.abs(sorted[0]?.balance_current || 1000) / 100) + ' months';
+
+            // Render payoff timeline
+            const timelineEl = document.getElementById('payoff-timeline');
+            if (timelineEl && monthsToPayoff > 0) {
+                timelineEl.innerHTML = sorted.map((acc, i) => {
+                    const bal = Math.abs(acc.balance_current || 0);
+                    const pct = totalDebt > 0 ? (bal / totalDebt * 100) : 0;
+                    const accMonths = Math.max(1, Math.ceil(bal / Math.max(25, bal * 0.02)));
+                    const accDate = new Date();
+                    accDate.setMonth(accDate.getMonth() + accMonths);
+                    return `
+                        <div style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <div style="width: 30px; height: 30px; border-radius: 50%; background: ${i === 0 ? 'var(--danger)' : 'var(--text-secondary)'}; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.75rem; flex-shrink: 0;">${i + 1}</div>
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600;">${acc.name || 'Account'}</div>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);">$${bal.toLocaleString()} — payoff by ${accDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</div>
+                            </div>
+                            <div style="width: 100px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
+                                <div style="width: ${pct}%; height: 100%; background: ${i === 0 ? 'var(--danger)' : 'var(--warning)'}; border-radius: 3px;"></div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // Show debt-free summary
+            const summaryEl = document.getElementById('debt-free-summary');
+            if (summaryEl && monthsToPayoff > 0) {
+                summaryEl.style.display = 'block';
+                const dateEl = document.getElementById('debt-free-date');
+                const savedEl = document.getElementById('interest-saved');
+                if (dateEl) dateEl.textContent = 'Target: ' + payoffDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                if (savedEl) savedEl.textContent = currentStrategy === 'avalanche'
+                    ? 'Avalanche saves ~$' + Math.round(totalDebt * 0.08).toLocaleString() + ' in interest'
+                    : 'Snowball: first account paid off fastest';
+            }
         }
 
         function saveDebt() {
@@ -4492,16 +4592,27 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
         // CHARTS
         // =============================================
 
-        // Financial Health Chart
-        const healthCtx = document.getElementById('healthChart');
-        if (healthCtx) {
-            new Chart(healthCtx.getContext('2d'), {
+        // Financial Health Radar Chart - initialized after data loads
+        let healthRadarChart = null;
+        function updateHealthRadarChart(scores) {
+            const healthCtx = document.getElementById('healthChart');
+            if (!healthCtx) return;
+
+            const data = scores || { emergencyFund: 0, debtToIncome: 0, savingsRate: 0, investmentGrowth: 0, cashFlow: 0 };
+
+            if (healthRadarChart) {
+                healthRadarChart.data.datasets[0].data = [data.emergencyFund, data.debtToIncome, data.savingsRate, data.investmentGrowth, data.cashFlow];
+                healthRadarChart.update();
+                return;
+            }
+
+            healthRadarChart = new Chart(healthCtx.getContext('2d'), {
                 type: 'radar',
                 data: {
-                    labels: ['Emergency Fund', 'Debt-to-Income', 'Savings Rate', 'Investment Growth', 'Cash Flow'],
+                    labels: ['Emergency Fund', 'Debt Mgmt', 'Savings Rate', 'Investments', 'Cash Flow'],
                     datasets: [{
                         label: 'Your Score',
-                        data: [50, 65, 80, 75, 85],
+                        data: [data.emergencyFund, data.debtToIncome, data.savingsRate, data.investmentGrowth, data.cashFlow],
                         backgroundColor: 'rgba(42, 157, 143, 0.2)',
                         borderColor: 'rgba(42, 157, 143, 1)',
                         pointBackgroundColor: 'rgba(42, 157, 143, 1)',
@@ -4512,12 +4623,12 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: false,
+                    maintainAspectRatio: true,
                     scales: {
                         r: {
                             angleLines: { color: 'rgba(255,255,255,0.1)' },
                             grid: { color: 'rgba(255,255,255,0.1)' },
-                            pointLabels: { color: '#8d99ae' },
+                            pointLabels: { color: '#8d99ae', font: { size: 11 } },
                             ticks: { display: false },
                             suggestedMin: 0,
                             suggestedMax: 100
@@ -4529,11 +4640,14 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
                 }
             });
         }
+        // Initialize with zeros - will be updated when calculateHealthScore runs
+        updateHealthRadarChart();
 
-        // Allocation Pie Chart
+        // Allocation Pie Chart - initialized by AlpacaManager.load() with real data
+        // If Alpaca not connected, show target allocation as placeholder
         const allocationCtx = document.getElementById('allocationPieChart');
-        if (allocationCtx) {
-            const allocationData = [
+        if (allocationCtx && !AlpacaManager.config?.connected) {
+            const targetAllocation = [
                 { ticker: 'VTI', percent: 15.0, color: '#2a9d8f' },
                 { ticker: 'VXUS', percent: 7.5, color: '#264653' },
                 { ticker: 'BND', percent: 15.0, color: '#4361ee' },
@@ -4546,13 +4660,13 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
                 { ticker: 'MTUM', percent: 12.5, color: '#e76f51' }
             ];
 
-            new Chart(allocationCtx.getContext('2d'), {
+            AlpacaManager.allocationChart = new Chart(allocationCtx.getContext('2d'), {
                 type: 'doughnut',
                 data: {
-                    labels: allocationData.map(d => d.ticker),
+                    labels: targetAllocation.map(d => d.ticker + ' (Target)'),
                     datasets: [{
-                        data: allocationData.map(d => d.percent),
-                        backgroundColor: allocationData.map(d => d.color),
+                        data: targetAllocation.map(d => d.percent),
+                        backgroundColor: targetAllocation.map(d => d.color),
                         borderWidth: 0
                     }]
                 },
@@ -4560,26 +4674,27 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
                     responsive: true,
                     maintainAspectRatio: true,
                     cutout: '65%',
-                    plugins: {
-                        legend: { display: false }
-                    }
+                    plugins: { legend: { display: false } }
                 }
             });
 
-            // Populate holdings list
+            // Show target allocation in holdings list
             const holdingsList = document.getElementById('holdings-list');
-            allocationData.forEach(item => {
-                const div = document.createElement('div');
-                div.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.05);';
-                div.innerHTML = `
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <div style="width: 12px; height: 12px; border-radius: 3px; background: ${item.color};"></div>
-                        <span style="font-weight: 500;">${item.ticker}</span>
-                    </div>
-                    <span style="color: var(--text-secondary);">${item.percent}%</span>
-                `;
-                holdingsList.appendChild(div);
-            });
+            if (holdingsList) {
+                holdingsList.innerHTML = '<p style="color: var(--text-secondary); font-size: 0.8rem; padding: 0.5rem 0;">Target allocation shown. Connect Alpaca to see real holdings.</p>';
+                targetAllocation.forEach(item => {
+                    const div = document.createElement('div');
+                    div.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.05);';
+                    div.innerHTML = `
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <div style="width: 12px; height: 12px; border-radius: 3px; background: ${item.color};"></div>
+                            <span style="font-weight: 500;">${item.ticker}</span>
+                        </div>
+                        <span style="color: var(--text-secondary);">${item.percent}%</span>
+                    `;
+                    holdingsList.appendChild(div);
+                });
+            }
         }
 
         // =============================================
@@ -4701,6 +4816,13 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
                     // Don't add to assets - it's pending, not available
                 }
 
+                // Add Alpaca investment account equity
+                if (AlpacaManager.dashboard && AlpacaManager.dashboard.account) {
+                    const alpacaEquity = AlpacaManager.dashboard.account.equity || 0;
+                    assets += alpacaEquity;
+                    investments += alpacaEquity;
+                }
+
                 // Calculate monthly income/expenses from transactions
                 let monthlyIncome = 0, monthlyExpenses = 0;
                 this.plaidTransactions.forEach(txn => {
@@ -4796,34 +4918,44 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
                 // Weighted scoring algorithm
                 let score = 50; // Base score
 
-                // Emergency fund (+/- 15 points)
+                // Emergency fund score (0-100 scale for radar)
                 const monthsExpenses = this.totals.monthlyExpenses || 3000;
                 const monthsCovered = this.totals.emergencyFund / monthsExpenses;
-                if (monthsCovered >= 6) score += 15;
-                else if (monthsCovered >= 3) score += 10;
-                else if (monthsCovered >= 1) score += 5;
-                else score -= 10;
+                let emergencyScore = 0;
+                if (monthsCovered >= 6) { score += 15; emergencyScore = 100; }
+                else if (monthsCovered >= 3) { score += 10; emergencyScore = 70; }
+                else if (monthsCovered >= 1) { score += 5; emergencyScore = 40; }
+                else { score -= 10; emergencyScore = Math.max(0, monthsCovered * 40); }
 
-                // Credit utilization (+/- 15 points)
+                // Credit/Debt management score (0-100)
                 const util = this.totals.creditUtilization;
-                if (util === 0) score += 10;
-                else if (util < 10) score += 15;
-                else if (util < 30) score += 10;
-                else if (util < 50) score += 0;
-                else if (util < 75) score -= 10;
-                else score -= 15;
+                let debtScore = 50;
+                if (util === 0) { score += 10; debtScore = 90; }
+                else if (util < 10) { score += 15; debtScore = 100; }
+                else if (util < 30) { score += 10; debtScore = 80; }
+                else if (util < 50) { score += 0; debtScore = 50; }
+                else if (util < 75) { score -= 10; debtScore = 25; }
+                else { score -= 15; debtScore = 10; }
 
-                // Net worth (+/- 10 points)
-                if (this.totals.netWorth > 50000) score += 10;
-                else if (this.totals.netWorth > 10000) score += 5;
-                else if (this.totals.netWorth > 0) score += 0;
-                else score -= 10;
+                // Net worth / savings score (0-100)
+                let savingsScore = 50;
+                if (this.totals.netWorth > 50000) { score += 10; savingsScore = 100; }
+                else if (this.totals.netWorth > 10000) { score += 5; savingsScore = 70; }
+                else if (this.totals.netWorth > 0) { score += 0; savingsScore = 40; }
+                else { score -= 10; savingsScore = 10; }
 
-                // Cash flow (+/- 10 points)
+                // Investment score (0-100)
+                let investmentScore = 0;
+                if (this.totals.investments > 20000) investmentScore = 100;
+                else if (this.totals.investments > 5000) investmentScore = 70;
+                else if (this.totals.investments > 0) investmentScore = 40;
+
+                // Cash flow score (0-100)
                 const cashFlow = this.totals.monthlyIncome - this.totals.monthlyExpenses;
-                if (cashFlow > 1000) score += 10;
-                else if (cashFlow > 0) score += 5;
-                else score -= 10;
+                let cashFlowScore = 50;
+                if (cashFlow > 1000) { score += 10; cashFlowScore = 100; }
+                else if (cashFlow > 0) { score += 5; cashFlowScore = 70; }
+                else { score -= 10; cashFlowScore = 15; }
 
                 score = Math.max(0, Math.min(100, score));
 
@@ -4838,6 +4970,17 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
                     statusEl.textContent = score >= 80 ? 'Excellent' :
                                           score >= 70 ? 'Good' :
                                           score >= 50 ? 'Fair' : 'Needs Work';
+                }
+
+                // Update radar chart with component scores
+                if (typeof updateHealthRadarChart === 'function') {
+                    updateHealthRadarChart({
+                        emergencyFund: emergencyScore,
+                        debtToIncome: debtScore,
+                        savingsRate: savingsScore,
+                        investmentGrowth: investmentScore,
+                        cashFlow: cashFlowScore
+                    });
                 }
             },
 
@@ -6014,51 +6157,208 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
 
         // =============================================
         // ALPACA INVESTMENT INTEGRATION
-        // Commission-free automated investing
+        // Real API connection to Alpaca brokerage
         // =============================================
         const AlpacaManager = {
             config: null,
+            dashboard: null,
+            allocationChart: null,
 
             async load() {
                 try {
-                    const stored = localStorage.getItem('tsf_alpaca_config');
-                    if (stored) {
-                        this.config = JSON.parse(stored);
+                    // Check connection status from backend
+                    const configResult = await fetchFromSheet('getAlpacaConfig');
+                    if (configResult && configResult.success) {
+                        this.config = {
+                            connected: configResult.connected,
+                            environment: configResult.environment,
+                            maskedKey: configResult.maskedKey,
+                            savedAt: configResult.savedAt
+                        };
                         this.updateUI();
-                    }
-                    // Also try API
-                    const apiResult = await fetchFromSheet('getAlpacaConfig');
-                    if (apiResult && apiResult.success && apiResult.config) {
-                        this.config = apiResult.config;
-                        localStorage.setItem('tsf_alpaca_config', JSON.stringify(this.config));
-                        this.updateUI();
+
+                        // If connected, load full dashboard data
+                        if (configResult.connected) {
+                            await this.loadDashboard();
+                        }
                     }
                 } catch (e) {
                     console.error('Alpaca config load error:', e);
                 }
             },
 
-            async save() {
-                localStorage.setItem('tsf_alpaca_config', JSON.stringify(this.config));
+            async loadDashboard() {
                 try {
-                    await saveToSheet('saveAlpacaConfig', { config: this.config });
+                    const result = await fetchFromSheet('getAlpacaDashboard');
+                    if (result && result.success && result.connected) {
+                        this.dashboard = result;
+                        this.renderAccount(result.account);
+                        this.renderPositions(result.positions, result.positionsSummary);
+                        this.renderAllocationChart(result.positions, result.account);
+                        this.renderPortfolioHistory(result.history);
+                    } else if (result && !result.connected) {
+                        console.log('Alpaca not connected:', result.message);
+                    }
                 } catch (e) {
-                    console.warn('Could not save Alpaca config to API:', e);
+                    console.error('Alpaca dashboard load error:', e);
+                }
+            },
+
+            renderAccount(account) {
+                if (!account) return;
+
+                // Update equity display
+                const equityEl = document.getElementById('alpaca-equity');
+                if (equityEl) equityEl.textContent = '$' + account.equity.toLocaleString('en-US', { minimumFractionDigits: 2 });
+
+                const cashEl = document.getElementById('alpaca-cash');
+                if (cashEl) cashEl.textContent = '$' + account.cash.toLocaleString('en-US', { minimumFractionDigits: 2 });
+
+                const bpEl = document.getElementById('alpaca-buying-power');
+                if (bpEl) bpEl.textContent = '$' + account.buyingPower.toLocaleString('en-US', { minimumFractionDigits: 2 });
+
+                const dayPLEl = document.getElementById('alpaca-day-pl');
+                if (dayPLEl) {
+                    const sign = account.dayPL >= 0 ? '+' : '';
+                    dayPLEl.textContent = sign + '$' + account.dayPL.toLocaleString('en-US', { minimumFractionDigits: 2 });
+                    dayPLEl.style.color = account.dayPL >= 0 ? 'var(--success)' : 'var(--danger)';
+                }
+
+                // Update environment badge
+                const envEl = document.getElementById('alpaca-env-badge');
+                if (envEl) {
+                    envEl.textContent = account.status === 'ACTIVE' ? (this.config.environment === 'live' ? 'LIVE' : 'PAPER') : account.status;
+                    envEl.style.background = this.config.environment === 'live' ? 'var(--success)' : 'var(--warning)';
+                }
+            },
+
+            renderPositions(positions, summary) {
+                const holdingsList = document.getElementById('holdings-list');
+                if (!holdingsList) return;
+
+                holdingsList.innerHTML = '';
+
+                if (!positions || positions.length === 0) {
+                    holdingsList.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 1rem;">No positions yet. Your holdings will appear here after your first trade.</p>';
+                    return;
+                }
+
+                positions.forEach(pos => {
+                    const plColor = pos.unrealizedPL >= 0 ? 'var(--success)' : 'var(--danger)';
+                    const plSign = pos.unrealizedPL >= 0 ? '+' : '';
+                    const div = document.createElement('div');
+                    div.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid rgba(255,255,255,0.05);';
+                    div.innerHTML = `
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(67,97,238,0.2); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.7rem; color: var(--info);">${pos.symbol.substring(0, 3)}</div>
+                            <div>
+                                <div style="font-weight: 600;">${pos.symbol}</div>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);">${pos.qty} shares @ $${pos.avgEntryPrice.toFixed(2)}</div>
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-weight: 600;">$${pos.marketValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+                            <div style="font-size: 0.8rem; color: ${plColor};">${plSign}$${pos.unrealizedPL.toFixed(2)} (${plSign}${pos.unrealizedPLPercent.toFixed(1)}%)</div>
+                        </div>
+                    `;
+                    holdingsList.appendChild(div);
+                });
+
+                // Add summary row
+                if (summary) {
+                    const totalDiv = document.createElement('div');
+                    const totalPLColor = summary.totalPL >= 0 ? 'var(--success)' : 'var(--danger)';
+                    const totalPLSign = summary.totalPL >= 0 ? '+' : '';
+                    totalDiv.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 0; font-weight: 700;';
+                    totalDiv.innerHTML = `
+                        <span>Total (${positions.length} positions)</span>
+                        <div style="text-align: right;">
+                            <div>$${summary.totalValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+                            <div style="font-size: 0.8rem; color: ${totalPLColor};">${totalPLSign}$${summary.totalPL.toFixed(2)}</div>
+                        </div>
+                    `;
+                    holdingsList.appendChild(totalDiv);
+                }
+            },
+
+            renderAllocationChart(positions, account) {
+                const chartEl = document.getElementById('allocationPieChart');
+                if (!chartEl) return;
+
+                // Build allocation data from real positions + cash
+                const chartData = [];
+                const colors = ['#2a9d8f', '#264653', '#4361ee', '#3a86ff', '#8338ec', '#ffd700', '#fb8500', '#90be6d', '#f4a261', '#e76f51'];
+
+                if (account && account.cash > 0) {
+                    chartData.push({ ticker: 'Cash', percent: 0, value: account.cash, color: '#90be6d' });
+                }
+
+                if (positions && positions.length > 0) {
+                    positions.forEach((pos, i) => {
+                        chartData.push({
+                            ticker: pos.symbol,
+                            percent: 0,
+                            value: pos.marketValue,
+                            color: colors[i % colors.length]
+                        });
+                    });
+                }
+
+                // Calculate percentages
+                const totalValue = chartData.reduce((s, d) => s + d.value, 0);
+                chartData.forEach(d => { d.percent = totalValue > 0 ? (d.value / totalValue * 100) : 0; });
+
+                // If no data, show placeholder
+                if (chartData.length === 0) {
+                    chartData.push({ ticker: 'No Data', percent: 100, value: 0, color: '#555' });
+                }
+
+                // Destroy old chart if exists
+                if (this.allocationChart) {
+                    this.allocationChart.destroy();
+                }
+
+                this.allocationChart = new Chart(chartEl.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: chartData.map(d => d.ticker),
+                        datasets: [{
+                            data: chartData.map(d => d.percent),
+                            backgroundColor: chartData.map(d => d.color),
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        cutout: '65%',
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            },
+
+            renderPortfolioHistory(history) {
+                if (!history || !history.dataPoints || history.dataPoints.length === 0) return;
+                const signalEl = document.getElementById('momentum-signal');
+                if (signalEl && history.totalReturn !== undefined) {
+                    const sign = history.totalReturn >= 0 ? '+' : '';
+                    signalEl.textContent = sign + history.totalReturn.toFixed(1) + '% (1M)';
+                    signalEl.style.color = history.totalReturn >= 0 ? 'var(--success)' : 'var(--danger)';
                 }
             },
 
             updateUI() {
                 const statusEl = document.getElementById('alpaca-status');
-                const setupCard = document.getElementById('alpaca-setup-card');
                 const connectBtn = document.getElementById('connectAlpacaBtn');
 
                 if (this.config && this.config.connected) {
                     if (statusEl) {
-                        statusEl.textContent = 'Connected';
+                        statusEl.textContent = (this.config.environment === 'live' ? 'Live' : 'Paper') + ' Connected';
                         statusEl.style.background = 'var(--success)';
                     }
                     if (connectBtn) {
-                        connectBtn.innerHTML = '<i class="fas fa-cog"></i> Configure';
+                        connectBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh Data';
+                        connectBtn.onclick = () => this.loadDashboard();
                     }
                 } else {
                     if (statusEl) {
@@ -6068,81 +6368,84 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
                 }
             },
 
-            // Calculate 75/25 allocation for a given amount
+            // Calculate 75/25 allocation for a given amount (educational display)
             calculateAllocation(amount) {
                 const safeAmount = amount * 0.75;
                 const growthAmount = amount * 0.25;
-
-                // Safe allocation breakdown
                 const safe = {
-                    VTI: safeAmount * 0.267,   // 20% of total
-                    VXUS: safeAmount * 0.133,  // 10% of total
-                    BND: safeAmount * 0.267,   // 20% of total
-                    VTIP: safeAmount * 0.200,  // 15% of total
-                    SHY: safeAmount * 0.133    // 10% of total
+                    VTI: safeAmount * 0.267,
+                    VXUS: safeAmount * 0.133,
+                    BND: safeAmount * 0.267,
+                    VTIP: safeAmount * 0.200,
+                    SHY: safeAmount * 0.133
                 };
-
-                // Growth allocation (Dual Momentum - current signal)
-                const growth = {
-                    signal: this.calculateMomentumSignal(),
-                    amount: growthAmount
-                };
-
+                const growth = { signal: 'VTI', amount: growthAmount };
                 return { safe, growth, total: amount };
-            },
-
-            // Dual Momentum signal calculation
-            calculateMomentumSignal() {
-                // In production, this would fetch real market data
-                // For now, return a reasonable default
-                const signals = ['VTI', 'VXUS', 'BND'];
-                const signalEl = document.getElementById('momentum-signal');
-
-                // Default to VTI (US stocks) as it's been strong
-                const currentSignal = 'VTI (US Stocks)';
-                if (signalEl) {
-                    signalEl.textContent = currentSignal;
-                    signalEl.style.color = 'var(--success)';
-                }
-
-                return 'VTI';
             }
         };
 
-        // Connect Alpaca account
+        // Connect Alpaca account - saves keys securely server-side
         async function connectAlpaca() {
             const apiKey = document.getElementById('alpaca-api-key').value.trim();
             const secretKey = document.getElementById('alpaca-secret-key').value.trim();
             const accountType = document.getElementById('alpaca-account-type').value;
-            const monthlyAmount = document.getElementById('alpaca-monthly-amount').value;
-            const roundupThreshold = document.getElementById('alpaca-roundup-threshold').value;
-            const strategy = document.getElementById('alpaca-strategy').value;
-            const seasonal = document.getElementById('alpaca-seasonal').checked;
 
             if (!apiKey || !secretKey) {
                 showNotification('Please enter API Key and Secret Key', 'error');
                 return;
             }
 
-            // Save configuration
-            AlpacaManager.config = {
-                apiKey: apiKey.substring(0, 4) + '****', // Don't store full key
-                hasSecret: true,
-                accountType,
-                monthlyAmount: parseFloat(monthlyAmount) || 200,
-                roundupThreshold: parseInt(roundupThreshold),
-                strategy,
-                seasonal,
-                connected: true,
-                connectedAt: new Date().toISOString()
-            };
+            // Show connecting state
+            const connectBtn = document.querySelector('#alpacaSetupModal .btn-success:last-child');
+            if (connectBtn) {
+                connectBtn.disabled = true;
+                connectBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connecting...';
+            }
 
-            // In production, send to server to store encrypted keys
-            await AlpacaManager.save();
-            AlpacaManager.updateUI();
+            try {
+                // Save credentials securely server-side (never stored in browser)
+                const saveResult = await saveToSheet('saveAlpacaCredentials', {
+                    apiKey: apiKey,
+                    secretKey: secretKey,
+                    environment: accountType
+                });
 
-            closeModal('alpacaSetupModal');
-            showNotification('Alpaca account connected! Auto-invest is now active.', 'success');
+                if (!saveResult || !saveResult.success) {
+                    throw new Error(saveResult?.error || 'Failed to save credentials');
+                }
+
+                // Verify connection by fetching account data
+                const accountResult = await fetchFromSheet('getAlpacaAccount');
+
+                if (accountResult && accountResult.success) {
+                    // Connection verified
+                    AlpacaManager.config = {
+                        connected: true,
+                        environment: accountType,
+                        maskedKey: saveResult.maskedKey
+                    };
+                    AlpacaManager.updateUI();
+
+                    // Clear form inputs (keys are now server-side only)
+                    document.getElementById('alpaca-api-key').value = '';
+                    document.getElementById('alpaca-secret-key').value = '';
+
+                    closeModal('alpacaSetupModal');
+                    showNotification('Alpaca account connected! Equity: $' + (accountResult.account?.equity || 0).toLocaleString(), 'success');
+
+                    // Load full dashboard data
+                    await AlpacaManager.loadDashboard();
+                } else {
+                    throw new Error(accountResult?.error || 'Could not verify account. Check your API keys.');
+                }
+            } catch (error) {
+                showNotification('Connection failed: ' + error.message, 'error');
+            } finally {
+                if (connectBtn) {
+                    connectBtn.disabled = false;
+                    connectBtn.innerHTML = '<i class="fas fa-link"></i> Connect & Activate';
+                }
+            }
         }
 
         // =============================================
@@ -6424,9 +6727,27 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
         let plaidHandler = null;
 
         async function connectBankWithPlaid() {
-            const btn = document.getElementById('plaidConnectBtn');
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connecting...';
-            btn.disabled = true;
+            // Find whichever button triggered this (overview or banking tab)
+            const btn = document.getElementById('plaidConnectBtn') || document.getElementById('overviewPlaidBtn');
+            if (btn) {
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connecting...';
+                btn.disabled = true;
+            }
+
+            function resetBtn() {
+                if (btn) {
+                    btn.innerHTML = '<i class="fas fa-link"></i> Connect Bank';
+                    btn.disabled = false;
+                }
+                // Also reset the other button if it exists
+                ['plaidConnectBtn', 'overviewPlaidBtn'].forEach(id => {
+                    const b = document.getElementById(id);
+                    if (b && b !== btn) {
+                        b.innerHTML = '<i class="fas fa-link"></i> Connect Bank';
+                        b.disabled = false;
+                    }
+                });
+            }
 
             try {
                 // Get link token from our Apps Script backend
@@ -6445,8 +6766,7 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
                     },
                     onExit: (err, metadata) => {
                         console.log('Plaid Link Exit', err, metadata);
-                        btn.innerHTML = '<i class="fas fa-link"></i> Connect Bank';
-                        btn.disabled = false;
+                        resetBtn();
                         if (err) {
                             showNotification('Bank connection cancelled', 'warning');
                         }
@@ -6466,8 +6786,7 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
             } catch (error) {
                 console.error('Plaid Error:', error);
                 showNotification('Failed to connect: ' + error.message, 'error');
-                btn.innerHTML = '<i class="fas fa-link"></i> Connect Bank';
-                btn.disabled = false;
+                resetBtn();
             }
         }
 
@@ -6980,6 +7299,9 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
             }
 
             console.log('Debt Destroyer updated with', debtAccounts.length, 'accounts, total:', totalDebt);
+
+            // Calculate payoff timeline
+            recalculatePayoff();
         }
 
         function showNoDebtMessage() {
@@ -7714,9 +8036,6 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
             await BillOCR.load();
             await AlpacaManager.load();
             await PaymentPlanManager.load();
-
-            // Calculate momentum signal for investments
-            AlpacaManager.calculateMomentumSignal();
 
             // Generate prescriptive recommendations after data loads
             setTimeout(() => {
