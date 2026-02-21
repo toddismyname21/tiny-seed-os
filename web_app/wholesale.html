@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +7,7 @@
     <script src="api-config.js"></script>
     <script src="auth-guard.js" data-required-role="Customer"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="tiny-seed-design-system.css">
     <style>
         /* ═══════════════════════════════════════════════════════════════════════════
            TINY SEED FARM - WHOLESALE PORTAL
@@ -15,19 +16,19 @@
 
         :root {
             /* Farm Green Theme - Consistent across all chef-facing pages */
-            --primary: #22c55e;
-            --primary-dark: #16a34a;
+            --primary: var(--ts-green-500, #22c55e);
+            --primary-dark: var(--ts-green-600, #16a34a);
             --primary-light: #4ade80;
             --success: #22c55e;
             --warning: #f59e0b;
             --danger: #ef4444;
-            --bg-main: #f8fafc;
-            --bg-card: #ffffff;
+            --bg-main: var(--ts-bg-base, #f8fafc);
+            --bg-card: var(--ts-bg-surface, #ffffff);
             --bg-elevated: #f1f5f9;
-            --text-primary: #1e293b;
-            --text-secondary: #64748b;
+            --text-primary: var(--ts-text, #1e293b);
+            --text-secondary: var(--ts-text-secondary, #64748b);
             --text-muted: #94a3b8;
-            --border-color: #e2e8f0;
+            --border-color: var(--ts-border, #e2e8f0);
             --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
             --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
             --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
@@ -40,6 +41,8 @@
             background: var(--bg-main);
             color: var(--text-primary);
             min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
         /* ═══════════════════════════════════════════════════════════════════════════

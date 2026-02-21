@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,6 +10,7 @@
     <script src="api-config.js"></script>
     <script src="auth-guard.js" data-required-role="Customer"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="tiny-seed-design-system.css">
     <style>
         /* ========================================
            TINY SEED CUSTOMER PORTAL - CSS
@@ -18,8 +19,8 @@
 
         :root {
             /* Brand Colors - Farm Green Theme */
-            --primary: #22c55e;
-            --primary-dark: #16a34a;
+            --primary: var(--ts-green-500, #22c55e);
+            --primary-dark: var(--ts-green-600, #16a34a);
             --primary-light: #4ade80;
 
             /* Status Colors */
@@ -67,6 +68,8 @@
             background: linear-gradient(135deg, var(--bg-main) 0%, #0f0f1a 100%);
             color: var(--text-primary);
             min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
         /* ========================================
@@ -1299,6 +1302,15 @@
             justify-content: center;
             margin-bottom: 20px;
         }
+
+        /* Design System Utilities */
+        :focus-visible { outline: 2px solid var(--primary, #22c55e); outline-offset: 2px; }
+        :focus:not(:focus-visible) { outline: none; }
+        .btn:active, button:active { transform: scale(0.97); }
+        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border-color, rgba(255,255,255,0.1)); border-radius: 3px; }
     </style>
 </head>
 <body>

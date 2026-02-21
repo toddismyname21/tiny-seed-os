@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tiny Seed OS - Admin Panel</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="tiny-seed-design-system.css">
     <script src="api-config.js"></script>
     <script src="auth-guard.js" data-required-role="Admin"></script>
     <style>
@@ -17,8 +18,8 @@
 
         :root {
             /* Brand Colors */
-            --primary: #22c55e;
-            --primary-dark: #16a34a;
+            --primary: var(--ts-green-500, #22c55e);
+            --primary-dark: var(--ts-green-600, #16a34a);
             --primary-light: #4ade80;
 
             /* Status Colors */
@@ -32,19 +33,19 @@
             --info-bg: rgba(59, 130, 246, 0.1);
 
             /* Background Colors */
-            --bg-dark: #0f172a;
-            --bg-card: #1e293b;
+            --bg-dark: var(--ts-bg-base, #0f172a);
+            --bg-card: var(--ts-bg-surface, #1e293b);
             --bg-elevated: #334155;
             --bg-input: #1e293b;
             --bg-hover: #2d3a4f;
 
             /* Text Colors */
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
+            --text-primary: var(--ts-text, #f8fafc);
+            --text-secondary: var(--ts-text-secondary, #94a3b8);
             --text-muted: #64748b;
 
             /* Borders */
-            --border: #334155;
+            --border: var(--ts-border, #334155);
             --border-light: #475569;
 
             /* Shadows */
@@ -69,6 +70,8 @@
             color: var(--text-primary);
             min-height: 100vh;
             line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
         /* ════════════════════════════════════════════════════════════════════════════

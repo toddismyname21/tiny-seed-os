@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PM Monitor - Tiny Seed OS</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="tiny-seed-design-system.css">
     <script src="api-config.js"></script>
     <script src="auth-guard.js" data-required-role="Admin"></script>
     <style>
@@ -19,6 +20,8 @@
             background: #0f0f1a;
             color: #e0e0e0;
             min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
         .header {

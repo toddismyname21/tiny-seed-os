@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -9,6 +9,7 @@
     <link rel="manifest" href="../manifest.json">
     <title>Market Sales - Tiny Seed Farm</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="tiny-seed-design-system.css">
     <script src="api-config.js"></script>
     <script src="auth-guard.js" data-required-role="Employee"></script>
     <script src="offline-task-manager.js"></script>
@@ -26,16 +27,16 @@
             --danger: #ef4444;
             --info: #3b82f6;
 
-            --bg-dark: #0f172a;
-            --bg-card: #1e293b;
+            --bg-dark: var(--ts-bg-base, #0f172a);
+            --bg-card: var(--ts-bg-surface, #1e293b);
             --bg-elevated: #334155;
             --bg-button: #475569;
 
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
+            --text-primary: var(--ts-text, #f8fafc);
+            --text-secondary: var(--ts-text-secondary, #94a3b8);
             --text-muted: #64748b;
 
-            --border-color: #334155;
+            --border-color: var(--ts-border, #334155);
         }
 
         * {

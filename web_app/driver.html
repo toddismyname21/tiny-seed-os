@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -7,6 +7,10 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0f172a">
     <title>Tiny Seed Delivery</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="tiny-seed-design-system.css">
     <script src="api-config.js"></script>
     <script src="auth-guard.js" data-required-role="Driver"></script>
     <link rel="manifest" href="manifest-driver.json">
@@ -22,21 +26,21 @@
         }
 
         :root {
-            --primary: #22c55e;
-            --primary-dark: #16a34a;
+            --primary: var(--ts-green-500, #22c55e);
+            --primary-dark: var(--ts-green-600, #16a34a);
             --primary-light: #4ade80;
             --secondary: #3b82f6;
             --warning: #f59e0b;
             --danger: #ef4444;
             --success: #22c55e;
-            --bg-dark: #0f172a;
-            --bg-card: #1e293b;
+            --bg-dark: var(--ts-bg-base, #0f172a);
+            --bg-card: var(--ts-bg-surface, #1e293b);
             --bg-elevated: #334155;
             --bg-input: #1e293b;
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
+            --text-primary: var(--ts-text, #f8fafc);
+            --text-secondary: var(--ts-text-secondary, #94a3b8);
             --text-muted: #64748b;
-            --border: #334155;
+            --border: var(--ts-border, #334155);
             --touch-min: 48px;
             --header-height: 56px;
             --bottom-nav-height: 64px;
@@ -50,10 +54,12 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: var(--bg-dark);
             color: var(--text-primary);
             line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
         /* App Container */

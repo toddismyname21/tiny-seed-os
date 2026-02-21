@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tiny Seed Farm - Sales Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="tiny-seed-design-system.css">
     <script src="auth-guard.js" data-required-role="Manager"></script>
     <style>
         /* ========================================
@@ -24,18 +25,18 @@
             --info: #3b82f6;
 
             /* Neutral Colors */
-            --bg-dark: #0f172a;
-            --bg-card: #1e293b;
+            --bg-dark: var(--ts-bg-base, #0f172a);
+            --bg-card: var(--ts-bg-surface, #1e293b);
             --bg-elevated: #334155;
             --bg-input: #1e293b;
 
             /* Text Colors */
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
+            --text-primary: var(--ts-text, #f8fafc);
+            --text-secondary: var(--ts-text-secondary, #94a3b8);
             --text-muted: #64748b;
 
             /* Borders */
-            --border-color: #334155;
+            --border-color: var(--ts-border, #334155);
             --border-light: #475569;
 
             /* Shadows */
@@ -60,6 +61,8 @@
             color: var(--text-primary);
             min-height: 100vh;
             overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
         /* ========================================
@@ -2190,6 +2193,15 @@
                 grid-column: span 1;
             }
         }
+
+        /* Design System Utilities */
+        :focus-visible { outline: 2px solid var(--primary, #22c55e); outline-offset: 2px; }
+        :focus:not(:focus-visible) { outline: none; }
+        .btn:active, button:active { transform: scale(0.97); }
+        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border-color, #334155); border-radius: 3px; }
     </style>
 </head>
 <body>

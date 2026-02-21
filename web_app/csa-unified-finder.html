@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Find Your CSA Option | Tiny Seed Farm Pittsburgh</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="tiny-seed-design-system.css">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -783,7 +784,7 @@
           document.getElementById('delivery-message').textContent =
             data.distanceToRoute ? `You're ${data.distanceToRoute} miles from our route.` : 'We can deliver to your address.';
 
-          document.getElementById('delivery-code').textContent = 'HOMEDELIVERY' + zip.substring(0, 3);
+          // Delivery code display removed - direct Shopify link used instead
         } else {
           // Rejected
           document.getElementById('delivery-accepted').classList.add('hidden');
@@ -835,14 +836,12 @@
     }
 
     function copyCode() {
-      const code = document.getElementById('delivery-code').textContent;
-      navigator.clipboard.writeText(code).then(() => {
-        const btn = document.querySelector('.copy-btn');
+      // Promo code display removed - direct Shopify link used instead
+      const btn = document.querySelector('.copy-btn');
+      if (btn) {
         btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-        setTimeout(() => {
-          btn.innerHTML = '<i class="fas fa-copy"></i> Copy Code';
-        }, 2000);
-      });
+        setTimeout(() => { btn.innerHTML = '<i class="fas fa-copy"></i> Copy Code'; }, 2000);
+      }
     }
 
     // Enter key handlers

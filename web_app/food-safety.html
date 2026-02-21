@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -13,13 +13,14 @@
     <script src="auth-guard.js" data-required-role="Field_Lead"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="tiny-seed-design-system.css">
     <style>
         /* ========================================
            CSS DESIGN SYSTEM - HIGH CONTRAST FOR FIELD USE
            Optimized for sunlight readability & gloved hands
            ======================================== */
         :root {
-            --primary: #22c55e;
+            --primary: var(--ts-green-500, #22c55e);
             --primary-light: #4ade80;
             --success: #22c55e;
             --success-dark: #16a34a;
@@ -31,13 +32,13 @@
             --danger-dark: #dc2626;
             --danger-bg: rgba(239, 68, 68, 0.15);
             --info: #3b82f6;
-            --bg-dark: #0f172a;
-            --bg-card: #1e293b;
+            --bg-dark: var(--ts-bg-base, #0f172a);
+            --bg-card: var(--ts-bg-surface, #1e293b);
             --bg-elevated: #334155;
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
+            --text-primary: var(--ts-text, #f8fafc);
+            --text-secondary: var(--ts-text-secondary, #94a3b8);
             --text-muted: #64748b;
-            --border: rgba(255, 255, 255, 0.1);
+            --border: var(--ts-border, rgba(255, 255, 255, 0.1));
             --touch-min: 48px;
             --touch-comfortable: 56px;
             --safe-top: env(safe-area-inset-top, 0px);
