@@ -77760,12 +77760,46 @@ function createQuickBooksInvoice(invoiceData) {
     ]);
 
     logIntegration('QuickBooks', 'createInvoice', 'SUCCESS', `Created invoice ${invoice.DocNumber} for $${invoice.TotalAmt}`);
+
+    // Auto-send invoice via email if customer has email on file
+    if (invoiceData.autoSend !== false) {
+      try {
+        const sendResult = quickBooksApiCall(`invoice/${invoice.Id}/send`, 'POST');
+        if (sendResult.success) {
+          logIntegration('QuickBooks', 'sendInvoice', 'SUCCESS', `Emailed invoice ${invoice.DocNumber} to customer`);
+        } else {
+          logIntegration('QuickBooks', 'sendInvoice', 'WARNING', `Invoice created but email send failed: ${sendResult.error}`);
+        }
+      } catch (sendErr) {
+        logIntegration('QuickBooks', 'sendInvoice', 'WARNING', `Invoice created but email send error: ${sendErr.message}`);
+      }
+    }
   }
 
   return result;
 }
 
 function createInvoiceFromOrder(orderId, orderType = 'Sales') {
+  // Check if invoice already exists for this order (prevent duplicates)
+  try {
+    const invoiceSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('QB_Invoices');
+    if (invoiceSheet) {
+      const invoiceData = invoiceSheet.getDataRange().getValues();
+      const headers = invoiceData[0];
+      const orderIdCol = headers.indexOf('Source_Order_ID');
+      if (orderIdCol >= 0) {
+        for (let i = 1; i < invoiceData.length; i++) {
+          if (invoiceData[i][orderIdCol] === orderId) {
+            console.log(`Invoice already exists for order ${orderId}, skipping duplicate creation`);
+            return { success: true, duplicate: true, message: `Invoice already exists for order ${orderId}` };
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.log('Duplicate invoice check skipped (sheet may not exist yet):', e.message);
+  }
+
   // Get order from SALES_Orders sheet
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const ordersSheet = ss.getSheetByName('SALES_Orders');
