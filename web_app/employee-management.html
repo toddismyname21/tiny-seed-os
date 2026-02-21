@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,19 +10,20 @@
     <script src="auth-guard.js" data-required-role="Manager"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="tiny-seed-design-system.css">
     <style>
         :root {
-            --primary: #22c55e;
-            --primary-dark: #16a34a;
-            --bg-dark: #0f172a;
-            --bg-card: #1e293b;
+            --primary: var(--ts-green-500, #22c55e);
+            --primary-dark: var(--ts-green-600, #16a34a);
+            --bg-dark: var(--ts-slate-900, #0f172a);
+            --bg-card: var(--ts-slate-800, #1e293b);
             --bg-card-hover: #273548;
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
-            --border: #334155;
-            --danger: #ef4444;
-            --warning: #f59e0b;
-            --info: #3b82f6;
+            --text-primary: var(--ts-slate-50, #f8fafc);
+            --text-secondary: var(--ts-slate-400, #94a3b8);
+            --border: var(--ts-slate-700, #334155);
+            --danger: var(--ts-red-500, #ef4444);
+            --warning: var(--ts-amber-500, #f59e0b);
+            --info: var(--ts-blue-500, #3b82f6);
         }
 
         * {
@@ -32,11 +33,16 @@
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: var(--ts-font-sans, 'Inter', -apple-system, BlinkMacSystemFont, sans-serif);
             background: var(--bg-dark);
             min-height: 100vh;
             color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
         }
+
+        /* WCAG 2.2 focus-visible */
+        :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+        :focus:not(:focus-visible) { outline: none; }
 
         .header {
             background: var(--bg-card);
@@ -660,6 +666,32 @@
                 min-width: 100%;
             }
         }
+
+        /* Card hover polish */
+        .card {
+            transition: border-color 200ms ease, box-shadow 200ms ease;
+        }
+        .card:hover {
+            border-color: rgba(255,255,255,0.18);
+        }
+
+        /* Button press feedback */
+        .btn:active { transform: scale(0.97); }
+
+        /* Reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 100px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
     </style>
 </head>
 <body>

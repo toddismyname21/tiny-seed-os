@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,32 +8,38 @@
     <script src="auth-guard.js" data-required-role="Admin"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="tiny-seed-design-system.css">
     <script src="api-config.js"></script>
     <style>
         :root {
-            --primary: #2ca01c;
-            --primary-dark: #1e7014;
+            --primary: var(--ts-green-500, #2ca01c);
+            --primary-dark: var(--ts-green-700, #1e7014);
             --secondary: #0077b6;
-            --success: #2a9d8f;
-            --warning: #f4a261;
-            --danger: #e63946;
-            --bg-dark: #0f172a;
-            --bg-card: #1e293b;
-            --bg-light: #334155;
-            --text-primary: #f1f5f9;
-            --text-secondary: #94a3b8;
+            --success: var(--ts-teal-500, #2a9d8f);
+            --warning: var(--ts-amber-500, #f4a261);
+            --danger: var(--ts-red-500, #e63946);
+            --bg-dark: var(--ts-slate-900, #0f172a);
+            --bg-card: var(--ts-slate-800, #1e293b);
+            --bg-light: var(--ts-slate-700, #334155);
+            --text-primary: var(--ts-slate-100, #f1f5f9);
+            --text-secondary: var(--ts-slate-400, #94a3b8);
             --border: rgba(255,255,255,0.1);
-            --qb-green: #2ca01c;
+            --qb-green: var(--ts-green-500, #2ca01c);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: var(--ts-font-sans, 'Inter', sans-serif);
             background: linear-gradient(135deg, var(--bg-dark) 0%, #1a1a2e 100%);
             color: var(--text-primary);
             min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
         }
+
+        /* WCAG 2.2 focus-visible */
+        :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+        :focus:not(:focus-visible) { outline: none; }
 
         /* Navigation */
         .top-nav {
@@ -223,9 +229,18 @@
 
         .dashboard-card {
             background: var(--bg-card);
-            border-radius: 16px;
+            border-radius: var(--ts-radius-lg, 16px);
             padding: 1.5rem;
             border: 1px solid var(--border);
+            transition:
+                border-color 200ms var(--ts-ease-out, ease),
+                box-shadow 200ms var(--ts-ease-out, ease),
+                transform 200ms var(--ts-ease-out, ease);
+        }
+
+        .dashboard-card:hover {
+            border-color: rgba(255,255,255,0.18);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
         }
 
         .dashboard-card.full-width {
@@ -709,6 +724,21 @@
             .transaction-item { background: #f9f9f9 !important; border: 1px solid #eee !important; }
             @page { margin: 0.5in; }
         }
+
+        /* Reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 100px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
     </style>
 </head>
 <body>

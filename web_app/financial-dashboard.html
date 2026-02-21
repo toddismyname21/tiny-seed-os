@@ -1,25 +1,26 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tiny Seed Financial Command Center</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="tiny-seed-design-system.css">
     <script src="auth-guard.js" data-required-role="Admin"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
     <script src="api-config.js"></script>
     <style>
         :root {
-            --primary: #22c55e;
+            --primary: var(--ts-green-500, #22c55e);
             --primary-light: #4ade80;
             --primary-dark: #16a34a;
             --secondary: #f4a261;
             --accent: #e76f51;
             --success: #2a9d8f;
-            --warning: #e9c46a;
-            --danger: #e63946;
+            --warning: var(--ts-amber-500, #e9c46a);
+            --danger: var(--ts-red-500, #e63946);
             --info: #4361ee;
             --bg-dark: #1a1a2e;
             --bg-card: #16213e;
@@ -35,11 +36,15 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: var(--ts-font-sans, 'Inter', sans-serif);
             background: linear-gradient(135deg, var(--bg-dark) 0%, #0f0f1a 100%);
             color: var(--text-primary);
             min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
         }
+
+        :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+        :focus:not(:focus-visible) { outline: none; }
 
         /* ============================================= */
         /* NAVIGATION */
@@ -191,6 +196,11 @@
             border: 1px solid var(--border);
             overflow: hidden;
             margin-bottom: 1.5rem;
+            transition: border-color 200ms ease, box-shadow 200ms ease;
+        }
+
+        .card:hover {
+            border-color: rgba(255,255,255,0.18);
         }
 
         .card-header {
@@ -1227,6 +1237,21 @@
         .recommendation-action {
             margin-top: 0.75rem;
         }
+
+        /* Reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 100px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
     </style>
 </head>
 <body>
@@ -7290,6 +7315,12 @@
                 net: netCashFlow,
                 transactionCount: transactions.length
             });
+        }
+
+        async function refreshTransactions() {
+            showToast('Refreshing transactions...', 'info');
+            await loadTransactionsAndAnalyze();
+            showToast('Transactions updated!', 'success');
         }
 
         function displayTransactionsTable(transactions) {

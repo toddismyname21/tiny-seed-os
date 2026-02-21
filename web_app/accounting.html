@@ -1,36 +1,43 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Accounting Hub - Tiny Seed OS</title>
   <!-- Auth Guard - requires Admin role (sensitive financial data) -->
   <script src="auth-guard.js" data-required-role="Admin"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="tiny-seed-design-system.css">
   <script src="api-config.js"></script>
   <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
   <style>
     :root {
-      --primary: #10b981;
-      --primary-dark: #059669;
-      --secondary: #3b82f6;
-      --warning: #f59e0b;
-      --danger: #ef4444;
-      --bg-dark: #1a1a2e;
+      --primary: var(--ts-green-500, #10b981);
+      --primary-dark: var(--ts-green-600, #059669);
+      --secondary: var(--ts-blue-500, #3b82f6);
+      --warning: var(--ts-amber-500, #f59e0b);
+      --danger: var(--ts-red-500, #ef4444);
+      --bg-dark: var(--ts-slate-900, #1a1a2e);
       --bg-card: #16213e;
       --bg-hover: #1e3a5f;
-      --text: #e2e8f0;
-      --text-muted: #94a3b8;
-      --border: #334155;
+      --text: var(--ts-slate-200, #e2e8f0);
+      --text-muted: var(--ts-slate-400, #94a3b8);
+      --border: var(--ts-slate-700, #334155);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: var(--ts-font-sans, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
       background: var(--bg-dark);
       color: var(--text);
       min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
     }
+
+    /* WCAG 2.2 focus-visible */
+    :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+    :focus:not(:focus-visible) { outline: none; }
 
     .header {
       background: linear-gradient(135deg, var(--primary-dark), var(--secondary));
@@ -58,24 +65,33 @@
     .btn {
       padding: 0.6rem 1.2rem;
       border: none;
-      border-radius: 8px;
+      border-radius: var(--ts-radius-md, 8px);
       font-size: 0.9rem;
       font-weight: 600;
+      font-family: var(--ts-font-sans, inherit);
       cursor: pointer;
-      transition: all 0.2s;
+      transition:
+        background 120ms var(--ts-ease-out, ease),
+        transform 120ms var(--ts-ease-out, ease),
+        box-shadow 120ms var(--ts-ease-out, ease);
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
     }
 
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
     .btn-primary {
       background: var(--primary);
       color: white;
+      box-shadow: 0 2px 8px rgba(34, 197, 94, 0.25);
     }
 
-    .btn-primary:hover {
+    .btn-primary:hover:not(:disabled) {
       background: var(--primary-dark);
       transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(34, 197, 94, 0.35);
     }
 
     .btn-secondary {
@@ -136,10 +152,17 @@
 
     .card {
       background: var(--bg-card);
-      border-radius: 12px;
+      border-radius: var(--ts-radius-lg, 12px);
       padding: 1.5rem;
       margin-bottom: 1.5rem;
       border: 1px solid var(--border);
+      transition:
+        border-color 200ms var(--ts-ease-out, ease),
+        box-shadow 200ms var(--ts-ease-out, ease);
+    }
+
+    .card:hover {
+      border-color: var(--ts-slate-600, #475569);
     }
 
     .card-header {
@@ -599,6 +622,30 @@
         font-size: 0.9rem;
       }
     }
+
+    /* Tab content transition */
+    .tab-content.active {
+      animation: acct-tab-enter 250ms var(--ts-ease-out, ease) both;
+    }
+    @keyframes acct-tab-enter {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 100px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
   </style>
 </head>
 <body>

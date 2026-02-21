@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -8,7 +8,8 @@
     <meta name="theme-color" content="#1a1a2e">
     <title>Tiny Seed Farm | Chef Orders</title>
     <link rel="manifest" href="chef-manifest.json">
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="tiny-seed-design-system.css">
     <script src="api-config.js"></script>
     <script src="auth-guard.js" data-required-role="Customer"></script>
     <style>
@@ -19,20 +20,20 @@
            ═══════════════════════════════════════════════════════════════════════════ */
 
         :root {
-            --primary: #22c55e;
-            --primary-dark: #16a34a;
+            --primary: var(--ts-green-500, #22c55e);
+            --primary-dark: var(--ts-green-600, #16a34a);
             --secondary: #1a1a2e;
-            --accent: #f59e0b;
-            --danger: #ef4444;
-            --bg-main: #fafaf9;
+            --accent: var(--ts-amber-500, #f59e0b);
+            --danger: var(--ts-red-500, #ef4444);
+            --bg-main: var(--ts-stone-50, #fafaf9);
             --bg-card: #ffffff;
             --bg-dark: #1a1a2e;
-            --text-primary: #1c1917;
-            --text-secondary: #57534e;
-            --text-light: #a8a29e;
-            --border: #e7e5e4;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --text-primary: var(--ts-stone-900, #1c1917);
+            --text-secondary: var(--ts-stone-600, #57534e);
+            --text-light: var(--ts-stone-400, #a8a29e);
+            --border: var(--ts-stone-200, #e7e5e4);
+            --shadow: var(--ts-shadow-sm, 0 4px 6px -1px rgba(0, 0, 0, 0.1));
+            --shadow-lg: var(--ts-shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.1));
         }
 
         * {
@@ -43,11 +44,22 @@
         }
 
         body {
-            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: var(--ts-font-sans, 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif);
             background: var(--bg-main);
             color: var(--text-primary);
             min-height: 100vh;
             overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* WCAG 2.2 focus-visible */
+        :focus-visible {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
+        }
+        :focus:not(:focus-visible) {
+            outline: none;
         }
 
         /* ═══════════════════════════════════════════════════════════════════════════
@@ -321,14 +333,29 @@
         /* Fresh This Week Hero */
         .hero {
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            border-radius: 16px;
+            border-radius: var(--ts-radius-lg, 16px);
             padding: 24px;
             color: white;
             margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Subtle decorative accent */
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -40%;
+            right: -20%;
+            width: 200px;
+            height: 200px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 50%;
+            pointer-events: none;
         }
 
         .hero-title {
-            font-size: 24px;
+            font-size: var(--ts-text-2xl, 24px);
             font-weight: 700;
             margin-bottom: 8px;
         }
@@ -349,13 +376,16 @@
         }
 
         .hero-stat-value {
-            font-size: 28px;
+            font-size: var(--ts-text-3xl, 28px);
             font-weight: 700;
+            font-variant-numeric: tabular-nums;
         }
 
         .hero-stat-label {
-            font-size: 12px;
+            font-size: var(--ts-text-xs, 12px);
             opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
         }
 
         /* Filter Pills */
@@ -372,19 +402,29 @@
             padding: 10px 18px;
             background: var(--bg-card);
             border: 1px solid var(--border);
-            border-radius: 100px;
-            font-size: 14px;
+            border-radius: var(--ts-radius-full, 100px);
+            font-size: var(--ts-text-sm, 14px);
             font-weight: 500;
             font-family: inherit;
             white-space: nowrap;
             cursor: pointer;
-            transition: all 0.2s;
+            transition:
+                background 150ms var(--ts-ease-out, ease),
+                color 150ms var(--ts-ease-out, ease),
+                border-color 150ms var(--ts-ease-out, ease),
+                box-shadow 150ms var(--ts-ease-out, ease);
+        }
+
+        .filter-pill:hover:not(.active) {
+            border-color: var(--primary);
+            color: var(--primary);
         }
 
         .filter-pill.active {
             background: var(--primary);
             color: white;
             border-color: var(--primary);
+            box-shadow: 0 2px 8px rgba(34, 197, 94, 0.25);
         }
 
         /* Product Grid */
@@ -405,12 +445,22 @@
             background: var(--bg-card);
             border-radius: 16px;
             overflow: hidden;
+            border: 1px solid var(--border);
             box-shadow: var(--shadow);
-            transition: transform 0.2s;
+            transition:
+                transform 200ms var(--ts-ease-out, ease),
+                box-shadow 200ms var(--ts-ease-out, ease),
+                border-color 200ms var(--ts-ease-out, ease);
+        }
+
+        .product-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--primary);
         }
 
         .product-card:active {
-            transform: scale(0.98);
+            transform: scale(0.97);
         }
 
         .product-image {
@@ -884,21 +934,25 @@
             font-weight: 600;
         }
 
-        /* Toast */
+        /* Toast — polished with backdrop blur */
         .toast {
             position: fixed;
             bottom: 100px;
             left: 50%;
             transform: translateX(-50%) translateY(100px);
-            background: var(--secondary);
+            background: rgba(26, 26, 46, 0.92);
+            backdrop-filter: blur(12px) saturate(1.4);
+            -webkit-backdrop-filter: blur(12px) saturate(1.4);
             color: white;
             padding: 14px 24px;
-            border-radius: 12px;
+            border-radius: var(--ts-radius-lg, 16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             font-size: 14px;
             font-weight: 500;
             z-index: 300;
             opacity: 0;
-            transition: all 0.3s;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            transition: all 0.35s var(--ts-ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
         }
 
         .toast.show {
@@ -907,7 +961,18 @@
         }
 
         .toast.success {
-            background: var(--primary);
+            background: rgba(34, 197, 94, 0.92);
+            border-left: 3px solid #16a34a;
+        }
+
+        .toast.error {
+            background: rgba(239, 68, 68, 0.92);
+            border-left: 3px solid #dc2626;
+        }
+
+        .toast.info {
+            background: rgba(59, 130, 246, 0.92);
+            border-left: 3px solid #2563eb;
         }
 
         /* Standing Orders */
@@ -1064,7 +1129,7 @@
             margin-top: 20px;
         }
 
-        /* Loading */
+        /* Loading — skeleton shimmer (replaces spinner) */
         .loading {
             display: flex;
             align-items: center;
@@ -1083,6 +1148,69 @@
 
         @keyframes spin {
             to { transform: rotate(360deg); }
+        }
+
+        /* Skeleton product cards (shown while data loads) */
+        .skeleton-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            padding: 16px;
+        }
+        @media (min-width: 600px) {
+            .skeleton-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+
+        .skeleton-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        .skeleton-card .skeleton-image {
+            height: 100px;
+            background: linear-gradient(110deg, #f5f5f4 8%, #fafaf9 18%, #f5f5f4 33%);
+            background-size: 200% 100%;
+            animation: ts-shimmer 1.5s linear infinite;
+        }
+        .skeleton-card .skeleton-info {
+            padding: 12px;
+        }
+        .skeleton-card .skeleton-line {
+            height: 12px;
+            border-radius: 6px;
+            background: linear-gradient(110deg, #e7e5e4 8%, #f5f5f4 18%, #e7e5e4 33%);
+            background-size: 200% 100%;
+            animation: ts-shimmer 1.5s linear infinite;
+            margin-bottom: 8px;
+        }
+        .skeleton-card .skeleton-line:last-child {
+            width: 60%;
+            margin-bottom: 0;
+        }
+
+        @keyframes ts-shimmer {
+            0%   { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* Stagger entrance for product cards */
+        .products-grid .product-card {
+            animation: ts-card-enter 350ms var(--ts-ease-out, ease) both;
+        }
+        .products-grid .product-card:nth-child(1)  { animation-delay: 0ms; }
+        .products-grid .product-card:nth-child(2)  { animation-delay: 50ms; }
+        .products-grid .product-card:nth-child(3)  { animation-delay: 100ms; }
+        .products-grid .product-card:nth-child(4)  { animation-delay: 150ms; }
+        .products-grid .product-card:nth-child(5)  { animation-delay: 200ms; }
+        .products-grid .product-card:nth-child(6)  { animation-delay: 250ms; }
+        .products-grid .product-card:nth-child(7)  { animation-delay: 300ms; }
+        .products-grid .product-card:nth-child(8)  { animation-delay: 350ms; }
+        .products-grid .product-card:nth-child(n+9) { animation-delay: 400ms; }
+
+        @keyframes ts-card-enter {
+            from { opacity: 0; transform: translateY(12px) scale(0.97); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
         }
 
         /* Empty State */
@@ -1165,6 +1293,48 @@
             font-size: 20px;
             cursor: pointer;
         }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+           TAB TRANSITION — smooth fade between content panels
+           ═══════════════════════════════════════════════════════════════════════════ */
+        .tab-content {
+            animation: ts-tab-fade 250ms var(--ts-ease-out, ease) both;
+        }
+        @keyframes ts-tab-fade {
+            from { opacity: 0; transform: translateY(6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Bottom nav press feedback */
+        .nav-item:active {
+            transform: scale(0.92);
+        }
+        .nav-item {
+            transition: transform 100ms var(--ts-ease-out, ease), color 200ms;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+           REDUCED MOTION — respect user accessibility preferences
+           ═══════════════════════════════════════════════════════════════════════════ */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+            .skeleton-card .skeleton-image,
+            .skeleton-card .skeleton-line {
+                animation: none;
+            }
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════════
+           SUBTLE SCROLLBAR
+           ═══════════════════════════════════════════════════════════════════════════ */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 100px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-light); }
     </style>
 </head>
 <body>
@@ -1619,29 +1789,18 @@
                     renderProducts();
                     updateHeroStats();
                 } else {
-                    // Demo data
-                    State.products = getDemoProducts();
+                    State.products = [];
                     renderProducts();
                     updateHeroStats();
+                    showToast('No products available right now. Check back soon!', 'info');
                 }
             } catch (e) {
-                State.products = getDemoProducts();
+                console.error('Failed to load products:', e);
+                State.products = [];
                 renderProducts();
                 updateHeroStats();
+                showToast('Could not load products. Please refresh to try again.', 'error');
             }
-        }
-
-        function getDemoProducts() {
-            return [
-                { id: 'P001', name: 'Mixed Salad Greens', variety: 'Spring Mix', category: 'Greens', price: 8.50, unit: 'lb', available: 45, emoji: '🥬', freshness: 'today' },
-                { id: 'P002', name: 'Cherry Tomatoes', variety: 'Sun Gold', category: 'Fruits', price: 5.00, unit: 'pint', available: 30, emoji: '🍅', freshness: 'today' },
-                { id: 'P003', name: 'Fresh Basil', variety: 'Genovese', category: 'Herbs', price: 3.00, unit: 'bunch', available: 25, emoji: '🌿', freshness: 'yesterday' },
-                { id: 'P004', name: 'Rainbow Carrots', variety: 'Mixed', category: 'Roots', price: 4.50, unit: 'bunch', available: 40, emoji: '🥕', freshness: 'peak' },
-                { id: 'P005', name: 'Lacinato Kale', variety: 'Dinosaur', category: 'Greens', price: 3.50, unit: 'bunch', available: 35, emoji: '🥬', freshness: 'yesterday' },
-                { id: 'P006', name: 'Sunflowers', variety: 'ProCut Orange', category: 'Flowers', price: 12.00, unit: 'bunch', available: 8, emoji: '🌻', freshness: 'limited' },
-                { id: 'P007', name: 'Sugar Snap Peas', variety: 'Super Sugar Snap', category: 'Fruits', price: 9.00, unit: 'lb', available: 20, emoji: '🫛', freshness: 'peak' },
-                { id: 'P008', name: 'Fresh Cilantro', variety: 'Santo', category: 'Herbs', price: 2.50, unit: 'bunch', available: 30, emoji: '🌿', freshness: 'today' }
-            ];
         }
 
         function renderProducts() {
@@ -1726,26 +1885,23 @@
                     State.comingSoon = result.data;
                     renderComingSoon();
                 } else {
-                    State.comingSoon = getDemoComingSoon();
+                    State.comingSoon = [];
                     renderComingSoon();
                 }
             } catch (e) {
-                State.comingSoon = getDemoComingSoon();
+                console.error('Failed to load coming soon:', e);
+                State.comingSoon = [];
                 renderComingSoon();
             }
         }
 
-        function getDemoComingSoon() {
-            return [
-                { name: 'Heirloom Tomatoes', variety: 'Brandywine', emoji: '🍅', expectedDate: '2 weeks', confidence: 'High' },
-                { name: 'Sweet Corn', variety: 'Honey & Cream', emoji: '🌽', expectedDate: '3 weeks', confidence: 'Medium' },
-                { name: 'Zucchini', variety: 'Black Beauty', emoji: '🥒', expectedDate: '1 week', confidence: 'High' },
-                { name: 'Dahlias', variety: 'Cafe au Lait', emoji: '🌸', expectedDate: '4 weeks', confidence: 'Medium' }
-            ];
-        }
-
         function renderComingSoon() {
             const container = document.getElementById('comingSoonList');
+
+            if (!State.comingSoon || State.comingSoon.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p class="empty-text">Check back soon for upcoming harvests!</p></div>';
+                return;
+            }
 
             container.innerHTML = State.comingSoon.map(item => `
                 <div class="coming-card">
@@ -1759,8 +1915,20 @@
             `).join('');
         }
 
-        function notifyWhenAvailable(productName) {
-            showToast(`We'll notify you when ${productName} is available!`, 'success');
+        async function notifyWhenAvailable(productName) {
+            try {
+                const result = await api.post('saveProductNotification', {
+                    customerId: State.customer?.Customer_ID,
+                    productName: productName
+                });
+                if (result.success) {
+                    showToast(`We'll notify you when ${productName} is available!`, 'success');
+                } else {
+                    showToast('Could not set notification. Please try again.', 'error');
+                }
+            } catch (e) {
+                showToast(`We'll notify you when ${productName} is available!`, 'success');
+            }
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -1780,24 +1948,14 @@
                     State.lastOrder = result.data[0];
                     renderLastOrder();
                 } else {
-                    renderDemoLastOrder();
+                    State.lastOrder = null;
+                    renderLastOrder();
                 }
             } catch (e) {
-                renderDemoLastOrder();
+                console.error('Failed to load last order:', e);
+                State.lastOrder = null;
+                renderLastOrder();
             }
-        }
-
-        function renderDemoLastOrder() {
-            State.lastOrder = {
-                date: '2026-01-15',
-                items: [
-                    { name: 'Mixed Salad Greens', qty: 10, unit: 'lb' },
-                    { name: 'Cherry Tomatoes', qty: 8, unit: 'pint' },
-                    { name: 'Fresh Basil', qty: 5, unit: 'bunch' }
-                ],
-                total: 127.50
-            };
-            renderLastOrder();
         }
 
         function renderLastOrder() {
@@ -2065,6 +2223,13 @@
                 return;
             }
 
+            const orderTotal = State.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            const minOrder = State.customer?.Minimum_Order || 25;
+            if (orderTotal < minOrder) {
+                showToast(`Minimum order is ${TinySeedUtils.formatCurrency(minOrder)}. Current total: ${TinySeedUtils.formatCurrency(orderTotal)}`, 'error');
+                return;
+            }
+
             const orderData = {
                 customerId: State.customer?.Customer_ID,
                 customerName: State.customer?.Company_Name,
@@ -2118,10 +2283,28 @@
                 TinySeedUtils.debounce(filterProducts, 300));
         }
 
-        function togglePref(type) {
+        async function togglePref(type) {
             const toggle = document.getElementById(type === 'sms' ? 'toggleSMS' : 'toggleEmail');
             toggle.classList.toggle('on');
-            showToast(`${type.toUpperCase()} notifications ${toggle.classList.contains('on') ? 'enabled' : 'disabled'}`, 'success');
+            const enabled = toggle.classList.contains('on');
+
+            try {
+                const prefKey = type === 'sms' ? 'smsOptIn' : 'emailOptIn';
+                const result = await api.post('updateChefPreferences', {
+                    customerId: State.customer?.Customer_ID,
+                    [prefKey]: enabled
+                });
+
+                if (result.success) {
+                    showToast(`${type.toUpperCase()} notifications ${enabled ? 'enabled' : 'disabled'}`, 'success');
+                } else {
+                    toggle.classList.toggle('on');
+                    showToast('Failed to save preference', 'error');
+                }
+            } catch (e) {
+                toggle.classList.toggle('on');
+                showToast('Failed to save preference. Please try again.', 'error');
+            }
         }
 
         async function saveDeliveryInstructions() {

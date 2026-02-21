@@ -38,6 +38,153 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-20 (Phase 3) — UX Design System + Polish
+**Role:** PM_Architect
+**Files Created:**
+- `web_app/tiny-seed-design-system.css` — Unified design system with OKLCH colors, three-layer tokens (primitives → semantic → component), glassmorphism cards, skeleton screens, @starting-style animations, fluid typography, WCAG 2.2 focus states, prefers-reduced-motion support
+
+**Files Modified:**
+- `web_app/chef-order.html` — Integrated design system (light theme), skeleton loading screens, staggered card entrance animations, glassmorphic toast, card hover polish, reduced-motion support, Inter font, focus-visible states
+- `web_app/accounting.html` — Integrated design system (dark theme), Inter font, card hover transitions, tab transitions, focus-visible states, reduced-motion support
+- `web_app/quickbooks-dashboard.html` — Integrated design system (dark theme), unified token colors, card hover transitions, focus-visible states, reduced-motion support
+- `web_app/employee-management.html` — Integrated design system (dark theme), unified token colors, card hover, button press feedback, focus-visible states, reduced-motion support
+- `web_app/financial-dashboard.html` — Integrated design system (dark theme), unified tokens, focus-visible, reduced-motion
+- `web_app/loan-readiness.html` — Integrated design system (dark theme), unified tokens, focus-visible, reduced-motion
+- `web_app/csa.html` — Integrated design system (light theme), unified tokens, focus-visible, reduced-motion
+
+**Why:** User requested professional UX polish with 2026 design technologies. Created a shared design system so all dashboards share consistent colors, typography, spacing, animations, and accessibility patterns. Uses OKLCH color space, CSS var fallbacks for backward compatibility, and opt-in adoption via data-theme attributes.
+
+---
+
+## 2026-02-20 - PM_Architect (Season-Critical Tools Fixes - Phase 2)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Fixed geofence coordinates, added saveProductNotification function
+- `web_app/chef-order.html` — Removed 3 demo data fallbacks, fixed notification saving, added min order validation
+
+### Fixes Applied
+
+**Chef Ordering Portal (chef-order.html):**
+- REMOVED `getDemoProducts()` — was showing fake products when API failed (CLAUDE.md violation)
+- REMOVED `getDemoComingSoon()` — was showing fake coming-soon items
+- REMOVED `renderDemoLastOrder()` — was showing fake order history
+- All 3 fallbacks now show proper empty states with user-friendly messages
+- `togglePref()` now saves SMS/email prefs to backend via `updateChefPreferences` (was UI-only)
+- `notifyWhenAvailable()` now saves to backend via new `saveProductNotification` endpoint (was toast-only)
+- `submitOrder()` now validates minimum order amount ($25 default)
+- `renderComingSoon()` handles empty array with graceful message
+
+**Employee Management (MERGED TOTAL.js):**
+- Fixed FARM_GEOFENCE coordinates from (40.7956, -80.1384) = Gibsonia area to (40.6960, -80.2820) = Rochester PA area
+- Increased geofence radius from 500m to 750m for safety margin
+- Added TODO comment for owner to verify exact GPS coordinates on-site
+
+**CSA Portal — Audit Corrections:**
+- `getBoxContents` (line 44866) and `getSmartSwapSuggestions` (line 95874) are ALREADY FULLY IMPLEMENTED
+- Both routes confirmed working (lines 15079, 15081, 15137)
+- Employee mode permissions ARE enforced via hasPermissionForMode() at line 15322 — audit was false positive
+
+### Functions Added
+- `saveProductNotification(data)` in MERGED TOTAL.js — Saves chef product availability notification requests
+
+### Routes Added
+- `saveProductNotification` — POST route for chef product notifications
+
+### Duplicate Check
+- [x] No duplicates created
+- [x] Searched for existing notification functions
+- [x] Verified updateChefPreferences handles smsOptIn/emailOptIn fields
+
+### Reason
+User requested season-critical tools perfected: Chef Ordering, CSA Portal, Employee Management. Audit found demo data fallbacks violating CLAUDE.md rules, notification prefs not saving, no minimum order check, and wrong geofence coordinates. All fixed. CSA and Employee modes were more complete than audit reported (false positives corrected).
+
+---
+
+## 2026-02-20 - PM_Architect (Overnight Financial Systems Fix Session)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Implemented 12 missing backend functions, added 1 new route
+- `web_app/loan-readiness.html` — Fixed 3 duplicate functions (escapeHtml, filterByYear, generateAIReasoning)
+- `web_app/financial-dashboard.html` — Added missing `refreshTransactions()` function
+
+### Functions Added (Backend - MERGED TOTAL.js)
+- `getGrants(params)` — Full CRUD read for grants from FIN_GRANTS sheet with filtering, sorting, deadline tracking
+- `saveGrant(params)` — Create/update grants with auto-sheet creation and JSON field serialization
+- `linkReceiptToGrant(params)` — Link receipts to grants for expense tracking
+- `getQuickBooksConnectionStatus()` — Reports QB config status, OAuth token state, connection health
+- `getQuickBooksDashboard()` — Full dashboard data: accounts, invoices, bills, P&L (graceful when not connected)
+- `getQBAccountBalances()` — Individual QB account balance widget
+- `getQBOpenInvoices()` — Open QB invoices with overdue detection
+- `getQBOpenBills()` — Open QB bills with overdue detection
+- `getQBProfitLossSummary()` — QB profit/loss report
+- `saveLoanPackageToHTML()` — Generates professional HTML loan package, saves to Google Drive with shareable link
+- `getParserCorrectionRules()` — Loads sales parser correction rules from script properties
+- Added `FIN_GRANTS` and `FIN_RECEIPTS` tabs to FINANCIAL_CONFIG
+
+### Functions Added (Frontend)
+- `refreshTransactions()` in `financial-dashboard.html` — Calls loadTransactionsAndAnalyze() with toast feedback
+
+### Duplicates Fixed (loan-readiness.html)
+- Removed duplicate `escapeHtml()` at line 9661 (kept null-safe version at line 14360)
+- Merged two `filterByYear()` implementations into one (all-year + breakdown + fallback)
+- Removed duplicate `generateAIReasoning()` 4-param version (kept 2-param version with keyword highlighting)
+
+### Routes Added (Backend)
+- `getParserCorrectionRules` — GET route for sales parser rules
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+- [x] Verified "missing" CRM functions (filterLenders, toggleFollowupDate, handleTagInput) actually exist in external lender-crm.js
+
+### Reason
+User requested all financial tools tested and fixed for Horizon Farm Credit deadline. Four overnight audit agents found: 6 missing backend functions, 3 duplicate frontend functions, and 1 missing route. All have been implemented/fixed. QuickBooks dashboard will now show "not configured" status instead of hanging forever. Grants can now be saved/loaded. Loan packages can be exported as HTML to Google Drive.
+
+---
+
+## 2026-02-18 - Desktop_Claude (Session 9: Priority 9 Employee App Comprehensive Audit)
+
+**Files Modified:**
+- `employee.html` — 11 fixes: 4 duplicate IDs renamed (seedPhotoPreview→cteSeedPhotoPreview, harvestUnit→cteHarvestUnit, harvestNotes→cteHarvestNotes, harvestGpsStatus→cteHarvestGpsStatus), added missing `toggleFlash()` function, 5 POST requests missing Content-Type 'text/plain' header fixed (completeDelivery, updateDeliveryStopStatus, logLaborCost, completeDelivery #2, syncToQuickBooks), converted `analyzeImageAI()` GET→POST (base64 image in URL exceeded length limit), converted `submitHarvest()` GET→POST (photo data in URL)
+- `seed_inventory_PRODUCTION.html` — Fixed `printSeedLabel()` (undefined) to call `printLabel()`, fixed `loadSeeds()` (undefined) to call `renderInventory()`
+
+**Why:** Owner reported employee app didn't work at the farm. Comprehensive audit found 11 critical runtime bugs that would cause crashes or silent failures. These fixes ensure delivery completion, image analysis, harvest logging, and seed label printing all work correctly.
+
+---
+
+## 2026-02-19 - Backend_Claude (Priority 6: Complete Employee App Backend Audit + Fixes)
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Fixed clockOut, getClockStatus, getSeedInventory, getSeedByQR
+
+### What Was Done
+**Deployed @643 — Clock-out fixes:**
+- `clockOut()`: Replaced 4 separate `setValue()` calls with single atomic `setValues()` batch write
+- `clockOut()`: Added header column validation (prevents Column 0 crash if header missing)
+- `clockOut()`: Added NaN protection (validates Date parse before calculating hours)
+- `clockOut()`: Added negative hours check and null sheet check
+- `getClockStatus()`: Fixed strict `===` to `String().trim()` comparison (handles numeric IDs from sheet)
+- `getClockStatus()`: Added Google Sheets serial date number conversion for clockInTime
+- `clockIn()`: Removed dead `ss` variable
+
+**Deployed @644 — Schema migration on reads:**
+- `getSeedInventory()`: Now calls `initSeedInventorySheet()` to trigger column migration before reading
+- `getSeedByQR()`: Same fix — ensures Seeds_Per_Packet column exists on first read
+
+### Issues Found (not fixed — need PM direction)
+- `submitInventoryCount` endpoint completely missing
+- `getInventoryItems` endpoint missing (closest: `getFarmInventory`)
+- Seed lot S-LET-260219-567 has misaligned data (pre-migration row)
+- EMPLOYEES sheet missing permission columns (Tractor_Mode, Garage_Mode, etc.)
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-02-19 - PM_Architect (CRITICAL: Seed Column Shift Bug Fix)
 
 ### Files Modified

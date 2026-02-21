@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="correction-modal.css">
     <link rel="stylesheet" href="lender-crm.css">
+    <link rel="stylesheet" href="tiny-seed-design-system.css">
     <!-- SheetJS for Excel parsing -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <!-- Chart.js for analytics visualizations -->
@@ -15,12 +16,12 @@
     <script src="auth-guard.js" data-required-role="Admin"></script>
     <style>
         :root {
-            --primary: #2a9d8f;
+            --primary: var(--ts-green-500, #2a9d8f);
             --primary-light: #3fb5a6;
             --secondary: #f4a261;
             --success: #2a9d8f;
             --warning: #f4a261;
-            --danger: #e76f51;
+            --danger: var(--ts-red-500, #e76f51);
             --info: #4361ee;
             --teal: #2a9d8f;
             --gold: #f4a261;
@@ -43,13 +44,17 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: var(--ts-font-sans, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
             background: var(--bg);
             color: var(--text);
             line-height: 1.6;
             padding: 1.5rem;
             min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
         }
+
+        :focus-visible { outline: 2px solid var(--primary, var(--ts-green-500)); outline-offset: 2px; }
+        :focus:not(:focus-visible) { outline: none; }
 
         .header {
             background: linear-gradient(135deg, var(--primary) 0%, var(--info) 100%);
@@ -123,6 +128,7 @@
             padding: 1.5rem;
             margin-bottom: 1.5rem;
             border: 1px solid var(--border);
+            transition: border-color 200ms ease, box-shadow 200ms ease;
         }
 
         .card-header {
@@ -4827,6 +4833,21 @@
                 opacity: 1;
             }
         }
+
+        /* Reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 100px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
 
     </style>
 </head>
@@ -9658,11 +9679,7 @@
             return String(value);
         }
 
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
+        // escapeHtml() defined below at parser section (null-safe version)
 
         function showFileSelected(fileName) {
             const icon = document.getElementById('uploadIcon');
@@ -12291,27 +12308,7 @@
             return explanation;
         }
 
-        /**
-         * Generate AI reasoning for non-rule-based categorization
-         */
-        function generateAIReasoning(product, category, subcategory, matchedKeywords) {
-            const categoryInfo = PARSER_CATEGORIES[category] || { displayName: category };
-            const title = product.title || 'Unknown product';
-
-            let reasoning = `AI categorized "${title}" as "${categoryInfo.displayName}"`;
-
-            if (matchedKeywords && matchedKeywords.length > 0) {
-                reasoning += ` because it contains: ${matchedKeywords.join(', ')}`;
-            }
-
-            if (subcategory) {
-                reasoning += `. Subcategory: ${subcategory}`;
-            }
-
-            reasoning += '. No matching correction rule found.';
-
-            return reasoning;
-        }
+        // generateAIReasoning() defined below in parser section (2-param version with keyword highlighting)
 
         /**
          * Create a correction rule from user feedback
@@ -13364,9 +13361,15 @@
                 // Show all years combined
                 displayParsedData(parsedSalesData);
             } else if (window.salesDataByYearBreakdown && window.salesDataByYearBreakdown[year]) {
-                // Show specific year
+                // Show specific year from detailed breakdown
                 const yearData = window.salesDataByYearBreakdown[year];
                 displayYearData(yearData);
+            } else if (salesDataByYear && salesDataByYear[year]) {
+                // Fallback to simple year data
+                displayParsedData(salesDataByYear[year]);
+            } else {
+                // No data for this year
+                resetSalesDisplay();
             }
         }
 
@@ -13520,17 +13523,7 @@
         }
 
         // ====== YEAR FILTER ======
-
-        function filterByYear(year) {
-            currentSalesYear = year;
-
-            if (salesDataByYear[year]) {
-                displayParsedData(salesDataByYear[year]);
-            } else {
-                // Clear display for years with no data
-                resetSalesDisplay();
-            }
-        }
+        // filterByYear() defined above (merged version with all-year + breakdown support)
 
         function resetSalesDisplay() {
             const inputs = document.querySelectorAll('.sales-amount-input, .sales-count-input');
