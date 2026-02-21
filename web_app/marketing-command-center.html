@@ -19,7 +19,7 @@
     <!-- DOMPurify for XSS protection -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.4/purify.min.js"></script>
     <!-- Google Fonts for Design Studio -->
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Pacifico&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Pacifico&family=Caveat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #22c55e;
@@ -9429,7 +9429,7 @@
                         <div style="margin-top: 0.75rem; padding: 0.75rem; background: rgba(74,124,89,0.08); border-radius: 8px; border-left: 3px solid var(--success);">
                             <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0;">
                                 <i class="fas fa-lightbulb" style="color: var(--gold);"></i>
-                                <strong>Pro tip:</strong> Tap the <i class="fas fa-camera"></i> icon on each item to upload a real photo. Place produce on a white surface for best background removal.
+                                <strong>Pro tip:</strong> Tap the <i class="fas fa-camera"></i> icon on each item to add YOUR produce photo. Place on a white surface for clean background removal. Each item gets a chalkboard label!
                             </p>
                         </div>
 
@@ -9438,11 +9438,11 @@
                             <div class="form-group" style="margin-bottom: 0;">
                                 <label class="form-label">Background Surface</label>
                                 <select class="form-input" id="csaBackground" style="min-height: 48px;">
+                                    <option value="burlap" selected>Burlap (Farm Stand)</option>
                                     <option value="wooden_rustic">Rustic Wooden Board</option>
-                                    <option value="marble_white">White Marble</option>
                                     <option value="linen_cream">Cream Linen</option>
+                                    <option value="marble_white">White Marble</option>
                                     <option value="slate_dark">Dark Slate</option>
-                                    <option value="burlap">Burlap Texture</option>
                                 </select>
                             </div>
                             <div class="form-group" style="margin-bottom: 0;">
@@ -36792,13 +36792,13 @@ Would you like to test posting to Threads?`;
             'default': { url: 'https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f96c.png', scale: 1.0, color: '#4a7c59' }
         };
 
-        // Background patterns (using solid colors for MVP, can be replaced with textures)
+        // Background patterns
         const BACKGROUNDS = {
-            'wooden_rustic': { color: '#8b4513', gradient: 'linear-gradient(135deg, #a0522d 0%, #8b4513 50%, #654321 100%)' },
-            'marble_white': { color: '#f5f5f5', gradient: 'linear-gradient(135deg, #ffffff 0%, #f0f0f0 50%, #e8e8e8 100%)' },
-            'linen_cream': { color: '#f5f5dc', gradient: 'linear-gradient(135deg, #fffef0 0%, #f5f5dc 50%, #e8e4c9 100%)' },
-            'slate_dark': { color: '#708090', gradient: 'linear-gradient(135deg, #778899 0%, #708090 50%, #5a6a7a 100%)' },
-            'burlap': { color: '#c4a35a', gradient: 'linear-gradient(135deg, #d4b56a 0%, #c4a35a 50%, #a08040 100%)' }
+            'burlap': { color: '#c4a35a', label: 'Burlap (Farm Stand)', isDefault: true },
+            'wooden_rustic': { color: '#8b4513', label: 'Rustic Wooden Board' },
+            'linen_cream': { color: '#f5f5dc', label: 'Cream Linen' },
+            'marble_white': { color: '#f5f5f5', label: 'White Marble' },
+            'slate_dark': { color: '#708090', label: 'Dark Slate' }
         };
 
         // Season color palettes from research
@@ -36855,7 +36855,7 @@ Would you like to test posting to Threads?`;
             csaCanvas = new fabric.Canvas('csaCanvas', {
                 width: displayWidth,
                 height: displayHeight,
-                backgroundColor: '#8b4513',
+                backgroundColor: '#c4a35a',
                 preserveObjectStacking: true
             });
 
@@ -37147,7 +37147,114 @@ Would you like to test posting to Threads?`;
             });
         }
 
-        // Generate CSA Box Visual - Professional grid layout
+        // Draw burlap woven texture on canvas (procedural — no image dependency)
+        function drawBurlapTexture(canvas, W, H, S) {
+            var burlapBase = '#c4a35a';
+            canvas.backgroundColor = burlapBase;
+
+            // Horizontal weave threads
+            for (var y = 0; y < H; y += 8) {
+                var shade = (y % 16 === 0) ? 'rgba(160,128,64,0.15)' : 'rgba(100,80,40,0.08)';
+                canvas.add(new fabric.Line(
+                    [0, y * S, W * S, y * S],
+                    { stroke: shade, strokeWidth: 2 * S, selectable: false }
+                ));
+            }
+            // Vertical weave threads
+            for (var x = 0; x < W; x += 8) {
+                var shade2 = (x % 16 === 0) ? 'rgba(180,140,60,0.12)' : 'rgba(90,70,35,0.06)';
+                canvas.add(new fabric.Line(
+                    [x * S, 0, x * S, H * S],
+                    { stroke: shade2, strokeWidth: 1.5 * S, selectable: false }
+                ));
+            }
+            // Subtle grain noise — scattered tiny dots
+            for (var n = 0; n < 200; n++) {
+                var nx = Math.random() * W;
+                var ny = Math.random() * H;
+                canvas.add(new fabric.Circle({
+                    left: nx * S, top: ny * S,
+                    radius: (0.5 + Math.random()) * S,
+                    fill: Math.random() > 0.5 ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)',
+                    selectable: false
+                }));
+            }
+        }
+
+        // Draw wood grain texture
+        function drawWoodTexture(canvas, W, H, S) {
+            canvas.backgroundColor = '#8b4513';
+            for (var li = 0; li < 60; li++) {
+                var yOff = li * 23;
+                var wobble = Math.sin(li * 0.7) * 15;
+                canvas.add(new fabric.Line(
+                    [0, (yOff + wobble) * S, W * S, (yOff - wobble + 5) * S],
+                    { stroke: 'rgba(0,0,0,0.04)', strokeWidth: (1 + Math.random()) * S, selectable: false }
+                ));
+            }
+        }
+
+        // Draw a chalkboard label (dark rounded rect with chalk-style text)
+        function drawChalkboardLabel(canvas, text, centerX, centerY, S) {
+            var displayName = text.charAt(0).toUpperCase() + text.slice(1);
+            var padX = 24;
+            var padY = 10;
+            var fontSize = 24;
+            var labelW = Math.max(displayName.length * 14 + padX * 2, 120);
+            var labelH = fontSize + padY * 2 + 4;
+
+            // Dark chalkboard background
+            canvas.add(new fabric.Rect({
+                left: centerX * S,
+                top: centerY * S,
+                width: labelW * S,
+                height: labelH * S,
+                rx: 8 * S,
+                ry: 8 * S,
+                fill: '#2c3e2d',
+                originX: 'center',
+                originY: 'center',
+                selectable: false,
+                shadow: new fabric.Shadow({
+                    color: 'rgba(0,0,0,0.35)', blur: 8 * S, offsetX: 0, offsetY: 3 * S
+                })
+            }));
+
+            // Thin chalk border
+            canvas.add(new fabric.Rect({
+                left: centerX * S,
+                top: centerY * S,
+                width: (labelW - 8) * S,
+                height: (labelH - 8) * S,
+                rx: 5 * S,
+                ry: 5 * S,
+                fill: 'transparent',
+                stroke: 'rgba(255,255,255,0.25)',
+                strokeWidth: 1 * S,
+                originX: 'center',
+                originY: 'center',
+                selectable: false
+            }));
+
+            // Chalk-white handwritten text
+            canvas.add(new fabric.Text(displayName, {
+                left: centerX * S,
+                top: centerY * S,
+                fontSize: fontSize * S,
+                fontFamily: "'Caveat', 'Segoe Script', 'Comic Sans MS', cursive",
+                fontWeight: '700',
+                fill: '#f0ece4',
+                textAlign: 'center',
+                originX: 'center',
+                originY: 'center',
+                selectable: false,
+                shadow: new fabric.Shadow({
+                    color: 'rgba(255,255,255,0.15)', blur: 2 * S, offsetX: 0, offsetY: 0
+                })
+            }));
+        }
+
+        // Generate CSA Box Visual - Burlap + Chalkboard style
         async function generateCSABoxVisual() {
             if (csaSelectedItems.length === 0) {
                 showToast('Please add at least one item to your box', 'warning');
@@ -37171,74 +37278,100 @@ Would you like to test posting to Threads?`;
                 var seasonKey = document.getElementById('csaSeason').value;
                 var headerText = document.getElementById('csaHeaderText').value;
 
-                var background = BACKGROUNDS[bgKey];
                 var palette = SEASON_PALETTES[seasonKey];
                 var isLightBg = (bgKey === 'marble_white' || bgKey === 'linen_cream');
 
-                // --- BACKGROUND ---
-                csaCanvas.backgroundColor = background.color;
-
-                // Subtle texture for wood/burlap backgrounds
-                if (bgKey === 'wooden_rustic' || bgKey === 'burlap') {
-                    for (var li = 0; li < 25; li++) {
-                        var line = new fabric.Line(
-                            [0, li * 56 * S, W * S, (li * 56 - 100) * S],
-                            { stroke: 'rgba(0,0,0,0.025)', strokeWidth: 1.5 * S, selectable: false }
-                        );
-                        csaCanvas.add(line);
-                    }
+                // --- BACKGROUND TEXTURE ---
+                if (bgKey === 'burlap') {
+                    drawBurlapTexture(csaCanvas, W, H, S);
+                } else if (bgKey === 'wooden_rustic') {
+                    drawWoodTexture(csaCanvas, W, H, S);
+                } else {
+                    csaCanvas.backgroundColor = BACKGROUNDS[bgKey].color;
                 }
 
-                // --- TOP ACCENT BAR ---
+                // --- TOP ACCENT STRIP ---
                 csaCanvas.add(new fabric.Rect({
                     left: 0, top: 0,
-                    width: W * S, height: 8 * S,
+                    width: W * S, height: 6 * S,
                     fill: palette.primary, selectable: false
                 }));
 
-                // --- HEADER ZONE (0-230px) ---
-                var titleLines = csaSplitHeader(headerText, 24);
-                var titleY = 55;
+                // --- HEADER ZONE ---
+                // Header chalkboard banner
+                var headerBannerW = 860;
+                var headerBannerH = 90;
+                csaCanvas.add(new fabric.Rect({
+                    left: (W / 2) * S, top: 55 * S,
+                    width: headerBannerW * S, height: headerBannerH * S,
+                    rx: 12 * S, ry: 12 * S,
+                    fill: '#2c3e2d',
+                    originX: 'center', originY: 'center',
+                    selectable: false,
+                    shadow: new fabric.Shadow({
+                        color: 'rgba(0,0,0,0.4)', blur: 15 * S, offsetX: 0, offsetY: 5 * S
+                    })
+                }));
+                // Inner chalk border on header
+                csaCanvas.add(new fabric.Rect({
+                    left: (W / 2) * S, top: 55 * S,
+                    width: (headerBannerW - 16) * S, height: (headerBannerH - 16) * S,
+                    rx: 8 * S, ry: 8 * S,
+                    fill: 'transparent',
+                    stroke: 'rgba(255,255,255,0.2)',
+                    strokeWidth: 1.5 * S,
+                    originX: 'center', originY: 'center',
+                    selectable: false
+                }));
+
+                // Header text (chalk style)
+                var titleLines = csaSplitHeader(headerText, 28);
+                var titleStartY = titleLines.length > 1 ? 35 : 47;
                 for (var tl = 0; tl < titleLines.length; tl++) {
                     csaCanvas.add(new fabric.Text(titleLines[tl], {
                         left: (W / 2) * S,
-                        top: titleY * S,
-                        fontSize: 54 * S,
-                        fontFamily: 'Georgia, serif',
+                        top: (titleStartY + tl * 38) * S,
+                        fontSize: 42 * S,
+                        fontFamily: "'Caveat', 'Segoe Script', cursive",
                         fontWeight: '700',
-                        fill: isLightBg ? '#2d3436' : '#ffffff',
+                        fill: '#f0ece4',
                         textAlign: 'center',
                         originX: 'center',
                         selectable: false,
-                        shadow: isLightBg ? null : new fabric.Shadow({
-                            color: 'rgba(0,0,0,0.25)', blur: 8 * S, offsetX: 0, offsetY: 2 * S
+                        shadow: new fabric.Shadow({
+                            color: 'rgba(255,255,255,0.12)', blur: 3 * S, offsetX: 0, offsetY: 0
                         })
                     }));
-                    titleY += 62;
                 }
 
-                // Decorative divider
-                csaCanvas.add(new fabric.Line(
-                    [(W * 0.3) * S, (titleY + 10) * S, (W * 0.7) * S, (titleY + 10) * S],
-                    { stroke: palette.primary, strokeWidth: 3 * S, selectable: false }
-                ));
-
-                // Week date
+                // Week date below header banner
                 csaCanvas.add(new fabric.Text(csaWeekRange(), {
                     left: (W / 2) * S,
-                    top: (titleY + 25) * S,
-                    fontSize: 22 * S,
-                    fontFamily: 'Arial, sans-serif',
+                    top: 118 * S,
+                    fontSize: 20 * S,
+                    fontFamily: "'Caveat', cursive",
                     fontWeight: '400',
-                    fill: isLightBg ? '#636e72' : '#bbbbbb',
+                    fill: isLightBg ? '#636e72' : '#d4c9a8',
                     textAlign: 'center',
                     originX: 'center',
                     selectable: false
                 }));
 
-                var gridTop = titleY + 65;
+                // Small decorative leaf divider (using unicode)
+                csaCanvas.add(new fabric.Text('\u2022 \u2022 \u2022', {
+                    left: (W / 2) * S,
+                    top: 148 * S,
+                    fontSize: 18 * S,
+                    fontFamily: 'Georgia, serif',
+                    fill: palette.primary,
+                    textAlign: 'center',
+                    originX: 'center',
+                    selectable: false
+                }));
 
-                // --- GRID ZONE ---
+                var gridTop = 175;
+
+                // --- GRID ZONE: Photos + Chalkboard Labels ---
                 var gridBottom = 1080;
                 var gridPadding = 60;
                 var itemCount = csaSelectedItems.length;
@@ -37247,10 +37380,9 @@ Would you like to test posting to Threads?`;
 
                 var cellWidth = (W - gridPadding * 2) / cols;
                 var maxCellHeight = (gridBottom - gridTop) / rows;
-                var cellHeight = Math.min(maxCellHeight, 320);
-                var circleRadius = Math.min(cellWidth * 0.33, cellHeight * 0.33, 115);
+                var cellHeight = Math.min(maxCellHeight, 340);
+                var circleRadius = Math.min(cellWidth * 0.32, cellHeight * 0.3, 110);
 
-                // Center grid vertically in available space
                 var totalGridHeight = rows * cellHeight;
                 var gridStartY = gridTop + ((gridBottom - gridTop) - totalGridHeight) / 2;
 
@@ -37260,98 +37392,136 @@ Would you like to test posting to Threads?`;
                     var row = Math.floor(gi / cols);
 
                     var cellCenterX = gridPadding + col * cellWidth + cellWidth / 2;
-                    var cellCenterY = gridStartY + row * cellHeight + cellHeight / 2 - 20;
+                    var cellCenterY = gridStartY + row * cellHeight + cellHeight / 2 - 30;
 
                     var itemData = PRODUCE_LIBRARY[item.name] || PRODUCE_LIBRARY['default'];
                     var photoSrc = item.processedPhoto || item.rawPhoto;
 
                     if (photoSrc) {
-                        // Real photo in circular clip
+                        // User's actual photo with background removed, circular clip
                         await addCircularPhotoToCanvas(photoSrc, cellCenterX, cellCenterY, circleRadius, S);
                     } else {
-                        // Styled placeholder: colored circle with initial letter
+                        // Placeholder: colored circle with produce initial on burlap
                         csaCanvas.add(new fabric.Circle({
                             left: cellCenterX * S,
                             top: cellCenterY * S,
                             radius: circleRadius * S,
-                            fill: itemData.color + '22',
-                            stroke: itemData.color,
+                            fill: itemData.color + '30',
+                            stroke: itemData.color + '88',
                             strokeWidth: 3 * S,
+                            strokeDashArray: [8 * S, 4 * S],
                             originX: 'center',
                             originY: 'center',
                             selectable: false,
                             shadow: new fabric.Shadow({
-                                color: 'rgba(0,0,0,0.12)', blur: 12 * S, offsetX: 0, offsetY: 4 * S
+                                color: 'rgba(0,0,0,0.15)', blur: 10 * S, offsetX: 0, offsetY: 4 * S
                             })
                         }));
+                        // Placeholder initial
                         csaCanvas.add(new fabric.Text(item.name.charAt(0).toUpperCase(), {
                             left: cellCenterX * S,
-                            top: cellCenterY * S,
-                            fontSize: (circleRadius * 0.85) * S,
-                            fontFamily: 'Georgia, serif',
+                            top: (cellCenterY - 5) * S,
+                            fontSize: (circleRadius * 0.7) * S,
+                            fontFamily: "'Caveat', cursive",
                             fontWeight: '700',
-                            fill: itemData.color,
+                            fill: itemData.color + 'cc',
                             originX: 'center',
                             originY: 'center',
                             selectable: false
                         }));
-                    }
-
-                    // Item label directly beneath the circle
-                    var labelY = cellCenterY + circleRadius + 18;
-                    csaCanvas.add(new fabric.Text(
-                        item.name.charAt(0).toUpperCase() + item.name.slice(1),
-                        {
+                        // "upload photo" hint
+                        csaCanvas.add(new fabric.Text('\u2191 tap camera to add photo', {
                             left: cellCenterX * S,
-                            top: labelY * S,
-                            fontSize: 26 * S,
-                            fontFamily: 'Arial, Helvetica, sans-serif',
-                            fontWeight: '600',
-                            fill: isLightBg ? '#2d3436' : '#f0f0f0',
+                            top: (cellCenterY + circleRadius * 0.45) * S,
+                            fontSize: 12 * S,
+                            fontFamily: 'Arial, sans-serif',
+                            fill: itemData.color + '99',
                             textAlign: 'center',
                             originX: 'center',
                             selectable: false
-                        }
-                    ));
+                        }));
+                    }
+
+                    // Chalkboard label beneath the circle
+                    var labelY = cellCenterY + circleRadius + 28;
+                    drawChalkboardLabel(csaCanvas, item.name, cellCenterX, labelY, S);
                 }
 
                 // --- FOOTER ZONE (1080-1350px) ---
+                // Twine divider effect
                 csaCanvas.add(new fabric.Line(
-                    [(W * 0.15) * S, 1100 * S, (W * 0.85) * S, 1100 * S],
-                    { stroke: (isLightBg ? '#ddd' : palette.primary + '66'), strokeWidth: 2 * S, selectable: false }
+                    [(W * 0.1) * S, 1095 * S, (W * 0.9) * S, 1095 * S],
+                    { stroke: '#8b7355', strokeWidth: 2 * S, selectable: false }
                 ));
+                csaCanvas.add(new fabric.Line(
+                    [(W * 0.1) * S, 1099 * S, (W * 0.9) * S, 1099 * S],
+                    { stroke: '#a08860', strokeWidth: 1 * S, selectable: false }
+                ));
+
+                // Farm name on chalkboard
+                var footerBoardW = 600;
+                var footerBoardH = 110;
+                csaCanvas.add(new fabric.Rect({
+                    left: (W / 2) * S, top: 1175 * S,
+                    width: footerBoardW * S, height: footerBoardH * S,
+                    rx: 10 * S, ry: 10 * S,
+                    fill: '#2c3e2d',
+                    originX: 'center', originY: 'center',
+                    selectable: false,
+                    shadow: new fabric.Shadow({
+                        color: 'rgba(0,0,0,0.4)', blur: 12 * S, offsetX: 0, offsetY: 4 * S
+                    })
+                }));
+                csaCanvas.add(new fabric.Rect({
+                    left: (W / 2) * S, top: 1175 * S,
+                    width: (footerBoardW - 14) * S, height: (footerBoardH - 14) * S,
+                    rx: 7 * S, ry: 7 * S,
+                    fill: 'transparent',
+                    stroke: 'rgba(255,255,255,0.2)',
+                    strokeWidth: 1 * S,
+                    originX: 'center', originY: 'center',
+                    selectable: false
+                }));
 
                 csaCanvas.add(new fabric.Text('TINY SEED FARM', {
                     left: (W / 2) * S,
-                    top: 1145 * S,
-                    fontSize: 40 * S,
-                    fontFamily: 'Arial, Helvetica, sans-serif',
+                    top: 1158 * S,
+                    fontSize: 36 * S,
+                    fontFamily: "'Caveat', 'Segoe Script', cursive",
                     fontWeight: '700',
-                    fill: isLightBg ? '#2d3436' : '#ffffff',
+                    fill: '#f0ece4',
                     textAlign: 'center',
                     originX: 'center',
-                    charSpacing: 400,
+                    charSpacing: 200,
                     selectable: false
                 }));
 
                 csaCanvas.add(new fabric.Text('Farm Fresh  \u2022  Locally Grown  \u2022  Delivered to You', {
                     left: (W / 2) * S,
-                    top: 1205 * S,
-                    fontSize: 20 * S,
-                    fontFamily: 'Arial, sans-serif',
+                    top: 1195 * S,
+                    fontSize: 16 * S,
+                    fontFamily: "'Caveat', cursive",
                     fontWeight: '400',
-                    fontStyle: 'italic',
-                    fill: isLightBg ? '#636e72' : '#aaaaaa',
+                    fill: '#b8ad94',
                     textAlign: 'center',
                     originX: 'center',
                     selectable: false
                 }));
 
-                // Bottom accent bar
+                // Tiny seed logo mark (small leaf unicode)
+                csaCanvas.add(new fabric.Text('\uD83C\uDF31', {
+                    left: (W / 2) * S,
+                    top: 1265 * S,
+                    fontSize: 28 * S,
+                    originX: 'center',
+                    selectable: false
+                }));
+
+                // Bottom accent strip
                 csaCanvas.add(new fabric.Rect({
-                    left: 0, top: (H - 8) * S,
-                    width: W * S, height: 8 * S,
-                    fill: palette.secondary, selectable: false
+                    left: 0, top: (H - 6) * S,
+                    width: W * S, height: 6 * S,
+                    fill: palette.primary, selectable: false
                 }));
 
                 csaCanvas.renderAll();
@@ -37412,7 +37582,7 @@ Would you like to test posting to Threads?`;
         function clearCSACanvas() {
             if (csaCanvas) {
                 csaCanvas.clear();
-                csaCanvas.backgroundColor = '#8b4513';
+                csaCanvas.backgroundColor = '#c4a35a';
                 csaCanvas.renderAll();
             }
             document.getElementById('csaClearBtn').style.display = 'none';
