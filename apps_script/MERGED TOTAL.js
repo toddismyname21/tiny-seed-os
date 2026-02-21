@@ -16104,6 +16104,9 @@ function doGet(e) {
       case 'generateEnterpriseAnalysis':
         return jsonResponse(generateEnterpriseAnalysis(e.parameter));
 
+      case 'getParserCorrectionRules':
+        return jsonResponse(getParserCorrectionRules());
+
       // ============ LOAN READINESS DASHBOARD ============
       case 'initLoanSheets':
         return jsonResponse(initLoanSheets());
@@ -17823,6 +17826,8 @@ function doPost(e) {
         return jsonResponse(sendPersonalizedRecommendations(data.customerId));
       case 'updateChefPreferences':
         return jsonResponse(updateChefPreferences(data.customerId, data.preferences || data));
+      case 'saveProductNotification':
+        return jsonResponse(saveProductNotification(data));
       case 'allocateAvailability':
         return jsonResponse(allocateAvailability(data.product, data.totalAvailable, data.orders || []));
       case 'initializeChefCommunications':
@@ -50069,11 +50074,12 @@ const EMPLOYEE_HEADERS = {
   TEAM_CHECKINS: ['Checkin_ID', 'Timestamp', 'Employee_ID', 'Employee_Name', 'Assignment_ID', 'Task_Description', 'Status', 'Progress_Pct', 'Blocker', 'ETA_Mins', 'Response_Method', 'GPS_Lat', 'GPS_Lng', 'Notes']
 };
 
-// Farm geofence center (update with actual coordinates)
+// Farm geofence center - Kretschmann Farm, 257 Zeigler Rd, Rochester, PA 15074
+// TODO: Verify exact GPS coordinates on-site for precision
 const FARM_GEOFENCE = {
-  lat: 40.7956,
-  lng: -80.1384,
-  radiusMeters: 500
+  lat: 40.6960,
+  lng: -80.2820,
+  radiusMeters: 750
 };
 
 // ============================================
@@ -58675,7 +58681,9 @@ const FINANCIAL_CONFIG = {
         ROUND_UPS: 'FIN_ROUND_UPS',
         ROUND_UP_INVESTMENTS: 'FIN_ROUND_UP_INVESTMENTS',
         FINANCIAL_SETTINGS: 'FIN_SETTINGS',
-        FINANCIAL_DASHBOARD: 'FIN_DASHBOARD'
+        FINANCIAL_DASHBOARD: 'FIN_DASHBOARD',
+        GRANTS: 'FIN_GRANTS',
+        RECEIPTS: 'FIN_RECEIPTS'
     }
 };
 
@@ -77898,6 +77906,437 @@ function syncShopifyOrderToQuickBooks(shopifyOrderId) {
   }
 
   return invoiceResult;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// QUICKBOOKS DASHBOARD FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Get QuickBooks connection status
+ * Returns whether QB is configured, connected, and ready
+ */
+function getQuickBooksConnectionStatus() {
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const savedCreds = props.getProperty('QUICKBOOKS_CREDENTIALS');
+    var parsedCreds = null;
+    try { parsedCreds = savedCreds ? JSON.parse(savedCreds) : null; } catch(e) {}
+
+    // Check if credentials are configured (not placeholder values)
+    var isConfigured = QUICKBOOKS_CONFIG.ENABLED &&
+                       QUICKBOOKS_CONFIG.CLIENT_ID !== 'YOUR_QB_CLIENT_ID' &&
+                       QUICKBOOKS_CONFIG.CLIENT_SECRET !== 'YOUR_QB_CLIENT_SECRET';
+
+    // Also check saved credentials from dashboard setup
+    if (!isConfigured && parsedCreds) {
+      isConfigured = parsedCreds.clientId && parsedCreds.clientId !== 'YOUR_QB_CLIENT_ID';
+    }
+
+    // Check OAuth token
+    var isConnected = false;
+    var tokenExpiry = null;
+    try {
+      if (typeof getQuickBooksOAuthService === 'function') {
+        var service = getQuickBooksOAuthService();
+        isConnected = service.hasAccess();
+        if (isConnected) {
+          tokenExpiry = props.getProperty('QB_TOKEN_EXPIRY') || null;
+        }
+      }
+    } catch(e) {
+      Logger.log('QB OAuth check error: ' + e.toString());
+    }
+
+    var realmId = PropertiesService.getUserProperties().getProperty('QB_REALM_ID') ||
+                  QUICKBOOKS_CONFIG.COMPANY_ID;
+    var hasRealmId = realmId && realmId !== 'YOUR_QB_COMPANY_ID';
+
+    return {
+      success: true,
+      configured: isConfigured,
+      connected: isConnected,
+      hasCredentials: !!parsedCreds || isConfigured,
+      hasRealmId: hasRealmId,
+      realmId: hasRealmId ? realmId : null,
+      environment: QUICKBOOKS_CONFIG.ENVIRONMENT,
+      tokenExpiry: tokenExpiry,
+      status: isConnected ? 'connected' : (isConfigured ? 'configured_not_connected' : 'not_configured'),
+      message: isConnected ? 'Connected to QuickBooks' :
+               (isConfigured ? 'QuickBooks credentials configured but not connected. Please authorize.' :
+               'QuickBooks not configured. Please enter your credentials in Settings.')
+    };
+  } catch (error) {
+    Logger.log('getQuickBooksConnectionStatus error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get QuickBooks dashboard data (summary, accounts, P&L, invoices, bills)
+ * If not connected, returns helpful status info instead of errors
+ */
+function getQuickBooksDashboard() {
+  try {
+    // First check connection status
+    var connectionStatus = getQuickBooksConnectionStatus();
+
+    if (!connectionStatus.connected) {
+      return {
+        success: true,
+        connected: false,
+        status: connectionStatus.status,
+        message: connectionStatus.message,
+        summary: {
+          totalIncome: 0,
+          totalExpenses: 0,
+          netIncome: 0,
+          accountsReceivable: 0,
+          accountsPayable: 0,
+          lastSyncDate: null
+        },
+        accounts: [],
+        profitLoss: { income: [], expenses: [], netIncome: 0 },
+        invoices: { open: [], overdue: [], totalOutstanding: 0 },
+        bills: { open: [], overdue: [], totalOwed: 0 }
+      };
+    }
+
+    // Connected - fetch real data from QB API
+    var accounts = [];
+    var profitLoss = { income: [], expenses: [], netIncome: 0 };
+    var invoices = { open: [], overdue: [], totalOutstanding: 0 };
+    var bills = { open: [], overdue: [], totalOwed: 0 };
+
+    // Fetch account balances
+    try {
+      var accountResult = quickBooksApiCall('query?query=' + encodeURIComponent('SELECT * FROM Account WHERE Active = true MAXRESULTS 100'));
+      if (accountResult.success && accountResult.data.QueryResponse) {
+        accounts = (accountResult.data.QueryResponse.Account || []).map(function(a) {
+          return {
+            id: a.Id,
+            name: a.Name,
+            type: a.AccountType,
+            subType: a.AccountSubType,
+            balance: a.CurrentBalance || 0
+          };
+        });
+      }
+    } catch(e) { Logger.log('QB accounts error: ' + e); }
+
+    // Fetch open invoices
+    try {
+      var invResult = quickBooksApiCall('query?query=' + encodeURIComponent("SELECT * FROM Invoice WHERE Balance > '0' MAXRESULTS 50"));
+      if (invResult.success && invResult.data.QueryResponse) {
+        var rawInvoices = invResult.data.QueryResponse.Invoice || [];
+        var today = new Date();
+        rawInvoices.forEach(function(inv) {
+          var item = {
+            id: inv.Id,
+            docNumber: inv.DocNumber,
+            customer: inv.CustomerRef ? inv.CustomerRef.name : 'Unknown',
+            amount: inv.TotalAmt,
+            balance: inv.Balance,
+            dueDate: inv.DueDate
+          };
+          if (new Date(inv.DueDate) < today) {
+            invoices.overdue.push(item);
+          } else {
+            invoices.open.push(item);
+          }
+          invoices.totalOutstanding += inv.Balance || 0;
+        });
+      }
+    } catch(e) { Logger.log('QB invoices error: ' + e); }
+
+    // Fetch open bills
+    try {
+      var billResult = quickBooksApiCall('query?query=' + encodeURIComponent("SELECT * FROM Bill WHERE Balance > '0' MAXRESULTS 50"));
+      if (billResult.success && billResult.data.QueryResponse) {
+        var rawBills = billResult.data.QueryResponse.Bill || [];
+        var today2 = new Date();
+        rawBills.forEach(function(bill) {
+          var item = {
+            id: bill.Id,
+            vendor: bill.VendorRef ? bill.VendorRef.name : 'Unknown',
+            amount: bill.TotalAmt,
+            balance: bill.Balance,
+            dueDate: bill.DueDate
+          };
+          if (new Date(bill.DueDate) < today2) {
+            bills.overdue.push(item);
+          } else {
+            bills.open.push(item);
+          }
+          bills.totalOwed += bill.Balance || 0;
+        });
+      }
+    } catch(e) { Logger.log('QB bills error: ' + e); }
+
+    // Calculate summary
+    var totalIncome = accounts.filter(function(a) { return a.type === 'Income'; })
+                              .reduce(function(sum, a) { return sum + Math.abs(a.balance || 0); }, 0);
+    var totalExpenses = accounts.filter(function(a) { return a.type === 'Expense'; })
+                                .reduce(function(sum, a) { return sum + Math.abs(a.balance || 0); }, 0);
+
+    return {
+      success: true,
+      connected: true,
+      status: 'connected',
+      summary: {
+        totalIncome: totalIncome,
+        totalExpenses: totalExpenses,
+        netIncome: totalIncome - totalExpenses,
+        accountsReceivable: invoices.totalOutstanding,
+        accountsPayable: bills.totalOwed,
+        lastSyncDate: new Date().toISOString()
+      },
+      accounts: accounts,
+      profitLoss: profitLoss,
+      invoices: invoices,
+      bills: bills
+    };
+  } catch (error) {
+    Logger.log('getQuickBooksDashboard error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get QB account balances (called individually from dashboard widgets)
+ */
+function getQBAccountBalances() {
+  try {
+    var status = getQuickBooksConnectionStatus();
+    if (!status.connected) {
+      return { success: true, data: [], message: 'QuickBooks not connected' };
+    }
+    var result = quickBooksApiCall('query?query=' + encodeURIComponent('SELECT * FROM Account WHERE Active = true MAXRESULTS 100'));
+    if (result.success && result.data.QueryResponse) {
+      return {
+        success: true,
+        data: (result.data.QueryResponse.Account || []).map(function(a) {
+          return { id: a.Id, name: a.Name, type: a.AccountType, balance: a.CurrentBalance || 0 };
+        })
+      };
+    }
+    return { success: true, data: [] };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get QB open invoices
+ */
+function getQBOpenInvoices() {
+  try {
+    var status = getQuickBooksConnectionStatus();
+    if (!status.connected) {
+      return { success: true, data: [], message: 'QuickBooks not connected' };
+    }
+    var result = quickBooksApiCall('query?query=' + encodeURIComponent("SELECT * FROM Invoice WHERE Balance > '0' MAXRESULTS 50"));
+    if (result.success && result.data.QueryResponse) {
+      return {
+        success: true,
+        data: (result.data.QueryResponse.Invoice || []).map(function(inv) {
+          return { id: inv.Id, docNumber: inv.DocNumber, customer: inv.CustomerRef ? inv.CustomerRef.name : 'Unknown', amount: inv.TotalAmt, balance: inv.Balance, dueDate: inv.DueDate };
+        })
+      };
+    }
+    return { success: true, data: [] };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get QB open bills
+ */
+function getQBOpenBills() {
+  try {
+    var status = getQuickBooksConnectionStatus();
+    if (!status.connected) {
+      return { success: true, data: [], message: 'QuickBooks not connected' };
+    }
+    var result = quickBooksApiCall('query?query=' + encodeURIComponent("SELECT * FROM Bill WHERE Balance > '0' MAXRESULTS 50"));
+    if (result.success && result.data.QueryResponse) {
+      return {
+        success: true,
+        data: (result.data.QueryResponse.Bill || []).map(function(bill) {
+          return { id: bill.Id, vendor: bill.VendorRef ? bill.VendorRef.name : 'Unknown', amount: bill.TotalAmt, balance: bill.Balance, dueDate: bill.DueDate };
+        })
+      };
+    }
+    return { success: true, data: [] };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Get QB profit/loss summary
+ */
+function getQBProfitLossSummary() {
+  try {
+    var status = getQuickBooksConnectionStatus();
+    if (!status.connected) {
+      return { success: true, data: { income: 0, expenses: 0, netIncome: 0 }, message: 'QuickBooks not connected' };
+    }
+    var result = quickBooksApiCall('reports/ProfitAndLoss?date_macro=This Year');
+    if (result.success) {
+      return { success: true, data: result.data };
+    }
+    return { success: true, data: { income: 0, expenses: 0, netIncome: 0 } };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LOAN PACKAGE HTML EXPORT
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Save the comprehensive loan package as an HTML file to Google Drive
+ * Returns a shareable link to the generated file
+ */
+function saveLoanPackageToHTML() {
+  try {
+    // Generate the comprehensive loan package
+    var loanPackage = generateComprehensiveLoanPackage();
+    if (!loanPackage.success) {
+      return { success: false, error: 'Failed to generate loan package: ' + (loanPackage.error || 'Unknown') };
+    }
+
+    var now = new Date();
+    var dateStr = Utilities.formatDate(now, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+    var farmName = loanPackage.farmName || 'Tiny Seed Farm';
+
+    // Build professional HTML
+    var html = '<!DOCTYPE html><html><head><meta charset="utf-8">';
+    html += '<title>' + farmName + ' - Loan Application Package - ' + dateStr + '</title>';
+    html += '<style>';
+    html += 'body{font-family:Georgia,serif;max-width:900px;margin:0 auto;padding:40px;color:#333;line-height:1.6}';
+    html += 'h1{color:#1a5f2a;border-bottom:3px solid #1a5f2a;padding-bottom:10px}';
+    html += 'h2{color:#2d7a3e;margin-top:30px;border-bottom:1px solid #ddd;padding-bottom:5px}';
+    html += 'h3{color:#444;margin-top:20px}';
+    html += 'table{width:100%;border-collapse:collapse;margin:15px 0}';
+    html += 'th,td{border:1px solid #ddd;padding:10px;text-align:left}';
+    html += 'th{background:#f0f7f0;font-weight:bold}';
+    html += '.section{page-break-inside:avoid;margin:20px 0}';
+    html += '.label{font-weight:bold;color:#555;min-width:200px;display:inline-block}';
+    html += '.value{color:#222}';
+    html += '.header{text-align:center;margin-bottom:40px}';
+    html += '.header p{color:#666;margin:5px 0}';
+    html += '.positive{color:#1a5f2a} .negative{color:#c0392b}';
+    html += '.footer{margin-top:40px;padding-top:20px;border-top:2px solid #1a5f2a;text-align:center;color:#666;font-size:0.9em}';
+    html += '@media print{body{padding:20px} .no-print{display:none}}';
+    html += '</style></head><body>';
+
+    // Header
+    html += '<div class="header">';
+    html += '<h1>' + farmName + '</h1>';
+    html += '<p>Comprehensive Loan Application Package</p>';
+    html += '<p>Prepared: ' + dateStr + ' | Year: ' + (loanPackage.year || now.getFullYear()) + '</p>';
+    html += '</div>';
+
+    // Financial Statement
+    var fs = loanPackage.reports.financialStatement;
+    if (fs && fs.success !== false) {
+      html += '<div class="section"><h2>Financial Statement (Balance Sheet)</h2>';
+      html += '<h3>Assets</h3><table>';
+      html += '<tr><th>Category</th><th>Amount</th></tr>';
+      if (fs.assets) {
+        html += '<tr><td>Current Assets (Cash, Receivables, Inventory)</td><td>$' + (fs.assets.totalCurrent || 0).toLocaleString() + '</td></tr>';
+        html += '<tr><td>Fixed Assets (Equipment, Land, Buildings)</td><td>$' + (fs.assets.totalFixed || 0).toLocaleString() + '</td></tr>';
+        html += '<tr><th>Total Assets</th><th>$' + (fs.assets.total || 0).toLocaleString() + '</th></tr>';
+      }
+      html += '</table>';
+
+      html += '<h3>Liabilities</h3><table>';
+      html += '<tr><th>Category</th><th>Amount</th></tr>';
+      if (fs.liabilities) {
+        html += '<tr><td>Current Liabilities</td><td>$' + (fs.liabilities.totalCurrent || 0).toLocaleString() + '</td></tr>';
+        html += '<tr><td>Long-Term Liabilities</td><td>$' + (fs.liabilities.totalLongTerm || 0).toLocaleString() + '</td></tr>';
+        html += '<tr><th>Total Liabilities</th><th>$' + (fs.liabilities.total || 0).toLocaleString() + '</th></tr>';
+      }
+      html += '</table>';
+
+      if (fs.ratios) {
+        html += '<h3>Financial Ratios</h3><table>';
+        html += '<tr><th>Ratio</th><th>Value</th></tr>';
+        html += '<tr><td>Current Ratio</td><td>' + (fs.ratios.currentRatio || 0).toFixed(2) + '</td></tr>';
+        html += '<tr><td>Debt-to-Asset</td><td>' + ((fs.ratios.debtToAsset || 0) * 100).toFixed(1) + '%</td></tr>';
+        html += '<tr><td>Working Capital</td><td>$' + (fs.ratios.workingCapital || 0).toLocaleString() + '</td></tr>';
+        html += '</table>';
+      }
+      html += '</div>';
+    }
+
+    // Cash Flow Projection
+    var cf = loanPackage.reports.cashFlowProjection;
+    if (cf && cf.success !== false) {
+      html += '<div class="section"><h2>12-Month Cash Flow Projection</h2>';
+      if (cf.monthlyProjections) {
+        html += '<table><tr><th>Month</th><th>Revenue</th><th>Expenses</th><th>Net Cash Flow</th></tr>';
+        cf.monthlyProjections.forEach(function(m) {
+          var net = (m.revenue || 0) - (m.expenses || 0);
+          html += '<tr><td>' + (m.month || '') + '</td>';
+          html += '<td>$' + (m.revenue || 0).toLocaleString() + '</td>';
+          html += '<td>$' + (m.expenses || 0).toLocaleString() + '</td>';
+          html += '<td class="' + (net >= 0 ? 'positive' : 'negative') + '">$' + net.toLocaleString() + '</td></tr>';
+        });
+        html += '</table>';
+      }
+      html += '</div>';
+    }
+
+    // Certifications
+    if (loanPackage.certifications) {
+      html += '<div class="section"><h2>Certifications</h2>';
+      html += '<p><span class="label">Organic Status:</span> <span class="value">' + (loanPackage.certifications.organicStatus || 'N/A') + '</span></p>';
+      html += '<p><span class="label">GAP Certified:</span> <span class="value">' + (loanPackage.certifications.gapCertified || 'N/A') + '</span></p>';
+      html += '</div>';
+    }
+
+    // Footer
+    html += '<div class="footer">';
+    html += '<p>Generated by Tiny Seed Farm Management System</p>';
+    html += '<p>' + farmName + ' | ' + dateStr + '</p>';
+    html += '</div>';
+
+    html += '</body></html>';
+
+    // Save to Google Drive
+    var fileName = farmName.replace(/[^a-zA-Z0-9]/g, '_') + '_Loan_Package_' + dateStr + '.html';
+    var folder = DriveApp.getRootFolder();
+
+    // Try to find or create a "Loan Packages" folder
+    var folders = DriveApp.getFoldersByName('Tiny Seed Farm - Loan Packages');
+    if (folders.hasNext()) {
+      folder = folders.next();
+    } else {
+      folder = DriveApp.createFolder('Tiny Seed Farm - Loan Packages');
+    }
+
+    var file = folder.createFile(fileName, html, MimeType.HTML);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+    return {
+      success: true,
+      message: 'Loan package saved as HTML',
+      fileName: fileName,
+      fileId: file.getId(),
+      fileUrl: file.getUrl(),
+      downloadUrl: 'https://drive.google.com/uc?export=download&id=' + file.getId(),
+      viewUrl: file.getUrl(),
+      size: html.length
+    };
+  } catch (error) {
+    Logger.log('saveLoanPackageToHTML error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -101531,6 +101970,43 @@ function updateChefPreferences(customerId, preferences) {
   }
 }
 
+/**
+ * Save product availability notification request
+ */
+function saveProductNotification(data) {
+  try {
+    var customerId = data.customerId;
+    var productName = data.productName;
+
+    if (!customerId || !productName) {
+      return { success: false, error: 'customerId and productName are required' };
+    }
+
+    var props = PropertiesService.getScriptProperties();
+    var key = 'PRODUCT_NOTIFICATIONS';
+    var notificationsJson = props.getProperty(key);
+    var notifications = [];
+    try { notifications = notificationsJson ? JSON.parse(notificationsJson) : []; } catch(e) { notifications = []; }
+
+    var existing = notifications.find(function(n) { return n.customerId === customerId && n.productName === productName; });
+    if (existing) {
+      return { success: true, message: 'Already subscribed to this notification' };
+    }
+
+    notifications.push({
+      customerId: customerId,
+      productName: productName,
+      createdAt: new Date().toISOString(),
+      notified: false
+    });
+
+    props.setProperty(key, JSON.stringify(notifications));
+    return { success: true, message: 'Notification saved' };
+  } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════════════════════
 // HELPER FUNCTIONS
 // ═══════════════════════════════════════════════════════════════════════════════════════════════
@@ -104639,6 +105115,261 @@ function saveGrantContacts(params) {
       savedCount: (contacts || []).length
     };
   } catch (error) {
+    return { success: false, error: error.toString() };
+  }
+}
+
+// =============================================================================
+// PARSER CORRECTION RULES
+// =============================================================================
+
+/**
+ * Get parser correction rules from script properties
+ * Rules help the sales data parser correctly categorize products
+ */
+function getParserCorrectionRules() {
+  try {
+    var props = PropertiesService.getScriptProperties();
+    var rulesJson = props.getProperty('PARSER_CORRECTION_RULES');
+    var rules = [];
+    try { rules = rulesJson ? JSON.parse(rulesJson) : []; } catch(e) { rules = []; }
+
+    return {
+      success: true,
+      rules: rules,
+      count: rules.length
+    };
+  } catch (error) {
+    Logger.log('getParserCorrectionRules error: ' + error.toString());
+    return { success: false, error: error.toString(), rules: [] };
+  }
+}
+
+// =============================================================================
+// GRANTS CRUD FUNCTIONS
+// =============================================================================
+
+const GRANT_HEADERS = [
+  'Grant_ID', 'Name', 'Source', 'Amount', 'Deadline', 'Status',
+  'Category', 'Description', 'Eligibility', 'Match_Required',
+  'Coverage_Percent', 'Application_URL', 'Contact_Name', 'Contact_Email',
+  'Contact_Phone', 'Documents_Required', 'Notes', 'Strategy',
+  'Priority', 'Created_At', 'Updated_At'
+];
+
+/**
+ * Get all grants from the FIN_GRANTS sheet
+ * @param {Object} params - { status, category }
+ */
+function getGrants(params) {
+  try {
+    const ss = SpreadsheetApp.openById(FINANCIAL_CONFIG.SHEET_ID);
+    let sheet = ss.getSheetByName(FINANCIAL_CONFIG.TABS.GRANTS);
+
+    if (!sheet) {
+      // Create the sheet with headers if it doesn't exist
+      sheet = ss.insertSheet(FINANCIAL_CONFIG.TABS.GRANTS);
+      sheet.appendRow(GRANT_HEADERS);
+      sheet.getRange(1, 1, 1, GRANT_HEADERS.length).setFontWeight('bold');
+      return { success: true, data: [], count: 0 };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) {
+      return { success: true, data: [], count: 0 };
+    }
+
+    const headers = data[0];
+    const grants = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (!row[0]) continue;
+
+      const grant = {};
+      headers.forEach(function(header, index) {
+        grant[header] = row[index];
+      });
+
+      // Parse JSON fields
+      try { grant.Eligibility = JSON.parse(grant.Eligibility || '[]'); } catch(e) { grant.Eligibility = []; }
+      try { grant.Documents_Required = JSON.parse(grant.Documents_Required || '[]'); } catch(e) { grant.Documents_Required = []; }
+
+      // Compute deadline status
+      if (grant.Deadline) {
+        const deadline = new Date(grant.Deadline);
+        const today = new Date();
+        const daysUntil = Math.ceil((deadline - today) / (1000 * 60 * 60 * 24));
+        grant.daysUntilDeadline = daysUntil;
+        grant.isUrgent = daysUntil <= 30 && daysUntil > 0;
+        grant.isPastDue = daysUntil < 0;
+      }
+
+      // Filter by status
+      if (params && params.status && grant.Status !== params.status) continue;
+      if (params && params.category && grant.Category !== params.category) continue;
+
+      // Load contacts if they exist
+      try {
+        const props = PropertiesService.getScriptProperties();
+        const contactsJson = props.getProperty('GRANT_CONTACTS_' + grant.Grant_ID);
+        grant.contacts = contactsJson ? JSON.parse(contactsJson) : [];
+      } catch(e) {
+        grant.contacts = [];
+      }
+
+      grants.push(grant);
+    }
+
+    // Sort by deadline (soonest first)
+    grants.sort(function(a, b) {
+      if (!a.Deadline) return 1;
+      if (!b.Deadline) return -1;
+      return new Date(a.Deadline) - new Date(b.Deadline);
+    });
+
+    return {
+      success: true,
+      data: grants,
+      count: grants.length,
+      summary: {
+        total: grants.length,
+        active: grants.filter(function(g) { return g.Status === 'Active' || g.Status === 'In Progress'; }).length,
+        submitted: grants.filter(function(g) { return g.Status === 'Submitted'; }).length,
+        awarded: grants.filter(function(g) { return g.Status === 'Awarded'; }).length,
+        urgent: grants.filter(function(g) { return g.isUrgent; }).length
+      }
+    };
+  } catch (error) {
+    Logger.log('getGrants error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Save or update a grant in the FIN_GRANTS sheet
+ * @param {Object} params - grant data with optional Grant_ID for updates
+ */
+function saveGrant(params) {
+  try {
+    const ss = SpreadsheetApp.openById(FINANCIAL_CONFIG.SHEET_ID);
+    let sheet = ss.getSheetByName(FINANCIAL_CONFIG.TABS.GRANTS);
+
+    if (!sheet) {
+      sheet = ss.insertSheet(FINANCIAL_CONFIG.TABS.GRANTS);
+      sheet.appendRow(GRANT_HEADERS);
+      sheet.getRange(1, 1, 1, GRANT_HEADERS.length).setFontWeight('bold');
+    }
+
+    const now = new Date().toISOString();
+    const grantId = params.Grant_ID || params.grantId || 'GRANT_' + Date.now();
+
+    // Check if updating existing grant
+    if (params.Grant_ID || params.grantId) {
+      const data = sheet.getDataRange().getValues();
+      const headers = data[0];
+      const idCol = headers.indexOf('Grant_ID');
+
+      for (var i = 1; i < data.length; i++) {
+        if (data[i][idCol] === grantId) {
+          // Update existing row
+          Object.keys(params).forEach(function(key) {
+            var colIndex = headers.indexOf(key);
+            if (colIndex >= 0 && key !== 'Grant_ID' && key !== 'grantId' && key !== 'action') {
+              var value = params[key];
+              if (Array.isArray(value)) value = JSON.stringify(value);
+              sheet.getRange(i + 1, colIndex + 1).setValue(value);
+            }
+          });
+          sheet.getRange(i + 1, headers.indexOf('Updated_At') + 1).setValue(now);
+          return { success: true, message: 'Grant updated', grantId: grantId };
+        }
+      }
+    }
+
+    // Serialize arrays for storage
+    var eligibility = params.Eligibility || params.eligibility || [];
+    if (Array.isArray(eligibility)) eligibility = JSON.stringify(eligibility);
+    var docsRequired = params.Documents_Required || params.documents || [];
+    if (Array.isArray(docsRequired)) docsRequired = JSON.stringify(docsRequired);
+
+    // New grant - append row
+    sheet.appendRow([
+      grantId,
+      params.Name || params.name || '',
+      params.Source || params.source || '',
+      params.Amount || params.amount || '',
+      params.Deadline || params.deadline || '',
+      params.Status || params.status || 'Researching',
+      params.Category || params.category || 'Federal',
+      params.Description || params.description || '',
+      eligibility,
+      params.Match_Required || params.matchRequired || '',
+      params.Coverage_Percent || params.coveragePercent || '',
+      params.Application_URL || params.applicationUrl || '',
+      params.Contact_Name || params.contactName || '',
+      params.Contact_Email || params.contactEmail || '',
+      params.Contact_Phone || params.contactPhone || '',
+      docsRequired,
+      params.Notes || params.notes || '',
+      params.Strategy || params.strategy || '',
+      params.Priority || params.priority || 'Medium',
+      now,
+      now
+    ]);
+
+    return {
+      success: true,
+      message: 'Grant saved',
+      grantId: grantId
+    };
+  } catch (error) {
+    Logger.log('saveGrant error: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+/**
+ * Link a receipt to a grant for expense tracking
+ * @param {Object} params - { receiptId, grantId, amount, description }
+ */
+function linkReceiptToGrant(params) {
+  try {
+    if (!params.receiptId || !params.grantId) {
+      return { success: false, error: 'Both receiptId and grantId are required' };
+    }
+
+    const ss = SpreadsheetApp.openById(FINANCIAL_CONFIG.SHEET_ID);
+
+    // Store grant-receipt links in script properties
+    const props = PropertiesService.getScriptProperties();
+    const key = 'GRANT_RECEIPTS_' + params.grantId;
+    var existing = [];
+    try {
+      existing = JSON.parse(props.getProperty(key) || '[]');
+    } catch(e) {
+      existing = [];
+    }
+
+    // Add the link
+    existing.push({
+      receiptId: params.receiptId,
+      amount: params.amount || 0,
+      description: params.description || '',
+      linkedAt: new Date().toISOString()
+    });
+
+    props.setProperty(key, JSON.stringify(existing));
+
+    return {
+      success: true,
+      message: 'Receipt linked to grant',
+      grantId: params.grantId,
+      receiptId: params.receiptId,
+      totalLinkedReceipts: existing.length
+    };
+  } catch (error) {
+    Logger.log('linkReceiptToGrant error: ' + error.toString());
     return { success: false, error: error.toString() };
   }
 }
