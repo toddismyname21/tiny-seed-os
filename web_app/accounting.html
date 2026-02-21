@@ -7,6 +7,7 @@
   <!-- Auth Guard - requires Admin role (sensitive financial data) -->
   <script src="auth-guard.js" data-required-role="Admin"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="tiny-seed-design-system.css">
   <script src="api-config.js"></script>
   <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
@@ -670,13 +671,12 @@
       Action Items
       <span id="tasksBadge" class="tab-badge" style="display: none;">0</span>
     </div>
+    <div class="tab" data-tab="quickbooks">QuickBooks</div>
     <div class="tab" data-tab="banking">Banking</div>
     <div class="tab" data-tab="receipts">Receipts</div>
     <div class="tab" data-tab="accountant">Accountant Docs</div>
     <div class="tab" data-tab="reports">Reports</div>
-    <div class="tab" data-tab="loans">Loan Readiness</div>
     <div class="tab" data-tab="labor">Labor Costs</div>
-    <div class="tab" data-tab="grants">Grants</div>
     <div class="tab" data-tab="categories">Categories</div>
   </nav>
 
@@ -924,93 +924,131 @@
       </div>
     </div>
 
-    <!-- Loan Readiness Tab -->
-    <div id="loans" class="tab-content">
-      <div class="card">
-        <div class="card-header">
-          <h2 class="card-title">Loan Readiness Center</h2>
-        </div>
-        <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
-          Generate complete loan application packages for Farm Credit, FSA, or USDA programs.
-          Includes Balance Sheet, P&L, Cash Flow, and all required documentation.
-        </p>
-
-        <!-- Loan Type Selection -->
-        <h3 style="margin-bottom: 1rem;">1. Select Loan Type</h3>
-        <div class="grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 2rem;">
-          <div class="loan-type-card" onclick="selectLoanType('FSA')" id="loan-FSA">
-            <h3>FSA Loans</h3>
-            <p>Farm Service Agency</p>
-            <p style="margin-top: 0.5rem; font-size: 0.8rem;">Operating: up to $400K<br>Ownership: up to $600K<br>Microloan: up to $50K</p>
-          </div>
-          <div class="loan-type-card" onclick="selectLoanType('FarmCredit')" id="loan-FarmCredit">
-            <h3>Farm Credit</h3>
-            <p>Horizon Farm Credit</p>
-            <p style="margin-top: 0.5rem; font-size: 0.8rem;">Operating Lines<br>Real Estate Loans<br>Equipment Financing</p>
-          </div>
-          <div class="loan-type-card" onclick="selectLoanType('USDA')" id="loan-USDA">
-            <h3>USDA Programs</h3>
-            <p>USDA Farm Programs</p>
-            <p style="margin-top: 0.5rem; font-size: 0.8rem;">EQIP, CSP<br>Conservation Loans<br>Value-Added Grants</p>
-          </div>
-        </div>
-
-        <!-- Farm Info Summary -->
-        <div class="card" style="background: var(--bg-hover);">
-          <h3 style="margin-bottom: 1rem;">Farm Information (Pre-filled)</h3>
-          <div class="grid" style="grid-template-columns: repeat(2, 1fr);">
-            <div>
-              <p><strong>Legal Name:</strong> Tiny Seed Farm LLC</p>
-              <p><strong>EIN:</strong> 81-5299411</p>
-              <p><strong>Entity Number:</strong> 6509546 (PA)</p>
-              <p><strong>Formation Date:</strong> February 7, 2017</p>
+    <!-- QuickBooks Tab (absorbed from quickbooks-dashboard.html) -->
+    <div id="quickbooks" class="tab-content">
+      <div id="qbConnectionBanner" class="card" style="border-left: 4px solid var(--warning); margin-bottom: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 1rem;">
+            <div id="qbConnectionIcon" style="width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: rgba(244, 162, 97, 0.2); color: var(--warning);">
+              <i class="fas fa-plug"></i>
             </div>
-            <div>
-              <p><strong>Address:</strong> 257 Zeigler Road, Rochester, PA 15074</p>
-              <p><strong>County:</strong> Beaver County, Pennsylvania</p>
-              <p><strong>Organic:</strong> OEFFA #3839 (~5.6 acres)</p>
-              <p><strong>Owner:</strong> Todd R Wilson (100%)</p>
+            <div id="qbConnectionText">
+              <h3 style="font-size: 1.1rem;">Checking QuickBooks Connection...</h3>
+              <p style="color: var(--text-muted); font-size: 0.9rem;">Please wait while we verify your connection</p>
             </div>
           </div>
-        </div>
-
-        <!-- Document Checklist -->
-        <div id="loanDocChecklist" style="display: none; margin-top: 1.5rem;">
-          <h3 style="margin-bottom: 1rem;">2. Document Checklist for <span id="selectedLoanType">-</span></h3>
-          <div class="card">
-            <ul class="checklist" id="loanChecklist">
-              <!-- Populated by JavaScript -->
-            </ul>
-          </div>
-
-          <h3 style="margin: 1.5rem 0 1rem;">3. Generate Loan Package</h3>
-          <div class="card">
-            <p style="margin-bottom: 1rem;">
-              This will generate a complete package including:
-            </p>
-            <ul style="margin-left: 1.5rem; color: var(--text-muted); margin-bottom: 1.5rem;">
-              <li>Balance Sheet with current ratio, debt-to-asset ratio, working capital</li>
-              <li>Profit & Loss Statement</li>
-              <li>Cash Flow Statement with 12-month seasonal projections</li>
-              <li>Schedule F Report</li>
-              <li>Farm Info Summary</li>
-              <li>Document checklist by loan type</li>
-              <li>Next steps for application</li>
-            </ul>
-            <button class="btn btn-primary" onclick="generateLoanPackage()" id="generateLoanBtn" disabled>
-              Generate Loan Package
+          <div style="display: flex; gap: 0.75rem;">
+            <button id="qbConnectBtn" class="btn btn-primary" style="display: none;" onclick="qbConnect()">
+              <i class="fas fa-link"></i> Connect QuickBooks
+            </button>
+            <button class="btn btn-secondary" onclick="openQBSetupWizard()">
+              <i class="fas fa-cog"></i> Setup
             </button>
           </div>
         </div>
       </div>
 
-      <!-- Generated Package Output -->
-      <div class="card" id="loanPackageOutput" style="display: none;">
-        <div class="card-header">
-          <h2 class="card-title">Generated Loan Package</h2>
-          <button class="btn btn-primary" onclick="printLoanPackage()">Print / Export PDF</button>
+      <div class="grid" style="grid-template-columns: repeat(5, 1fr); margin-bottom: 1.5rem;" id="qbSummaryGrid">
+        <div class="stat-card">
+          <div class="stat-value" id="qbCashOnHand">--</div>
+          <div class="stat-label">Cash on Hand</div>
         </div>
-        <div id="loanPackageContent"></div>
+        <div class="stat-card">
+          <div class="stat-value" id="qbCreditBalance">--</div>
+          <div class="stat-label">Credit Card Balance</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="qbARBalance">--</div>
+          <div class="stat-label">Accounts Receivable</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="qbAPBalance">--</div>
+          <div class="stat-label">Accounts Payable</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="qbNetCash">--</div>
+          <div class="stat-label">Net Cash Position</div>
+        </div>
+      </div>
+
+      <div class="grid" style="grid-template-columns: 1fr 1fr;">
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title"><i class="fas fa-university"></i> Account Balances</h2>
+          </div>
+          <div id="qbAccountsList" style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <p style="color: var(--text-muted);">Connect QuickBooks to view accounts</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title"><i class="fas fa-chart-line"></i> Profit & Loss (YTD)</h2>
+            <span class="badge badge-success" id="qbPLPeriod">2026</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: var(--bg-hover); border-radius: 8px;">
+              <span style="color: var(--text-muted);">Income</span>
+              <span style="font-size: 1.25rem; font-weight: 700; color: var(--primary);" id="qbTotalIncome">--</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: var(--bg-hover); border-radius: 8px;">
+              <span style="color: var(--text-muted);">Expenses</span>
+              <span style="font-size: 1.25rem; font-weight: 700; color: var(--danger);" id="qbTotalExpenses">--</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: var(--bg-hover); border-radius: 8px;">
+              <span style="color: var(--text-muted);">Net Income</span>
+              <span style="font-size: 1.25rem; font-weight: 700;" id="qbNetIncome">--</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title"><i class="fas fa-file-invoice-dollar"></i> Open Invoices (A/R)</h2>
+            <span class="badge badge-warning" id="qbAROverdue">0 overdue</span>
+          </div>
+          <div id="qbAgingAR" style="display: flex; height: 24px; border-radius: 6px; overflow: hidden; margin-bottom: 1rem; background: var(--bg-hover);">
+          </div>
+          <div id="qbInvoicesList" style="font-size: 0.9rem;">
+            <p style="color: var(--text-muted);">Connect QuickBooks to view invoices</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title"><i class="fas fa-file-invoice"></i> Open Bills (A/P)</h2>
+            <span class="badge badge-warning" id="qbAPOverdue">0 overdue</span>
+          </div>
+          <div id="qbAgingAP" style="display: flex; height: 24px; border-radius: 6px; overflow: hidden; margin-bottom: 1rem; background: var(--bg-hover);">
+          </div>
+          <div id="qbBillsList" style="font-size: 0.9rem;">
+            <p style="color: var(--text-muted);">Connect QuickBooks to view bills</p>
+          </div>
+        </div>
+      </div>
+
+      <div style="text-align: center; padding: 1rem; color: var(--text-muted); font-size: 0.85rem;" id="qbLastUpdated">
+        Last updated: --
+      </div>
+
+      <div class="card" style="margin-top: 1rem;">
+        <h3 style="margin-bottom: 0.75rem;">Related Financial Pages</h3>
+        <div class="grid" style="grid-template-columns: repeat(2, 1fr);">
+          <a href="loan-readiness.html" style="display: flex; align-items: center; gap: 0.75rem; padding: 1rem; background: var(--bg-hover); border-radius: 8px; text-decoration: none; color: var(--text);">
+            <i class="fas fa-file-contract" style="font-size: 1.5rem; color: var(--secondary);"></i>
+            <div>
+              <strong>Loan & Grant Center</strong>
+              <p style="color: var(--text-muted); font-size: 0.85rem;">Loan readiness, grant tracking, business plan, document vault</p>
+            </div>
+          </a>
+          <a href="financial-dashboard.html" style="display: flex; align-items: center; gap: 0.75rem; padding: 1rem; background: var(--bg-hover); border-radius: 8px; text-decoration: none; color: var(--text);">
+            <i class="fas fa-chart-pie" style="font-size: 1.5rem; color: var(--primary);"></i>
+            <div>
+              <strong>Financial Command Center</strong>
+              <p style="color: var(--text-muted); font-size: 0.85rem;">Net worth, debt management, investments, bills, assets</p>
+            </div>
+          </a>
+        </div>
       </div>
     </div>
 
@@ -1290,33 +1328,8 @@
       </div>
     </div>
 
-    <!-- Grants Tab -->
-    <div id="grants" class="tab-content">
-      <div class="card">
-        <div class="card-header">
-          <h2 class="card-title">Grant Tracking</h2>
-          <button class="btn btn-primary" onclick="openAddGrantModal()">+ Add Grant</button>
-        </div>
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Grant Name</th>
-                <th>Agency</th>
-                <th>Award Amount</th>
-                <th>Period</th>
-                <th>Next Report Due</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="grantsTable">
-              <tr><td colspan="7" class="loading"><div class="spinner"></div></td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+    <!-- Grants moved to Loan & Grant Center -->
+    <!-- Grant tracking is now in loan-readiness.html which has a more complete implementation -->
 
     <!-- Categories Tab -->
     <div id="categories" class="tab-content">
@@ -1425,65 +1438,51 @@
     </div>
   </div>
 
-  <!-- Add Grant Modal -->
-  <div class="modal-overlay" id="grantModal">
+  <!-- QuickBooks Setup Wizard Modal -->
+  <div class="modal-overlay" id="qbSetupModal">
     <div class="modal">
       <div class="modal-header">
-        <h2>Add Grant</h2>
-        <button class="close-btn" onclick="closeModal('grantModal')">&times;</button>
+        <h2><i class="fas fa-cog" style="color: var(--primary); margin-right: 0.5rem;"></i> QuickBooks Setup Wizard</h2>
+        <button class="close-btn" onclick="closeModal('qbSetupModal')">&times;</button>
       </div>
       <div class="modal-body">
-        <div class="form-group">
-          <label class="form-label">Grant Name *</label>
-          <input type="text" class="form-input" id="grantName" placeholder="e.g., PA Ag Innovation Grant" required>
+        <div class="alert alert-success" style="margin-bottom: 1.5rem;">
+          <i class="fas fa-info-circle"></i>
+          <strong>Owner Action Required:</strong> Follow these steps to connect QuickBooks to Tiny Seed Farm OS.
         </div>
 
-        <div class="form-group">
-          <label class="form-label">Funding Agency *</label>
-          <input type="text" class="form-input" id="grantAgency" placeholder="e.g., PA Department of Agriculture" required>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Award Amount</label>
-          <input type="number" step="0.01" class="form-input" id="grantAmount" placeholder="0.00">
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Start Date</label>
-            <input type="date" class="form-input" id="grantStart">
-          </div>
-          <div class="form-group">
-            <label class="form-label">End Date</label>
-            <input type="date" class="form-input" id="grantEnd">
+        <div style="margin-bottom: 1.5rem; padding: 1rem; background: var(--bg-hover); border-radius: 8px;">
+          <h4 style="margin-bottom: 0.5rem;"><span style="display: inline-flex; width: 24px; height: 24px; background: var(--primary); color: white; border-radius: 50%; align-items: center; justify-content: center; font-size: 0.8rem; margin-right: 0.5rem;">1</span> Find Your Company ID (Realm ID)</h4>
+          <p style="font-size: 0.9rem; color: var(--text-muted);">Log into <a href="https://qbo.intuit.com" target="_blank" style="color: var(--secondary);">QuickBooks Online</a>, look at the URL, find the number after <code>companyId=</code></p>
+          <div class="form-group" style="margin-top: 0.75rem;">
+            <input type="text" class="form-input" id="qbCompanyId" placeholder="e.g., 123456789012345">
           </div>
         </div>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Reporting Frequency</label>
-            <select class="form-select" id="grantReporting">
-              <option value="Monthly">Monthly</option>
-              <option value="Quarterly" selected>Quarterly</option>
-              <option value="Semi-Annual">Semi-Annual</option>
-              <option value="Annual">Annual</option>
-              <option value="Final Only">Final Only</option>
-            </select>
+        <div style="margin-bottom: 1.5rem; padding: 1rem; background: var(--bg-hover); border-radius: 8px;">
+          <h4 style="margin-bottom: 0.5rem;"><span style="display: inline-flex; width: 24px; height: 24px; background: var(--primary); color: white; border-radius: 50%; align-items: center; justify-content: center; font-size: 0.8rem; margin-right: 0.5rem;">2</span> Get Client ID & Secret</h4>
+          <p style="font-size: 0.9rem; color: var(--text-muted);">Go to <a href="https://developer.intuit.com" target="_blank" style="color: var(--secondary);">developer.intuit.com</a> &rarr; My Apps &rarr; Keys &amp; credentials &rarr; <strong>Production Keys</strong></p>
+          <div class="form-group" style="margin-top: 0.75rem;">
+            <input type="text" class="form-input" id="qbClientId" placeholder="Client ID">
           </div>
-          <div class="form-group">
-            <label class="form-label">Next Report Due</label>
-            <input type="date" class="form-input" id="grantNextReport">
+          <div class="form-group" style="margin-top: 0.5rem;">
+            <input type="password" class="form-input" id="qbClientSecret" placeholder="Client Secret (hidden)">
           </div>
         </div>
 
-        <div class="form-group">
-          <label class="form-label">Notes</label>
-          <textarea class="form-input" id="grantNotes" rows="2" placeholder="Grant details, requirements..."></textarea>
+        <div style="margin-bottom: 1.5rem; padding: 1rem; background: var(--bg-hover); border-radius: 8px;">
+          <h4 style="margin-bottom: 0.5rem;"><span style="display: inline-flex; width: 24px; height: 24px; background: var(--primary); color: white; border-radius: 50%; align-items: center; justify-content: center; font-size: 0.8rem; margin-right: 0.5rem;">3</span> Add Redirect URI</h4>
+          <p style="font-size: 0.9rem; color: var(--text-muted);">In your Intuit Developer App settings, add this Redirect URI:</p>
+          <code style="display: block; padding: 0.75rem; background: var(--bg-dark); border-radius: 6px; word-break: break-all; font-size: 0.8rem; margin-top: 0.5rem;">https://script.google.com/macros/d/1OR_XstYXlvw-vCbE6cO_Cyt22QeowHWgYBKtZbLcu77bJANqSNqENWec/usercallback</code>
         </div>
+
+        <div id="qbSetupResult" style="display: none;"></div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="closeModal('grantModal')">Cancel</button>
-        <button class="btn btn-primary" onclick="saveGrant()">Save Grant</button>
+        <button class="btn btn-secondary" onclick="closeModal('qbSetupModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveQBCredentials()">
+          <i class="fas fa-save"></i> Save Credentials
+        </button>
       </div>
     </div>
   </div>
@@ -1510,7 +1509,6 @@
       loadReceipts();
       loadDashboard();
       loadAccountantDocs();
-      loadGrants();
       loadBankAccounts();
       loadAccountantTasks();
       loadTaskBadge();
@@ -1530,9 +1528,10 @@
       document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
       document.getElementById(tabId).classList.add('active');
 
-      // Load labor data when switching to labor tab
       if (tabId === 'labor') {
         loadLaborByCrop();
+      } else if (tabId === 'quickbooks') {
+        loadQuickBooksTab();
       }
     }
 
@@ -1704,15 +1703,7 @@
       }
     }
 
-    async function loadGrants() {
-      const result = await apiCall('getGrants');
-      if (result.success && result.data.length > 0) {
-        renderGrantsTable(result.data);
-      } else {
-        document.getElementById('grantsTable').innerHTML =
-          '<tr><td colspan="7">No grants tracked yet. Add your first grant!</td></tr>';
-      }
-    }
+    // Grants tracking moved to loan-readiness.html
 
     // ============ LABOR COST / ACTIVITY-BASED COSTING ============
 
@@ -2037,30 +2028,9 @@
       `).join('');
     }
 
-    function renderGrantsTable(grants) {
-      const tbody = document.getElementById('grantsTable');
-      tbody.innerHTML = grants.map(g => `
-        <tr>
-          <td>${g.Grant_Name}</td>
-          <td>${g.Funding_Agency}</td>
-          <td>$${parseFloat(g.Award_Amount || 0).toLocaleString()}</td>
-          <td>${formatDate(g.Start_Date)} - ${formatDate(g.End_Date)}</td>
-          <td>${g.Next_Report_Due ? formatDate(g.Next_Report_Due) : '-'}</td>
-          <td><span class="badge badge-success">${g.Status}</span></td>
-          <td>
-            <button class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">Edit</button>
-          </td>
-        </tr>
-      `).join('');
-    }
-
     // Action Functions
     function openAddReceiptModal() {
       document.getElementById('receiptModal').classList.add('active');
-    }
-
-    function openAddGrantModal() {
-      document.getElementById('grantModal').classList.add('active');
     }
 
     function closeModal(modalId) {
@@ -2113,28 +2083,6 @@
         showAlert('Receipt verified!', 'success');
         loadReceipts();
         loadDashboard();
-      } else {
-        showAlert('Error: ' + result.error, 'error');
-      }
-    }
-
-    async function saveGrant() {
-      const data = {
-        grantName: document.getElementById('grantName').value,
-        fundingAgency: document.getElementById('grantAgency').value,
-        awardAmount: document.getElementById('grantAmount').value,
-        startDate: document.getElementById('grantStart').value,
-        endDate: document.getElementById('grantEnd').value,
-        reportingFrequency: document.getElementById('grantReporting').value,
-        nextReportDue: document.getElementById('grantNextReport').value,
-        notes: document.getElementById('grantNotes').value
-      };
-
-      const result = await apiCall('saveGrant', data, 'POST');
-      if (result.success) {
-        showAlert('Grant saved!', 'success');
-        closeModal('grantModal');
-        loadGrants();
       } else {
         showAlert('Error: ' + result.error, 'error');
       }
@@ -2478,237 +2426,198 @@
       });
     }
 
-    // ============ LOAN READINESS FUNCTIONS ============
+    // ============ QUICKBOOKS FUNCTIONS (absorbed from quickbooks-dashboard.html) ============
 
-    let selectedLoanType = null;
+    let qbLoaded = false;
 
-    const LOAN_REQUIREMENTS = {
-      FSA: {
-        name: 'Farm Service Agency',
-        documents: [
-          { id: 'tax-returns', name: '3 Years Tax Returns (Schedule F)', status: 'owner' },
-          { id: 'balance-sheet', name: 'Balance Sheet (FSA Form 410-1)', status: 'system' },
-          { id: 'pl-statement', name: 'Profit & Loss Statement', status: 'system' },
-          { id: 'cash-flow', name: 'Cash Flow Statement', status: 'system' },
-          { id: 'cash-projection', name: 'Cash Flow Projection (12-month)', status: 'system' },
-          { id: 'farm-plan', name: 'Farm Operating Plan (FSA Form 431-2)', status: 'owner' },
-          { id: 'id-proof', name: 'Government ID (Driver\'s License)', status: 'owner' },
-          { id: 'entity-docs', name: 'LLC Operating Agreement', status: 'owner' }
-        ]
-      },
-      FarmCredit: {
-        name: 'Farm Credit',
-        documents: [
-          { id: 'tax-returns', name: '3 Years Tax Returns (Schedule F)', status: 'owner' },
-          { id: 'balance-sheet', name: 'Balance Sheet', status: 'system' },
-          { id: 'pl-statement', name: 'Profit & Loss Statement', status: 'system' },
-          { id: 'cash-flow', name: 'Cash Flow Statement', status: 'system' },
-          { id: 'enterprise-analysis', name: 'Enterprise Analysis by Crop', status: 'system' },
-          { id: 'bank-statements', name: 'Bank Statements (6 months)', status: 'owner' },
-          { id: 'debt-schedule', name: 'Current Debt Schedule', status: 'system' }
-        ]
-      },
-      USDA: {
-        name: 'USDA Programs',
-        documents: [
-          { id: 'tax-returns', name: 'Tax Returns (1-3 Years)', status: 'owner' },
-          { id: 'balance-sheet', name: 'Balance Sheet', status: 'system' },
-          { id: 'conservation-plan', name: 'Conservation Plan', status: 'owner' },
-          { id: 'organic-cert', name: 'Organic Certification (OEFFA)', status: 'complete' },
-          { id: 'farm-records', name: 'Production Records', status: 'system' },
-          { id: 'business-plan', name: 'Business Plan', status: 'owner' }
-        ]
-      }
-    };
-
-    function selectLoanType(type) {
-      // Update selection UI
-      document.querySelectorAll('.loan-type-card').forEach(card => {
-        card.classList.remove('selected');
-      });
-      document.getElementById(`loan-${type}`).classList.add('selected');
-
-      selectedLoanType = type;
-      document.getElementById('selectedLoanType').textContent = LOAN_REQUIREMENTS[type].name;
-      document.getElementById('generateLoanBtn').disabled = false;
-
-      // Show checklist
-      document.getElementById('loanDocChecklist').style.display = 'block';
-      renderLoanChecklist(type);
+    function qbFormatCurrency(amount) {
+      return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount || 0);
     }
 
-    function renderLoanChecklist(type) {
-      const checklist = document.getElementById('loanChecklist');
-      const requirements = LOAN_REQUIREMENTS[type];
+    async function loadQuickBooksTab() {
+      if (qbLoaded) return;
+      qbLoaded = true;
+      await qbCheckConnection();
+    }
 
-      checklist.innerHTML = requirements.documents.map(doc => `
-        <li>
-          <span class="checklist-icon ${doc.status === 'complete' || doc.status === 'system' ? 'complete' : 'pending'}">
-            ${doc.status === 'complete' || doc.status === 'system' ? '✓' : '○'}
-          </span>
-          <div style="flex: 1;">
-            <span>${doc.name}</span>
-            ${doc.status === 'system' ? '<span class="badge badge-success" style="margin-left: 0.5rem;">Auto-Generated</span>' : ''}
-            ${doc.status === 'owner' ? '<span class="badge badge-warning" style="margin-left: 0.5rem;">Owner Provides</span>' : ''}
-            ${doc.status === 'complete' ? '<span class="badge badge-info" style="margin-left: 0.5rem;">On File</span>' : ''}
+    async function qbCheckConnection() {
+      const banner = document.getElementById('qbConnectionBanner');
+      const icon = document.getElementById('qbConnectionIcon');
+      const text = document.getElementById('qbConnectionText');
+      const btn = document.getElementById('qbConnectBtn');
+
+      const result = await apiCall('getQuickBooksConnectionStatus');
+
+      if (result.connected) {
+        banner.style.borderLeftColor = 'var(--primary)';
+        icon.style.background = 'rgba(16, 185, 129, 0.2)';
+        icon.style.color = 'var(--primary)';
+        icon.innerHTML = '<i class="fas fa-check-circle"></i>';
+        text.innerHTML = '<h3 style="font-size:1.1rem;">Connected to QuickBooks</h3><p style="color:var(--text-muted);font-size:0.9rem;">' + (result.companyName || 'Tiny Seed Farm LLC') + '</p>';
+        btn.style.display = 'none';
+        qbLoadDashboardData();
+        return true;
+      } else {
+        banner.style.borderLeftColor = 'var(--warning)';
+        icon.style.background = 'rgba(245, 158, 11, 0.2)';
+        icon.style.color = 'var(--warning)';
+        icon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
+        text.innerHTML = '<h3 style="font-size:1.1rem;">QuickBooks Not Connected</h3><p style="color:var(--text-muted);font-size:0.9rem;">' + (result.message || 'Connect to view your financial data') + '</p>';
+        btn.style.display = 'flex';
+        return false;
+      }
+    }
+
+    async function qbConnect() {
+      const result = await apiCall('getQuickBooksAuthUrl');
+      if (result.success && result.url) {
+        window.open(result.url, '_blank');
+      } else {
+        showAlert('Could not get QuickBooks authorization URL. Check Setup.', 'error');
+      }
+    }
+
+    async function qbLoadDashboardData() {
+      const result = await apiCall('getQuickBooksDashboard');
+      if (!result.success) { console.error('QB Dashboard error:', result.error); return; }
+
+      const data = result.dashboard;
+
+      // Summary cards
+      document.getElementById('qbCashOnHand').textContent = qbFormatCurrency(data.summary.cashOnHand);
+      document.getElementById('qbCreditBalance').textContent = qbFormatCurrency(data.summary.creditCardBalance);
+      document.getElementById('qbARBalance').textContent = qbFormatCurrency(data.summary.accountsReceivable);
+      document.getElementById('qbAPBalance').textContent = qbFormatCurrency(data.summary.accountsPayable);
+
+      const netCash = data.summary.netCashPosition;
+      const netEl = document.getElementById('qbNetCash');
+      netEl.textContent = qbFormatCurrency(netCash);
+      netEl.style.color = netCash >= 0 ? 'var(--primary)' : 'var(--danger)';
+
+      // Account balances
+      if (data.accounts && data.accounts.length > 0) {
+        document.getElementById('qbAccountsList').innerHTML = data.accounts.map(a => `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:0.75rem;background:var(--bg-hover);border-radius:8px;">
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+              <i class="fas fa-${a.accountType === 'Bank' ? 'university' : 'credit-card'}" style="color:${a.accountType === 'Bank' ? 'var(--secondary)' : 'var(--warning)'}"></i>
+              <div>
+                <div style="font-weight:600;">${a.name}</div>
+                <div style="font-size:0.8rem;color:var(--text-muted);">${a.accountSubType || a.accountType}</div>
+              </div>
+            </div>
+            <div style="font-weight:700;color:${a.accountType === 'Credit Card' ? 'var(--danger)' : 'var(--text)'};">${qbFormatCurrency(a.balance)}</div>
           </div>
-        </li>
+        `).join('');
+      }
+
+      // P&L
+      if (data.profitLoss) {
+        document.getElementById('qbTotalIncome').textContent = qbFormatCurrency(data.profitLoss.totalIncome);
+        document.getElementById('qbTotalExpenses').textContent = qbFormatCurrency(data.profitLoss.totalExpenses);
+        const niEl = document.getElementById('qbNetIncome');
+        niEl.textContent = qbFormatCurrency(data.profitLoss.netIncome);
+        niEl.style.color = data.profitLoss.netIncome >= 0 ? 'var(--primary)' : 'var(--danger)';
+        if (data.profitLoss.period) document.getElementById('qbPLPeriod').textContent = data.profitLoss.period.label;
+      }
+
+      // Invoices
+      if (data.invoices) {
+        const arBadge = document.getElementById('qbAROverdue');
+        arBadge.textContent = data.invoices.summary.overdueCount + ' overdue';
+        arBadge.className = 'badge ' + (data.invoices.summary.overdueCount > 0 ? 'badge-danger' : 'badge-success');
+        qbRenderAging('qbAgingAR', data.invoices.summary.aging, data.invoices.summary.totalOutstanding);
+        qbRenderTransactionList('qbInvoicesList', [...data.invoices.overdue, ...data.invoices.current].slice(0, 6), 'customerName');
+      }
+
+      // Bills
+      if (data.bills) {
+        const apBadge = document.getElementById('qbAPOverdue');
+        apBadge.textContent = data.bills.summary.overdueCount + ' overdue';
+        apBadge.className = 'badge ' + (data.bills.summary.overdueCount > 0 ? 'badge-danger' : 'badge-success');
+        qbRenderAging('qbAgingAP', data.bills.summary.aging, data.bills.summary.totalOutstanding);
+        qbRenderTransactionList('qbBillsList', [...data.bills.overdue, ...data.bills.current].slice(0, 6), 'vendorName');
+      }
+
+      // Timestamp
+      document.getElementById('qbLastUpdated').textContent = 'Last updated: ' + new Date(data.generatedAt).toLocaleString();
+    }
+
+    function qbRenderAging(containerId, aging, total) {
+      const el = document.getElementById(containerId);
+      if (!aging || total <= 0) { el.innerHTML = ''; return; }
+
+      const colors = ['var(--primary)', 'var(--secondary)', 'var(--warning)', '#f97316', 'var(--danger)'];
+      const segments = [
+        { value: aging.current, label: 'Current' },
+        { value: aging.days1to30, label: '1-30d' },
+        { value: aging.days31to60, label: '31-60d' },
+        { value: aging.days61to90, label: '61-90d' },
+        { value: aging.over90, label: '90+d' }
+      ];
+
+      el.innerHTML = segments.filter(s => s.value > 0).map((s, i) => {
+        const pct = (s.value / total * 100).toFixed(0);
+        return '<div style="width:' + pct + '%;background:' + colors[i] + ';display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:600;color:white;" title="' + s.label + ': ' + qbFormatCurrency(s.value) + '">' + pct + '%</div>';
+      }).join('');
+    }
+
+    function qbRenderTransactionList(containerId, items, nameField) {
+      const el = document.getElementById(containerId);
+      if (!items || items.length === 0) { el.innerHTML = '<p style="color:var(--text-muted);">No items</p>'; return; }
+
+      el.innerHTML = items.map(item => `
+        <div style="display:flex;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid var(--border);">
+          <div>
+            <span style="font-weight:500;">${item[nameField]}</span>
+            ${item.isOverdue ? '<span style="color:var(--danger);font-size:0.75rem;margin-left:0.5rem;">' + item.daysOverdue + 'd overdue</span>' : ''}
+          </div>
+          <span style="font-weight:600;">${qbFormatCurrency(item.balance)}</span>
+        </div>
       `).join('');
     }
 
-    async function generateLoanPackage() {
-      if (!selectedLoanType) {
-        showAlert('Please select a loan type first', 'error');
+    function openQBSetupWizard() {
+      document.getElementById('qbSetupModal').classList.add('active');
+    }
+
+    async function saveQBCredentials() {
+      const companyId = document.getElementById('qbCompanyId').value.trim();
+      const clientId = document.getElementById('qbClientId').value.trim();
+      const clientSecret = document.getElementById('qbClientSecret').value.trim();
+      const resultDiv = document.getElementById('qbSetupResult');
+
+      if (!companyId || !clientId || !clientSecret) {
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = '<div class="alert alert-error" style="margin-top:1rem;"><i class="fas fa-exclamation-triangle"></i> Please fill in all fields.</div>';
         return;
       }
 
-      showAlert('Generating loan package...', 'info');
-
-      const result = await apiCall('generateLoanPackage', { loanType: selectedLoanType });
-
-      if (result.success && result.package) {
-        renderLoanPackage(result.package);
-        document.getElementById('loanPackageOutput').style.display = 'block';
-        document.getElementById('loanPackageOutput').scrollIntoView({ behavior: 'smooth' });
-        showAlert('Loan package generated successfully!', 'success');
-      } else {
-        showAlert('Error generating package: ' + (result.error || 'Unknown error'), 'error');
-      }
-    }
-
-    function renderLoanPackage(pkg) {
-      const content = document.getElementById('loanPackageContent');
-
-      let html = `
-        <div style="text-align: center; margin-bottom: 2rem; padding: 1.5rem; background: var(--bg-hover); border-radius: 12px;">
-          <h2 style="margin-bottom: 0.5rem;">${pkg.farmInfo?.legalName || 'Tiny Seed Farm LLC'}</h2>
-          <p style="color: var(--text-muted);">${pkg.loanType} Loan Application Package</p>
-          <p style="color: var(--text-muted); font-size: 0.85rem;">Generated: ${new Date(pkg.generatedAt).toLocaleDateString()}</p>
-        </div>
-
-        <h3 style="margin-bottom: 1rem;">Farm Information</h3>
-        <div class="card" style="background: var(--bg-hover);">
-          <div class="grid" style="grid-template-columns: repeat(2, 1fr);">
-            <div>
-              <p><strong>EIN:</strong> ${pkg.farmInfo?.ein || '81-5299411'}</p>
-              <p><strong>Entity Type:</strong> ${pkg.farmInfo?.entityType || 'LLC'}</p>
-              <p><strong>Formation:</strong> ${pkg.farmInfo?.formationDate || 'Feb 7, 2017'}</p>
-            </div>
-            <div>
-              <p><strong>Address:</strong> ${pkg.farmInfo?.address || '257 Zeigler Road, Rochester, PA 15074'}</p>
-              <p><strong>Organic:</strong> ${pkg.farmInfo?.organicCertifier || 'OEFFA'} #${pkg.farmInfo?.organicNumber || '3839'}</p>
-            </div>
-          </div>
-        </div>
-      `;
-
-      // Balance Sheet
-      if (pkg.balanceSheet) {
-        const bs = pkg.balanceSheet;
-        html += `
-          <h3 style="margin: 2rem 0 1rem;">Balance Sheet</h3>
-          <div class="grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 1rem;">
-            <div class="stat-card">
-              <div class="stat-value" style="color: var(--primary);">$${(bs.totalAssets || 0).toLocaleString()}</div>
-              <div class="stat-label">Total Assets</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-value" style="color: var(--danger);">$${(bs.totalLiabilities || 0).toLocaleString()}</div>
-              <div class="stat-label">Total Liabilities</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-value">$${(bs.equity || 0).toLocaleString()}</div>
-              <div class="stat-label">Owner's Equity</div>
-            </div>
-          </div>
-          ${bs.ratios ? `
-            <div class="card" style="background: var(--bg-hover);">
-              <h4 style="margin-bottom: 0.75rem;">Key Ratios for Lenders</h4>
-              <p><strong>Current Ratio:</strong> ${(bs.ratios.currentRatio || 0).toFixed(2)} ${bs.ratios.currentRatio >= 1.5 ? '✓ Good' : '⚠️ Below 1.5'}</p>
-              <p><strong>Debt-to-Asset:</strong> ${((bs.ratios.debtToAsset || 0) * 100).toFixed(1)}% ${bs.ratios.debtToAsset <= 0.5 ? '✓ Good' : '⚠️ Above 50%'}</p>
-              <p><strong>Working Capital:</strong> $${(bs.ratios.workingCapital || 0).toLocaleString()}</p>
-            </div>
-          ` : ''}
-        `;
+      if (!/^\d{10,20}$/.test(companyId)) {
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = '<div class="alert alert-error" style="margin-top:1rem;"><i class="fas fa-exclamation-triangle"></i> Company ID should be a 10-20 digit number.</div>';
+        return;
       }
 
-      // P&L Summary
-      if (pkg.profitLoss) {
-        const pl = pkg.profitLoss;
-        html += `
-          <h3 style="margin: 2rem 0 1rem;">Profit & Loss Summary</h3>
-          <div class="grid" style="grid-template-columns: repeat(3, 1fr);">
-            <div class="stat-card">
-              <div class="stat-value" style="color: var(--primary);">$${(pl.totalIncome || 0).toLocaleString()}</div>
-              <div class="stat-label">Total Income</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-value" style="color: var(--warning);">$${(pl.totalExpenses || 0).toLocaleString()}</div>
-              <div class="stat-label">Total Expenses</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-value" style="color: ${(pl.netIncome || 0) >= 0 ? 'var(--primary)' : 'var(--danger)'};">
-                $${(pl.netIncome || 0).toLocaleString()}
-              </div>
-              <div class="stat-label">Net Income</div>
-            </div>
-          </div>
-        `;
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = '<div class="alert" style="background:var(--bg-dark);margin-top:1rem;"><i class="fas fa-spinner fa-spin"></i> Saving credentials...</div>';
+
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'saveQuickBooksCredentials', companyId, clientId, clientSecret })
+        });
+        const result = await response.json();
+
+        if (result.success) {
+          resultDiv.innerHTML = '<div class="alert alert-success" style="margin-top:1rem;"><i class="fas fa-check-circle"></i> Credentials saved! Reloading...</div>';
+          setTimeout(() => { closeModal('qbSetupModal'); qbLoaded = false; loadQuickBooksTab(); }, 2000);
+        } else {
+          resultDiv.innerHTML = '<div class="alert alert-error" style="margin-top:1rem;"><i class="fas fa-exclamation-triangle"></i> Error: ' + (result.error || 'Failed to save') + '</div>';
+        }
+      } catch (error) {
+        resultDiv.innerHTML = '<div class="alert alert-error" style="margin-top:1rem;"><i class="fas fa-exclamation-triangle"></i> Network error: ' + error.message + '</div>';
       }
-
-      // Cash Flow
-      if (pkg.cashFlow) {
-        const cf = pkg.cashFlow;
-        html += `
-          <h3 style="margin: 2rem 0 1rem;">Cash Flow Statement</h3>
-          <div class="card" style="background: var(--bg-hover);">
-            <p><strong>Operating Activities:</strong> $${(cf.operating || 0).toLocaleString()}</p>
-            <p><strong>Investing Activities:</strong> $${(cf.investing || 0).toLocaleString()}</p>
-            <p><strong>Financing Activities:</strong> $${(cf.financing || 0).toLocaleString()}</p>
-            <p style="margin-top: 1rem; font-weight: 600;"><strong>Net Cash Flow:</strong> $${(cf.netCashFlow || 0).toLocaleString()}</p>
-          </div>
-        `;
-      }
-
-      // Document Checklist
-      if (pkg.documentChecklist) {
-        html += `
-          <h3 style="margin: 2rem 0 1rem;">Document Checklist</h3>
-          <div class="card">
-            <ul class="checklist">
-              ${pkg.documentChecklist.map(doc => `
-                <li>
-                  <span class="checklist-icon ${doc.status === 'ready' ? 'complete' : 'pending'}">
-                    ${doc.status === 'ready' ? '✓' : '○'}
-                  </span>
-                  <span>${doc.name}</span>
-                  <span class="badge ${doc.status === 'ready' ? 'badge-success' : 'badge-warning'}" style="margin-left: auto;">
-                    ${doc.status === 'ready' ? 'Ready' : 'Needed'}
-                  </span>
-                </li>
-              `).join('')}
-            </ul>
-          </div>
-        `;
-      }
-
-      // Next Steps
-      if (pkg.nextSteps) {
-        html += `
-          <h3 style="margin: 2rem 0 1rem;">Next Steps</h3>
-          <div class="card">
-            <ol style="margin-left: 1.25rem; line-height: 1.8;">
-              ${pkg.nextSteps.map(step => `<li>${step}</li>`).join('')}
-            </ol>
-          </div>
-        `;
-      }
-
-      content.innerHTML = html;
-    }
-
-    function printLoanPackage() {
-      window.print();
     }
   </script>
 </body>

@@ -38,6 +38,73 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-21 — Financial Page Consolidation (5→3 pages)
+**Role:** PM_Architect
+
+### Files Modified
+- `web_app/accounting.html` — Removed duplicate Loan Readiness tab (→ loan-readiness.html), removed Grants tab (→ loan-readiness.html), absorbed QuickBooks Dashboard as new "QuickBooks" tab, added Font Awesome, added cross-links to other financial pages
+- `web_app/index.html` — Removed Wealth Builder card (page consolidated into financial-dashboard.html)
+- `web_app/financial-dashboard.html` — Removed link to wealth-builder.html (page deleted)
+
+### Files Deprecated (safe to delete)
+- `web_app/wealth-builder.html` — 100% static demo, no backend connections, algorithm spec preserved in docs
+- `web_app/quickbooks-dashboard.html` — All features absorbed into accounting.html QuickBooks tab
+
+### Functions Removed (from accounting.html)
+- `selectLoanType()`, `renderLoanChecklist()`, `generateLoanPackage()`, `renderLoanPackage()`, `printLoanPackage()` — Duplicate of loan-readiness.html
+- `loadGrants()`, `renderGrantsTable()`, `openAddGrantModal()`, `saveGrant()` — Moved to loan-readiness.html
+- `LOAN_REQUIREMENTS` constant — Duplicate of loan-readiness.html's more complete version
+
+### Functions Added (to accounting.html)
+- `loadQuickBooksTab()` — Lazy-load QB data on tab switch
+- `qbCheckConnection()` — Check QB OAuth connection status
+- `qbConnect()` — Initiate QB OAuth flow
+- `qbLoadDashboardData()` — Fetch and render full QB dashboard
+- `qbRenderAging()` — Render A/R and A/P aging charts
+- `qbRenderTransactionList()` — Render invoice/bill lists
+- `openQBSetupWizard()` — Open QB credentials setup modal
+- `saveQBCredentials()` — Save QB OAuth credentials via API
+
+### Reason
+User requested financial page consolidation from 5 pages to 3. Research audit (FINANCIAL_CONSOLIDATION_PLAN_v2.md) identified duplicate Loan Readiness and Grants tabs in accounting.html, and wealth-builder.html as 100% static demo. QuickBooks dashboard was a standalone page that belongs logically inside the Accounting Hub.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created — reduced duplication by removing 4 overlapping features
+
+---
+
+## 2026-02-21 — Critical Fixes + Design System Full Rollout + Backend Invoice Improvements
+**Role:** PM_Architect
+
+### Files Created
+- `docs/audits/FINANCIAL_CONSOLIDATION_AUDIT.md` — Financial page overlap audit (5 pages, consolidation to 3 recommended)
+- `docs/audits/PATH_AND_SEO_MARKETING_AUDIT.md` — Path verification + SEO/Marketing integration audit (31/32 pass)
+- `docs/audits/VERIFICATION_SWEEP_2026_02_20.md` — Frontend/backend/UX verification sweep (~85 API actions traced)
+- `docs/CSA_VISUAL_ENHANCEMENT_RESEARCH.md` — CSA visual research (Sora vs Nano Banana, Nano Banana recommended)
+- `docs/DESIGN_SYSTEM_ROLLOUT_REPORT.md` — Design system rollout report (55 pages total)
+
+### Files Modified
+- **46 HTML files** — Applied Tiny Seed Design System (data-theme, Inter font, CSS link, token fallbacks, focus-visible, scrollbar, reduced-motion)
+- `web_app/index.html` — Removed broken claude-coordination.html card, removed duplicate api-config.js import
+- `web_app/csa-unified-finder.html` — Added api-config.js import, replaced hardcoded API URL with TINY_SEED_API fallback, fixed orphaned delivery-code JS reference
+- `web_app/wealth-builder.html` — Added api-config.js import
+- `apps_script/MERGED TOTAL.js` — Added duplicate invoice prevention in `createInvoiceFromOrder()`, added auto-send invoice via QuickBooks email after creation
+
+### Functions Modified
+- `createInvoiceFromOrder()` in `MERGED TOTAL.js` — Added check for existing invoice before creation (prevents double-invoicing), added auto-email send via QB API after invoice creation
+
+### Reason
+Overnight audit agents identified critical issues. Fixed broken links, missing API configs, and duplicate invoice risk. Design system now covers all 55 HTML pages. Backend needs clasp deployment.
+
+### Pending
+- Backend changes require `clasp push && clasp deploy -i AKfycbyT60fyrNfmZkgK3z1-ojgISeZBAbBr9Zz50UtSjqSysE5JpB_cAIjp2KFucwREG4qm` to go live
+- QuickBooks OAuth connection needs live verification
+- Financial page consolidation (5→3) awaiting user approval
+
+---
+
 ## 2026-02-20 (Phase 3) — UX Design System + Polish
 **Role:** PM_Architect
 **Files Created:**
