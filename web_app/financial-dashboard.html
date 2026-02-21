@@ -1281,6 +1281,20 @@
         </div>
     </nav>
 
+    <!-- Financial Suite Cross-Navigation -->
+    <div style="display: flex; gap: 0.5rem; padding: 0.5rem 1.5rem; background: rgba(0,0,0,0.2); border-bottom: 1px solid var(--border); font-size: 0.8rem; overflow-x: auto;">
+      <span style="color: var(--text-secondary); padding: 0.3rem 0; white-space: nowrap;">Financial Suite:</span>
+      <a href="accounting.html" style="padding: 0.3rem 0.75rem; border-radius: 100px; background: var(--bg-card); color: var(--text-secondary); text-decoration: none; white-space: nowrap; transition: background 150ms;">
+        <i class="fas fa-calculator"></i> Accounting Hub
+      </a>
+      <a href="financial-dashboard.html" style="padding: 0.3rem 0.75rem; border-radius: 100px; background: var(--primary); color: white; text-decoration: none; white-space: nowrap; font-weight: 600;">
+        <i class="fas fa-chart-line"></i> Financial Command Center
+      </a>
+      <a href="loan-readiness.html" style="padding: 0.3rem 0.75rem; border-radius: 100px; background: var(--bg-card); color: var(--text-secondary); text-decoration: none; white-space: nowrap; transition: background 150ms;">
+        <i class="fas fa-landmark"></i> Loan & Grant Center
+      </a>
+    </div>
+
     <!-- TAB NAVIGATION -->
     <nav class="tab-nav">
         <button class="tab-btn active" onclick="showTab('overview')">
@@ -1319,6 +1333,7 @@
         </button>
         <button class="tab-btn" onclick="showTab('documents')">
             <i class="fas fa-folder-open"></i> Documents
+            <span class="badge" style="background: var(--info); font-size: 0.65rem;">Vault</span>
         </button>
     </nav>
 
@@ -1896,48 +1911,19 @@
                 </div>
             </div>
 
-            <!-- Loan Application Package -->
-            <div class="card">
-                <div class="card-header">
-                    <h3><i class="fas fa-file-contract" style="color: var(--teal);"></i> Loan Application Package</h3>
-                    <button class="btn btn-success btn-sm" onclick="generateAndDownloadLoanPackage()">
-                        <i class="fas fa-download"></i> Generate Package
-                    </button>
-                </div>
-                <div class="card-body">
-                    <div class="alert alert-info" style="margin-bottom: 1rem;">
-                        <i class="fas fa-info-circle"></i>
+            <!-- Loan Application Package - Link to Loan Center -->
+            <div class="card" style="background: linear-gradient(135deg, rgba(42, 157, 143, 0.05) 0%, var(--bg-card) 100%); border: 1px solid rgba(42, 157, 143, 0.3);">
+                <div class="card-body" style="display: flex; align-items: center; justify-content: space-between; padding: 1.5rem;">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <i class="fas fa-file-contract" style="font-size: 1.5rem; color: var(--success);"></i>
                         <div>
-                            <strong>One-Click Loan Documents:</strong> Generate professional Balance Sheet, Asset Schedule, and Depreciation Reports for bank loan applications.
+                            <div style="font-weight: 600;">Loan Application Package</div>
+                            <div style="font-size: 0.85rem; color: var(--text-secondary);">Balance Sheet, Asset Schedule, Depreciation & more</div>
                         </div>
                     </div>
-
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
-                        <div style="background: var(--bg-light); padding: 1.25rem; border-radius: 12px; text-align: center;">
-                            <i class="fas fa-balance-scale" style="font-size: 2rem; color: var(--success); margin-bottom: 0.75rem;"></i>
-                            <div style="font-weight: 600; margin-bottom: 0.25rem;">Balance Sheet</div>
-                            <div style="font-size: 0.85rem; color: var(--text-secondary);">Assets, Liabilities, Equity</div>
-                        </div>
-                        <div style="background: var(--bg-light); padding: 1.25rem; border-radius: 12px; text-align: center;">
-                            <i class="fas fa-tractor" style="font-size: 2rem; color: var(--teal); margin-bottom: 0.75rem;"></i>
-                            <div style="font-weight: 600; margin-bottom: 0.25rem;">Asset Schedule</div>
-                            <div style="font-size: 0.85rem; color: var(--text-secondary);">Equipment, Vehicles, Inventory</div>
-                        </div>
-                        <div style="background: var(--bg-light); padding: 1.25rem; border-radius: 12px; text-align: center;">
-                            <i class="fas fa-calculator" style="font-size: 2rem; color: var(--gold); margin-bottom: 0.75rem;"></i>
-                            <div style="font-weight: 600; margin-bottom: 0.25rem;">Depreciation</div>
-                            <div style="font-size: 0.85rem; color: var(--text-secondary);">MACRS 5/7-Year Schedules</div>
-                        </div>
-                        <div style="background: var(--bg-light); padding: 1.25rem; border-radius: 12px; text-align: center;">
-                            <i class="fas fa-credit-card" style="font-size: 2rem; color: var(--danger); margin-bottom: 0.75rem;"></i>
-                            <div style="font-weight: 600; margin-bottom: 0.25rem;">Debt Schedule</div>
-                            <div style="font-size: 0.85rem; color: var(--text-secondary);">Outstanding Obligations</div>
-                        </div>
-                    </div>
-
-                    <div id="loan-package-status" style="margin-top: 1rem; display: none;">
-                        <!-- Status will appear here after generation -->
-                    </div>
+                    <a href="loan-readiness.html" class="btn btn-success btn-sm" style="text-decoration: none;">
+                        <i class="fas fa-external-link-alt"></i> Open Loan Center
+                    </a>
                 </div>
             </div>
         </div>
@@ -2224,7 +2210,186 @@
                 </div>
             </div>
 
-            <!-- Investment algorithm documentation available in docs/investment_algorithm_specification/ -->
+            <!-- Algorithm Specification (absorbed from wealth-builder.html) -->
+            <div class="card" style="margin-top: 1.5rem;">
+                <div class="card-header" style="cursor: pointer;" onclick="document.getElementById('algo-spec-body').style.display = document.getElementById('algo-spec-body').style.display === 'none' ? 'block' : 'none'; this.querySelector('.toggle-icon').classList.toggle('fa-chevron-down'); this.querySelector('.toggle-icon').classList.toggle('fa-chevron-up');">
+                    <h3><i class="fas fa-code" style="color: var(--purple);"></i> Algorithm Specification</h3>
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <span style="font-size: 0.8rem; color: var(--text-secondary);">75/25 Dual Allocation System</span>
+                        <i class="fas fa-chevron-down toggle-icon" style="color: var(--text-secondary);"></i>
+                    </div>
+                </div>
+                <div class="card-body" id="algo-spec-body" style="display: none;">
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+                        <button class="btn btn-secondary btn-sm algo-spec-tab active" onclick="showAlgoSpec('overview', this)">Overview</button>
+                        <button class="btn btn-secondary btn-sm algo-spec-tab" onclick="showAlgoSpec('safe', this)">Safe Strategy</button>
+                        <button class="btn btn-secondary btn-sm algo-spec-tab" onclick="showAlgoSpec('growth', this)">Growth Strategy</button>
+                        <button class="btn btn-secondary btn-sm algo-spec-tab" onclick="showAlgoSpec('pseudocode', this)">Pseudocode</button>
+                        <button class="btn btn-secondary btn-sm algo-spec-tab" onclick="showAlgoSpec('signals', this)">Signal Formulas</button>
+                    </div>
+
+                    <!-- Overview -->
+                    <div id="algo-overview" class="algo-spec-content">
+                        <h4 style="margin-bottom: 1rem;">Dual Allocation Investment System</h4>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem;">
+                            <div style="padding: 1.5rem; background: rgba(42, 157, 143, 0.1); border-radius: 12px; border: 1px solid rgba(42, 157, 143, 0.3);">
+                                <h5 style="color: var(--success); margin-bottom: 1rem;"><i class="fas fa-shield-alt"></i> SAFE ALLOCATION (75%)</h5>
+                                <ul style="list-style: none; font-size: 0.9rem; line-height: 1.8;">
+                                    <li><strong>Strategy:</strong> Modified All-Weather</li>
+                                    <li><strong>Expected Return:</strong> 5-7% annually</li>
+                                    <li><strong>Max Drawdown:</strong> 12-15%</li>
+                                    <li><strong>Volatility:</strong> 7-10%</li>
+                                    <li><strong>Sharpe Ratio:</strong> 0.65-0.75</li>
+                                </ul>
+                            </div>
+                            <div style="padding: 1.5rem; background: rgba(244, 162, 97, 0.1); border-radius: 12px; border: 1px solid rgba(244, 162, 97, 0.3);">
+                                <h5 style="color: var(--secondary); margin-bottom: 1rem;"><i class="fas fa-rocket"></i> GROWTH ALLOCATION (25%)</h5>
+                                <ul style="list-style: none; font-size: 0.9rem; line-height: 1.8;">
+                                    <li><strong>Strategy:</strong> Dual Momentum + Factor Tilt</li>
+                                    <li><strong>Expected Return:</strong> 8-15% annually</li>
+                                    <li><strong>Max Drawdown:</strong> 20-30%</li>
+                                    <li><strong>Volatility:</strong> 15-20%</li>
+                                    <li><strong>Sharpe Ratio:</strong> 0.55-0.70</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <h4 style="margin: 2rem 0 1rem;">Blended Portfolio Expectations</h4>
+                        <div style="padding: 1.5rem; background: rgba(255,255,255,0.03); border-radius: 12px;">
+                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; text-align: center;">
+                                <div><div style="font-size: 1.5rem; font-weight: 700; color: var(--success);">6-9%</div><div style="font-size: 0.8rem; color: var(--text-secondary);">Annual Return</div></div>
+                                <div><div style="font-size: 1.5rem; font-weight: 700; color: var(--warning);">15-18%</div><div style="font-size: 0.8rem; color: var(--text-secondary);">Max Drawdown</div></div>
+                                <div><div style="font-size: 1.5rem; font-weight: 700; color: var(--info);">9-12%</div><div style="font-size: 0.8rem; color: var(--text-secondary);">Volatility</div></div>
+                                <div><div style="font-size: 1.5rem; font-weight: 700; color: var(--primary-light);">0.60</div><div style="font-size: 0.8rem; color: var(--text-secondary);">Sharpe Ratio</div></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Safe Strategy -->
+                    <div id="algo-safe" class="algo-spec-content" style="display: none;">
+                        <h4 style="margin-bottom: 1rem;">Safe Strategy: Modified All-Weather</h4>
+                        <table class="data-table" style="margin-bottom: 1.5rem;">
+                            <thead><tr><th>Ticker</th><th>Name</th><th>Allocation</th><th>Category</th><th>Role</th></tr></thead>
+                            <tbody>
+                                <tr><td><strong>VTI</strong></td><td>Vanguard Total Stock Market</td><td>20%</td><td>US Equity</td><td>Growth engine</td></tr>
+                                <tr><td><strong>VXUS</strong></td><td>Vanguard Total Int'l Stock</td><td>10%</td><td>Int'l Equity</td><td>Diversification</td></tr>
+                                <tr><td><strong>BND</strong></td><td>Vanguard Total Bond Market</td><td>20%</td><td>US Bonds</td><td>Stability</td></tr>
+                                <tr><td><strong>TIP</strong></td><td>iShares TIPS Bond</td><td>15%</td><td>TIPS</td><td>Inflation protection</td></tr>
+                                <tr><td><strong>GOVT</strong></td><td>iShares U.S. Treasury Bond</td><td>10%</td><td>Treasuries</td><td>Safety</td></tr>
+                                <tr><td><strong>GLD</strong></td><td>SPDR Gold Shares</td><td>7.5%</td><td>Gold</td><td>Crisis hedge</td></tr>
+                                <tr><td><strong>DBC</strong></td><td>Invesco DB Commodity Index</td><td>5%</td><td>Commodities</td><td>Inflation hedge</td></tr>
+                                <tr><td><strong>SHY</strong></td><td>iShares 1-3 Year Treasury</td><td>10%</td><td>Short-Term</td><td>Liquidity</td></tr>
+                            </tbody>
+                        </table>
+                        <h4 style="margin-bottom: 0.5rem;">Rebalancing Rules</h4>
+                        <ul style="line-height: 2; font-size: 0.9rem; padding-left: 1.5rem;">
+                            <li><strong>Threshold:</strong> Rebalance when any position drifts 5% from target</li>
+                            <li><strong>Frequency:</strong> At least quarterly</li>
+                            <li><strong>Priority:</strong> Use new contributions first (tax-efficient)</li>
+                        </ul>
+                    </div>
+
+                    <!-- Growth Strategy -->
+                    <div id="algo-growth" class="algo-spec-content" style="display: none;">
+                        <h4 style="margin-bottom: 1rem;">Growth Strategy: Dual Momentum + Factor Tilt</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+                            <div style="padding: 1.5rem; background: rgba(42, 157, 143, 0.1); border-radius: 12px;">
+                                <h5 style="color: var(--success); margin-bottom: 1rem;">Offensive Holdings</h5>
+                                <ul style="list-style: none; font-size: 0.9rem; line-height: 1.8;">
+                                    <li><strong>QQQ</strong> - Nasdaq-100 (up to 35%)</li>
+                                    <li><strong>VUG</strong> - Vanguard Growth (up to 25%)</li>
+                                    <li><strong>MTUM</strong> - Momentum Factor (up to 25%)</li>
+                                    <li><strong>VBK</strong> - Small-Cap Growth (up to 15%)</li>
+                                </ul>
+                            </div>
+                            <div style="padding: 1.5rem; background: rgba(230, 57, 70, 0.1); border-radius: 12px;">
+                                <h5 style="color: var(--danger); margin-bottom: 1rem;">Defensive Holdings</h5>
+                                <ul style="list-style: none; font-size: 0.9rem; line-height: 1.8;">
+                                    <li><strong>SHY</strong> - 1-3 Year Treasury (100%)</li>
+                                    <li><strong>BIL</strong> - 1-3 Month T-Bill (alternate)</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <h4 style="margin-bottom: 0.5rem;">Defensive Triggers</h4>
+                        <div style="padding: 1rem; background: rgba(255,255,255,0.03); border-radius: 12px;">
+                            <ul style="list-style: none; font-size: 0.9rem; line-height: 2;">
+                                <li><i class="fas fa-exclamation-triangle" style="color: var(--warning); margin-right: 0.5rem;"></i> <strong>Growth drawdown >= 10%:</strong> Move to defensive</li>
+                                <li><i class="fas fa-exclamation-circle" style="color: var(--danger); margin-right: 0.5rem;"></i> <strong>Portfolio drawdown >= 15%:</strong> Full defensive override</li>
+                                <li><i class="fas fa-chart-area" style="color: var(--warning); margin-right: 0.5rem;"></i> <strong>Volatility >= 25%:</strong> Reduce growth by 25%</li>
+                                <li><i class="fas fa-check-circle" style="color: var(--success); margin-right: 0.5rem;"></i> <strong>Recovery >= 5%:</strong> Resume offensive</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Pseudocode -->
+                    <div id="algo-pseudocode" class="algo-spec-content" style="display: none;">
+                        <h4 style="margin-bottom: 1rem;">Complete Algorithm Pseudocode</h4>
+                        <pre style="background: #0d1117; padding: 1.5rem; border-radius: 12px; overflow-x: auto; font-size: 0.85rem; line-height: 1.6;"><code>MONTHLY_INVESTMENT_DECISION(portfolio_data):
+
+    // PHASE 1: SAFETY CHECKS
+    emergency = CHECK_EMERGENCY_RESERVE(reserve, expenses)
+    IF emergency == "CRITICAL": RETURN { action: "FUND_RESERVE" }
+
+    // PHASE 2: SEASONAL ADJUSTMENT
+    contribution = base * SEASON_MULTIPLIER[current_season]
+    // Harvest (Jun-Oct): 1.5x | Planting (Mar-May): 0.75x | Winter: 0.25x
+
+    // PHASE 3: RISK ASSESSMENT
+    drawdown = (peak - current) / peak
+    IF drawdown >= 0.15: growth_mode = "DEFENSIVE"
+    ELSE IF drawdown >= 0.10: growth_mode = "DEFENSIVE"
+    ELSE: growth_mode = CALCULATE_MOMENTUM_SIGNAL()
+
+    // PHASE 4: MOMENTUM SIGNAL
+    IF growth_mode != "DEFENSIVE":
+        FOR EACH asset IN [QQQ, VUG, MTUM, VBK]:
+            score[asset] = COMPOSITE_MOMENTUM(1m, 3m, 6m, 12m)
+        top_assets = TOP_N(score, n=2)
+        passing = FILTER(top_assets, WHERE momentum > SHY_return)
+        IF passing.empty: growth_mode = "DEFENSIVE"
+        ELSE: growth_holdings = EQUAL_WEIGHT(passing)
+
+    // PHASE 5: BUILD TARGET (75% Safe + 25% Growth)
+    target = SAFE_STRATEGY * 0.75 + growth_holdings * 0.25
+
+    // PHASE 6: REBALANCE (use contributions first)
+    IF max(drift) >= 0.05 OR new_contribution > 0:
+        buy underweight positions with contribution
+        IF still drifted: sell overweight, buy underweight
+
+    RETURN { contribution, trades, growth_mode, risk_status }</code></pre>
+                    </div>
+
+                    <!-- Signal Formulas -->
+                    <div id="algo-signals" class="algo-spec-content" style="display: none;">
+                        <h4 style="margin-bottom: 1rem;">Signal Calculation Formulas</h4>
+                        <div style="display: grid; gap: 1.5rem;">
+                            <div>
+                                <h5 style="color: var(--primary-light); margin-bottom: 0.5rem;">1. Composite Momentum</h5>
+                                <pre style="background: #0d1117; padding: 1rem; border-radius: 8px; font-size: 0.85rem;"><code>composite = 0.25 * mom_1m + 0.25 * mom_3m + 0.25 * mom_6m + 0.25 * mom_12m</code></pre>
+                            </div>
+                            <div>
+                                <h5 style="color: var(--primary-light); margin-bottom: 0.5rem;">2. Absolute Momentum Filter</h5>
+                                <pre style="background: #0d1117; padding: 1rem; border-radius: 8px; font-size: 0.85rem;"><code>passes_filter = asset_return_12m > SHY_return_12m
+IF passes: INCLUDE in offensive | ELSE: EXCLUDE</code></pre>
+                            </div>
+                            <div>
+                                <h5 style="color: var(--primary-light); margin-bottom: 0.5rem;">3. Rolling Volatility (Annualized)</h5>
+                                <pre style="background: #0d1117; padding: 1rem; border-radius: 8px; font-size: 0.85rem;"><code>daily_stddev = sqrt(variance(21_day_returns))
+annual_volatility = daily_stddev * sqrt(252)</code></pre>
+                            </div>
+                            <div>
+                                <h5 style="color: var(--primary-light); margin-bottom: 0.5rem;">4. Allocation Drift</h5>
+                                <pre style="background: #0d1117; padding: 1rem; border-radius: 8px; font-size: 0.85rem;"><code>drift = current_percent - target_percent
+IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
+                            </div>
+                        </div>
+                        <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(233, 196, 106, 0.1); border-radius: 8px; border-left: 3px solid var(--warning);">
+                            <i class="fas fa-exclamation-triangle" style="color: var(--warning); margin-right: 0.5rem;"></i>
+                            <strong>Disclaimer:</strong> For educational purposes only. Consult a financial advisor before investing.
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- ============================================= -->
@@ -2537,21 +2702,16 @@
                 </div>
             </div>
 
-            <!-- Loan Application Export -->
-            <div class="card" style="background: linear-gradient(135deg, rgba(42, 157, 143, 0.1) 0%, var(--bg-card) 100%); border: 2px solid var(--success);">
+            <!-- Loan Application Export - Link to Loan Center -->
+            <div class="card" style="background: linear-gradient(135deg, rgba(42, 157, 143, 0.05) 0%, var(--bg-card) 100%); border: 1px solid rgba(42, 157, 143, 0.3);">
                 <div class="card-header">
                     <h3><i class="fas fa-file-pdf" style="color: var(--success);"></i> Loan Application Package</h3>
-                    <div style="display: flex; gap: 0.5rem;">
-                        <button class="btn btn-success btn-sm" onclick="generateLoanPackage()">
-                            <i class="fas fa-download"></i> Export Balance Sheet
-                        </button>
-                        <button class="btn btn-secondary btn-sm" onclick="generateAssetReport()">
-                            <i class="fas fa-file-alt"></i> Asset Schedule
-                        </button>
-                    </div>
+                    <a href="loan-readiness.html" class="btn btn-success btn-sm" style="text-decoration: none;">
+                        <i class="fas fa-external-link-alt"></i> Full Loan Center
+                    </a>
                 </div>
                 <div class="card-body">
-                    <p style="color: var(--text-secondary);">Generate professional, loan-ready financial documents with one click. Includes Balance Sheet, Asset Schedule with MACRS depreciation, and Net Worth calculation.</p>
+                    <p style="color: var(--text-secondary);">Generate complete loan packages including Balance Sheet, Asset Schedule, and Depreciation Reports in the <a href="loan-readiness.html" style="color: var(--primary-light);">Loan & Grant Center</a>.</p>
                 </div>
             </div>
 
@@ -2685,7 +2845,7 @@
                 <div class="card">
                     <div class="card-header">
                         <h3><i class="fas fa-file-invoice-dollar"></i> Customer Payment Plans</h3>
-                        <button class="btn btn-primary btn-sm" onclick="openModal('addPaymentPlanModal')">
+                        <button class="btn btn-primary btn-sm" onclick="openModal('paymentPlanModal')">
                             <i class="fas fa-plus"></i> New Plan
                         </button>
                     </div>
@@ -3259,267 +3419,58 @@
         <!-- DOCUMENTS TAB -->
         <!-- ============================================= -->
         <div id="tab-documents" class="tab-content">
-            <!-- Document Vault Header -->
+            <!-- Document Vault Redirect -->
             <div class="card" style="margin-bottom: 1.5rem; background: linear-gradient(135deg, var(--bg-card), rgba(67, 97, 238, 0.1));">
-                <div class="card-body" style="text-align: center; padding: 2rem;">
+                <div class="card-body" style="text-align: center; padding: 3rem 2rem;">
                     <i class="fas fa-vault" style="font-size: 3rem; color: var(--info); margin-bottom: 1rem;"></i>
                     <h2 style="margin-bottom: 0.5rem;">Document Vault</h2>
-                    <p style="color: var(--text-secondary);">Quick access to important business & financial documents</p>
+                    <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Your complete document vault with 16 document types, priority scoring, and lender-specific checklists lives in the Loan & Grant Center.</p>
+                    <a href="loan-readiness.html" class="btn btn-primary" style="text-decoration: none;">
+                        <i class="fas fa-external-link-alt"></i> Open Full Document Vault
+                    </a>
                 </div>
             </div>
 
-            <!-- Document Categories -->
-            <div class="stats-grid" style="margin-bottom: 1.5rem;">
-                <div class="stat-card" onclick="filterDocuments('legal')" style="cursor: pointer;">
-                    <div class="stat-card-header">
-                        <div>
-                            <div class="stat-label">Legal & Formation</div>
-                            <div class="stat-value" id="doc-count-legal">--</div>
-                        </div>
-                        <div class="stat-icon" style="background: linear-gradient(135deg, #9b59b6, #8e44ad);">
-                            <i class="fas fa-gavel"></i>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="stat-card" onclick="filterDocuments('tax')" style="cursor: pointer;">
-                    <div class="stat-card-header">
-                        <div>
-                            <div class="stat-label">Tax Documents</div>
-                            <div class="stat-value" id="doc-count-tax">--</div>
-                        </div>
-                        <div class="stat-icon" style="background: linear-gradient(135deg, #e74c3c, #c0392b);">
-                            <i class="fas fa-file-invoice-dollar"></i>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="stat-card" onclick="filterDocuments('banking')" style="cursor: pointer;">
-                    <div class="stat-card-header">
-                        <div>
-                            <div class="stat-label">Banking & Accounts</div>
-                            <div class="stat-value" id="doc-count-banking">--</div>
-                        </div>
-                        <div class="stat-icon" style="background: linear-gradient(135deg, var(--success), #16a085);">
-                            <i class="fas fa-university"></i>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="stat-card" onclick="filterDocuments('insurance')" style="cursor: pointer;">
-                    <div class="stat-card-header">
-                        <div>
-                            <div class="stat-label">Insurance & Compliance</div>
-                            <div class="stat-value" id="doc-count-insurance">--</div>
-                        </div>
-                        <div class="stat-icon" style="background: linear-gradient(135deg, #f39c12, #d68910);">
-                            <i class="fas fa-shield-alt"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Quick Access Documents -->
+            <!-- Quick Access - Key Documents -->
             <div class="card" style="margin-bottom: 1.5rem;">
                 <div class="card-header">
                     <h3><i class="fas fa-star" style="color: var(--gold);"></i> Quick Access</h3>
-                    <span style="font-size: 0.8rem; color: var(--text-secondary);">Frequently needed documents</span>
                 </div>
                 <div class="card-body">
-                    <div id="quick-access-docs" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
-                        <!-- PA Subsistence Certificate -->
-                        <div class="document-card" onclick="openDocument('PA_Subsistence_Certificate_2026-01-30.pdf', 'legal')">
-                            <div class="doc-icon" style="background: rgba(155, 89, 182, 0.2); color: #9b59b6;">
-                                <i class="fas fa-certificate"></i>
-                            </div>
-                            <div class="doc-info">
-                                <div class="doc-name">PA Subsistence Certificate</div>
-                                <div class="doc-meta">LLC Good Standing • Jan 30, 2026</div>
-                            </div>
-                            <div class="doc-action">
-                                <i class="fas fa-external-link-alt"></i>
-                            </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
+                        <div class="document-card" onclick="openDocument('PA_Subsistence_Certificate_2026-01-30.pdf', 'legal')" style="cursor: pointer; padding: 1rem; background: rgba(255,255,255,0.03); border-radius: 8px; display: flex; align-items: center; gap: 0.75rem;">
+                            <i class="fas fa-certificate" style="color: #9b59b6; font-size: 1.25rem;"></i>
+                            <div><div style="font-weight: 600;">PA Subsistence Certificate</div><div style="font-size: 0.8rem; color: var(--text-secondary);">LLC Good Standing</div></div>
                         </div>
-
-                        <!-- EIN Letter -->
-                        <div class="document-card" onclick="openDocument('EIN_Confirmation.pdf', 'tax')">
-                            <div class="doc-icon" style="background: rgba(231, 76, 60, 0.2); color: #e74c3c;">
-                                <i class="fas fa-file-alt"></i>
-                            </div>
-                            <div class="doc-info">
-                                <div class="doc-name">EIN Confirmation Letter</div>
-                                <div class="doc-meta">IRS • EIN: 81-5299411</div>
-                            </div>
-                            <div class="doc-action">
-                                <i class="fas fa-external-link-alt"></i>
-                            </div>
+                        <div class="document-card" onclick="openDocument('EIN_Confirmation.pdf', 'tax')" style="cursor: pointer; padding: 1rem; background: rgba(255,255,255,0.03); border-radius: 8px; display: flex; align-items: center; gap: 0.75rem;">
+                            <i class="fas fa-file-alt" style="color: #e74c3c; font-size: 1.25rem;"></i>
+                            <div><div style="font-weight: 600;">EIN Confirmation Letter</div><div style="font-size: 0.8rem; color: var(--text-secondary);">EIN: 81-5299411</div></div>
                         </div>
-
-                        <!-- Organic Certificate -->
-                        <div class="document-card" onclick="openDocument('OEFFA_Organic_Certificate.pdf', 'compliance')">
-                            <div class="doc-icon" style="background: rgba(46, 204, 113, 0.2); color: #2ecc71;">
-                                <i class="fas fa-leaf"></i>
-                            </div>
-                            <div class="doc-info">
-                                <div class="doc-name">USDA Organic Certificate</div>
-                                <div class="doc-meta">OEFFA #3839 • Active</div>
-                            </div>
-                            <div class="doc-action">
-                                <i class="fas fa-external-link-alt"></i>
-                            </div>
+                        <div class="document-card" onclick="openDocument('OEFFA_Organic_Certificate.pdf', 'compliance')" style="cursor: pointer; padding: 1rem; background: rgba(255,255,255,0.03); border-radius: 8px; display: flex; align-items: center; gap: 0.75rem;">
+                            <i class="fas fa-leaf" style="color: #2ecc71; font-size: 1.25rem;"></i>
+                            <div><div style="font-weight: 600;">USDA Organic Certificate</div><div style="font-size: 0.8rem; color: var(--text-secondary);">OEFFA #3839</div></div>
                         </div>
-
-                        <!-- Articles of Organization -->
-                        <div class="document-card" onclick="openDocument('Articles_of_Organization.pdf', 'legal')">
-                            <div class="doc-icon" style="background: rgba(155, 89, 182, 0.2); color: #9b59b6;">
-                                <i class="fas fa-file-contract"></i>
-                            </div>
-                            <div class="doc-info">
-                                <div class="doc-name">Articles of Organization</div>
-                                <div class="doc-meta">LLC Formation • Feb 7, 2017</div>
-                            </div>
-                            <div class="doc-action">
-                                <i class="fas fa-external-link-alt"></i>
-                            </div>
+                        <div class="document-card" onclick="openDocument('Articles_of_Organization.pdf', 'legal')" style="cursor: pointer; padding: 1rem; background: rgba(255,255,255,0.03); border-radius: 8px; display: flex; align-items: center; gap: 0.75rem;">
+                            <i class="fas fa-file-contract" style="color: #9b59b6; font-size: 1.25rem;"></i>
+                            <div><div style="font-weight: 600;">Articles of Organization</div><div style="font-size: 0.8rem; color: var(--text-secondary);">LLC Formation • 2017</div></div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- All Documents List -->
+            <!-- Business Info Reference (kept - useful quick reference) -->
             <div class="card">
                 <div class="card-header">
-                    <h3><i class="fas fa-folder-open"></i> All Documents</h3>
-                    <div style="display: flex; gap: 0.5rem;">
-                        <button class="btn btn-secondary btn-sm" onclick="filterDocuments('all')">All</button>
-                        <button class="btn btn-secondary btn-sm" onclick="openModal('uploadDocumentModal')">
-                            <i class="fas fa-upload"></i> Upload
-                        </button>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div id="all-documents-list">
-                        <!-- Documents populated by JavaScript -->
-                        <table style="width: 100%; border-collapse: collapse;">
-                            <thead>
-                                <tr style="border-bottom: 1px solid var(--border);">
-                                    <th style="text-align: left; padding: 0.75rem; color: var(--text-secondary); font-weight: 500;">Document</th>
-                                    <th style="text-align: left; padding: 0.75rem; color: var(--text-secondary); font-weight: 500;">Category</th>
-                                    <th style="text-align: left; padding: 0.75rem; color: var(--text-secondary); font-weight: 500;">Date</th>
-                                    <th style="text-align: right; padding: 0.75rem; color: var(--text-secondary); font-weight: 500;">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="documents-table-body">
-                                <tr style="border-bottom: 1px solid var(--border);">
-                                    <td style="padding: 0.75rem;">
-                                        <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                            <i class="fas fa-certificate" style="color: #9b59b6;"></i>
-                                            <span>PA Subsistence Certificate</span>
-                                        </div>
-                                    </td>
-                                    <td style="padding: 0.75rem;"><span class="badge" style="background: rgba(155, 89, 182, 0.2); color: #9b59b6;">Legal</span></td>
-                                    <td style="padding: 0.75rem; color: var(--text-secondary);">Jan 30, 2026</td>
-                                    <td style="padding: 0.75rem; text-align: right;">
-                                        <button class="btn btn-secondary btn-sm" onclick="openDocument('PA_Subsistence_Certificate_2026-01-30.pdf', 'legal')">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button class="btn btn-secondary btn-sm" onclick="downloadDocument('PA_Subsistence_Certificate_2026-01-30.pdf')">
-                                            <i class="fas fa-download"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                <tr style="border-bottom: 1px solid var(--border);">
-                                    <td style="padding: 0.75rem;">
-                                        <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                            <i class="fas fa-file-alt" style="color: #e74c3c;"></i>
-                                            <span>EIN Confirmation Letter (CP 575)</span>
-                                        </div>
-                                    </td>
-                                    <td style="padding: 0.75rem;"><span class="badge" style="background: rgba(231, 76, 60, 0.2); color: #e74c3c;">Tax</span></td>
-                                    <td style="padding: 0.75rem; color: var(--text-secondary);">2017</td>
-                                    <td style="padding: 0.75rem; text-align: right;">
-                                        <button class="btn btn-secondary btn-sm" onclick="openDocument('EIN_Confirmation.pdf', 'tax')">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button class="btn btn-secondary btn-sm" onclick="downloadDocument('EIN_Confirmation.pdf')">
-                                            <i class="fas fa-download"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                <tr style="border-bottom: 1px solid var(--border);">
-                                    <td style="padding: 0.75rem;">
-                                        <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                            <i class="fas fa-leaf" style="color: #2ecc71;"></i>
-                                            <span>USDA Organic Certificate</span>
-                                        </div>
-                                    </td>
-                                    <td style="padding: 0.75rem;"><span class="badge" style="background: rgba(46, 204, 113, 0.2); color: #2ecc71;">Compliance</span></td>
-                                    <td style="padding: 0.75rem; color: var(--text-secondary);">2025</td>
-                                    <td style="padding: 0.75rem; text-align: right;">
-                                        <button class="btn btn-secondary btn-sm" onclick="openDocument('OEFFA_Organic_Certificate.pdf', 'compliance')">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button class="btn btn-secondary btn-sm" onclick="downloadDocument('OEFFA_Organic_Certificate.pdf')">
-                                            <i class="fas fa-download"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                <tr style="border-bottom: 1px solid var(--border);">
-                                    <td style="padding: 0.75rem;">
-                                        <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                            <i class="fas fa-file-contract" style="color: #9b59b6;"></i>
-                                            <span>Articles of Organization</span>
-                                        </div>
-                                    </td>
-                                    <td style="padding: 0.75rem;"><span class="badge" style="background: rgba(155, 89, 182, 0.2); color: #9b59b6;">Legal</span></td>
-                                    <td style="padding: 0.75rem; color: var(--text-secondary);">Feb 7, 2017</td>
-                                    <td style="padding: 0.75rem; text-align: right;">
-                                        <button class="btn btn-secondary btn-sm" onclick="openDocument('Articles_of_Organization.pdf', 'legal')">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button class="btn btn-secondary btn-sm" onclick="downloadDocument('Articles_of_Organization.pdf')">
-                                            <i class="fas fa-download"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Business Info Reference -->
-            <div class="card" style="margin-top: 1.5rem;">
-                <div class="card-header">
                     <h3><i class="fas fa-building"></i> Business Information</h3>
-                    <span style="font-size: 0.8rem; color: var(--text-secondary);">Quick reference</span>
                 </div>
                 <div class="card-body">
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
-                        <div>
-                            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Legal Name</div>
-                            <div style="font-weight: 600;">Tiny Seed Farm, LLC</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.25rem;">EIN</div>
-                            <div style="font-weight: 600; font-family: monospace;">81-5299411</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.25rem;">PA Entity Number</div>
-                            <div style="font-weight: 600; font-family: monospace;">0006509546</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Formation Date</div>
-                            <div style="font-weight: 600;">February 7, 2017</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Entity Type</div>
-                            <div style="font-weight: 600;">Domestic Limited Liability Company</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Status</div>
-                            <div style="font-weight: 600; color: var(--success);"><i class="fas fa-check-circle"></i> Active</div>
-                        </div>
+                        <div><div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Legal Name</div><div style="font-weight: 600;">Tiny Seed Farm, LLC</div></div>
+                        <div><div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.25rem;">EIN</div><div style="font-weight: 600; font-family: monospace;">81-5299411</div></div>
+                        <div><div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.25rem;">PA Entity Number</div><div style="font-weight: 600; font-family: monospace;">0006509546</div></div>
+                        <div><div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Formation Date</div><div style="font-weight: 600;">February 7, 2017</div></div>
+                        <div><div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Entity Type</div><div style="font-weight: 600;">Domestic Limited Liability Company</div></div>
+                        <div><div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Status</div><div style="font-weight: 600; color: var(--success);"><i class="fas fa-check-circle"></i> Active</div></div>
                     </div>
                 </div>
             </div>
@@ -4369,94 +4320,9 @@
         </div>
     </div>
 
-    <!-- Add Payment Plan Modal -->
-    <div class="modal-overlay" id="addPaymentPlanModal">
-        <div class="modal">
-            <div class="modal-header">
-                <h2><i class="fas fa-file-invoice-dollar"></i> Create Payment Plan</h2>
-                <button class="modal-close" onclick="closeModal('addPaymentPlanModal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                    <div class="form-group">
-                        <label class="form-label">Customer Name</label>
-                        <input type="text" class="form-input" id="plan-customer-name" placeholder="Full name">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Customer Email</label>
-                        <input type="email" class="form-input" id="plan-customer-email" placeholder="email@example.com">
-                    </div>
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                    <div class="form-group">
-                        <label class="form-label">Total Amount</label>
-                        <input type="number" class="form-input" id="plan-total" placeholder="0.00" min="0">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Down Payment %</label>
-                        <select class="form-input" id="plan-down-payment">
-                            <option value="10">10%</option>
-                            <option value="20" selected>20%</option>
-                            <option value="25">25%</option>
-                            <option value="50">50%</option>
-                        </select>
-                    </div>
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                    <div class="form-group">
-                        <label class="form-label">Installments</label>
-                        <select class="form-input" id="plan-installments">
-                            <option value="2">2 payments</option>
-                            <option value="3">3 payments</option>
-                            <option value="4" selected>4 payments</option>
-                            <option value="6">6 payments</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Interest Rate</label>
-                        <select class="form-input" id="plan-interest">
-                            <option value="0">0% (No Interest)</option>
-                            <option value="3">3%</option>
-                            <option value="5" selected>5%</option>
-                            <option value="7">7%</option>
-                        </select>
-                    </div>
-                </div>
-                <div style="padding: 1rem; background: rgba(67, 97, 238, 0.1); border-radius: 8px; margin-top: 1rem;" id="plan-preview-box">
-                    <h4 style="margin-bottom: 0.5rem;">Payment Preview</h4>
-                    <div id="plan-preview-content" style="font-size: 0.9rem; color: var(--text-secondary);">
-                        Enter amount to see payment schedule...
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('addPaymentPlanModal')">Cancel</button>
-                <button class="btn btn-primary" onclick="savePaymentPlan()">
-                    <i class="fas fa-save"></i> Create Plan
-                </button>
-            </div>
-        </div>
-    </div>
+    <!-- addPaymentPlanModal removed - consolidated into paymentPlanModal -->
 
-    <!-- Loan Package Preview Modal -->
-    <div class="modal-overlay" id="loanPackageModal">
-        <div class="modal" style="max-width: 900px;">
-            <div class="modal-header">
-                <h2><i class="fas fa-file-pdf"></i> Loan Application Package Preview</h2>
-                <button class="modal-close" onclick="closeModal('loanPackageModal')">&times;</button>
-            </div>
-            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
-                <div id="loan-package-content">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('loanPackageModal')">Close</button>
-                <button class="btn btn-primary" onclick="printLoanPackage()">
-                    <i class="fas fa-print"></i> Print / Save PDF
-                </button>
-            </div>
-        </div>
-    </div>
+    <!-- Loan Package Modal removed - consolidated into loan-readiness.html -->
 
     <!-- ============================================= -->
     <!-- JAVASCRIPT -->
@@ -4486,110 +4352,19 @@
         // =============================================
         // DOCUMENT VAULT FUNCTIONS
         // =============================================
-        const DocumentVault = {
-            documents: [
-                {
-                    id: 'pa-subsistence',
-                    name: 'PA Subsistence Certificate',
-                    filename: 'PA_Subsistence_Certificate_2026-01-30.pdf',
-                    category: 'legal',
-                    date: '2026-01-30',
-                    description: 'LLC Good Standing Certificate',
-                    icon: 'fa-certificate',
-                    color: '#9b59b6'
-                },
-                {
-                    id: 'ein-letter',
-                    name: 'EIN Confirmation Letter (CP 575)',
-                    filename: 'EIN_Confirmation.pdf',
-                    category: 'tax',
-                    date: '2017',
-                    description: 'IRS EIN: 81-5299411',
-                    icon: 'fa-file-alt',
-                    color: '#e74c3c'
-                },
-                {
-                    id: 'organic-cert',
-                    name: 'USDA Organic Certificate',
-                    filename: 'OEFFA_Organic_Certificate.pdf',
-                    category: 'compliance',
-                    date: '2025',
-                    description: 'OEFFA #3839',
-                    icon: 'fa-leaf',
-                    color: '#2ecc71'
-                },
-                {
-                    id: 'articles',
-                    name: 'Articles of Organization',
-                    filename: 'Articles_of_Organization.pdf',
-                    category: 'legal',
-                    date: '2017-02-07',
-                    description: 'LLC Formation Document',
-                    icon: 'fa-file-contract',
-                    color: '#9b59b6'
-                }
-            ],
-
-            getByCategory(category) {
-                if (category === 'all') return this.documents;
-                return this.documents.filter(d => d.category === category);
-            },
-
-            getCounts() {
-                return {
-                    legal: this.documents.filter(d => d.category === 'legal').length,
-                    tax: this.documents.filter(d => d.category === 'tax').length,
-                    banking: this.documents.filter(d => d.category === 'banking').length,
-                    insurance: this.documents.filter(d => d.category === 'insurance' || d.category === 'compliance').length
-                };
-            }
-        };
-
-        function openDocument(filename, category) {
-            // Try to open from the business_docs folder
-            const basePath = '../business_docs/founding/';
-            const fullPath = basePath + filename;
-
-            // Open in new tab
-            window.open(fullPath, '_blank');
-
-            showNotification(`Opening ${filename}...`, 'info');
+        // Algorithm spec tab switching (absorbed from wealth-builder.html)
+        function showAlgoSpec(specId, btn) {
+            document.querySelectorAll('.algo-spec-content').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.algo-spec-tab').forEach(el => el.classList.remove('active'));
+            document.getElementById('algo-' + specId).style.display = 'block';
+            if (btn) btn.classList.add('active');
         }
 
-        function downloadDocument(filename) {
-            const basePath = '../business_docs/founding/';
-            const fullPath = basePath + filename;
-
-            // Create download link
-            const link = document.createElement('a');
-            link.href = fullPath;
-            link.download = filename;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-
-            showNotification(`Downloading ${filename}...`, 'success');
+        // Quick access document functions (simplified - full vault at loan-readiness.html)
+        function openDocument(filename) {
+            window.open('../business_docs/founding/' + filename, '_blank');
+            showNotification('Opening ' + filename + '...', 'info');
         }
-
-        function filterDocuments(category) {
-            const docs = DocumentVault.getByCategory(category);
-            console.log(`Filtering documents by: ${category}`, docs);
-            showNotification(`Showing ${category === 'all' ? 'all' : category} documents (${docs.length})`, 'info');
-            // Future: Update the table to show filtered documents
-        }
-
-        function updateDocumentCounts() {
-            const counts = DocumentVault.getCounts();
-            document.getElementById('doc-count-legal').textContent = counts.legal;
-            document.getElementById('doc-count-tax').textContent = counts.tax;
-            document.getElementById('doc-count-banking').textContent = counts.banking || '0';
-            document.getElementById('doc-count-insurance').textContent = counts.insurance;
-        }
-
-        // Initialize document counts when page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            setTimeout(updateDocumentCounts, 500);
-        });
 
         // =============================================
         // MODAL FUNCTIONS
@@ -7888,195 +7663,14 @@
             // For now just log - the transactions will show in bank accounts via Plaid
         }
 
-        // =============================================
-        // LOAN PACKAGE GENERATION
-        // Generate professional loan application documents
-        // =============================================
-        async function generateAndDownloadLoanPackage() {
-            const statusDiv = document.getElementById('loan-package-status');
-            if (statusDiv) {
-                statusDiv.style.display = 'block';
-                statusDiv.innerHTML = `
-                    <div style="background: var(--bg-light); padding: 1rem; border-radius: 8px; text-align: center;">
-                        <i class="fas fa-spinner fa-spin" style="font-size: 1.5rem; color: var(--info); margin-bottom: 0.5rem;"></i>
-                        <p style="margin: 0;">Generating loan package...</p>
-                    </div>
-                `;
-            }
+        // Loan package functions removed - consolidated into loan-readiness.html
+        // Use loan-readiness.html for full loan package generation
 
-            try {
-                // Call the backend to generate the loan package
-                const result = await fetchFromSheet('generateLoanPackage');
-
-                if (result && result.success && result.html) {
-                    // Create a downloadable HTML file
-                    const blob = new Blob([result.html], { type: 'text/html' });
-                    const url = URL.createObjectURL(blob);
-
-                    // Create download link
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'Tiny_Seed_Farm_Loan_Package_' + new Date().toISOString().split('T')[0] + '.html';
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-
-                    // Show success and summary
-                    if (statusDiv) {
-                        statusDiv.innerHTML = `
-                            <div style="background: rgba(42, 157, 143, 0.1); padding: 1rem; border-radius: 8px;">
-                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                                    <i class="fas fa-check-circle" style="color: var(--success);"></i>
-                                    <strong>Loan Package Generated!</strong>
-                                </div>
-                                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 1rem;">
-                                    <div style="text-align: center;">
-                                        <div style="font-size: 1.25rem; font-weight: 700; color: var(--success);">
-                                            $${(result.summary?.totalAssets || 0).toLocaleString()}
-                                        </div>
-                                        <div style="font-size: 0.85rem; color: var(--text-secondary);">Total Assets</div>
-                                    </div>
-                                    <div style="text-align: center;">
-                                        <div style="font-size: 1.25rem; font-weight: 700; color: var(--danger);">
-                                            $${(result.summary?.totalLiabilities || 0).toLocaleString()}
-                                        </div>
-                                        <div style="font-size: 0.85rem; color: var(--text-secondary);">Total Liabilities</div>
-                                    </div>
-                                    <div style="text-align: center;">
-                                        <div style="font-size: 1.25rem; font-weight: 700; color: ${(result.summary?.netWorth || 0) >= 0 ? 'var(--success)' : 'var(--danger)'};">
-                                            $${(result.summary?.netWorth || 0).toLocaleString()}
-                                        </div>
-                                        <div style="font-size: 0.85rem; color: var(--text-secondary);">Net Worth</div>
-                                    </div>
-                                </div>
-                                <p style="margin: 1rem 0 0; font-size: 0.9rem; color: var(--text-secondary);">
-                                    <i class="fas fa-info-circle" style="margin-right: 0.5rem;"></i>
-                                    Open the downloaded file in your browser, then print to PDF for bank submission.
-                                </p>
-                            </div>
-                        `;
-                    }
-
-                    showNotification('Loan package downloaded! Open in browser and print to PDF.', 'success');
-                } else {
-                    throw new Error(result?.error || 'Failed to generate loan package');
-                }
-            } catch (error) {
-                console.error('Loan package error:', error);
-                if (statusDiv) {
-                    statusDiv.innerHTML = `
-                        <div style="background: rgba(230, 57, 70, 0.1); padding: 1rem; border-radius: 8px;">
-                            <i class="fas fa-exclamation-triangle" style="color: var(--danger); margin-right: 0.5rem;"></i>
-                            <strong>Error:</strong> ${error.message}
-                            <p style="margin: 0.5rem 0 0; font-size: 0.9rem;">
-                                Make sure you have added assets to track. <a href="#" onclick="openModal('addAssetModal'); return false;" style="color: var(--primary-light);">Add an asset now</a>
-                            </p>
-                        </div>
-                    `;
-                }
-                showNotification('Failed to generate loan package: ' + error.message, 'error');
-            }
-        }
-
-        // Also support saving to Google Drive (calls backend)
-        async function saveLoanPackageToDrive() {
-            try {
-                const result = await fetchFromSheet('saveLoanPackageToHTML');
-                if (result && result.success) {
-                    showNotification('Loan package saved to Google Drive!', 'success');
-                    // Open the file URL in a new tab
-                    if (result.url) {
-                        window.open(result.url, '_blank');
-                    }
-                } else {
-                    throw new Error(result?.error || 'Failed to save to Drive');
-                }
-            } catch (error) {
-                console.error('Drive save error:', error);
-                showNotification('Failed to save to Drive: ' + error.message, 'error');
-            }
-        }
-
-        // =============================================
-        // LOAN PACKAGE FUNCTIONS
-        // =============================================
-        async function generateLoanPackage() {
-            showNotification('Generating loan package...', 'info');
-            try {
-                const balanceSheet = AssetManager.generateBalanceSheet();
-                const html = generateBalanceSheetHTML(balanceSheet);
-                document.getElementById('loan-package-content').innerHTML = html;
-                openModal('loanPackageModal');
-                showNotification('Loan package ready!', 'success');
-            } catch (error) {
-                showNotification('Failed to generate: ' + error.message, 'error');
-            }
-        }
-
-        async function generateAssetReport() {
-            showNotification('Generating asset schedule...', 'info');
-            try {
-                const schedule = AssetManager.generateAssetSchedule();
-                document.getElementById('loan-package-content').innerHTML = schedule.html;
-                openModal('loanPackageModal');
-                showNotification('Asset schedule ready!', 'success');
-            } catch (error) {
-                showNotification('Failed to generate: ' + error.message, 'error');
-            }
-        }
-
-        function generateBalanceSheetHTML(data) {
-            const date = new Date().toLocaleDateString();
-            return `
-                <div style="font-family: 'Times New Roman', serif; padding: 20px;">
-                    <h1 style="border-bottom: 2px solid #2a9d8f; padding-bottom: 10px;">Tiny Seed Farm - Balance Sheet</h1>
-                    <p><strong>As of:</strong> ${date}</p>
-                    <h2>Assets</h2>
-                    <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
-                        <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;">Cash & Bank</td><td style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">$${(data?.assets?.cash || 0).toLocaleString()}</td></tr>
-                        <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;">Investments</td><td style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">$${(data?.assets?.investments || 0).toLocaleString()}</td></tr>
-                        <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;">Equipment</td><td style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">$${(data?.assets?.equipment || 0).toLocaleString()}</td></tr>
-                        <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;">Vehicles</td><td style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">$${(data?.assets?.vehicles || 0).toLocaleString()}</td></tr>
-                        <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;">Inventory</td><td style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">$${(data?.assets?.inventory || 0).toLocaleString()}</td></tr>
-                        <tr style="font-weight: bold; background: #f5f5f5;"><td style="padding: 8px;">TOTAL ASSETS</td><td style="text-align: right; padding: 8px;">$${(data?.assets?.total || 0).toLocaleString()}</td></tr>
-                    </table>
-                    <h2>Liabilities</h2>
-                    <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
-                        <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;">Credit Cards</td><td style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">$${(data?.liabilities?.creditCards || 0).toLocaleString()}</td></tr>
-                        <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;">Loans</td><td style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">$${(data?.liabilities?.loans || 0).toLocaleString()}</td></tr>
-                        <tr style="font-weight: bold; background: #f5f5f5;"><td style="padding: 8px;">TOTAL LIABILITIES</td><td style="text-align: right; padding: 8px;">$${(data?.liabilities?.total || 0).toLocaleString()}</td></tr>
-                    </table>
-                    <h2>Owner's Equity</h2>
-                    <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
-                        <tr style="font-weight: bold; background: #e8f5e9;"><td style="padding: 8px;">NET WORTH</td><td style="text-align: right; padding: 8px;">$${(data?.equity || 0).toLocaleString()}</td></tr>
-                    </table>
-                    <p style="margin-top: 40px; font-size: 0.9em; color: #666;">Generated by Tiny Seed Farm Financial System</p>
-                </div>
-            `;
-        }
-
-        function printLoanPackage() {
-            const content = document.getElementById('loan-package-content').innerHTML;
-            const printWindow = window.open('', '_blank');
-            printWindow.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head><title>Tiny Seed Farm Loan Package</title>
-                <style>body { font-family: 'Times New Roman', serif; margin: 40px; } @media print { body { margin: 20px; } }</style>
-                </head>
-                <body>${content}</body>
-                </html>
-            `);
-            printWindow.document.close();
-            printWindow.print();
-        }
-
-        // Wrapper for Payment Plan save from new modal
+        // Payment Plan save (uses paymentPlanModal fields)
         function savePaymentPlan() {
             const customerName = document.getElementById('plan-customer-name')?.value;
             const customerEmail = document.getElementById('plan-customer-email')?.value;
-            const total = parseFloat(document.getElementById('plan-total')?.value) || 0;
+            const total = parseFloat(document.getElementById('plan-total-amount')?.value) || 0;
             const downPercent = parseInt(document.getElementById('plan-down-payment')?.value) || 20;
             const installments = parseInt(document.getElementById('plan-installments')?.value) || 4;
             const interest = parseInt(document.getElementById('plan-interest')?.value) || 5;
@@ -8095,11 +7689,11 @@
                 interestRate: interest
             });
 
-            closeModal('addPaymentPlanModal');
+            closeModal('paymentPlanModal');
             // Clear form
             document.getElementById('plan-customer-name').value = '';
             document.getElementById('plan-customer-email').value = '';
-            document.getElementById('plan-total').value = '';
+            document.getElementById('plan-total-amount').value = '';
         }
 
         // =============================================

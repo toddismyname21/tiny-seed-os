@@ -38,6 +38,37 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-21 — Financial Consolidation Phase 3: Feature Deduplication
+**Role:** PM_Architect
+
+### Files Modified
+- `web_app/financial-dashboard.html` — Absorbed wealth-builder algorithm spec into Investments tab (collapsible 5-tab section); replaced Documents tab with compact redirect to loan-readiness.html; removed duplicate `addPaymentPlanModal`; removed loan package modal + 6 JS functions; simplified DocumentVault to single `openDocument()` function; added cross-page Financial Suite nav bar
+- `web_app/accounting.html` — Simplified Banking tab to read-only (removed Plaid SDK, connect/disconnect/refresh buttons, 5 Plaid management functions); added cross-page Financial Suite nav bar; kept read-only account + transaction display
+- `web_app/loan-readiness.html` — Added cross-page Financial Suite nav bar
+- `index.html` — Removed duplicate Wealth Builder nav link, consolidated to Financial Command Center
+- `apps_script/FinancialDashboard.html` — Updated wealth-builder.html links to financial-dashboard.html#investments
+- `web_app/auth-guard.js` — Removed wealth-builder.html permission entry
+
+### Functions Removed (from financial-dashboard.html)
+- `generateAndDownloadLoanPackage()`, `saveLoanPackageToDrive()`, `generateLoanPackage()`, `generateAssetReport()`, `generateBalanceSheetHTML()`, `printLoanPackage()` — Consolidated into loan-readiness.html
+- `DocumentVault` object, `filterDocuments()`, `updateDocumentCounts()`, `downloadDocument()` — Simplified to single `openDocument()`
+
+### Functions Added (to financial-dashboard.html)
+- `showAlgoSpec(specId, btn)` — Algorithm spec sub-tab switcher
+
+### Functions Removed (from accounting.html)
+- `connectBank()`, `disconnectBank()`, `refreshBalances()`, `refreshTransactions()`, `renderBankAccountsTable()` — Plaid management moved to financial-dashboard.html
+
+### Reason
+Phase 3 of Financial Consolidation Plan v2: Feature Deduplication. Removed duplicate Plaid management, Document Vault, Payment Plan modals, and Loan Package generators across financial pages. Each feature now lives in ONE canonical location with cross-links from other pages. Added consistent Financial Suite cross-navigation bar across all 3 financial pages.
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created — reduced duplication by removing 14 duplicate functions
+
+---
+
 ## 2026-02-21 — Financial Page Consolidation (5→3 pages)
 **Role:** PM_Architect
 

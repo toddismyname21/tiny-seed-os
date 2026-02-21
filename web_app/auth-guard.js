@@ -118,7 +118,6 @@
         PAGE_PERMISSIONS: {
             // Admin only (sensitive)
             'financial-dashboard.html': 'Admin',
-            'wealth-builder.html': 'Admin',
 
             // Manager+
             'sales.html': 'Manager',

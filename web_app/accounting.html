@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="tiny-seed-design-system.css">
   <script src="api-config.js"></script>
-  <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
+  <!-- Plaid SDK removed: bank management moved to financial-dashboard.html -->
   <style>
     :root {
       --primary: var(--ts-green-500, #10b981);
@@ -665,6 +665,20 @@
     </div>
   </header>
 
+  <!-- Financial Suite Cross-Navigation -->
+  <div style="display: flex; gap: 0.5rem; padding: 0.5rem 1.5rem; background: rgba(0,0,0,0.2); border-bottom: 1px solid var(--border); font-size: 0.8rem; overflow-x: auto;">
+    <span style="color: var(--text-muted); padding: 0.3rem 0; white-space: nowrap;">Financial Suite:</span>
+    <a href="accounting.html" style="padding: 0.3rem 0.75rem; border-radius: 100px; background: var(--primary); color: white; text-decoration: none; white-space: nowrap; font-weight: 600;">
+      <i class="fas fa-calculator"></i> Accounting Hub
+    </a>
+    <a href="financial-dashboard.html" style="padding: 0.3rem 0.75rem; border-radius: 100px; background: var(--bg-card); color: var(--text-muted); text-decoration: none; white-space: nowrap; transition: background 150ms;">
+      <i class="fas fa-chart-line"></i> Financial Command Center
+    </a>
+    <a href="loan-readiness.html" style="padding: 0.3rem 0.75rem; border-radius: 100px; background: var(--bg-card); color: var(--text-muted); text-decoration: none; white-space: nowrap; transition: background 150ms;">
+      <i class="fas fa-landmark"></i> Loan & Grant Center
+    </a>
+  </div>
+
   <nav class="tabs">
     <div class="tab active" data-tab="dashboard">Dashboard</div>
     <div class="tab" data-tab="tasks" style="position: relative;">
@@ -1052,19 +1066,22 @@
       </div>
     </div>
 
-    <!-- Banking Tab (Plaid) -->
+    <!-- Banking Tab (Read-Only View) -->
     <div id="banking" class="tab-content">
+      <div style="background: var(--bg-hover); border: 1px solid var(--border); border-radius: var(--ts-radius-md, 8px); padding: 1rem 1.25rem; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+        <div>
+          <i class="fas fa-info-circle" style="color: var(--secondary); margin-right: 0.5rem;"></i>
+          <strong>Read-only view.</strong> Manage bank connections, add accounts, and view detailed analytics in the Financial Command Center.
+        </div>
+        <a href="financial-dashboard.html#banking" class="btn btn-primary" style="text-decoration: none;">
+          <i class="fas fa-external-link-alt"></i> Open Banking Manager
+        </a>
+      </div>
+
       <div class="card">
         <div class="card-header">
           <h2 class="card-title">Connected Bank Accounts</h2>
-          <button class="btn btn-primary" onclick="connectBank()">
-            + Connect Bank Account
-          </button>
         </div>
-        <p style="color: var(--text-muted); margin-bottom: 1rem;">
-          Securely connect your bank accounts via Plaid to automatically import transactions.
-        </p>
-        <div id="plaidStatus" class="alert alert-success" style="display: none;"></div>
         <div class="table-container">
           <table>
             <thead>
@@ -1074,11 +1091,10 @@
                 <th>Type</th>
                 <th>Balance</th>
                 <th>Last Synced</th>
-                <th>Actions</th>
               </tr>
             </thead>
             <tbody id="bankAccountsTable">
-              <tr><td colspan="6" class="loading"><div class="spinner"></div></td></tr>
+              <tr><td colspan="5" class="loading"><div class="spinner"></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -1087,7 +1103,6 @@
       <div class="card">
         <div class="card-header">
           <h2 class="card-title">Recent Transactions</h2>
-          <button class="btn btn-secondary" onclick="refreshTransactions()">Refresh</button>
         </div>
         <div class="table-container">
           <table>
@@ -1101,7 +1116,7 @@
               </tr>
             </thead>
             <tbody id="transactionsTable">
-              <tr><td colspan="5">Connect a bank account to see transactions</td></tr>
+              <tr><td colspan="5">No bank accounts connected. <a href="financial-dashboard.html#banking" style="color: var(--primary);">Connect in Financial Command Center</a></td></tr>
             </tbody>
           </table>
         </div>
@@ -1792,139 +1807,58 @@
       `).join('');
     }
 
-    // ============ PLAID BANKING FUNCTIONS ============
-
-    let plaidHandler = null;
+    // ============ BANKING (Read-Only View) ============
+    // Full Plaid management (connect/disconnect) is in financial-dashboard.html
 
     async function loadBankAccounts() {
       const tbody = document.getElementById('bankAccountsTable');
-
-      // First check if we have any connected items
-      const itemsResult = await apiCall('getPlaidItems');
-      if (!itemsResult.success || !itemsResult.data || itemsResult.data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6">No bank accounts connected. Click "Connect Bank Account" to get started.</td></tr>';
-        return;
-      }
-
-      // Get accounts for all items
-      const accountsResult = await apiCall('getPlaidAccounts');
-      if (accountsResult.success && accountsResult.accounts && accountsResult.accounts.length > 0) {
-        renderBankAccountsTable(accountsResult.accounts);
-        loadTransactions();
-      } else {
-        tbody.innerHTML = '<tr><td colspan="6">Connected but no accounts found. Try refreshing.</td></tr>';
-      }
-    }
-
-    function renderBankAccountsTable(accounts) {
-      const tbody = document.getElementById('bankAccountsTable');
-      tbody.innerHTML = accounts.map(a => `
-        <tr>
-          <td>${a.institution || 'Bank'}</td>
-          <td>${a.name || a.official_name || 'Account'}</td>
-          <td><span class="badge badge-info">${a.type || a.subtype || 'Unknown'}</span></td>
-          <td>${a.balances && a.balances.current !== null ? '$' + a.balances.current.toFixed(2) : '-'}</td>
-          <td>${a.lastSynced ? formatDate(a.lastSynced) : 'Just now'}</td>
-          <td>
-            <button class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="refreshBalances('${a.account_id}')">Refresh</button>
-          </td>
-        </tr>
-      `).join('');
-    }
-
-    async function connectBank() {
-      showAlert('Initializing bank connection...', 'info');
-
-      // Get link token from backend
-      const tokenResult = await apiCall('createPlaidLinkToken');
-      if (!tokenResult.success || !tokenResult.linkToken) {
-        showAlert('Failed to initialize: ' + (tokenResult.error || 'Unknown error'), 'error');
-        return;
-      }
-
-      // Initialize Plaid Link
-      plaidHandler = Plaid.create({
-        token: tokenResult.linkToken,
-        onSuccess: async (publicToken, metadata) => {
-          showAlert('Bank connected! Saving account...', 'info');
-
-          // Exchange public token for access token
-          const exchangeResult = await apiCall('exchangePlaidPublicToken', {
-            publicToken: publicToken,
-            institutionId: metadata.institution.institution_id,
-            institutionName: metadata.institution.name,
-            accounts: JSON.stringify(metadata.accounts)
-          }, 'POST');
-
-          if (exchangeResult.success) {
-            showAlert('Bank account connected successfully!', 'success');
-            document.getElementById('plaidStatus').style.display = 'block';
-            document.getElementById('plaidStatus').textContent = 'Connected to ' + metadata.institution.name;
-            loadBankAccounts();
-          } else {
-            showAlert('Failed to save connection: ' + exchangeResult.error, 'error');
-          }
-        },
-        onExit: (err, metadata) => {
-          if (err) {
-            showAlert('Connection cancelled: ' + (err.display_message || err.error_message || 'User exited'), 'error');
-          }
-        },
-        onEvent: (eventName, metadata) => {
-          console.log('Plaid event:', eventName, metadata);
+      try {
+        const itemsResult = await apiCall('getPlaidItems');
+        if (!itemsResult.success || !itemsResult.data || itemsResult.data.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5">No bank accounts connected. <a href="financial-dashboard.html#banking" style="color: var(--primary);">Connect in Financial Command Center</a></td></tr>';
+          return;
         }
-      });
-
-      plaidHandler.open();
+        const accountsResult = await apiCall('getPlaidAccounts');
+        if (accountsResult.success && accountsResult.accounts && accountsResult.accounts.length > 0) {
+          tbody.innerHTML = accountsResult.accounts.map(a => `
+            <tr>
+              <td>${a.institution || 'Bank'}</td>
+              <td>${a.name || a.official_name || 'Account'}</td>
+              <td><span class="badge badge-info">${a.type || a.subtype || 'Unknown'}</span></td>
+              <td>${a.balances && a.balances.current !== null ? '$' + a.balances.current.toFixed(2) : '-'}</td>
+              <td>${a.lastSynced ? formatDate(a.lastSynced) : 'Just now'}</td>
+            </tr>
+          `).join('');
+          loadTransactions();
+        } else {
+          tbody.innerHTML = '<tr><td colspan="5">Connected but no accounts found.</td></tr>';
+        }
+      } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="5">Could not load bank accounts.</td></tr>';
+      }
     }
 
     async function loadTransactions() {
       const tbody = document.getElementById('transactionsTable');
-
-      const result = await apiCall('getPlaidTransactions', { days: 30 });
-      if (result.success && result.transactions && result.transactions.length > 0) {
-        tbody.innerHTML = result.transactions.slice(0, 20).map(t => `
-          <tr>
-            <td>${formatDate(t.date)}</td>
-            <td>${t.name || t.merchant_name || 'Unknown'}</td>
-            <td>${t.category ? t.category.join(', ') : '-'}</td>
-            <td style="color: ${t.amount > 0 ? 'var(--danger)' : 'var(--primary)'}">
-              ${t.amount > 0 ? '-' : '+'}$${Math.abs(t.amount).toFixed(2)}
-            </td>
-            <td>${t.account_name || '-'}</td>
-          </tr>
-        `).join('');
-      } else {
-        tbody.innerHTML = '<tr><td colspan="5">No transactions found for the last 30 days</td></tr>';
-      }
-    }
-
-    async function refreshTransactions() {
-      showAlert('Refreshing transactions...', 'info');
-      await loadTransactions();
-      showAlert('Transactions refreshed!', 'success');
-    }
-
-    async function refreshBalances(accountId) {
-      showAlert('Refreshing balances...', 'info');
-      const result = await apiCall('refreshPlaidBalances', { accountId });
-      if (result.success) {
-        showAlert('Balances refreshed!', 'success');
-        loadBankAccounts();
-      } else {
-        showAlert('Failed to refresh: ' + result.error, 'error');
-      }
-    }
-
-    async function disconnectBank(itemId) {
-      if (!confirm('Are you sure you want to disconnect this bank account?')) return;
-
-      const result = await apiCall('disconnectPlaidItem', { itemId }, 'POST');
-      if (result.success) {
-        showAlert('Bank disconnected', 'success');
-        loadBankAccounts();
-      } else {
-        showAlert('Failed to disconnect: ' + result.error, 'error');
+      try {
+        const result = await apiCall('getPlaidTransactions', { days: 30 });
+        if (result.success && result.transactions && result.transactions.length > 0) {
+          tbody.innerHTML = result.transactions.slice(0, 20).map(t => `
+            <tr>
+              <td>${formatDate(t.date)}</td>
+              <td>${t.name || t.merchant_name || 'Unknown'}</td>
+              <td>${t.category ? t.category.join(', ') : '-'}</td>
+              <td style="color: ${t.amount > 0 ? 'var(--danger)' : 'var(--primary)'}">
+                ${t.amount > 0 ? '-' : '+'}$${Math.abs(t.amount).toFixed(2)}
+              </td>
+              <td>${t.account_name || '-'}</td>
+            </tr>
+          `).join('');
+        } else {
+          tbody.innerHTML = '<tr><td colspan="5">No transactions found for the last 30 days</td></tr>';
+        }
+      } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="5">Could not load transactions.</td></tr>';
       }
     }
 
