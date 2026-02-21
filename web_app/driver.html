@@ -3080,13 +3080,20 @@
                 `;
             } else {
                 AppState.history.forEach(item => {
+                    const isWholesale = (item.customerType || '').toLowerCase() === 'wholesale';
+                    let invoiceBadge = '';
+                    if (isWholesale && item.invoiceStatus === 'sent') {
+                        invoiceBadge = '<span style="background:#22c55e;color:#fff;padding:1px 6px;border-radius:4px;font-size:10px;margin-left:6px;">INV</span>';
+                    } else if (isWholesale && item.invoiceStatus === 'failed') {
+                        invoiceBadge = '<span style="background:#f59e0b;color:#fff;padding:1px 6px;border-radius:4px;font-size:10px;margin-left:6px;">INV!</span>';
+                    }
                     html += `
                         <div class="history-item">
                             <div class="history-status ${item.status}">
                                 ${item.status === 'delivered' ? '&#x2713;' : '&#x26A0;'}
                             </div>
                             <div class="history-details">
-                                <div class="history-customer">${item.customer}</div>
+                                <div class="history-customer">${item.customer}${invoiceBadge}</div>
                                 <div class="history-time">${item.time}${item.issueType ? ' - ' + formatIssueType(item.issueType) : ''}</div>
                             </div>
                         </div>
@@ -3457,16 +3464,20 @@
         }
 
         function showNotificationToast(message) {
-            // Create toast element
+            showToast(message, 'success');
+        }
+
+        function showToast(message, type) {
+            const colors = { success: '#22c55e', warning: '#f59e0b', error: '#ef4444', info: '#3b82f6' };
+            const icons = { success: '&#x2709;', warning: '&#x26A0;', error: '&#x274C;', info: '&#x2139;' };
             const toast = document.createElement('div');
-            toast.className = 'notification-toast';
-            toast.innerHTML = `<span>&#x2709;</span> ${message}`;
+            toast.innerHTML = `<span>${icons[type] || icons.info}</span> ${message}`;
             toast.style.cssText = `
                 position: fixed;
                 bottom: 80px;
                 left: 50%;
                 transform: translateX(-50%);
-                background: #22c55e;
+                background: ${colors[type] || colors.info};
                 color: white;
                 padding: 12px 20px;
                 border-radius: 8px;
@@ -3480,8 +3491,6 @@
                 animation: slideUp 0.3s ease-out;
             `;
             document.body.appendChild(toast);
-
-            // Remove after 3 seconds
             setTimeout(() => {
                 toast.style.animation = 'fadeOut 0.3s ease-out';
                 setTimeout(() => toast.remove(), 300);
@@ -3714,11 +3723,12 @@
                 orderId: AppState.currentStop.orderId || AppState.currentStop.Order_ID || ''
             };
 
+            let deliveryResult = null;
             try {
                 // Try to submit to API
-                const result = await api.completeDelivery(deliveryData);
+                deliveryResult = await api.completeDelivery(deliveryData);
 
-                if (!result.success) {
+                if (!deliveryResult.success) {
                     // If API fails, queue for later sync
                     saveToQueue('delivery', deliveryData);
                 }
@@ -3742,11 +3752,26 @@
                 }
             }
 
+            // Invoice feedback for wholesale deliveries
+            const isWholesale = (deliveryData.customerType || '').toLowerCase() === 'wholesale';
+            let invoiceStatus = null;
+            if (isWholesale && deliveryResult && deliveryResult.success) {
+                if (deliveryResult.invoiceCreated) {
+                    invoiceStatus = 'sent';
+                    showToast('Invoice sent to ' + deliveryData.customer, 'success');
+                } else {
+                    invoiceStatus = 'failed';
+                    showToast('Invoice failed — check QB connection', 'warning');
+                }
+            }
+
             // Add to history
             AppState.history.unshift({
                 customer: AppState.currentStop.customer,
                 time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-                status: 'delivered'
+                status: 'delivered',
+                customerType: deliveryData.customerType || '',
+                invoiceStatus: invoiceStatus
             });
 
             // Update UI

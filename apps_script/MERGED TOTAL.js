@@ -16803,9 +16803,7 @@ function doGet(e) {
         return jsonResponse(typeof logComplianceEntry === 'function' ? logComplianceEntry(e.parameter) : { success: true, message: 'Entry logged' });
       case 'postToAppFeed':
         return jsonResponse({ success: true, message: 'Posted to app feed', postId: 'POST-' + Date.now() });
-      case 'saveQuickBooksCredentials':
-        PropertiesService.getScriptProperties().setProperty('QUICKBOOKS_CREDENTIALS', JSON.stringify(e.parameter));
-        return jsonResponse({ success: true, message: 'QuickBooks credentials saved' });
+      // saveQuickBooksCredentials handled in POST handler #2 (line ~18493) which also saves QB_REALM_ID
       case 'configureClaudeAPI':
         PropertiesService.getScriptProperties().setProperty('CLAUDE_API_KEY', e.parameter.apiKey || '');
         return jsonResponse({ success: true, message: 'Claude API key configured' });
@@ -60688,6 +60686,9 @@ const PLAID_CONFIG = {
  */
 function createPlaidLinkToken(params) {
     try {
+        // Try with all products first, fallback to transactions-only if investments not enabled
+        var products = params.productsOverride ? JSON.parse(params.productsOverride) : PLAID_CONFIG.PRODUCTS;
+
         const payload = {
             client_id: PLAID_CONFIG.CLIENT_ID,
             secret: PLAID_CONFIG.SECRET,
@@ -60695,7 +60696,7 @@ function createPlaidLinkToken(params) {
                 client_user_id: params.userId || 'tiny-seed-user-1'
             },
             client_name: 'Tiny Seed Farm',
-            products: PLAID_CONFIG.PRODUCTS,
+            products: products,
             country_codes: PLAID_CONFIG.COUNTRY_CODES,
             language: PLAID_CONFIG.LANGUAGE
         };
@@ -60707,8 +60708,17 @@ function createPlaidLinkToken(params) {
             muteHttpExceptions: true
         };
 
-        const response = UrlFetchApp.fetch(PLAID_CONFIG.BASE_URL + '/link/token/create', options);
-        const result = JSON.parse(response.getContentText());
+        var response = UrlFetchApp.fetch(PLAID_CONFIG.BASE_URL + '/link/token/create', options);
+        var result = JSON.parse(response.getContentText());
+
+        // If investments not enabled, retry with transactions only
+        if (!result.link_token && (result.error_code === 'PRODUCTS_NOT_SUPPORTED' || (result.error_message && result.error_message.toLowerCase().includes('investments')))) {
+            Logger.log('Plaid investments not enabled, retrying with transactions only');
+            payload.products = ['transactions'];
+            options.payload = JSON.stringify(payload);
+            response = UrlFetchApp.fetch(PLAID_CONFIG.BASE_URL + '/link/token/create', options);
+            result = JSON.parse(response.getContentText());
+        }
 
         if (result.link_token) {
             return {
@@ -77577,7 +77587,7 @@ function disconnectQuickBooks() {
 // QUICKBOOKS API CALLS
 // ═══════════════════════════════════════════════════════════════════════════
 
-function quickBooksApiCall(endpoint, method = 'GET', payload = null) {
+function quickBooksApiCall(endpoint, method = 'GET', payload = null, _retryCount = 0) {
   if (!QUICKBOOKS_CONFIG.ENABLED) {
     return { success: false, error: 'QuickBooks integration is not enabled. Set QUICKBOOKS_CONFIG.ENABLED = true' };
   }
@@ -77621,10 +77631,10 @@ function quickBooksApiCall(endpoint, method = 'GET', payload = null) {
     if (responseCode >= 200 && responseCode < 300) {
       logIntegration('QuickBooks', endpoint, 'SUCCESS', `${method} request successful`);
       return { success: true, data: JSON.parse(responseText) };
-    } else if (responseCode === 401) {
-      // Token expired, try to refresh
+    } else if (responseCode === 401 && _retryCount < 1) {
+      // Token expired, refresh and retry once
       service.refresh();
-      return quickBooksApiCall(endpoint, method, payload); // Retry once
+      return quickBooksApiCall(endpoint, method, payload, _retryCount + 1);
     } else {
       logIntegration('QuickBooks', endpoint, 'FAILED', `HTTP ${responseCode}: ${responseText}`);
       return { success: false, error: `HTTP ${responseCode}`, details: responseText };

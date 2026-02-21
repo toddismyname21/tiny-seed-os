@@ -38,6 +38,29 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-21 — QuickBooks + Delivery Invoice Pipeline: Production Readiness
+**Role:** PM_Architect
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Fixed infinite recursion bug in `quickBooksApiCall()` (added retry guard); removed duplicate `saveQuickBooksCredentials` handler; added Plaid investments fallback in `createPlaidLinkToken()` (retries with transactions-only if investments not enabled)
+- `web_app/driver.html` — Added invoice feedback toast on wholesale delivery completion; added invoice status badge (INV/INV!) in delivery history; refactored `showNotificationToast()` into `showToast()` with color support
+
+### Bug Fixes
+- `quickBooksApiCall()` could infinite-loop on 401 if token refresh failed — now retries max once
+- Plaid bank connection failed when investments product not enabled — now auto-falls back to transactions-only
+
+### UX Improvements
+- Driver sees "Invoice sent to [customer]" toast after completing wholesale delivery
+- Delivery history shows green "INV" badge for successful invoices, yellow "INV!" for failures
+- Toast notifications now support success/warning/error/info color types
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
 ## 2026-02-21 — Financial Consolidation Phase 3: Feature Deduplication
 **Role:** PM_Architect
 
