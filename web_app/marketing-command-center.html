@@ -8026,6 +8026,61 @@
                         <i class="fas fa-images"></i> Pick from Farm Pics
                     </button>
 
+                    <!-- PLATFORM PREVIEW PANEL (Phase 1B) — Shows how photo will look on each platform -->
+                    <div id="platformPreviewPanel" style="display: none; margin-top: 1rem; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                            <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);"><i class="fas fa-eye"></i> Preview as posted</span>
+                            <span id="previewCropLabel" style="font-size: 0.7rem; color: var(--instagram); background: rgba(225,48,108,0.15); padding: 0.15rem 0.5rem; border-radius: 4px;">1:1</span>
+                        </div>
+                        <div style="display: flex; gap: 0.75rem; overflow-x: auto; padding-bottom: 0.5rem;">
+                            <!-- IG Feed Preview -->
+                            <div style="flex-shrink: 0; width: 160px;">
+                                <div style="font-size: 0.65rem; color: var(--text-secondary); margin-bottom: 0.25rem; text-align: center;">IG Feed</div>
+                                <div style="background: #000; border-radius: 8px; overflow: hidden; border: 2px solid rgba(225,48,108,0.4);">
+                                    <div style="display: flex; align-items: center; gap: 0.3rem; padding: 0.3rem 0.4rem; background: rgba(255,255,255,0.05);">
+                                        <div style="width: 16px; height: 16px; border-radius: 50%; background: linear-gradient(135deg, #833AB4, #E1306C, #F77737);"></div>
+                                        <span style="font-size: 0.55rem; font-weight: 600;">tinyseedfarm</span>
+                                    </div>
+                                    <canvas id="previewCanvasFeed" width="160" height="200" style="width: 100%; display: block;"></canvas>
+                                    <div style="display: flex; gap: 0.5rem; padding: 0.3rem 0.4rem;">
+                                        <i class="far fa-heart" style="font-size: 0.65rem;"></i>
+                                        <i class="far fa-comment" style="font-size: 0.65rem;"></i>
+                                        <i class="far fa-paper-plane" style="font-size: 0.65rem;"></i>
+                                    </div>
+                                    <div id="previewCaptionFeed" style="font-size: 0.5rem; padding: 0 0.4rem 0.3rem; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></div>
+                                </div>
+                            </div>
+                            <!-- IG Story Preview -->
+                            <div style="flex-shrink: 0; width: 100px;">
+                                <div style="font-size: 0.65rem; color: var(--text-secondary); margin-bottom: 0.25rem; text-align: center;">IG Story</div>
+                                <div style="background: #000; border-radius: 8px; overflow: hidden; border: 2px solid rgba(225,48,108,0.4); position: relative;">
+                                    <canvas id="previewCanvasStory" width="100" height="178" style="width: 100%; display: block;"></canvas>
+                                    <div style="position: absolute; top: 0.2rem; left: 0.3rem; display: flex; align-items: center; gap: 0.2rem;">
+                                        <div style="width: 14px; height: 14px; border-radius: 50%; border: 1px solid white; background: rgba(0,0,0,0.3);"></div>
+                                        <span style="font-size: 0.5rem; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.8);">tinyseedfarm</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- FB Post Preview -->
+                            <div style="flex-shrink: 0; width: 180px;">
+                                <div style="font-size: 0.65rem; color: var(--text-secondary); margin-bottom: 0.25rem; text-align: center;">Facebook</div>
+                                <div style="background: #242526; border-radius: 8px; overflow: hidden; border: 2px solid rgba(24,119,242,0.4);">
+                                    <div style="display: flex; align-items: center; gap: 0.3rem; padding: 0.3rem 0.4rem;">
+                                        <div style="width: 18px; height: 18px; border-radius: 50%; background: #1877F2; display: flex; align-items: center; justify-content: center;"><i class="fas fa-leaf" style="font-size: 0.45rem; color: white;"></i></div>
+                                        <span style="font-size: 0.55rem; font-weight: 600;">Tiny Seed Farm</span>
+                                    </div>
+                                    <div id="previewCaptionFB" style="font-size: 0.5rem; padding: 0 0.4rem 0.3rem; color: #E4E6EB; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></div>
+                                    <canvas id="previewCanvasFB" width="180" height="94" style="width: 100%; display: block;"></canvas>
+                                    <div style="display: flex; justify-content: space-around; padding: 0.3rem; border-top: 1px solid rgba(255,255,255,0.1);">
+                                        <span style="font-size: 0.5rem; color: #B0B3B8;"><i class="far fa-thumbs-up"></i> Like</span>
+                                        <span style="font-size: 0.5rem; color: #B0B3B8;"><i class="far fa-comment"></i> Comment</span>
+                                        <span style="font-size: 0.5rem; color: #B0B3B8;"><i class="fas fa-share"></i> Share</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- MEDIA TOOLS - Collapsible (appears after media uploaded) -->
                     <div id="mediaToolsSection" class="media-tools-section" style="display: none; margin-top: 1rem; border: 1px solid var(--border); border-radius: 16px; overflow: hidden;">
                         <div class="media-tools-header" onclick="toggleMediaTools()" style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; background: rgba(236, 72, 153, 0.1); cursor: pointer;">
@@ -9987,10 +10042,43 @@
                 </div>
             </div>
 
-            <!-- 7-Day Calendar Grid -->
-            <div class="card">
+            <!-- Content Calendar with Side Photo Panel -->
+            <div id="calendarWithSidePanel" style="display: flex; gap: 1rem; align-items: flex-start;">
+                <!-- Side Photo Library Panel (desktop only, toggled) -->
+                <div id="sidePhotoPanel" style="display: none; width: 200px; min-width: 200px; max-height: 600px; overflow-y: auto; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border); padding: 0.75rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-primary);"><i class="fas fa-images" style="color: var(--instagram);"></i> Photos</span>
+                        <button onclick="toggleSidePhotoPanel()" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 0.8rem;" title="Close"><i class="fas fa-times"></i></button>
+                    </div>
+                    <select id="sidePhotoFilter" style="width: 100%; padding: 0.3rem; border-radius: 6px; background: var(--bg-primary); border: 1px solid var(--border); color: var(--text-primary); font-size: 0.7rem; margin-bottom: 0.5rem;" onchange="renderSidePhotoLibrary(this.value)">
+                        <option value="all">All Photos</option>
+                        <option value="produce">Produce</option>
+                        <option value="flowers">Flowers</option>
+                        <option value="farm">Farm Life</option>
+                        <option value="unused">Unused</option>
+                    </select>
+                    <div id="sidePhotoGrid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem;">
+                        <div style="grid-column: span 2; text-align: center; padding: 1rem; color: var(--text-secondary); font-size: 0.75rem;">
+                            <i class="fas fa-images"></i><br>Loading...
+                        </div>
+                    </div>
+                    <div style="font-size: 0.65rem; color: var(--text-secondary); margin-top: 0.5rem; text-align: center;">
+                        <i class="fas fa-hand-point-up"></i> Drag photos to calendar days
+                    </div>
+                </div>
+
+                <!-- Calendar Card -->
+            <div class="card" style="flex: 1; min-width: 0;">
                 <div class="card-header" style="flex-wrap: wrap; gap: 1rem;">
-                    <h3><i class="fas fa-calendar-week" style="color: var(--info);"></i> 7-Day Content Calendar</h3>
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <h3><i class="fas fa-calendar-week" style="color: var(--info);"></i> Content Calendar</h3>
+                        <!-- View Toggle (Week / Month / List) -->
+                        <div id="calendarViewToggle" style="display: flex; gap: 0; background: rgba(255,255,255,0.05); border-radius: 8px; padding: 0.2rem; border: 1px solid var(--border);">
+                            <button onclick="setCalendarView('week')" class="cal-view-btn active" data-view="week" style="padding: 0.3rem 0.6rem; border: none; background: var(--info); color: white; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: 600;">Week</button>
+                            <button onclick="setCalendarView('month')" class="cal-view-btn" data-view="month" style="padding: 0.3rem 0.6rem; border: none; background: transparent; color: var(--text-secondary); border-radius: 6px; font-size: 0.75rem; cursor: pointer;">Month</button>
+                            <button onclick="setCalendarView('list')" class="cal-view-btn" data-view="list" style="padding: 0.3rem 0.6rem; border: none; background: transparent; color: var(--text-secondary); border-radius: 6px; font-size: 0.75rem; cursor: pointer;">List</button>
+                        </div>
+                    </div>
 
                     <!-- Week Navigation Controls -->
                     <div style="display: flex; gap: 0.5rem; align-items: center;">
@@ -10018,6 +10106,9 @@
                         <button class="btn btn-sm btn-secondary" onclick="loadContentCalendar()">
                             <i class="fas fa-sync-alt"></i> Refresh
                         </button>
+                        <button id="toggleSidePanelBtn" class="btn btn-sm btn-secondary" onclick="toggleSidePhotoPanel()" title="Toggle Photo Library Side Panel" style="display: none;">
+                            <i class="fas fa-images"></i> Photos
+                        </button>
                     </div>
                 </div>
                 <div class="card-body">
@@ -10040,6 +10131,7 @@
                     </div>
                 </div>
             </div>
+            </div> <!-- close calendarWithSidePanel flex wrapper -->
 
             <!-- Two Column Layout: Photo Library & Todd's Input -->
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem;">
@@ -18758,10 +18850,13 @@ From our farm to your table with love. Every bite tells a story of dedication, h
             const uploadSubtext = document.getElementById('uploadSubtext');
             const fileInput = document.getElementById('fileInput');
             const clearBtn = document.getElementById('clearUploadBtn');
-            if (preview) { preview.src = ''; preview.classList.remove('visible'); }
+            if (preview) { preview.src = ''; preview.classList.remove('visible'); preview.style.aspectRatio = ''; }
             const uploadZone = document.getElementById('uploadZone');
             if (uploadZone) uploadZone.classList.remove('has-image');
             if (uploadIcon) uploadIcon.style.display = 'block';
+            // Hide platform preview panel
+            const previewPanel = document.getElementById('platformPreviewPanel');
+            if (previewPanel) previewPanel.style.display = 'none';
             // Respect carousel mode when resetting text
             if (uploadText) {
                 uploadText.textContent = carouselModeEnabled ? 'Drop images or tap to upload multiple' : 'Drop media here or tap to upload';
@@ -19512,6 +19607,9 @@ From our farm to your table with love. Every bite tells a story of dedication, h
                     hint.style.color = '#ef4444';
                 }
             }
+
+            // Update platform previews when caption changes
+            if (typeof updatePlatformPreviews === 'function') updatePlatformPreviews();
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -21422,11 +21520,13 @@ From our farm to your table with love. Every bite tells a story of dedication, h
         // ═══════════════════════════════════════════════════════════════════════════
 
         let contentCalendarData = [];
+        let contentCalendarMonthData = []; // Broader data for month view
         let photoLibraryData = [];
         let toddInputData = null;
 
         // Week navigation state - start of the current viewing week (Monday)
         let calendarWeekStart = getStartOfWeek(new Date());
+        let currentCalendarView = 'week'; // 'week', 'month', 'list'
 
         // Content Pillars for Farm Social Media (based on best practices research)
         const CONTENT_PILLARS = {
@@ -21478,21 +21578,31 @@ From our farm to your table with love. Every bite tells a story of dedication, h
         }
 
         /**
-         * Navigate to the previous week
+         * Navigate to the previous week (or month in month view)
          */
         function previousWeek() {
             calendarWeekStart = new Date(calendarWeekStart);
-            calendarWeekStart.setDate(calendarWeekStart.getDate() - 7);
+            if (currentCalendarView === 'month') {
+                calendarWeekStart.setMonth(calendarWeekStart.getMonth() - 1);
+                calendarWeekStart = new Date(calendarWeekStart.getFullYear(), calendarWeekStart.getMonth(), 1);
+            } else {
+                calendarWeekStart.setDate(calendarWeekStart.getDate() - 7);
+            }
             updateCalendarWeekDisplay();
             loadContentCalendar();
         }
 
         /**
-         * Navigate to the next week
+         * Navigate to the next week (or month in month view)
          */
         function nextWeek() {
             calendarWeekStart = new Date(calendarWeekStart);
-            calendarWeekStart.setDate(calendarWeekStart.getDate() + 7);
+            if (currentCalendarView === 'month') {
+                calendarWeekStart.setMonth(calendarWeekStart.getMonth() + 1);
+                calendarWeekStart = new Date(calendarWeekStart.getFullYear(), calendarWeekStart.getMonth(), 1);
+            } else {
+                calendarWeekStart.setDate(calendarWeekStart.getDate() + 7);
+            }
             updateCalendarWeekDisplay();
             loadContentCalendar();
         }
@@ -21513,11 +21623,15 @@ From our farm to your table with love. Every bite tells a story of dedication, h
             const weekDisplay = document.getElementById('calendarWeek');
             const weekDisplayContent = document.getElementById('calendarWeekContent');
 
+            const displayText = currentCalendarView === 'month'
+                ? new Date(calendarWeekStart).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+                : formatWeekRange(calendarWeekStart);
+
             if (weekDisplay) {
-                weekDisplay.textContent = formatWeekRange(calendarWeekStart);
+                weekDisplay.textContent = displayText;
             }
             if (weekDisplayContent) {
-                weekDisplayContent.textContent = formatWeekRange(calendarWeekStart);
+                weekDisplayContent.textContent = displayText;
             }
 
             // Check if viewing current week and update "Today" button visibility
@@ -21569,11 +21683,24 @@ From our farm to your table with love. Every bite tells a story of dedication, h
                 </div>
             `;
 
-            // Calculate date range for the current viewing week
-            const weekEnd = new Date(calendarWeekStart);
-            weekEnd.setDate(calendarWeekStart.getDate() + 6);
-            const startDateStr = calendarWeekStart.toISOString().split('T')[0];
-            const endDateStr = weekEnd.toISOString().split('T')[0];
+            // Calculate date range based on current view
+            let fetchStart, fetchEnd;
+            if (currentCalendarView === 'month') {
+                // For month view, get the full month containing calendarWeekStart
+                const monthDate = new Date(calendarWeekStart);
+                fetchStart = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+                fetchEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
+                // Extend to cover the full week grid (may need days from prev/next month)
+                const firstDayOfWeek = fetchStart.getDay();
+                fetchStart.setDate(fetchStart.getDate() - (firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1));
+                fetchEnd.setDate(fetchEnd.getDate() + (7 - (fetchEnd.getDay() === 0 ? 7 : fetchEnd.getDay())));
+            } else {
+                fetchStart = new Date(calendarWeekStart);
+                fetchEnd = new Date(calendarWeekStart);
+                fetchEnd.setDate(calendarWeekStart.getDate() + 6);
+            }
+            const startDateStr = fetchStart.toISOString().split('T')[0];
+            const endDateStr = fetchEnd.toISOString().split('T')[0];
 
             try {
                 // Fetch queue data from API with date range
@@ -21581,18 +21708,37 @@ From our farm to your table with love. Every bite tells a story of dedication, h
                 const result = await response.json();
 
                 if (result.success) {
-                    // Filter to only posts within the current week view
-                    contentCalendarData = (result.queue || []).filter(post => {
+                    const allPosts = (result.queue || []).filter(post => {
                         const postDate = post.scheduled_date || post.Scheduled_Date || post.scheduledFor;
                         if (!postDate) return false;
                         const pDate = new Date(postDate);
-                        return pDate >= calendarWeekStart && pDate <= weekEnd;
+                        return pDate >= fetchStart && pDate <= fetchEnd;
                     });
-                    renderContentCalendar();
+
+                    if (currentCalendarView === 'month') {
+                        contentCalendarMonthData = allPosts;
+                        // Also update week data for stats
+                        const weekEnd = new Date(calendarWeekStart);
+                        weekEnd.setDate(calendarWeekStart.getDate() + 6);
+                        contentCalendarData = allPosts.filter(post => {
+                            const pDate = new Date(post.scheduled_date || post.Scheduled_Date || post.scheduledFor);
+                            return pDate >= calendarWeekStart && pDate <= weekEnd;
+                        });
+                    } else {
+                        contentCalendarData = allPosts;
+                    }
+
+                    // Dispatch to correct renderer
+                    if (currentCalendarView === 'month') {
+                        renderMonthView();
+                    } else if (currentCalendarView === 'list') {
+                        renderListView();
+                    } else {
+                        renderContentCalendar();
+                    }
                     updateContentGaps();
                     updateQuickStats();
                 } else {
-                    // Show empty calendar with placeholder
                     renderEmptyContentCalendar();
                 }
             } catch (error) {
@@ -21607,6 +21753,9 @@ From our farm to your table with love. Every bite tells a story of dedication, h
         function renderContentCalendar() {
             const grid = document.getElementById('contentCalendarGrid');
             if (!grid) return;
+
+            // Reset grid columns (month/list views may have changed them)
+            grid.style.gridTemplateColumns = '';
 
             const today = new Date();
             today.setHours(0, 0, 0, 0);
@@ -21667,7 +21816,8 @@ From our farm to your table with love. Every bite tells a story of dedication, h
                 const dayPlatforms = getUniquePlatforms(dayPosts);
 
                 return `
-                    <div class="calendar-day-card ${statusClass} ${isToday ? 'is-today' : ''} ${isPast ? 'is-past' : ''}" data-date="${dateStr}">
+                    <div class="calendar-day-card ${statusClass} ${isToday ? 'is-today' : ''} ${isPast ? 'is-past' : ''}" data-date="${dateStr}"
+                         ${!isPast ? `ondragover="onCalendarDayDragOver(event)" ondragleave="onCalendarDayDragLeave(event)" ondrop="onCalendarDayDrop(event, '${dateStr}')"` : ''}>
                         <div class="calendar-day-header">
                             <div>
                                 <div class="day-name">${dayName}${isToday ? ' (Today)' : ''}</div>
@@ -21752,7 +21902,8 @@ From our farm to your table with love. Every bite tells a story of dedication, h
                 const isPast = date < today;
 
                 return `
-                    <div class="calendar-day-card needs-content ${isToday ? 'is-today' : ''} ${isPast ? 'is-past' : ''}" data-date="${dateStr}">
+                    <div class="calendar-day-card needs-content ${isToday ? 'is-today' : ''} ${isPast ? 'is-past' : ''}" data-date="${dateStr}"
+                         ${!isPast ? `ondragover="onCalendarDayDragOver(event)" ondragleave="onCalendarDayDragLeave(event)" ondrop="onCalendarDayDrop(event, '${dateStr}')"` : ''}>
                         <div class="calendar-day-header">
                             <div>
                                 <div class="day-name">${dayName}${isToday ? ' (Today)' : ''}</div>
@@ -21781,6 +21932,221 @@ From our farm to your table with love. Every bite tells a story of dedication, h
             // Update gaps banner and week display
             updateContentGaps();
             updateCalendarWeekDisplay();
+        }
+
+        /**
+         * Switch calendar between week, month, and list views
+         */
+        function setCalendarView(view) {
+            currentCalendarView = view;
+            // Update toggle button styling
+            document.querySelectorAll('.cal-view-btn').forEach(btn => {
+                if (btn.dataset.view === view) {
+                    btn.style.background = 'var(--info)';
+                    btn.style.color = 'white';
+                    btn.style.fontWeight = '600';
+                    btn.classList.add('active');
+                } else {
+                    btn.style.background = 'transparent';
+                    btn.style.color = 'var(--text-secondary)';
+                    btn.style.fontWeight = '';
+                    btn.classList.remove('active');
+                }
+            });
+
+            // Update week display label
+            const weekDisplay = document.getElementById('calendarWeekContent');
+            if (weekDisplay) {
+                if (view === 'month') {
+                    const d = new Date(calendarWeekStart);
+                    weekDisplay.textContent = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                } else {
+                    weekDisplay.textContent = formatWeekRange(calendarWeekStart);
+                }
+            }
+
+            // Reload data (month view needs broader range)
+            loadContentCalendar();
+        }
+
+        /**
+         * Render month view — 5-6 row grid with post-count dots per day
+         */
+        function renderMonthView() {
+            const grid = document.getElementById('contentCalendarGrid');
+            if (!grid) return;
+
+            const monthDate = new Date(calendarWeekStart);
+            const year = monthDate.getFullYear();
+            const month = monthDate.getMonth();
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // Get first day of month and calculate start of grid (Monday)
+            const firstOfMonth = new Date(year, month, 1);
+            const lastOfMonth = new Date(year, month + 1, 0);
+            const startDay = firstOfMonth.getDay();
+            const gridStart = new Date(firstOfMonth);
+            gridStart.setDate(gridStart.getDate() - (startDay === 0 ? 6 : startDay - 1));
+
+            // Calculate how many weeks we need (5 or 6)
+            const totalDays = Math.ceil((lastOfMonth - gridStart) / (1000 * 60 * 60 * 24)) + 1;
+            const totalWeeks = Math.ceil(totalDays / 7);
+            const daysToRender = totalWeeks * 7;
+
+            const data = contentCalendarMonthData.length > 0 ? contentCalendarMonthData : contentCalendarData;
+
+            // Override grid to show month layout
+            grid.style.gridTemplateColumns = 'repeat(7, 1fr)';
+
+            // Build day header row + day cells
+            const dayHeaders = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d =>
+                `<div style="text-align: center; font-size: 0.7rem; font-weight: 600; color: var(--text-secondary); padding: 0.4rem 0; text-transform: uppercase;">${d}</div>`
+            ).join('');
+
+            let dayCells = '';
+            for (let i = 0; i < daysToRender; i++) {
+                const date = new Date(gridStart);
+                date.setDate(gridStart.getDate() + i);
+                const dateStr = date.toISOString().split('T')[0];
+                const isToday = date.toDateString() === today.toDateString();
+                const isCurrentMonth = date.getMonth() === month;
+                const isPast = date < today;
+
+                // Posts for this day
+                const dayPosts = data.filter(post => {
+                    const postDate = new Date(post.scheduled_date || post.Scheduled_Date || post.scheduledFor);
+                    return postDate.toISOString().split('T')[0] === dateStr;
+                });
+                const count = dayPosts.length;
+
+                // Status color
+                let dotColor = 'transparent';
+                if (count >= POSTING_TARGETS.daily) dotColor = 'var(--success)';
+                else if (count > 0) dotColor = 'var(--warning)';
+                else if (!isPast) dotColor = 'var(--danger)';
+
+                // Get thumbnails (max 2)
+                const thumbs = dayPosts.slice(0, 2).map(p => {
+                    const url = p.imageUrl || p.image_url || p.mediaUrl || p.media_url || '';
+                    return url ? `<img src="${url}" style="width: 20px; height: 20px; border-radius: 3px; object-fit: cover;" onerror="this.style.display='none'">` : '';
+                }).filter(Boolean).join('');
+
+                dayCells += `
+                    <div onclick="${!isPast ? `quickAddContentForDate('${dateStr}')` : ''}"
+                         ${!isPast ? `ondragover="onCalendarDayDragOver(event)" ondragleave="onCalendarDayDragLeave(event)" ondrop="event.stopPropagation(); onCalendarDayDrop(event, '${dateStr}')"` : ''}
+                         style="padding: 0.35rem; min-height: 60px; border-radius: 8px; cursor: ${!isPast ? 'pointer' : 'default'};
+                                background: ${isToday ? 'rgba(59, 130, 246, 0.12)' : isCurrentMonth ? 'var(--bg-card)' : 'rgba(255,255,255,0.02)'};
+                                border: 1px solid ${isToday ? 'var(--info)' : 'var(--border)'};
+                                opacity: ${isCurrentMonth ? '1' : '0.4'}; transition: background 0.15s;"
+                         ${!isPast ? `onmouseover="this.style.background='rgba(59,130,246,0.08)'" onmouseout="this.style.background='${isToday ? 'rgba(59, 130, 246, 0.12)' : isCurrentMonth ? 'var(--bg-card)' : 'rgba(255,255,255,0.02)'}'"` : ''}>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.2rem;">
+                            <span style="font-size: 0.75rem; font-weight: ${isToday ? '700' : '500'}; color: ${isToday ? 'var(--info)' : isCurrentMonth ? 'var(--text-primary)' : 'var(--text-secondary)'};">${date.getDate()}</span>
+                            ${count > 0 ? `<span style="font-size: 0.6rem; background: ${dotColor}; color: white; padding: 0.1rem 0.3rem; border-radius: 8px; font-weight: 600;">${count}</span>` : ''}
+                        </div>
+                        ${count > 0 ? `<div style="display: flex; gap: 2px; flex-wrap: wrap;">${thumbs}</div>` : ''}
+                        ${count === 0 && !isPast && isCurrentMonth ? `<div style="font-size: 0.55rem; color: var(--danger); opacity: 0.7;"><i class="fas fa-plus" style="font-size: 0.5rem;"></i></div>` : ''}
+                    </div>
+                `;
+            }
+
+            grid.innerHTML = dayHeaders + dayCells;
+        }
+
+        /**
+         * Render list view — chronological list with thumbnails and full details
+         */
+        function renderListView() {
+            const grid = document.getElementById('contentCalendarGrid');
+            if (!grid) return;
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const days = [];
+
+            // Generate 7 days starting from calendarWeekStart
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(calendarWeekStart);
+                date.setDate(calendarWeekStart.getDate() + i);
+                days.push(date);
+            }
+
+            // Override grid to single column
+            grid.style.gridTemplateColumns = '1fr';
+
+            let html = '';
+            let totalPosts = 0;
+
+            for (const date of days) {
+                const dateStr = date.toISOString().split('T')[0];
+                const isToday = date.toDateString() === today.toDateString();
+                const isPast = date < today;
+                const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+                const dateLabel = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+                const dayPosts = contentCalendarData.filter(post => {
+                    const postDate = new Date(post.scheduled_date || post.Scheduled_Date || post.scheduledFor);
+                    return postDate.toISOString().split('T')[0] === dateStr;
+                });
+                totalPosts += dayPosts.length;
+
+                // Day header
+                html += `
+                    <div style="padding: 0.6rem 1rem; background: ${isToday ? 'rgba(59, 130, 246, 0.1)' : 'rgba(255,255,255,0.03)'};
+                                border-radius: 10px; border: 1px solid ${isToday ? 'var(--info)' : 'var(--border)'}; margin-bottom: 0.5rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: ${dayPosts.length > 0 ? '0.5rem' : '0'};">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="font-weight: 600; color: ${isToday ? 'var(--info)' : 'var(--text-primary)'};">${dayName}</span>
+                                <span style="font-size: 0.8rem; color: var(--text-secondary);">${dateLabel}</span>
+                                ${isToday ? '<span style="background: var(--info); padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.65rem; color: white;">TODAY</span>' : ''}
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                ${dayPosts.length > 0 ?
+                                    `<span style="font-size: 0.75rem; color: ${dayPosts.length >= POSTING_TARGETS.daily ? 'var(--success)' : 'var(--warning)'};">
+                                        <i class="fas fa-${dayPosts.length >= POSTING_TARGETS.daily ? 'check-circle' : 'minus-circle'}"></i>
+                                        ${dayPosts.length} post${dayPosts.length > 1 ? 's' : ''}
+                                    </span>` :
+                                    (isPast ?
+                                        `<span style="font-size: 0.75rem; color: var(--text-secondary);"><i class="fas fa-times-circle"></i> No posts</span>` :
+                                        `<button onclick="quickAddContentForDate('${dateStr}')" style="font-size: 0.75rem; background: var(--info); color: white; border: none; padding: 0.25rem 0.6rem; border-radius: 6px; cursor: pointer;"><i class="fas fa-plus"></i> Add</button>`
+                                    )
+                                }
+                            </div>
+                        </div>
+                `;
+
+                // Post rows
+                for (const post of dayPosts) {
+                    const pillar = detectContentPillar(post);
+                    const pillarInfo = CONTENT_PILLARS[pillar];
+                    const platform = (post.platform || post.Platform || 'instagram').toLowerCase();
+                    const content = post.content || post.Content || post.contentPreview || '';
+                    const imageUrl = post.imageUrl || post.image_url || post.mediaUrl || post.media_url || '';
+                    const postId = post.Queue_ID || post.queueId || post.id || '';
+                    const schedTime = post.scheduled_time || post.Scheduled_Time || '';
+
+                    html += `
+                        <div onclick="openPostDetailModal('${postId}')" style="display: flex; gap: 0.75rem; align-items: center; padding: 0.5rem; background: rgba(255,255,255,0.03); border-radius: 8px; margin-bottom: 0.4rem; cursor: pointer; border: 1px solid transparent; transition: border-color 0.15s;"
+                             onmouseover="this.style.borderColor='var(--border)'" onmouseout="this.style.borderColor='transparent'">
+                            ${imageUrl ? `<img src="${imageUrl}" style="width: 48px; height: 48px; border-radius: 6px; object-fit: cover; flex-shrink: 0;" onerror="this.style.display='none'">` :
+                                `<div style="width: 48px; height: 48px; border-radius: 6px; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fas fa-image" style="color: var(--text-secondary); font-size: 1rem;"></i></div>`}
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="font-size: 0.85rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${truncateText(content, 80)}</div>
+                                <div style="display: flex; gap: 0.5rem; align-items: center; margin-top: 0.2rem;">
+                                    <i class="${getPlatformIconClass(platform)}" style="font-size: 0.7rem; color: ${getPlatformColorValue(platform)};"></i>
+                                    <span style="font-size: 0.7rem; color: var(--text-secondary);">${platform}</span>
+                                    ${schedTime ? `<span style="font-size: 0.7rem; color: var(--text-secondary);"><i class="fas fa-clock"></i> ${schedTime}</span>` : ''}
+                                    <span style="font-size: 0.65rem; background: ${pillarInfo.color}20; color: ${pillarInfo.color}; padding: 0.1rem 0.3rem; border-radius: 3px;">${pillarInfo.shortCode}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                html += `</div>`;
+            }
+
+            grid.innerHTML = html;
         }
 
         function getContentGaps() {
@@ -22508,6 +22874,164 @@ From our farm to your table with love. Every bite tells a story of dedication, h
 
             showToast('Photo loaded! Add your caption and post.', 'success');
         }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // SIDE PHOTO PANEL (Calendar Drag-and-Drop)
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        let sidePhotoPanelOpen = false;
+
+        function toggleSidePhotoPanel() {
+            const panel = document.getElementById('sidePhotoPanel');
+            if (!panel) return;
+            sidePhotoPanelOpen = !sidePhotoPanelOpen;
+            panel.style.display = sidePhotoPanelOpen ? 'block' : 'none';
+            if (sidePhotoPanelOpen) {
+                renderSidePhotoLibrary();
+            }
+        }
+
+        function renderSidePhotoLibrary(filter) {
+            if (!filter) {
+                const sel = document.getElementById('sidePhotoFilter');
+                filter = sel ? sel.value : 'all';
+            }
+            const grid = document.getElementById('sidePhotoGrid');
+            if (!grid) return;
+
+            // Use existing photoLibraryData or farmPicsData
+            let photos = photoLibraryData.length > 0 ? photoLibraryData : (typeof farmPicsData !== 'undefined' && farmPicsData ? farmPicsData : []);
+
+            if (filter !== 'all') {
+                if (filter === 'unused') {
+                    photos = photos.filter(p => p.status !== 'used');
+                } else {
+                    photos = photos.filter(p => p.category === filter);
+                }
+            }
+
+            if (photos.length === 0) {
+                grid.innerHTML = `<div style="grid-column: span 2; text-align: center; padding: 1rem; color: var(--text-secondary); font-size: 0.7rem;">
+                    <i class="fas fa-images"></i><br>${photoLibraryData.length === 0 ? 'Loading photos...' : 'No photos match filter'}
+                </div>`;
+                // Try loading if empty
+                if (photoLibraryData.length === 0) loadPhotoLibrary().then(() => renderSidePhotoLibrary(filter));
+                return;
+            }
+
+            grid.innerHTML = photos.slice(0, 30).map(photo => `
+                <div draggable="true"
+                     ondragstart="onPhotoCardDragStart(event, '${photo.id}')"
+                     style="width: 100%; aspect-ratio: 1; border-radius: 6px; overflow: hidden; cursor: grab; border: 2px solid transparent; transition: border-color 0.15s;"
+                     onmouseover="this.style.borderColor='var(--info)'" onmouseout="this.style.borderColor='transparent'"
+                     title="${photo.caption || 'Farm photo'}">
+                    <img src="${photo.url || photo.thumbnailUrl || ''}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.parentElement.style.display='none'">
+                </div>
+            `).join('') + (photos.length > 30 ? `<div style="grid-column: span 2; text-align: center; font-size: 0.65rem; color: var(--text-secondary);">+${photos.length - 30} more</div>` : '');
+        }
+
+        // Drag-and-drop handlers
+        function onPhotoCardDragStart(e, photoId) {
+            e.dataTransfer.setData('text/plain', photoId);
+            e.dataTransfer.effectAllowed = 'copy';
+            // Highlight droppable calendar day cards
+            document.querySelectorAll('.calendar-day-card:not(.is-past)').forEach(card => {
+                card.style.outline = '2px dashed var(--info)';
+                card.style.outlineOffset = '-2px';
+            });
+            // Also highlight month view day cells
+            document.querySelectorAll('[ondragover*="onCalendarDayDragOver"]').forEach(el => {
+                el.style.outline = '2px dashed var(--info)';
+                el.style.outlineOffset = '-2px';
+            });
+            // Global cleanup on dragend
+            e.target.addEventListener('dragend', function cleanup() {
+                document.querySelectorAll('.calendar-day-card, [ondragover*="onCalendarDayDragOver"]').forEach(card => {
+                    card.style.outline = '';
+                    card.style.outlineOffset = '';
+                    card.style.background = '';
+                });
+                e.target.removeEventListener('dragend', cleanup);
+            });
+        }
+
+        function onCalendarDayDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+            e.currentTarget.style.background = 'rgba(59, 130, 246, 0.15)';
+        }
+
+        function onCalendarDayDragLeave(e) {
+            e.currentTarget.style.background = '';
+        }
+
+        function onCalendarDayDrop(e, dateStr) {
+            e.preventDefault();
+            e.currentTarget.style.background = '';
+            // Remove highlights
+            document.querySelectorAll('.calendar-day-card').forEach(card => {
+                card.style.outline = '';
+                card.style.outlineOffset = '';
+            });
+
+            const photoId = e.dataTransfer.getData('text/plain');
+            if (!photoId) return;
+
+            const photo = photoLibraryData.find(p => p.id == photoId);
+            if (!photo) {
+                showToast('Photo not found', 'error');
+                return;
+            }
+
+            // Switch to Create tab with photo + date pre-filled
+            switchTab('create');
+
+            // Load photo
+            const preview = document.getElementById('uploadPreview');
+            if (preview) {
+                preview.src = photo.url || photo.thumbnailUrl;
+                preview.classList.add('visible');
+                const uz = document.getElementById('uploadZone');
+                if (uz) uz.classList.add('has-image');
+            }
+            const uploadIcon = document.getElementById('uploadIcon');
+            if (uploadIcon) uploadIcon.style.display = 'none';
+            const uploadText = document.getElementById('uploadText');
+            if (uploadText) uploadText.textContent = 'Photo from library';
+            selectedFile = { name: 'photo_' + photoId, url: photo.url };
+
+            // Pre-fill schedule date
+            const schedulePicker = document.getElementById('scheduleDateTimePicker');
+            if (schedulePicker && dateStr) {
+                const schedDate = new Date(dateStr + 'T10:00');
+                schedulePicker.value = schedDate.toISOString().slice(0, 16);
+                schedulePicker.style.display = 'block';
+            }
+
+            // Auto-detect aspect ratio
+            if (preview) {
+                preview.onload = function() {
+                    if (typeof autoDetectAspectRatio === 'function') autoDetectAspectRatio(preview);
+                    if (typeof updatePlatformPreviews === 'function') updatePlatformPreviews();
+                };
+            }
+
+            showToast(`Photo loaded for ${dateStr}. Add caption and schedule!`, 'success');
+        }
+
+        // Show/hide side panel toggle button based on screen width
+        function updateSidePanelVisibility() {
+            const btn = document.getElementById('toggleSidePanelBtn');
+            if (btn) btn.style.display = window.innerWidth > 1200 ? '' : 'none';
+            // Hide panel on small screens
+            if (window.innerWidth <= 1200 && sidePhotoPanelOpen) {
+                const panel = document.getElementById('sidePhotoPanel');
+                if (panel) panel.style.display = 'none';
+                sidePhotoPanelOpen = false;
+            }
+        }
+        window.addEventListener('resize', updateSidePanelVisibility);
+        document.addEventListener('DOMContentLoaded', updateSidePanelVisibility);
 
         // ═══════════════════════════════════════════════════════════════════════════
         // TODD'S INPUT SECTION
@@ -34884,6 +35408,9 @@ Would you like to test posting to Threads?`;
             }
 
             showToast(`Crop: ${ratio}${ratio !== 'free' ? ' — preview updated' : ''}`, 'success');
+
+            // Update platform previews when crop changes
+            if (typeof updatePlatformPreviews === 'function') updatePlatformPreviews();
         }
 
         /**
@@ -34927,6 +35454,72 @@ Would you like to test posting to Threads?`;
                     uploadSubtext.innerHTML = `<span style="color: var(--warning);"><i class="fas fa-crop-alt"></i> ${dimText} — will crop to ${closest.name} for IG</span>`;
                 }
             }
+        }
+
+        /**
+         * Update the platform preview canvases when image or caption changes.
+         * Shows how the photo will look on IG Feed (4:5), IG Story (9:16), and FB (1.91:1).
+         */
+        function updatePlatformPreviews() {
+            const panel = document.getElementById('platformPreviewPanel');
+            const preview = document.getElementById('uploadPreview');
+            if (!panel || !preview || !preview.classList.contains('visible')) {
+                if (panel) panel.style.display = 'none';
+                return;
+            }
+
+            panel.style.display = 'block';
+
+            // Update crop label
+            const cropLabel = document.getElementById('previewCropLabel');
+            if (cropLabel) cropLabel.textContent = currentMediaCrop || '1:1';
+
+            // Update caption previews
+            const caption = document.getElementById('captionInput')?.value || '';
+            const captionPreview = caption.substring(0, 60) || 'Write your caption...';
+            const feedCaption = document.getElementById('previewCaptionFeed');
+            const fbCaption = document.getElementById('previewCaptionFB');
+            if (feedCaption) feedCaption.textContent = captionPreview;
+            if (fbCaption) fbCaption.textContent = captionPreview;
+
+            // Draw preview canvases
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = function() {
+                // IG Feed (4:5 ratio)
+                drawPreviewCanvas('previewCanvasFeed', img, 4/5);
+                // IG Story (9:16 ratio)
+                drawPreviewCanvas('previewCanvasStory', img, 9/16);
+                // FB Post (1.91:1 ratio)
+                drawPreviewCanvas('previewCanvasFB', img, 1.91);
+            };
+            img.src = preview.src;
+        }
+
+        function drawPreviewCanvas(canvasId, img, targetRatio) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const cw = canvas.width;
+            const ch = canvas.height;
+
+            // Center-crop to target ratio
+            const srcRatio = img.width / img.height;
+            let sx, sy, sw, sh;
+            if (srcRatio > targetRatio) {
+                sh = img.height;
+                sw = Math.round(img.height * targetRatio);
+                sx = Math.round((img.width - sw) / 2);
+                sy = 0;
+            } else {
+                sw = img.width;
+                sh = Math.round(img.width / targetRatio);
+                sx = 0;
+                sy = Math.round((img.height - sh) / 2);
+            }
+
+            ctx.clearRect(0, 0, cw, ch);
+            ctx.drawImage(img, sx, sy, sw, sh, 0, 0, cw, ch);
         }
 
         function applyMediaFilter(filterName) {
