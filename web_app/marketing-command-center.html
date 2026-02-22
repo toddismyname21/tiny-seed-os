@@ -28388,33 +28388,88 @@ Would you like to test posting to Threads?`;
         // POST NOW & SCHEDULING FUNCTIONS - For Redesigned UI (2026-02-13)
         // ═══════════════════════════════════════════════════════════════════════════
 
-        // Post immediately or schedule depending on mode
+        // Post immediately or schedule depending on mode — shows confirmation first
         function postNow() {
+            showPostConfirmation();
+        }
+
+        function showPostConfirmation() {
+            const modal = document.getElementById('postConfirmModal');
+            if (!modal) return;
+
+            const caption = (document.getElementById('captionInput')?.value || '').trim();
+            const preview = document.getElementById('uploadPreview');
+            const imgSrc = (preview && preview.classList.contains('visible')) ? preview.src : (window.selectedFarmPicUrl || '');
+            const isCarousel = window.currentCarousel && window.currentCarousel.length >= 2;
+            const cropRatio = currentMediaCrop || 'original';
+            const schedPicker = document.getElementById('scheduleDateTimePicker');
+            const schedTime = isScheduled && schedPicker?.value ? new Date(schedPicker.value).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : null;
+
+            // Gather selected platforms
+            const platforms = [];
+            if (document.getElementById('instagramToggle')?.checked) {
+                const igType = document.querySelector('input[name="igPostType"]:checked')?.value || 'FEED';
+                platforms.push(`Instagram (${igType})`);
+                // Which accounts?
+                document.querySelectorAll('.ig-account-checkbox:checked').forEach(cb => {
+                    platforms.push('  → ' + (cb.nextElementSibling?.textContent?.trim() || cb.value));
+                });
+            }
+            if (document.getElementById('facebookToggle')?.checked) platforms.push('Facebook');
+            const firstComment = document.getElementById('firstCommentInput')?.value?.trim() || '';
+
+            const content = document.getElementById('postConfirmContent');
+            content.innerHTML = `
+                <div style="margin-bottom: 1rem;">
+                    ${imgSrc ? `<img src="${imgSrc}" style="width: 100%; max-height: 250px; object-fit: contain; border-radius: 8px; background: #000;">` :
+                      isCarousel ? `<div style="display: flex; gap: 0.25rem; overflow-x: auto; padding: 0.5rem 0;">${window.currentCarousel.slice(0, 5).map(s => `<img src="${s.src}" style="width: 60px; height: 60px; border-radius: 6px; object-fit: cover;">`).join('')}${window.currentCarousel.length > 5 ? `<span style="font-size: 0.8rem; color: var(--text-secondary); align-self: center;">+${window.currentCarousel.length - 5}</span>` : ''}</div>` :
+                      '<div style="padding: 1rem; background: rgba(255,255,255,0.03); border-radius: 8px; text-align: center; color: var(--warning);"><i class="fas fa-exclamation-triangle"></i> No image attached</div>'}
+                </div>
+                ${cropRatio !== 'free' && cropRatio !== 'original' ? `<div style="font-size: 0.75rem; color: var(--info); margin-bottom: 0.5rem;"><i class="fas fa-crop-alt"></i> Crop: ${cropRatio} — image will be processed before upload</div>` : ''}
+                <div style="padding: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 8px; margin-bottom: 0.75rem; font-size: 0.85rem; max-height: 120px; overflow-y: auto; white-space: pre-wrap; word-break: break-word;">${caption || '<span style="color: var(--text-secondary); font-style: italic;">No caption</span>'}</div>
+                ${firstComment ? `<div style="padding: 0.5rem; background: rgba(20,184,166,0.05); border: 1px dashed rgba(20,184,166,0.3); border-radius: 8px; margin-bottom: 0.75rem; font-size: 0.75rem; color: var(--text-secondary);"><i class="fas fa-comment"></i> First comment: ${truncateText(firstComment, 80)}</div>` : ''}
+                <div style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem;">Publishing to:</div>
+                <div style="display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.8rem; color: var(--text-secondary);">
+                    ${platforms.length > 0 ? platforms.map(p => `<span>${p}</span>`).join('') : '<span style="color: var(--danger);"><i class="fas fa-exclamation-circle"></i> No platforms selected</span>'}
+                </div>
+                ${schedTime ? `<div style="margin-top: 0.75rem; padding: 0.5rem; background: rgba(67,97,238,0.1); border-radius: 8px; font-size: 0.85rem; color: var(--info);"><i class="fas fa-calendar-alt"></i> Scheduled for: <strong>${schedTime}</strong></div>` :
+                    '<div style="margin-top: 0.75rem; padding: 0.5rem; background: rgba(34,197,94,0.1); border-radius: 8px; font-size: 0.85rem; color: var(--success);"><i class="fas fa-bolt"></i> Posting immediately</div>'}
+            `;
+
+            // Update confirm button label
+            const confirmBtn = document.getElementById('postConfirmBtn');
+            if (confirmBtn) {
+                confirmBtn.innerHTML = schedTime ? '<i class="fas fa-calendar-check"></i> Confirm & Schedule' : '<i class="fas fa-paper-plane"></i> Confirm & Post';
+            }
+
+            modal.style.display = 'flex';
+        }
+
+        function confirmAndPublish() {
+            document.getElementById('postConfirmModal').style.display = 'none';
+
             if (isScheduled) {
-                // In schedule mode - don't clear schedule, route to publishAll
-                // which will call the schedulePost backend endpoint
-                if (typeof publishAll === 'function') {
-                    publishAll();
-                }
+                if (typeof publishAll === 'function') publishAll();
                 return;
             }
 
-            // Immediate post mode - clear any lingering schedule state
+            // Immediate post mode - clear lingering schedule state
             const picker = document.getElementById('scheduleDateTimePicker');
             const display = document.getElementById('scheduledTimeDisplay');
             const btn = document.getElementById('scheduleBtn');
-
             if (picker) picker.value = '';
             if (display) display.style.display = 'none';
             if (btn) btn.classList.remove('has-time');
 
-            // Call existing publish function
             if (typeof publishAll === 'function') {
                 publishAll();
             } else {
                 showToast('Publishing...', 'info');
-                console.log('Publishing immediately');
             }
+        }
+
+        function closePostConfirm() {
+            document.getElementById('postConfirmModal').style.display = 'none';
         }
 
         // Show post analysis modal with readiness score
@@ -28541,7 +28596,22 @@ Would you like to test posting to Threads?`;
                     picker.value = tomorrow.toISOString().slice(0, 16);
                 }
 
-                picker.showPicker();
+                // Make visible and open picker with browser fallback
+                picker.style.display = 'block';
+                picker.style.marginTop = '0.5rem';
+                try {
+                    picker.showPicker();
+                } catch (e) {
+                    // Fallback for browsers that don't support showPicker
+                    picker.focus();
+                    picker.click();
+                }
+
+                // Prevent scroll-to-top
+                const scheduleBtn = document.getElementById('scheduleBtn');
+                if (scheduleBtn) {
+                    requestAnimationFrame(() => scheduleBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
+                }
             }
         }
 
@@ -34762,7 +34832,7 @@ Would you like to test posting to Threads?`;
 
             container.innerHTML = groups.map((g, i) => {
                 const tagCount = (g.tags.match(/#\w+/g) || []).length;
-                return `<div class="hashtag-group-card" onclick="insertHashtagGroup(${i})">
+                return `<div class="hashtag-group-card" onclick="event.preventDefault(); insertHashtagGroup(${i})">
                     <div class="group-name">
                         <span>${g.name}</span>
                         <div style="display: flex; gap: 0.4rem; align-items: center;">
@@ -35854,37 +35924,90 @@ Would you like to test posting to Threads?`;
             }
         }
 
-        function refreshSchedulingQueue() {
-            // Fetch scheduled posts from backend
-            // For now, using static demo data
-            updateScheduledPostsCount();
-            showToast('Schedule refreshed', 'success');
-        }
-
-        function updateScheduledPostsCount() {
+        async function refreshSchedulingQueue() {
             const countEl = document.getElementById('scheduledPostsCount');
             const listEl = document.getElementById('upcomingPostsList');
             const emptyEl = document.getElementById('noScheduledPostsMessage');
+            const grid = document.getElementById('scheduleGrid');
 
-            // Demo: show 2 scheduled posts
-            const count = 2;
-            if (countEl) {
-                countEl.textContent = count;
-            }
+            try {
+                // Fetch real scheduled posts from API
+                const now = new Date();
+                const weekEnd = new Date(now);
+                weekEnd.setDate(now.getDate() + 7);
+                const startStr = now.toISOString().split('T')[0];
+                const endStr = weekEnd.toISOString().split('T')[0];
 
-            if (count === 0) {
+                const response = await fetch(`${API_URL}?action=getMarketingQueue&startDate=${startStr}&endDate=${endStr}`);
+                const result = await response.json();
+
+                const posts = result.success ? (result.queue || []) : [];
+                const count = posts.length;
+
+                if (countEl) countEl.textContent = count;
+
+                // Render the 7-day grid dynamically
+                if (grid) {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    // Find Sunday of current week
+                    const sunday = new Date(today);
+                    sunday.setDate(today.getDate() - today.getDay());
+
+                    let gridHTML = '';
+                    for (let i = 0; i < 7; i++) {
+                        const day = new Date(sunday);
+                        day.setDate(sunday.getDate() + i);
+                        const dateStr = day.toISOString().split('T')[0];
+                        const isToday = day.toDateString() === today.toDateString();
+
+                        const dayPosts = posts.filter(p => {
+                            const pd = new Date(p.scheduled_date || p.Scheduled_Date || p.scheduledFor);
+                            return pd.toISOString().split('T')[0] === dateStr;
+                        });
+
+                        gridHTML += `<div class="schedule-day${isToday ? ' today' : ''}" style="min-height: 60px; background: ${isToday ? 'rgba(67, 97, 238, 0.15)' : 'rgba(255,255,255,0.03)'}; ${isToday ? 'border: 1px solid var(--info);' : ''} border-radius: 8px; padding: 0.4rem; text-align: center;">
+                            <div style="font-size: 0.7rem; color: ${isToday ? 'var(--info)' : 'var(--text-secondary)'}; font-weight: ${isToday ? '600' : 'normal'};">${day.getDate()}</div>
+                            ${dayPosts.length > 0 ? `<div style="font-size: 0.6rem; background: var(--instagram); color: white; padding: 0.1rem 0.3rem; border-radius: 4px; margin-top: 0.25rem;">${dayPosts.length} post${dayPosts.length > 1 ? 's' : ''}</div>` : ''}
+                        </div>`;
+                    }
+                    grid.innerHTML = gridHTML;
+                }
+
+                // Render upcoming posts list
+                if (count === 0) {
+                    if (listEl) listEl.style.display = 'none';
+                    if (emptyEl) emptyEl.style.display = 'block';
+                } else {
+                    if (emptyEl) emptyEl.style.display = 'none';
+                    if (listEl) {
+                        listEl.style.display = 'flex';
+                        listEl.innerHTML = posts.slice(0, 5).map(post => {
+                            const platform = (post.platform || post.Platform || 'instagram').toLowerCase();
+                            const content = post.content || post.Content || post.contentPreview || '';
+                            const schedDate = post.scheduled_date || post.Scheduled_Date || post.scheduledFor || '';
+                            const imageUrl = post.imageUrl || post.image_url || post.mediaUrl || '';
+                            const dateLabel = schedDate ? new Date(schedDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
+                            return `<div style="display: flex; gap: 0.5rem; align-items: center; padding: 0.5rem; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid var(--border);">
+                                ${imageUrl ? `<img src="${imageUrl}" style="width: 36px; height: 36px; border-radius: 6px; object-fit: cover;" onerror="this.style.display='none'">` : ''}
+                                <div style="flex: 1; min-width: 0;">
+                                    <div style="font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${truncateText(content, 50)}</div>
+                                    <div style="font-size: 0.7rem; color: var(--text-secondary);"><i class="${getPlatformIconClass(platform)}" style="color: ${getPlatformColorValue(platform)};"></i> ${dateLabel}</div>
+                                </div>
+                            </div>`;
+                        }).join('');
+                    }
+                }
+            } catch (err) {
+                console.error('Error loading scheduling queue:', err);
+                if (countEl) countEl.textContent = '0';
                 if (listEl) listEl.style.display = 'none';
                 if (emptyEl) emptyEl.style.display = 'block';
-            } else {
-                if (listEl) listEl.style.display = 'flex';
-                if (emptyEl) emptyEl.style.display = 'none';
             }
         }
 
         function updateScheduleView() {
-            const period = document.getElementById('scheduleViewPeriod').value;
-            showToast(`Showing ${period} view`, 'info');
-            // TODO: Update grid based on period
+            refreshSchedulingQueue();
         }
 
         // editScheduledPost - consolidated: real implementation above (takes post object, pre-fills autopilot form)
@@ -36075,13 +36198,6 @@ Would you like to test posting to Threads?`;
                 }
 
                 showToast('Scheduled ' + scheduledPosts.length + ' posts for ' + market.name + '!', 'success');
-
-                const calendarTab = document.querySelector('[onclick*="contentcalendar"]');
-                if (calendarTab) {
-                    setTimeout(() => {
-                        calendarTab.click();
-                    }, 1500);
-                }
             }
         }
 
@@ -38966,6 +39082,24 @@ Would you like to test posting to Threads?`;
             <div style="padding: 1rem; border-top: 1px solid var(--border); display: flex; gap: 0.75rem;">
                 <button onclick="closePostAnalysis()" style="flex: 1; padding: 0.75rem; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); cursor: pointer;">Close</button>
                 <button onclick="closePostAnalysis(); postNow();" id="postAnywayBtn" style="flex: 1; padding: 0.75rem; background: var(--success); border: none; border-radius: 8px; color: white; font-weight: 600; cursor: pointer;">Post Now</button>
+            </div>
+        </div>
+    </div>
+    <!-- Post Confirmation Modal — Shows before publishing -->
+    <div id="postConfirmModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 10000; align-items: center; justify-content: center; padding: 1rem;" onclick="if(event.target === this) closePostConfirm()">
+        <div style="background: var(--bg-card); border-radius: 16px; max-width: 420px; width: 100%; max-height: 85vh; overflow-y: auto; border: 1px solid var(--border); box-shadow: 0 20px 60px rgba(0,0,0,0.5);">
+            <div style="padding: 1.25rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; font-size: 1.1rem;"><i class="fas fa-eye" style="color: var(--info);"></i> Review Before Posting</h3>
+                <button onclick="closePostConfirm()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary);">&times;</button>
+            </div>
+            <div id="postConfirmContent" style="padding: 1.25rem;">
+                <!-- Populated by showPostConfirmation() -->
+            </div>
+            <div style="padding: 1rem; border-top: 1px solid var(--border); display: flex; gap: 0.75rem;">
+                <button onclick="closePostConfirm()" style="flex: 1; padding: 0.75rem; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); cursor: pointer;">Go Back</button>
+                <button id="postConfirmBtn" onclick="confirmAndPublish()" style="flex: 1; padding: 0.75rem; background: linear-gradient(135deg, var(--success), #10b981); border: none; border-radius: 8px; color: white; font-weight: 700; cursor: pointer;">
+                    <i class="fas fa-paper-plane"></i> Confirm & Post
+                </button>
             </div>
         </div>
     </div>

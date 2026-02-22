@@ -36,9 +36,9 @@ async function loadMCCSharedCalendar() {
             params.contentType = mccCalendarFilter.contentType;
         }
 
-        const result = await loadSharedContentCalendar(params);
+        const result = await loadSharedContentCalendar(params) || { success: false, error: 'No response' };
 
-        if (result.success) {
+        if (result && result.success) {
             mccCalendarEntries = result.entries || [];
             renderMCCCalendarEntries(mccCalendarEntries);
             updateMCCCalendarStats(mccCalendarEntries);
