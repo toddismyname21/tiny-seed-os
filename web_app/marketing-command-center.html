@@ -7727,6 +7727,23 @@
 
         <!-- CREATE TAB - Unified Content Creation (Field Mode + AI Studio) -->
         <div id="createTab" class="tab-content">
+            <!-- SEO TARGET KEYWORD BANNER -->
+            <div id="seoTargetBanner" style="background: linear-gradient(135deg, rgba(34,197,94,0.1), rgba(16,185,129,0.05)); border: 1px solid rgba(34,197,94,0.3); border-radius: 12px; padding: 0.75rem 1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(34,197,94,0.2); display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-crosshairs" style="color: #22c55e; font-size: 0.9rem;"></i>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">This Month's SEO Target</div>
+                        <div id="seoTargetKeyword" style="font-weight: 700; font-size: 0.95rem; color: #22c55e;">Loading...</div>
+                    </div>
+                </div>
+                <div style="margin-left: auto; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                    <span id="seoTargetTheme" style="font-size: 0.7rem; padding: 0.2rem 0.6rem; background: rgba(255,255,255,0.05); border-radius: 6px; color: var(--text-secondary);"></span>
+                    <button onclick="applySEOTarget()" style="font-size: 0.7rem; padding: 0.3rem 0.7rem; background: #22c55e; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;"><i class="fas fa-magic"></i> Auto-Apply</button>
+                </div>
+            </div>
+
             <!-- Create Mode Toggle: Quick Post vs AI Content Studio -->
             <div class="create-mode-toggle" style="display: flex; gap: 0; margin-bottom: 1.5rem; background: var(--bg-card); border-radius: 16px; padding: 0.5rem; border: 1px solid var(--border); overflow-x: auto; -webkit-overflow-scrolling: touch;">
                 <button class="create-mode-btn active" id="quickPostModeBtn" onclick="switchCreateMode('quickpost')" style="flex: 1; padding: 1rem 1.5rem; background: linear-gradient(135deg, var(--instagram) 0%, var(--accent) 100%); border: none; border-radius: 12px; color: white; font-weight: 700; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 56px; transition: all 0.2s;">
@@ -15588,6 +15605,9 @@
             const savedMode = localStorage.getItem('mccDisplayMode') || 'office';
             setDisplayMode(savedMode);
 
+            // Initialize SEO Target Keyword banner
+            setTimeout(initSEOTargetBanner, 500);
+
             // BEST TIME CARD CLICK HANDLER - Added 2026-02-13
             // Using event listener instead of inline onclick for reliability
             const bestTimeCard = document.getElementById('bestTimeCard');
@@ -19228,36 +19248,36 @@ From our farm to your table with love. Every bite tells a story of dedication, h
             const hasMedia = selectedFile !== null || window.selectedFarmPicUrl;
             const platform = selectedPlatforms[0] || 'instagram';
 
-            // Season-appropriate fallback captions (February = Winter)
+            // SEO-optimized fallback captions with target keywords + Pittsburgh location
             const month = new Date().getMonth();
             let fallbackCaptions;
             if (month >= 11 || month <= 1) {
-                // Winter
+                // Winter — Target: CSA signup, winter farm share, delivery
                 fallbackCaptions = [
-                    "Even in the cold months, there's always something growing in the greenhouse. Fresh greens coming your way! 🌱 #TinySeedFarm #WinterGrowing #Pittsburgh",
-                    "Planning season is in full swing! Getting ready to bring you the best produce this year. 📝 #TinySeedFarm #FarmPlanning #LocalFood",
-                    "Farmers market vibes with our winter storage crops. Root veggies and preserved goodies! 🥕 #TinySeedFarm #WinterMarket #FarmFresh"
+                    "What's growing at Tiny Seed Farm this winter? Greenhouse greens, microgreens, and fresh herbs — delivered right to your door in Pittsburgh. Ready to eat local year-round? Join our winter CSA! 🌱\n\n#CSA #Pittsburgh #FarmFresh #LocalFood #WinterGrowing #FarmDelivery #EatLocal #PittsburghFood #OrganicFarm #SmallFarm",
+                    "Planning your New Year health goals? Start with a farm share from Pittsburgh's Tiny Seed Farm. Fresh, organic, local — the way food should be. CSA signups open now! 📝\n\n#CSAPittsburgh #FarmShare #OrganicProduce #LocalPGH #FarmToTable #HealthyEating #Pittsburgh #FarmersOfInstagram #SustainableFarming #EatClean",
+                    "Winter farmers market vibes! Root veggies, storage crops, and preserved goodies from our Rochester farm to Pittsburgh markets. Find us this Saturday! 🥕\n\n#FarmersMarket #Pittsburgh #LocalFood #FarmFresh #SmallFarm #EatLocal #WinterHarvest #PghEats #SupportLocalPGH #FarmLife"
                 ];
             } else if (month >= 2 && month <= 4) {
-                // Spring
+                // Spring — Target: CSA signup, spring planting, flower CSA
                 fallbackCaptions = [
-                    "Spring is finally here! Seedlings are sprouting and the farm is waking up. 🌱 #TinySeedFarm #SpringPlanting #Pittsburgh",
-                    "Fresh spring greens coming in hot! Who's ready for the new season? 🥬 #TinySeedFarm #FarmFresh #LocalFood",
-                    "The greenhouse is bursting with new life. Can't wait to share this season's bounty! 🌿 #TinySeedFarm #SpringGrowing"
+                    "Spring is here at Tiny Seed Farm! Seedlings are in the ground and the first spring greens are almost ready. Looking for a CSA in Pittsburgh? Sign up before spots fill! 🌱\n\n#CSAPittsburgh #FarmShare #SpringPlanting #LocalFood #Pittsburgh #OrganicFarm #FarmFresh #EatLocal #FarmersOfInstagram #SmallFarm",
+                    "Fresh spring greens from our Pittsburgh-area farm to your table. Lettuce, spinach, radishes — nature's first bounty. Join our CSA for weekly farm deliveries! 🥬\n\n#FarmToTable #Pittsburgh #SpringHarvest #LocalProduce #FarmDelivery #CSA #FarmFresh #EatTheSeason #PghEats #OrganicFarming",
+                    "Our flower fields are waking up! Tulips, daffodils, and spring blooms coming soon to our Pittsburgh flower CSA. Reserve your subscription today! 🌷\n\n#FlowerCSA #Pittsburgh #LocalFlowers #SpringBlooms #FlowerFarmer #SlowFlowers #PittsburghLocal #SeasonalFlowers #FloralDesign #FieldToVase"
                 ];
             } else if (month >= 5 && month <= 7) {
-                // Summer
+                // Summer — Target: peak season, farmers market, farm to table
                 fallbackCaptions = [
-                    "Peak summer goodness right here! Farm fresh and ready for your table. 🍅 #TinySeedFarm #SummerHarvest #Pittsburgh",
-                    "This is what summer tastes like! Fresh from our hands to your table. ☀️ #TinySeedFarm #FarmFresh #LocalFood",
-                    "Another beautiful harvest day. We love what we do! 🌻 #TinySeedFarm #OrganicFarm #SummerVibes"
+                    "Peak season at Tiny Seed Farm! Tomatoes, peppers, squash, and more — organic and fresh from our fields to Pittsburgh tables. This is what summer tastes like! 🍅\n\n#FarmFresh #Pittsburgh #SummerHarvest #OrganicFarm #LocalFood #FarmToTable #CSA #EatLocal #PghEats #FarmersMarket",
+                    "Summer harvest day at the farm! Every CSA box is packed with the best Pittsburgh-grown produce. Farm share members — your box is ready! ☀️\n\n#CSAPittsburgh #FarmShare #SummerVeggies #PeakSeason #LocalProduce #FarmDelivery #Pittsburgh #FarmLife #OrganicProduce #EatTheSeason",
+                    "Find us at the Pittsburgh farmers market this weekend! Fresh-picked veggies, flowers, and gourmet mushrooms. Farm to table, the way it should be. 🌻\n\n#FarmersMarket #Pittsburgh #FarmFresh #LocalFood #SmallFarm #EatLocal #SummerProduce #PittsburghFoodie #OrganicFarm #SupportLocalPGH"
                 ];
             } else {
-                // Fall
+                // Fall — Target: fall harvest, CSA, pumpkins
                 fallbackCaptions = [
-                    "Fall harvest in full swing! Pumpkins, squash, and all the autumn goodness. 🎃 #TinySeedFarm #FallHarvest #Pittsburgh",
-                    "These colors though! Fall on the farm never gets old. 🍂 #TinySeedFarm #FarmLife #AutumnVibes",
-                    "Root veggies and storage crops for the win. Stocking up for winter! 🥕 #TinySeedFarm #FallFarm #LocalFood"
+                    "Fall harvest at Tiny Seed Farm! Pumpkins, squash, root veggies — the best of autumn, grown organically near Pittsburgh. Fall CSA shares available! 🎃\n\n#FallHarvest #Pittsburgh #FarmFresh #OrganicFarm #CSA #LocalFood #AutumnBounty #FarmToTable #PghEats #FarmersMarket",
+                    "These fall colors on the farm never get old. Root veggies, winter squash, and the last of the season's bounty. Find us at Pittsburgh farmers markets! 🍂\n\n#FarmLife #Pittsburgh #FallFarm #LocalProduce #FarmersMarket #EatLocal #SeasonalProduce #SmallFarm #OrganicFarming #HarvestSeason",
+                    "Stocking up for winter with our fall root vegetable harvest. CSA members in Pittsburgh — your winter share is coming! Fresh, local, organic. 🥕\n\n#CSAPittsburgh #FarmShare #WinterCSA #FallHarvest #LocalFood #Pittsburgh #FarmDelivery #OrganicProduce #EatTheSeason #FarmFresh"
                 ];
             }
 
@@ -19282,20 +19302,52 @@ From our farm to your table with love. Every bite tells a story of dedication, h
                 const toneSelector = document.getElementById('quickPostTone');
                 const tone = toneSelector ? toneSelector.value : 'authentic';
 
+                // Build SEO context from keyword library
+                let seoContext = '';
+                let targetKeywords = [];
+                if (typeof KeywordHashtagLibrary !== 'undefined') {
+                    const theme = KeywordHashtagLibrary.getCurrentContentTheme();
+                    const season = KeywordHashtagLibrary.getCurrentSeason();
+                    if (theme) {
+                        seoContext = 'Monthly theme: ' + theme.theme + '. ';
+                        theme.focusKeywords.forEach(function(catKey) {
+                            var cat = KeywordHashtagLibrary.getKeywordCategories()[catKey];
+                            if (cat) cat.keywords.forEach(function(kw) { targetKeywords.push(kw.keyword); });
+                        });
+                        var focusHashtags = [];
+                        theme.focusHashtags.forEach(function(setName) {
+                            var set = KeywordHashtagLibrary.getHashtagSet(setName);
+                            if (set) focusHashtags.push(...set.hashtags.slice(0, 3));
+                        });
+                        seoContext += 'Target keywords: ' + targetKeywords.slice(0, 5).join(', ') + '. ';
+                        seoContext += 'Recommended hashtags: ' + focusHashtags.slice(0, 8).join(' ') + '. ';
+                    }
+                    // Add seasonal hashtags
+                    var seasonalSets = ['seasonal', 'flowers'];
+                    seasonalSets.forEach(function(setName) {
+                        var tags = KeywordHashtagLibrary.getSeasonalHashtags(setName, season);
+                        if (tags.length > 0) seoContext += 'Seasonal tags: ' + tags.join(' ') + '. ';
+                    });
+                }
+
                 // Build request payload
                 const payload = {
                     action: 'generateAICaptionFromImage',
                     platform: platform,
-                    tone: tone
+                    tone: tone,
+                    seoKeywords: targetKeywords.slice(0, 5),
+                    seoContext: seoContext,
+                    includeHashtags: true,
+                    includeSEO: true
                 };
 
                 // Add image if we have base64 data
                 if (imageBase64) {
                     payload.imageBase64 = imageBase64;
-                    showToast('Analyzing your photo with AI vision...', 'info');
+                    showToast('Analyzing photo + optimizing for SEO...', 'info');
                 } else {
                     // No image - still generate seasonally appropriate caption
-                    showToast('Generating seasonal caption...', 'info');
+                    showToast('Generating SEO-optimized caption...', 'info');
                 }
 
                 // Try to generate via AI backend with vision
@@ -28410,24 +28462,45 @@ Would you like to test posting to Threads?`;
             if (document.getElementById('instagramToggle')?.checked) {
                 const igType = document.querySelector('input[name="igPostType"]:checked')?.value || 'FEED';
                 platforms.push(`Instagram (${igType})`);
-                // Which accounts?
                 document.querySelectorAll('.ig-account-checkbox:checked').forEach(cb => {
-                    platforms.push('  → ' + (cb.nextElementSibling?.textContent?.trim() || cb.value));
+                    platforms.push('  \u2192 ' + (cb.nextElementSibling?.textContent?.trim() || cb.value));
                 });
             }
             if (document.getElementById('facebookToggle')?.checked) platforms.push('Facebook');
             const firstComment = document.getElementById('firstCommentInput')?.value?.trim() || '';
 
+            // --- SEO/AEO SCORING ---
+            const seoScore = computeLocalSEOScore(caption);
+            const seoColor = seoScore.score >= 80 ? '#22c55e' : seoScore.score >= 50 ? '#f59e0b' : '#ef4444';
+            const seoGrade = seoScore.score >= 90 ? 'A+' : seoScore.score >= 80 ? 'A' : seoScore.score >= 70 ? 'B' : seoScore.score >= 50 ? 'C' : 'D';
+
             const content = document.getElementById('postConfirmContent');
             content.innerHTML = `
                 <div style="margin-bottom: 1rem;">
-                    ${imgSrc ? `<img src="${imgSrc}" style="width: 100%; max-height: 250px; object-fit: contain; border-radius: 8px; background: #000;">` :
+                    ${imgSrc ? `<img src="${imgSrc}" style="width: 100%; max-height: 200px; object-fit: contain; border-radius: 8px; background: #000;">` :
                       isCarousel ? `<div style="display: flex; gap: 0.25rem; overflow-x: auto; padding: 0.5rem 0;">${window.currentCarousel.slice(0, 5).map(s => `<img src="${s.src}" style="width: 60px; height: 60px; border-radius: 6px; object-fit: cover;">`).join('')}${window.currentCarousel.length > 5 ? `<span style="font-size: 0.8rem; color: var(--text-secondary); align-self: center;">+${window.currentCarousel.length - 5}</span>` : ''}</div>` :
                       '<div style="padding: 1rem; background: rgba(255,255,255,0.03); border-radius: 8px; text-align: center; color: var(--warning);"><i class="fas fa-exclamation-triangle"></i> No image attached</div>'}
                 </div>
-                ${cropRatio !== 'free' && cropRatio !== 'original' ? `<div style="font-size: 0.75rem; color: var(--info); margin-bottom: 0.5rem;"><i class="fas fa-crop-alt"></i> Crop: ${cropRatio} — image will be processed before upload</div>` : ''}
-                <div style="padding: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 8px; margin-bottom: 0.75rem; font-size: 0.85rem; max-height: 120px; overflow-y: auto; white-space: pre-wrap; word-break: break-word;">${caption || '<span style="color: var(--text-secondary); font-style: italic;">No caption</span>'}</div>
+                ${cropRatio !== 'free' && cropRatio !== 'original' ? `<div style="font-size: 0.75rem; color: var(--info); margin-bottom: 0.5rem;"><i class="fas fa-crop-alt"></i> Crop: ${cropRatio}</div>` : ''}
+                <div style="padding: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 8px; margin-bottom: 0.75rem; font-size: 0.85rem; max-height: 100px; overflow-y: auto; white-space: pre-wrap; word-break: break-word;">${caption || '<span style="color: var(--text-secondary); font-style: italic;">No caption</span>'}</div>
                 ${firstComment ? `<div style="padding: 0.5rem; background: rgba(20,184,166,0.05); border: 1px dashed rgba(20,184,166,0.3); border-radius: 8px; margin-bottom: 0.75rem; font-size: 0.75rem; color: var(--text-secondary);"><i class="fas fa-comment"></i> First comment: ${truncateText(firstComment, 80)}</div>` : ''}
+
+                <!-- SEO/AEO SCORE CARD -->
+                <div style="padding: 0.75rem; background: linear-gradient(135deg, ${seoColor}10, ${seoColor}05); border: 1px solid ${seoColor}40; border-radius: 10px; margin-bottom: 0.75rem;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                        <div style="width: 48px; height: 48px; border-radius: 50%; background: ${seoColor}20; border: 3px solid ${seoColor}; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: 800; color: ${seoColor};">${seoGrade}</div>
+                        <div>
+                            <div style="font-weight: 700; font-size: 0.85rem;">SEO/AEO Score: ${seoScore.score}/100</div>
+                            <div style="font-size: 0.7rem; color: var(--text-secondary);">Traffic optimization grade</div>
+                        </div>
+                    </div>
+                    ${seoScore.suggestions.length > 0 ? `
+                        <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.35rem;">
+                            ${seoScore.suggestions.map(s => `<div style="margin-bottom: 0.2rem;"><i class="fas ${s.icon}" style="color: ${s.color}; width: 14px;"></i> ${s.text}</div>`).join('')}
+                        </div>
+                    ` : '<div style="font-size: 0.7rem; color: var(--success);"><i class="fas fa-check-circle"></i> Fully optimized for traffic!</div>'}
+                </div>
+
                 <div style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem;">Publishing to:</div>
                 <div style="display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.8rem; color: var(--text-secondary);">
                     ${platforms.length > 0 ? platforms.map(p => `<span>${p}</span>`).join('') : '<span style="color: var(--danger);"><i class="fas fa-exclamation-circle"></i> No platforms selected</span>'}
@@ -28443,10 +28516,101 @@ Would you like to test posting to Threads?`;
             }
 
             modal.style.display = 'flex';
+
+            // Fire background SEO optimization (non-blocking)
+            autoOptimizeForTraffic(caption);
+        }
+
+        /**
+         * Compute local SEO/AEO score without backend call
+         * Checks: hashtags, Pittsburgh location, keywords, CTA, question format, caption length
+         */
+        function computeLocalSEOScore(caption) {
+            let score = 0;
+            const suggestions = [];
+            const captionLower = caption.toLowerCase();
+
+            // 1. Has hashtags? (+20)
+            const hashtags = caption.match(/#\w+/g) || [];
+            if (hashtags.length >= 5) { score += 20; }
+            else if (hashtags.length >= 1) { score += 10; suggestions.push({ icon: 'fa-hashtag', color: '#f59e0b', text: 'Add more hashtags (' + hashtags.length + '/5 minimum)' }); }
+            else { suggestions.push({ icon: 'fa-hashtag', color: '#ef4444', text: 'No hashtags! Add SEO hashtags for discovery' }); }
+
+            // 2. Contains Pittsburgh/location? (+20)
+            if (captionLower.includes('pittsburgh') || captionLower.includes('pgh') || captionLower.includes('rochester') || captionLower.includes('sewickley')) {
+                score += 20;
+            } else {
+                suggestions.push({ icon: 'fa-map-marker-alt', color: '#ef4444', text: 'Add Pittsburgh/location for local SEO' });
+            }
+
+            // 3. Contains target SEO keywords? (+20)
+            const seoTerms = ['csa', 'farm share', 'organic', 'farm fresh', 'local food', 'farmers market', 'farm to table', 'flower', 'mushroom', 'delivery'];
+            const matchedTerms = seoTerms.filter(t => captionLower.includes(t));
+            if (matchedTerms.length >= 3) { score += 20; }
+            else if (matchedTerms.length >= 1) { score += 10; suggestions.push({ icon: 'fa-key', color: '#f59e0b', text: 'Add more SEO keywords (found: ' + matchedTerms.join(', ') + ')' }); }
+            else { suggestions.push({ icon: 'fa-key', color: '#ef4444', text: 'No SEO keywords detected — add farm/CSA/organic terms' }); }
+
+            // 4. Has CTA? (+15)
+            const ctaWords = ['join', 'sign up', 'order', 'visit', 'find us', 'shop', 'subscribe', 'reserve', 'book', 'link in bio', 'dm us', 'message us'];
+            if (ctaWords.some(c => captionLower.includes(c))) { score += 15; }
+            else { suggestions.push({ icon: 'fa-bullhorn', color: '#f59e0b', text: 'Add a call-to-action (Join our CSA, Visit the farm, etc.)' }); }
+
+            // 5. Has question for AEO? (+10)
+            if (caption.includes('?') || captionLower.startsWith('what') || captionLower.startsWith('how') || captionLower.startsWith('why') || captionLower.startsWith('where')) {
+                score += 10;
+            } else {
+                suggestions.push({ icon: 'fa-question-circle', color: '#3b82f6', text: 'Add a question for AI Engine Optimization (What/How/Why)' });
+            }
+
+            // 6. Caption length (+15)
+            if (caption.length >= 150 && caption.length <= 2000) { score += 15; }
+            else if (caption.length >= 50) { score += 8; suggestions.push({ icon: 'fa-text-width', color: '#f59e0b', text: 'Longer captions (150+ chars) rank better' }); }
+            else { suggestions.push({ icon: 'fa-text-width', color: '#ef4444', text: 'Caption too short — aim for 150+ characters' }); }
+
+            return { score: Math.min(score, 100), suggestions: suggestions };
+        }
+
+        /**
+         * Auto-optimize caption via backend (non-blocking enhancement)
+         * Calls optimizePostForTraffic and stores enhanced version
+         */
+        async function autoOptimizeForTraffic(caption) {
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'optimizePost',
+                        caption: caption,
+                        platform: selectedPlatforms[0] || 'instagram',
+                        location: 'Pittsburgh, PA'
+                    })
+                });
+                const result = await response.json();
+                if (result.success && result.optimizedContent) {
+                    // Store optimized version — will be used in confirmAndPublish
+                    window._seoOptimizedCaption = result.optimizedContent;
+                    window._seoEnhancements = result.enhancements || [];
+                    console.log('[SEO] Auto-optimized caption. Enhancements:', result.enhancements);
+                }
+            } catch (e) {
+                console.log('[SEO] Backend optimization unavailable, using local scoring');
+            }
         }
 
         function confirmAndPublish() {
             document.getElementById('postConfirmModal').style.display = 'none';
+
+            // Apply SEO-optimized caption if backend returned one
+            if (window._seoOptimizedCaption) {
+                const captionInput = document.getElementById('captionInput');
+                if (captionInput) {
+                    captionInput.value = window._seoOptimizedCaption;
+                    console.log('[SEO] Applied optimized caption before publish');
+                }
+                window._seoOptimizedCaption = null;
+                window._seoEnhancements = null;
+            }
 
             if (isScheduled) {
                 if (typeof publishAll === 'function') publishAll();
@@ -34482,6 +34646,87 @@ Would you like to test posting to Threads?`;
         }
 
         // Add SEO-optimized hashtags to caption based on keyword category
+        /**
+         * Initialize SEO Target Banner with current month's priority keyword
+         */
+        function initSEOTargetBanner() {
+            if (typeof KeywordHashtagLibrary === 'undefined') return;
+            const theme = KeywordHashtagLibrary.getCurrentContentTheme();
+            if (!theme) return;
+
+            const keywordEl = document.getElementById('seoTargetKeyword');
+            const themeEl = document.getElementById('seoTargetTheme');
+            if (!keywordEl) return;
+
+            // Get the top priority keyword for this month
+            const focusCats = theme.focusKeywords || [];
+            let topKeyword = '';
+            for (var i = 0; i < focusCats.length; i++) {
+                var cat = KeywordHashtagLibrary.getKeywordCategories()[focusCats[i]];
+                if (cat && cat.keywords && cat.keywords.length > 0) {
+                    topKeyword = cat.keywords[0].keyword;
+                    break;
+                }
+            }
+            keywordEl.textContent = topKeyword || 'CSA Pittsburgh';
+            if (themeEl) themeEl.textContent = theme.theme || '';
+
+            // Store for use by applySEOTarget
+            window._currentSEOTarget = { keyword: topKeyword, categories: focusCats, theme: theme };
+        }
+
+        /**
+         * Auto-apply this month's SEO target keywords + hashtags to caption
+         */
+        function applySEOTarget() {
+            if (!window._currentSEOTarget || typeof KeywordHashtagLibrary === 'undefined') {
+                showToast('SEO library not loaded', 'warning');
+                return;
+            }
+            const captionInput = document.getElementById('captionInput');
+            if (!captionInput) return;
+            const current = captionInput.value;
+            const target = window._currentSEOTarget;
+
+            // Check if keyword already in caption
+            if (current.toLowerCase().includes(target.keyword.toLowerCase())) {
+                // Just add hashtags
+                var hashtagStr = '';
+                target.categories.forEach(function(catKey) {
+                    hashtagStr += ' ' + KeywordHashtagLibrary.buildHashtagString(catKey, { maxHashtags: 4, includeSeasonal: true, includePittsburgh: true });
+                });
+                if (hashtagStr.trim()) {
+                    captionInput.value = current.trimEnd() + '\n\n' + hashtagStr.trim();
+                    showToast('Added target hashtags!', 'success');
+                } else {
+                    showToast('Target keyword already in caption', 'success');
+                }
+            } else {
+                // Build SEO context to prepend
+                var prompt = KeywordHashtagLibrary.getAICaptionPrompt(target.categories[0]);
+                var hashtagStr = '';
+                target.categories.forEach(function(catKey) {
+                    hashtagStr += ' ' + KeywordHashtagLibrary.buildHashtagString(catKey, { maxHashtags: 4, includeSeasonal: true, includePittsburgh: true });
+                });
+
+                if (current.trim()) {
+                    // Has existing caption — append keywords + hashtags
+                    var enhancedCaption = current.trimEnd();
+                    if (!current.toLowerCase().includes('pittsburgh')) enhancedCaption += ' | Pittsburgh';
+                    enhancedCaption += '\n\n' + hashtagStr.trim();
+                    captionInput.value = enhancedCaption;
+                } else {
+                    // Empty caption — provide starter with CTA
+                    var starter = (prompt && prompt.samplePhrases) ? prompt.samplePhrases[Math.floor(Math.random() * prompt.samplePhrases.length)] : target.keyword;
+                    var cta = (prompt && prompt.callToAction) ? prompt.callToAction.split('|')[0].trim() : 'Learn more';
+                    captionInput.value = starter + ' ' + cta + '!\n\n' + hashtagStr.trim();
+                }
+                showToast('Applied SEO target: ' + target.keyword, 'success');
+            }
+            updateCharCount();
+            updateHashtagCounter();
+        }
+
         function addSEOHashtags(keywordCategory) {
             if (typeof KeywordHashtagLibrary === 'undefined') return;
             const hashtagString = KeywordHashtagLibrary.buildHashtagString(keywordCategory, { maxHashtags: 5, includeSeasonal: true, includePittsburgh: true });
@@ -34928,8 +35173,85 @@ Would you like to test posting to Threads?`;
         function suggestHashtagsAI() {
             const caption = document.getElementById('captionInput').value;
             if (!caption) { showToast('Write a caption first for AI suggestions', 'info'); return; }
-            generateAICaption(); // Reuse existing AI caption which includes hashtag suggestions
-            showToast('AI is analyzing your caption for hashtag suggestions...', 'info');
+
+            // Analyze caption content to find the best keyword categories
+            const captionLower = caption.toLowerCase();
+            const matchScores = {};
+
+            if (typeof KeywordHashtagLibrary !== 'undefined') {
+                const categories = KeywordHashtagLibrary.getKeywordCategories();
+                Object.entries(categories).forEach(function(entry) {
+                    const catKey = entry[0];
+                    const cat = entry[1];
+                    let score = 0;
+                    // Check if caption contains any keywords from this category
+                    cat.keywords.forEach(function(kw) {
+                        const words = kw.keyword.toLowerCase().split(' ');
+                        words.forEach(function(word) {
+                            if (word.length > 3 && captionLower.includes(word)) score += 2;
+                        });
+                        if (captionLower.includes(kw.keyword.toLowerCase())) score += 5;
+                    });
+                    // Also check AI caption prompt keywords
+                    const prompt = KeywordHashtagLibrary.getAICaptionPrompt(catKey);
+                    if (prompt && prompt.keywords) {
+                        prompt.keywords.forEach(function(kw) {
+                            if (captionLower.includes(kw.toLowerCase())) score += 3;
+                        });
+                    }
+                    if (score > 0) matchScores[catKey] = score;
+                });
+
+                // Sort by score and pick top 2-3 categories
+                const sorted = Object.entries(matchScores).sort(function(a, b) { return b[1] - a[1]; });
+                const topCategories = sorted.slice(0, 3).map(function(e) { return e[0]; });
+
+                if (topCategories.length === 0) {
+                    // No content match — use current month theme
+                    const theme = KeywordHashtagLibrary.getCurrentContentTheme();
+                    if (theme) topCategories.push(...theme.focusKeywords.slice(0, 2));
+                    else topCategories.push('core_csa');
+                }
+
+                // Build hashtag string from matched categories (don't duplicate existing)
+                const existingTags = (caption.match(/#\w+/g) || []).map(function(t) { return t.toLowerCase(); });
+                const newHashtags = new Set();
+                topCategories.forEach(function(catKey) {
+                    var tags = KeywordHashtagLibrary.getHashtagsForCategory(catKey);
+                    tags.forEach(function(tag) {
+                        if (!existingTags.includes(tag.toLowerCase())) newHashtags.add(tag);
+                    });
+                });
+                // Add seasonal variants
+                const season = KeywordHashtagLibrary.getCurrentSeason();
+                topCategories.forEach(function(catKey) {
+                    var cat = KeywordHashtagLibrary.getKeywordCategories()[catKey];
+                    if (cat) {
+                        cat.mappedHashtagSets.forEach(function(setName) {
+                            var seasonalTags = KeywordHashtagLibrary.getSeasonalHashtags(setName, season);
+                            seasonalTags.forEach(function(tag) {
+                                if (!existingTags.includes(tag.toLowerCase())) newHashtags.add(tag);
+                            });
+                        });
+                    }
+                });
+
+                // Limit to 8-10 new hashtags, prioritize Pittsburgh + engagement
+                const tagArray = Array.from(newHashtags);
+                const finalTags = tagArray.slice(0, 10);
+
+                if (finalTags.length > 0) {
+                    const captionInput = document.getElementById('captionInput');
+                    captionInput.value = caption.trimEnd() + '\n\n' + finalTags.join(' ');
+                    updateCharCount();
+                    updateHashtagCounter();
+                    showToast('Added ' + finalTags.length + ' AI-matched hashtags for: ' + topCategories.map(function(c) { return c.replace(/_/g, ' '); }).join(', '), 'success');
+                } else {
+                    showToast('Your caption already has great hashtag coverage!', 'success');
+                }
+            } else {
+                showToast('Hashtag library not loaded', 'warning');
+            }
         }
 
         // --- Feature 4: First Comment Field ---
