@@ -5320,7 +5320,7 @@ IF abs(drift) >= 0.05: needs_rebalancing = TRUE</code></pre>
                 }
 
                 // Add Alpaca investment account equity
-                if (AlpacaManager.dashboard && AlpacaManager.dashboard.account) {
+                if (typeof AlpacaManager !== 'undefined' && AlpacaManager.dashboard && AlpacaManager.dashboard.account) {
                     const alpacaEquity = AlpacaManager.dashboard.account.equity || 0;
                     assets += alpacaEquity;
                     investments += alpacaEquity;
