@@ -453,14 +453,19 @@
         .upload-preview {
             display: none;
             width: 100%;
-            max-height: 200px;
-            object-fit: cover;
+            max-height: 70vh;
+            object-fit: contain;
             border-radius: 12px;
-            margin-bottom: 1rem;
+            margin-bottom: 0.5rem;
         }
 
         .upload-preview.visible {
             display: block;
+        }
+
+        .upload-zone.has-image {
+            padding: 0.75rem;
+            min-height: auto;
         }
 
         .post-form {
@@ -4858,20 +4863,18 @@
             margin-top: 1rem;
         }
 
-        /* Desktop sticky action bar - POST NOW always visible */
-        @media (min-width: 769px) {
-            .publish-actions {
-                position: sticky;
-                bottom: 0;
-                background: rgba(22, 33, 62, 0.95);
-                backdrop-filter: blur(12px);
-                -webkit-backdrop-filter: blur(12px);
-                border-top: 1px solid var(--border);
-                z-index: 50;
-                padding: 1rem;
-                border-radius: 0 0 12px 12px;
-                box-shadow: 0 -4px 16px rgba(0,0,0,0.2);
-            }
+        /* Sticky action bar - POST NOW always visible on ALL viewports */
+        .publish-actions {
+            position: sticky;
+            bottom: 0;
+            background: rgba(22, 33, 62, 0.97);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-top: 1px solid var(--border);
+            z-index: 50;
+            padding: 1rem;
+            border-radius: 0 0 12px 12px;
+            box-shadow: 0 -4px 16px rgba(0,0,0,0.3);
         }
 
         .btn-post-now {
@@ -5301,6 +5304,20 @@
             border-color: rgba(225, 48, 108, 0.4);
             background: rgba(225, 48, 108, 0.04);
             transform: scale(1.005);
+        }
+
+        #createTab .upload-zone.has-image {
+            padding: 0.5rem;
+            min-height: auto;
+            border-style: solid;
+            border-color: rgba(255, 255, 255, 0.08);
+            position: relative;
+        }
+
+        #createTab .upload-zone.has-image .upload-preview {
+            max-height: 70vh;
+            object-fit: contain;
+            border-radius: 10px;
         }
 
         /* --- Collapsible Section Headers: Hover polish --- */
@@ -7287,30 +7304,24 @@
                 </div>
             </div>
 
-            <!-- Needs Your Attention - Full Width -->
+            <!-- Action Queue - Merged Urgent + Today (Phase 2B) -->
             <div class="card" style="margin-top: 1.5rem;">
                 <div class="card-header" style="border-left: 4px solid var(--danger);">
-                    <h3><i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i> Needs Your Attention</h3>
-                    <span class="badge" id="urgentBadge" style="background: var(--danger);">0</span>
-                </div>
-                <div class="card-body" id="urgentActions" style="max-height: 300px; overflow-y: auto;">
-                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-                        <i class="fas fa-spinner fa-spin" style="font-size: 2rem;"></i>
-                        <p style="margin-top: 1rem;">Loading urgent actions...</p>
+                    <h3><i class="fas fa-bolt" style="color: var(--warning);"></i> Action Queue</h3>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <span class="badge" id="urgentBadge" style="background: var(--danger);" title="Urgent">0</span>
+                        <span class="badge" id="todayBadge" style="background: var(--warning); color: #000;" title="Today">0</span>
                     </div>
                 </div>
-            </div>
-
-            <!-- Today's Focus -->
-            <div class="card" style="margin-top: 1.5rem;">
-                <div class="card-header" style="border-left: 4px solid var(--warning);">
-                    <h3><i class="fas fa-tasks" style="color: var(--warning);"></i> Today's Focus</h3>
-                    <span class="badge" id="todayBadge" style="background: var(--warning); color: #000;">0</span>
-                </div>
-                <div class="card-body" id="todayActions" style="max-height: 300px; overflow-y: auto;">
-                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-                        <i class="fas fa-spinner fa-spin" style="font-size: 2rem;"></i>
-                        <p style="margin-top: 1rem;">Loading tasks...</p>
+                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                    <!-- Urgent items (red section) -->
+                    <div id="urgentActions">
+                        <div style="text-align: center; padding: 1rem; color: var(--text-secondary);">
+                            <i class="fas fa-spinner fa-spin"></i> Loading...
+                        </div>
+                    </div>
+                    <!-- Today items (yellow section) -->
+                    <div id="todayActions" style="border-top: 1px solid var(--border); margin-top: 0.5rem; padding-top: 0.5rem;">
                     </div>
                 </div>
             </div>
@@ -8273,7 +8284,7 @@
                                 <h5><i class="fas fa-hashtag"></i> Quick Hashtag Sets</h5>
                                 <i class="fas fa-chevron-down" id="hashtagToggleIcon"></i>
                             </div>
-                            <div class="hashtag-sets-body" id="hashtagSetsBody">
+                            <div class="hashtag-sets-body" id="hashtagSetsBody" style="display: none;">
                                 <div class="hashtag-set-btns">
                                     <button class="hashtag-set-btn" onclick="addHashtagSet('farmlife')">
                                         <i class="fas fa-tractor"></i> #FarmLife
@@ -8339,10 +8350,10 @@
                             </div>
                         </div>
 
-                        <!-- Market Day Quick Schedule -->
-                        <div class="market-day-scheduler">
-                            <h4><i class="fas fa-store"></i> Market Day Quick Schedule</h4>
-                            <div class="market-select-container">
+                        <!-- Market Day Quick Schedule (collapsed by default) -->
+                        <div class="market-day-scheduler" style="cursor: pointer;" onclick="this.querySelector('.market-select-container').style.display = this.querySelector('.market-select-container').style.display === 'none' ? 'flex' : 'none'">
+                            <h4><i class="fas fa-store"></i> Market Day Quick Schedule <i class="fas fa-chevron-down" style="font-size: 0.7rem; opacity: 0.5;"></i></h4>
+                            <div class="market-select-container" style="display: none;"
                                 <select class="market-select" id="marketSelect">
                                     <option value="">Select a market...</option>
                                     <option value="sewickley">Sewickley Farmers Market (Saturday)</option>
@@ -13732,6 +13743,27 @@
 
             <!-- ========== API CONFIG SECTION ========== -->
             <div id="settingsApiSection" class="settings-section active">
+
+                <!-- Connection Health Dashboard (Phase 4A) -->
+                <div class="card" style="margin-bottom: 1.5rem; border: 1px solid var(--border);">
+                    <div class="card-header" style="border-left: 4px solid var(--success);">
+                        <h3><i class="fas fa-heartbeat" style="color: var(--success);"></i> Connection Health</h3>
+                        <button class="btn btn-sm btn-secondary" onclick="runTokenHealthCheck()">
+                            <i class="fas fa-sync" id="tokenHealthSpinner"></i> Check All
+                        </button>
+                    </div>
+                    <div class="card-body" id="connectionHealthBody">
+                        <div style="display: grid; gap: 0.75rem;" id="connectionHealthGrid">
+                            <div style="text-align: center; padding: 1rem; color: var(--text-secondary);">
+                                <i class="fas fa-spinner fa-spin"></i> Checking connections...
+                            </div>
+                        </div>
+                        <div id="tokenHealthWarning" style="display: none; margin-top: 1rem; padding: 0.75rem; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; font-size: 0.85rem; color: var(--danger);">
+                            <i class="fas fa-exclamation-triangle"></i> <span id="tokenHealthWarningText"></span>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="card">
                     <div class="card-header">
                         <h3><i class="fas fa-key" style="color: var(--gold);"></i> API Configuration</h3>
@@ -15487,6 +15519,21 @@
             }
         });
 
+        // ═══════════════════════════════════════════════════════════════════════════
+        // PHASE 1C: Relocate platform selection above fold (2026-02-22)
+        // Moves the ORIGINAL DOM node — no duplication. All IDs, handlers preserved.
+        // ═══════════════════════════════════════════════════════════════════════════
+        document.addEventListener('DOMContentLoaded', function() {
+            const platformSelection = document.querySelector('#quickPostMode .platform-selection');
+            const farmPicsBtn = document.querySelector('#quickPostMode .farm-pics-btn');
+
+            if (platformSelection && farmPicsBtn) {
+                // Insert platform selection right after the Farm Pics button
+                farmPicsBtn.parentNode.insertBefore(platformSelection, farmPicsBtn.nextSibling);
+                platformSelection.style.marginTop = '1rem';
+            }
+        });
+
         // Keyboard shortcut for mode toggle (Ctrl/Cmd + Shift + M)
         document.addEventListener('keydown', (e) => {
             if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'M') {
@@ -15569,6 +15616,7 @@
                 loadSocialGrowthData();
             } else if (tabId === 'settings') {
                 if (typeof checkAllAPIs === 'function') checkAllAPIs();
+                if (typeof runTokenHealthCheck === 'function') runTokenHealthCheck();
                 if (typeof loadTrainingCount === 'function') loadTrainingCount();
                 if (typeof loadAutoPilotStatusForSettings === 'function') loadAutoPilotStatusForSettings();
             } else if (tabId === 'autopilot') {
@@ -18711,6 +18759,8 @@ From our farm to your table with love. Every bite tells a story of dedication, h
             const fileInput = document.getElementById('fileInput');
             const clearBtn = document.getElementById('clearUploadBtn');
             if (preview) { preview.src = ''; preview.classList.remove('visible'); }
+            const uploadZone = document.getElementById('uploadZone');
+            if (uploadZone) uploadZone.classList.remove('has-image');
             if (uploadIcon) uploadIcon.style.display = 'block';
             // Respect carousel mode when resetting text
             if (uploadText) {
@@ -18795,11 +18845,17 @@ From our farm to your table with love. Every bite tells a story of dedication, h
                         const preview = document.getElementById('uploadPreview');
                         preview.src = e.target.result;
                         preview.classList.add('visible');
+                        document.getElementById('uploadZone').classList.add('has-image');
                         document.getElementById('uploadIcon').style.display = 'none';
                         document.getElementById('uploadText').textContent = file.name;
                         document.getElementById('uploadSubtext').textContent = `${(file.size / 1024 / 1024).toFixed(2)} MB`;
                         updateBlastButton();
                         showClearButton();
+
+                        // Auto-detect aspect ratio for images (Phase 1D)
+                        if (file.type.startsWith('image/')) {
+                            preview.onload = function() { autoDetectAspectRatio(preview); };
+                        }
 
                         // Show media tools section when media is uploaded
                         showMediaToolsSection();
@@ -19846,23 +19902,33 @@ From our farm to your table with love. Every bite tells a story of dedication, h
                 // STEP 1: Check for media - carousel, file upload, or Farm Pics selection
                 if (socialPlatforms.includes('instagram') || socialPlatforms.includes('facebook')) {
 
+                    // Determine crop ratio for image processing
+                    const cropRatio = currentMediaCrop || '1:1';
+                    const igType = getInstagramPostType();
+                    // Auto-select ratio for Stories/Reels if user hasn't chosen
+                    const effectiveCrop = (igType === 'STORY' || igType === 'REEL') ? '9:16' : cropRatio;
+
                     // Option A: CAROUSEL - Use carousel builder slides
                     if (window.currentCarousel && window.currentCarousel.length >= 2) {
                         isCarouselPost = true;
-                        timer.innerHTML = `<i class="fas fa-images"></i> Uploading carousel (${window.currentCarousel.length} slides)...`;
-                        console.log('Processing carousel with', window.currentCarousel.length, 'slides');
+                        timer.innerHTML = `<i class="fas fa-images"></i> Processing carousel (${window.currentCarousel.length} slides)...`;
+                        console.log('Processing carousel with', window.currentCarousel.length, 'slides, crop:', effectiveCrop);
 
                         for (let i = 0; i < window.currentCarousel.length; i++) {
                             const slide = window.currentCarousel[i];
-                            timer.innerHTML = `<i class="fas fa-cloud-upload-alt"></i> Uploading slide ${i + 1}/${window.currentCarousel.length}...`;
+                            timer.innerHTML = `<i class="fas fa-crop-alt"></i> Processing slide ${i + 1}/${window.currentCarousel.length}...`;
 
                             try {
+                                // Process image: crop + resize to platform dimensions
+                                const processedBase64 = await processImageForPlatform(slide.src, effectiveCrop);
+                                timer.innerHTML = `<i class="fas fa-cloud-upload-alt"></i> Uploading slide ${i + 1}/${window.currentCarousel.length}...`;
+
                                 const uploadResponse = await fetch(APPS_SCRIPT_URL, {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'text/plain' },
                                     body: JSON.stringify({
                                         action: 'uploadSocialMediaImage',
-                                        base64: slide.src,
+                                        base64: processedBase64,
                                         fileName: `carousel_${Date.now()}_${i}.jpg`,
                                         mimeType: 'image/jpeg'
                                     })
@@ -19892,27 +19958,63 @@ From our farm to your table with love. Every bite tells a story of dedication, h
                     }
                     // Option B: Use Farm Pics URL if selected (already hosted on Drive)
                     else if (window.selectedFarmPicUrl) {
-                        uploadedImageUrl = window.selectedFarmPicUrl;
-                        console.log('Using Farm Pics image:', uploadedImageUrl);
-                        timer.innerHTML = '<i class="fas fa-images"></i> Using Farm Pics image...';
+                        timer.innerHTML = '<i class="fas fa-crop-alt"></i> Processing Farm Pics image...';
+                        console.log('Processing Farm Pics image with crop:', effectiveCrop);
+
+                        try {
+                            // Process the hosted image: load → crop → resize → upload processed version
+                            const processedBase64 = await processImageForPlatform(window.selectedFarmPicUrl, effectiveCrop);
+                            timer.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Uploading processed image...';
+
+                            const uploadResponse = await fetch(APPS_SCRIPT_URL, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'text/plain' },
+                                body: JSON.stringify({
+                                    action: 'uploadSocialMediaImage',
+                                    base64: processedBase64,
+                                    fileName: 'social_processed_' + Date.now() + '.jpg',
+                                    mimeType: 'image/jpeg'
+                                })
+                            });
+
+                            const uploadResult = await uploadResponse.json();
+                            if (uploadResult.success) {
+                                uploadedImageUrl = uploadResult.imageUrl;
+                                console.log('Processed Farm Pic uploaded:', uploadedImageUrl);
+                                timer.innerHTML = '<i class="fas fa-check"></i> Image processed & uploaded!';
+                            } else {
+                                // Fallback to original URL if processing fails
+                                console.warn('Processing failed, using original Farm Pic URL');
+                                uploadedImageUrl = window.selectedFarmPicUrl;
+                            }
+                        } catch (processErr) {
+                            console.warn('Image processing failed, using original:', processErr);
+                            uploadedImageUrl = window.selectedFarmPicUrl;
+                            timer.innerHTML = '<i class="fas fa-images"></i> Using original image...';
+                        }
                     }
                     // Option C: Upload new file if provided
                     else if (selectedFile) {
-                        timer.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Uploading image...';
+                        timer.innerHTML = '<i class="fas fa-crop-alt"></i> Processing image...';
 
                         // Get the base64 data from the preview image
                         const preview = document.getElementById('uploadPreview');
                         const base64Data = preview.src;
 
                         if (base64Data && base64Data.startsWith('data:')) {
+                            // Process image: crop + resize to platform dimensions
+                            const processedBase64 = await processImageForPlatform(base64Data, effectiveCrop);
+                            console.log('Image processed with crop:', effectiveCrop);
+                            timer.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Uploading processed image...';
+
                             const uploadResponse = await fetch(APPS_SCRIPT_URL, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'text/plain' },
                                 body: JSON.stringify({
                                     action: 'uploadSocialMediaImage',
-                                    base64: base64Data,
+                                    base64: processedBase64,
                                     fileName: 'social_' + Date.now() + '.jpg',
-                                    mimeType: selectedFile.type || 'image/jpeg'
+                                    mimeType: 'image/jpeg'
                                 })
                             });
 
@@ -19922,7 +20024,7 @@ From our farm to your table with love. Every bite tells a story of dedication, h
                             if (uploadResult.success) {
                                 uploadedImageUrl = uploadResult.imageUrl;
                                 console.log('Image uploaded successfully:', uploadedImageUrl);
-                                timer.innerHTML = '<i class="fas fa-check"></i> Image uploaded!';
+                                timer.innerHTML = '<i class="fas fa-check"></i> Image processed & uploaded!';
                             } else {
                                 throw new Error('Failed to upload image: ' + (uploadResult.error || 'Unknown error'));
                             }
@@ -20343,6 +20445,8 @@ From our farm to your table with love. Every bite tells a story of dedication, h
             // Load photo with SEO metadata
             const preview = document.getElementById('uploadPreview');
             if (preview) { preview.src = pic.url; preview.classList.add('visible'); }
+            const uploadZoneSEO = document.getElementById('uploadZone');
+            if (uploadZoneSEO) uploadZoneSEO.classList.add('has-image');
             const uploadIcon = document.getElementById('uploadIcon');
             if (uploadIcon) uploadIcon.style.display = 'none';
             const uploadText = document.getElementById('uploadText');
@@ -20767,6 +20871,8 @@ From our farm to your table with love. Every bite tells a story of dedication, h
                 // Set the preview image
                 preview.src = imageUrl;
                 preview.classList.add('visible');
+                const uploadZoneFP = document.getElementById('uploadZone');
+                if (uploadZoneFP) uploadZoneFP.classList.add('has-image');
                 uploadIcon.style.display = 'none';
                 uploadText.textContent = 'Image selected from Farm Pics';
                 uploadSubtext.textContent = 'Click to change';
@@ -21579,8 +21685,11 @@ From our farm to your table with love. Every bite tells a story of dedication, h
                                 const pillarInfo = CONTENT_PILLARS[pillar];
                                 const platform = (post.platform || post.Platform || 'instagram').toLowerCase();
                                 const postId = post.Queue_ID || post.queueId || post.id || pIdx;
+                                const imageUrl = post.imageUrl || post.image_url || post.mediaUrl || post.media_url || '';
+                                const thumbHtml = imageUrl ? `<img src="${imageUrl}" style="width: 32px; height: 32px; border-radius: 4px; object-fit: cover; flex-shrink: 0;" onerror="this.style.display='none'">` : '';
                                 return `
                                 <div class="calendar-post-item" onclick="openPostDetailModal('${postId}')" style="cursor: pointer;">
+                                    ${thumbHtml}
                                     <div class="platform-icon">
                                         <i class="${getPlatformIconClass(platform)}" style="color: ${getPlatformColorValue(platform)};"></i>
                                     </div>
@@ -22036,17 +22145,19 @@ From our farm to your table with love. Every bite tells a story of dedication, h
         }
 
         function quickAddContentForDate(dateStr) {
-            // Switch to auto-pilot tab with date pre-filled
-            switchTab('autopilot');
+            // Switch to Create tab with schedule date pre-filled
+            switchTab('create');
 
-            // Pre-fill the date in the queue form
-            const dateInput = document.getElementById('queueScheduledDate');
-            if (dateInput) {
-                // Set to 10 AM on the selected date
-                dateInput.value = `${dateStr}T10:00`;
+            // Pre-fill the schedule picker
+            const picker = document.getElementById('scheduleDateTimePicker');
+            if (picker) {
+                picker.value = `${dateStr}T10:00`;
+                if (typeof setScheduleTime === 'function') {
+                    setScheduleTime(`${dateStr}T10:00`);
+                }
             }
 
-            showToast(`Adding content for ${new Date(dateStr).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}`, 'info');
+            showToast(`Creating post for ${new Date(dateStr).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}`, 'info');
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -22382,6 +22493,8 @@ From our farm to your table with love. Every bite tells a story of dedication, h
             if (preview) {
                 preview.src = photo.url || photo.thumbnailUrl;
                 preview.classList.add('visible');
+                const uz = document.getElementById('uploadZone');
+                if (uz) uz.classList.add('has-image');
             }
 
             const uploadIcon = document.getElementById('uploadIcon');
@@ -26908,14 +27021,20 @@ Would you like to test posting to Threads?`;
                         reachTrendEl.innerHTML = `<i class="fas fa-users"></i> ${result.accounts.length} accounts`;
                     }
 
-                    // Calculate engagement rate estimate (industry average for small farms: 3-6%)
-                    // Real engagement would require fetching post-level insights
-                    const estimatedEngRate = totalFollowers > 0 ? 4.2 : 0; // Farm industry average
-                    if (engRateEl) {
-                        engRateEl.textContent = estimatedEngRate.toFixed(1) + '%';
-                    }
-                    if (engTrendEl) {
-                        engTrendEl.innerHTML = '<i class="fas fa-heart"></i> Industry avg';
+                    // Engagement rate: try to get real data from analytics, otherwise show honest "--"
+                    try {
+                        const analyticsResp = await fetch(`${API_URL}?action=getMarketingAnalytics&period=week`);
+                        const analyticsResult = await analyticsResp.json();
+                        if (analyticsResult.success && analyticsResult.analytics && analyticsResult.analytics.engagementRate > 0) {
+                            if (engRateEl) engRateEl.textContent = analyticsResult.analytics.engagementRate.toFixed(1) + '%';
+                            if (engTrendEl) engTrendEl.innerHTML = '<i class="fas fa-chart-line"></i> This week';
+                        } else {
+                            if (engRateEl) engRateEl.textContent = '--%';
+                            if (engTrendEl) engTrendEl.innerHTML = '<i class="fas fa-info-circle"></i> View Analytics tab';
+                        }
+                    } catch (engErr) {
+                        if (engRateEl) engRateEl.textContent = '--%';
+                        if (engTrendEl) engTrendEl.innerHTML = '<i class="fas fa-info-circle"></i> View Analytics tab';
                     }
 
                     // Cache the results
@@ -32560,6 +32679,156 @@ Would you like to test posting to Threads?`;
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
+        // CONNECTION HEALTH DASHBOARD (Phase 4A) — Token status for all accounts
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        async function runTokenHealthCheck() {
+            const grid = document.getElementById('connectionHealthGrid');
+            const spinner = document.getElementById('tokenHealthSpinner');
+            const warning = document.getElementById('tokenHealthWarning');
+            if (!grid) return;
+
+            spinner.classList.add('fa-spin');
+            grid.innerHTML = '<div style="text-align: center; padding: 1rem; color: var(--text-secondary);"><i class="fas fa-spinner fa-spin"></i> Checking connections...</div>';
+            if (warning) warning.style.display = 'none';
+
+            const accountNames = ['Tiny Seed Farm', 'Tiny Seed Fleurs', 'Tiny Seed Fungi'];
+            const accountIcons = ['🌱', '💐', '🍄'];
+            let results = [];
+            let warnings = [];
+
+            try {
+                // Check token health via backend
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({ action: 'checkTokenHealth' })
+                });
+                const data = await response.json();
+
+                if (data.success && data.accounts) {
+                    results = data.accounts;
+                } else {
+                    // Fallback: try getInstagramFollowerCounts (always works if tokens valid)
+                    const fallbackResp = await fetch(`${API_URL}?action=getInstagramFollowerCounts`);
+                    const fallbackData = await fallbackResp.json();
+
+                    if (fallbackData.success && fallbackData.accounts) {
+                        results = fallbackData.accounts.map((acc, i) => ({
+                            name: accountNames[i] || acc.name,
+                            status: acc.followers > 0 ? 'valid' : 'error',
+                            followers: acc.followers,
+                            platform: 'instagram'
+                        }));
+                    }
+                }
+            } catch (err) {
+                console.error('Token health check failed:', err);
+                grid.innerHTML = '<div style="text-align: center; padding: 1rem; color: var(--danger);"><i class="fas fa-exclamation-triangle"></i> Could not reach backend. Check your connection.</div>';
+                spinner.classList.remove('fa-spin');
+                return;
+            }
+
+            // Render results
+            let html = '';
+            results.forEach((account, i) => {
+                const name = account.name || accountNames[i] || `Account ${i + 1}`;
+                const icon = accountIcons[i] || '📱';
+                const isValid = account.status === 'valid' || account.status === 'connected' || (account.followers && account.followers > 0);
+                const isExpiring = account.daysToExpiry && account.daysToExpiry < 14;
+
+                let statusColor, statusIcon, statusText;
+                if (!isValid) {
+                    statusColor = 'var(--danger)';
+                    statusIcon = 'fa-times-circle';
+                    statusText = 'Expired / Error';
+                    warnings.push(`${name} needs token refresh`);
+                } else if (isExpiring) {
+                    statusColor = 'var(--warning)';
+                    statusIcon = 'fa-exclamation-circle';
+                    statusText = `Expires in ${account.daysToExpiry} days`;
+                    warnings.push(`${name} token expires in ${account.daysToExpiry} days`);
+                } else {
+                    statusColor = 'var(--success)';
+                    statusIcon = 'fa-check-circle';
+                    statusText = 'Connected';
+                }
+
+                const followers = account.followers ? ` · ${account.followers.toLocaleString()} followers` : '';
+
+                html += `
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem; background: rgba(0,0,0,0.15); border-radius: 10px; border-left: 3px solid ${statusColor};">
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <span style="font-size: 1.2rem;">${icon}</span>
+                            <div>
+                                <div style="font-weight: 600; font-size: 0.9rem;">${name}</div>
+                                <div style="font-size: 0.75rem; color: var(--text-secondary);">Instagram${followers}</div>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="font-size: 0.8rem; color: ${statusColor};"><i class="fas ${statusIcon}"></i> ${statusText}</span>
+                            ${!isValid ? '<button class="btn btn-sm" onclick="refreshAccountToken(' + i + ')" style="background: var(--danger); color: white; font-size: 0.7rem;"><i class="fas fa-sync"></i> Refresh</button>' : ''}
+                        </div>
+                    </div>`;
+            });
+
+            // Add Facebook row
+            html += `
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem; background: rgba(0,0,0,0.15); border-radius: 10px; border-left: 3px solid var(--success);">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <span style="font-size: 1.2rem;"><i class="fab fa-facebook" style="color: #1877F2;"></i></span>
+                        <div>
+                            <div style="font-weight: 600; font-size: 0.9rem;">Facebook Page</div>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary);">Via Meta Graph API (same tokens)</div>
+                        </div>
+                    </div>
+                    <span style="font-size: 0.8rem; color: var(--success);"><i class="fas fa-check-circle"></i> Connected</span>
+                </div>`;
+
+            // Add GBP row
+            html += `
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem; background: rgba(0,0,0,0.15); border-radius: 10px; border-left: 3px solid var(--text-secondary);">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <span style="font-size: 1.2rem;"><i class="fab fa-google" style="color: #4285F4;"></i></span>
+                        <div>
+                            <div style="font-weight: 600; font-size: 0.9rem;">Google Business Profile</div>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary);">Manual posting mode</div>
+                        </div>
+                    </div>
+                    <span style="font-size: 0.8rem; color: var(--text-secondary);"><i class="fas fa-info-circle"></i> Setup needed</span>
+                </div>`;
+
+            grid.innerHTML = html;
+            spinner.classList.remove('fa-spin');
+
+            // Show warning banner if any issues
+            if (warnings.length > 0) {
+                warning.style.display = 'block';
+                document.getElementById('tokenHealthWarningText').textContent = warnings.join(' | ');
+            }
+        }
+
+        async function refreshAccountToken(accountIndex) {
+            showToast('Refreshing token...', 'info');
+            try {
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({ action: 'refreshAllIGAATokens' })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Tokens refreshed! Re-checking...', 'success');
+                    setTimeout(runTokenHealthCheck, 1000);
+                } else {
+                    showToast('Refresh failed: ' + (result.error || 'Unknown'), 'error');
+                }
+            } catch (err) {
+                showToast('Refresh error: ' + err.message, 'error');
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
         // SOCIAL GROWTH - LIVE DATA
         // ═══════════════════════════════════════════════════════════════════════════
 
@@ -34386,6 +34655,8 @@ Would you like to test posting to Threads?`;
                 if (preview && carouselSlides[0]) {
                     preview.src = carouselSlides[0].src;
                     preview.classList.add('visible');
+                    const uz = document.getElementById('uploadZone');
+                    if (uz) uz.classList.add('has-image');
                 }
                 if (uploadIcon) uploadIcon.style.display = 'none';
                 if (uploadText) uploadText.innerHTML = `<i class="fas fa-images" style="color: #8b5cf6;"></i> Carousel Ready (${carouselSlides.length} slides)`;
@@ -34405,6 +34676,8 @@ Would you like to test posting to Threads?`;
                 if (preview && carouselSlides[0]) {
                     preview.src = carouselSlides[0].src;
                     preview.classList.add('visible');
+                    const uz2 = document.getElementById('uploadZone');
+                    if (uz2) uz2.classList.add('has-image');
                 }
                 if (uploadIcon) uploadIcon.style.display = 'none';
                 if (uploadText) uploadText.textContent = '1 image selected';
@@ -34493,6 +34766,90 @@ Would you like to test posting to Threads?`;
             }
         }
 
+        // ═══════════════════════════════════════════════════════════════════════════
+        // IMAGE PROCESSING PIPELINE (Phase 1A) — Real crop + resize for Instagram
+        // Ensures images are never cut off or formatted incorrectly when posted
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        // Platform-specific dimensions
+        const PLATFORM_DIMENSIONS = {
+            '1:1':    { width: 1080, height: 1080 },
+            '4:5':    { width: 1080, height: 1350 },
+            '9:16':   { width: 1080, height: 1920 },
+            '16:9':   { width: 1080, height: 608 },
+            '1.91:1': { width: 1200, height: 630 },
+            'free':   null  // No crop, just resize to max width
+        };
+
+        /**
+         * Process an image for posting: center-crop to aspect ratio + resize.
+         * @param {string} imgSrc - base64 data URL or image URL
+         * @param {string} cropRatio - '1:1', '4:5', '9:16', '16:9', '1.91:1', or 'free'
+         * @param {number} quality - JPEG quality 0-1 (default 0.92)
+         * @returns {Promise<string>} - processed base64 data URL
+         */
+        function processImageForPlatform(imgSrc, cropRatio, quality = 0.92) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = function() {
+                    try {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        const dims = PLATFORM_DIMENSIONS[cropRatio];
+
+                        if (!dims) {
+                            // 'free' mode — just resize if too large
+                            const maxW = 1080;
+                            if (img.width > maxW) {
+                                canvas.width = maxW;
+                                canvas.height = Math.round(img.height * (maxW / img.width));
+                            } else {
+                                canvas.width = img.width;
+                                canvas.height = img.height;
+                            }
+                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                            resolve(canvas.toDataURL('image/jpeg', quality));
+                            return;
+                        }
+
+                        // Target aspect ratio
+                        const targetRatio = dims.width / dims.height;
+                        const srcRatio = img.width / img.height;
+
+                        // Calculate center-crop source region
+                        let sx, sy, sw, sh;
+                        if (srcRatio > targetRatio) {
+                            // Source is wider — crop sides
+                            sh = img.height;
+                            sw = Math.round(img.height * targetRatio);
+                            sx = Math.round((img.width - sw) / 2);
+                            sy = 0;
+                        } else {
+                            // Source is taller — crop top/bottom
+                            sw = img.width;
+                            sh = Math.round(img.width / targetRatio);
+                            sx = 0;
+                            sy = Math.round((img.height - sh) / 2);
+                        }
+
+                        // Set canvas to target dimensions
+                        canvas.width = dims.width;
+                        canvas.height = dims.height;
+
+                        // Draw cropped + resized image
+                        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, dims.width, dims.height);
+
+                        resolve(canvas.toDataURL('image/jpeg', quality));
+                    } catch (err) {
+                        reject(err);
+                    }
+                };
+                img.onerror = () => reject(new Error('Failed to load image for processing'));
+                img.src = imgSrc;
+            });
+        }
+
         // Image Editing Functions
         function setMediaCrop(ratio) {
             currentMediaCrop = ratio;
@@ -34509,7 +34866,67 @@ Would you like to test posting to Threads?`;
                     btn.classList.remove('active');
                 }
             });
-            showToast(`Crop ratio set to ${ratio}`, 'success');
+
+            // Apply visual crop preview on the upload image
+            const preview = document.getElementById('uploadPreview');
+            if (preview && preview.classList.contains('visible')) {
+                const dims = PLATFORM_DIMENSIONS[ratio];
+                if (dims) {
+                    preview.style.aspectRatio = `${dims.width} / ${dims.height}`;
+                    preview.style.objectFit = 'cover';
+                    preview.style.maxHeight = ratio === '9:16' ? '50vh' : '70vh';
+                } else {
+                    // 'free' mode — no forced aspect ratio
+                    preview.style.aspectRatio = '';
+                    preview.style.objectFit = 'contain';
+                    preview.style.maxHeight = '70vh';
+                }
+            }
+
+            showToast(`Crop: ${ratio}${ratio !== 'free' ? ' — preview updated' : ''}`, 'success');
+        }
+
+        /**
+         * Auto-detect image aspect ratio and select closest crop preset.
+         * Called after image upload. Shows badge if crop will occur.
+         */
+        function autoDetectAspectRatio(imgElement) {
+            if (!imgElement || !imgElement.naturalWidth) return;
+
+            const w = imgElement.naturalWidth;
+            const h = imgElement.naturalHeight;
+            const ratio = w / h;
+
+            // Find closest preset
+            const presets = [
+                { name: '1:1',    ratio: 1.0 },
+                { name: '4:5',    ratio: 0.8 },
+                { name: '9:16',   ratio: 0.5625 },
+                { name: '16:9',   ratio: 1.778 },
+                { name: '1.91:1', ratio: 1.91 }
+            ];
+
+            let closest = presets[0];
+            let minDiff = Infinity;
+            for (const p of presets) {
+                const diff = Math.abs(ratio - p.ratio);
+                if (diff < minDiff) { minDiff = diff; closest = p; }
+            }
+
+            // Auto-select the closest preset
+            setMediaCrop(closest.name);
+
+            // Show info badge on upload zone
+            const uploadSubtext = document.getElementById('uploadSubtext');
+            if (uploadSubtext) {
+                const isExact = minDiff < 0.05;
+                const dimText = `${w}×${h}`;
+                if (isExact) {
+                    uploadSubtext.innerHTML = `<span style="color: var(--success);"><i class="fas fa-check-circle"></i> ${dimText} — matches ${closest.name}</span>`;
+                } else {
+                    uploadSubtext.innerHTML = `<span style="color: var(--warning);"><i class="fas fa-crop-alt"></i> ${dimText} — will crop to ${closest.name} for IG</span>`;
+                }
+            }
         }
 
         function applyMediaFilter(filterName) {
@@ -34804,6 +35221,8 @@ Would you like to test posting to Threads?`;
             if (preview) {
                 preview.src = carouselSlides[0].src;
                 preview.classList.add('visible');
+                const uz3 = document.getElementById('uploadZone');
+                if (uz3) uz3.classList.add('has-image');
             }
             if (uploadIcon) uploadIcon.style.display = 'none';
             if (uploadText) uploadText.innerHTML = `<i class="fas fa-images" style="color: #8b5cf6;"></i> Carousel Ready (${carouselSlides.length} slides)`;
@@ -37611,6 +38030,8 @@ Would you like to test posting to Threads?`;
 
             preview.src = dataUrl;
             preview.classList.add('visible');
+            const uz4 = document.getElementById('uploadZone');
+            if (uz4) uz4.classList.add('has-image');
             uploadIcon.style.display = 'none';
             uploadText.style.display = 'none';
             uploadSubtext.style.display = 'none';
