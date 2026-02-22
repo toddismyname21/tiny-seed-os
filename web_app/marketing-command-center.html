@@ -7058,12 +7058,34 @@
                                 <i class="fas fa-sync-alt"></i> Refresh
                             </button>
                             <button id="btnPlanWeek" class="btn btn-secondary" onclick="switchTab('contentcalendar')">
-                                <i class="fas fa-calendar-plus"></i> Plan Week
+                                <i class="fas fa-calendar-plus"></i> Open Calendar
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- DAILY JOURNAL PROMPT BANNER -->
+            <div id="dailyJournalPrompt" style="display: none; margin-top: 1.5rem; background: linear-gradient(135deg, rgba(255,182,72,0.2), rgba(255,145,77,0.15)); border: 2px solid rgba(255,182,72,0.5); border-radius: 12px; padding: 1rem; animation: gentlePulse 3s ease-in-out infinite;">
+                <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                    <div style="width: 40px; height: 40px; border-radius: 10px; background: var(--gold); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i class="fas fa-pen-fancy" style="color: #000; font-size: 1.1rem;"></i>
+                    </div>
+                    <div style="flex: 1; min-width: 200px;">
+                        <div style="font-weight: 700; font-size: 0.95rem;">Daily Journal Reminder</div>
+                        <div id="journalPromptMessage" style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.15rem;">Todd & Loren — take 2 minutes to log what's happening on the farm today. This powers better AI posts!</div>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; flex-shrink: 0;">
+                        <button onclick="openWeeklyJournalEntry(); document.getElementById('dailyJournalPrompt').style.display='none';" class="btn btn-sm" style="background: var(--gold); color: #000; font-weight: 700;">
+                            <i class="fas fa-pen"></i> Write Now
+                        </button>
+                        <button onclick="dismissDailyJournalPrompt()" class="btn btn-sm btn-secondary" style="font-size: 0.7rem;">Later</button>
+                    </div>
+                </div>
+            </div>
+            <style>
+                @keyframes gentlePulse { 0%, 100% { border-color: rgba(255,182,72,0.5); } 50% { border-color: rgba(255,182,72,0.8); } }
+            </style>
 
             <!-- FARM JOURNAL - Continuous Knowledge Building (Updated 2026-02-13) -->
             <div class="card" style="margin-top: 1.5rem; background: linear-gradient(135deg, rgba(255, 182, 72, 0.15) 0%, rgba(255, 145, 77, 0.1) 100%); border: 1px solid rgba(255, 182, 72, 0.4);">
@@ -7102,7 +7124,7 @@
                             <button class="btn btn-sm" style="background: var(--gold); color: #000;" onclick="openWeeklyJournalEntry()">
                                 <i class="fas fa-plus"></i> Add Journal Entry
                             </button>
-                            <button class="btn btn-sm btn-secondary" onclick="sendManualPrompt()">
+                            <button class="btn btn-sm btn-secondary" onclick="sendManualPrompt(this)">
                                 <i class="fas fa-sms"></i> SMS Prompt to Team
                             </button>
                         </div>
@@ -7226,13 +7248,13 @@
                 <div class="card-body">
                     <!-- Account Tabs for 5-3-2 tracker -->
                     <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
-                        <button class="account-mix-tab active" data-mix-account="farm" onclick="selectMixTrackerAccount('farm')" style="padding: 0.5rem 1rem; background: rgba(225, 48, 108, 0.2); border: 1px solid var(--instagram); border-radius: 8px; color: var(--text-primary); font-size: 0.85rem; cursor: pointer;">
+                        <button class="account-mix-tab active" data-mix-account="farm" onclick="event.preventDefault(); selectMixTrackerAccount('farm')" style="padding: 0.5rem 1rem; background: rgba(225, 48, 108, 0.2); border: 1px solid var(--instagram); border-radius: 8px; color: var(--text-primary); font-size: 0.85rem; cursor: pointer;">
                             <i class="fab fa-instagram"></i> @tinyseedfarm <span id="farmMixBadge" style="background: rgba(0,0,0,0.3); padding: 0.15rem 0.4rem; border-radius: 6px; font-size: 0.7rem; margin-left: 0.25rem;">0/10</span>
                         </button>
-                        <button class="account-mix-tab" data-mix-account="fleurs" onclick="selectMixTrackerAccount('fleurs')" style="padding: 0.5rem 1rem; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--text-secondary); font-size: 0.85rem; cursor: pointer;">
+                        <button class="account-mix-tab" data-mix-account="fleurs" onclick="event.preventDefault(); selectMixTrackerAccount('fleurs')" style="padding: 0.5rem 1rem; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--text-secondary); font-size: 0.85rem; cursor: pointer;">
                             <i class="fab fa-instagram"></i> @tinyseedfleurs <span id="fleursMixBadge" style="background: rgba(0,0,0,0.3); padding: 0.15rem 0.4rem; border-radius: 6px; font-size: 0.7rem; margin-left: 0.25rem;">0/10</span>
                         </button>
-                        <button class="account-mix-tab" data-mix-account="fungi" onclick="selectMixTrackerAccount('fungi')" style="padding: 0.5rem 1rem; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--text-secondary); font-size: 0.85rem; cursor: pointer;">
+                        <button class="account-mix-tab" data-mix-account="fungi" onclick="event.preventDefault(); selectMixTrackerAccount('fungi')" style="padding: 0.5rem 1rem; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--text-secondary); font-size: 0.85rem; cursor: pointer;">
                             <i class="fab fa-instagram"></i> @tinyseedfungi <span id="fungiMixBadge" style="background: rgba(0,0,0,0.3); padding: 0.15rem 0.4rem; border-radius: 6px; font-size: 0.7rem; margin-left: 0.25rem;">0/10</span>
                         </button>
                     </div>
@@ -7275,7 +7297,7 @@
                                 <i class="fas fa-images" style="color: var(--instagram);"></i> Recent Posts from Instagram
                                 <span id="igPostsCount" style="font-size: 0.7rem; background: var(--instagram); padding: 0.15rem 0.5rem; border-radius: 10px; color: white;">0</span>
                             </div>
-                            <button id="igToggleExpand" onclick="toggleIgPostsExpand()" style="font-size: 0.7rem; padding: 0.3rem 0.6rem; background: rgba(255,255,255,0.1); border: 1px solid var(--border); border-radius: 6px; color: var(--text-secondary); cursor: pointer; display: none;">
+                            <button id="igToggleExpand" onclick="event.preventDefault(); toggleIgPostsExpand()" style="font-size: 0.7rem; padding: 0.3rem 0.6rem; background: rgba(255,255,255,0.1); border: 1px solid var(--border); border-radius: 6px; color: var(--text-secondary); cursor: pointer; display: none;">
                                 <i class="fas fa-expand-alt"></i> Show All
                             </button>
                         </div>
@@ -7295,9 +7317,9 @@
                     <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
                         <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Manual Track (if not on Instagram yet):</div>
                         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                            <button onclick="trackContentPost('curated')" style="padding: 0.4rem 0.75rem; background: rgba(42, 157, 143, 0.2); border: 1px solid var(--success); border-radius: 6px; color: var(--success); font-size: 0.75rem; cursor: pointer;">+ Curated</button>
-                            <button onclick="trackContentPost('original')" style="padding: 0.4rem 0.75rem; background: rgba(67, 97, 238, 0.2); border: 1px solid var(--info); border-radius: 6px; color: var(--info); font-size: 0.75rem; cursor: pointer;">+ Original</button>
-                            <button onclick="trackContentPost('personal')" style="padding: 0.4rem 0.75rem; background: rgba(225, 48, 108, 0.2); border: 1px solid var(--instagram); border-radius: 6px; color: var(--instagram); font-size: 0.75rem; cursor: pointer;">+ Personal</button>
+                            <button onclick="event.preventDefault(); trackContentPost('curated')" style="padding: 0.4rem 0.75rem; background: rgba(42, 157, 143, 0.2); border: 1px solid var(--success); border-radius: 6px; color: var(--success); font-size: 0.75rem; cursor: pointer;">+ Curated</button>
+                            <button onclick="event.preventDefault(); trackContentPost('original')" style="padding: 0.4rem 0.75rem; background: rgba(67, 97, 238, 0.2); border: 1px solid var(--info); border-radius: 6px; color: var(--info); font-size: 0.75rem; cursor: pointer;">+ Original</button>
+                            <button onclick="event.preventDefault(); trackContentPost('personal')" style="padding: 0.4rem 0.75rem; background: rgba(225, 48, 108, 0.2); border: 1px solid var(--instagram); border-radius: 6px; color: var(--instagram); font-size: 0.75rem; cursor: pointer;">+ Personal</button>
                             <button onclick="confirmResetMixTracker()" style="padding: 0.4rem 0.75rem; background: transparent; border: 1px solid var(--text-secondary); border-radius: 6px; color: var(--text-secondary); font-size: 0.75rem; cursor: pointer; margin-left: auto;"><i class="fas fa-undo"></i> Reset Week</button>
                         </div>
                     </div>
@@ -15718,10 +15740,10 @@
             } else if (tabId === 'engage') {
                 loadUnifiedInbox();
                 loadComments();
-                loadEvergreenLibraryEngage();
-                loadEvergreenSuggestions();
+                if (typeof loadEvergreenLibraryEngage === 'function') loadEvergreenLibraryEngage();
+                if (typeof loadEvergreenSuggestions === 'function') loadEvergreenSuggestions();
                 // Pre-load social listening data for Listen section
-                loadSocialListeningDashboard();
+                if (typeof loadSocialListeningDashboard === 'function') loadSocialListeningDashboard();
             } else if (tabId === 'analytics') {
                 refreshAnalyticsHub();
             } else if (tabId === 'growth') {
@@ -15821,7 +15843,7 @@
                     contentType: contentType?.type || 'farm_update',
                     weather: weatherData,
                     keywords: seoKeywords,
-                    season: getCurrentSeason(),
+                    season: (typeof KeywordHashtagLibrary !== 'undefined') ? KeywordHashtagLibrary.getCurrentSeason() : 'winter',
                     dayOfWeek: new Date().toLocaleDateString('en-US', { weekday: 'long' })
                 };
 
@@ -27323,6 +27345,13 @@ Would you like to test posting to Threads?`;
                 updateSeasonIndicator();
                 updateHeaderOptimalTime();
 
+                // Check if daily journal entry has been written
+                checkDailyJournalStatus();
+                // Auto-send daily journal prompt SMS (once per day)
+                autoSendDailyJournalPrompt();
+                // Sync completed OS-wide tasks into journal for AI memory
+                syncOSTasksToJournal();
+
                 // IMMEDIATE: Show local data first (no API calls)
                 updateContentMixUI();
 
@@ -29731,7 +29760,7 @@ Would you like to test posting to Threads?`;
                 miniScoreEl.textContent = '0%';
                 miniScoreEl.style.color = '#e74c3c';
             }
-            if (trendEl) trendEl.innerHTML = '<a href="seo_dashboard.html#ai-check" style="color: #1abc9c;">Run first check →</a>';
+            if (trendEl) trendEl.innerHTML = '<a href="#" onclick="event.preventDefault(); openMCCAICheckModal();" style="color: #1abc9c;">Run first check →</a>';
             if (rateEl) {
                 rateEl.textContent = '0%';
                 rateEl.style.color = '#e74c3c';
@@ -29751,7 +29780,80 @@ Would you like to test posting to Threads?`;
         }
 
         function openMCCAICheckModal() {
-            window.open('seo_dashboard.html#ai-check', '_blank');
+            // Build inline AEO check modal instead of redirecting to SEO dashboard
+            const existing = document.getElementById('aeoCheckModal');
+            if (existing) existing.remove();
+
+            const modal = document.createElement('div');
+            modal.id = 'aeoCheckModal';
+            modal.style.cssText = 'position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 1rem;';
+            modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
+            modal.innerHTML = `
+                <div style="background: var(--bg-card); border-radius: 16px; max-width: 500px; width: 100%; max-height: 85vh; overflow-y: auto; border: 1px solid var(--border);">
+                    <div style="padding: 1.25rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                        <h3 style="margin: 0;"><i class="fas fa-robot" style="color: #1abc9c;"></i> Log AI Engine Check</h3>
+                        <button onclick="this.closest('#aeoCheckModal').remove()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary);">&times;</button>
+                    </div>
+                    <div style="padding: 1.25rem;">
+                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">Search for "Tiny Seed Farm" or your target keywords on these AI platforms and log the results:</p>
+                        <div style="display: grid; gap: 0.75rem; margin-bottom: 1.25rem;">
+                            <a href="https://chat.openai.com" target="_blank" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: rgba(16,163,127,0.1); border: 1px solid rgba(16,163,127,0.3); border-radius: 10px; text-decoration: none; color: inherit;">
+                                <div style="width: 36px; height: 36px; border-radius: 8px; background: #10a37f; display: flex; align-items: center; justify-content: center;"><i class="fas fa-comment-dots" style="color: white;"></i></div>
+                                <div><div style="font-weight: 600;">ChatGPT</div><div style="font-size: 0.7rem; color: var(--text-secondary);">Ask: "Best CSA in Pittsburgh"</div></div>
+                                <i class="fas fa-external-link-alt" style="margin-left: auto; color: var(--text-secondary);"></i>
+                            </a>
+                            <a href="https://www.perplexity.ai" target="_blank" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: rgba(32,126,254,0.1); border: 1px solid rgba(32,126,254,0.3); border-radius: 10px; text-decoration: none; color: inherit;">
+                                <div style="width: 36px; height: 36px; border-radius: 8px; background: #207efe; display: flex; align-items: center; justify-content: center;"><i class="fas fa-search" style="color: white;"></i></div>
+                                <div><div style="font-weight: 600;">Perplexity</div><div style="font-size: 0.7rem; color: var(--text-secondary);">Search: "organic farm Pittsburgh"</div></div>
+                                <i class="fas fa-external-link-alt" style="margin-left: auto; color: var(--text-secondary);"></i>
+                            </a>
+                            <a href="https://gemini.google.com" target="_blank" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: rgba(66,133,244,0.1); border: 1px solid rgba(66,133,244,0.3); border-radius: 10px; text-decoration: none; color: inherit;">
+                                <div style="width: 36px; height: 36px; border-radius: 8px; background: #4285f4; display: flex; align-items: center; justify-content: center;"><i class="fas fa-brain" style="color: white;"></i></div>
+                                <div><div style="font-weight: 600;">Gemini</div><div style="font-size: 0.7rem; color: var(--text-secondary);">Ask: "farm share delivery Pittsburgh"</div></div>
+                                <i class="fas fa-external-link-alt" style="margin-left: auto; color: var(--text-secondary);"></i>
+                            </a>
+                        </div>
+                        <div style="padding: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 10px; border: 1px solid var(--border);">
+                            <div style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.5rem;">Log Your Results</div>
+                            <select id="aeoCheckPlatform" style="width: 100%; padding: 0.5rem; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); margin-bottom: 0.5rem;">
+                                <option value="chatgpt">ChatGPT</option>
+                                <option value="perplexity">Perplexity</option>
+                                <option value="gemini">Gemini</option>
+                                <option value="ai_overview">Google AI Overview</option>
+                            </select>
+                            <select id="aeoCheckResult" style="width: 100%; padding: 0.5rem; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); margin-bottom: 0.5rem;">
+                                <option value="mentioned">Mentioned / Cited</option>
+                                <option value="not_mentioned">Not Mentioned</option>
+                                <option value="competitor_mentioned">Competitor Mentioned Instead</option>
+                            </select>
+                            <input id="aeoCheckQuery" type="text" placeholder="What did you search? (e.g., best CSA Pittsburgh)" style="width: 100%; padding: 0.5rem; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); margin-bottom: 0.75rem; box-sizing: border-box;">
+                            <button onclick="submitAEOCheck()" style="width: 100%; padding: 0.6rem; background: linear-gradient(135deg, #1abc9c, #16a085); border: none; border-radius: 8px; color: white; font-weight: 700; cursor: pointer;">
+                                <i class="fas fa-save"></i> Log Check
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        async function submitAEOCheck() {
+            const platform = document.getElementById('aeoCheckPlatform')?.value;
+            const result = document.getElementById('aeoCheckResult')?.value;
+            const query = document.getElementById('aeoCheckQuery')?.value;
+            if (!query) { showToast('Enter what you searched', 'warning'); return; }
+            try {
+                await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({ action: 'logAEOCheck', platform: platform, result: result, query: query })
+                });
+                showToast('AEO check logged! ' + (result === 'mentioned' ? 'We\'re being cited!' : 'Noted — we\'ll improve visibility.'), 'success');
+                document.getElementById('aeoCheckModal')?.remove();
+            } catch (e) {
+                showToast('Logged locally. Will sync when online.', 'info');
+                document.getElementById('aeoCheckModal')?.remove();
+            }
         }
 
         function shareAICitedContent(query) {
@@ -30572,25 +30674,90 @@ Would you like to test posting to Threads?`;
             try {
                 const action = brainData.actionQueue[type][index];
 
-                // Use the appropriate action based on whether we have a unified task ID
-                const requestAction = action.taskId ? 'completeMarketingTask' : 'markSocialActionComplete';
+                // Immediately remove from local list + re-render for instant feedback
+                if (brainData.actionQueue && brainData.actionQueue[type]) {
+                    brainData.actionQueue[type].splice(index, 1);
+                    renderActionList(type === 'urgent' ? 'urgentActions' : 'todayActions',
+                                    brainData.actionQueue[type], type);
+                    updateBrainStats({ actionQueue: brainData.actionQueue });
+                }
+                showToast('Done! Task completed.', 'success');
 
-                await fetch(API_URL, {
+                // Also log to farm journal for memory
+                const journalNote = 'Completed task: ' + (action.action || action.type || 'Unknown task');
+                logTaskCompletionToJournal(journalNote);
+
+                // Fire backend update (non-blocking)
+                const requestAction = action.taskId ? 'completeMarketingTask' : 'markSocialActionComplete';
+                fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: requestAction,
                         taskId: action.taskId || null,
                         actionType: action.type,
-                        actionId: action.commentId || `${type}_${index}`,
+                        actionId: action.commentId || (type + '_' + index),
                         completedBy: 'owner'
                     })
-                });
-                showToast('Action marked complete!', 'success');
-                loadBrainTab();
+                }).catch(function(e) { console.log('Task completion sync:', e); });
             } catch (error) {
                 console.error('Error marking action complete:', error);
                 showToast('Error marking action complete', 'error');
+            }
+        }
+
+        /**
+         * Log completed tasks to farm journal for AI memory
+         * This ensures every task completion enriches the farm's knowledge base
+         * and gives AI better context for future content generation
+         */
+        function logTaskCompletionToJournal(note) {
+            try {
+                fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'saveJournalEntry',
+                        input: note,
+                        account: 'farm',
+                        source: 'task_completion',
+                        senderName: 'System',
+                        category: detectJournalCategory(note),
+                        isAutoLog: true
+                    })
+                }).catch(function(e) { console.log('Journal auto-log:', e); });
+            } catch (e) { /* silent */ }
+        }
+
+        /**
+         * Sync completed OS-wide tasks into MCC Brain tab
+         * Fetches recently completed tasks from all Tiny Seed OS modules
+         * and displays them in the journal feed for farm memory
+         */
+        async function syncOSTasksToJournal() {
+            try {
+                var response = await fetch(API_URL + '?action=getRecentCompletedTasks&hours=24');
+                var data = await response.json();
+                if (data.success && data.tasks && data.tasks.length > 0) {
+                    // Build summary of completed tasks
+                    var taskSummary = 'Tasks completed today: ';
+                    var taskLines = data.tasks.map(function(t) {
+                        return (t.title || t.description || 'Task') + (t.completedBy ? ' (by ' + t.completedBy + ')' : '');
+                    });
+                    taskSummary += taskLines.join('; ');
+
+                    // Check if we already logged this today
+                    var today = new Date().toISOString().split('T')[0];
+                    var lastSync = localStorage.getItem('osTaskSyncDate');
+                    if (lastSync !== today && taskLines.length > 0) {
+                        logTaskCompletionToJournal(taskSummary);
+                        localStorage.setItem('osTaskSyncDate', today);
+                        console.log('[TASK_SYNC] Logged ' + taskLines.length + ' completed OS tasks to journal');
+                    }
+                }
+            } catch (e) {
+                // API may not support this yet — silent fail
+                console.log('[TASK_SYNC] OS task sync not available yet');
             }
         }
 
@@ -30904,8 +31071,8 @@ Would you like to test posting to Threads?`;
         }
 
         // Send manual SMS prompt to Todd (Added 2026-02-13)
-        async function sendManualPrompt() {
-            const btn = event.target.closest('button');
+        async function sendManualPrompt(btnEl) {
+            const btn = btnEl || (typeof event !== 'undefined' ? event.target.closest('button') : null);
             const originalHTML = btn.innerHTML;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending to team...';
             btn.disabled = true;
@@ -31149,7 +31316,6 @@ Would you like to test posting to Threads?`;
 
                     // Refresh the journal entries list
                     loadJournalEntries();
-                    loadCurrentWeekResponse();
                 } else {
                     // API returned error but didn't throw
                     console.error('❌ Journal API Error:', data);
@@ -31177,19 +31343,102 @@ Would you like to test posting to Threads?`;
         // Detect category from journal entry text
         function detectJournalCategory(text) {
             const lower = text.toLowerCase();
-            if (lower.includes('flower') || lower.includes('bloom') || lower.includes('bouquet') || lower.includes('dahlia') || lower.includes('sunflower') || lower.includes('zinnia')) {
-                return 'flowers';
+            // Score-based detection to handle multi-topic entries
+            const scores = { flowers: 0, mushrooms: 0, farmers_market: 0, vegetables: 0, general: 0 };
+
+            // Flowers
+            ['flower', 'bloom', 'bouquet', 'dahlia', 'sunflower', 'zinnia', 'peony', 'tulip', 'petal', 'floral', 'arrangement', 'vase'].forEach(function(w) { if (lower.includes(w)) scores.flowers += 2; });
+
+            // Mushrooms
+            ['mushroom', 'fungi', 'oyster', 'shiitake', 'lion\'s mane', 'lions mane', 'mycelium', 'substrate', 'fruiting', 'spore'].forEach(function(w) { if (lower.includes(w)) scores.mushrooms += 2; });
+
+            // Vegetables — check BEFORE market to avoid misclassification
+            ['tomato', 'pepper', 'lettuce', 'kale', 'seedling', 'transplant', 'harvest', 'planting', 'planted', 'greenhouse', 'hoop house', 'field', 'vegetable', 'carrot', 'beet', 'squash', 'garlic', 'onion', 'radish', 'spinach', 'chard', 'cucumber', 'zucchini', 'bean', 'pea', 'potato', 'herb', 'basil', 'cilantro', 'seed', 'germination', 'sprout', 'compost', 'soil', 'tractor', 'irrigation', 'weed', 'row cover'].forEach(function(w) { if (lower.includes(w)) scores.vegetables += 2; });
+
+            // Farmers market — more specific keywords
+            ['farmers market', 'market day', 'booth', 'vendor', 'sewickley market', 'lawrenceville market', 'bloomfield market', 'saturday market', 'customer at market', 'market sales', 'sold out at', 'market setup'].forEach(function(w) { if (lower.includes(w)) scores.farmers_market += 3; });
+
+            // Find highest score
+            let best = 'general';
+            let bestScore = 0;
+            Object.entries(scores).forEach(function(entry) {
+                if (entry[1] > bestScore) { best = entry[0]; bestScore = entry[1]; }
+            });
+            return best;
+        }
+
+        /**
+         * Check if journal entry was written today — show prompt banner if not
+         */
+        async function checkDailyJournalStatus() {
+            const promptBanner = document.getElementById('dailyJournalPrompt');
+            if (!promptBanner) return;
+
+            // Check if user dismissed today
+            const dismissed = localStorage.getItem('journalPromptDismissed');
+            const today = new Date().toISOString().split('T')[0];
+            if (dismissed === today) return;
+
+            try {
+                const response = await fetch(API_URL + '?action=getWritingResponses&limit=5');
+                const data = await response.json();
+                const entries = data.responses || data.entries || [];
+
+                // Check if any entry is from today
+                const todayEntry = entries.find(function(e) {
+                    var entryDate = (e.date || e.timestamp || '').substring(0, 10);
+                    return entryDate === today;
+                });
+
+                if (!todayEntry) {
+                    // No entry today — show prompt
+                    promptBanner.style.display = 'block';
+
+                    // Personalize the prompt based on time of day and season
+                    var hour = new Date().getHours();
+                    var msgEl = document.getElementById('journalPromptMessage');
+                    if (msgEl) {
+                        if (hour < 10) {
+                            msgEl.textContent = 'Good morning! What\'s the plan for the farm today? Quick journal note helps AI create better content.';
+                        } else if (hour < 15) {
+                            msgEl.textContent = 'How\'s the farm day going? Anything growing, blooming, or happening worth noting? This fuels better AI posts!';
+                        } else {
+                            msgEl.textContent = 'End of day — what happened on the farm today? Harvests, customers, wildlife? 2 minutes builds AI\'s farm knowledge.';
+                        }
+                    }
+                }
+            } catch (e) {
+                // Show prompt on error (better to remind than not)
+                promptBanner.style.display = 'block';
             }
-            if (lower.includes('mushroom') || lower.includes('fungi') || lower.includes('oyster') || lower.includes('shiitake') || lower.includes('lion')) {
-                return 'mushrooms';
+        }
+
+        function dismissDailyJournalPrompt() {
+            var today = new Date().toISOString().split('T')[0];
+            localStorage.setItem('journalPromptDismissed', today);
+            document.getElementById('dailyJournalPrompt').style.display = 'none';
+        }
+
+        /**
+         * Auto-send daily journal prompt SMS at configured time
+         * Called from the Brain tab init — checks if prompt was sent today
+         */
+        async function autoSendDailyJournalPrompt() {
+            var today = new Date().toISOString().split('T')[0];
+            var lastSent = localStorage.getItem('dailyJournalSMSSent');
+            if (lastSent === today) return; // Already sent today
+
+            var hour = new Date().getHours();
+            // Send at 8 AM or later (first Brain tab visit of the day)
+            if (hour >= 8 && hour < 20) {
+                try {
+                    await fetch(API_URL + '?action=sendWeeklyWritingPrompts');
+                    localStorage.setItem('dailyJournalSMSSent', today);
+                    console.log('[JOURNAL] Daily prompt SMS sent to Todd & Loren');
+                } catch (e) {
+                    console.log('[JOURNAL] Could not send daily prompt SMS:', e);
+                }
             }
-            if (lower.includes('market') || lower.includes('sewickley') || lower.includes('lawrenceville') || lower.includes('customer') || lower.includes('booth')) {
-                return 'farmers_market';
-            }
-            if (lower.includes('tomato') || lower.includes('pepper') || lower.includes('lettuce') || lower.includes('harvest') || lower.includes('plant') || lower.includes('field') || lower.includes('vegetable') || lower.includes('carrot') || lower.includes('beet')) {
-                return 'vegetables';
-            }
-            return 'general';
         }
 
         async function sendMePromptSMS() {

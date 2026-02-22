@@ -36,6 +36,10 @@ async function loadMCCSharedCalendar() {
             params.contentType = mccCalendarFilter.contentType;
         }
 
+        if (typeof loadSharedContentCalendar !== 'function') {
+            container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);"><i class="fas fa-calendar"></i><p style="margin-top: 0.5rem;">Calendar loading...</p></div>';
+            return;
+        }
         const result = await loadSharedContentCalendar(params) || { success: false, error: 'No response' };
 
         if (result && result.success) {
