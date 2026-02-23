@@ -9736,26 +9736,74 @@
 
         <!-- FARM PICS TAB -->
         <div id="farmpicsTab" class="tab-content">
+            <!-- Photo Stats Bar -->
+            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.75rem; margin-bottom: 1rem;">
+                <div style="background: var(--bg-light); padding: 0.75rem; border-radius: 10px; text-align: center; border-left: 3px solid var(--primary);">
+                    <div style="font-size: 1.5rem; font-weight: 700;" id="photoStatTotal">--</div>
+                    <div style="font-size: 0.7rem; color: var(--text-secondary);">Total Photos</div>
+                </div>
+                <div style="background: var(--bg-light); padding: 0.75rem; border-radius: 10px; text-align: center; border-left: 3px solid var(--instagram);">
+                    <div style="font-size: 1.5rem; font-weight: 700;" id="photoStatNew">--</div>
+                    <div style="font-size: 0.7rem; color: var(--text-secondary);">Needs Review</div>
+                </div>
+                <div style="background: var(--bg-light); padding: 0.75rem; border-radius: 10px; text-align: center; border-left: 3px solid var(--success);">
+                    <div style="font-size: 1.5rem; font-weight: 700;" id="photoStatApproved">--</div>
+                    <div style="font-size: 0.7rem; color: var(--text-secondary);">Approved</div>
+                </div>
+                <div style="background: var(--bg-light); padding: 0.75rem; border-radius: 10px; text-align: center; border-left: 3px solid var(--info);">
+                    <div style="font-size: 1.5rem; font-weight: 700;" id="photoStatUsed">--</div>
+                    <div style="font-size: 0.7rem; color: var(--text-secondary);">Used in Posts</div>
+                </div>
+                <div style="background: var(--bg-light); padding: 0.75rem; border-radius: 10px; text-align: center; border-left: 3px solid var(--warning);">
+                    <div style="font-size: 1.5rem; font-weight: 700;" id="photoStatCategories">--</div>
+                    <div style="font-size: 0.7rem; color: var(--text-secondary);">Categories</div>
+                </div>
+            </div>
+
+            <!-- Upload Zone -->
+            <div class="card" style="margin-bottom: 1rem; border: 2px dashed var(--border); background: linear-gradient(135deg, rgba(67,97,238,0.05), rgba(139,92,246,0.03));">
+                <div class="card-body" style="padding: 1.25rem;">
+                    <div id="photosUploadZone" onclick="document.getElementById('photosFileInput').click()" style="cursor: pointer; text-align: center; padding: 1rem;">
+                        <i class="fas fa-cloud-upload-alt" style="font-size: 2rem; color: var(--primary); margin-bottom: 0.5rem;"></i>
+                        <div style="font-weight: 600; font-size: 1rem;">Upload Photos to Library</div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">Drag & drop or click to browse. Photos upload to Google Drive and appear in your library.</div>
+                        <input type="file" id="photosFileInput" accept="image/*" multiple style="display: none;" onchange="handlePhotosTabUpload(event)">
+                    </div>
+                    <div id="photosUploadProgress" style="display: none; margin-top: 0.75rem;">
+                        <div style="background: var(--bg-dark); border-radius: 8px; overflow: hidden; height: 6px;">
+                            <div id="photosUploadBar" style="height: 100%; background: linear-gradient(90deg, var(--primary), var(--success)); width: 0%; transition: width 0.3s;"></div>
+                        </div>
+                        <div id="photosUploadStatus" style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.5rem; text-align: center;"></div>
+                    </div>
+                </div>
+            </div>
+
             <div class="card">
                 <div class="card-header">
                     <h3><i class="fas fa-images"></i> Farm Pics Library</h3>
-                    <div style="display: flex; gap: 0.5rem;">
-                        <button class="btn btn-sm btn-secondary" onclick="approveAllPics()">
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <input type="text" id="photoSearchInput" placeholder="Search by caption or author..." oninput="searchFarmPics(this.value)" style="background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; padding: 0.4rem 0.75rem; color: var(--text-primary); font-size: 0.85rem; width: 180px;">
+                        <select id="photoSortSelect" onchange="sortFarmPics(this.value)" style="background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; padding: 0.4rem 0.5rem; color: var(--text-primary); font-size: 0.8rem;">
+                            <option value="newest">Newest First</option>
+                            <option value="oldest">Oldest First</option>
+                            <option value="author">By Author</option>
+                        </select>
+                        <button class="btn btn-sm btn-secondary" onclick="approveAllPics()" id="approveAllBtn">
                             <i class="fas fa-check-double"></i> Approve All New
                         </button>
                     </div>
                 </div>
                 <div class="card-body">
                     <div class="gallery-filters">
-                        <button class="filter-btn active" onclick="filterGallery('all', this)">All</button>
+                        <button class="filter-btn active" onclick="filterGallery('all', this)">All <span id="filterCountAll" style="background: var(--bg-dark); padding: 0.1rem 0.4rem; border-radius: 10px; font-size: 0.7rem; margin-left: 0.25rem;"></span></button>
                         <button class="filter-btn" onclick="filterGallery('new', this)">
-                            New <span style="background: var(--instagram); padding: 0.1rem 0.4rem; border-radius: 10px; font-size: 0.7rem; margin-left: 0.25rem;">5</span>
+                            New <span id="newPicsBadge" style="background: var(--instagram); padding: 0.1rem 0.4rem; border-radius: 10px; font-size: 0.7rem; margin-left: 0.25rem; display: none;">0</span>
                         </button>
                         <button class="filter-btn" onclick="filterGallery('approved', this)">Approved</button>
                         <button class="filter-btn" onclick="filterGallery('used', this)">Used</button>
-                        <button class="filter-btn" onclick="filterGallery('greenhouse', this)">Greenhouse</button>
-                        <button class="filter-btn" onclick="filterGallery('harvest', this)">Harvest</button>
-                        <button class="filter-btn" onclick="filterGallery('team', this)">Team</button>
+                        <button class="filter-btn" onclick="filterGallery('greenhouse', this)"><i class="fas fa-leaf" style="font-size: 0.7rem;"></i> Greenhouse</button>
+                        <button class="filter-btn" onclick="filterGallery('harvest', this)"><i class="fas fa-carrot" style="font-size: 0.7rem;"></i> Harvest</button>
+                        <button class="filter-btn" onclick="filterGallery('team', this)"><i class="fas fa-users" style="font-size: 0.7rem;"></i> Team</button>
                     </div>
 
                     <div class="gallery-grid" id="farmPicsGallery">
@@ -9764,68 +9812,29 @@
                 </div>
             </div>
 
-            <!-- UGC (User-Generated Content) Curation Section -->
+            <!-- Customer Photos (UGC) - Manual Curation -->
             <div class="card ugc-section">
                 <div class="card-header">
-                    <h3><i class="fas fa-users" style="color: var(--purple);"></i> Customer Photos (UGC)</h3>
-                    <button class="btn btn-secondary btn-sm" onclick="searchHashtags()">
-                        <i class="fas fa-search"></i> Search #TinySeedFarm
-                    </button>
+                    <h3><i class="fas fa-heart" style="color: var(--instagram);"></i> Customer Photos</h3>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-sm btn-primary" onclick="openAddCustomerPhotoModal()">
+                            <i class="fas fa-plus"></i> Add Customer Photo
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body">
-                    <!-- Hashtag Monitoring List -->
-                    <div class="ugc-hashtag-list">
-                        <div class="ugc-hashtag-item">
-                            <i class="fab fa-instagram"></i>
-                            #TinySeedFarm
-                            <span class="ugc-hashtag-count" id="hashtagCount1">0</span>
-                        </div>
-                        <div class="ugc-hashtag-item">
-                            <i class="fab fa-instagram"></i>
-                            #TinySeedFleurs
-                            <span class="ugc-hashtag-count" id="hashtagCount2">0</span>
-                        </div>
-                        <div class="ugc-hashtag-item">
-                            <i class="fab fa-instagram"></i>
-                            #TinySeedFungi
-                            <span class="ugc-hashtag-count" id="hashtagCount3">0</span>
-                        </div>
-                        <div class="ugc-hashtag-item">
-                            <i class="fab fa-instagram"></i>
-                            #PittsburghFarm
-                            <span class="ugc-hashtag-count" id="hashtagCount4">0</span>
-                        </div>
-                        <div class="ugc-hashtag-item">
-                            <i class="fab fa-instagram"></i>
-                            #LocalProduce
-                            <span class="ugc-hashtag-count" id="hashtagCount5">0</span>
-                        </div>
+                    <!-- Brand Hashtags -->
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; padding: 0.75rem; background: var(--bg-dark); border-radius: 8px;">
+                        <span style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600; display: flex; align-items: center; gap: 0.25rem;"><i class="fab fa-instagram" style="color: var(--instagram);"></i> Your Hashtags:</span>
+                        <span style="background: rgba(225,48,108,0.15); color: var(--instagram); padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">#TinySeedFarm</span>
+                        <span style="background: rgba(225,48,108,0.15); color: var(--instagram); padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">#TinySeedFleurs</span>
+                        <span style="background: rgba(225,48,108,0.15); color: var(--instagram); padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">#TinySeedFungi</span>
+                        <span style="background: rgba(225,48,108,0.15); color: var(--instagram); padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">#PittsburghFarm</span>
                     </div>
 
-                    <!-- UGC Status Filters -->
-                    <div class="ugc-filters">
-                        <button class="ugc-filter-btn active" onclick="filterUGC('pending')" data-filter="pending">
-                            <i class="fas fa-clock"></i> Pending Approval
-                            <span class="count" id="ugcPendingCount">0</span>
-                        </button>
-                        <button class="ugc-filter-btn" onclick="filterUGC('approved')" data-filter="approved">
-                            <i class="fas fa-check"></i> Approved
-                            <span class="count" id="ugcApprovedCount">0</span>
-                        </button>
-                        <button class="ugc-filter-btn" onclick="filterUGC('reposted')" data-filter="reposted">
-                            <i class="fas fa-share"></i> Reposted
-                            <span class="count" id="ugcRepostedCount">0</span>
-                        </button>
-                    </div>
-
-                    <!-- UGC Gallery Grid -->
-                    <div class="gallery-grid" id="ugcGallery">
-                        <!-- UGC photos will be populated by JavaScript -->
-                        <div class="ugc-empty-state">
-                            <i class="fas fa-camera"></i>
-                            <p>No customer photos found yet.</p>
-                            <p style="font-size: 0.85rem; opacity: 0.7;">Click "Search #TinySeedFarm" to find customer posts!</p>
-                        </div>
+                    <!-- UGC Gallery -->
+                    <div id="ugcGallery">
+                        <div id="ugcContent"></div>
                     </div>
                 </div>
             </div>
@@ -20493,113 +20502,170 @@ From our farm to your table with love. Every bite tells a story of dedication, h
 
         // Farm pics - loaded from API
         let farmPicsData = [];
+        let farmPicsSearchTerm = '';
+        let farmPicsSortOrder = 'newest';
+        let farmPicsCurrentFilter = 'all';
 
-        function renderFarmPics(filter = 'all') {
-            const gallery = document.getElementById('farmPicsGallery');
+        function renderFarmPics(filter) {
+            if (typeof filter !== 'undefined') farmPicsCurrentFilter = filter;
+            filter = farmPicsCurrentFilter || 'all';
+            var gallery = document.getElementById('farmPicsGallery');
             if (!gallery) return;
 
-            let filtered = farmPicsData;
+            var filtered = farmPicsData;
             if (filter !== 'all') {
                 if (['new', 'approved', 'used'].includes(filter)) {
-                    filtered = farmPicsData.filter(pic => pic.status === filter);
+                    filtered = farmPicsData.filter(function(pic) { return pic.status === filter; });
                 } else {
-                    filtered = farmPicsData.filter(pic => pic.category === filter);
+                    filtered = farmPicsData.filter(function(pic) { return pic.category === filter; });
                 }
             }
 
+            // Apply search filter
+            if (farmPicsSearchTerm) {
+                var term = farmPicsSearchTerm.toLowerCase();
+                filtered = filtered.filter(function(pic) {
+                    return (pic.author && pic.author.toLowerCase().includes(term)) ||
+                           (pic.caption && pic.caption.toLowerCase().includes(term)) ||
+                           (pic.category && pic.category.toLowerCase().includes(term)) ||
+                           (pic.description && pic.description.toLowerCase().includes(term));
+                });
+            }
+
+            // Apply sort
+            if (farmPicsSortOrder === 'oldest') {
+                filtered = filtered.slice().reverse();
+            } else if (farmPicsSortOrder === 'author') {
+                filtered = filtered.slice().sort(function(a, b) { return (a.author || '').localeCompare(b.author || ''); });
+            }
+
             if (filtered.length === 0) {
-                gallery.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--text-secondary);"><i class="fas fa-images" style="font-size: 3rem; opacity: 0.5;"></i><p style="margin-top: 1rem;">' + (farmPicsData.length === 0 ? 'No photos in library' : 'No photos match "' + filter + '" filter') + '</p><p style="font-size: 0.85rem; opacity: 0.7;">Upload via Employee App or MARKETING_FarmPics sheet.</p></div>';
+                var msg = farmPicsData.length === 0 ? 'No photos in library yet' : (farmPicsSearchTerm ? 'No photos match "' + farmPicsSearchTerm + '"' : 'No photos match "' + filter + '" filter');
+                gallery.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--text-secondary);"><i class="fas fa-images" style="font-size: 3rem; opacity: 0.3;"></i><p style="margin-top: 1rem; font-weight: 600;">' + msg + '</p><p style="font-size: 0.85rem; opacity: 0.7; margin-top: 0.5rem;">Upload photos using the upload zone above, or from the Employee Field App.</p>' + (farmPicsData.length === 0 ? '<button class="btn btn-sm btn-primary" style="margin-top: 1rem;" onclick="document.getElementById(\'photosFileInput\').click()"><i class="fas fa-upload"></i> Upload First Photo</button>' : '') + '</div>';
                 return;
             }
 
-            gallery.innerHTML = filtered.map(pic => `
-                <div class="gallery-item" data-id="${pic.id}" onclick="openPhotoPreview('${pic.id}')">
-                    <img src="${pic.url}" alt="${pic.altText || pic.caption || 'Farm photo by ' + pic.author}" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'400\\' height=\\'300\\' viewBox=\\'0 0 400 300\\'%3E%3Crect fill=\\'%23333\\' width=\\'400\\' height=\\'300\\'/%3E%3Ctext fill=\\'%23666\\' x=\\'50%25\\' y=\\'50%25\\' text-anchor=\\'middle\\' dy=\\'.3em\\' font-family=\\'sans-serif\\' font-size=\\'16\\'%3ENo Image%3C/text%3E%3C/svg%3E';">
-                    <div class="gallery-item-overlay">
-                        <div class="gallery-item-meta">
-                            <div class="gallery-item-author"><i class="fas fa-user-circle"></i> ${pic.author}</div>
-                            <span class="gallery-item-status ${pic.status}">${pic.status}</span>
-                        </div>
-                        ${pic.date ? '<div style="font-size: 0.7rem; opacity: 0.8; margin-top: 0.25rem;"><i class="fas fa-clock"></i> ' + pic.date + '</div>' : ''}
-                    </div>
-                    <div class="gallery-item-actions" onclick="event.stopPropagation()">
-                        ${pic.status === 'new' ? '<button class="gallery-action-btn approve" onclick="approvePic(\'' + pic.id + '\')" title="Approve"><i class="fas fa-check"></i></button>' : ''}
-                        <button class="gallery-action-btn use" onclick="usePicInPost('${pic.id}')" title="Use in post"><i class="fas fa-share"></i></button>
-                        <button class="gallery-action-btn delete" onclick="deletePic('${pic.id}')" title="Delete"><i class="fas fa-trash"></i></button>
-                    </div>
-                </div>
-            `).join('');
+            var categoryIcons = { greenhouse: 'fa-leaf', harvest: 'fa-carrot', team: 'fa-users', flowers: 'fa-seedling', mushrooms: 'fa-cloud', general: 'fa-tag' };
+            var statusColors = { 'new': 'var(--instagram)', 'approved': 'var(--success)', 'used': 'var(--info)' };
+
+            gallery.innerHTML = filtered.map(function(pic) {
+                var catIcon = categoryIcons[pic.category] || 'fa-tag';
+                var sColor = statusColors[pic.status] || 'var(--text-secondary)';
+                return '<div class="gallery-item" data-id="' + pic.id + '" onclick="openPhotoPreview(\'' + pic.id + '\')">' +
+                    '<img src="' + pic.url + '" alt="' + (pic.altText || pic.caption || 'Farm photo by ' + pic.author).replace(/"/g, '&quot;') + '" loading="lazy" onerror="this.onerror=null; this.parentElement.classList.add(\'img-error\'); this.src=\'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22%3E%3Crect fill=%22%23222%22 width=%22400%22 height=%22300%22/%3E%3Ctext fill=%22%23555%22 x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 font-family=%22sans-serif%22 font-size=%2214%22%3EImage unavailable%3C/text%3E%3C/svg%3E\';">' +
+                    '<div class="gallery-item-overlay">' +
+                        '<div class="gallery-item-meta">' +
+                            '<div class="gallery-item-author"><i class="fas fa-user-circle"></i> ' + pic.author + '</div>' +
+                            '<span style="background:' + sColor + '20;color:' + sColor + ';padding:0.15rem 0.4rem;border-radius:4px;font-size:0.65rem;font-weight:600;text-transform:uppercase;">' + pic.status + '</span>' +
+                        '</div>' +
+                        '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.25rem;">' +
+                            (pic.date ? '<span style="font-size:0.65rem;opacity:0.8;"><i class="fas fa-clock"></i> ' + pic.date + '</span>' : '<span></span>') +
+                            '<span style="font-size:0.65rem;opacity:0.8;"><i class="fas ' + catIcon + '"></i> ' + (pic.category || 'general') + '</span>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="gallery-item-actions" onclick="event.stopPropagation()">' +
+                        (pic.status === 'new' ? '<button class="gallery-action-btn approve" onclick="approvePic(\'' + pic.id + '\')" title="Approve"><i class="fas fa-check"></i></button>' : '') +
+                        '<button class="gallery-action-btn use" onclick="usePicInPost(\'' + pic.id + '\')" title="Use in post"><i class="fas fa-share"></i></button>' +
+                        '<button class="gallery-action-btn delete" onclick="deletePic(\'' + pic.id + '\')" title="Delete"><i class="fas fa-trash"></i></button>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
         }
 
         function filterGallery(filter, btn) {
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
+            document.querySelectorAll('.gallery-filters .filter-btn').forEach(function(b) { b.classList.remove('active'); });
+            if (btn) btn.classList.add('active');
             renderFarmPics(filter);
+        }
+
+        function searchFarmPics(term) {
+            farmPicsSearchTerm = (term || '').trim();
+            renderFarmPics();
+        }
+
+        function sortFarmPics(order) {
+            farmPicsSortOrder = order || 'newest';
+            renderFarmPics();
+        }
+
+        function updatePhotoStats() {
+            var total = farmPicsData.length;
+            var newCount = farmPicsData.filter(function(p) { return p.status === 'new'; }).length;
+            var approved = farmPicsData.filter(function(p) { return p.status === 'approved'; }).length;
+            var used = farmPicsData.filter(function(p) { return p.status === 'used'; }).length;
+            var categories = new Set(farmPicsData.map(function(p) { return p.category || 'general'; }));
+            var el = function(id) { return document.getElementById(id); };
+            if (el('photoStatTotal')) el('photoStatTotal').textContent = total;
+            if (el('photoStatNew')) el('photoStatNew').textContent = newCount;
+            if (el('photoStatApproved')) el('photoStatApproved').textContent = approved;
+            if (el('photoStatUsed')) el('photoStatUsed').textContent = used;
+            if (el('photoStatCategories')) el('photoStatCategories').textContent = categories.size;
+            if (el('filterCountAll')) el('filterCountAll').textContent = total;
+            // Hide approve all button if no new pics
+            var approveBtn = el('approveAllBtn');
+            if (approveBtn) approveBtn.style.display = newCount > 0 ? '' : 'none';
         }
 
         // Approve single photo - syncs with backend
         async function approvePic(id) {
-            const pic = farmPicsData.find(p => p.id == id);
+            var pic = farmPicsData.find(function(p) { return p.id == id; });
             if (!pic) { showToast('Photo not found', 'error'); return; }
 
-            // Optimistic UI update
             pic.status = 'approved';
             renderFarmPics();
             updateNewPicsBadge();
+            showToast('Photo approved!', 'success');
 
             try {
-                const response = await fetch(APPS_SCRIPT_URL, {
+                await fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({ action: 'approveFarmPic', picId: id, approved: true, approvedBy: 'Admin' })
                 });
-                const result = await response.json();
-                if (result.success) {
-                    showToast('Photo approved!', 'success');
-                } else {
-                    showToast('Photo approved locally (backend pending)', 'warning');
-                }
             } catch (error) {
                 console.error('Approve sync error:', error);
-                showToast('Photo approved locally', 'warning');
             }
         }
 
         // Approve all new photos - syncs with backend
         async function approveAllPics() {
-            const newPics = farmPicsData.filter(p => p.status === 'new');
-            if (newPics.length === 0) { showToast('No new photos to approve', 'info'); return; }
+            var newPics = farmPicsData.filter(function(p) { return p.status === 'new'; });
+            if (newPics.length === 0) {
+                showToast('No new photos to approve — all caught up!', 'info');
+                return;
+            }
 
+            var count = newPics.length;
             // Optimistic UI update
-            newPics.forEach(pic => pic.status = 'approved');
+            newPics.forEach(function(pic) { pic.status = 'approved'; });
             renderFarmPics();
             updateNewPicsBadge();
-            showToast('Approving ' + newPics.length + ' photos...', 'info');
+            showToast('Approving ' + count + ' photo' + (count > 1 ? 's' : '') + '...', 'info');
 
             try {
-                // Sync with backend in parallel
-                const results = await Promise.allSettled(
-                    newPics.map(pic => fetch(APPS_SCRIPT_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'text/plain' },
-                        body: JSON.stringify({ action: 'approveFarmPic', picId: pic.id, approved: true, approvedBy: 'Admin' })
-                    }))
+                var results = await Promise.allSettled(
+                    newPics.map(function(pic) {
+                        return fetch(API_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'text/plain' },
+                            body: JSON.stringify({ action: 'approveFarmPic', picId: pic.id, approved: true, approvedBy: 'Admin' })
+                        });
+                    })
                 );
-                const successCount = results.filter(r => r.status === 'fulfilled').length;
-                showToast(successCount + '/' + newPics.length + ' photos approved!', 'success');
+                var successCount = results.filter(function(r) { return r.status === 'fulfilled'; }).length;
+                showToast(successCount + ' of ' + count + ' photos approved!', 'success');
             } catch (error) {
                 console.error('Batch approval error:', error);
-                showToast('Error approving photos. They are saved locally.', 'error');
+                showToast(count + ' photos approved locally (backend sync pending)', 'warning');
             }
         }
 
         // Use photo in social post - includes SEO metadata
         async function usePicInPost(id) {
-            const pic = farmPicsData.find(p => p.id == id);
+            var pic = farmPicsData.find(function(p) { return p.id == id; });
             if (!pic) { showToast('Photo not found', 'error'); return; }
 
-            // Validate photo has real URL (not placeholder SVG)
-            if (!pic.url || pic.url.includes('data:image/svg') || pic.url.includes('No Image')) {
+            if (!pic.url || pic.url.includes('data:image/svg')) {
                 showToast('This photo has no valid image. Please upload a new photo.', 'error');
                 return;
             }
@@ -20608,22 +20674,19 @@ From our farm to your table with love. Every bite tells a story of dedication, h
             renderFarmPics();
             updateNewPicsBadge();
 
-            // Switch to CREATE tab
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelector('.tab-btn[onclick*="fieldmode"]')?.classList.add('active');
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            document.getElementById('createTab')?.classList.add('active');
+            // Switch to Create tab using proper switchTab function
+            switchTab('fieldmode');
 
             // Load photo with SEO metadata
-            const preview = document.getElementById('uploadPreview');
+            var preview = document.getElementById('uploadPreview');
             if (preview) { preview.src = pic.url; preview.classList.add('visible'); }
-            const uploadZoneSEO = document.getElementById('uploadZone');
+            var uploadZoneSEO = document.getElementById('uploadZone');
             if (uploadZoneSEO) uploadZoneSEO.classList.add('has-image');
-            const uploadIcon = document.getElementById('uploadIcon');
+            var uploadIcon = document.getElementById('uploadIcon');
             if (uploadIcon) uploadIcon.style.display = 'none';
-            const uploadText = document.getElementById('uploadText');
+            var uploadText = document.getElementById('uploadText');
             if (uploadText) uploadText.textContent = 'Farm pic by ' + pic.author;
-            showClearButton();
+            if (typeof showClearButton === 'function') showClearButton();
 
             selectedFile = {
                 name: 'farm_pic_' + id + '.jpg',
@@ -20634,14 +20697,14 @@ From our farm to your table with love. Every bite tells a story of dedication, h
             };
 
             if (pic.caption) {
-                const captionInput = document.getElementById('captionInput');
+                var captionInput = document.getElementById('captionInput');
                 if (captionInput && !captionInput.value) {
                     captionInput.value = pic.caption;
                     if (typeof updateCharCount === 'function') updateCharCount();
                 }
             }
 
-            updateBlastButton();
+            if (typeof updateBlastButton === 'function') updateBlastButton();
             showToast('Photo loaded! Add caption and post.', 'success');
         }
 
@@ -20723,122 +20786,211 @@ From our farm to your table with love. Every bite tells a story of dedication, h
         }
 
         function updateNewPicsBadge() {
-            const newCount = farmPicsData.filter(p => p.status === 'new').length;
-            const badge = document.getElementById('newPicsBadge');
+            var newCount = farmPicsData.filter(function(p) { return p.status === 'new'; }).length;
+            var badge = document.getElementById('newPicsBadge');
             if (badge) { badge.textContent = newCount; badge.style.display = newCount > 0 ? 'inline' : 'none'; }
+            updatePhotoStats();
         }
 
-        // Photo preview modal
+        // Photo preview modal - uses modal-overlay pattern like all other modals
         function openPhotoPreview(id) {
+            event && event.preventDefault && event.preventDefault();
             const pic = farmPicsData.find(p => p.id == id);
             if (!pic) return;
-            let modal = document.getElementById('photoPreviewModal');
-            if (!modal) {
-                modal = document.createElement('div');
-                modal.id = 'photoPreviewModal';
-                modal.className = 'modal';
-                modal.innerHTML = '<div class="modal-content" style="max-width:800px;"><div class="modal-header"><h3 id="photoPreviewTitle"></h3><button class="modal-close" onclick="closePhotoPreview()">&times;</button></div><div class="modal-body" style="padding:0;"><img id="photoPreviewImg" style="width:100%;max-height:400px;object-fit:contain;background:#000;"><div style="padding:1.5rem;"><div id="photoPreviewMeta"></div><div id="photoPreviewActions" style="display:flex;gap:0.75rem;margin-top:1rem;flex-wrap:wrap;"></div></div></div></div>';
-                document.body.appendChild(modal);
+            let overlay = document.getElementById('photoPreviewModal');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'photoPreviewModal';
+                overlay.className = 'modal-overlay';
+                overlay.onclick = function(e) { if (e.target === overlay) closePhotoPreview(); };
+                overlay.innerHTML = '<div class="modal" style="max-width:800px; width:95%;"><div class="modal-header"><h3 id="photoPreviewTitle"></h3><button class="modal-close" onclick="closePhotoPreview()">&times;</button></div><div class="modal-body" style="padding:0;"><img id="photoPreviewImg" style="width:100%;max-height:500px;object-fit:contain;background:#000;display:block;"><div style="padding:1.5rem;"><div id="photoPreviewMeta"></div><div id="photoPreviewActions" style="display:flex;gap:0.75rem;margin-top:1rem;flex-wrap:wrap;"></div></div></div></div>';
+                document.body.appendChild(overlay);
             }
+            var statusColors = { 'new': 'var(--instagram)', 'approved': 'var(--success)', 'used': 'var(--info)' };
+            var statusColor = statusColors[pic.status] || 'var(--text-secondary)';
+            var categoryIcon = { greenhouse: 'fa-leaf', harvest: 'fa-carrot', team: 'fa-users', flowers: 'fa-seedling', general: 'fa-tag' };
+            var catIcon = categoryIcon[pic.category] || 'fa-tag';
             document.getElementById('photoPreviewImg').src = pic.url;
             document.getElementById('photoPreviewTitle').innerHTML = '<i class="fas fa-image"></i> Photo by ' + safeHTML(pic.author);
-            document.getElementById('photoPreviewMeta').innerHTML = '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;"><div><div style="font-size:0.75rem;color:var(--text-secondary);">Status</div><span class="gallery-item-status ' + safeHTML(pic.status) + '">' + safeHTML(pic.status) + '</span></div><div><div style="font-size:0.75rem;color:var(--text-secondary);">Category</div>' + safeHTML(pic.category || 'General') + '</div><div><div style="font-size:0.75rem;color:var(--text-secondary);">Uploaded</div>' + safeHTML(pic.date || 'Unknown') + '</div><div><div style="font-size:0.75rem;color:var(--text-secondary);">By</div>' + safeHTML(pic.author) + '</div></div>' + (pic.caption ? '<div style="margin-top:1rem;"><div style="font-size:0.75rem;color:var(--text-secondary);">Caption (SEO)</div><p>' + safeHTML(pic.caption) + '</p></div>' : '');
+            document.getElementById('photoPreviewMeta').innerHTML = '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;"><div><div style="font-size:0.75rem;color:var(--text-secondary);">Status</div><span style="background:' + statusColor + '20;color:' + statusColor + ';padding:0.2rem 0.6rem;border-radius:6px;font-size:0.8rem;font-weight:600;text-transform:capitalize;">' + safeHTML(pic.status) + '</span></div><div><div style="font-size:0.75rem;color:var(--text-secondary);">Category</div><span style="display:inline-flex;align-items:center;gap:0.3rem;"><i class="fas ' + catIcon + '" style="font-size:0.75rem;"></i> ' + safeHTML((pic.category || 'general').charAt(0).toUpperCase() + (pic.category || 'general').slice(1)) + '</span></div><div><div style="font-size:0.75rem;color:var(--text-secondary);">Uploaded</div>' + safeHTML(pic.date || 'Unknown') + '</div><div><div style="font-size:0.75rem;color:var(--text-secondary);">By</div>' + safeHTML(pic.author) + '</div></div>' + (pic.caption ? '<div style="margin-top:1rem;"><div style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:0.25rem;">Caption</div><p style="margin:0;line-height:1.5;">' + safeHTML(pic.caption) + '</p></div>' : '') + (pic.altText && pic.altText !== pic.caption ? '<div style="margin-top:0.5rem;"><div style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:0.25rem;">Alt Text (SEO)</div><p style="margin:0;font-size:0.85rem;opacity:0.8;">' + safeHTML(pic.altText) + '</p></div>' : '');
             document.getElementById('photoPreviewActions').innerHTML = (pic.status === 'new' ? '<button class="btn btn-success" onclick="approvePic(\'' + pic.id + '\');closePhotoPreview();"><i class="fas fa-check"></i> Approve</button>' : '') + '<button class="btn btn-primary" onclick="usePicInPost(\'' + pic.id + '\');closePhotoPreview();"><i class="fas fa-share"></i> Use in Post</button><button class="btn btn-secondary" onclick="window.open(\'' + pic.url + '\',\'_blank\')"><i class="fas fa-external-link-alt"></i> Full Size</button><button class="btn btn-danger" onclick="deletePic(\'' + pic.id + '\');closePhotoPreview();"><i class="fas fa-trash"></i> Delete</button>';
-            modal.classList.add('active');
+            overlay.classList.add('active');
         }
 
         function closePhotoPreview() {
-            const modal = document.getElementById('photoPreviewModal');
-            if (modal) modal.classList.remove('active');
+            var overlay = document.getElementById('photoPreviewModal');
+            if (overlay) overlay.classList.remove('active');
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
-        // UGC (USER-GENERATED CONTENT) - Customer Photos from Social Media
+        // CUSTOMER PHOTOS (UGC) - Manual Curation Workflow
         // ═══════════════════════════════════════════════════════════════════════════
 
-        let ugcData = [];
-        let ugcFilter = 'pending';
+        var customerPhotosData = JSON.parse(localStorage.getItem('mcc_customer_photos') || '[]');
 
-        function searchHashtags() {
-            showToast('Hashtag search requires Instagram API connection. Coming soon!', 'info');
-            // Future: Connect to Instagram Graph API to search for #TinySeedFarm mentions
-        }
+        function renderCustomerPhotos() {
+            var container = document.getElementById('ugcContent');
+            if (!container) return;
 
-        function filterUGC(filter) {
-            ugcFilter = filter;
-            document.querySelectorAll('.ugc-filter-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.filter === filter);
-            });
-            renderUGC();
-        }
-
-        function renderUGC() {
-            const gallery = document.getElementById('ugcGallery');
-            if (!gallery) return;
-
-            const filtered = ugcData.filter(item => item.status === ugcFilter);
-
-            if (filtered.length === 0) {
-                gallery.innerHTML = `<div class="ugc-empty-state">
-                    <i class="fas fa-camera"></i>
-                    <p>No ${ugcFilter} customer photos.</p>
-                    <p style="font-size: 0.85rem; opacity: 0.7;">Customer photos will appear here when Instagram API is connected.</p>
-                </div>`;
+            if (customerPhotosData.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 2.5rem; color: var(--text-secondary);">' +
+                    '<i class="fas fa-heart" style="font-size: 2.5rem; opacity: 0.3; color: var(--instagram); margin-bottom: 1rem;"></i>' +
+                    '<p style="font-weight: 600; font-size: 1rem; margin-bottom: 0.5rem;">No customer photos saved yet</p>' +
+                    '<p style="font-size: 0.85rem; opacity: 0.7; margin-bottom: 1rem; max-width: 400px; margin-left: auto; margin-right: auto;">When customers tag you on Instagram or share their farm haul, save their photos here for reposting (with credit!).</p>' +
+                    '<div style="display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">' +
+                        '<button class="btn btn-sm btn-primary" onclick="openAddCustomerPhotoModal()"><i class="fas fa-plus"></i> Add Customer Photo</button>' +
+                    '</div>' +
+                    '<div style="margin-top: 1.5rem; padding: 1rem; background: var(--bg-dark); border-radius: 8px; text-align: left; max-width: 400px; margin-left: auto; margin-right: auto;">' +
+                        '<div style="font-size: 0.8rem; font-weight: 600; margin-bottom: 0.5rem;"><i class="fas fa-lightbulb" style="color: var(--gold);"></i> How it works:</div>' +
+                        '<div style="font-size: 0.75rem; line-height: 1.6;">' +
+                            '1. Screenshot or save a customer\'s Instagram post<br>' +
+                            '2. Click "Add Customer Photo" above<br>' +
+                            '3. Upload the photo + add their @handle for credit<br>' +
+                            '4. Click "Use in Post" to repost with attribution' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
                 return;
             }
 
-            gallery.innerHTML = filtered.map(item => `
-                <div class="ugc-card">
-                    <div class="ugc-card-image">
-                        <img src="${item.imageUrl}" alt="Customer photo">
-                        <div class="ugc-platform-badge ${item.platform}"><i class="fab fa-${item.platform}"></i></div>
-                        <div class="ugc-permission-badge ${item.permission}">${item.permission}</div>
-                    </div>
-                    <div class="ugc-card-content">
-                        <div class="ugc-customer-info">
-                            <div class="ugc-customer-avatar">${item.handle.charAt(1).toUpperCase()}</div>
-                            <div class="ugc-customer-handle">${item.handle}</div>
-                        </div>
-                        <div class="ugc-caption-preview">${item.caption || ''}</div>
-                        <div class="ugc-actions">
-                            <button class="ugc-action-btn primary" onclick="requestUGCPermission('${item.id}')"><i class="fas fa-envelope"></i> Request</button>
-                            <button class="ugc-action-btn success" onclick="approveUGC('${item.id}')"><i class="fas fa-check"></i> Approve</button>
-                            <button class="ugc-action-btn repost" onclick="repostUGC('${item.id}')"><i class="fas fa-share"></i> Repost</button>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
+            container.innerHTML = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">' +
+                customerPhotosData.map(function(photo) {
+                    return '<div style="background: var(--bg-light); border-radius: 12px; overflow: hidden; border: 1px solid var(--border);">' +
+                        '<div style="position: relative; aspect-ratio: 1;">' +
+                            '<img src="' + photo.imageData + '" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src=\'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22%3E%3Crect fill=%22%23222%22 width=%22200%22 height=%22200%22/%3E%3Ctext fill=%22%23555%22 x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 font-size=%2212%22%3EImage error%3C/text%3E%3C/svg%3E\';">' +
+                            '<div style="position: absolute; top: 0.5rem; left: 0.5rem; background: rgba(0,0,0,0.7); padding: 0.2rem 0.5rem; border-radius: 6px; font-size: 0.7rem; display: flex; align-items: center; gap: 0.25rem;"><i class="fab fa-instagram" style="color: var(--instagram);"></i> ' + safeHTML(photo.handle || 'Unknown') + '</div>' +
+                        '</div>' +
+                        '<div style="padding: 0.75rem;">' +
+                            (photo.caption ? '<div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem; line-height: 1.4;">' + safeHTML(photo.caption).substring(0, 100) + '</div>' : '') +
+                            '<div style="font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 0.5rem;"><i class="fas fa-calendar"></i> ' + (photo.addedDate || 'Recently') + '</div>' +
+                            '<div style="display: flex; gap: 0.5rem;">' +
+                                '<button class="btn btn-sm btn-primary" onclick="useCustomerPhotoInPost(\'' + photo.id + '\')" style="flex: 1; font-size: 0.75rem;"><i class="fas fa-share"></i> Use in Post</button>' +
+                                '<button class="btn btn-sm btn-secondary" onclick="deleteCustomerPhoto(\'' + photo.id + '\')" style="font-size: 0.75rem;" title="Remove"><i class="fas fa-trash"></i></button>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>';
+                }).join('') +
+            '</div>';
         }
 
-        function requestUGCPermission(id) {
-            showToast('Permission request feature coming soon', 'info');
-        }
-
-        function approveUGC(id) {
-            const item = ugcData.find(u => u.id === id);
-            if (item) {
-                item.status = 'approved';
-                item.permission = 'granted';
-                renderUGC();
-                updateUGCCounts();
-                showToast('Photo approved for reposting', 'success');
+        function openAddCustomerPhotoModal() {
+            var overlay = document.getElementById('addCustomerPhotoModal');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'addCustomerPhotoModal';
+                overlay.className = 'modal-overlay';
+                overlay.onclick = function(e) { if (e.target === overlay) overlay.classList.remove('active'); };
+                overlay.innerHTML = '<div class="modal" style="max-width: 500px; width: 95%;">' +
+                    '<div class="modal-header"><h3><i class="fas fa-heart" style="color: var(--instagram);"></i> Add Customer Photo</h3><button class="modal-close" onclick="document.getElementById(\'addCustomerPhotoModal\').classList.remove(\'active\')">&times;</button></div>' +
+                    '<div class="modal-body" style="padding: 1.5rem;">' +
+                        '<div style="margin-bottom: 1rem;">' +
+                            '<label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; display: block;">Customer\'s Instagram Handle</label>' +
+                            '<input type="text" id="ugcCustomerHandle" placeholder="@customer_name" style="width: 100%; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem 0.75rem; color: var(--text-primary); font-size: 0.9rem;">' +
+                        '</div>' +
+                        '<div style="margin-bottom: 1rem;">' +
+                            '<label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; display: block;">Photo</label>' +
+                            '<div id="ugcPhotoUploadZone" onclick="document.getElementById(\'ugcPhotoFileInput\').click()" style="border: 2px dashed var(--border); border-radius: 8px; padding: 2rem; text-align: center; cursor: pointer; transition: border-color 0.2s;">' +
+                                '<div id="ugcPhotoPreviewArea"><i class="fas fa-image" style="font-size: 2rem; color: var(--text-secondary); opacity: 0.5;"></i><p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">Click to upload customer photo</p></div>' +
+                                '<input type="file" id="ugcPhotoFileInput" accept="image/*" style="display: none;" onchange="previewUGCPhoto(event)">' +
+                            '</div>' +
+                        '</div>' +
+                        '<div style="margin-bottom: 1rem;">' +
+                            '<label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; display: block;">Caption / Context (optional)</label>' +
+                            '<textarea id="ugcCaption" placeholder="What did the customer say? Any context..." style="width: 100%; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem 0.75rem; color: var(--text-primary); font-size: 0.85rem; min-height: 60px; resize: vertical;"></textarea>' +
+                        '</div>' +
+                        '<button class="btn btn-primary" onclick="saveCustomerPhoto()" style="width: 100%;"><i class="fas fa-save"></i> Save Customer Photo</button>' +
+                    '</div>' +
+                '</div>';
+                document.body.appendChild(overlay);
             }
+            // Reset form
+            var handleInput = document.getElementById('ugcCustomerHandle');
+            var captionInput = document.getElementById('ugcCaption');
+            var previewArea = document.getElementById('ugcPhotoPreviewArea');
+            if (handleInput) handleInput.value = '';
+            if (captionInput) captionInput.value = '';
+            if (previewArea) previewArea.innerHTML = '<i class="fas fa-image" style="font-size: 2rem; color: var(--text-secondary); opacity: 0.5;"></i><p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">Click to upload customer photo</p>';
+            window._ugcPhotoData = null;
+            overlay.classList.add('active');
         }
 
-        function repostUGC(id) {
-            showToast('Repost feature coming soon - will open in Create tab', 'info');
+        function previewUGCPhoto(event) {
+            var file = event.target.files[0];
+            if (!file) return;
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                window._ugcPhotoData = e.target.result;
+                var area = document.getElementById('ugcPhotoPreviewArea');
+                if (area) area.innerHTML = '<img src="' + e.target.result + '" style="max-width: 100%; max-height: 200px; border-radius: 8px; object-fit: contain;">';
+            };
+            reader.readAsDataURL(file);
         }
 
-        function updateUGCCounts() {
-            const pending = ugcData.filter(u => u.status === 'pending').length;
-            const approved = ugcData.filter(u => u.status === 'approved').length;
-            const reposted = ugcData.filter(u => u.status === 'reposted').length;
-            const pendingEl = document.getElementById('ugcPendingCount');
-            const approvedEl = document.getElementById('ugcApprovedCount');
-            const repostedEl = document.getElementById('ugcRepostedCount');
-            if (pendingEl) pendingEl.textContent = pending;
-            if (approvedEl) approvedEl.textContent = approved;
-            if (repostedEl) repostedEl.textContent = reposted;
+        function saveCustomerPhoto() {
+            var handle = (document.getElementById('ugcCustomerHandle').value || '').trim();
+            var caption = (document.getElementById('ugcCaption').value || '').trim();
+            var imageData = window._ugcPhotoData;
+
+            if (!imageData) {
+                showToast('Please upload a photo first', 'error');
+                return;
+            }
+            if (!handle) {
+                showToast('Please enter the customer\'s Instagram handle', 'error');
+                return;
+            }
+            if (!handle.startsWith('@')) handle = '@' + handle;
+
+            var photo = {
+                id: 'ugc_' + Date.now(),
+                handle: handle,
+                caption: caption,
+                imageData: imageData,
+                addedDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                status: 'saved'
+            };
+
+            customerPhotosData.unshift(photo);
+            localStorage.setItem('mcc_customer_photos', JSON.stringify(customerPhotosData));
+            renderCustomerPhotos();
+            document.getElementById('addCustomerPhotoModal').classList.remove('active');
+            showToast('Customer photo saved! Use "Use in Post" to repost with credit.', 'success');
+        }
+
+        function useCustomerPhotoInPost(id) {
+            var photo = customerPhotosData.find(function(p) { return p.id === id; });
+            if (!photo) return;
+
+            // Switch to Create tab
+            switchTab('fieldmode');
+
+            // Load photo into upload preview
+            var preview = document.getElementById('uploadPreview');
+            if (preview) { preview.src = photo.imageData; preview.classList.add('visible'); }
+            var uploadZoneUGC = document.getElementById('uploadZone');
+            if (uploadZoneUGC) uploadZoneUGC.classList.add('has-image');
+            var uploadIcon = document.getElementById('uploadIcon');
+            if (uploadIcon) uploadIcon.style.display = 'none';
+            var uploadText = document.getElementById('uploadText');
+            if (uploadText) uploadText.textContent = 'Customer photo from ' + photo.handle;
+            showClearButton();
+
+            // Pre-fill caption with attribution
+            var captionInput = document.getElementById('captionInput');
+            if (captionInput && !captionInput.value.trim()) {
+                captionInput.value = (photo.caption ? photo.caption + '\n\n' : '') + 'Photo credit: ' + photo.handle + ' - Thank you for sharing!';
+                if (typeof updateCharCount === 'function') updateCharCount();
+            }
+
+            showToast('Customer photo loaded with credit to ' + photo.handle, 'success');
+        }
+
+        function deleteCustomerPhoto(id) {
+            if (!confirm('Remove this customer photo?')) return;
+            customerPhotosData = customerPhotosData.filter(function(p) { return p.id !== id; });
+            localStorage.setItem('mcc_customer_photos', JSON.stringify(customerPhotosData));
+            renderCustomerPhotos();
+            showToast('Customer photo removed', 'success');
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -21091,47 +21243,45 @@ From our farm to your table with love. Every bite tells a story of dedication, h
         }
 
         async function loadAIRecommendPhotoPicker() {
-            const grid = document.getElementById('aiRecommendPhotoPickerGrid');
+            var grid = document.getElementById('aiRecommendPhotoPickerGrid');
 
-            // Show loading state
-            grid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 2rem;">
-                <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--instagram);"></i>
-                <p style="margin-top: 1rem;">Loading photos...</p>
-            </div>`;
+            grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--instagram);"></i><p style="margin-top: 1rem;">Loading photos...</p></div>';
 
             try {
-                // Use cached data if available, otherwise fetch
-                if (!pickerFarmPicsCache) {
-                    const response = await fetch(`${API_URL}?action=getFarmPics`);
-                    const data = await response.json();
-                    if (data.success) {
-                        pickerFarmPicsCache = data.farmPics.filter(p => p.Image_URL);
+                // Use already-loaded farmPicsData (with converted URLs) if available
+                if (farmPicsData && farmPicsData.length > 0) {
+                    pickerFarmPicsCache = farmPicsData;
+                } else if (!pickerFarmPicsCache) {
+                    var response = await fetch(API_URL + '?action=getFarmPics');
+                    var data = await response.json();
+                    if (data.success && data.farmPics) {
+                        pickerFarmPicsCache = data.farmPics.filter(function(p) { return p.Image_URL; }).map(function(p) {
+                            return {
+                                url: convertDriveUrl(p.Image_URL),
+                                caption: p.Caption || '',
+                                status: (p.Status || 'new').toLowerCase()
+                            };
+                        });
                     }
                 }
 
                 if (pickerFarmPicsCache && pickerFarmPicsCache.length > 0) {
-                    grid.innerHTML = pickerFarmPicsCache.map(pic => `
-                        <div class="ai-recommend-photo-item" onclick="selectAIRecommendPhoto('${pic.Image_URL}', this)"
-                             style="cursor: pointer; border-radius: 12px; overflow: hidden; aspect-ratio: 1; position: relative; border: 3px solid transparent; transition: all 0.2s;">
-                            <img src="${pic.Thumbnail_URL || pic.Image_URL}" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy">
-                            ${pic.Caption ? `<div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.8)); padding: 0.5rem; font-size: 0.7rem; color: white;">${pic.Caption.substring(0, 40)}${pic.Caption.length > 40 ? '...' : ''}</div>` : ''}
-                            <div style="position: absolute; top: 0.5rem; right: 0.5rem; background: ${pic.Status === 'approved' ? 'var(--success)' : 'var(--warning)'}; padding: 0.2rem 0.4rem; border-radius: 4px; font-size: 0.6rem; text-transform: uppercase;">${pic.Status || 'new'}</div>
-                        </div>
-                    `).join('');
+                    grid.innerHTML = pickerFarmPicsCache.map(function(pic) {
+                        var imgUrl = pic.url || (pic.Image_URL ? convertDriveUrl(pic.Image_URL) : '');
+                        var caption = pic.caption || pic.Caption || '';
+                        var status = (pic.status || pic.Status || 'new').toLowerCase();
+                        return '<div class="ai-recommend-photo-item" onclick="selectAIRecommendPhoto(\'' + imgUrl.replace(/'/g, "\\'") + '\', this)" style="cursor: pointer; border-radius: 12px; overflow: hidden; aspect-ratio: 1; position: relative; border: 3px solid transparent; transition: all 0.2s;">' +
+                            '<img src="' + imgUrl + '" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy" onerror="this.style.display=\'none\'">' +
+                            (caption ? '<div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.8)); padding: 0.5rem; font-size: 0.7rem; color: white;">' + caption.substring(0, 40) + (caption.length > 40 ? '...' : '') + '</div>' : '') +
+                            '<div style="position: absolute; top: 0.5rem; right: 0.5rem; background: ' + (status === 'approved' ? 'var(--success)' : 'var(--warning)') + '; padding: 0.2rem 0.4rem; border-radius: 4px; font-size: 0.6rem; text-transform: uppercase;">' + status + '</div>' +
+                        '</div>';
+                    }).join('');
                 } else {
-                    grid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: var(--text-secondary);">
-                        <i class="fas fa-images" style="font-size: 3rem; opacity: 0.5;"></i>
-                        <p style="margin-top: 1rem;">No photos available</p>
-                        <p style="font-size: 0.8rem;">Use Field Mode to upload photos first</p>
-                    </div>`;
+                    grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: var(--text-secondary);"><i class="fas fa-images" style="font-size: 3rem; opacity: 0.5;"></i><p style="margin-top: 1rem;">No photos available</p><p style="font-size: 0.8rem;">Upload photos in the Photos tab first</p></div>';
                 }
             } catch (error) {
                 console.error('Error loading farm pics:', error);
-                grid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: var(--danger);">
-                    <i class="fas fa-exclamation-triangle" style="font-size: 2rem;"></i>
-                    <p style="margin-top: 1rem;">Error loading photos</p>
-                    <button class="btn btn-sm btn-primary" style="margin-top: 1rem;" onclick="loadAIRecommendPhotoPicker()"><i class="fas fa-redo"></i> Retry</button>
-                </div>`;
+                grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: var(--danger);"><i class="fas fa-exclamation-triangle" style="font-size: 2rem;"></i><p style="margin-top: 1rem;">Error loading photos</p><button class="btn btn-sm btn-primary" style="margin-top: 1rem;" onclick="loadAIRecommendPhotoPicker()"><i class="fas fa-redo"></i> Retry</button></div>';
             }
         }
 
@@ -23865,20 +24015,20 @@ Would you like to test posting to Threads?`;
         }
 
         async function loadFarmPics() {
-            // Show loading state
-            const gallery = document.getElementById('farmPicsGallery');
+            var gallery = document.getElementById('farmPicsGallery');
             if (gallery) gallery.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 3rem;"><i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--primary);"></i><p style="margin-top: 1rem; color: var(--text-secondary);">Loading photos...</p></div>';
 
             try {
-                const response = await fetch(`${API_URL}?action=getFarmPics`);
-                const result = await response.json();
+                var response = await fetch(API_URL + '?action=getFarmPics');
+                var result = await response.json();
                 if (result.success && result.farmPics) {
-                    farmPicsData = result.farmPics.map(pic => {
-                        const rawUrl = pic.Image_URL || pic.url || '';
+                    var totalFromAPI = result.farmPics.length;
+                    farmPicsData = result.farmPics.map(function(pic) {
+                        var rawUrl = pic.Image_URL || pic.url || '';
                         return {
                             id: pic.Pic_ID || pic.id,
                             fileId: pic.File_ID || pic.fileId || null,
-                            url: rawUrl ? convertDriveUrl(rawUrl) : 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'300\' viewBox=\'0 0 400 300\'%3E%3Crect fill=\'%23333\' width=\'400\' height=\'300\'/%3E%3Ctext fill=\'%23666\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\' font-family=\'sans-serif\' font-size=\'16\'%3ENo Image%3C/text%3E%3C/svg%3E',
+                            url: rawUrl ? convertDriveUrl(rawUrl) : '',
                             author: pic.Employee_Name || pic.author || 'Unknown',
                             status: (pic.Status || pic.status || 'new').toLowerCase(),
                             category: (pic.Category || pic.category || 'general').toLowerCase(),
@@ -23887,15 +24037,113 @@ Would you like to test posting to Threads?`;
                             altText: pic.Alt_Text || pic.altText || pic.Caption || '',
                             description: pic.Description || pic.description || ''
                         };
+                    }).filter(function(pic) {
+                        // Filter out photos with no valid URL
+                        return pic.url && !pic.url.includes('data:image/svg');
                     });
+                    var filtered = farmPicsData.length;
+                    if (totalFromAPI > filtered) {
+                        console.log('[FarmPics] ' + totalFromAPI + ' from API, ' + filtered + ' with valid images (' + (totalFromAPI - filtered) + ' missing image URLs)');
+                    }
                 }
                 renderFarmPics();
                 updateNewPicsBadge();
+                // Also render customer photos section
+                renderCustomerPhotos();
             } catch (error) {
                 console.error('Error loading farm pics:', error);
                 if (gallery) gallery.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--danger);"><i class="fas fa-exclamation-triangle" style="font-size: 2rem;"></i><p style="margin-top: 1rem;">Error loading photos</p><button class="btn btn-sm btn-primary" style="margin-top: 1rem;" onclick="loadFarmPics()"><i class="fas fa-redo"></i> Retry</button></div>';
             }
         }
+
+        // Photos tab upload handler
+        async function handlePhotosTabUpload(event) {
+            var files = event.target.files;
+            if (!files || files.length === 0) return;
+
+            var progressDiv = document.getElementById('photosUploadProgress');
+            var bar = document.getElementById('photosUploadBar');
+            var status = document.getElementById('photosUploadStatus');
+            if (progressDiv) progressDiv.style.display = 'block';
+
+            var total = files.length;
+            var completed = 0;
+            var succeeded = 0;
+
+            for (var i = 0; i < total; i++) {
+                var file = files[i];
+                if (status) status.textContent = 'Uploading ' + (i + 1) + ' of ' + total + ': ' + file.name;
+                if (bar) bar.style.width = ((i / total) * 100) + '%';
+
+                try {
+                    // Read file as base64
+                    var base64 = await new Promise(function(resolve, reject) {
+                        var reader = new FileReader();
+                        reader.onload = function(e) { resolve(e.target.result); };
+                        reader.onerror = reject;
+                        reader.readAsDataURL(file);
+                    });
+
+                    // Upload via existing API
+                    var uploadResponse = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain' },
+                        body: JSON.stringify({
+                            action: 'uploadFarmPic',
+                            imageData: base64,
+                            fileName: file.name,
+                            employeeName: 'Admin Upload',
+                            category: 'general',
+                            caption: ''
+                        })
+                    });
+                    var uploadResult = await uploadResponse.json();
+                    if (uploadResult.success) succeeded++;
+                } catch (err) {
+                    console.error('Upload error for ' + file.name + ':', err);
+                }
+                completed++;
+                if (bar) bar.style.width = ((completed / total) * 100) + '%';
+            }
+
+            if (bar) bar.style.width = '100%';
+            if (status) status.textContent = succeeded + ' of ' + total + ' photo' + (total > 1 ? 's' : '') + ' uploaded!';
+
+            if (succeeded > 0) {
+                showToast(succeeded + ' photo' + (succeeded > 1 ? 's' : '') + ' uploaded to library!', 'success');
+                // Reload gallery
+                setTimeout(function() { loadFarmPics(); }, 1000);
+            } else {
+                showToast('Upload failed. Check your connection and try again.', 'error');
+            }
+
+            // Hide progress after 3 seconds
+            setTimeout(function() {
+                if (progressDiv) progressDiv.style.display = 'none';
+                if (bar) bar.style.width = '0%';
+            }, 3000);
+
+            // Reset file input
+            event.target.value = '';
+        }
+
+        // Drag and drop for photos upload zone
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                var zone = document.getElementById('photosUploadZone');
+                if (!zone) return;
+                zone.addEventListener('dragover', function(e) { e.preventDefault(); zone.style.borderColor = 'var(--primary)'; zone.style.background = 'rgba(67,97,238,0.1)'; });
+                zone.addEventListener('dragleave', function(e) { e.preventDefault(); zone.style.borderColor = ''; zone.style.background = ''; });
+                zone.addEventListener('drop', function(e) {
+                    e.preventDefault();
+                    zone.style.borderColor = ''; zone.style.background = '';
+                    if (e.dataTransfer.files.length > 0) {
+                        document.getElementById('photosFileInput').files = e.dataTransfer.files;
+                        handlePhotosTabUpload({ target: { files: e.dataTransfer.files, value: '' } });
+                    }
+                });
+            }, 500);
+        });
 
         async function loadCampaigns() {
             try {
