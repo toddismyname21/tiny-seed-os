@@ -38,6 +38,183 @@ Brief explanation of why these changes were made.
 
 ## CHANGE HISTORY
 
+## 2026-02-22 — Calendar Tab Production-Ready
+**Role:** Desktop_Claude
+
+### Files Modified
+- `web_app/marketing-command-center.html` — Calendar tab: 4 stubs replaced with real implementations, Farm Journal integration, bug fixes, UX improvements
+
+### Functions Added
+- `openSharedContentEntryModal(existingEntry)` — Full Add/Edit calendar entry modal with platform selection, content pillars, date/time picker
+- `saveCalendarEntry(btn, existingId)` — Saves calendar entry to marketing queue (add or update)
+- `open52WeekImportModal()` — 52-week SEO content calendar import modal with week/duration/density options
+- `execute52WeekImport(btn)` — Executes the 52-week import by calling autoFillSeasonalContent
+- `requestNewPrompt()` — Quick Farm Journal entry modal (replaces "coming soon" stub)
+- `saveQuickJournalEntry(btn)` — Saves quick journal entry via saveJournalEntry API
+- `openAddCalendarEntryModal(dateStr)` — Wrapper that opens entry modal with date pre-filled
+
+### Functions Modified
+- `autoFillSeasonalCalendar(e)` — Fixed: now accepts event parameter instead of using implicit `event` global
+- `loadToddInput()` — Rewired: now reads from MARKETING_WritingResponses (Farm Journal) instead of separate MARKETING_ToddInput sheet; XSS fix using safeHTML()
+- `generateFromToddInput()` — Updated messaging for journal integration
+- `quickAddContentForDate(dateStr)` — Now opens Add Entry modal instead of switching to Create tab
+- `editScheduledPost(post)` — Now opens Edit Entry modal instead of switching to autopilot tab
+- `import52WeekTemplate()` — Now calls open52WeekImportModal() instead of showing toast
+
+### Bugs Fixed
+- **autoFillSeasonalCalendar event scoping** — `event.target.closest('button')` crashed when `event` not in scope; fixed with parameter
+- **XSS vulnerability in loadToddInput** — API response inserted via innerHTML without sanitization; now uses safeHTML()
+- **4 stub functions** — import52WeekTemplate, open52WeekImportModal, openSharedContentEntryModal, requestNewPrompt all replaced with real implementations
+
+### UX Improvements
+- **Todd's Input → Farm Journal** — Unified two separate systems (MARKETING_ToddInput and MARKETING_WritingResponses) into single Farm Journal card
+- **"Add Entry" button works** — Most important calendar action now functional with full modal
+- **"Import 52-Week" works** — Calendar generation with configurable weeks/density
+- **Quick journal from calendar** — "New Entry" button opens quick journal modal with hashtag tags
+- **Click-to-add on calendar days** — Opens entry modal with date pre-filled (instead of tab switch)
+
+### Duplicate Check
+- [x] Checked SYSTEM_MANIFEST.md
+- [x] Searched for similar functions
+- [x] No duplicates created
+
+---
+
+## 2026-02-22 — Photos Tab Production-Ready (Commit c9c7c96)
+**Role:** Desktop_Claude
+
+### Files Modified
+- `web_app/marketing-command-center.html` — Complete Photos tab rebuild (496 insertions, 248 deletions)
+
+### Critical Bugs Fixed
+- **Photo preview modal broken** — Was using bare `.modal` class (invisible), now uses `.modal-overlay` pattern matching all other modals
+- **"New 5" badge hardcoded** — Replaced with dynamic count from `updateNewPicsBadge()` + `updatePhotoStats()`
+- **Missing photos from API** — Photos with empty/broken URLs now filtered out instead of showing placeholder SVGs
+- **AI Recommends picker broken images** — Now uses `convertDriveUrl()` for proper Google Drive URL conversion
+
+### Medium Bugs Fixed
+- **approveAllPics() no feedback** — Now shows proper toast with count
+- **approvePic() wrong API variable** — Changed from `APPS_SCRIPT_URL` to `API_URL`
+- **usePicInPost() manual tab switch** — Now uses proper `switchTab('fieldmode')`
+
+### Functions Added
+- `searchFarmPics(term)` — Filter gallery by caption/author/category search
+- `sortFarmPics(order)` — Sort by newest/oldest/author
+- `updatePhotoStats()` — Updates photo stats bar (total/new/approved/used/categories)
+- `handlePhotosTabUpload(event)` — Direct photo upload from Photos tab with progress bar
+- `openAddCustomerPhotoModal()` — Manual UGC curation modal
+- `saveCustomerPhoto()` — Save customer photo with @handle attribution to localStorage
+- `useCustomerPhotoInPost(id)` — Load customer photo into Create tab with attribution caption
+- `deleteCustomerPhoto(id)` — Remove customer photo from local storage
+- `previewUGCPhoto(event)` — Preview uploaded customer photo in modal
+- `renderCustomerPhotos()` — Render customer photos gallery
+
+### HTML Rebuilt
+- Photo stats bar (5 metric cards)
+- Drag-and-drop upload zone with progress bar
+- Search input + sort dropdown in gallery header
+- Category icons on photo cards (greenhouse/harvest/team/flowers)
+- Customer Photos section (replaces non-functional UGC/Instagram API section)
+- Better empty states with actionable CTAs
+
+### Reason
+User audit found 3 critical bugs, 3 medium bugs, and 4 UX gaps. Photo preview was completely broken (no modal appeared), badge count was misleading, and the entire UGC section was non-functional placeholder waiting for Instagram API review. Rebuilt to production-ready.
+
+---
+
+## 2026-02-22 — Feature Flags System (Deployed @659)
+**Role:** PM_Architect
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — 5 new backend functions + 4 route handlers
+- `web_app/manager-dashboard.html` — Feature Flags admin panel + toggle UI
+
+### Backend Functions Added
+- `ensureFeatureFlagsSheet()` — Creates Config_Features sheet with 12 default flags
+- `getFeatureFlags()` — Reads all flags with 5-minute CacheService caching
+- `updateFeatureFlag(data)` — Toggle flag on/off, update roles/description/category
+- `createFeatureFlag(data)` — Add new flag with duplicate check
+- `deleteFeatureFlag(data)` — Remove flag and invalidate cache
+
+### Frontend Added
+- Feature Flags panel in Manager Dashboard sidebar with toggle switches
+- Category filter chips (All, Core, Integration, Experimental, Premium)
+- Real-time toggle with backend sync via POST API
+- `loadFeatureFlags()`, `renderFeatureFlags()`, `toggleFeatureFlag()` functions
+
+### Route Handlers Added
+- GET: `getFeatureFlags`
+- POST: `updateFeatureFlag`, `createFeatureFlag`, `deleteFeatureFlag`
+
+### Reason
+Feature flags were identified as the only fully-unbuilt research item (from research audit). Enables toggling features on/off for gradual rollout and testing without code deploys.
+
+---
+
+## 2026-02-22 — MCC Create Tab: Photo Sizing Fix
+**Role:** PM_Architect
+
+### Files Modified
+- `web_app/marketing-command-center.html` — Fixed photo preview in Create tab to fill the post window
+
+### Changes
+- Changed `.upload-preview` from `max-height: 200px` + `object-fit: cover` (crops images) to `max-height: 70vh` + `object-fit: contain` (shows full image)
+- Added `.upload-zone.has-image` class that reduces padding when image is loaded, so photo takes up the full preview area
+- Added Create tab-specific styling `#createTab .upload-zone.has-image` with solid border and minimal padding
+- Updated all 7 image-loading code paths (file upload, Farm Pics picker, SEO photo load, carousel single/multi, quick post) to add `has-image` class
+- Updated `clearUploadZone()` to remove `has-image` class on clear
+
+### Reason
+Photos were being cropped/squeezed into a tiny 200px preview box instead of filling the post preview window.
+
+---
+
+## 2026-02-22 — Alpaca Phases 5-6: Portfolio Intelligence + Advanced Analytics (Deployed @658)
+**Role:** PM_Architect
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — 11 new backend functions + 10 new route handlers
+- `web_app/financial-dashboard.html` — 4 new HTML card sections + 8 new JS functions
+
+### Backend Functions Added (Phase 5-6)
+- `alpacaPortfolioQuery(params)` — Natural language portfolio query router
+- `alpacaQueryPerformance()` — Multi-period return comparison (1D/1W/1M/3M/1A)
+- `alpacaQueryPositions()` — Sorted positions with concentration risk analysis
+- `alpacaWeeklySummary()` — Comprehensive weekly brief (account + positions + history + orders + dividends)
+- `alpacaQueryDividends(params)` — Dividend activity tracking with annualized yield
+- `alpacaTaxLossHarvesting()` — Scan positions for tax loss opportunities (22% rate, wash sale warning)
+- `alpacaBenchmarkComparison(params)` — Portfolio vs SPY normalized with alpha calculation
+- `alpacaRiskAnalysis()` — Full risk suite: Sharpe, Sortino, max drawdown, VaR 95%, win rate
+- `getAlpacaCryptoAssets(params)` — Crypto asset listing
+- `getAggregatedPortfolio()` — Combined Alpaca + Plaid investment data
+- `alpacaRebalanceAnalysis(params)` — Current vs target allocation with drift and trade recommendations
+
+### Frontend Sections Added
+- Portfolio Intelligence with natural language query + 8 quick-action buttons
+- Risk Analysis + Benchmark vs SPY (Chart.js dual-line comparison)
+- Tax-Loss Harvesting + Dividend Tracker
+- Rebalance Check + Crypto Assets
+
+### Reason
+Completes the full 6-phase Alpaca investment roadmap.
+
+---
+
+## 2026-02-21 — Alpaca Phases 1-4: Full Trading Platform + Tax-Advantaged Accounts
+**Role:** PM_Architect
+
+### Files Modified
+- `apps_script/MERGED TOTAL.js` — Phase 1: Enhanced `alpacaApiCall()` with rate limiting (190/200 per min via CacheService), retry on 5xx errors (1 retry + 1s delay), empty response handling for DELETE ops; enhanced `saveAlpacaCredentials()` with key verification (calls /v2/account, removes keys if invalid). Added 18 new functions across Phases 1-4: `deleteAlpacaCredentials()`, `getAlpacaMarketClock()`, `getAlpacaAsset()`, `searchAlpacaAssets()`, `getAlpacaOrders()`, `placeAlpacaOrder()` (with live mode safety), `cancelAlpacaOrder()`, `closeAlpacaPosition()`, `getAlpacaActivities()`, `getAlpacaStockSnapshot()`, `getAlpacaStockBars()`, `getAlpacaCorporateActions()`, `getAlpacaWatchlists()`, `createAlpacaWatchlist()`, `updateAlpacaWatchlist()`, `deleteAlpacaWatchlist()`, `saveAlpacaAutoInvestConfig()`, `executeAlpacaAutoInvest()` (with farm seasonal multipliers). 11 GET + 10 POST route handlers.
+- `web_app/financial-dashboard.html` — Added 5 new investment sections: Market Clock + Portfolio History line chart (with 1D/1W/1M/3M/1Y/ALL period switching), Stock Lookup (asset info + live snapshot), Order History, Watchlists (create/delete), Auto-Invest DCA config (with farm seasonal multipliers), Tax-Advantaged Accounts reference (IRA, HSA, SEP IRA, Solo 401(k)). New JS functions: `loadMarketClock()`, `loadPortfolioChart()`, `lookupStock()`, `loadOrderHistory()`, `loadWatchlists()`, `createWatchlist()`, `deleteWatchlistConfirm()`, `saveAutoInvestConfig()`, `executeAutoInvestNow()`, `loadInvestmentsData()`. Wired into tab switching and AlpacaManager.loadDashboard().
+
+### Deployment
+- Deployed Apps Script @657
+
+### Reason
+User requested full Alpaca Phase 1-6 implementation. Completed Phases 1-4 backend + frontend. Also added Tax-Advantaged Accounts section per user's request with SEP IRA, Roth IRA, HSA, Solo 401(k) details and recommendations.
+
+---
+
 ## 2026-02-21 — Alpaca Trading Integration: Real API Connection
 **Role:** PM_Architect
 

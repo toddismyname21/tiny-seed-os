@@ -9989,7 +9989,7 @@
                             <i class="fas fa-snowflake" id="seasonalIcon" style="color: var(--success);"></i>
                             <span id="seasonalThemeName" style="font-size: 0.85rem; font-weight: 600; color: var(--success);">Loading...</span>
                         </div>
-                        <button class="btn btn-sm" onclick="autoFillSeasonalCalendar()" style="background: linear-gradient(135deg, var(--success), var(--purple)); color: white;">
+                        <button class="btn btn-sm" onclick="autoFillSeasonalCalendar(event)" style="background: linear-gradient(135deg, var(--success), var(--purple)); color: white;">
                             <i class="fas fa-magic"></i> Auto-Fill Seasonal
                         </button>
                         <button class="btn btn-sm" onclick="open52WeekImportModal()" style="background: linear-gradient(135deg, var(--info), var(--success)); color: white;" title="Import the 52-week SEO content calendar">
@@ -10211,27 +10211,27 @@
                     </div>
                 </div>
 
-                <!-- Todd's Input Section -->
+                <!-- Farm Journal (Content Inspiration) -->
                 <div class="card todd-input-card">
                     <div class="card-header">
-                        <h3><i class="fas fa-pen-fancy" style="color: var(--purple);"></i> Todd's Input</h3>
+                        <h3><i class="fas fa-book-open" style="color: var(--purple);"></i> Farm Journal</h3>
                         <button class="btn btn-sm btn-secondary" onclick="loadToddInput()">
                             <i class="fas fa-sync-alt"></i>
                         </button>
                     </div>
                     <div class="card-body">
                         <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
-                            <i class="fas fa-quote-left"></i> Latest Writing Prompt Response:
+                            <i class="fas fa-quote-left"></i> Recent Journal Entries:
                         </div>
-                        <div class="todd-prompt-response" id="toddPromptResponse">
+                        <div class="todd-prompt-response" id="toddPromptResponse" style="max-height: 200px; overflow-y: auto;">
                             <p style="text-align: center; color: var(--text-secondary);">
-                                No recent writing prompts. Todd's responses will appear here when available.
+                                No journal entries yet. Write about what's happening on the farm!
                             </p>
                         </div>
 
                         <div style="margin-top: 1rem;">
                             <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
-                                <i class="fas fa-robot"></i> Posts Generated From This:
+                                <i class="fas fa-robot"></i> Posts Generated From Journal:
                             </div>
                             <div class="generated-posts-list" id="generatedPostsList">
                                 <div style="text-align: center; padding: 1rem; color: var(--text-secondary); font-size: 0.85rem;">
@@ -10242,10 +10242,10 @@
 
                         <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
                             <button class="btn btn-primary" onclick="generateFromToddInput()" style="flex: 1;">
-                                <i class="fas fa-magic"></i> Generate More From This
+                                <i class="fas fa-magic"></i> Generate Posts From Journal
                             </button>
                             <button class="btn btn-secondary" onclick="requestNewPrompt()">
-                                <i class="fas fa-paper-plane"></i> Request New Prompt
+                                <i class="fas fa-pen-fancy"></i> New Entry
                             </button>
                         </div>
                     </div>
@@ -15540,7 +15540,7 @@
         }
 
         function import52WeekTemplate() {
-            showToast('52-week template import coming soon', 'info');
+            open52WeekImportModal();
         }
 
         function loadSharedContentCalendar() {
@@ -15560,15 +15560,269 @@
         }
 
         function open52WeekImportModal() {
-            showToast('52-week import coming soon', 'info');
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay active';
+            modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 1rem;';
+
+            const now = new Date();
+            const weekNum = Math.ceil(((now - new Date(now.getFullYear(), 0, 1)) / 86400000 + new Date(now.getFullYear(), 0, 1).getDay() + 1) / 7);
+
+            modal.innerHTML = `
+                <div style="background: var(--bg-card); border-radius: 16px; padding: 2rem; max-width: 650px; width: 100%; max-height: 85vh; overflow-y: auto; border: 1px solid var(--border);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <h3 style="margin: 0;"><i class="fas fa-calendar-alt" style="color: var(--info);"></i> Import 52-Week SEO Content Calendar</h3>
+                        <button onclick="this.closest('.modal-overlay').remove()" style="background: none; border: none; color: var(--text-secondary); font-size: 1.5rem; cursor: pointer;">&times;</button>
+                    </div>
+
+                    <div style="background: rgba(67, 97, 238, 0.1); padding: 1rem; border-radius: 10px; margin-bottom: 1.25rem; border: 1px solid rgba(67, 97, 238, 0.3);">
+                        <div style="font-weight: 600; color: var(--info); margin-bottom: 0.5rem;"><i class="fas fa-info-circle"></i> What this does</div>
+                        <div style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5;">
+                            Generates a seasonal content calendar based on Tiny Seed Farm's growing cycles, farmer's market schedule, and SEO keywords. Each week gets themed content suggestions covering all platforms (Instagram, Facebook, GBP).
+                        </div>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 1rem;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div>
+                                <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 0.4rem;">Start From Week</label>
+                                <select id="import52StartWeek" style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-primary); color: var(--text-primary);">
+                                    <option value="current" selected>Current Week (${weekNum})</option>
+                                    <option value="1">Week 1 (January)</option>
+                                    <option value="next_month">Next Month</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 0.4rem;">Generate For</label>
+                                <select id="import52Duration" style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-primary); color: var(--text-primary);">
+                                    <option value="4" selected>4 Weeks</option>
+                                    <option value="8">8 Weeks</option>
+                                    <option value="12">12 Weeks (Quarter)</option>
+                                    <option value="52">Full Year (52 Weeks)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 0.4rem;">Posts Per Day</label>
+                            <select id="import52PostsPerDay" style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-primary); color: var(--text-primary);">
+                                <option value="1">1 post/day (light)</option>
+                                <option value="2" selected>2 posts/day (recommended)</option>
+                                <option value="3">3 posts/day (aggressive)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem; justify-content: flex-end;">
+                        <button onclick="this.closest('.modal-overlay').remove()" class="btn btn-secondary" style="padding: 0.6rem 1.5rem;">Cancel</button>
+                        <button onclick="execute52WeekImport(this)" class="btn btn-primary" style="padding: 0.6rem 1.5rem; background: linear-gradient(135deg, var(--info), var(--success));">
+                            <i class="fas fa-magic"></i> Generate Calendar
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+            modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
         }
 
-        function openAddCalendarEntryModal() {
-            showToast('Calendar entry coming soon', 'info');
+        async function execute52WeekImport(btn) {
+            const startWeek = document.getElementById('import52StartWeek').value;
+            const duration = document.getElementById('import52Duration').value;
+            const postsPerDay = document.getElementById('import52PostsPerDay').value;
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+
+            try {
+                const response = await fetch(API_URL + '?action=autoFillSeasonalContent', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'autoFillSeasonalContent',
+                        startWeek: startWeek,
+                        weeksToGenerate: parseInt(duration),
+                        postsPerDay: parseInt(postsPerDay)
+                    })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    const modal = btn.closest('.modal-overlay');
+                    modal.remove();
+                    showToast('Calendar content generated! ' + (result.calendar ? result.calendar.length + ' days of content' : ''), 'success');
+                    if (result.calendar && result.calendar.length > 0) {
+                        displaySeasonalCalendarSuggestions(result);
+                    }
+                    await loadContentCalendar();
+                } else {
+                    showToast('Error: ' + (result.error || 'Could not generate calendar'), 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-magic"></i> Generate Calendar';
+                }
+            } catch (error) {
+                console.error('Error importing 52-week calendar:', error);
+                showToast('Error generating calendar. Check console.', 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-magic"></i> Generate Calendar';
+            }
         }
 
-        function openSharedContentEntryModal() {
-            showToast('Shared content entry coming soon', 'info');
+        function openAddCalendarEntryModal(dateStr) {
+            const prefilledEntry = dateStr ? { scheduled_date: dateStr } : {};
+            openSharedContentEntryModal(prefilledEntry);
+        }
+
+        function openSharedContentEntryModal(existingEntry) {
+            const isEdit = existingEntry && existingEntry.Queue_ID;
+            const entry = existingEntry || {};
+
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay active';
+            modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 1rem;';
+
+            const platforms = ['instagram', 'facebook', 'gbp'];
+            const pillars = [
+                { value: 'behind_scenes', label: 'Behind the Scenes', color: '#8B4513' },
+                { value: 'product', label: 'Product Showcase', color: '#22c55e' },
+                { value: 'educational', label: 'Educational', color: '#4361ee' },
+                { value: 'community', label: 'Community', color: '#E1306C' },
+                { value: 'promotional', label: 'Promotional', color: '#f59e0b' },
+                { value: 'seasonal', label: 'Seasonal', color: '#8b5cf6' }
+            ];
+
+            const defaultDate = entry.scheduled_date || entry.Scheduled_Date || new Date().toISOString().split('T')[0];
+            const defaultTime = '10:00';
+            const defaultPlatform = (entry.platform || entry.Platform || 'instagram').toLowerCase();
+            const defaultContent = entry.content || entry.Content || '';
+            const defaultStatus = entry.status || entry.Status || 'scheduled';
+
+            modal.innerHTML = `
+                <div style="background: var(--bg-card); border-radius: 16px; padding: 2rem; max-width: 600px; width: 100%; max-height: 85vh; overflow-y: auto; border: 1px solid var(--border);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <h3 style="margin: 0;"><i class="fas fa-${isEdit ? 'edit' : 'plus-circle'}" style="color: var(--info);"></i> ${isEdit ? 'Edit' : 'Add'} Calendar Entry</h3>
+                        <button onclick="this.closest('.modal-overlay').remove()" style="background: none; border: none; color: var(--text-secondary); font-size: 1.5rem; cursor: pointer;">&times;</button>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 1rem;">
+                        <!-- Platform -->
+                        <div>
+                            <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 0.4rem;">Platform</label>
+                            <div style="display: flex; gap: 0.5rem;" id="calEntryPlatforms">
+                                ${platforms.map(p => `
+                                    <button type="button" onclick="document.querySelectorAll('#calEntryPlatforms button').forEach(b=>b.style.opacity='0.4');this.style.opacity='1';this.dataset.selected='true'" data-platform="${p}" style="padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-light); color: var(--text-primary); cursor: pointer; opacity: ${p === defaultPlatform ? '1' : '0.4'}; font-size: 0.85rem;" ${p === defaultPlatform ? 'data-selected="true"' : ''}>
+                                        <i class="${p === 'instagram' ? 'fab fa-instagram' : p === 'facebook' ? 'fab fa-facebook' : 'fab fa-google'}"></i> ${p.charAt(0).toUpperCase() + p.slice(1)}
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <!-- Content -->
+                        <div>
+                            <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 0.4rem;">Post Content</label>
+                            <textarea id="calEntryContent" rows="4" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-primary); color: var(--text-primary); font-size: 0.9rem; resize: vertical; font-family: inherit;">${defaultContent}</textarea>
+                        </div>
+
+                        <!-- Date & Time -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div>
+                                <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 0.4rem;">Date</label>
+                                <input type="date" id="calEntryDate" value="${defaultDate}" style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-primary); color: var(--text-primary);">
+                            </div>
+                            <div>
+                                <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 0.4rem;">Time</label>
+                                <input type="time" id="calEntryTime" value="${defaultTime}" style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-primary); color: var(--text-primary);">
+                            </div>
+                        </div>
+
+                        <!-- Content Pillar -->
+                        <div>
+                            <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 0.4rem;">Content Pillar</label>
+                            <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;" id="calEntryPillars">
+                                ${pillars.map(p => `
+                                    <button type="button" onclick="document.querySelectorAll('#calEntryPillars button').forEach(b=>{b.style.background='var(--bg-light)';b.style.color='var(--text-secondary)'});this.style.background='${p.color}20';this.style.color='${p.color}';this.dataset.selected='true'" data-pillar="${p.value}" style="padding: 0.35rem 0.7rem; border-radius: 20px; border: 1px solid ${p.color}40; background: var(--bg-light); color: var(--text-secondary); cursor: pointer; font-size: 0.8rem;">
+                                        ${p.label}
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <!-- Status -->
+                        <div>
+                            <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 0.4rem;">Status</label>
+                            <select id="calEntryStatus" style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-primary); color: var(--text-primary);">
+                                <option value="scheduled" ${defaultStatus === 'scheduled' ? 'selected' : ''}>Scheduled</option>
+                                <option value="draft" ${defaultStatus === 'draft' ? 'selected' : ''}>Draft</option>
+                                <option value="pending" ${defaultStatus === 'pending' ? 'selected' : ''}>Pending Review</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem; justify-content: flex-end;">
+                        <button onclick="this.closest('.modal-overlay').remove()" class="btn btn-secondary" style="padding: 0.6rem 1.5rem;">Cancel</button>
+                        <button onclick="saveCalendarEntry(this, '${isEdit ? entry.Queue_ID : ''}')" class="btn btn-primary" style="padding: 0.6rem 1.5rem;">
+                            <i class="fas fa-${isEdit ? 'save' : 'plus'}"></i> ${isEdit ? 'Save Changes' : 'Add to Calendar'}
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+            modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+        }
+
+        async function saveCalendarEntry(btn, existingId) {
+            const modal = btn.closest('.modal-overlay');
+            const content = document.getElementById('calEntryContent').value.trim();
+            const date = document.getElementById('calEntryDate').value;
+            const time = document.getElementById('calEntryTime').value;
+            const status = document.getElementById('calEntryStatus').value;
+
+            if (!content) { showToast('Please enter post content', 'error'); return; }
+            if (!date) { showToast('Please select a date', 'error'); return; }
+
+            const selectedPlatform = document.querySelector('#calEntryPlatforms button[data-selected="true"]');
+            const platform = selectedPlatform ? selectedPlatform.dataset.platform : 'instagram';
+
+            const selectedPillar = document.querySelector('#calEntryPillars button[data-selected="true"]');
+            const contentType = selectedPillar ? selectedPillar.dataset.pillar : 'community';
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+            try {
+                const payload = {
+                    action: existingId ? 'updateMarketingQueueItem' : 'addToMarketingQueue',
+                    platform: platform,
+                    content: content,
+                    scheduled_date: date + 'T' + (time || '10:00'),
+                    status: status,
+                    content_type: contentType,
+                    source: 'manual_calendar'
+                };
+                if (existingId) payload.queueId = existingId;
+
+                const response = await fetch(API_URL + '?action=' + (existingId ? 'updateMarketingQueueItem' : 'addToMarketingQueue'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast(existingId ? 'Calendar entry updated!' : 'Added to content calendar!', 'success');
+                    modal.remove();
+                    await loadContentCalendar();
+                } else {
+                    showToast('Error: ' + (result.error || 'Could not save'), 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-save"></i> Save';
+                }
+            } catch (error) {
+                console.error('Error saving calendar entry:', error);
+                showToast('Error saving entry. Check console.', 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save"></i> Save';
+            }
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -22602,8 +22856,9 @@ From our farm to your table with love. Every bite tells a story of dedication, h
             }
         }
 
-        async function autoFillSeasonalCalendar() {
-            const btn = event.target.closest('button');
+        async function autoFillSeasonalCalendar(e) {
+            const btn = (e && e.target) ? e.target.closest('button') : document.querySelector('[onclick*="autoFillSeasonalCalendar"]');
+            if (!btn) return;
             const originalText = btn.innerHTML;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
             btn.disabled = true;
@@ -22735,19 +22990,8 @@ From our farm to your table with love. Every bite tells a story of dedication, h
         }
 
         function quickAddContentForDate(dateStr) {
-            // Switch to Create tab with schedule date pre-filled
-            switchTab('create');
-
-            // Pre-fill the schedule picker
-            const picker = document.getElementById('scheduleDateTimePicker');
-            if (picker) {
-                picker.value = `${dateStr}T10:00`;
-                if (typeof setScheduleTime === 'function') {
-                    setScheduleTime(`${dateStr}T10:00`);
-                }
-            }
-
-            showToast(`Creating post for ${new Date(dateStr).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}`, 'info');
+            // Open the Add Entry modal with this date pre-filled
+            openSharedContentEntryModal({ scheduled_date: dateStr });
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -22849,26 +23093,8 @@ From our farm to your table with love. Every bite tells a story of dedication, h
 
             closePostDetailModal();
 
-            // Switch to autopilot tab and populate form
-            switchTab('autopilot');
-
-            // Pre-fill the form with post data
-            const dateInput = document.getElementById('queueScheduledDate');
-            const contentInput = document.getElementById('queueContent');
-            const platformSelect = document.getElementById('queuePlatform');
-
-            if (dateInput && post.scheduled_date) {
-                const d = new Date(post.scheduled_date || post.Scheduled_Date);
-                dateInput.value = d.toISOString().slice(0, 16);
-            }
-            if (contentInput) {
-                contentInput.value = post.content || post.Content || '';
-            }
-            if (platformSelect) {
-                platformSelect.value = (post.platform || post.Platform || 'instagram').toLowerCase();
-            }
-
-            showToast('Edit the post in the form below, then save', 'info');
+            // Open the edit modal with post data pre-filled
+            openSharedContentEntryModal(post);
         }
 
         async function reschedulePost(post) {
@@ -23264,67 +23490,65 @@ From our farm to your table with love. Every bite tells a story of dedication, h
         async function loadToddInput() {
             const responseEl = document.getElementById('toddPromptResponse');
             const postsList = document.getElementById('generatedPostsList');
+            if (!responseEl) return;
 
             try {
-                const response = await fetch(`${API_URL}?action=getToddLatestInput`);
+                // Fetch from unified journal system (MARKETING_WritingResponses)
+                const response = await fetch(API_URL + '?action=getWritingResponses&limit=5');
                 const result = await response.json();
 
-                if (result.success && result.input) {
-                    toddInputData = result.input;
+                if (result.success && result.responses && result.responses.length > 0) {
+                    // Store the most recent entry for "Generate Posts" button
+                    toddInputData = {
+                        id: result.responses[0].Response_ID,
+                        response: result.responses[0].Todd_Input,
+                        timestamp: result.responses[0].Received_At,
+                        prompt: result.responses[0].Category || '',
+                        postsGenerated: result.responses[0].Posts_Generated || 0
+                    };
 
-                    responseEl.innerHTML = `
-                        <p style="color: var(--text-primary);">"${result.input.response}"</p>
-                        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.5rem;">
-                            <i class="fas fa-calendar"></i> ${new Date(result.input.timestamp).toLocaleDateString()}
-                            ${result.input.prompt ? `<span style="margin-left: 1rem;"><i class="fas fa-question-circle"></i> Prompt: ${result.input.prompt}</span>` : ''}
-                        </div>
-                    `;
+                    // Show recent entries (up to 3)
+                    responseEl.innerHTML = result.responses.slice(0, 3).map(function(entry) {
+                        const text = (entry.Todd_Input || '').substring(0, 200);
+                        const dateStr = entry.Received_At ? new Date(entry.Received_At).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+                        const source = entry.Source || '';
+                        const category = entry.Category || '';
 
-                    // Show generated posts if any
-                    if (result.generatedPosts && result.generatedPosts.length > 0) {
-                        postsList.innerHTML = result.generatedPosts.map(post => `
-                            <div class="generated-post-item">
-                                <i class="${getPlatformIconClass(post.platform)}" style="color: ${getPlatformColorValue(post.platform)};"></i>
-                                <div style="flex: 1; font-size: 0.85rem; color: var(--text-secondary);">${safeHTML(truncateText(post.content, 60))}</div>
-                                <span style="font-size: 0.7rem; color: ${post.status === 'posted' ? 'var(--success)' : 'var(--warning)'};">
-                                    ${post.status === 'posted' ? 'Posted' : 'Queued'}
-                                </span>
-                            </div>
-                        `).join('');
-                    } else {
-                        postsList.innerHTML = `
-                            <div style="text-align: center; padding: 1rem; color: var(--text-secondary); font-size: 0.85rem;">
-                                No posts generated yet. Click "Generate More From This" to create posts.
-                            </div>
-                        `;
+                        return '<div style="padding: 0.75rem; background: rgba(139, 92, 246, 0.08); border-radius: 8px; margin-bottom: 0.5rem; border-left: 3px solid var(--purple);">' +
+                            '<div style="color: var(--text-primary); font-size: 0.9rem; line-height: 1.5;">' + safeHTML(text) + (text.length >= 200 ? '...' : '') + '</div>' +
+                            '<div style="display: flex; gap: 0.75rem; margin-top: 0.4rem; font-size: 0.7rem; color: var(--text-secondary);">' +
+                                '<span><i class="fas fa-calendar"></i> ' + safeHTML(dateStr) + '</span>' +
+                                (category ? '<span><i class="fas fa-tag"></i> ' + safeHTML(category) + '</span>' : '') +
+                                (entry.Posts_Generated > 0 ? '<span style="color: var(--success);"><i class="fas fa-check"></i> ' + entry.Posts_Generated + ' posts</span>' : '') +
+                            '</div>' +
+                        '</div>';
+                    }).join('');
+
+                    // Also try loading generated posts from the latest entry
+                    if (postsList) {
+                        postsList.innerHTML = '<div style="text-align: center; padding: 0.5rem; color: var(--text-secondary); font-size: 0.8rem;">Click "Generate Posts From Journal" to create content from entries above.</div>';
                     }
                 } else {
-                    responseEl.innerHTML = `
-                        <p style="text-align: center; color: var(--text-secondary);">
-                            No recent writing prompts from Todd. Use the mobile app to capture thoughts!
-                        </p>
-                    `;
+                    responseEl.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 1rem;">' +
+                        '<i class="fas fa-pen-fancy" style="font-size: 1.5rem; margin-bottom: 0.5rem; display: block; color: var(--purple);"></i>' +
+                        'No journal entries yet. Click "New Entry" to write about what\'s happening on the farm!</p>';
                 }
             } catch (error) {
-                console.error('Error loading Todd input:', error);
-                responseEl.innerHTML = `
-                    <p style="text-align: center; color: var(--text-secondary);">
-                        Could not load Todd's input. The API endpoint may need to be deployed.
-                    </p>
-                `;
+                console.error('Error loading journal entries:', error);
+                responseEl.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">Could not load journal entries.</p>';
             }
         }
 
         async function generateFromToddInput() {
             if (!toddInputData) {
-                showToast('No input from Todd to generate from. Load input first.', 'error');
+                showToast('No journal entries to generate from. Write a journal entry first!', 'error');
                 return;
             }
 
-            showToast('Generating posts from Todd\'s input...', 'info');
+            showToast('Generating posts from journal entry...', 'info');
 
             try {
-                const response = await fetch(`${API_URL}?action=generateFromToddInput`, {
+                const response = await fetch(API_URL + '?action=generateFromToddInput', {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
@@ -23338,25 +23562,93 @@ From our farm to your table with love. Every bite tells a story of dedication, h
                 const result = await response.json();
 
                 if (result.success) {
-                    showToast(`Generated ${result.generated || 'new'} posts from Todd's input!`, 'success');
+                    showToast('Generated ' + (result.generated || 'new') + ' posts from journal!', 'success');
                     await loadToddInput();
                     await loadContentCalendar();
                 } else {
                     showToast('Failed to generate: ' + (result.error || 'Unknown error'), 'error');
                 }
             } catch (error) {
-                console.error('Error generating from Todd input:', error);
+                console.error('Error generating from journal:', error);
                 showToast('Error generating content. Check console.', 'error');
             }
         }
 
         function requestNewPrompt() {
-            showToast('Sending writing prompt request to Todd...', 'info');
-            // This would trigger an SMS or notification to Todd
-            // For now, show a message
-            setTimeout(() => {
-                showToast('Feature coming soon! For now, use the mobile app to capture thoughts.', 'info');
-            }, 1000);
+            // Open a quick journal entry modal right here
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay active';
+            modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 1rem;';
+
+            modal.innerHTML = `
+                <div style="background: var(--bg-card); border-radius: 16px; padding: 2rem; max-width: 550px; width: 100%; border: 1px solid var(--border);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3 style="margin: 0;"><i class="fas fa-pen-fancy" style="color: var(--purple);"></i> Quick Farm Journal Entry</h3>
+                        <button onclick="this.closest('.modal-overlay').remove()" style="background: none; border: none; color: var(--text-secondary); font-size: 1.5rem; cursor: pointer;">&times;</button>
+                    </div>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                        Write about what's happening on the farm today. This becomes raw material for AI-generated posts.
+                    </div>
+                    <textarea id="quickJournalEntry" rows="5" placeholder="What's happening on the farm? What are you harvesting, planting, excited about?" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-primary); color: var(--text-primary); font-size: 0.9rem; resize: vertical; font-family: inherit;"></textarea>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.75rem;">
+                        <button type="button" onclick="document.getElementById('quickJournalEntry').value += ' #harvest'" class="btn btn-sm btn-secondary" style="font-size: 0.75rem;"><i class="fas fa-leaf"></i> Harvest</button>
+                        <button type="button" onclick="document.getElementById('quickJournalEntry').value += ' #planting'" class="btn btn-sm btn-secondary" style="font-size: 0.75rem;"><i class="fas fa-seedling"></i> Planting</button>
+                        <button type="button" onclick="document.getElementById('quickJournalEntry').value += ' #market'" class="btn btn-sm btn-secondary" style="font-size: 0.75rem;"><i class="fas fa-store"></i> Market Day</button>
+                        <button type="button" onclick="document.getElementById('quickJournalEntry').value += ' #behind-the-scenes'" class="btn btn-sm btn-secondary" style="font-size: 0.75rem;"><i class="fas fa-camera"></i> BTS</button>
+                    </div>
+                    <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem; justify-content: flex-end;">
+                        <button onclick="this.closest('.modal-overlay').remove()" class="btn btn-secondary">Cancel</button>
+                        <button onclick="saveQuickJournalEntry(this)" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Save Entry
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+            modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+            setTimeout(() => document.getElementById('quickJournalEntry').focus(), 100);
+        }
+
+        async function saveQuickJournalEntry(btn) {
+            const entry = document.getElementById('quickJournalEntry').value.trim();
+            if (!entry || entry.length < 10) {
+                showToast('Entry too short — write at least a sentence or two', 'error');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+            try {
+                const response = await fetch(API_URL + '?action=saveJournalEntry', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'saveJournalEntry',
+                        input: entry,
+                        senderName: 'Todd',
+                        source: 'calendar_quick_entry',
+                        category: 'farm_update'
+                    })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('Journal entry saved! It will appear in your journal below.', 'success');
+                    btn.closest('.modal-overlay').remove();
+                    await loadToddInput();
+                } else {
+                    showToast('Error: ' + (result.error || 'Could not save'), 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-save"></i> Save Entry';
+                }
+            } catch (error) {
+                console.error('Error saving quick journal:', error);
+                showToast('Error saving. Check console.', 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save"></i> Save Entry';
+            }
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
