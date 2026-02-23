@@ -9432,8 +9432,8 @@
                             </div>
                         </div>
 
-                        <!-- Nano Banana AI Photos -->
-                        <div id="nanoBananaPanel" style="margin-top: 0.75rem; padding: 1rem; background: linear-gradient(135deg, rgba(66,133,244,0.08), rgba(155,89,182,0.08)); border-radius: 10px; border-left: 3px solid #4285f4;">
+                        <!-- Nano Banana AI Photos — hidden when API key is configured -->
+                        <div id="nanoBananaPanel" style="display: none; margin-top: 0.75rem; padding: 1rem; background: linear-gradient(135deg, rgba(66,133,244,0.08), rgba(155,89,182,0.08)); border-radius: 10px; border-left: 3px solid #4285f4;">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                                     <i class="fas fa-wand-magic-sparkles" style="color: #4285f4;"></i>
@@ -9516,7 +9516,7 @@
                             </button>
                         </div>
                     </div>
-                    <div class="card-body" style="display: flex; justify-content: center; align-items: center; min-height: 400px; background: rgba(0,0,0,0.2); border-radius: 12px;">
+                    <div class="card-body" style="display: flex; justify-content: center; align-items: center; min-height: 660px; background: rgba(0,0,0,0.2); border-radius: 12px;">
                         <div id="csaCanvasWrapper" style="position: relative;">
                             <canvas id="csaCanvas" style="border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);"></canvas>
                             <div id="csaCanvasPlaceholder" style="text-align: center; color: var(--text-secondary); padding: 3rem;">
@@ -40526,7 +40526,7 @@ Would you like to test posting to Threads?`;
 
         async function generateAIProducePhoto(itemName) {
             // Check cache first — generate once, reuse forever
-            var cacheKey = 'ai_produce_' + itemName.toLowerCase().replace(/\s+/g, '_');
+            var cacheKey = 'ai_produce_v2_' + itemName.toLowerCase().replace(/\s+/g, '_');
             var cached = localStorage.getItem(cacheKey);
             if (cached) return cached;
 
@@ -40535,11 +40535,12 @@ Would you like to test posting to Threads?`;
                 ? TINY_SEED_API.GEMINI_API_KEY
                 : localStorage.getItem('tinyseed_gemini_key');
 
-            if (!apiKey) return null; // No key = fall back to emoji placeholder
+            if (!apiKey) return null;
 
-            var prompt = 'A single fresh ' + itemName + ', studio food photography, natural lighting, ' +
-                'shallow depth of field, on a clean white background, dewy and vibrant, ' +
-                'organic farm produce, editorial quality, centered in frame, no text, no watermark';
+            var prompt = 'A single fresh ' + itemName + ', professional food photography, ' +
+                'the COMPLETE shape and outline of the produce must be fully visible with nothing cut off, ' +
+                'on a pure white background, dewy and vibrant, organic farm produce, ' +
+                'top-down or slight angle view, centered in frame, no text, no watermark, no decorations';
 
             try {
                 var response = await fetch(
@@ -40575,20 +40576,42 @@ Would you like to test posting to Threads?`;
                 }
 
                 if (imagePart && imagePart.data) {
-                    var dataUrl = 'data:' + (imagePart.mimeType || 'image/png') + ';base64,' + imagePart.data;
-                    // Cache permanently
-                    try { localStorage.setItem(cacheKey, dataUrl); } catch(e) {
+                    var rawUrl = 'data:' + (imagePart.mimeType || 'image/png') + ';base64,' + imagePart.data;
+                    // Compress for cache (512px max, JPEG 0.8 quality — ~50-100KB per item)
+                    var compressed = await compressForCache(rawUrl, 512, 0.85);
+                    try { localStorage.setItem(cacheKey, compressed); } catch(e) {
                         console.warn('[NanoBanana] Cache full, clearing old entries');
                         clearOldAIProduceCache();
-                        try { localStorage.setItem(cacheKey, dataUrl); } catch(e2) {}
+                        try { localStorage.setItem(cacheKey, compressed); } catch(e2) {}
                     }
-                    return dataUrl;
+                    return compressed;
                 }
                 return null;
             } catch (error) {
                 console.warn('[NanoBanana] Generation failed for ' + itemName + ':', error.message);
                 return null;
             }
+        }
+
+        // Compress image for localStorage caching
+        function compressForCache(dataUrl, maxDim, quality) {
+            return new Promise(function(resolve) {
+                var img = new Image();
+                img.onload = function() {
+                    var w = img.width, h = img.height;
+                    if (w > maxDim || h > maxDim) {
+                        var ratio = Math.min(maxDim / w, maxDim / h);
+                        w = Math.round(w * ratio);
+                        h = Math.round(h * ratio);
+                    }
+                    var c = document.createElement('canvas');
+                    c.width = w; c.height = h;
+                    c.getContext('2d').drawImage(img, 0, 0, w, h);
+                    resolve(c.toDataURL('image/jpeg', quality));
+                };
+                img.onerror = function() { resolve(dataUrl); };
+                img.src = dataUrl;
+            });
         }
 
         // Clear oldest AI produce cache entries when storage is full
@@ -40618,7 +40641,73 @@ Would you like to test posting to Threads?`;
             if (typeof TINY_SEED_API !== 'undefined') {
                 TINY_SEED_API.GEMINI_API_KEY = key;
             }
-            showToast('Gemini API key saved! AI produce photos now available.', 'success');
+            // Hide setup panel since now configured
+            var panel = document.getElementById('nanoBananaPanel');
+            if (panel) panel.style.display = 'none';
+            showToast('Nano Banana connected! AI backgrounds and produce photos ready.', 'success');
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // AI BACKGROUND GENERATION — Rustic farm surface via Gemini
+        // Session-cached (not localStorage — too large for base64)
+        // ═══════════════════════════════════════════════════════════════
+        var aiBackgroundCache = {};
+
+        async function generateAIBackground(bgStyle) {
+            if (aiBackgroundCache[bgStyle]) return aiBackgroundCache[bgStyle];
+
+            var apiKey = (typeof TINY_SEED_API !== 'undefined' && TINY_SEED_API.GEMINI_API_KEY)
+                ? TINY_SEED_API.GEMINI_API_KEY
+                : localStorage.getItem('tinyseed_gemini_key');
+            if (!apiKey) return null;
+
+            var prompts = {
+                'burlap': 'Top-down flat lay photograph of a rustic burlap sack fabric surface at a farmers market, natural jute weave texture, warm golden-brown earthy tones, soft natural lighting from a window, the kind of surface you would display farm produce on, no objects on it, just the beautiful textured surface, high resolution, warm and inviting',
+                'wooden_rustic': 'Top-down flat lay photograph of weathered rustic barn wood planks, natural aged grain pattern with character marks and nail holes, warm brown tones, the kind of beautiful old wood surface at a country farm stand, no objects, just the aged wood surface, high resolution, warm lighting',
+                'linen_cream': 'Top-down flat lay photograph of natural cream linen fabric surface with gentle wrinkles, soft off-white texture like a farmhouse tablecloth, warm tones, no objects, just the beautiful fabric surface, high resolution',
+                'marble_white': 'Top-down photograph of clean white marble surface with subtle grey veining, elegant kitchen counter style, no objects, just the surface, high resolution',
+                'slate_dark': 'Top-down photograph of natural dark slate stone surface with texture variation, grey-charcoal farmhouse tones, no objects, just the stone surface, high resolution'
+            };
+
+            var prompt = prompts[bgStyle] || prompts['burlap'];
+
+            try {
+                var response = await fetch(
+                    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=' + apiKey,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: prompt }] }],
+                            generationConfig: {
+                                responseModalities: ['IMAGE', 'TEXT'],
+                                imageMimeType: 'image/png'
+                            }
+                        })
+                    }
+                );
+
+                if (!response.ok) {
+                    console.warn('[NanoBanana] Background API error:', response.status);
+                    return null;
+                }
+
+                var data = await response.json();
+                if (!data.candidates || !data.candidates[0]) return null;
+
+                var parts = data.candidates[0].content.parts;
+                for (var i = 0; i < parts.length; i++) {
+                    if (parts[i].inlineData && parts[i].inlineData.data) {
+                        var dataUrl = 'data:' + (parts[i].inlineData.mimeType || 'image/png') + ';base64,' + parts[i].inlineData.data;
+                        aiBackgroundCache[bgStyle] = dataUrl;
+                        return dataUrl;
+                    }
+                }
+                return null;
+            } catch(e) {
+                console.warn('[NanoBanana] Background generation failed:', e.message);
+                return null;
+            }
         }
 
         // Set default CSA season based on current date
@@ -40658,11 +40747,11 @@ Would you like to test posting to Threads?`;
             // Auto-default season dropdown based on current date
             setDefaultCSASeason();
 
-            // Set canvas dimensions (1080x1350 for Instagram feed optimal)
-            const displayWidth = 400; // Display size
-            const displayHeight = 500;
+            // Instagram Story dimensions: 1080x1920 (9:16 ratio)
+            const displayWidth = 360;
+            const displayHeight = 640;
             const canvasWidth = 1080;
-            const canvasHeight = 1350;
+            const canvasHeight = 1920;
 
             csaCanvas = new fabric.Canvas('csaCanvas', {
                 width: displayWidth,
@@ -40679,21 +40768,23 @@ Would you like to test posting to Threads?`;
             // Hide placeholder
             document.getElementById('csaCanvasPlaceholder').style.display = 'none';
 
-            // Update Nano Banana status indicator
-            var nbStatus = document.getElementById('nanoBananaStatus');
-            if (nbStatus) {
+            // Nano Banana panel: hide when configured, show setup when not
+            var nbPanel = document.getElementById('nanoBananaPanel');
+            if (nbPanel) {
                 if (isNanoBananaConfigured()) {
-                    nbStatus.textContent = 'CONNECTED';
-                    nbStatus.style.background = 'rgba(42,157,143,0.2)';
-                    nbStatus.style.color = 'var(--success)';
+                    nbPanel.style.display = 'none';
                 } else {
-                    nbStatus.textContent = 'NOT SET UP';
-                    nbStatus.style.background = 'rgba(255,193,7,0.2)';
-                    nbStatus.style.color = 'var(--warning)';
+                    nbPanel.style.display = 'block';
+                    var nbStatus = document.getElementById('nanoBananaStatus');
+                    if (nbStatus) {
+                        nbStatus.textContent = 'NOT SET UP';
+                        nbStatus.style.background = 'rgba(255,193,7,0.2)';
+                        nbStatus.style.color = 'var(--warning)';
+                    }
                 }
             }
 
-            console.log('CSA Canvas initialized. Nano Banana:', isNanoBananaConfigured() ? 'configured' : 'not configured');
+            console.log('CSA Canvas initialized (1080x1920 Story). Nano Banana:', isNanoBananaConfigured() ? 'CONNECTED' : 'not configured');
         }
 
         // Add CSA item from input
@@ -40987,6 +41078,61 @@ Would you like to test posting to Threads?`;
             });
         }
 
+        // Add produce image to canvas — NO circle clip, full natural shape with drop shadow
+        function addProduceToCanvas(photoSrc, centerX, centerY, maxSize, scale) {
+            return new Promise(function(resolve) {
+                fabric.Image.fromURL(photoSrc, function(img) {
+                    if (!img || !img.width) { resolve(); return; }
+                    var imgScale = Math.min(
+                        (maxSize * scale) / img.width,
+                        (maxSize * scale) / img.height
+                    );
+                    img.set({
+                        left: centerX * scale,
+                        top: centerY * scale,
+                        scaleX: imgScale,
+                        scaleY: imgScale,
+                        originX: 'center',
+                        originY: 'center',
+                        selectable: false,
+                        shadow: new fabric.Shadow({
+                            color: 'rgba(0,0,0,0.4)',
+                            blur: 25 * scale,
+                            offsetX: 0,
+                            offsetY: 10 * scale
+                        })
+                    });
+                    csaCanvas.add(img);
+                    resolve(img);
+                }, { crossOrigin: 'anonymous' });
+            });
+        }
+
+        // Add background image to canvas, scaled to cover the full area
+        function addBgImageToCanvas(canvas, imgSrc, targetW, targetH, S) {
+            return new Promise(function(resolve) {
+                fabric.Image.fromURL(imgSrc, function(img) {
+                    if (!img || !img.width) { resolve(); return; }
+                    var scaleX = (targetW * S) / img.width;
+                    var scaleY = (targetH * S) / img.height;
+                    var coverScale = Math.max(scaleX, scaleY);
+                    img.set({
+                        left: (targetW * S) / 2,
+                        top: (targetH * S) / 2,
+                        scaleX: coverScale,
+                        scaleY: coverScale,
+                        originX: 'center',
+                        originY: 'center',
+                        selectable: false,
+                        evented: false
+                    });
+                    canvas.add(img);
+                    canvas.sendToBack(img);
+                    resolve();
+                }, { crossOrigin: 'anonymous' });
+            });
+        }
+
         // Draw burlap woven texture on canvas using native 2D for realistic fabric look
         function drawBurlapTexture(canvas, W, H, S) {
             // We draw burlap onto an offscreen canvas, then add as a fabric.Image
@@ -41273,7 +41419,64 @@ Would you like to test posting to Threads?`;
             }));
         }
 
-        // Generate CSA Box Visual - Burlap + Chalkboard style
+        // Draw a kraft paper tag label with handwritten text — warm, farm aesthetic
+        function drawKraftLabel(canvas, text, centerX, centerY, S) {
+            var displayName = text.charAt(0).toUpperCase() + text.slice(1);
+            var padX = 22;
+            var padY = 10;
+            var fontSize = 34;
+            var labelW = Math.max(displayName.length * 19 + padX * 2, 130);
+            var labelH = fontSize + padY * 2;
+
+            // Kraft paper tag background
+            canvas.add(new fabric.Rect({
+                left: centerX * S,
+                top: centerY * S,
+                width: labelW * S,
+                height: labelH * S,
+                rx: 5 * S,
+                ry: 5 * S,
+                fill: 'rgba(222, 197, 160, 0.92)',
+                originX: 'center',
+                originY: 'center',
+                selectable: false,
+                shadow: new fabric.Shadow({
+                    color: 'rgba(0,0,0,0.3)', blur: 8 * S, offsetX: 0, offsetY: 4 * S
+                })
+            }));
+
+            // Subtle inner border for tag definition
+            canvas.add(new fabric.Rect({
+                left: centerX * S,
+                top: centerY * S,
+                width: (labelW - 4) * S,
+                height: (labelH - 4) * S,
+                rx: 3 * S,
+                ry: 3 * S,
+                fill: 'transparent',
+                stroke: 'rgba(139, 110, 70, 0.3)',
+                strokeWidth: 1 * S,
+                originX: 'center',
+                originY: 'center',
+                selectable: false
+            }));
+
+            // Handwritten text in warm brown
+            canvas.add(new fabric.Text(displayName, {
+                left: centerX * S,
+                top: centerY * S,
+                fontSize: fontSize * S,
+                fontFamily: "'Caveat', cursive",
+                fontWeight: '700',
+                fill: '#3d2b1f',
+                textAlign: 'center',
+                originX: 'center',
+                originY: 'center',
+                selectable: false
+            }));
+        }
+
+        // Generate CSA Box Visual — AI-powered Instagram Story (1080x1920)
         async function generateCSABoxVisual() {
             if (csaSelectedItems.length === 0) {
                 showToast('Please add at least one item to your box', 'warning');
@@ -41290,18 +41493,27 @@ Would you like to test posting to Threads?`;
                 csaCanvas.clear();
 
                 var W = csaCanvas.actualWidth;   // 1080
-                var H = csaCanvas.actualHeight;  // 1350
-                var S = csaCanvas.displayScale;  // ~0.37
+                var H = csaCanvas.actualHeight;  // 1920
+                var S = csaCanvas.displayScale;  // ~0.333
 
                 var bgKey = document.getElementById('csaBackground').value;
                 var seasonKey = document.getElementById('csaSeason').value;
                 var headerText = document.getElementById('csaHeaderText').value;
 
                 var palette = SEASON_PALETTES[seasonKey];
-                var isLightBg = (bgKey === 'marble_white' || bgKey === 'linen_cream');
 
-                // --- BACKGROUND TEXTURE ---
-                if (bgKey === 'burlap') {
+                // ═══════════════════════════════════════════
+                // BACKGROUND — AI-generated or procedural fallback
+                // ═══════════════════════════════════════════
+                var aiBg = null;
+                if (isNanoBananaConfigured()) {
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating rustic background...';
+                    aiBg = await generateAIBackground(bgKey);
+                }
+
+                if (aiBg) {
+                    await addBgImageToCanvas(csaCanvas, aiBg, W, H, S);
+                } else if (bgKey === 'burlap') {
                     await drawBurlapTexture(csaCanvas, W, H, S);
                 } else if (bgKey === 'wooden_rustic') {
                     await drawWoodTexture(csaCanvas, W, H, S);
@@ -41309,302 +41521,200 @@ Would you like to test posting to Threads?`;
                     csaCanvas.backgroundColor = BACKGROUNDS[bgKey].color;
                 }
 
-                // --- TOP ACCENT STRIP ---
+                // ═══════════════════════════════════════════
+                // HEADER ZONE (0 - 300px)
+                // ═══════════════════════════════════════════
+                // Semi-transparent overlay for readability
                 csaCanvas.add(new fabric.Rect({
                     left: 0, top: 0,
-                    width: W * S, height: 6 * S,
-                    fill: palette.primary, selectable: false
-                }));
-
-                // --- HEADER ZONE ---
-                // Header chalkboard banner
-                var headerBannerW = 860;
-                var headerBannerH = 90;
-                csaCanvas.add(new fabric.Rect({
-                    left: (W / 2) * S, top: 55 * S,
-                    width: headerBannerW * S, height: headerBannerH * S,
-                    rx: 12 * S, ry: 12 * S,
-                    fill: '#2c3e2d',
-                    originX: 'center', originY: 'center',
-                    selectable: false,
-                    shadow: new fabric.Shadow({
-                        color: 'rgba(0,0,0,0.4)', blur: 15 * S, offsetX: 0, offsetY: 5 * S
-                    })
-                }));
-                // Inner chalk border on header
-                csaCanvas.add(new fabric.Rect({
-                    left: (W / 2) * S, top: 55 * S,
-                    width: (headerBannerW - 16) * S, height: (headerBannerH - 16) * S,
-                    rx: 8 * S, ry: 8 * S,
-                    fill: 'transparent',
-                    stroke: 'rgba(255,255,255,0.2)',
-                    strokeWidth: 1.5 * S,
-                    originX: 'center', originY: 'center',
+                    width: W * S, height: 300 * S,
+                    fill: 'rgba(0,0,0,0.35)',
                     selectable: false
                 }));
 
-                // Header text (chalk style)
-                var titleLines = csaSplitHeader(headerText, 28);
-                var titleStartY = titleLines.length > 1 ? 35 : 47;
+                // Top accent line
+                csaCanvas.add(new fabric.Rect({
+                    left: 0, top: 0,
+                    width: W * S, height: 5 * S,
+                    fill: palette.primary, selectable: false
+                }));
+
+                // Header text — large, warm, handwritten
+                var titleLines = csaSplitHeader(headerText, 24);
+                var titleStartY = titleLines.length > 1 ? 55 : 80;
                 for (var tl = 0; tl < titleLines.length; tl++) {
                     csaCanvas.add(new fabric.Text(titleLines[tl], {
                         left: (W / 2) * S,
-                        top: (titleStartY + tl * 38) * S,
-                        fontSize: 42 * S,
-                        fontFamily: "'Caveat', 'Segoe Script', cursive",
+                        top: (titleStartY + tl * 60) * S,
+                        fontSize: 58 * S,
+                        fontFamily: "'Caveat', cursive",
                         fontWeight: '700',
-                        fill: '#f0ece4',
+                        fill: '#ffffff',
                         textAlign: 'center',
                         originX: 'center',
                         selectable: false,
                         shadow: new fabric.Shadow({
-                            color: 'rgba(255,255,255,0.12)', blur: 3 * S, offsetX: 0, offsetY: 0
+                            color: 'rgba(0,0,0,0.6)', blur: 10 * S, offsetX: 0, offsetY: 3 * S
                         })
                     }));
                 }
 
-                // Week date below header banner
+                // Week range — readable size, warm cream
+                var weekY = titleLines.length > 1 ? 200 : 180;
                 csaCanvas.add(new fabric.Text(csaWeekRange(), {
                     left: (W / 2) * S,
-                    top: 118 * S,
-                    fontSize: 20 * S,
+                    top: weekY * S,
+                    fontSize: 30 * S,
                     fontFamily: "'Caveat', cursive",
                     fontWeight: '400',
-                    fill: isLightBg ? '#636e72' : '#d4c9a8',
+                    fill: 'rgba(255,255,255,0.9)',
                     textAlign: 'center',
                     originX: 'center',
-                    selectable: false
+                    selectable: false,
+                    shadow: new fabric.Shadow({
+                        color: 'rgba(0,0,0,0.4)', blur: 4 * S, offsetX: 0, offsetY: 1 * S
+                    })
                 }));
 
-                // Small decorative leaf divider (using unicode)
-                csaCanvas.add(new fabric.Text('\u2022 \u2022 \u2022', {
+                // Decorative divider
+                csaCanvas.add(new fabric.Text('\u2014 \u2726 \u2014', {
                     left: (W / 2) * S,
-                    top: 148 * S,
-                    fontSize: 18 * S,
+                    top: (weekY + 50) * S,
+                    fontSize: 22 * S,
                     fontFamily: 'Georgia, serif',
                     fill: palette.primary,
                     textAlign: 'center',
                     originX: 'center',
-                    selectable: false
+                    selectable: false,
+                    shadow: new fabric.Shadow({
+                        color: 'rgba(0,0,0,0.3)', blur: 3 * S, offsetX: 0, offsetY: 1 * S
+                    })
                 }));
 
-                var gridTop = 175;
-
-                // --- GRID ZONE: Photos + Chalkboard Labels ---
-                var gridBottom = 1080;
-                var gridPadding = 60;
+                // ═══════════════════════════════════════════
+                // PRODUCE GRID (320 - 1620px) — BIG items, NO circles
+                // ═══════════════════════════════════════════
+                var gridTop = 320;
+                var gridBottom = 1620;
+                var gridPadX = 60;
+                var gridAvailW = W - gridPadX * 2;
+                var gridAvailH = gridBottom - gridTop;
                 var itemCount = csaSelectedItems.length;
-                var cols = itemCount <= 4 ? 2 : 3;
-                var rows = Math.ceil(itemCount / cols);
 
-                var cellWidth = (W - gridPadding * 2) / cols;
-                var maxCellHeight = (gridBottom - gridTop) / rows;
-                var cellHeight = Math.min(maxCellHeight, 340);
-                var circleRadius = Math.min(cellWidth * 0.32, cellHeight * 0.3, 110);
+                // Smart grid: maximize item size
+                var cols, rows;
+                if (itemCount <= 2) { cols = 1; rows = itemCount; }
+                else if (itemCount <= 4) { cols = 2; rows = Math.ceil(itemCount / 2); }
+                else if (itemCount <= 6) { cols = 2; rows = Math.ceil(itemCount / 2); }
+                else if (itemCount <= 9) { cols = 3; rows = Math.ceil(itemCount / 3); }
+                else { cols = 3; rows = Math.ceil(itemCount / 3); }
 
-                var totalGridHeight = rows * cellHeight;
-                var gridStartY = gridTop + ((gridBottom - gridTop) - totalGridHeight) / 2;
+                var cellW = gridAvailW / cols;
+                var cellH = gridAvailH / rows;
+                var labelSpace = 65;
+                var imageMaxSize = Math.min(cellW * 0.82, (cellH - labelSpace) * 0.88);
+                imageMaxSize = Math.min(imageMaxSize, 450);
+
+                var totalGridH = rows * cellH;
+                var gridOffY = gridTop + (gridAvailH - totalGridH) / 2;
+
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating produce images...';
 
                 for (var gi = 0; gi < itemCount; gi++) {
                     var item = csaSelectedItems[gi];
                     var col = gi % cols;
                     var row = Math.floor(gi / cols);
 
-                    var cellCenterX = gridPadding + col * cellWidth + cellWidth / 2;
-                    var cellCenterY = gridStartY + row * cellHeight + cellHeight / 2 - 30;
+                    // Center last row if fewer items
+                    var itemsInRow = (row === rows - 1) ? (itemCount - row * cols) : cols;
+                    var rowOffset = (cols - itemsInRow) * cellW / 2;
+
+                    var cellCX = gridPadX + rowOffset + col * cellW + cellW / 2;
+                    var cellCY = gridOffY + row * cellH + (cellH - labelSpace) / 2;
 
                     var itemData = PRODUCE_LIBRARY[item.name] || PRODUCE_LIBRARY['default'];
                     var photoSrc = item.processedPhoto || item.rawPhoto;
 
-                    // Try Nano Banana AI photo if no user photo and API configured
+                    // Try Nano Banana AI photo if none uploaded
                     if (!photoSrc && isNanoBananaConfigured()) {
+                        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating ' + item.name + '...';
                         try {
                             var aiPhoto = await generateAIProducePhoto(item.name);
                             if (aiPhoto) photoSrc = aiPhoto;
-                        } catch(e) { /* fall through to placeholder */ }
+                        } catch(e) { /* fall through to emoji */ }
                     }
 
                     if (photoSrc) {
-                        // User's actual photo or AI-generated — circular clip with thick visible border
-                        await addCircularPhotoToCanvas(photoSrc, cellCenterX, cellCenterY, circleRadius, S);
+                        // Full produce image — NO circle clip, natural shape, big, with drop shadow
+                        await addProduceToCanvas(photoSrc, cellCX, cellCY, imageMaxSize, S);
                     } else {
-                        // Produce placeholder — solid visible circle with cream fill, strong border, emoji
-                        // Outer ring shadow
-                        csaCanvas.add(new fabric.Circle({
-                            left: cellCenterX * S,
-                            top: cellCenterY * S,
-                            radius: (circleRadius + 4) * S,
-                            fill: 'transparent',
-                            stroke: 'rgba(0,0,0,0.2)',
-                            strokeWidth: 2 * S,
-                            originX: 'center',
-                            originY: 'center',
-                            selectable: false
-                        }));
-
-                        // Main circle — cream/parchment fill so produce stands out
-                        csaCanvas.add(new fabric.Circle({
-                            left: cellCenterX * S,
-                            top: cellCenterY * S,
-                            radius: circleRadius * S,
-                            fill: 'rgba(250,245,230,0.85)',
-                            stroke: itemData.color,
-                            strokeWidth: 4 * S,
-                            originX: 'center',
-                            originY: 'center',
-                            selectable: false,
-                            shadow: new fabric.Shadow({
-                                color: 'rgba(0,0,0,0.3)', blur: 12 * S, offsetX: 0, offsetY: 5 * S
-                            })
-                        }));
-
-                        // Inner decorative ring
-                        csaCanvas.add(new fabric.Circle({
-                            left: cellCenterX * S,
-                            top: cellCenterY * S,
-                            radius: (circleRadius - 8) * S,
-                            fill: 'transparent',
-                            stroke: itemData.color + '40',
-                            strokeWidth: 1.5 * S,
-                            originX: 'center',
-                            originY: 'center',
-                            selectable: false
-                        }));
-
-                        // Large emoji from PRODUCE_LIBRARY (loaded as image)
+                        // Emoji fallback — still no circle, just the emoji at large size
                         if (itemData.url) {
-                            try {
-                                await new Promise(function(resolve) {
-                                    fabric.Image.fromURL(itemData.url, function(emojiImg) {
-                                        if (emojiImg) {
-                                            var emojiSize = circleRadius * 1.1 * (itemData.scale || 1.0);
-                                            var emojiScale = (emojiSize * S) / Math.max(emojiImg.width, emojiImg.height);
-                                            emojiImg.set({
-                                                left: cellCenterX * S,
-                                                top: (cellCenterY - 8) * S,
-                                                scaleX: emojiScale,
-                                                scaleY: emojiScale,
-                                                originX: 'center',
-                                                originY: 'center',
-                                                selectable: false,
-                                                shadow: new fabric.Shadow({
-                                                    color: 'rgba(0,0,0,0.15)', blur: 6 * S, offsetX: 0, offsetY: 3 * S
-                                                })
-                                            });
-                                            csaCanvas.add(emojiImg);
-                                        }
-                                        resolve();
-                                    }, { crossOrigin: 'anonymous' });
-                                });
-                            } catch(e) {
-                                // Fallback: large letter if emoji fails
-                                csaCanvas.add(new fabric.Text(item.name.charAt(0).toUpperCase(), {
-                                    left: cellCenterX * S,
-                                    top: (cellCenterY - 8) * S,
-                                    fontSize: (circleRadius * 0.8) * S,
-                                    fontFamily: "'Caveat', cursive",
-                                    fontWeight: '700',
-                                    fill: itemData.color,
-                                    originX: 'center',
-                                    originY: 'center',
-                                    selectable: false
-                                }));
-                            }
-                        } else {
-                            // No emoji URL — show large initial letter
-                            csaCanvas.add(new fabric.Text(item.name.charAt(0).toUpperCase(), {
-                                left: cellCenterX * S,
-                                top: (cellCenterY - 8) * S,
-                                fontSize: (circleRadius * 0.8) * S,
-                                fontFamily: "'Caveat', cursive",
-                                fontWeight: '700',
-                                fill: itemData.color,
-                                originX: 'center',
-                                originY: 'center',
-                                selectable: false
-                            }));
+                            await addProduceToCanvas(itemData.url, cellCX, cellCY, imageMaxSize * 0.65, S);
                         }
                     }
 
-                    // Chalkboard label beneath the circle
-                    var labelY = cellCenterY + circleRadius + 28;
-                    drawChalkboardLabel(csaCanvas, item.name, cellCenterX, labelY, S);
+                    // Kraft paper label below the produce image
+                    var labelY = cellCY + (cellH - labelSpace) / 2 + labelSpace / 2 + 5;
+                    drawKraftLabel(csaCanvas, item.name, cellCX, labelY, S);
                 }
 
-                // --- FOOTER ZONE (1080-1350px) ---
-                // Twine divider effect
-                csaCanvas.add(new fabric.Line(
-                    [(W * 0.1) * S, 1095 * S, (W * 0.9) * S, 1095 * S],
-                    { stroke: '#8b7355', strokeWidth: 2 * S, selectable: false }
-                ));
-                csaCanvas.add(new fabric.Line(
-                    [(W * 0.1) * S, 1099 * S, (W * 0.9) * S, 1099 * S],
-                    { stroke: '#a08860', strokeWidth: 1 * S, selectable: false }
-                ));
-
-                // Farm name on chalkboard
-                var footerBoardW = 600;
-                var footerBoardH = 110;
+                // ═══════════════════════════════════════════
+                // FOOTER (1640 - 1920px) — Warm farm branding
+                // ═══════════════════════════════════════════
+                // Semi-transparent overlay
                 csaCanvas.add(new fabric.Rect({
-                    left: (W / 2) * S, top: 1175 * S,
-                    width: footerBoardW * S, height: footerBoardH * S,
-                    rx: 10 * S, ry: 10 * S,
-                    fill: '#2c3e2d',
-                    originX: 'center', originY: 'center',
+                    left: 0, top: 1640 * S,
+                    width: W * S, height: 280 * S,
+                    fill: 'rgba(0,0,0,0.35)',
+                    selectable: false
+                }));
+
+                // Farm name — warm handwritten, not corporate
+                csaCanvas.add(new fabric.Text('Tiny Seed Farm', {
+                    left: (W / 2) * S,
+                    top: 1720 * S,
+                    fontSize: 52 * S,
+                    fontFamily: "'Caveat', cursive",
+                    fontWeight: '700',
+                    fill: '#ffffff',
+                    textAlign: 'center',
+                    originX: 'center',
                     selectable: false,
                     shadow: new fabric.Shadow({
-                        color: 'rgba(0,0,0,0.4)', blur: 12 * S, offsetX: 0, offsetY: 4 * S
+                        color: 'rgba(0,0,0,0.5)', blur: 8 * S, offsetX: 0, offsetY: 3 * S
                     })
                 }));
-                csaCanvas.add(new fabric.Rect({
-                    left: (W / 2) * S, top: 1175 * S,
-                    width: (footerBoardW - 14) * S, height: (footerBoardH - 14) * S,
-                    rx: 7 * S, ry: 7 * S,
-                    fill: 'transparent',
-                    stroke: 'rgba(255,255,255,0.2)',
-                    strokeWidth: 1 * S,
-                    originX: 'center', originY: 'center',
-                    selectable: false
-                }));
 
-                csaCanvas.add(new fabric.Text('TINY SEED FARM', {
-                    left: (W / 2) * S,
-                    top: 1158 * S,
-                    fontSize: 36 * S,
-                    fontFamily: "'Caveat', 'Segoe Script', cursive",
-                    fontWeight: '700',
-                    fill: '#f0ece4',
-                    textAlign: 'center',
-                    originX: 'center',
-                    charSpacing: 200,
-                    selectable: false
-                }));
-
+                // Tagline
                 csaCanvas.add(new fabric.Text('Farm Fresh  \u2022  Locally Grown  \u2022  Delivered to You', {
                     left: (W / 2) * S,
-                    top: 1195 * S,
-                    fontSize: 16 * S,
+                    top: 1795 * S,
+                    fontSize: 24 * S,
                     fontFamily: "'Caveat', cursive",
                     fontWeight: '400',
-                    fill: '#b8ad94',
+                    fill: 'rgba(255,255,255,0.85)',
                     textAlign: 'center',
                     originX: 'center',
-                    selectable: false
+                    selectable: false,
+                    shadow: new fabric.Shadow({
+                        color: 'rgba(0,0,0,0.3)', blur: 3 * S, offsetX: 0, offsetY: 1 * S
+                    })
                 }));
 
-                // Tiny seed logo mark (small leaf unicode)
+                // Seed emoji
                 csaCanvas.add(new fabric.Text('\uD83C\uDF31', {
                     left: (W / 2) * S,
-                    top: 1265 * S,
-                    fontSize: 28 * S,
+                    top: 1860 * S,
+                    fontSize: 34 * S,
                     originX: 'center',
                     selectable: false
                 }));
 
                 // Bottom accent strip
                 csaCanvas.add(new fabric.Rect({
-                    left: 0, top: (H - 6) * S,
-                    width: W * S, height: 6 * S,
+                    left: 0, top: (H - 5) * S,
+                    width: W * S, height: 5 * S,
                     fill: palette.primary, selectable: false
                 }));
 
@@ -41615,7 +41725,7 @@ Would you like to test posting to Threads?`;
                 document.getElementById('csaDownloadBtn').style.display = 'inline-flex';
                 document.getElementById('csaExportOptions').style.display = 'block';
 
-                showToast('Box visual generated!', 'success');
+                showToast('Instagram Story ready! 1080\u00d71920 — download to share.', 'success');
 
             } catch (error) {
                 console.error('Error generating CSA visual:', error);

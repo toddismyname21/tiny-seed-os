@@ -73,7 +73,7 @@ const TINY_SEED_API = {
     // Gemini API (Nano Banana) for AI image generation
     // Get your free key at https://aistudio.google.com/apikey
     // Free tier: 1,000 requests/day — plenty for CSA visuals
-    GEMINI_API_KEY: window.TINY_SEED_CONFIG?.GEMINI_API_KEY || localStorage.getItem('tinyseed_gemini_key') || '',
+    GEMINI_API_KEY: window.TINY_SEED_CONFIG?.GEMINI_API_KEY || localStorage.getItem('tinyseed_gemini_key') || 'AIzaSyBQM_OETLMsM6jYVyVeVJ9m1ZKD7gdS2OE',
 
     // App URLs for redirects
     APP_URLS: {
